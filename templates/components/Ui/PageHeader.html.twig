@@ -1,0 +1,28 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set badgeView = this.badgeView %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+<header {{ attributes.defaults({class: 'flex flex-wrap items-center gap-3 border-b border-line px-6 py-4'}) }}>
+    <div class="min-w-0">
+        {% if this.crumbViews is not empty %}
+            <nav aria-label="{{ 'ui.breadcrumb.label'|trans }}" class="mb-1 text-[13px] text-muted">
+                <ol class="m-0 flex list-none flex-wrap items-center gap-1.5 p-0">
+                    {% for crumb in this.crumbViews %}
+                        <li class="flex items-center gap-1.5">
+                            {% if crumb.href %}
+                                <a href="{{ crumb.href }}" class="text-muted no-underline hover:text-ink hover:underline {{ focus }}">{{ crumb.label }}</a>
+                                {{ ux_icon('lucide:chevron-right', {class: 'size-3.5', 'aria-hidden': 'true'}) }}
+                            {% else %}
+                                <span aria-current="page">{{ crumb.label }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </nav>
+        {% endif %}
+        <div class="flex min-w-0 items-center gap-2.5">
+            <h1 class="m-0 min-w-0 max-w-[60ch] truncate text-xl font-semibold tracking-tight text-ink" title="{{ title }}">{{ title }}</h1>
+            {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
+        </div>
+    </div>
+    <div class="ml-auto flex flex-wrap items-center gap-2">{% block content %}{% endblock %}</div>
+</header>

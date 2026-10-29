@@ -20,3 +20,27 @@ nav:
 ui:
   empty_state:
     title: Nothing here yet
+  table:
+    caption: Table
+    select_all: Select all rows
+    select_row: 'Select row {label}'
+    total: Total
+  bulk:
+    label: Bulk actions
+    selected:
+      one: "'{'count'}' record selected"
+      few: "'{'count'}' records selected"
+      other: "'{'count'}' records selected"
+  pagination:
+    label: Pagination
+    previous: Previous page
+    next: Next page
+    page: 'Page {page}'
+  breadcrumb:
+    label: Breadcrumb
+  palette:
+    open: Search or run a command
+    label: Command palette
+    placeholder: Type a command or search
+    close: Close
+    empty: Nothing found

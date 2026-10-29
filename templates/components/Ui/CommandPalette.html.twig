@@ -1,0 +1,34 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+<div {{ attributes }} data-controller="command-palette">
+    <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="inline-flex h-control w-full min-w-[220px] cursor-pointer items-center gap-2 rounded-control border border-line-strong bg-white px-2.5 text-left text-muted hover:bg-head {{ focus }}">
+        {{ ux_icon('lucide:search', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}
+        <span class="flex-1 truncate">{{ 'ui.palette.open'|trans }}</span>
+        <twig:Ui:Kbd>⌘K</twig:Ui:Kbd>
+    </button>
+    <div hidden data-command-palette-target="overlay" data-action="click->command-palette#backdrop keydown->command-palette#keydown" class="fixed inset-0 z-50 flex items-start justify-center bg-ink/25 pt-[12vh]">
+        <div role="dialog" aria-modal="true" aria-label="{{ 'ui.palette.label'|trans }}" class="w-[min(560px,92vw)] overflow-hidden rounded-panel border border-line-strong bg-white shadow-[0_20px_50px_rgba(28,29,26,.2)]">
+            <div class="flex items-center border-b border-line pr-2">
+                <input type="text" role="combobox" aria-expanded="false" aria-controls="{{ id }}-list" aria-autocomplete="list" aria-label="{{ 'ui.palette.label'|trans }}" placeholder="{{ 'ui.palette.placeholder'|trans }}" autocomplete="off" spellcheck="false" data-command-palette-target="input" data-action="input->command-palette#filter" class="h-12 min-w-0 flex-1 border-0 bg-transparent px-4 text-ink outline-none">
+                <twig:Ui:IconButton icon="x" :label="'ui.palette.close'|trans" variant="ghost" size="sm" data-action="command-palette#close" data-command-palette-target="close" />
+            </div>
+            <ul id="{{ id }}-list" role="listbox" aria-label="{{ 'ui.palette.label'|trans }}" data-command-palette-target="list" class="m-0 max-h-[50vh] list-none overflow-y-auto p-0 pb-2">
+                {% for group in this.groups %}
+                    <li role="presentation" data-group>
+                        <ul role="group"{% if group.label %} aria-labelledby="{{ id }}-group-{{ group.index }}"{% endif %} class="m-0 list-none p-0">
+                            {% if group.label %}<li role="presentation" id="{{ id }}-group-{{ group.index }}" class="px-4 pb-1 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{{ group.label }}</li>{% endif %}
+                            {% for command in group.items %}
+                                <li id="{{ id }}-option-{{ command.index }}" role="option" aria-selected="false" data-href="{{ command.href }}" data-keywords="{{ command.keywords }}" data-action="click->command-palette#choose" data-command-palette-target="option" class="flex h-[38px] cursor-pointer items-center gap-2.5 px-4 text-ink aria-selected:bg-green-tint">
+                                    {% if command.icon %}{{ ux_icon('lucide:' ~ command.icon, {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}{% endif %}
+                                    <span class="truncate">{{ command.label }}</span>
+                                    {% if command.shortcut %}<twig:Ui:Kbd class="ml-auto">{{ command.shortcut }}</twig:Ui:Kbd>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+            <p role="status" hidden data-command-palette-target="empty" class="m-0 px-4 py-6 text-center text-muted">{{ 'ui.palette.empty'|trans }}</p>
+        </div>
+    </div>
+</div>

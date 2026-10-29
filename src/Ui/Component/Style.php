@@ -92,6 +92,40 @@ final class Style
     }
 
     /**
+     * Reads a required non-empty string entry of a component item array.
+     *
+     * @param array<array-key, mixed> $item
+     */
+    public static function requireString(array $item, string $key, string $what): string
+    {
+        $value = $item[$key] ?? null;
+        if (!is_string($value) || '' === $value) {
+            throw new \InvalidArgumentException(sprintf('%s needs a non-empty string "%s".', $what, $key));
+        }
+
+        return $value;
+    }
+
+    /**
+     * Validates a badge definition with a label and an optional tone.
+     *
+     * @return array{label: string, tone: string}
+     */
+    public static function badge(mixed $badge, string $what): array
+    {
+        if (!is_array($badge)) {
+            throw new \InvalidArgumentException(sprintf('%s badge must be an array with a label and a tone.', $what));
+        }
+        $tone = $badge['tone'] ?? 'gray';
+        if (!is_string($tone)) {
+            throw new \InvalidArgumentException(sprintf('%s badge tone must be a string.', $what));
+        }
+        self::tone($tone);
+
+        return ['label' => self::requireString($badge, 'label', $what.' badge'), 'tone' => $tone];
+    }
+
+    /**
      * @param array<string, string> $map
      */
     private static function lookup(array $map, string $key, string $what): string

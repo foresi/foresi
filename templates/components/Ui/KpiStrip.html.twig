@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div {{ attributes.defaults({class: 'grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.views|length}) }}>
+    {% for item in this.views %}
+        <div data-kpi class="min-w-0 bg-white px-4 py-3.5">
+            <div class="flex items-center gap-1.5 text-[13px] text-muted"><span class="truncate" title="{{ item.label }}">{{ item.label }}</span></div>
+            <div class="num mb-1 mt-1.5 truncate text-2xl font-semibold tracking-tight text-ink" title="{{ item.value }}">{{ item.value }}</div>
+            {% if item.note or item.badge %}
+                <div class="flex items-center gap-1.5 text-xs text-muted">
+                    {% if item.badge %}<twig:Ui:Badge :tone="item.badge.tone">{{ item.badge.label }}</twig:Ui:Badge>{% endif %}
+                    {% if item.note %}<span class="truncate">{{ item.note }}</span>{% endif %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

@@ -20,3 +20,27 @@ nav:
 ui:
   empty_state:
     title: Zatím tu nic není
+  table:
+    caption: Tabulka
+    select_all: Vybrat všechny řádky
+    select_row: 'Vybrat řádek {label}'
+    total: Celkem
+  bulk:
+    label: Hromadné akce
+    selected:
+      one: "Vybrán '{'count'}' záznam"
+      few: "Vybrány '{'count'}' záznamy"
+      other: "Vybráno '{'count'}' záznamů"
+  pagination:
+    label: Stránkování
+    previous: Předchozí stránka
+    next: Další stránka
+    page: 'Stránka {page}'
+  breadcrumb:
+    label: Drobečková navigace
+  palette:
+    open: Hledat nebo spustit příkaz
+    label: Příkazová paleta
+    placeholder: Zadejte příkaz nebo hledejte
+    close: Zavřít
+    empty: Nic nenalezeno

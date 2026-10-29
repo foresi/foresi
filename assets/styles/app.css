@@ -109,6 +109,11 @@ body {
     outline-offset: 1px;
 }
 
+/* Keep focused elements clear of the floating bulk bar. */
+html:has([data-table-selection-target~="bar"]:not([hidden])) {
+    scroll-padding-bottom: 6rem;
+}
+
 .num {
     font-variant-numeric: tabular-nums;
 }

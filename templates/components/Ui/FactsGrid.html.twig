@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% if this.views is not empty %}
+    <dl {{ attributes.defaults({class: 'm-0 grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.columns}) }}>
+        {% for item in this.views %}
+            <div class="min-w-0 bg-white px-3.5 py-3">
+                <dt class="mb-[3px] text-xs text-muted">{{ item.label }}</dt>
+                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-lg font-semibold' : 'font-medium' }}" title="{{ item.value }}">{{ item.value }}</dd>
+            </div>
+        {% endfor %}
+    </dl>
+{% endif %}
