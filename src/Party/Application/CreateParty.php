@@ -21,12 +21,13 @@ use App\Party\Domain\VatId;
 
 /**
  * The one way to create a party: it always comes with exactly one billing
- * address, and with a general e-mail address when one is given. The caller
- * flushes.
+ * address, and with a general e-mail address when one is given. It owns its
+ * unit of work: everything is stored in one transaction, so a failure leaves
+ * nothing behind.
  */
 final readonly class CreateParty
 {
-    public function __construct(private Parties $parties)
+    public function __construct(private Parties $parties, private TransactionalWork $transaction)
     {
     }
 
@@ -43,10 +44,12 @@ final readonly class CreateParty
         array $roles,
         Address $billingAddress,
     ): Party {
-        $party = new Party($kind, $displayName, $registrationNumber, $vatId, $phone, $roles);
-        $emails = '' === trim($email) ? [] : [new PartyEmail($party, $email, EmailPurpose::General)];
-        $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $billingAddress), $emails);
+        return $this->transaction->run(function () use ($kind, $displayName, $registrationNumber, $vatId, $email, $phone, $roles, $billingAddress): Party {
+            $party = new Party($kind, $displayName, $registrationNumber, $vatId, $phone, $roles);
+            $emails = '' === trim($email) ? [] : [new PartyEmail($party, $email, EmailPurpose::General)];
+            $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $billingAddress), $emails);
 
-        return $party;
+            return $party;
+        });
     }
 }

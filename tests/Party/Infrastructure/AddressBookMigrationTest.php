@@ -86,6 +86,26 @@ final class AddressBookMigrationTest extends TestCase
         self::assertSame(['With email' => 'invoices@example.com', 'Without email' => ''], $this->connection->fetchAllKeyValue('SELECT display_name, email FROM party'));
     }
 
+    public function testAwkwardLegacyDataIsCleanedWhileMoving(): void
+    {
+        $this->legacyParty('Padded', true, false, 'Street 1', '  invoices@example.com  ', 'DE', 'straße ß');
+        $this->legacyParty('Blank', true, false, 'Street 2', '   ', 'CZ', ' - / ');
+        $this->legacyParty('Long', true, false, 'Street 3', str_repeat('a', 250).'@example.com');
+        $padded = $this->connection->fetchOne("SELECT id FROM party WHERE display_name = 'Padded'");
+        $this->migrateTo('DoctrineMigrations\\Version20261029000007');
+        foreach ([['DE89370400440532013000', 1], ['GB82WEST12345698765432', 1], ['FR1420041010050500013M02606', 0]] as [$iban, $primary]) {
+            $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $padded, 'iban' => $iban, 'label' => '', 'is_primary' => $primary]);
+        }
+
+        $this->migrateTo(null);
+
+        self::assertSame([['invoices@example.com']], $this->connection->fetchAllNumeric('SELECT address FROM party_email'));
+        self::assertSame('STRASSESS', $this->connection->fetchOne("SELECT registration_key FROM party WHERE display_name = 'Padded'"));
+        self::assertSame([['Blank', null, null]], $this->connection->fetchAllNumeric("SELECT display_name, registration_country, registration_number FROM party WHERE display_name = 'Blank'"));
+        self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM party_bank_account WHERE primary_flag IS NOT NULL'));
+        self::assertSame('DE89370400440532013000', $this->connection->fetchOne('SELECT iban FROM party_bank_account WHERE primary_flag IS NOT NULL'));
+    }
+
     public function testNewColumnsGetTheirDefaults(): void
     {
         $this->legacyParty('Customer', true, false, 'Customer Street 1');

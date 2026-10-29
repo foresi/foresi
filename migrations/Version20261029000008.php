@@ -14,7 +14,8 @@ use Doctrine\Migrations\AbstractMigration;
 
 /**
  * Address book fix, step 1 of 3: the normalised registration number (for
- * duplicate lookups in SQL), the primary flag of bank accounts with its unique
+ * duplicate lookups in SQL; 192 characters because upper-casing can expand a
+ * character, ß becomes SS), the primary flag of bank accounts with its unique
  * index (true on the primary account, NULL elsewhere, so NULLs never collide on
  * SQLite or PostgreSQL) and lookup indexes. Schema API only.
  */
@@ -28,7 +29,7 @@ final class Version20261029000008 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $party = $schema->getTable('party');
-        $party->addColumn('registration_key', Types::STRING, ['length' => 64, 'notnull' => false]);
+        $party->addColumn('registration_key', Types::STRING, ['length' => 192, 'notnull' => false]);
         $party->addIndex(['tenant_id', 'registration_key'], 'idx_party_registration_key');
         $party->addIndex(['tenant_id', 'vat_id'], 'idx_party_vat_id');
 

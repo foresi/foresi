@@ -20,17 +20,22 @@ final readonly class DoctrinePartyBankAccounts implements PartyBankAccounts
 
     public function add(PartyBankAccount $account): void
     {
-        if ($account->isPrimary()) {
-            $this->demoteOthers($account);
-        }
-
-        $this->em->persist($account);
+        $this->em->wrapInTransaction(function () use ($account): void {
+            if ($account->isPrimary()) {
+                $this->demoteOthers($account);
+            }
+            $this->em->persist($account);
+            $this->em->flush();
+        });
     }
 
     public function makePrimary(PartyBankAccount $account): void
     {
-        $this->demoteOthers($account);
-        $account->makePrimary();
+        $this->em->wrapInTransaction(function () use ($account): void {
+            $this->demoteOthers($account);
+            $account->makePrimary();
+            $this->em->flush();
+        });
     }
 
     /**
@@ -42,28 +47,33 @@ final readonly class DoctrinePartyBankAccounts implements PartyBankAccounts
     private function demoteOthers(PartyBankAccount $account): void
     {
         $party = $account->party();
-        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $pending) {
-            if ($pending instanceof PartyBankAccount && $pending !== $account && $pending->party() === $party) {
-                $pending->demote();
-            }
-        }
-
-        // A party that is not stored yet has no stored accounts.
-        if (!$this->em->contains($party) || null === $this->em->getUnitOfWork()->getSingleIdentifierValue($party)) {
-            return;
-        }
-
-        /** @var list<PartyBankAccount> $others */
-        $others = $this->em->createQuery('SELECT b FROM '.PartyBankAccount::class.' b WHERE b.party = :party AND b.primaryFlag = true')
-            ->setParameter('party', $party)
-            ->getResult();
+        $uow = $this->em->getUnitOfWork();
         $demoted = false;
-        foreach ($others as $other) {
-            if ($other !== $account) {
+
+        // Accounts waiting to be inserted and accounts already loaded, whose state may differ from the database.
+        $known = [...$uow->getScheduledEntityInsertions(), ...($uow->getIdentityMap()[PartyBankAccount::class] ?? [])];
+        foreach ($known as $other) {
+            if ($other instanceof PartyBankAccount && $other !== $account && $other->party() === $party && $other->isPrimary()) {
                 $other->demote();
                 $demoted = true;
             }
         }
+
+        // A party that is not stored yet has no stored accounts.
+        if ($this->em->contains($party) && null !== $uow->getSingleIdentifierValue($party)) {
+            /** @var list<PartyBankAccount> $stored */
+            $stored = $this->em->createQuery('SELECT b FROM '.PartyBankAccount::class.' b WHERE b.party = :party AND b.primaryFlag = true')
+                ->setParameter('party', $party)
+                ->getResult();
+            foreach ($stored as $other) {
+                if ($other !== $account) {
+                    $other->demote();
+                    $demoted = true;
+                }
+            }
+        }
+
+        // The unique index refuses two primaries within one flush whatever the order of the statements.
         if ($demoted) {
             $this->em->flush();
         }

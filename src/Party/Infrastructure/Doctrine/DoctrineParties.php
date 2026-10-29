@@ -26,5 +26,6 @@ final readonly class DoctrineParties implements Parties
         foreach ($emails as $email) {
             $this->em->persist($email);
         }
+        $this->em->flush();
     }
 }

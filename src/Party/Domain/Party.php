@@ -47,7 +47,7 @@ class Party implements TenantOwned, Audited
     private ?string $registrationNumber;
 
     // The comparison form of the registration number, so duplicates are found in SQL.
-    #[ORM\Column(name: 'registration_key', type: 'string', length: 64, nullable: true)]
+    #[ORM\Column(name: 'registration_key', type: 'string', length: 192, nullable: true)]
     private ?string $registrationKey;
 
     #[ORM\Column(name: 'vat_id', type: 'vat_id', length: 14, nullable: true)]

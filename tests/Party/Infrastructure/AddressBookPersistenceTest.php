@@ -30,11 +30,14 @@ use App\Party\Infrastructure\Doctrine\DoctrineContactLinks;
 use App\Party\Infrastructure\Doctrine\DoctrineParties;
 use App\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
 use App\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
+use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
 use App\Tenancy\Domain\TenantId;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\PrePersistEventArgs;
+use Doctrine\ORM\Events;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -161,7 +164,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
     public function testCreatingAPartyAlwaysYieldsExactlyOneBillingAddress(): void
     {
-        $create = new CreateParty(new DoctrineParties($this->em));
+        $create = new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em));
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
         $create->create(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), null, 'invoices@example.com', '', [PartyRole::Customer], $billing);
         $create->create(PartyKind::Person, 'Test Person', null, null, '  ', '', [], $billing);
@@ -179,7 +182,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
     public function testAnotherBillingAddressAfterCreationIsRejected(): void
     {
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $party = new CreateParty(new DoctrineParties($this->em))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
+        $party = new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
 
         $this->expectException(\DomainException::class);
         $this->addresses()->add(new PartyAddress($party, AddressType::Billing, $billing));
@@ -193,6 +196,71 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
         $this->expectException(\DomainException::class);
         $this->addresses()->add(new PartyAddress($company, AddressType::Billing, new Address('Main 2', 'Other City', '200 00', 'CZ')));
+    }
+
+    public function testMakingAccountsPrimaryTwiceBeforeOneFlushLeavesOne(): void
+    {
+        $company = $this->company();
+        $this->em->persist($company);
+        $this->em->flush();
+        $accounts = [];
+        foreach ([self::IBAN, self::OTHER_IBAN, 'FR1420041010050500013M02606'] as $iban) {
+            $accounts[] = new PartyBankAccount($company, Iban::fromString($iban));
+            $this->bankAccounts()->add($accounts[array_key_last($accounts)]);
+        }
+
+        $this->bankAccounts()->makePrimary($accounts[0]);
+        $this->bankAccounts()->makePrimary($accounts[1]);
+        $this->em->flush();
+
+        self::assertFalse($accounts[0]->isPrimary());
+        self::assertTrue($accounts[1]->isPrimary());
+        self::assertSame(1, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM party_bank_account WHERE primary_flag IS NOT NULL'));
+    }
+
+    public function testAFailureAfterTheDemotionRollsBothChangesBack(): void
+    {
+        $company = $this->company();
+        $this->em->persist($company);
+        $this->em->flush();
+        $old = new PartyBankAccount($company, Iban::fromString(self::IBAN), null, '', true);
+        $this->bankAccounts()->add($old);
+        $this->em->getEventManager()->addEventListener(Events::prePersist, new class {
+            public function prePersist(PrePersistEventArgs $args): void
+            {
+                if ($args->getObject() instanceof PartyBankAccount) {
+                    throw new \RuntimeException('Storing the new account failed.');
+                }
+            }
+        });
+
+        try {
+            $this->bankAccounts()->add(new PartyBankAccount($company, Iban::fromString(self::OTHER_IBAN), null, '', true));
+            self::fail('The failure should surface.');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertEquals([['DE89370400440532013000', 1]], $this->em->getConnection()->fetchAllNumeric('SELECT iban, primary_flag FROM party_bank_account'));
+    }
+
+    public function testCreatingAPartyIsAtomic(): void
+    {
+        $this->em->getEventManager()->addEventListener(Events::prePersist, new class {
+            public function prePersist(PrePersistEventArgs $args): void
+            {
+                if ($args->getObject() instanceof PartyAddress) {
+                    throw new \RuntimeException('Storing the address failed.');
+                }
+            }
+        });
+
+        try {
+            new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+            self::fail('The failure should surface.');
+        } catch (\RuntimeException) {
+        }
+
+        self::assertSame(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM party'));
     }
 
     public function testTwoPrimaryAccountsInOneFlushLeaveTheLastOne(): void

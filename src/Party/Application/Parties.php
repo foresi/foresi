@@ -13,7 +13,8 @@ use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyEmail;
 
 /**
- * Stores a new party together with its billing address and first e-mail.
+ * Stores a new party together with its billing address and first e-mail. It
+ * flushes, so call it inside TransactionalWork (CreateParty does).
  */
 interface Parties
 {
