@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<twig:Ui:IconButton icon="plus" label="Primary" variant="primary" /><twig:Ui:IconButton icon="pencil" label="Secondary" variant="secondary" /><twig:Ui:IconButton icon="search" label="Ghost" variant="ghost" /><twig:Ui:IconButton icon="x" label="Danger" variant="danger" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'sizes'} %}{% block sample %}
+<twig:Ui:IconButton icon="pencil" label="Edit" />
+<twig:Ui:IconButton icon="pencil" label="Edit" size="sm" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<twig:Ui:IconButton icon="pencil" label="Edit" disabled />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<twig:Ui:IconButton icon="download" label="Example Company Holding of Central European Trading s.r.o." />
+{% endblock %}{% endembed %}
+</div>

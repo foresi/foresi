@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<twig:Ui:Badge tone="gray">Gray</twig:Ui:Badge><twig:Ui:Badge tone="green">Green</twig:Ui:Badge><twig:Ui:Badge tone="amber">Amber</twig:Ui:Badge><twig:Ui:Badge tone="red">Red</twig:Ui:Badge>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<span class="max-w-[220px]"><twig:Ui:Badge class="max-w-full truncate" tone="amber">Example Company Holding of Central European Trading s.r.o.</twig:Ui:Badge></span>
+<twig:Ui:Badge tone="green">Zaplaceno včas</twig:Ui:Badge>
+{% endblock %}{% endembed %}
+</div>

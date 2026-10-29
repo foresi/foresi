@@ -78,3 +78,23 @@ role:
 locale:
   cs: Čeština
   en: English
+catalogue:
+  title: Component catalogue
+  intro: Every component in every state, with synthetic data. Development tool, not part of production.
+  language: Language
+  jump: Components
+  mobile_preview: 390 px preview
+  interaction_note: Hover and focus are shown by interacting with the live component; the focus ring is always visible on the keyboard.
+  state:
+    default: Default
+    variants: Variants
+    sizes: Sizes
+    pressed: Pressed
+    disabled: Disabled
+    error: Error
+    required: Required
+    empty: Empty
+    loading: Loading
+    long: Long text
+    selectable: Selectable with bulk bar
+    sorted: Sorted with totals

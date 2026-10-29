@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full max-w-lg"><twig:Ui:Timeline :items="[{time: '09:15', icon: 'pencil', text: 'Contact edited', datetime: '2026-10-29T09:15'}, {time: 'Yesterday', icon: 'send', text: 'Invoice sent to info@example.com'}, {time: '24. 10.', icon: 'plus', text: 'Contact created'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<div class="w-full max-w-lg"><twig:Ui:Timeline :items="[]" /><span class="text-muted">—</span></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full max-w-lg"><twig:Ui:Timeline :items="[{time: '09:15', icon: 'pencil', text: 'Example Company Holding of Central European Trading s.r.o. Příliš žluťoučký kůň úpěl ďábelské ódy'}]" /></div>
+{% endblock %}{% endembed %}
+</div>

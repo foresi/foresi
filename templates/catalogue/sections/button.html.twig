@@ -1,0 +1,26 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<twig:Ui:Button variant="primary">Primary</twig:Ui:Button><twig:Ui:Button variant="secondary">Secondary</twig:Ui:Button><twig:Ui:Button variant="ghost">Ghost</twig:Ui:Button><twig:Ui:Button variant="danger">Danger</twig:Ui:Button>
+<twig:Ui:Button variant="primary" icon="plus">Example Company</twig:Ui:Button>
+<twig:Ui:Button href="/contacts">Link</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'sizes'} %}{% block sample %}
+<twig:Ui:Button size="md">Medium</twig:Ui:Button>
+<twig:Ui:Button size="sm">Small</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'pressed'} %}{% block sample %}
+<twig:Ui:Button :pressed="true" icon="list-filter">Filter</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<twig:Ui:Button variant="primary" disabled>Save</twig:Ui:Button>
+<twig:Ui:Button disabled>Cancel</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'loading'} %}{% block sample %}
+<twig:Ui:Button variant="primary" disabled aria-busy="true">Saving…</twig:Ui:Button>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<twig:Ui:Button variant="primary" class="max-w-full" icon="send">Example Company Holding of Central European Trading s.r.o.</twig:Ui:Button>
+<twig:Ui:Button>Příliš žluťoučký kůň úpěl ďábelské ódy</twig:Ui:Button>
+{% endblock %}{% endembed %}
+</div>

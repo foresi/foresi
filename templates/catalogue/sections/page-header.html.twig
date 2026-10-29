@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full rounded-panel border border-line"><twig:Ui:PageHeader title="Example Company s.r.o." :crumbs="[{label: 'Contacts', href: '#'}, {label: 'Example Company s.r.o.'}]" :badge="{label: 'Active', tone: 'green'}"><twig:Ui:Button variant="primary" icon="pencil">Edit</twig:Ui:Button></twig:Ui:PageHeader></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full rounded-panel border border-line"><twig:Ui:PageHeader title="Example Company Holding of Central European Trading s.r.o." :crumbs="[{label: 'Contacts', href: '#'}, {label: 'Example Company Holding of Central European Trading s.r.o.'}]" :badge="{label: 'Archived', tone: 'gray'}"><twig:Ui:IconButton icon="ellipsis" label="More" /></twig:Ui:PageHeader></div>
+{% endblock %}{% endembed %}
+</div>

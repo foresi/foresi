@@ -20,6 +20,9 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            # Development tool: registered, and so routable, in the dev and test environments only.
+            - '../src/Ui/Controller/CatalogueController.php'
 
     # Country modules plug into the core through tagged interfaces.
     _instanceof:
@@ -44,6 +47,12 @@ services:
         tags:
             - { name: kernel.reset, method: reset }
 
+when@dev:
+    services:
+        App\Ui\Controller\CatalogueController:
+            autowire: true
+            autoconfigure: true
+
 when@test:
     services:
         _defaults:
@@ -56,6 +65,7 @@ when@test:
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~
         App\Tests\Ui\Support\ShellProbeController: ~
+        App\Ui\Controller\CatalogueController: ~
 
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:

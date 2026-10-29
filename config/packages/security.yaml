@@ -41,6 +41,8 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        # The development catalogue shows no data; its route exists in dev and test only.
+        - { path: ^/_catalogue$, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

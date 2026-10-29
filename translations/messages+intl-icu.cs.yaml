@@ -78,3 +78,23 @@ role:
 locale:
   cs: Čeština
   en: English
+catalogue:
+  title: Katalog komponent
+  intro: Každá komponenta v každém stavu, se syntetickými daty. Vývojářský nástroj, v ostrém provozu neexistuje.
+  language: Jazyk
+  jump: Komponenty
+  mobile_preview: Náhled 390 px
+  interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
+  state:
+    default: Výchozí
+    variants: Varianty
+    sizes: Velikosti
+    pressed: Stisknuto
+    disabled: Zakázáno
+    error: Chyba
+    required: Povinné
+    empty: Prázdné
+    loading: Načítání
+    long: Dlouhý text
+    selectable: S výběrem a hromadnou lištou
+    sorted: Seřazeno se součty

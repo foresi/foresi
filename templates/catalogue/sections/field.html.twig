@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Field id="cat-field-default" label="Company name" help="As in the commercial register."><input id="cat-field-default" name="cat-field-default" class="h-control w-full rounded-control border border-line-strong px-2.5" value="Example Company s.r.o."></twig:Ui:Field></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'required'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Field id="cat-field-required" label="E-mail" :required="true"><input id="cat-field-required" name="cat-field-required" class="h-control w-full rounded-control border border-line-strong px-2.5"></twig:Ui:Field></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Field id="cat-field-error" label="E-mail" error="Enter a valid e-mail address."><input id="cat-field-error" name="cat-field-error" aria-invalid="true" class="h-control w-full rounded-control border border-badge-red-text px-2.5" value="not-an-email"></twig:Ui:Field></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Field id="cat-field-long" label="Example Company Holding of Central European Trading s.r.o." help="Příliš žluťoučký kůň úpěl ďábelské ódy"><input id="cat-field-long" name="cat-field-long" class="h-control w-full rounded-control border border-line-strong px-2.5"></twig:Ui:Field></div>
+{% endblock %}{% endembed %}
+</div>

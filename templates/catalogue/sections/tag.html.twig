@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<twig:Ui:Tag label="Customer" color="#2F5E3D" />
+<twig:Ui:Tag label="Supplier" color="#8A5310" />
+<twig:Ui:Tag label="Overdue" color="#A3342A" />
+<twig:Ui:Tag label="Archive" color="#77756D" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<span class="max-w-[220px]"><twig:Ui:Tag label="Example Company Holding of Central European Trading s.r.o." color="#2F4A3A" /></span>
+<twig:Ui:Tag label="Důležitý zákazník" color="#2F4A3A" />
+{% endblock %}{% endembed %}
+</div>

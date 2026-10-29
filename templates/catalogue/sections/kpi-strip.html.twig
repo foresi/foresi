@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full"><twig:Ui:KpiStrip :items="[{label: 'Revenue', value: '1 240 000 Kč', note: 'this month', badge: {label: '+12 %', tone: 'green'}}, {label: 'Overdue', value: '84 500 Kč', badge: {label: '3 invoices', tone: 'red'}}, {label: 'Contacts', value: '128'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<div class="w-full"><twig:Ui:KpiStrip :items="[{label: 'Revenue', value: '—'}, {label: 'Overdue', value: '—'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full"><twig:Ui:KpiStrip :items="[{label: 'Example Company Holding of Central European Trading s.r.o.', value: '999 999 999 999,00 Kč', note: 'Příliš žluťoučký kůň úpěl ďábelské ódy'}, {label: 'Short', value: '1'}]" /></div>
+{% endblock %}{% endembed %}
+</div>

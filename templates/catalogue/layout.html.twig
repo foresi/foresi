@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Frame of the development catalogue: frame colour and one white panel; needs no tenant or sign-in. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'catalogue.title'|trans }}{% endblock %}
+
+{% block body %}
+    <div class="min-h-screen bg-frame p-2.5 text-text">
+        <main id="main" class="mx-auto max-w-[1100px] rounded-panel border border-frame-line bg-white shadow-[0_1px_2px_rgba(28,29,26,.04)]">
+            {% block panel %}{% endblock %}
+        </main>
+    </div>
+{% endblock %}

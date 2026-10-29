@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Textarea name="cat-area-default" label="Note" value="Pays within 14 days." help="Visible to your team only." /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Textarea name="cat-area-disabled" label="Note" value="Locked." :disabled="true" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Textarea name="cat-area-error" label="Note" error="The note is too long." /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Textarea name="cat-area-long" label="Example Company Holding of Central European Trading s.r.o." value="Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy." /></div>
+{% endblock %}{% endembed %}
+</div>
