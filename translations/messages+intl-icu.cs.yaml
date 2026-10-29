@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+app:
+  name: Foresi
+login:
+  title: Přihlášení
+  email: E-mail
+  password: Heslo
+  submit: Přihlásit se
+dashboard:
+  title: Přehled
+  signed_in_as: 'Přihlášen jako {email}.'
+auth:
+  logout: Odhlásit se
+nav:
+  group:
+    main: Hlavní
+    business: Obchod
+    money: Peníze
+    extensions: Rozšíření

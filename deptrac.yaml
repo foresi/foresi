@@ -84,6 +84,11 @@ deptrac:
       collectors:
         - type: directory
           value: src/Country/CzechRepublic/.*
+    # Presentation shared by all modules (Twig components, layout helpers).
+    - name: Ui
+      collectors:
+        - type: directory
+          value: src/Ui/.*
     - name: VendorSymfony
       collectors:
         - type: classLike
@@ -232,3 +237,8 @@ deptrac:
     CountryCzechRepublic:
       - SharedDomain
       - PartyDomain
+    # Symfony and Twig only: Ui never reaches into a module's Domain.
+    Ui:
+      - VendorSymfony
+      - SharedDomain
+      - SharedApplication

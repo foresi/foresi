@@ -19,3 +19,8 @@
 /.deptrac.cache
 /var/infection/
 ###< project ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###

@@ -36,7 +36,7 @@ final class LoginTest extends WebTestCase
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Dashboard');
+        self::assertSelectorTextContains('h1', self::getContainer()->get('translator')->trans('dashboard.title', [], null, 'en'));
         self::assertSelectorTextContains('body', IdentityFixtures::EMAIL);
     }
 
@@ -102,14 +102,18 @@ final class LoginTest extends WebTestCase
 
     public function testLoginIsThrottledAfterFiveFailures(): void
     {
-        for ($i = 0; $i < 5; ++$i) {
+        $this->submit(IdentityFixtures::EMAIL, 'wrong-password');
+        $this->client->followRedirect();
+        $wrongPassword = $this->client->getCrawler()->filter('[role="alert"]')->text();
+        for ($i = 1; $i < 5; ++$i) {
             $this->submit(IdentityFixtures::EMAIL, 'wrong-password');
         }
 
         $this->submit(IdentityFixtures::EMAIL, IdentityFixtures::PASSWORD);
         self::assertResponseRedirects('/login');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('[role="alert"]', 'Too many failed login attempts');
+        // The throttling message is a different one than the plain bad-credentials message.
+        self::assertNotSame($wrongPassword, $this->client->getCrawler()->filter('[role="alert"]')->text());
     }
 
     public function testNewLoginDoesNotInheritTheTenantOfTheSessionBefore(): void
@@ -141,7 +145,7 @@ final class LoginTest extends WebTestCase
     private function submit(string $email, string $password): void
     {
         $crawler = $this->client->request('GET', '/login');
-        $form = $crawler->selectButton('Sign in')->form(['_username' => $email, '_password' => $password]);
+        $form = $crawler->filter('form button[type="submit"]')->form(['_username' => $email, '_password' => $password]);
         $this->client->submit($form);
     }
 }

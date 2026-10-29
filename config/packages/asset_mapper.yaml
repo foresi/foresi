@@ -1,0 +1,20 @@
+framework:
+    asset_mapper:
+        # The paths to make available to the asset mapper.
+        paths:
+            - assets/
+        missing_import_mode: strict
+        # No runtime fetch of the es-module-shims polyfill from a CDN.
+        importmap_polyfill: false
+
+when@prod:
+    framework:
+        asset_mapper:
+            missing_import_mode: warn
+
+when@test:
+    framework:
+        asset_mapper:
+            # Tests must not need a prior "tailwind:build": the raw Tailwind entry
+            # has an unresolvable `@import "tailwindcss"` until it is built.
+            missing_import_mode: ignore

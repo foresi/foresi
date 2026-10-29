@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+app:
+  name: Foresi
+login:
+  title: Sign in
+  email: E-mail
+  password: Password
+  submit: Sign in
+dashboard:
+  title: Dashboard
+  signed_in_as: 'Signed in as {email}.'
+auth:
+  logout: Sign out
+nav:
+  group:
+    main: Main
+    business: Business
+    money: Money
+    extensions: Extensions

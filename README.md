@@ -27,6 +27,16 @@ bin/console about
 composer qa
 ```
 
+Styles are built by Tailwind CSS (standalone binary, downloaded by the bundle into `var/tailwind/` on first use; no Node needed). Build them before opening the app in a browser:
+
+```bash
+bin/console tailwind:build           # once
+bin/console tailwind:build --watch   # while developing
+bin/console tailwind:build --minify  # before deploying, then bin/console asset-map:compile
+```
+
+The built CSS is not committed, and tests and `composer qa` do not need it. Inter fonts (SIL OFL 1.1) and Lucide icons (ISC) are self-hosted in `assets/`; nothing is loaded from a CDN. All UI text lives in `translations/` (Czech default, English).
+
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
 ## Architecture
