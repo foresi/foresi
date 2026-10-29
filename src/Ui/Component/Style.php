@@ -69,11 +69,20 @@ final class Style
         if (null === $href) {
             return;
         }
-        if (1 === preg_match('/^[a-z][a-z0-9+.\-]*:/i', $href) && 1 !== preg_match('/^(?:https?|mailto|tel):/i', $href)) {
-            throw new \InvalidArgumentException('Unsupported URL scheme in href.');
+        if (str_contains($href, '\\') || 1 === preg_match('/[\x00-\x20]/', $href) || 1 === preg_match('#^[/\\\\]{2}#', $href)) {
+            throw new \InvalidArgumentException('Unsafe href.');
         }
-        if (1 === preg_match('/[\x00-\x20]/', $href)) {
-            throw new \InvalidArgumentException('An href must not contain whitespace or control characters.');
+        if (1 !== preg_match('/^([a-z][a-z0-9+.\-]*):/i', $href, $m)) {
+            return;
+        }
+        $scheme = strtolower($m[1]);
+        $valid = match ($scheme) {
+            'http', 'https' => 1 === preg_match('#^[a-z]+://[^/?\#]+#i', $href),
+            'mailto', 'tel' => true,
+            default => false,
+        };
+        if (!$valid) {
+            throw new \InvalidArgumentException('Unsupported URL in href.');
         }
     }
 

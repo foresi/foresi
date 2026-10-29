@@ -48,6 +48,18 @@ final class ContrastTest extends TestCase
         self::assertGreaterThanOrEqual(4.5, $ratio, sprintf('%s on %s is %.2f:1', $foreground, $background, $ratio));
     }
 
+    public function testPlainAliasesEqualTheThemeTokens(): void
+    {
+        $css = file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
+        self::assertIsString($css);
+        preg_match_all('/^\s*--(frame|frame-line|white|line|line-strong|head|green|green-hover|green-tint|ink|text|muted):\s*(#[0-9a-f]{6});/mi', $css, $aliases, PREG_SET_ORDER);
+
+        self::assertCount(12, $aliases);
+        foreach ($aliases as [, $name, $value]) {
+            self::assertSame($this->token($name), $value, $name);
+        }
+    }
+
     private function token(string $name): string
     {
         $css = file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');

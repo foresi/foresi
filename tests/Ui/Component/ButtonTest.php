@@ -92,6 +92,12 @@ final class ButtonTest extends KernelTestCase
         self::assertStringNotContainsString('aria-pressed', (string) $this->renderTwigComponent('Ui:Button', [], 'X'));
     }
 
+    public function testPressedLinkThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Button', ['pressed' => true, 'href' => '/x']);
+    }
+
     public function testUnknownIconThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);

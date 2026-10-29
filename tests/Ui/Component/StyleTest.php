@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Ui;
+namespace App\Tests\Ui\Component;
 
 use App\Ui\Component\Style;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -48,6 +48,14 @@ final class StyleTest extends TestCase
         yield 'mixed case' => ['JaVaScRiPt:alert(1)'];
         yield 'data' => ['data:text/html,x'];
         yield 'whitespace' => ['/a b'];
+        yield 'protocol relative' => ['//evil.example'];
+        yield 'double backslash' => ['\\\\evil.example'];
+        yield 'slash backslash' => ['/\\evil.example'];
+        yield 'backslash slash' => ['\\/evil.example'];
+        yield 'scheme backslash' => ['https:\\\\evil'];
+        yield 'scheme without slashes' => ['http:evil.com'];
+        yield 'scheme without host' => ['https:///x'];
+        yield 'single backslash' => ['/a\\b'];
         yield 'control' => ["java\tscript:alert(1)"];
     }
 
@@ -64,6 +72,8 @@ final class StyleTest extends TestCase
     public static function goodHrefs(): iterable
     {
         yield 'relative' => ['/contacts?x=1'];
+        yield 'bare relative' => ['x/y'];
+        yield 'query' => ['?q=1'];
         yield 'fragment' => ['#top'];
         yield 'https' => ['https://example.com/a'];
         yield 'http' => ['HTTP://example.com'];

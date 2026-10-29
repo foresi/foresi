@@ -27,6 +27,9 @@ final class Button
         Style::button($this->variant, $this->size);
         Style::icon($this->icon);
         Style::href($this->href);
+        if ($this->pressed && null !== $this->href) {
+            throw new \InvalidArgumentException('A link cannot be pressed; pressed applies to buttons only.');
+        }
     }
 
     public function classes(): string
