@@ -24,3 +24,7 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> symfony/framework-bundle (generated) ###
+/config/reference.php
+###< symfony/framework-bundle (generated) ###
