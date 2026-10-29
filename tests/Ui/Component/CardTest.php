@@ -38,4 +38,10 @@ final class CardTest extends KernelTestCase
     {
         self::assertStringNotContainsString('<svg', (string) $this->renderTwigComponent('Ui:Card', ['title' => 'T'], 'B'));
     }
+
+    public function testUnknownIconThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Card', ['icon' => 'rocket']);
+    }
 }

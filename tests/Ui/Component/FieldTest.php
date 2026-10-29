@@ -41,12 +41,17 @@ final class FieldTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:Field', ['id' => 'x', 'label' => 'X', 'inline' => true], '<input id="x">');
 
-        self::assertGreaterThan(strpos($html, '<input'), strpos($html, '<label'));
+        self::assertMatchesRegularExpression('/<label[^>]*>\\s*<input id="x">.*<\/label>/s', $html);
     }
 
     public function testMissingIdThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:Field', ['label' => 'X']);
+    }
+
+    public function testErrorIsAnAlert(): void
+    {
+        self::assertStringContainsString('id="x-error" role="alert"', (string) $this->renderTwigComponent('Ui:Field', ['id' => 'x', 'label' => 'X', 'error' => 'Bad'], 'C'));
     }
 }

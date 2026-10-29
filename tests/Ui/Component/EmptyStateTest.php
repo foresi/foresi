@@ -35,4 +35,10 @@ final class EmptyStateTest extends KernelTestCase
     {
         self::assertStringNotContainsString('<p class', (string) $this->renderTwigComponent('Ui:EmptyState', ['title' => 'T']));
     }
+
+    public function testUnknownIconThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:EmptyState', ['icon' => 'rocket']);
+    }
 }

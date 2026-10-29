@@ -24,7 +24,7 @@ final class CheckboxTest extends KernelTestCase
         self::assertStringContainsString('value="1"', $html);
         self::assertStringContainsString('size-4', $html);
         self::assertStringContainsString('aria-describedby="agree-help"', $html);
-        self::assertGreaterThan(strpos($html, '<input'), strpos($html, '<label'));
+        self::assertMatchesRegularExpression('/<label[^>]*>\\s*<input.*<\/label>/s', $html);
     }
 
     public function testUncheckedWithErrorAndCustomValue(): void
@@ -36,5 +36,13 @@ final class CheckboxTest extends KernelTestCase
         self::assertStringContainsString('aria-invalid="true"', $html);
         self::assertStringContainsString(' required', $html);
         self::assertStringContainsString('focus-visible:outline-2', $html);
+    }
+
+    public function testWholeRowIsAClickableLabelOfMinimumTargetSize(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Checkbox', ['name' => 'agree', 'label' => 'I agree']);
+
+        self::assertMatchesRegularExpression('/<label for="agree" class="[^"]*min-h-6[^"]*">\s*<input/', $html);
+        self::assertDoesNotMatchRegularExpression('/class="[^"]*  /', $html);
     }
 }

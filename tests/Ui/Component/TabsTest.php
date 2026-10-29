@@ -64,4 +64,10 @@ final class TabsTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => 1]]]);
     }
+
+    public function testUnsafeHrefThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => 'javascript:alert(1)']]]);
+    }
 }

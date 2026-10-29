@@ -19,15 +19,18 @@ final class Button
     public ?string $icon = null;
     public ?string $href = null;
     public string $type = 'button';
+    public bool $pressed = false;
 
     #[PostMount]
     public function validate(): void
     {
         Style::button($this->variant, $this->size);
+        Style::icon($this->icon);
+        Style::href($this->href);
     }
 
     public function classes(): string
     {
-        return Style::button($this->variant, $this->size);
+        return Style::button($this->variant, $this->size, false, $this->pressed);
     }
 }

@@ -82,4 +82,25 @@ final class ButtonTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:Button', ['size' => 'xl']);
     }
+
+    public function testPressedState(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Button', ['pressed' => true], 'X');
+
+        self::assertStringContainsString('aria-pressed="true"', $html);
+        self::assertStringContainsString('bg-green-tint', $html);
+        self::assertStringNotContainsString('aria-pressed', (string) $this->renderTwigComponent('Ui:Button', [], 'X'));
+    }
+
+    public function testUnknownIconThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Button', ['icon' => 'rocket']);
+    }
+
+    public function testJavascriptHrefThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Button', ['href' => 'javascript:alert(1)']);
+    }
 }

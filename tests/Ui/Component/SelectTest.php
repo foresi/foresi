@@ -34,4 +34,13 @@ final class SelectTest extends KernelTestCase
         self::assertStringContainsString('<option value="2" selected>', $html);
         self::assertStringNotContainsString('<option value="1" selected>', $html);
     }
+
+    public function testHasLockedChevronAndNoNativeArrow(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Select', ['name' => 'n', 'label' => 'N']);
+
+        self::assertStringContainsString('appearance-none', $html);
+        self::assertStringContainsString('pointer-events-none', $html);
+        self::assertStringContainsString('<svg', $html);
+    }
 }

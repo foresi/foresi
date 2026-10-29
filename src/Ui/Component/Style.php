@@ -38,15 +38,43 @@ final class Style
         'red' => 'bg-badge-red text-badge-red-text',
     ];
 
-    public static function button(string $variant, string $size, bool $iconOnly = false): string
+    public static function button(string $variant, string $size, bool $iconOnly = false, bool $pressed = false): string
     {
+        $variantClasses = self::lookup(self::BUTTON_VARIANTS, $variant, 'variant');
+
         return implode(' ', [
             self::BUTTON_BASE,
-            self::lookup(self::BUTTON_VARIANTS, $variant, 'variant'),
+            $pressed ? 'bg-green-tint border-green text-green' : $variantClasses,
             self::lookup(self::BUTTON_SIZES, $size, 'size'),
             $iconOnly ? self::ICON_BUTTON_WIDTH[$size] : self::BUTTON_PADDING[$size],
             self::FOCUS,
         ]);
+    }
+
+    public static function icon(?string $name): void
+    {
+        if (null === $name) {
+            return;
+        }
+        if (1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $name) || !is_file(dirname(__DIR__, 3).'/assets/icons/lucide/'.$name.'.svg')) {
+            throw new \InvalidArgumentException(sprintf('Icon "%s" is not in the locked icon set.', $name));
+        }
+    }
+
+    /**
+     * Only relative URLs and http, https, mailto and tel are allowed.
+     */
+    public static function href(?string $href): void
+    {
+        if (null === $href) {
+            return;
+        }
+        if (1 === preg_match('/^[a-z][a-z0-9+.\-]*:/i', $href) && 1 !== preg_match('/^(?:https?|mailto|tel):/i', $href)) {
+            throw new \InvalidArgumentException('Unsupported URL scheme in href.');
+        }
+        if (1 === preg_match('/[\x00-\x20]/', $href)) {
+            throw new \InvalidArgumentException('An href must not contain whitespace or control characters.');
+        }
     }
 
     public static function tone(string $tone): string

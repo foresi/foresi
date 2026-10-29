@@ -27,6 +27,7 @@ final class Tabs
             if (!isset($item['label'], $item['href']) || !is_string($item['label']) || !is_string($item['href'])) {
                 throw new \InvalidArgumentException('Every tab item needs a string label and href.');
             }
+            Style::href($item['href']);
         }
     }
 }

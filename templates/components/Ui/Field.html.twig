@@ -5,10 +5,10 @@
 {% endset %}
 <div {{ attributes.defaults({class: 'grid gap-1.5'}) }}>
     {% if inline %}
-        <div class="flex items-start gap-2">{{ control|raw }}{{ labelHtml }}</div>
+        <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-[13px] font-medium text-ink">{{ control|raw }}<span>{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</span></label>
     {% else %}
         {{ labelHtml }}{{ control|raw }}
     {% endif %}
     {% if help %}<p id="{{ id }}-help" class="text-xs text-muted">{{ help }}</p>{% endif %}
-    {% if error %}<p id="{{ id }}-error" class="text-xs font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+    {% if error %}<p id="{{ id }}-error" role="alert" class="text-xs font-medium text-badge-red-text">{{ error }}</p>{% endif %}
 </div>

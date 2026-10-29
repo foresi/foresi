@@ -57,4 +57,16 @@ final class IconButtonTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:IconButton', ['icon' => 'x', 'label' => '  ']);
     }
+
+    public function testUnknownIconThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:IconButton', ['icon' => 'rocket', 'label' => 'X']);
+    }
+
+    public function testJavascriptHrefThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:IconButton', ['icon' => 'x', 'label' => 'X', 'href' => 'javascript:alert(1)']);
+    }
 }

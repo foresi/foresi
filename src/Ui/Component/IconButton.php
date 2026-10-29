@@ -31,6 +31,8 @@ final class IconButton
             throw new \InvalidArgumentException('IconButton requires an icon.');
         }
         Style::button($this->variant, $this->size, true);
+        Style::icon($this->icon);
+        Style::href($this->href);
     }
 
     public function classes(): string
