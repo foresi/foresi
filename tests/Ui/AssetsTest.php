@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Ui;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\UX\Icons\IconRendererInterface;
 
 final class AssetsTest extends WebTestCase
 {
@@ -56,10 +57,15 @@ final class AssetsTest extends WebTestCase
 
     public function testLockedIconsAreAvailableOffline(): void
     {
+        self::bootKernel();
+        $renderer = self::getContainer()->get(IconRendererInterface::class);
+
         $icons = ['layout-grid', 'square-check-big', 'clock-3', 'target', 'file-pen-line', 'file-signature', 'receipt-text', 'inbox', 'landmark', 'chart-column', 'puzzle', 'users', 'settings', 'search', 'chevrons-up-down', 'plus', 'upload', 'download', 'list-filter', 'arrow-up-down', 'columns-3', 'share-2', 'send', 'circle-check', 'tag', 'ellipsis', 'x', 'chevron-left', 'chevron-right', 'chevron-down', 'pencil', 'file-down', 'link-2', 'history', 'user', 'key-round', 'languages', 'building-2', 'log-out', 'calendar', 'plug'];
 
         foreach ($icons as $icon) {
             self::assertFileExists(\dirname(__DIR__, 2).sprintf('/assets/icons/lucide/%s.svg', $icon));
+            // Rendering never falls back to the online Iconify API: it is disabled.
+            self::assertStringStartsWith('<svg', $renderer->renderIcon('lucide:'.$icon));
         }
     }
 }

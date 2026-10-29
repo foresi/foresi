@@ -14,13 +14,11 @@ ux_icons:
     # Throw an exception if an icon is not found (icons are locked in assets/icons)
     ignore_not_found: false
 
+    # Nothing is fetched from the Iconify API at runtime, in any environment.
+    # Add icons with `bin/console ux:icons:import lucide:<name>` and commit them.
+    iconify:
+        enabled: false
 
-when@dev:
-    ux_icons:
-        # Nothing is fetched from the Iconify API at runtime. Add icons with
-        # `bin/console ux:icons:import lucide:<name>` and commit them.
-        iconify:
-            enabled: false
 
 when@prod:
     ux_icons:

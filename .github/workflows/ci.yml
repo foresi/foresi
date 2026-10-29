@@ -54,14 +54,19 @@ jobs:
       # missing_import_mode makes asset-map:compile throw; the output is also
       # checked for warnings.
       - name: Frontend build (prod)
+        shell: bash
         env:
           APP_ENV: prod
           APP_SECRET: ci-build-only
         run: |
-          bin/console importmap:install
-          bin/console tailwind:build --minify
-          bin/console asset-map:compile 2>&1 | tee asset-compile.log
-          ! grep -iE 'warning|unable to find|could not be found|not found' asset-compile.log
+          set -euo pipefail
+          for step in "importmap:install" "tailwind:build --minify" "asset-map:compile"; do
+            log="build-${step%% *}.log"
+            # shellcheck disable=SC2086
+            bin/console $step > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            if grep -iE 'warning|unable to find|could not be found' "$log"; then exit 1; fi
+          done
 
       - name: Security audit
         run: composer audit
