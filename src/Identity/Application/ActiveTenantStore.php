@@ -20,4 +20,10 @@ interface ActiveTenantStore
     public function store(TenantId $tenant): void;
 
     public function clear(): void;
+
+    /**
+     * Starts a new session identifier while keeping the stored choice, so a
+     * changed organisation never rides on an identifier issued before.
+     */
+    public function migrate(): void;
 }

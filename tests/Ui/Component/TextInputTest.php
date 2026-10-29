@@ -33,6 +33,14 @@ final class TextInputTest extends KernelTestCase
         self::assertDoesNotMatchRegularExpression('/ disabled[ >]/', $html);
     }
 
+    public function testExtraAttributesReachTheInputNotTheWrapper(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'email', 'label' => 'E-mail', 'attributes' => ['autocomplete' => 'username', 'data-test' => 'x']]);
+
+        self::assertMatchesRegularExpression('/<input[^>]*autocomplete="username"[^>]*data-test="x"/', $html);
+        self::assertSame(1, substr_count($html, 'autocomplete="username"'));
+    }
+
     public function testErrorAndHelpAreAnnounced(): void
     {
         $html = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'email', 'label' => 'E-mail', 'help' => 'Hint', 'error' => 'Invalid e-mail']);

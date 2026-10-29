@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # The product name shown on every page; the only place it is defined.
+    app.product_name: Foresi
 
 services:
     # default configuration for services in *this* file
@@ -44,8 +46,15 @@ services:
 
 when@test:
     services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        # Stands in for a plugin adding a sidebar item.
+        App\Tests\Ui\Support\TestNavigationProvider: ~
 
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:

@@ -1,24 +1,17 @@
-{% extends 'base.html.twig' %}
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/auth.html.twig' %}
 
 {% block title %}{{ 'login.title'|trans }}{% endblock %}
 
-{% block body %}
-    <h1>{{ 'login.title'|trans }}</h1>
-
+{% block content %}
     {% if error %}
-        <p role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        <p role="alert" class="mb-4 rounded-control bg-badge-red px-3 py-2 text-[13px] font-medium text-badge-red-text">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
     {% endif %}
 
-    <form method="post" action="{{ path('app_login') }}">
-        <p>
-            <label for="username">{{ 'login.email'|trans }}</label>
-            <input type="email" id="username" name="_username" value="{{ lastUsername }}" autocomplete="username" required autofocus>
-        </p>
-        <p>
-            <label for="password">{{ 'login.password'|trans }}</label>
-            <input type="password" id="password" name="_password" autocomplete="current-password" required>
-        </p>
+    <form method="post" action="{{ path('app_login') }}" class="grid gap-4">
+        <twig:Ui:TextInput name="_username" id="username" type="email" :label="'login.email'|trans" :value="lastUsername" required autocomplete="username" autofocus />
+        <twig:Ui:TextInput name="_password" id="password" type="password" :label="'login.password'|trans" required autocomplete="current-password" />
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-        <button type="submit">{{ 'login.submit'|trans }}</button>
+        <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'login.submit'|trans }}</twig:Ui:Button>
     </form>
 {% endblock %}

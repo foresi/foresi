@@ -1,0 +1,96 @@
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+import { Controller } from '@hotwired/stimulus';
+
+/**
+ * Menu button with a popup menu (WAI-ARIA menu button pattern). Arrow keys,
+ * Home and End move between items, Escape closes and returns focus to the
+ * button, a click elsewhere or Tab closes it.
+ */
+export default class extends Controller {
+    static targets = ['button', 'menu'];
+
+    connect() {
+        this.onDocumentClick = (event) => {
+            if (!this.element.contains(event.target)) {
+                this.close(false);
+            }
+        };
+        this.onBeforeCache = () => this.close(false);
+        document.addEventListener('click', this.onDocumentClick);
+        document.addEventListener('turbo:before-cache', this.onBeforeCache);
+    }
+
+    disconnect() {
+        document.removeEventListener('click', this.onDocumentClick);
+        document.removeEventListener('turbo:before-cache', this.onBeforeCache);
+    }
+
+    items() {
+        return Array.from(this.menuTarget.querySelectorAll('[role="menuitem"]'));
+    }
+
+    isOpen() {
+        return !this.menuTarget.hidden;
+    }
+
+    toggle() {
+        this.isOpen() ? this.close() : this.open();
+    }
+
+    open(focus = 'first') {
+        this.menuTarget.hidden = false;
+        this.buttonTarget.setAttribute('aria-expanded', 'true');
+        const items = this.items();
+        if (items.length > 0) {
+            (focus === 'last' ? items[items.length - 1] : items[0]).focus();
+        }
+    }
+
+    close(restoreFocus = true) {
+        if (!this.isOpen()) {
+            return;
+        }
+        this.menuTarget.hidden = true;
+        this.buttonTarget.setAttribute('aria-expanded', 'false');
+        if (restoreFocus !== false) {
+            this.buttonTarget.focus();
+        }
+    }
+
+    // Opens from the keyboard on the button.
+    openFromButton(event) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.open(event.key === 'ArrowUp' ? 'last' : 'first');
+        }
+    }
+
+    navigate(event) {
+        const items = this.items();
+        const index = items.indexOf(document.activeElement);
+        let next = null;
+        if (event.key === 'ArrowDown') {
+            next = items[(index + 1) % items.length];
+        } else if (event.key === 'ArrowUp') {
+            next = items[(index - 1 + items.length) % items.length];
+        } else if (event.key === 'Home') {
+            next = items[0];
+        } else if (event.key === 'End') {
+            next = items[items.length - 1];
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.close();
+            return;
+        } else if (event.key === 'Tab') {
+            this.close(false);
+            return;
+        }
+        if (next) {
+            event.preventDefault();
+            next.focus();
+        }
+    }
+}

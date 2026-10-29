@@ -80,6 +80,24 @@ final class MembershipTest extends KernelTestCase
         }
     }
 
+    public function testSwitchingMigratesTheSessionOnlyOnSuccess(): void
+    {
+        $a = $this->fixtures->tenant('Tenant A');
+        $b = $this->fixtures->tenant('Tenant B');
+        $user = $this->fixtures->user();
+        $this->fixtures->join($user, $a);
+
+        ($this->switch)($user, $a);
+        self::assertSame(1, $this->store->migrations);
+
+        try {
+            ($this->switch)($user, $b);
+        } catch (\DomainException) {
+            // Refused: nothing is stored, so the session is not migrated either.
+        }
+        self::assertSame(1, $this->store->migrations);
+    }
+
     public function testAnotherUsersMembershipDoesNotCount(): void
     {
         $a = $this->fixtures->tenant('Tenant A');

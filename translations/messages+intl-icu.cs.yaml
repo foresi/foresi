@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-app:
-  name: Foresi
 login:
   title: Přihlášení
   email: E-mail
@@ -8,15 +6,20 @@ login:
   submit: Přihlásit se
 dashboard:
   title: Přehled
-  signed_in_as: 'Přihlášen jako {email}.'
+  empty:
+    title: Přehled se připravuje
+    text: Jakmile v této organizaci budou data, objeví se tu přehled.
 auth:
   logout: Odhlásit se
 nav:
   group:
     main: Hlavní
-    business: Obchod
+    sales: Obchod
     money: Peníze
+    contacts: Kontakty
     extensions: Rozšíření
+  item:
+    dashboard: Přehled
 ui:
   empty_state:
     title: Zatím tu nic není
@@ -44,3 +47,34 @@ ui:
     placeholder: Zadejte příkaz nebo hledejte
     close: Zavřít
     empty: Nic nenalezeno
+shell:
+  skip_to_content: Přeskočit na obsah
+  sidebar_label: Hlavní navigace
+  menu:
+    open: Otevřít menu
+  palette:
+    go_to: Přejít na
+  organisation:
+    none: Bez organizace
+    switch: Přepnout organizaci
+  user_menu:
+    label: Menu účtu
+    profile: Můj profil
+    api_access: Přístupy k API a MCP
+    language: 'Přepnout jazyk na {language}'
+    switch_organisation: Přepnout organizaci
+    soon: Brzy
+organisation:
+  choose:
+    title: Vyberte organizaci
+    intro: Patříte do několika organizací. Vyberte tu, ve které chcete pracovat.
+    empty_title: Zatím žádná organizace
+    empty_text: Váš účet není členem žádné organizace. Požádejte vlastníka organizace o pozvánku.
+role:
+  owner: Vlastník
+  member: Člen
+  subcontractor: Subdodavatel
+  client: Klient
+locale:
+  cs: Čeština
+  en: English

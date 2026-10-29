@@ -1,0 +1,34 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/auth.html.twig' %}
+
+{% block title %}{{ 'organisation.choose.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% if organisations is empty %}
+        <twig:Ui:EmptyState icon="building-2" :title="'organisation.choose.empty_title'|trans" :text="'organisation.choose.empty_text'|trans" class="py-6">
+            <form method="post" action="{{ path('app_logout') }}" data-turbo="false">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                <twig:Ui:Button type="submit" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:Button>
+            </form>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <p class="mb-4 mt-0 text-muted">{{ 'organisation.choose.intro'|trans }}</p>
+        <ul class="m-0 grid list-none gap-2 p-0">
+            {% for organisation in organisations %}
+                <li>
+                    <form method="post" action="{{ path('app_organisation_switch', {tenantId: organisation.id.toString}) }}" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('organisation_switch') }}">
+                        <button type="submit" class="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-panel border border-line-strong bg-white p-3 text-left hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                            <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ organisation.name|first|upper }}</span>
+                            <span class="min-w-0">
+                                <b class="block truncate text-ink" title="{{ organisation.name }}">{{ organisation.name }}</b>
+                                <small class="block text-xs text-muted">{{ ('role.' ~ organisation.role.value)|trans }}</small>
+                            </span>
+                            {{ ux_icon('lucide:chevron-right', {class: 'ml-auto size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
+                        </button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

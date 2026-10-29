@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-app:
-  name: Foresi
 login:
   title: Sign in
   email: E-mail
@@ -8,15 +6,20 @@ login:
   submit: Sign in
 dashboard:
   title: Dashboard
-  signed_in_as: 'Signed in as {email}.'
+  empty:
+    title: Your dashboard is on its way
+    text: Once there is data in this organisation, the overview will appear here.
 auth:
   logout: Sign out
 nav:
   group:
     main: Main
-    business: Business
+    sales: Sales
     money: Money
+    contacts: Contacts
     extensions: Extensions
+  item:
+    dashboard: Dashboard
 ui:
   empty_state:
     title: Nothing here yet
@@ -44,3 +47,34 @@ ui:
     placeholder: Type a command or search
     close: Close
     empty: Nothing found
+shell:
+  skip_to_content: Skip to content
+  sidebar_label: Main navigation
+  menu:
+    open: Open menu
+  palette:
+    go_to: Go to
+  organisation:
+    none: No organisation
+    switch: Switch organisation
+  user_menu:
+    label: Account menu
+    profile: My profile
+    api_access: API and MCP access
+    language: 'Switch language to {language}'
+    switch_organisation: Switch organisation
+    soon: Soon
+organisation:
+  choose:
+    title: Choose an organisation
+    intro: You belong to several organisations. Choose the one to work in.
+    empty_title: No organisation yet
+    empty_text: Your account is not a member of any organisation. Ask the owner of an organisation to invite you.
+role:
+  owner: Owner
+  member: Member
+  subcontractor: Subcontractor
+  client: Client
+locale:
+  cs: Čeština
+  en: English

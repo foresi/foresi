@@ -1,8 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% set ctl = this %}
+{# Captured here: inside the Field block "attributes" would be the Field's own. #}
+{% set controlAttributes = attributes %}
 <twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required">
     <div class="relative">
-    <select id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} {{ attributes.defaults({class: 'h-control appearance-none pr-8 ' ~ ctl.classes}) }}>
+    <select id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} {{ controlAttributes.defaults({class: 'h-control appearance-none pr-8 ' ~ ctl.classes}) }}>
         {% for optionValue, optionLabel in options %}
             <option value="{{ optionValue }}"{% if optionValue ~ "" == value %} selected{% endif %}>{{ optionLabel }}</option>
         {% endfor %}

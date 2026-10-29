@@ -20,4 +20,12 @@ interface MembershipDirectory
      * @return list<TenantId>
      */
     public function tenantIdsOf(User $user): array;
+
+    /**
+     * The organisations of a user with their names and the role held in each,
+     * for the switcher and the choice page.
+     *
+     * @return list<Organisation>
+     */
+    public function organisationsOf(int $userId): array;
 }
