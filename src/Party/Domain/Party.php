@@ -17,10 +17,15 @@ use Doctrine\ORM\Mapping as ORM;
  * A person or organisation the tenant does business with: a customer, a
  * supplier, a partner, an authority or just a contact. Addresses, e-mails,
  * bank accounts and contact links are separate audited entities pointing here.
+ *
+ * Production code creates parties through CreateParty (Party Application),
+ * which also creates the billing address and the first e-mail address.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party')]
 #[ORM\Index(name: 'idx_party_tenant', columns: ['tenant_id'])]
+#[ORM\Index(name: 'idx_party_registration_key', columns: ['tenant_id', 'registration_key'])]
+#[ORM\Index(name: 'idx_party_vat_id', columns: ['tenant_id', 'vat_id'])]
 class Party implements TenantOwned, Audited
 {
     #[ORM\Id]
@@ -40,6 +45,10 @@ class Party implements TenantOwned, Audited
 
     #[ORM\Column(name: 'registration_number', type: 'string', length: 64, nullable: true)]
     private ?string $registrationNumber;
+
+    // The comparison form of the registration number, so duplicates are found in SQL.
+    #[ORM\Column(name: 'registration_key', type: 'string', length: 64, nullable: true)]
+    private ?string $registrationKey;
 
     #[ORM\Column(name: 'vat_id', type: 'vat_id', length: 14, nullable: true)]
     private ?VatId $vatId;
@@ -80,8 +89,6 @@ class Party implements TenantOwned, Audited
         string $displayName,
         ?RegistrationNumber $registrationNumber,
         ?VatId $vatId,
-        #[ORM\Column(type: 'string', length: 255)]
-        private string $email,
         #[ORM\Column(type: 'string', length: 64)]
         private string $phone,
         array $roles = [],
@@ -114,11 +121,6 @@ class Party implements TenantOwned, Audited
     public function vatId(): ?VatId
     {
         return $this->vatId;
-    }
-
-    public function email(): string
-    {
-        return $this->email;
     }
 
     public function phone(): string
@@ -178,9 +180,8 @@ class Party implements TenantOwned, Audited
         $this->displayName = $displayName;
     }
 
-    public function changeContact(string $email, string $phone): void
+    public function changePhone(string $phone): void
     {
-        $this->email = $email;
         $this->phone = $phone;
     }
 
@@ -191,6 +192,7 @@ class Party implements TenantOwned, Audited
         }
         $this->registrationCountry = $registrationNumber?->countryCode;
         $this->registrationNumber = $registrationNumber?->value;
+        $this->registrationKey = $registrationNumber?->normalised();
         $this->vatId = $vatId;
     }
 

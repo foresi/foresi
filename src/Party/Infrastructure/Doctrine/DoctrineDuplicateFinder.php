@@ -17,8 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Tenant-scoped through the Doctrine tenant filter. Registration numbers are
- * compared normalised in PHP over the scalar columns of the candidates (same
- * country or same VAT id), so no database specific string functions are needed.
+ * matched on the stored normalised key, so the lookup is one indexed query.
  */
 final readonly class DoctrineDuplicateFinder implements DuplicateFinder
 {
@@ -28,9 +27,10 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
 
     public function find(?RegistrationNumber $registrationNumber, ?VatId $vatId, bool $includeArchived = true, ?int $excludePartyId = null): array
     {
+        $key = $registrationNumber?->normalised() ?? '';
         $conditions = [];
-        if ($registrationNumber instanceof RegistrationNumber) {
-            $conditions[] = 'p.registrationCountry = :country';
+        if ('' !== $key) {
+            $conditions[] = '(p.registrationCountry = :country AND p.registrationKey = :key)';
         }
         if ($vatId instanceof VatId) {
             $conditions[] = 'p.vatId = :vat';
@@ -40,13 +40,14 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
         }
 
         $query = $this->em->createQuery(
-            'SELECT p.id, p.displayName, p.registrationNumber, p.vatId, p.archivedAt FROM '.Party::class.' p WHERE ('.implode(' OR ', $conditions).')'
+            'SELECT p.id, p.displayName, p.registrationCountry, p.registrationKey, p.vatId, p.archivedAt FROM '.Party::class.' p WHERE ('.implode(' OR ', $conditions).')'
             .($includeArchived ? '' : ' AND p.archivedAt IS NULL')
             .(null === $excludePartyId ? '' : ' AND p.id <> :exclude')
             .' ORDER BY p.id',
         );
-        if ($registrationNumber instanceof RegistrationNumber) {
+        if ('' !== $key && $registrationNumber instanceof RegistrationNumber) {
             $query->setParameter('country', $registrationNumber->countryCode);
+            $query->setParameter('key', $key);
         }
         if ($vatId instanceof VatId) {
             $query->setParameter('vat', $vatId, 'vat_id');
@@ -56,16 +57,15 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
         }
 
         $matches = [];
-        /** @var list<array{id: int, displayName: string, registrationNumber: string|null, vatId: VatId|null, archivedAt: \DateTimeImmutable|null}> $rows */
+        /** @var list<array{id: int, displayName: string, registrationCountry: string|null, registrationKey: string|null, vatId: VatId|null, archivedAt: \DateTimeImmutable|null}> $rows */
         $rows = $query->getResult();
         foreach ($rows as $row) {
-            $sameNumber = $registrationNumber instanceof RegistrationNumber
-                && null !== $row['registrationNumber']
-                && $registrationNumber->normalised() === new RegistrationNumber($registrationNumber->countryCode, $row['registrationNumber'])->normalised();
+            $sameNumber = '' !== $key
+                && $registrationNumber instanceof RegistrationNumber
+                && $registrationNumber->countryCode === $row['registrationCountry']
+                && $key === $row['registrationKey'];
             $sameVat = $vatId instanceof VatId && $row['vatId'] instanceof VatId && $vatId->toString() === $row['vatId']->toString();
-            if ($sameNumber || $sameVat) {
-                $matches[] = new DuplicateMatch($row['id'], $row['displayName'], null !== $row['archivedAt'], $sameNumber, $sameVat);
-            }
+            $matches[] = new DuplicateMatch($row['id'], $row['displayName'], null !== $row['archivedAt'], $sameNumber, $sameVat);
         }
 
         return $matches;

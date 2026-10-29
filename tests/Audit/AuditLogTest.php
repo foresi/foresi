@@ -352,10 +352,8 @@ final class AuditLogTest extends KernelTestCase
             'Example Company',
             new RegistrationNumber('CZ', '12345687'),
             VatId::fromString('CZ12345687'),
-            'testing@example.com',
             '+420000000000',
-            [PartyRole::Customer],
-        );
+            [PartyRole::Customer]);
     }
 
     private function partyId(Party $party): int

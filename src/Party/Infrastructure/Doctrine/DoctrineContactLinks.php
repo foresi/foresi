@@ -30,7 +30,13 @@ final readonly class DoctrineContactLinks implements ContactLinks
     private function exists(ContactLink $link): bool
     {
         $uow = $this->em->getUnitOfWork();
-        // Parties that are not stored yet cannot be linked yet; the unique index backs this up.
+        foreach ($uow->getScheduledEntityInsertions() as $pending) {
+            if ($pending instanceof ContactLink && $pending !== $link && $pending->company() === $link->company() && $pending->person() === $link->person()) {
+                return true;
+            }
+        }
+
+        // Parties that are not stored yet have no stored links.
         if (!$this->em->contains($link->company()) || !$this->em->contains($link->person())
             || null === $uow->getSingleIdentifierValue($link->company()) || null === $uow->getSingleIdentifierValue($link->person())) {
             return false;

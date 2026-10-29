@@ -14,12 +14,11 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * An address of a party. Every party has exactly one billing address; the
- * rule is enforced when addresses are added (see PartyAddresses) and, as a
- * backstop, by a unique index over the party and billing_flag. The flag is
- * true on the billing address and NULL on all others; NULLs never collide in
- * a unique index, on SQLite as on PostgreSQL, which a partial index would not
- * give both.
+ * An address of a party. Every party has exactly one billing address: CreateParty
+ * creates the party together with it, PartyAddresses refuses a second one, and a
+ * unique index over the party and billing_flag backs that up. The flag is true on
+ * the billing address and NULL on all others; NULLs never collide in a unique
+ * index, on SQLite as on PostgreSQL, which a partial index would not give both.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_address')]

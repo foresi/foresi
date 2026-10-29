@@ -15,12 +15,15 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * A bank account of a party. At most one account per party is the primary
- * one; PartyBankAccounts keeps it that way.
+ * one; PartyBankAccounts keeps it that way and, as a backstop, a unique index
+ * over the party and primary_flag does too (the flag is true on the primary
+ * account and NULL on the others, see PartyAddress for why).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_bank_account')]
 #[ORM\Index(name: 'idx_party_bank_account_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_bank_account_party', columns: ['party_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_party_bank_account_primary', columns: ['party_id', 'primary_flag'])]
 class PartyBankAccount implements TenantOwned, Audited
 {
     #[ORM\Id]
@@ -40,6 +43,9 @@ class PartyBankAccount implements TenantOwned, Audited
     #[ORM\Column(type: 'string', length: 100)]
     private string $label;
 
+    #[ORM\Column(name: 'primary_flag', type: 'boolean', nullable: true)]
+    private ?bool $primaryFlag;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Party::class)]
         #[ORM\JoinColumn(name: 'party_id', nullable: false)]
@@ -47,9 +53,9 @@ class PartyBankAccount implements TenantOwned, Audited
         Iban $iban,
         ?string $bic = null,
         string $label = '',
-        #[ORM\Column(name: 'is_primary', type: 'boolean')]
-        private bool $primary = false,
+        bool $primary = false,
     ) {
+        $this->primaryFlag = $primary ? true : null;
         $this->tenantId = $party->stampedTenantId();
         $this->iban = $iban->toString();
         $this->bic = $this->validateBic($bic);
@@ -83,17 +89,17 @@ class PartyBankAccount implements TenantOwned, Audited
 
     public function isPrimary(): bool
     {
-        return $this->primary;
+        return true === $this->primaryFlag;
     }
 
     public function makePrimary(): void
     {
-        $this->primary = true;
+        $this->primaryFlag = true;
     }
 
     public function demote(): void
     {
-        $this->primary = false;
+        $this->primaryFlag = null;
     }
 
     public function tenantId(): TenantId

@@ -59,7 +59,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        new Party(PartyKind::Person, ' ', null, null, 'testing@example.com', '');
+        new Party(PartyKind::Person, ' ', null, null, '');
     }
 
     public function testLegalEntityExposesItsData(): void
@@ -88,7 +88,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\LogicException::class);
 
-        new Party(PartyKind::Person, 'Test Person', null, null, 'testing@example.com', '')->tenantId();
+        new Party(PartyKind::Person, 'Test Person', null, null, '')->tenantId();
     }
 
     public function testLegalEntityTenantIsUnavailableBeforePersist(): void
@@ -131,6 +131,7 @@ final class PartyTest extends TestCase
         yield 'empty country' => ['', '1'];
         yield 'blank value' => ['DE', '  '];
         yield 'empty value' => ['DE', ''];
+        yield 'punctuation only' => ['DE', ' - / . '];
     }
 
     public function testLegalEntityRequiresAName(): void
@@ -165,7 +166,7 @@ final class PartyTest extends TestCase
 
     private function party(PartyKind $kind, ?RegistrationNumber $number, ?VatId $vatId): Party
     {
-        return new Party($kind, 'Example Company', $number, $vatId, 'testing@example.com', '', [PartyRole::Customer]);
+        return new Party($kind, 'Example Company', $number, $vatId, '', [PartyRole::Customer]);
     }
 
     private function address(): Address

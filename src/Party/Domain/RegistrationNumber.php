@@ -28,8 +28,8 @@ final readonly class RegistrationNumber
         if (1 !== preg_match('/^[A-Z]{2}$/', $countryCode)) {
             throw new InvalidRegistrationNumber('The country must be an ISO 3166-1 alpha-2 code.');
         }
-        if ('' === trim($value)) {
-            throw new InvalidRegistrationNumber('A registration number must not be empty.');
+        if ('' === $this->normalised()) {
+            throw new InvalidRegistrationNumber('A registration number needs at least one letter or digit.');
         }
     }
 
@@ -39,11 +39,11 @@ final readonly class RegistrationNumber
     }
 
     /**
-     * The comparison form: letters and digits only, upper case. "1234 5679"
+     * The comparison form: letters and digits only (any script), upper case. "1234 5679"
      * and "12345679" are the same number.
      */
     public function normalised(): string
     {
-        return strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $this->value));
+        return mb_strtoupper((string) preg_replace('/[^\p{L}\p{N}]/u', '', $this->value));
     }
 }

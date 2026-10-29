@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Application;
 
+use App\Party\Domain\InvalidRegistrationNumber;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\RegistrationNumber;
@@ -121,6 +122,25 @@ final class DuplicateFinderTest extends KernelTestCase
         self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679')));
     }
 
+    public function testAnUnusableRegistrationNumberIsNotMatchedAndCannotBeBuilt(): void
+    {
+        $this->save($this->company('Example Company', '12345679'));
+
+        $this->expectException(InvalidRegistrationNumber::class);
+        new RegistrationNumber('CZ', ' - ');
+    }
+
+    public function testFindsByTheStoredKeyAfterTheNumberChanged(): void
+    {
+        $party = $this->company('Example Company', '11111111');
+        $this->save($party);
+        $party->changeIdentifiers(new RegistrationNumber('CZ', '2222 2222'), null);
+        $this->em->flush();
+
+        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '11111111'), null));
+        self::assertCount(1, $this->finder->find(new RegistrationNumber('CZ', '22222222'), null));
+    }
+
     public function testExcludesThePartyBeingEdited(): void
     {
         $edited = $this->company('Edited Company', '12345679');
@@ -138,7 +158,7 @@ final class DuplicateFinderTest extends KernelTestCase
 
     private function company(string $name, string $number, ?string $vat = null): Party
     {
-        return new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', $number), null !== $vat ? VatId::fromString($vat) : null, 'testing@example.com', '');
+        return new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', $number), null !== $vat ? VatId::fromString($vat) : null, '');
     }
 
     private function save(Party $party): void

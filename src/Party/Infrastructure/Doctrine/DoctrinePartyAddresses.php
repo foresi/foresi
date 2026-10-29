@@ -31,7 +31,13 @@ final readonly class DoctrinePartyAddresses implements PartyAddresses
     private function hasBilling(PartyAddress $address): bool
     {
         $party = $address->party();
-        // A party that is not stored yet has no addresses; the unique index backs this up.
+        foreach ($this->em->getUnitOfWork()->getScheduledEntityInsertions() as $pending) {
+            if ($pending instanceof PartyAddress && $pending !== $address && $pending->party() === $party && AddressType::Billing === $pending->type()) {
+                return true;
+            }
+        }
+
+        // A party that is not stored yet has no stored addresses.
         if (!$this->em->contains($party) || null === $this->em->getUnitOfWork()->getSingleIdentifierValue($party)) {
             return false;
         }

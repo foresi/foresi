@@ -26,7 +26,7 @@ final class PartyAddressBookTest extends TestCase
 {
     public function testRolesMayBeEmptyForAPlainContact(): void
     {
-        $party = new Party(PartyKind::Person, 'Test Person', null, null, 'testing@example.com', '');
+        $party = new Party(PartyKind::Person, 'Test Person', null, null, '');
 
         self::assertSame([], $party->roles());
         self::assertFalse($party->hasRole(PartyRole::Customer));
@@ -34,7 +34,7 @@ final class PartyAddressBookTest extends TestCase
 
     public function testRolesStayAUniqueList(): void
     {
-        $party = new Party(PartyKind::Person, 'Test Person', null, null, 'testing@example.com', '', [PartyRole::Supplier, PartyRole::Customer, PartyRole::Supplier]);
+        $party = new Party(PartyKind::Person, 'Test Person', null, null, '', [PartyRole::Supplier, PartyRole::Customer, PartyRole::Supplier]);
 
         self::assertSame([PartyRole::Supplier, PartyRole::Customer], $party->roles());
         self::assertTrue($party->hasRole(PartyRole::Customer));
@@ -51,7 +51,7 @@ final class PartyAddressBookTest extends TestCase
 
     public function testRolesIsAListEvenAfterReplacingTheRoles(): void
     {
-        $party = new Party(PartyKind::Person, 'Test Person', null, null, 'testing@example.com', '', [PartyRole::Customer, PartyRole::Supplier, PartyRole::Partner]);
+        $party = new Party(PartyKind::Person, 'Test Person', null, null, '', [PartyRole::Customer, PartyRole::Supplier, PartyRole::Partner]);
 
         $party->assignRoles([PartyRole::Partner, PartyRole::Partner, PartyRole::Customer]);
 
@@ -104,13 +104,12 @@ final class PartyAddressBookTest extends TestCase
         $party->rename(' ');
     }
 
-    public function testChangeContact(): void
+    public function testChangePhone(): void
     {
         $party = $this->company();
 
-        $party->changeContact('new@example.com', '+420111111111');
+        $party->changePhone('+420111111111');
 
-        self::assertSame('new@example.com', $party->email());
         self::assertSame('+420111111111', $party->phone());
     }
 
@@ -134,7 +133,7 @@ final class PartyAddressBookTest extends TestCase
 
     public function testChangeIdentifiersOfAPersonMayClearThem(): void
     {
-        $party = new Party(PartyKind::Person, 'Test Person', new RegistrationNumber('DE', '1'), null, 'testing@example.com', '');
+        $party = new Party(PartyKind::Person, 'Test Person', new RegistrationNumber('DE', '1'), null, '');
 
         $party->changeIdentifiers(null, null);
 
@@ -180,10 +179,11 @@ final class PartyAddressBookTest extends TestCase
     {
         self::assertSame('12345679', new RegistrationNumber('CZ', '1234 5679')->normalised());
         self::assertSame('HRB1A', new RegistrationNumber('DE', 'hrb-1 / a')->normalised());
+        self::assertSame('ŽLUTÝ1', new RegistrationNumber('CZ', 'žlutý 1')->normalised());
     }
 
     private function company(): Party
     {
-        return new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), null, 'testing@example.com', '', [PartyRole::Customer]);
+        return new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), null, '', [PartyRole::Customer]);
     }
 }

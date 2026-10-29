@@ -45,8 +45,8 @@ final class PartyPersistenceTest extends KernelTestCase
     public function testPartyRoundTripsWithAndWithoutIdentifiers(): void
     {
         $this->context->switchTo(TenantId::generate());
-        $this->em->persist(new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), 'testing@example.com', '+420000000000', [PartyRole::Customer, PartyRole::Supplier]));
-        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, 'testing@example.com', ''));
+        $this->em->persist(new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), '+420000000000', [PartyRole::Customer, PartyRole::Supplier]));
+        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
         $this->em->flush();
         $this->em->clear();
 
@@ -90,7 +90,7 @@ final class PartyPersistenceTest extends KernelTestCase
     {
         $a = TenantId::generate();
         $this->context->switchTo($a);
-        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, '', ''));
+        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
         $this->em->flush();
         $this->context->switchTo(TenantId::generate());
 

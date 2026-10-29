@@ -17,6 +17,11 @@ use Doctrine\Migrations\AbstractMigration;
  * the new columns get their defaults. Plain SQL without schema changes, so the
  * statements run in order and are valid on SQLite and PostgreSQL (the JSON
  * values are untyped literals, which PostgreSQL coerces to the json column).
+ *
+ * Going down is lossy by nature: only the billing address and the customer and
+ * supplier roles exist in the old shape, so other addresses and the Partner and
+ * Authority roles are dropped, and parties without a billing address get empty
+ * address columns.
  */
 final class Version20261029000006 extends AbstractMigration
 {

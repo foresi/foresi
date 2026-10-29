@@ -63,6 +63,29 @@ final class AddressBookMigrationTest extends TestCase
         self::assertSame(self::TENANT, $this->connection->fetchOne('SELECT a.tenant_id FROM party_address a LIMIT 1'));
     }
 
+    public function testEmailsKeysAndPrimaryFlagsAreMoved(): void
+    {
+        $this->legacyParty('With email', true, false, 'Street 1', 'invoices@example.com', 'CZ', '1234 5679');
+        $this->legacyParty('Without email', true, false, 'Street 2');
+        $partyId = $this->connection->fetchOne("SELECT id FROM party WHERE display_name = 'With email'");
+        $this->migrateTo('DoctrineMigrations\\Version20261029000007');
+        $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $partyId, 'iban' => 'DE89370400440532013000', 'label' => '', 'is_primary' => 1]);
+        $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $partyId, 'iban' => 'GB82WEST12345698765432', 'label' => '', 'is_primary' => 0]);
+
+        $this->migrateTo(null);
+
+        self::assertSame(['With email' => '12345679'], $this->connection->fetchAllKeyValue('SELECT display_name, registration_key FROM party WHERE registration_key IS NOT NULL'));
+        self::assertSame([['invoices@example.com', 'general']], $this->connection->fetchAllNumeric('SELECT address, purpose FROM party_email'));
+        self::assertSame(['DE89370400440532013000' => 1, 'GB82WEST12345698765432' => null], $this->connection->fetchAllKeyValue('SELECT iban, primary_flag FROM party_bank_account'));
+        $row = $this->connection->fetchAssociative('SELECT * FROM party');
+        self::assertIsArray($row);
+        self::assertArrayNotHasKey('email', $row);
+
+        $this->migrateTo(self::BEFORE);
+
+        self::assertSame(['With email' => 'invoices@example.com', 'Without email' => ''], $this->connection->fetchAllKeyValue('SELECT display_name, email FROM party'));
+    }
+
     public function testNewColumnsGetTheirDefaults(): void
     {
         $this->legacyParty('Customer', true, false, 'Customer Street 1');
@@ -99,13 +122,15 @@ final class AddressBookMigrationTest extends TestCase
         );
     }
 
-    private function legacyParty(string $name, bool $customer, bool $supplier, string $street): void
+    private function legacyParty(string $name, bool $customer, bool $supplier, string $street, string $email = '', ?string $country = null, ?string $number = null): void
     {
         $this->connection->insert('party', [
             'tenant_id' => self::TENANT,
             'kind' => 'person',
             'display_name' => $name,
-            'email' => 'testing@example.com',
+            'email' => $email,
+            'registration_country' => $country,
+            'registration_number' => $number,
             'phone' => '',
             'is_customer' => (int) $customer,
             'is_supplier' => (int) $supplier,
