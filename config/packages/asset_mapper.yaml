@@ -7,11 +7,6 @@ framework:
         # No runtime fetch of the es-module-shims polyfill from a CDN.
         importmap_polyfill: false
 
-when@prod:
-    framework:
-        asset_mapper:
-            missing_import_mode: warn
-
 when@test:
     framework:
         asset_mapper:

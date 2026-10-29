@@ -45,6 +45,10 @@ final class AssetsTest extends WebTestCase
 
         $html = $client->getResponse()->getContent();
         self::assertIsString($html);
+        // Test env ignores missing imports, so prove that the real entries resolve to local files.
+        self::assertMatchesRegularExpression('#"@hotwired/turbo":\s*"/assets/vendor/@hotwired/turbo/turbo\.index-[^"]+\.js"#', $html);
+        self::assertMatchesRegularExpression('#"@hotwired/stimulus":\s*"/assets/vendor/@hotwired/stimulus/stimulus\.index-[^"]+\.js"#', $html);
+        self::assertMatchesRegularExpression('#"@symfony/stimulus-bundle":\s*"/assets/@symfony/stimulus-bundle/loader-[^"]+\.js"#', $html);
         self::assertStringNotContainsString('jspm.io', $html);
         self::assertStringNotContainsString('jsdelivr', $html);
         self::assertStringNotContainsString('fonts.googleapis.com', $html);

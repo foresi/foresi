@@ -11,15 +11,16 @@ ux_icons:
         height: '1em'
         width: '1em'
 
-    # Throw an exception if an icon is not
+    # Throw an exception if an icon is not found (icons are locked in assets/icons)
     ignore_not_found: false
 
 
 when@dev:
     ux_icons:
+        # Nothing is fetched from the Iconify API at runtime. Add icons with
+        # `bin/console ux:icons:import lucide:<name>` and commit them.
         iconify:
-            # Persist each on-demand icon to disk on first render, so you don't forget to commit it before deploying (like `ux:icons:lock`)
-            auto_lock: true
+            enabled: false
 
 when@prod:
     ux_icons:

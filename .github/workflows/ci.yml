@@ -50,6 +50,19 @@ jobs:
       - name: Mutation testing
         run: composer infection
 
+      # A production build must fail on any missing asset or import. Strict
+      # missing_import_mode makes asset-map:compile throw; the output is also
+      # checked for warnings.
+      - name: Frontend build (prod)
+        env:
+          APP_ENV: prod
+          APP_SECRET: ci-build-only
+        run: |
+          bin/console importmap:install
+          bin/console tailwind:build --minify
+          bin/console asset-map:compile 2>&1 | tee asset-compile.log
+          ! grep -iE 'warning|unable to find|could not be found|not found' asset-compile.log
+
       - name: Security audit
         run: composer audit
 
