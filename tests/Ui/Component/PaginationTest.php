@@ -50,11 +50,13 @@ final class PaginationTest extends KernelTestCase
     public function testPreviousIsDisabledOnFirstPageAndNextOnLast(): void
     {
         $first = $this->render(1, 3);
-        self::assertStringContainsString('aria-disabled="true" aria-label="Předchozí stránka"', $first);
+        self::assertStringContainsString('aria-disabled="true"', $first);
+        self::assertStringContainsString('<span class="sr-only">Předchozí stránka</span>', $first);
+        self::assertStringNotContainsString('<span aria-disabled="true" aria-label', $first);
         self::assertStringNotContainsString('href="/contacts?page=0"', $first);
 
         $last = $this->render(3, 3);
-        self::assertStringContainsString('aria-disabled="true" aria-label="Další stránka"', $last);
+        self::assertStringContainsString('<span class="sr-only">Další stránka</span>', $last);
         self::assertStringNotContainsString('page=4', $last);
     }
 
@@ -95,7 +97,7 @@ final class PaginationTest extends KernelTestCase
     {
         $html = $this->render(99, 3);
 
-        self::assertStringContainsString('aria-disabled="true" aria-label="Další stránka"', $html);
+        self::assertStringContainsString('<span class="sr-only">Další stránka</span>', $html);
         self::assertSame(1, substr_count($html, 'aria-current="page"'));
     }
 

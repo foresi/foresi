@@ -30,6 +30,14 @@ final class PageHeaderTest extends KernelTestCase
         self::assertSame(1, substr_count($html, 'aria-current="page"'));
     }
 
+    public function testOnlyTheLastCrumbIsCurrent(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:PageHeader', ['title' => 'T', 'crumbs' => [['label' => 'A'], ['label' => 'B', 'href' => '/b'], ['label' => 'C']]]);
+
+        self::assertSame(1, substr_count($html, 'aria-current="page"'));
+        self::assertStringContainsString('aria-current="page">C<', $html);
+    }
+
     public function testNoCrumbsNoNav(): void
     {
         self::assertStringNotContainsString('<nav', (string) $this->renderTwigComponent('Ui:PageHeader', ['title' => 'T']));

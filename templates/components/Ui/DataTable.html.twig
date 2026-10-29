@@ -36,7 +36,7 @@
                     </thead>
                     <tbody>
                         {% for row in this.rowViews %}
-                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ row.href ? ' cursor-pointer' : '' }}">
+                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}">
                                 {% if selectable %}
                                     <td class="h-11 w-11 border-b border-line px-3.5 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:shadow-[inset_3px_0_0_var(--color-green)]">
                                         <label class="inline-grid size-6 place-items-center">
@@ -66,7 +66,7 @@
                                 {% if selectable %}<td class="h-11 bg-head px-3.5"></td>{% endif %}
                                 {% for cell in this.totalCells %}
                                     <td class="num h-11 whitespace-nowrap bg-head px-3.5 font-semibold text-ink {{ this.alignClass(cell.align) }}{% if loop.index > 1 or selectable %} border-l border-line{% endif %}">
-                                        {{- cell.text ?: (loop.first ? 'ui.table.total'|trans : '') -}}
+                                        {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                     </td>
                                 {% endfor %}
                             </tr>

@@ -8,7 +8,7 @@
                 {% if page > 1 %}
                     <a href="{{ this.url(page - 1) }}" aria-label="{{ 'ui.pagination.previous'|trans }}" class="{{ box }}border-line-strong bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                 {% else %}
-                    <span aria-disabled="true" aria-label="{{ 'ui.pagination.previous'|trans }}" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                    <span aria-disabled="true" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.previous'|trans }}</span></span>
                 {% endif %}
             </li>
             {% for item in this.items %}
@@ -26,7 +26,7 @@
                 {% if page < pages %}
                     <a href="{{ this.url(page + 1) }}" aria-label="{{ 'ui.pagination.next'|trans }}" class="{{ box }}border-line-strong bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                 {% else %}
-                    <span aria-disabled="true" aria-label="{{ 'ui.pagination.next'|trans }}" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                    <span aria-disabled="true" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.next'|trans }}</span></span>
                 {% endif %}
             </li>
         </ul>

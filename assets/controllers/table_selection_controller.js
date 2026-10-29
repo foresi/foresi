@@ -16,7 +16,9 @@ export default class extends Controller {
     connect() {
         this.anchor = null;
         this.announced = null;
+        this.ready = false;
         this.sync();
+        this.ready = true;
     }
 
     toggleAll() {
@@ -60,18 +62,31 @@ export default class extends Controller {
         }
 
         if (this.hasBarTarget) {
+            const appearing = this.barTarget.hidden && count > 0;
             this.barTarget.hidden = count === 0;
             const text = count === 0 ? '' : this.format(count);
             if (this.hasCountTarget) {
                 this.countTarget.textContent = text;
             }
-            if (this.hasStatusTarget && this.announced !== count) {
+            if (this.ready && this.hasStatusTarget && this.announced !== count) {
                 this.statusTarget.textContent = text;
+            }
+            if (appearing && this.ready) {
+                this.revealFocus();
             }
         }
         this.announced = count;
 
         this.dispatch('change', { detail: { ids: selected.map((box) => box.value), count } });
+    }
+
+    // When the bar appears, keep the focused row clear of it (rows carry a bottom scroll margin).
+    revealFocus() {
+        const active = document.activeElement;
+        const row = active && active.closest ? active.closest('[data-table-selection-target~="row"]') : null;
+        if (row) {
+            row.scrollIntoView({ block: 'nearest' });
+        }
     }
 
     format(count) {
@@ -82,10 +97,25 @@ export default class extends Controller {
         return template.replace('{count}', String(count));
     }
 
-    // A click on the row itself (not on a control or selected text) follows its primary link.
+    // A click on the row itself (not on a control or selected text) follows its primary link;
+    // a click in the checkbox cell toggles the checkbox. Modified and non-primary clicks are left to the browser.
     rowClick(event) {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) {
+            return;
+        }
         const row = event.target.closest('[data-table-selection-target~="row"]');
-        if (!row || event.target.closest(INTERACTIVE) || String(window.getSelection()).length > 0) {
+        if (!row) {
+            return;
+        }
+        const box = row.querySelector('[data-table-selection-target~="check"]');
+        const cell = event.target.closest('td');
+        if (box && cell && cell.contains(box)) {
+            if (!event.target.closest('label, input')) {
+                box.click();
+            }
+            return;
+        }
+        if (event.target.closest(INTERACTIVE) || String(window.getSelection()).length > 0) {
             return;
         }
         const link = row.querySelector('[data-row-link]');

@@ -8,11 +8,11 @@
                 <ol class="m-0 flex list-none flex-wrap items-center gap-1.5 p-0">
                     {% for crumb in this.crumbViews %}
                         <li class="flex items-center gap-1.5">
-                            {% if crumb.href %}
-                                <a href="{{ crumb.href }}" class="text-muted no-underline hover:text-ink hover:underline {{ focus }}">{{ crumb.label }}</a>
-                                {{ ux_icon('lucide:chevron-right', {class: 'size-3.5', 'aria-hidden': 'true'}) }}
-                            {% else %}
+                            {% if loop.last %}
                                 <span aria-current="page">{{ crumb.label }}</span>
+                            {% else %}
+                                {% if crumb.href %}<a href="{{ crumb.href }}" class="text-muted no-underline hover:text-ink hover:underline {{ focus }}">{{ crumb.label }}</a>{% else %}<span>{{ crumb.label }}</span>{% endif %}
+                                {{ ux_icon('lucide:chevron-right', {class: 'size-3.5', 'aria-hidden': 'true'}) }}
                             {% endif %}
                         </li>
                     {% endfor %}

@@ -4,12 +4,12 @@
     <button type="button" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-action="command-palette#open" data-command-palette-target="opener" class="inline-flex h-control w-full min-w-[220px] cursor-pointer items-center gap-2 rounded-control border border-line-strong bg-white px-2.5 text-left text-muted hover:bg-head {{ focus }}">
         {{ ux_icon('lucide:search', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}
         <span class="flex-1 truncate">{{ 'ui.palette.open'|trans }}</span>
-        <twig:Ui:Kbd>⌘K</twig:Ui:Kbd>
+        <twig:Ui:Kbd data-command-palette-target="shortcut">Ctrl K</twig:Ui:Kbd>
     </button>
-    <div hidden data-command-palette-target="overlay" data-action="click->command-palette#backdrop keydown->command-palette#keydown" class="fixed inset-0 z-50 flex items-start justify-center bg-ink/25 pt-[12vh]">
-        <div role="dialog" aria-modal="true" aria-label="{{ 'ui.palette.label'|trans }}" class="w-[min(560px,92vw)] overflow-hidden rounded-panel border border-line-strong bg-white shadow-[0_20px_50px_rgba(28,29,26,.2)]">
+    <div hidden data-command-palette-target="overlay" data-action="click->command-palette#backdrop" class="fixed inset-0 z-50 flex items-start justify-center bg-ink/25 pt-[12vh]">
+        <div role="dialog" aria-modal="true" tabindex="-1" data-command-palette-target="dialog" data-action="mousedown->command-palette#keepFocus" aria-label="{{ 'ui.palette.label'|trans }}" class="w-[min(560px,92vw)] outline-none overflow-hidden rounded-panel border border-line-strong bg-white shadow-[0_20px_50px_rgba(28,29,26,.2)]">
             <div class="flex items-center border-b border-line pr-2">
-                <input type="text" role="combobox" aria-expanded="false" aria-controls="{{ id }}-list" aria-autocomplete="list" aria-label="{{ 'ui.palette.label'|trans }}" placeholder="{{ 'ui.palette.placeholder'|trans }}" autocomplete="off" spellcheck="false" data-command-palette-target="input" data-action="input->command-palette#filter" class="h-12 min-w-0 flex-1 border-0 bg-transparent px-4 text-ink outline-none">
+                <input type="text" role="combobox" aria-expanded="false" aria-controls="{{ id }}-list" aria-autocomplete="list" aria-label="{{ 'ui.palette.label'|trans }}" placeholder="{{ 'ui.palette.placeholder'|trans }}" autocomplete="off" spellcheck="false" data-command-palette-target="input" data-action="input->command-palette#filter keydown->command-palette#navigate" class="h-12 min-w-0 flex-1 border-0 bg-transparent px-4 text-ink outline-none">
                 <twig:Ui:IconButton icon="x" :label="'ui.palette.close'|trans" variant="ghost" size="sm" data-action="command-palette#close" data-command-palette-target="close" />
             </div>
             <ul id="{{ id }}-list" role="listbox" aria-label="{{ 'ui.palette.label'|trans }}" data-command-palette-target="list" class="m-0 max-h-[50vh] list-none overflow-y-auto p-0 pb-2">

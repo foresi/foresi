@@ -42,6 +42,8 @@ final class CommandPaletteTest extends KernelTestCase
         self::assertStringContainsString('aria-keyshortcuts="Control+K Meta+K"', $html);
         self::assertStringContainsString('data-action="command-palette#open"', $html);
         self::assertStringContainsString('<kbd', $html);
+        self::assertStringContainsString('data-command-palette-target="shortcut"', $html);
+        self::assertStringContainsString('Ctrl K', $html);
     }
 
     public function testDialogIsHiddenModalAndLabelled(): void
@@ -51,6 +53,8 @@ final class CommandPaletteTest extends KernelTestCase
         self::assertMatchesRegularExpression('#<div[^>]*data-command-palette-target="overlay"[^>]*hidden|<div[^>]*hidden[^>]*data-command-palette-target="overlay"#', $html);
         self::assertStringContainsString('role="dialog"', $html);
         self::assertStringContainsString('aria-modal="true"', $html);
+        self::assertStringContainsString('tabindex="-1"', $html);
+        self::assertStringContainsString('data-action="mousedown->command-palette#keepFocus"', $html);
         self::assertStringContainsString('aria-label="Příkazová paleta"', $html);
     }
 

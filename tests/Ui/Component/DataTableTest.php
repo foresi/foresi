@@ -81,7 +81,7 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('data-table-selection-target="all"', $html);
         self::assertSame(2, substr_count($html, 'data-table-selection-target="check"'));
         self::assertStringContainsString('value="a1"', $html);
-        self::assertStringContainsString('role="toolbar"', $html);
+        self::assertStringContainsString('role="region"', $html);
         self::assertStringContainsString('aria-live="polite"', $html);
         self::assertStringContainsString('scroll-mb-24', $html);
     }
@@ -186,6 +186,19 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('<tfoot', $html);
         self::assertStringContainsString('3 400', $html);
         self::assertStringContainsString('Celkem', $html);
+    }
+
+    public function testZeroTotalIsRendered(): void
+    {
+        $html = $this->render(['totals' => ['balance' => 0, 'name' => '']]);
+
+        self::assertMatchesRegularExpression('#<td[^>]*>\s*0\s*</td>#', $html);
+    }
+
+    public function testRowsAreClickableOnlyWhenSelectable(): void
+    {
+        self::assertStringNotContainsString('cursor-pointer', $this->render());
+        self::assertStringContainsString('cursor-pointer', $this->render(['selectable' => true]));
     }
 
     public function testNoTotalsNoFooterRow(): void

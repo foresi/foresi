@@ -10,20 +10,81 @@ const fold = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
  * commands. Opens with Ctrl/Cmd+K or from the search button.
  */
 export default class extends Controller {
-    static targets = ['opener', 'overlay', 'input', 'list', 'option', 'empty', 'close'];
+    static targets = ['opener', 'overlay', 'dialog', 'input', 'list', 'option', 'empty', 'close', 'shortcut'];
 
     connect() {
+        this.inerted = [];
         this.onShortcut = (event) => {
-            if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+            if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || event.repeat || event.key.toLowerCase() !== 'k') {
+                return;
+            }
+            const target = event.target;
+            const editable = target instanceof Element && target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+            if (editable && !this.element.contains(target)) {
+                return;
+            }
+            event.preventDefault();
+            this.isOpen() ? this.close() : this.open();
+        };
+        // While open, Tab and Escape are handled on the document so they work wherever focus is.
+        this.onKeydown = (event) => {
+            if (event.key === 'Escape') {
                 event.preventDefault();
-                this.isOpen() ? this.close() : this.open();
+                this.close();
+            } else if (event.key === 'Tab') {
+                this.trap(event);
             }
         };
+        this.onBeforeCache = () => this.close(false);
         window.addEventListener('keydown', this.onShortcut);
+        document.addEventListener('turbo:before-cache', this.onBeforeCache);
+        if (this.hasShortcutTarget && this.isMac()) {
+            this.shortcutTarget.textContent = '\u2318K';
+        }
     }
 
     disconnect() {
         window.removeEventListener('keydown', this.onShortcut);
+        document.removeEventListener('turbo:before-cache', this.onBeforeCache);
+        document.removeEventListener('keydown', this.onKeydown, true);
+        this.release();
+    }
+
+    isMac() {
+        const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+        return /mac|iphone|ipad|ipod/i.test(platform);
+    }
+
+    // Makes everything outside the palette inert, so the page behind cannot be reached.
+    isolate() {
+        let node = this.element;
+        while (node && node !== document.body) {
+            const parent = node.parentElement;
+            if (!parent) {
+                break;
+            }
+            Array.from(parent.children).forEach((sibling) => {
+                if (sibling !== node && !sibling.inert) {
+                    sibling.inert = true;
+                    this.inerted.push(sibling);
+                }
+            });
+            node = parent;
+        }
+        // Inside the palette only the dialog stays reachable.
+        Array.from(this.element.children).forEach((child) => {
+            if (child !== this.overlayTarget && !child.inert) {
+                child.inert = true;
+                this.inerted.push(child);
+            }
+        });
+    }
+
+    release() {
+        this.inerted.forEach((node) => {
+            node.inert = false;
+        });
+        this.inerted = [];
     }
 
     isOpen() {
@@ -36,21 +97,27 @@ export default class extends Controller {
         }
         this.returnTo = document.activeElement instanceof HTMLElement ? document.activeElement : this.openerTarget;
         this.overlayTarget.hidden = false;
+        this.isolate();
+        document.addEventListener('keydown', this.onKeydown, true);
         this.inputTarget.setAttribute('aria-expanded', 'true');
         this.inputTarget.value = '';
         this.filter();
         this.inputTarget.focus();
     }
 
-    close() {
+    close(restoreFocus = true) {
         if (!this.isOpen()) {
             return;
         }
+        document.removeEventListener('keydown', this.onKeydown, true);
+        this.release();
         this.overlayTarget.hidden = true;
         this.inputTarget.setAttribute('aria-expanded', 'false');
         this.setActive(null);
-        const target = this.returnTo && this.returnTo.isConnected ? this.returnTo : this.openerTarget;
-        target.focus();
+        if (restoreFocus !== false) {
+            const target = this.returnTo && this.returnTo.isConnected ? this.returnTo : this.openerTarget;
+            target.focus();
+        }
         this.returnTo = null;
     }
 
@@ -90,14 +157,11 @@ export default class extends Controller {
         }
     }
 
-    keydown(event) {
-        if (event.key === 'Escape') {
+    // Clicking inside the dialog on a non-focusable area must not drop focus to the page.
+    keepFocus(event) {
+        if (!event.target.closest('input, button, a, [tabindex]:not([tabindex="-1"])')) {
             event.preventDefault();
-            this.close();
-        } else if (event.key === 'Tab') {
-            this.trap(event);
-        } else if (event.target === this.inputTarget) {
-            this.navigate(event);
+            this.inputTarget.focus();
         }
     }
 

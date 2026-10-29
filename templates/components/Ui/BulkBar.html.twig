@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <div {{ attributes }}>
     <div role="status" aria-live="polite" class="sr-only" data-table-selection-target="status"></div>
-    <div role="toolbar" aria-label="{{ 'ui.bulk.label'|trans }}" hidden data-table-selection-target="bar" data-label-one="{{ 'ui.bulk.selected.one'|trans }}" data-label-few="{{ 'ui.bulk.selected.few'|trans }}" data-label-other="{{ 'ui.bulk.selected.other'|trans }}" class="fixed bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-line-strong bg-white p-2 shadow-[0_10px_30px_rgba(28,29,26,.14)]">
+    <div role="region" aria-label="{{ 'ui.bulk.label'|trans }}" hidden data-table-selection-target="bar" data-label-one="{{ 'ui.bulk.selected.one'|trans }}" data-label-few="{{ 'ui.bulk.selected.few'|trans }}" data-label-other="{{ 'ui.bulk.selected.other'|trans }}" class="fixed bottom-6 left-1/2 z-40 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-line-strong bg-white p-2 shadow-[0_10px_30px_rgba(28,29,26,.14)]">
         <span class="num px-2 text-muted" data-table-selection-target="count"></span>
         {% block content %}{% endblock %}
     </div>

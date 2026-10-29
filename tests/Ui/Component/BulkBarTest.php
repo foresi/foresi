@@ -20,7 +20,7 @@ final class BulkBarTest extends KernelTestCase
         $html = (string) $this->renderTwigComponent('Ui:BulkBar', [], '<button>Archive</button>');
 
         self::assertMatchesRegularExpression('#<div[^>]*role="status"[^>]*aria-live="polite"|<div[^>]*aria-live="polite"[^>]*role="status"#', $html);
-        self::assertMatchesRegularExpression('#<div[^>]*role="toolbar"[^>]*hidden|<div[^>]*hidden[^>]*role="toolbar"#', $html);
+        self::assertMatchesRegularExpression('#<div[^>]*role="region"[^>]*hidden|<div[^>]*hidden[^>]*role="region"#', $html);
         self::assertStringContainsString('<button>Archive</button>', $html);
         self::assertStringContainsString('aria-label="Hromadné akce"', $html);
     }
