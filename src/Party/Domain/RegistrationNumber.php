@@ -37,4 +37,13 @@ final readonly class RegistrationNumber
     {
         return $this->value;
     }
+
+    /**
+     * The comparison form: letters and digits only, upper case. "1234 5679"
+     * and "12345679" are the same number.
+     */
+    public function normalised(): string
+    {
+        return strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $this->value));
+    }
 }

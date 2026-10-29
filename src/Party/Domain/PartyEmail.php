@@ -1,0 +1,90 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Party\Domain;
+
+use App\Audit\Domain\Audited;
+use App\Tenancy\Domain\TenantId;
+use App\Tenancy\Domain\TenantOwned;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * An e-mail address of a party and what it is used for.
+ */
+#[ORM\Entity]
+#[ORM\Table(name: 'party_email')]
+#[ORM\Index(name: 'idx_party_email_tenant', columns: ['tenant_id'])]
+#[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
+class PartyEmail implements TenantOwned, Audited
+{
+    private const int MAX_LENGTH = 254;
+
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $id = null;
+
+    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
+    private ?TenantId $tenantId;
+
+    #[ORM\Column(type: 'string', length: 254)]
+    private string $address;
+
+    public function __construct(
+        #[ORM\ManyToOne(targetEntity: Party::class)]
+        #[ORM\JoinColumn(name: 'party_id', nullable: false)]
+        private readonly Party $party,
+        string $address,
+        #[ORM\Column(type: 'string', length: 16, enumType: EmailPurpose::class)]
+        private EmailPurpose $purpose,
+    ) {
+        $this->tenantId = $party->stampedTenantId();
+        $this->address = $this->validate($address);
+    }
+
+    public function id(): ?int
+    {
+        return $this->id;
+    }
+
+    public function party(): Party
+    {
+        return $this->party;
+    }
+
+    public function address(): string
+    {
+        return $this->address;
+    }
+
+    public function purpose(): EmailPurpose
+    {
+        return $this->purpose;
+    }
+
+    public function change(string $address, EmailPurpose $purpose): void
+    {
+        $this->address = $this->validate($address);
+        $this->purpose = $purpose;
+    }
+
+    public function tenantId(): TenantId
+    {
+        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
+    }
+
+    private function validate(string $address): string
+    {
+        $address = trim($address);
+        if (\strlen($address) > self::MAX_LENGTH || 1 !== preg_match('/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/', $address)) {
+            throw new \DomainException('The e-mail address is not valid.');
+        }
+
+        return $address;
+    }
+}

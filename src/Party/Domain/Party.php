@@ -14,7 +14,9 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A customer and/or supplier of the tenant.
+ * A person or organisation the tenant does business with: a customer, a
+ * supplier, a partner, an authority or just a contact. Addresses, e-mails,
+ * bank accounts and contact links are separate audited entities pointing here.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party')]
@@ -39,34 +41,55 @@ class Party implements TenantOwned, Audited
     #[ORM\Column(name: 'registration_number', type: 'string', length: 64, nullable: true)]
     private ?string $registrationNumber;
 
+    #[ORM\Column(name: 'vat_id', type: 'vat_id', length: 14, nullable: true)]
+    private ?VatId $vatId;
+
+    /** @var list<string> */
+    #[ORM\Column(type: 'json')]
+    private array $roles;
+
+    #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $archivedAt = null;
+
+    #[ORM\Column(name: 'private_note', type: 'text')]
+    private string $privateNote = '';
+
+    #[ORM\Embedded(class: InvoicingDefaults::class, columnPrefix: 'invoicing_')]
+    private InvoicingDefaults $invoicingDefaults;
+
+    // The registry checks are plain nullable columns, like the registration number: the source is
+    // implied by the column pair, and Doctrine cannot hydrate a never-checked embeddable as null.
+    #[ORM\Column(name: 'vies_result', type: 'string', length: 32, nullable: true, enumType: RegistryResult::class)]
+    private ?RegistryResult $viesResult = null;
+
+    #[ORM\Column(name: 'vies_checked_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $viesCheckedAt = null;
+
+    #[ORM\Column(name: 'unreliable_payer_result', type: 'string', length: 32, nullable: true, enumType: RegistryResult::class)]
+    private ?RegistryResult $unreliablePayerResult = null;
+
+    #[ORM\Column(name: 'unreliable_payer_checked_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $unreliablePayerCheckedAt = null;
+
+    /**
+     * @param list<PartyRole> $roles
+     */
     public function __construct(
         #[ORM\Column(type: 'string', length: 32, enumType: PartyKind::class)]
         private PartyKind $kind,
         string $displayName,
         ?RegistrationNumber $registrationNumber,
-        #[ORM\Column(name: 'vat_id', type: 'vat_id', length: 14, nullable: true)]
-        private ?VatId $vatId,
-        #[ORM\Embedded(class: Address::class, columnPrefix: 'address_')]
-        private Address $address,
+        ?VatId $vatId,
         #[ORM\Column(type: 'string', length: 255)]
         private string $email,
         #[ORM\Column(type: 'string', length: 64)]
         private string $phone,
-        #[ORM\Column(name: 'is_customer', type: 'boolean')]
-        private bool $isCustomer,
-        #[ORM\Column(name: 'is_supplier', type: 'boolean')]
-        private bool $isSupplier,
+        array $roles = [],
     ) {
-        $displayName = trim($displayName);
-        if ('' === $displayName) {
-            throw new \DomainException('A party needs a display name.');
-        }
-        if (PartyKind::Company === $kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId) {
-            throw new \DomainException('A company needs a registration number or a VAT id.');
-        }
-        $this->displayName = $displayName;
-        $this->registrationCountry = $registrationNumber?->countryCode;
-        $this->registrationNumber = $registrationNumber?->value;
+        $this->rename($displayName);
+        $this->changeIdentifiers($registrationNumber, $vatId);
+        $this->assignRoles($roles);
+        $this->invoicingDefaults = InvoicingDefaults::standard();
     }
 
     public function kind(): PartyKind
@@ -93,11 +116,6 @@ class Party implements TenantOwned, Audited
         return $this->vatId;
     }
 
-    public function address(): Address
-    {
-        return $this->address;
-    }
-
     public function email(): string
     {
         return $this->email;
@@ -108,18 +126,138 @@ class Party implements TenantOwned, Audited
         return $this->phone;
     }
 
-    public function isCustomer(): bool
+    /**
+     * @return list<PartyRole>
+     */
+    public function roles(): array
     {
-        return $this->isCustomer;
+        return array_map(PartyRole::from(...), $this->roles);
     }
 
-    public function isSupplier(): bool
+    public function hasRole(PartyRole $role): bool
     {
-        return $this->isSupplier;
+        return \in_array($role->value, $this->roles, true);
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archivedAt instanceof \DateTimeImmutable;
+    }
+
+    public function archivedAt(): ?\DateTimeImmutable
+    {
+        return $this->archivedAt;
+    }
+
+    public function privateNote(): string
+    {
+        return $this->privateNote;
+    }
+
+    public function invoicingDefaults(): InvoicingDefaults
+    {
+        return $this->invoicingDefaults;
+    }
+
+    public function viesCheck(): ?RegistryCheck
+    {
+        return $this->check(RegistrySource::Vies, $this->viesResult, $this->viesCheckedAt);
+    }
+
+    public function unreliablePayerCheck(): ?RegistryCheck
+    {
+        return $this->check(RegistrySource::UnreliablePayer, $this->unreliablePayerResult, $this->unreliablePayerCheckedAt);
+    }
+
+    public function rename(string $displayName): void
+    {
+        $displayName = trim($displayName);
+        if ('' === $displayName) {
+            throw new \DomainException('A party needs a display name.');
+        }
+        $this->displayName = $displayName;
+    }
+
+    public function changeContact(string $email, string $phone): void
+    {
+        $this->email = $email;
+        $this->phone = $phone;
+    }
+
+    public function changeIdentifiers(?RegistrationNumber $registrationNumber, ?VatId $vatId): void
+    {
+        if (PartyKind::Company === $this->kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId) {
+            throw new \DomainException('A company needs a registration number or a VAT id.');
+        }
+        $this->registrationCountry = $registrationNumber?->countryCode;
+        $this->registrationNumber = $registrationNumber?->value;
+        $this->vatId = $vatId;
+    }
+
+    /**
+     * Replaces the roles; duplicates are dropped and the order is kept.
+     *
+     * @param list<PartyRole> $roles
+     */
+    public function assignRoles(array $roles): void
+    {
+        $this->roles = array_values(array_unique(array_map(static fn (PartyRole $role): string => $role->value, $roles)));
+    }
+
+    public function changePrivateNote(string $note): void
+    {
+        $this->privateNote = $note;
+    }
+
+    public function changeInvoicingDefaults(InvoicingDefaults $defaults): void
+    {
+        $this->invoicingDefaults = $defaults;
+    }
+
+    /**
+     * Archived parties stay in the data and remain referenceable; lists hide them by default.
+     */
+    public function archive(\DateTimeImmutable $at): void
+    {
+        $this->archivedAt ??= $at;
+    }
+
+    public function restore(): void
+    {
+        $this->archivedAt = null;
+    }
+
+    public function recordRegistryCheck(RegistryCheck $check): void
+    {
+        if (RegistrySource::Vies === $check->source) {
+            $this->viesResult = $check->result;
+            $this->viesCheckedAt = $check->checkedAt;
+        } else {
+            $this->unreliablePayerResult = $check->result;
+            $this->unreliablePayerCheckedAt = $check->checkedAt;
+        }
     }
 
     public function tenantId(): TenantId
     {
         return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
+    }
+
+    /**
+     * The tenant if the party was persisted already; children created for it
+     * adopt it so that a party of another tenant is rejected on persist.
+     */
+    public function stampedTenantId(): ?TenantId
+    {
+        return $this->tenantId;
+    }
+
+    private function check(RegistrySource $source, ?RegistryResult $result, ?\DateTimeImmutable $checkedAt): ?RegistryCheck
+    {
+        if (!$result instanceof RegistryResult || !$checkedAt instanceof \DateTimeImmutable) {
+            return null;
+        }
+
+        return new RegistryCheck($source, $result, $checkedAt);
     }
 }

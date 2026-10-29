@@ -15,12 +15,17 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Party\Domain\Address;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
+use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
 use App\Tenancy\Application\NoActiveTenant;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
@@ -70,9 +75,8 @@ final class AuditLogTest extends KernelTestCase
         self::assertSame([null, 'Example Company'], $changes['displayName']);
         self::assertSame([null, 'company'], $changes['kind']);
         self::assertSame([null, 'CZ12345687'], $changes['vatId']);
-        self::assertSame([null, 'Example City'], $changes['address.city']);
-        self::assertSame([null, true], $changes['isCustomer']);
-        self::assertSame([null, false], $changes['isSupplier']);
+        self::assertSame([null, 14], $changes['invoicingDefaults.dueDays']);
+        self::assertSame([null, ['customer']], $changes['roles']);
         self::assertArrayNotHasKey('id', $changes);
         self::assertArrayNotHasKey('tenantId', $changes);
     }
@@ -100,14 +104,14 @@ final class AuditLogTest extends KernelTestCase
         $this->em->persist($party);
         $this->em->flush();
 
-        $this->setProperty($party, 'address', new Address('Main 1', 'Example City', '100 00', 'CZ'));
+        $this->setProperty($party, 'invoicingDefaults', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->setProperty($party, 'kind', PartyKind::Person);
         $this->setProperty($party, 'vatId', null);
         $this->em->flush();
 
         $changes = $this->entries(AuditAction::Updated)[0]->changes();
         ksort($changes);
-        self::assertSame(['address.street' => ['Example Street 1', 'Main 1'], 'kind' => ['company', 'person'], 'vatId' => ['CZ12345687', null]], $changes);
+        self::assertSame(['invoicingDefaults.dueDays' => [14, 30], 'kind' => ['company', 'person'], 'vatId' => ['CZ12345687', null]], $changes);
     }
 
     public function testFlushWithoutChangesWritesNothing(): void
@@ -348,11 +352,9 @@ final class AuditLogTest extends KernelTestCase
             'Example Company',
             new RegistrationNumber('CZ', '12345687'),
             VatId::fromString('CZ12345687'),
-            new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             'testing@example.com',
             '+420000000000',
-            true,
-            false,
+            [PartyRole::Customer],
         );
     }
 
