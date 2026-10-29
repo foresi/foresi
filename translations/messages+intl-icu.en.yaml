@@ -17,3 +17,6 @@ nav:
     business: Business
     money: Money
     extensions: Extensions
+ui:
+  empty_state:
+    title: Nothing here yet

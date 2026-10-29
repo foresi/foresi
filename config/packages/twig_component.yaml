@@ -3,3 +3,6 @@ twig_component:
     defaults:
         # Namespace & directory for components
         App\Twig\Components\: 'components/'
+        App\Ui\Component\:
+            template_directory: 'components/Ui/'
+            name_prefix: 'Ui'

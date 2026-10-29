@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<section {{ attributes.defaults({class: 'rounded-panel border border-line bg-white px-4 py-3.5'}) }}>
+    {% if title %}
+        <h3 class="mb-2.5 flex items-center gap-2 border-b border-dashed border-line-strong pb-2.5 text-sm font-semibold text-ink">
+            {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}{% endif -%}
+            <span class="truncate">{{ title }}</span>
+        </h3>
+    {% endif %}
+    {% block content %}{% endblock %}
+</section>

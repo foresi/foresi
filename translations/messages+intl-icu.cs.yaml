@@ -17,3 +17,6 @@ nav:
     business: Obchod
     money: Peníze
     extensions: Rozšíření
+ui:
+  empty_state:
+    title: Zatím tu nic není

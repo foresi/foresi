@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set ctl = this %}
+<twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required">
+    <select id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} {{ attributes.defaults({class: 'h-control ' ~ ctl.classes}) }}>
+        {% for optionValue, optionLabel in options %}
+            <option value="{{ optionValue }}"{% if optionValue ~ "" == value %} selected{% endif %}>{{ optionLabel }}</option>
+        {% endfor %}
+    </select>
+</twig:Ui:Field>

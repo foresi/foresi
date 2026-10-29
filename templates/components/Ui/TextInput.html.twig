@@ -1,0 +1,5 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set ctl = this %}
+<twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required">
+    <input type="{{ type }}" id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} value="{{ value }}" {{ attributes.defaults({class: 'h-control ' ~ ctl.classes}) }}>
+</twig:Ui:Field>

@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set tag = href ? 'a' : 'button' %}
+<{{ tag }} {{ attributes.defaults({class: this.classes}) }}{% if href %} href="{{ href }}"{% else %} type="{{ type }}"{% endif %}>
+    {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
+    {%- block content %}{% endblock -%}
+</{{ tag }}>
