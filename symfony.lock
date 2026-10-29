@@ -1,4 +1,7 @@
 {
+    "deptrac/deptrac": {
+        "version": "4.7.2"
+    },
     "doctrine/deprecations": {
         "version": "1.1",
         "recipe": {
@@ -64,9 +67,6 @@
             "tests/bootstrap.php",
             "bin/phpunit"
         ]
-    },
-    "qossmic/deptrac": {
-        "version": "2.0.4"
     },
     "symfony/console": {
         "version": "7.4",
