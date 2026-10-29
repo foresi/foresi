@@ -8,7 +8,7 @@
 
 {% block body %}
     {% set shell = shell() %}
-    {% set pageTitle = block('title')|striptags|trim %}
+    {% set pageTitle = block('title')|striptags|html_decode|trim %}
     {% set headerActions %}{% block actions %}{% endblock %}{% endset %}
     <div class="grid min-h-screen min-[900px]:grid-cols-[248px_minmax(0,1fr)] max-[899px]:p-2 min-[900px]:py-2.5 min-[900px]:pr-2.5" data-controller="sidebar">
         <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-white focus:px-3 focus:py-2 focus:text-ink focus:outline-2 focus:outline-green">{{ 'shell.skip_to_content'|trans }}</a>

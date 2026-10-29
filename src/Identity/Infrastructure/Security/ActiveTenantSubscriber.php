@@ -13,6 +13,7 @@ use App\Identity\Application\MembershipCheck;
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
+use App\Identity\Infrastructure\Controller\LanguageController;
 use App\Identity\Infrastructure\Controller\TenantChoiceController;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
@@ -32,7 +33,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 final readonly class ActiveTenantSubscriber
 {
     /** Pages that must stay reachable while the user has not chosen an organisation. */
-    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE];
+    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE];
 
     private const string ASSET_PATHS = '#^/(assets|_profiler|_wdt|build)(/|$)#';
 

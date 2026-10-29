@@ -49,6 +49,27 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertStringNotContainsString(self::PASSWORD, $this->tester->getDisplay());
     }
 
+    public function testNewUsersGetTheProductDefaultLocale(): void
+    {
+        $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+
+        self::assertSame('cs', $this->users()->findByEmail('testing@example.com')?->locale());
+    }
+
+    public function testDisplayNameDefaultsToTheLocalPartOfTheEmail(): void
+    {
+        $this->create(['email' => 'Jana.Novak@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
+
+        self::assertSame('jana.novak', $this->users()->findByEmail('jana.novak@example.com')?->displayName());
+    }
+
+    public function testDisplayNameCanBeEnteredAndIsTrimmed(): void
+    {
+        $this->create(['email' => 'testing@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD, name: '  Jana Nováková ');
+
+        self::assertSame('Jana Nováková', $this->users()->findByEmail('testing@example.com')?->displayName());
+    }
+
     public function testReusesAnExistingTenant(): void
     {
         $this->create(['email' => 'one@example.com', 'tenant-name' => 'Example Company', 'role' => 'owner'], self::PASSWORD);
@@ -150,9 +171,9 @@ final class CreateUserCommandTest extends KernelTestCase
     /**
      * @param array<string, string> $arguments
      */
-    private function create(array $arguments, string $password, ?string $confirmation = null): int
+    private function create(array $arguments, string $password, ?string $confirmation = null, string $name = ''): int
     {
-        $this->tester->setInputs([$password, $confirmation ?? $password]);
+        $this->tester->setInputs([$name, $password, $confirmation ?? $password]);
 
         return $this->tester->execute($arguments, ['interactive' => true]);
     }

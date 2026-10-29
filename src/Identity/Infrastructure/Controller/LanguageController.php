@@ -26,13 +26,14 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  */
 final class LanguageController extends AbstractController
 {
+    public const string ROUTE = 'app_account_language';
     public const string TOKEN_ID = 'switch_language';
 
     public function __construct(private readonly ChangeLocale $changeLocale)
     {
     }
 
-    #[Route('/account/language', name: 'app_account_language', methods: ['POST'])]
+    #[Route('/account/language', name: self::ROUTE, methods: ['POST'])]
     public function __invoke(Request $request, #[CurrentUser] SecurityUser $securityUser): RedirectResponse
     {
         if (!$this->isCsrfTokenValid(self::TOKEN_ID, $request->request->getString('_token'))) {

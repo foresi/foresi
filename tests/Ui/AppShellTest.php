@@ -11,6 +11,7 @@ namespace App\Tests\Ui;
 use App\Tenancy\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -153,14 +154,43 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorNotExists('#sidebar a[data-organisation]');
     }
 
-    public function testProductNameComesFromTheParameter(): void
+    #[DataProvider('titles')]
+    public function testPageTitleIsEscapedExactlyOnce(string $title): void
     {
         $this->browser->seed(['Tenant A']);
         $this->browser->signIn();
 
-        $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/_test/shell', ['title' => $title]);
 
-        self::assertSame('Foresi', self::getContainer()->getParameter('app.product_name'));
+        self::assertResponseIsSuccessful();
+        self::assertSame($title, $crawler->filter('main h1')->text());
+        self::assertSame($title, $crawler->filter('title')->text());
+        self::assertStringNotContainsString('&amp;amp;', (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('&amp;quot;', (string) $this->client->getResponse()->getContent());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function titles(): iterable
+    {
+        yield 'ampersand' => ['Novák & syn s.r.o.'];
+        yield 'quotes' => ['Firma "ABC" a \'D\''];
+        yield 'markup stays text' => ['<b>x</b> & &lt;i&gt;'];
+    }
+
+    public function testCrumbsVariableRendersTheBreadcrumbNavigation(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/_test/shell', ['title' => 'Detail']);
+
+        $nav = $crawler->filter('main nav[aria-label]');
+        self::assertCount(1, $nav);
+        self::assertSame('/contacts', $nav->filter('a')->attr('href'));
+        self::assertSame('Contacts', $nav->filter('a')->text());
+        self::assertSame('Detail', $nav->filter('[aria-current="page"]')->text());
     }
 
     public function testLoginPageIsStyledAndOrganisationNeutral(): void

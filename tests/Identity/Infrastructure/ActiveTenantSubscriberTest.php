@@ -223,6 +223,7 @@ final class ActiveTenantSubscriberTest extends KernelTestCase
         yield 'switch' => ['app_organisation_switch'];
         yield 'login' => ['app_login'];
         yield 'logout' => ['app_logout'];
+        yield 'language switch' => ['app_account_language'];
     }
 
     #[DataProvider('assetPaths')]

@@ -17,7 +17,7 @@
             {% for organisation in organisations %}
                 <li>
                     <form method="post" action="{{ path('app_organisation_switch', {tenantId: organisation.id.toString}) }}" data-turbo="false">
-                        <input type="hidden" name="_token" value="{{ csrf_token('organisation_switch') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\TenantChoiceController::TOKEN_ID')) }}">
                         <button type="submit" class="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-panel border border-line-strong bg-white p-3 text-left hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
                             <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ organisation.name|first|upper }}</span>
                             <span class="min-w-0">

@@ -66,6 +66,11 @@ final readonly class CreateUserCommand
             return Command::FAILURE;
         }
 
+        $defaultName = explode('@', $email)[0];
+        $answer = $io->ask('Display name', $defaultName);
+        $displayName = \is_string($answer) ? trim($answer) : '';
+        $displayName = '' === $displayName ? $defaultName : $displayName;
+
         $password = $io->askHidden('Password');
         $confirmation = $io->askHidden('Repeat password');
         if (!\is_string($password) || self::MIN_PASSWORD_LENGTH > \strlen($password)) {
@@ -80,7 +85,7 @@ final readonly class CreateUserCommand
         }
 
         try {
-            $user = new User($email, $this->hashers->getPasswordHasher(SecurityUser::class)->hash($password), $email);
+            $user = new User($email, $this->hashers->getPasswordHasher(SecurityUser::class)->hash($password), $displayName, 'cs');
         } catch (\InvalidArgumentException $e) {
             $io->error($e->getMessage());
 

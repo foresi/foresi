@@ -55,6 +55,7 @@ when@test:
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~
+        App\Tests\Ui\Support\ShellProbeController: ~
 
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:

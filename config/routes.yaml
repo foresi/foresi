@@ -9,3 +9,8 @@
 
 controllers:
     resource: routing.controllers
+
+when@test:
+    test_probes:
+        resource: ../tests/Ui/Support/ShellProbeController.php
+        type: attribute
