@@ -1,0 +1,90 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        types:
+            tenant_id: App\Tenancy\Infrastructure\Doctrine\TenantIdType
+            vat_id: App\Party\Infrastructure\Doctrine\VatIdType
+
+        profiling_collect_backtrace: '%kernel.debug%'
+    orm:
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        identity_generation_preferences:
+            Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
+        auto_mapping: false
+        mappings:
+            Shared:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Shared/Domain'
+                prefix: 'App\Shared\Domain'
+                alias: Shared
+            Tenancy:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Tenancy/Domain'
+                prefix: 'App\Tenancy\Domain'
+                alias: Tenancy
+            Party:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Party/Domain'
+                prefix: 'App\Party\Domain'
+                alias: Party
+            Identity:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Identity/Domain'
+                prefix: 'App\Identity\Domain'
+                alias: Identity
+            Audit:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Audit/Domain'
+                prefix: 'App\Audit\Domain'
+                alias: Audit
+        filters:
+            tenant:
+                class: App\Tenancy\Infrastructure\Doctrine\TenantFilter
+                enabled: true
+
+when@test:
+    doctrine:
+        orm:
+            mappings:
+                TenancyFixtures:
+                    type: attribute
+                    is_bundle: false
+                    dir: '%kernel.project_dir%/tests/Tenancy/Fixtures'
+                    prefix: 'App\Tests\Tenancy\Fixtures'
+                    alias: TenancyFixtures
+                SharedFixtures:
+                    type: attribute
+                    is_bundle: false
+                    dir: '%kernel.project_dir%/tests/Shared/Fixtures'
+                    prefix: 'App\Tests\Shared\Fixtures'
+                    alias: SharedFixtures
+                AuditFixtures:
+                    type: attribute
+                    is_bundle: false
+                    dir: '%kernel.project_dir%/tests/Audit/Fixtures'
+                    prefix: 'App\Tests\Audit\Fixtures'
+                    alias: AuditFixtures
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

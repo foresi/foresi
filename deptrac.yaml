@@ -1,0 +1,234 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Architecture rules (see docs/adr/0002-modular-monolith.md). Domain depends on
+# the shared kernel only: Shared Domain plus the Tenancy and Audit domain
+# contracts (TenantOwned/TenantId, Audited/AuditExcluded), and Doctrine ORM
+# mapping attributes. A module's Domain may reference another module's Domain
+# only where declared below (Identity -> Party). Tenancy and Audit, the base
+# modules, never depend on the modules built on them. Raw DBAL connections are
+# allowed in Infrastructure only.
+deptrac:
+  paths:
+    - src
+  layers:
+    - name: SharedDomain
+      collectors:
+        - type: directory
+          value: src/Shared/Domain/.*
+    - name: SharedApplication
+      collectors:
+        - type: directory
+          value: src/Shared/Application/.*
+    - name: SharedInfrastructure
+      collectors:
+        - type: directory
+          value: src/Shared/Infrastructure/.*
+    - name: TenancyDomain
+      collectors:
+        - type: directory
+          value: src/Tenancy/Domain/.*
+    - name: TenancyApplication
+      collectors:
+        - type: directory
+          value: src/Tenancy/Application/.*
+    - name: TenancyInfrastructure
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/Tenancy/Infrastructure/.*
+          must_not:
+            - type: classLike
+              value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+    # The sanctioned cross-tenant read; the only Tenancy infrastructure other modules may use.
+    - name: TenantFilterBypass
+      collectors:
+        - type: classLike
+          value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+    - name: PartyDomain
+      collectors:
+        - type: directory
+          value: src/Party/Domain/.*
+    - name: PartyApplication
+      collectors:
+        - type: directory
+          value: src/Party/Application/.*
+    - name: PartyInfrastructure
+      collectors:
+        - type: directory
+          value: src/Party/Infrastructure/.*
+    - name: IdentityDomain
+      collectors:
+        - type: directory
+          value: src/Identity/Domain/.*
+    - name: IdentityApplication
+      collectors:
+        - type: directory
+          value: src/Identity/Application/.*
+    - name: IdentityInfrastructure
+      collectors:
+        - type: directory
+          value: src/Identity/Infrastructure/.*
+    - name: AuditDomain
+      collectors:
+        - type: directory
+          value: src/Audit/Domain/.*
+    - name: AuditApplication
+      collectors:
+        - type: directory
+          value: src/Audit/Application/.*
+    - name: AuditInfrastructure
+      collectors:
+        - type: directory
+          value: src/Audit/Infrastructure/.*
+    - name: CountryCzechRepublic
+      collectors:
+        - type: directory
+          value: src/Country/CzechRepublic/.*
+    - name: VendorSymfony
+      collectors:
+        - type: classLike
+          value: ^Symfony\\
+    - name: VendorBrick
+      collectors:
+        - type: classLike
+          value: ^Brick\\(Money|Math)\\
+    - name: VendorDoctrineOrmMapping
+      collectors:
+        - type: classLike
+          value: ^Doctrine\\ORM\\Mapping\\
+    - name: VendorDbalConnection
+      collectors:
+        - type: classLike
+          value: ^Doctrine\\DBAL\\Connection$
+    - name: VendorDoctrine
+      collectors:
+        - type: bool
+          must:
+            - type: classLike
+              value: ^Doctrine\\
+          must_not:
+            - type: classLike
+              value: ^Doctrine\\ORM\\Mapping\\
+            - type: classLike
+              value: ^Doctrine\\DBAL\\Connection$
+  ruleset:
+    SharedDomain:
+      - VendorDoctrineOrmMapping
+      # brick/money is an internal detail of App\Shared\Domain\Money only.
+      - VendorBrick
+    SharedApplication:
+      - SharedDomain
+    SharedInfrastructure:
+      - SharedDomain
+      - SharedApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+    TenancyDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+    TenancyApplication:
+      - TenancyDomain
+      - SharedDomain
+      - SharedApplication
+    TenancyInfrastructure:
+      - SharedInfrastructure
+      - TenancyDomain
+      - TenancyApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+    TenantFilterBypass:
+      - VendorDoctrine
+      - TenancyInfrastructure
+    PartyDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      # TenantOwned / TenantId are the tenant-scoping contract of owned entities.
+      - TenancyDomain
+      # Party is audited: it implements the Audited marker.
+      - AuditDomain
+    PartyApplication:
+      - PartyDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+    PartyInfrastructure:
+      - SharedInfrastructure
+      - PartyDomain
+      - PartyApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+    IdentityDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      # Membership is tenant-owned and may link the party a user represents.
+      - TenancyDomain
+      - PartyDomain
+      - AuditDomain
+    IdentityApplication:
+      - IdentityDomain
+      - TenancyDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - PartyApplication
+      - AuditApplication
+    IdentityInfrastructure:
+      - SharedInfrastructure
+      - IdentityDomain
+      - IdentityApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenantFilterBypass
+      - TenancyApplication
+      - PartyApplication
+      - AuditApplication
+    AuditDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      # AuditEntry is tenant-owned.
+      - TenancyDomain
+    AuditApplication:
+      - AuditDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - PartyApplication
+      - IdentityApplication
+    AuditInfrastructure:
+      - SharedInfrastructure
+      - AuditDomain
+      # The created-entry path honours the tenant of TenantOwned entities.
+      - TenancyDomain
+      - AuditApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - PartyApplication
+      - IdentityApplication
+    CountryCzechRepublic:
+      - SharedDomain
+      - PartyDomain

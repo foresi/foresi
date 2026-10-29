@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+/tests export-ignore
+/.github export-ignore
+/.editorconfig export-ignore
+/.gitattributes export-ignore
+/phpunit.dist.xml export-ignore
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff2 binary

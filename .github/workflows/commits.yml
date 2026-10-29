@@ -1,0 +1,42 @@
+name: Commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    env:
+      PATTERN: '^(feat|fix|chore|docs|test|refactor|ci|build|perf|style|revert)(\([a-z0-9._-]+\))?!?: .+'
+      PR_TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate pull request title
+        run: |
+          if ! printf '%s' "$PR_TITLE" | grep -Eq "$PATTERN"; then
+            echo "Pull request title is not a Conventional Commit: $PR_TITLE"
+            exit 1
+          fi
+
+      - name: Validate commit subjects
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          status=0
+          while IFS= read -r subject; do
+            case "$subject" in Merge\ *) continue ;; esac
+            if ! printf '%s' "$subject" | grep -Eq "$PATTERN"; then
+              echo "Not a Conventional Commit: $subject"
+              status=1
+            fi
+          done < <(git log --format=%s "$BASE_SHA..$HEAD_SHA")
+          exit $status

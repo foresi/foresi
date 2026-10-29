@@ -1,0 +1,25 @@
+{
+    // SPDX-License-Identifier: AGPL-3.0-only
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["src"],
+        "excludes": ["Kernel.php", "Controller", "Infrastructure", "Application", "Country"]
+    },
+    "phpUnit": {
+        "configDir": "."
+    },
+    "logs": {
+        "text": "var/infection/infection.log"
+    },
+    "minMsi": 80,
+    "minCoveredMsi": 90,
+    "mutators": {
+        "@default": true,
+        // Column lengths in mapping attributes are verified by doctrine:schema:validate.
+        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*"],
+        // Equivalent mutant: a numeric string added to an int yields the same value.
+        "CastInt": {"ignore": ["App\\Tenancy\\Domain\\TenantId::generate"]},
+        // Equivalent mutant: both columns are always set together.
+        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber"]}
+    }
+}
