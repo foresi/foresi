@@ -315,3 +315,10 @@ import:
       invalid_encoding: 'The file is not valid UTF-8 at row {row, number}. It is probably saved in another encoding.'
       unknown_format: 'This is not a CSV or XLSX file we can read.'
       empty: 'The file contains no data.'
+  error:
+    invalid_email: '"{value}" is not a valid e-mail address.'
+    invalid_phone: '"{value}" is not a valid phone number.'
+    invalid_date: '"{value}" is not a date in the chosen order.'
+    invalid_decimal: '"{value}" is not a number.'
+    invalid_integer: '"{value}" is not a whole number.'
+    unknown_value: '"{value}" is not a value we know. Map it to one of the allowed values.'

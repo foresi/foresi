@@ -28,10 +28,17 @@ services:
     _instanceof:
         App\Party\Domain\RegistrationNumberValidator:
             tags: ['app.registration_number_validator']
+        # Modules plug into the import by implementing its target contract.
+        App\Import\Application\Target\ImportTarget:
+            tags: ['app.import_target']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
+
+    App\Import\Application\Target\TargetRegistry:
+        arguments:
+            $targets: !tagged_iterator app.import_target
 
     # Declared here (private) so PHPStan, which reads the dev container, knows the
     # id used by the wiring test; it is made public in the test env below.

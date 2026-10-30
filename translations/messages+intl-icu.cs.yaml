@@ -315,3 +315,10 @@ import:
       invalid_encoding: 'Soubor není na řádku {row, number} platné UTF-8. Pravděpodobně je uložený v jiném kódování.'
       unknown_format: 'Tento soubor není CSV ani XLSX, který umíme přečíst.'
       empty: 'Soubor neobsahuje žádná data.'
+  error:
+    invalid_email: '„{value}“ není platná e-mailová adresa.'
+    invalid_phone: '„{value}“ není platné telefonní číslo.'
+    invalid_date: '„{value}“ není datum ve zvoleném pořadí.'
+    invalid_decimal: '„{value}“ není číslo.'
+    invalid_integer: '„{value}“ není celé číslo.'
+    unknown_value: '„{value}“ je hodnota, kterou neznáme. Přiřaďte ji k jedné z povolených hodnot.'
