@@ -21,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'audit_entry')]
 #[ORM\Index(name: 'idx_audit_entry_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_audit_entry_entity', columns: ['tenant_id', 'entity_class', 'entity_id'])]
+#[ORM\Index(name: 'idx_audit_entry_correlation', columns: ['tenant_id', 'correlation_id'])]
 class AuditEntry implements TenantOwned
 {
     #[ORM\Id]
@@ -54,6 +55,8 @@ class AuditEntry implements TenantOwned
         private ?int $userId,
         #[ORM\Column(name: 'occurred_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $occurredAt,
+        #[ORM\Column(name: 'correlation_id', type: 'string', length: 64, nullable: true)]
+        private ?string $correlationId = null,
     ) {
         if ('' === $entityClass || '' === $entityId) {
             throw new \DomainException('An audit entry needs the class and id of the entity it describes.');
@@ -104,6 +107,11 @@ class AuditEntry implements TenantOwned
     public function occurredAt(): \DateTimeImmutable
     {
         return $this->occurredAt;
+    }
+
+    public function correlationId(): ?string
+    {
+        return $this->correlationId;
     }
 
     public function tenantId(): TenantId

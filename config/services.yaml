@@ -55,6 +55,10 @@ services:
         tags:
             - { name: kernel.reset, method: reset }
 
+    App\Audit\Application\AuditCorrelation:
+        tags:
+            - { name: kernel.reset, method: reset }
+
 when@dev:
     services:
         App\Ui\Controller\CatalogueController:
@@ -114,6 +118,12 @@ when@test:
 
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        # Nothing in the application consumes the audit trail yet (the import
+        # undo will), so the test kernel keeps the alias.
+        App\Audit\Application\AuditTrail:
+            alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
+            public: true
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

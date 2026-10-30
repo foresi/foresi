@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Audit\Infrastructure\Doctrine;
 
 use App\Audit\Application\AuditActor;
+use App\Audit\Application\AuditCorrelation;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditEntry;
@@ -48,6 +49,7 @@ final class AuditListener
         private readonly TenantContext $context,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
+        private readonly AuditCorrelation $correlation,
     ) {
     }
 
@@ -112,6 +114,7 @@ final class AuditListener
                 'changes' => $entry->changes(),
                 'user_id' => $entry->userId(),
                 'occurred_at' => $entry->occurredAt(),
+                'correlation_id' => $entry->correlationId(),
             ],
             ['tenant_id' => 'tenant_id', 'changes' => 'json', 'occurred_at' => 'datetime_immutable'],
         );
@@ -147,6 +150,7 @@ final class AuditListener
             $changes,
             $this->actor->userId(),
             $this->clock->now(),
+            $this->correlation->current(),
         );
     }
 
