@@ -30,8 +30,8 @@ final class CzechRegistrationNumberValidatorTest extends TestCase
      */
     public static function validNumbers(): iterable
     {
-        // The last one has remainder 1, so its check digit is 0.
-        foreach (['12345687', '12345695', '00000019'] as $number) {
+        // 00003000 has remainder 1 (so its check digit is 0); 00000019 has remainder 2 (check digit 9).
+        foreach (['12345687', '12345695', '00000019', '00003000'] as $number) {
             yield $number => [$number];
         }
     }
