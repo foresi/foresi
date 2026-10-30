@@ -50,11 +50,25 @@ final class RegistryCheckFlowTest extends KernelTestCase
         $this->refresh()->refresh($party);
         self::assertSame(['2000000011/0800', '19-2000000007/0800', 'CZ7308000000002000000007'], $party->publishedBankAccounts());
 
+        // The register is unreachable for this VAT id from now on (the fixture answers "down" for it).
+        $down = new Party(PartyKind::Company, 'Example Company s.r.o.', null, VatId::fromString('CZ99999999'), '');
+        $down->recordPublishedBankAccounts($party->publishedBankAccounts());
+        $this->refresh()->refresh($down);
+
+        self::assertSame(RegistryResult::Unavailable, $down->unreliablePayerCheck()?->result);
+        self::assertCount(3, $down->publishedBankAccounts(), 'an unreachable register keeps the accounts known before');
+    }
+
+    public function testChangingTheVatIdDropsTheAccountsOfTheOldOne(): void
+    {
+        $party = new Party(PartyKind::Company, 'Example Company s.r.o.', null, VatId::fromString('CZ12345687'), '');
+        $this->refresh()->refresh($party);
+
         $party->changeIdentifiers(null, VatId::fromString('CZ99999999'));
         $this->refresh()->refresh($party);
 
         self::assertSame(RegistryResult::Unavailable, $party->unreliablePayerCheck()?->result);
-        self::assertCount(3, $party->publishedBankAccounts(), 'an unreachable register keeps the accounts known before');
+        self::assertSame([], $party->publishedBankAccounts());
     }
 
     public function testPartyWithoutVatIdIsLeftAlone(): void

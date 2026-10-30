@@ -182,6 +182,50 @@ final class PartyAddressBookTest extends TestCase
         self::assertSame('ŽLUTÝ1', new RegistrationNumber('CZ', 'žlutý 1')->normalised());
     }
 
+    public function testChangingTheVatIdClearsTheRegistryResultsOfTheOldOne(): void
+    {
+        $party = $this->checkedCompany();
+
+        $party->changeIdentifiers(new RegistrationNumber('CZ', '12345695'), VatId::fromString('DE123456789'));
+
+        self::assertNull($party->viesCheck());
+        self::assertNull($party->unreliablePayerCheck());
+        self::assertSame([], $party->publishedBankAccounts());
+    }
+
+    public function testRemovingTheVatIdClearsTheRegistryResults(): void
+    {
+        $party = $this->checkedCompany();
+
+        $party->changeIdentifiers(new RegistrationNumber('CZ', '12345695'), null);
+
+        self::assertNull($party->viesCheck());
+        self::assertNull($party->unreliablePayerCheck());
+        self::assertSame([], $party->publishedBankAccounts());
+    }
+
+    public function testKeepingTheVatIdKeepsTheRegistryResults(): void
+    {
+        $party = $this->checkedCompany();
+
+        $party->changeIdentifiers(new RegistrationNumber('CZ', '99999994'), VatId::fromString('CZ12345695'));
+
+        self::assertNotNull($party->viesCheck());
+        self::assertNotNull($party->unreliablePayerCheck());
+        self::assertSame(['123456789/0100'], $party->publishedBankAccounts());
+    }
+
+    private function checkedCompany(): Party
+    {
+        $party = new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), '', [PartyRole::Customer]);
+        $at = new \DateTimeImmutable('2026-10-30 10:00:00');
+        $party->recordRegistryCheck(new RegistryCheck(RegistrySource::Vies, RegistryResult::Valid, $at));
+        $party->recordRegistryCheck(new RegistryCheck(RegistrySource::UnreliablePayer, RegistryResult::Unreliable, $at));
+        $party->recordPublishedBankAccounts(['123456789/0100']);
+
+        return $party;
+    }
+
     private function company(): Party
     {
         return new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), null, '', [PartyRole::Customer]);

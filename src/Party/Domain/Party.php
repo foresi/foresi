@@ -98,7 +98,7 @@ class Party implements TenantOwned, Audited
         array $roles = [],
     ) {
         $this->rename($displayName);
-        $this->changeIdentifiers($registrationNumber, $vatId);
+        $this->setIdentifiers($registrationNumber, $vatId);
         $this->assignRoles($roles);
         $this->invoicingDefaults = InvoicingDefaults::standard();
     }
@@ -204,6 +204,16 @@ class Party implements TenantOwned, Audited
 
     public function changeIdentifiers(?RegistrationNumber $registrationNumber, ?VatId $vatId): void
     {
+        $vatIdChanged = $this->vatId?->toString() !== $vatId?->toString();
+        $this->setIdentifiers($registrationNumber, $vatId);
+        if ($vatIdChanged) {
+            // The verdicts and the published accounts belong to the VAT id they were fetched for.
+            $this->clearRegistryChecks();
+        }
+    }
+
+    private function setIdentifiers(?RegistrationNumber $registrationNumber, ?VatId $vatId): void
+    {
         if (PartyKind::Company === $this->kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId) {
             throw new \DomainException('A company needs a registration number or a VAT id.');
         }
@@ -244,6 +254,15 @@ class Party implements TenantOwned, Audited
     public function restore(): void
     {
         $this->archivedAt = null;
+    }
+
+    private function clearRegistryChecks(): void
+    {
+        $this->viesResult = null;
+        $this->viesCheckedAt = null;
+        $this->unreliablePayerResult = null;
+        $this->unreliablePayerCheckedAt = null;
+        $this->unreliablePayerAccounts = null;
     }
 
     public function recordRegistryCheck(RegistryCheck $check): void
