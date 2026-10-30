@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Choice chips component; contact roles are chosen with it.
+- Description list component for label and value rows, and an actions slot in the card header; the contact overview uses both.
 
 ### Fixed
 
