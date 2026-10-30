@@ -43,6 +43,27 @@ The built CSS is not committed, and tests and `composer qa` do not need it. Inte
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
+## Background worker
+
+Long-running work (imports, register re-checks) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) and every message is handled inside the tenant it was dispatched in. Run migrations, then start one worker; it consumes `async` first and `registry` (low priority) after it:
+
+```bash
+php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+```
+
+The worker exits after an hour or at the memory limit, so run it under a supervisor that restarts it. With systemd:
+
+```ini
+[Service]
+WorkingDirectory=/var/www/foresi
+ExecStart=/usr/bin/php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+Restart=always
+RestartSec=5
+User=www-data
+```
+
+With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=3600`. On SQLite run exactly one worker (SQLite allows a single writer). Failed messages are retried three times (2 s, 8 s, 32 s) and then kept in the `failed` queue: inspect them with `bin/console messenger:failed:show` and retry with `messenger:failed:retry`. A message is redelivered if its handler runs longer than two hours (`redeliver_timeout: 7200`). The `e2e` environment has no worker and handles messages inline.
+
 ## End-to-end tests
 
 Playwright tests in `tests/e2e` drive the real application in a browser: sign-in, the address book, keyboard use, accessibility (axe, WCAG 2.2 AA, zero serious or critical violations) and layout on a desktop (1440 px) and a mobile (390 px) viewport. They run in their own `e2e` environment with a separate SQLite database (`var/e2e.db`, recreated and seeded with example data by `tests/e2e/serve.sh`), and the registers (ARES, VIES, the unreliable payer register) are replaced by the same fixture-backed fakes the PHPUnit suite uses, so nothing calls the network. Your development database is never touched.
