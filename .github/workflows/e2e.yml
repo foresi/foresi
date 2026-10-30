@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       update-snapshots:
-        description: Generate Linux screenshot baselines and upload them as an artifact
+        description: Regenerate Linux screenshot baselines and upload them as an artifact
         type: boolean
         default: false
 
@@ -68,12 +68,12 @@ jobs:
         run: npx playwright test --grep-invert @visual
 
       - name: Generate Linux screenshot baselines
-        if: ${{ inputs.update-snapshots }}
+        if: ${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
         working-directory: tests/e2e
         run: npx playwright test --grep @visual --update-snapshots=all
 
       - name: Upload the Linux screenshot baselines
-        if: ${{ inputs.update-snapshots }}
+        if: ${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-linux
