@@ -1,0 +1,3 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set ctl = this %}
+<input type="search" id="{{ id }}" name="{{ name }}" value="{{ value }}" aria-label="{{ label }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if disabled %} disabled{% endif %} {{ attributes.defaults({class: 'h-control ' ~ ctl.classes}) }}>

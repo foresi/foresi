@@ -25,10 +25,10 @@
 {% block content %}
     <div class="grid grid-cols-1 gap-4">
         {% for message in app.flashes('success') %}
-            <p role="status" class="rounded-control bg-badge-green px-3 py-2 text-[13px] font-medium text-badge-green-text">{{ message }}</p>
+            <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
         {% endfor %}
         {% for message in app.flashes('error') %}
-            <p role="alert" class="rounded-control bg-badge-red px-3 py-2 text-[13px] font-medium text-badge-red-text">{{ message }}</p>
+            <twig:Ui:Alert tone="error">{{ message }}</twig:Ui:Alert>
         {% endfor %}
 
         <div class="flex flex-wrap items-center gap-2" data-party-summary>
@@ -65,12 +65,11 @@
                             {% endfor %}
                         </ul>
                         {% if accounts is not empty %}
-                            <div class="mt-3 rounded-control bg-badge-red px-3 py-2 text-badge-red-text" data-published-accounts>
-                                <p class="mb-1 text-[13px] font-medium">{{ 'party.checks.accounts'|trans }}</p>
+                            <twig:Ui:Alert tone="error" :title="'party.checks.accounts'|trans" class="mt-3" role="note" data-published-accounts>
                                 <ul class="m-0 list-none p-0">
-                                    {% for account in accounts %}<li class="num">{{ account }}</li>{% endfor %}
+                                    {% for account in accounts %}<li class="num font-normal">{{ account }}</li>{% endfor %}
                                 </ul>
-                            </div>
+                            </twig:Ui:Alert>
                         {% endif %}
                         <form method="post" action="{{ path('app_contact_refresh_checks', {id: id}) }}" class="mt-3">
                             <input type="hidden" name="_token" value="{{ token }}">

@@ -24,6 +24,8 @@ final class ContrastTest extends TestCase
     {
         yield 'muted on white' => ['muted', 'white'];
         yield 'muted on frame' => ['muted', 'frame'];
+        yield 'muted on frame hover' => ['muted', 'frame-hover'];
+        yield 'text on frame hover' => ['text', 'frame-hover'];
         yield 'muted on head' => ['muted', 'head'];
         yield 'muted on badge gray' => ['muted', 'badge-gray'];
         yield 'muted on green tint' => ['muted', 'green-tint'];

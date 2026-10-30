@@ -104,6 +104,7 @@ catalogue:
     required: Required
     empty: Empty
     loading: Loading
+    titled: Titled
     long: Long text
     selectable: Selectable with bulk bar
     sorted: Sorted with totals

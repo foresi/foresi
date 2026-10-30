@@ -11,7 +11,7 @@
 
 {% block content %}
     {% for message in app.flashes('success') %}
-        <p role="status" class="mb-4 rounded-control bg-badge-green px-3 py-2 text-[13px] font-medium text-badge-green-text">{{ message }}</p>
+        <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
     {% endfor %}
 
     {% if firstRun %}
@@ -34,7 +34,7 @@
                 <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex w-full items-center gap-2 sm:w-auto">
                     {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
                     {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control min-w-0 flex-1 rounded-control border border-line-strong bg-white px-2.5 text-ink sm:w-72 sm:flex-none {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                    <twig:Ui:SearchField name="q" :value="text" :label="'party.search.label'|trans" :placeholder="'party.search.placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-72 sm:flex-none" />
                     <twig:Ui:Button type="submit" icon="search">{{ 'party.search.submit'|trans }}</twig:Ui:Button>
                 </form>
             </div>

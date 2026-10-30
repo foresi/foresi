@@ -104,6 +104,7 @@ catalogue:
     required: Povinné
     empty: Prázdné
     loading: Načítání
+    titled: S nadpisem
     long: Dlouhý text
     selectable: S výběrem a hromadnou lištou
     sorted: Seřazeno se součty

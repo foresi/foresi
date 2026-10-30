@@ -45,6 +45,7 @@
 
     --color-frame: #f4f2ec;
     --color-frame-line: #e6e2d8;
+    --color-frame-hover: #ece9e1;
     --color-white: #ffffff;
     --color-line: #ece9e2;
     --color-line-strong: #dcd7cb;
@@ -74,6 +75,7 @@
 :root {
     --frame: #f4f2ec;
     --frame-line: #e6e2d8;
+    --frame-hover: #ece9e1;
     --white: #ffffff;
     --line: #ece9e2;
     --line-strong: #dcd7cb;

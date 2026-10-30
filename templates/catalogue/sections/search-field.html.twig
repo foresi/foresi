@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:SearchField name="cat-search-default" label="Search contacts" placeholder="Name, registration number or e-mail" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:SearchField name="cat-search-long" label="Search contacts" value="accounting.department.of.the.example.company@subdomain.example.com" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:SearchField name="cat-search-disabled" label="Search contacts" :disabled="true" /></div>
+{% endblock %}{% endembed %}
+</div>

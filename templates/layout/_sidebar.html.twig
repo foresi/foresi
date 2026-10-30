@@ -31,10 +31,10 @@
 </div>
 
 {% macro item(entry, focus) %}
-    <a href="{{ path(entry.route) }}"{% if entry.current %} aria-current="page"{% endif %} class="flex h-[34px] items-center gap-2.5 rounded-control border px-2.5 no-underline {{ entry.current ? 'border-frame-line bg-white font-medium text-ink shadow-[0_1px_2px_rgba(28,29,26,.05)]' : 'border-transparent text-text hover:bg-[#ece9e1]' }} {{ focus }}">
+    <a href="{{ path(entry.route) }}"{% if entry.current %} aria-current="page"{% endif %} class="flex h-[34px] items-center gap-2.5 rounded-control border px-2.5 no-underline {{ entry.current ? 'border-frame-line bg-white font-medium text-ink shadow-[0_1px_2px_rgba(28,29,26,.05)]' : 'border-transparent text-text hover:bg-frame-hover' }} {{ focus }}">
         {{ ux_icon('lucide:' ~ entry.icon, {class: 'size-4 shrink-0 ' ~ (entry.current ? 'text-green' : ''), 'aria-hidden': 'true'}) }}
         <span class="truncate">{{ entry.labelKey|trans }}</span>
-        {% if entry.count is not null %}<span data-nav-count class="num ml-auto rounded-md px-1.5 text-xs leading-5 {{ entry.current ? 'bg-green-tint text-green' : 'bg-[#ece9e1] text-muted' }}">{{ entry.count }}</span>{% endif %}
+        {% if entry.count is not null %}<span data-nav-count class="num ml-auto rounded-md px-1.5 text-xs leading-5 {{ entry.current ? 'bg-green-tint text-green' : 'bg-frame-hover text-muted' }}">{{ entry.count }}</span>{% endif %}
     </a>
 {% endmacro %}
 
