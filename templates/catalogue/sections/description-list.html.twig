@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:DescriptionList :items="[{label: 'Payment terms', value: '14 days'}, {label: 'Currency', value: 'CZK'}, {label: 'Reverse charge', value: 'No'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'badges and notes'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:DescriptionList :items="[{label: 'VIES', badge: {label: 'Valid', tone: 'green'}, note: 'Checked 30 Oct 2026 22:38'}, {label: 'Unreliable VAT payer register', badge: {label: 'Unreliable', tone: 'red'}, note: 'Checked 30 Oct 2026 22:38'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'card with an action'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:Card title="Registry checks" icon="circle-check"><twig:block name="actions"><twig:Ui:Button size="sm" variant="ghost" icon="refresh-cw">Check again</twig:Ui:Button></twig:block><twig:Ui:DescriptionList :items="[{label: 'VIES', badge: {label: 'Valid', tone: 'green'}}]" /></twig:Ui:Card></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:DescriptionList :items="[{label: 'Example Company Holding of Central European Trading s.r.o. Příliš žluťoučký kůň', value: 'Úpěl'}]" /></div>
+{% endblock %}{% endembed %}
+</div>

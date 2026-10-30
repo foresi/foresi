@@ -29,7 +29,7 @@ final class CatalogueController extends AbstractController
      */
     public const array SECTIONS = [
         'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea',
-        'search-field', 'card', 'tabs', 'alert', 'empty-state', 'kbd',
+        'search-field', 'card', 'description-list', 'tabs', 'alert', 'empty-state', 'kbd',
         'data-table', 'pagination', 'bulk-bar', 'kpi-strip', 'facts-grid', 'timeline', 'page-header', 'command-palette',
     ];
 

@@ -1,10 +1,14 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set actionsSlot %}{% block actions %}{% endblock %}{% endset %}
 <section {{ attributes.defaults({class: 'rounded-panel border border-line bg-white px-4 py-3.5'}) }}>
     {% if title %}
-        <h3 class="mb-2.5 flex items-center gap-2 border-b border-dashed border-line-strong pb-2.5 text-sm font-semibold text-ink">
-            {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}{% endif -%}
-            <span class="truncate">{{ title }}</span>
-        </h3>
+        <div class="mb-3 flex items-center gap-2 border-b border-line pb-2.5">
+            <h3 class="m-0 flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
+                {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}{% endif -%}
+                <span class="truncate">{{ title }}</span>
+            </h3>
+            {% if actionsSlot|trim %}<div class="-my-1.5 ml-auto flex shrink-0 items-center gap-1.5">{{ actionsSlot|raw }}</div>{% endif %}
+        </div>
     {% endif %}
     {% block content %}{% endblock %}
 </section>
