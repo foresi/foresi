@@ -4,6 +4,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 const MIN_LENGTH = 3;
+const NUMBER_LENGTH = 8;
 const DELAY = 300;
 
 /**
@@ -25,7 +26,9 @@ export default class extends Controller {
     search() {
         clearTimeout(this.timer);
         const query = this.queryTarget.value.trim();
-        if (query.length < MIN_LENGTH && !/^\d{1,8}$/.test(query.replace(/\s+/g, ''))) {
+        const digits = query.replace(/\s+/g, '');
+        const isNumber = /^\d+$/.test(digits);
+        if (isNumber ? digits.length !== NUMBER_LENGTH : query.length < MIN_LENGTH) {
             this.clear();
             return;
         }
@@ -38,7 +41,7 @@ export default class extends Controller {
         }
         this.request = new AbortController();
         try {
-            const response = await fetch(`${this.urlValue}?q=${encodeURIComponent(query)}`, {
+            const response = await fetch(`${this.urlValue}?q=${encodeURIComponent(query.slice(0, 100))}`, {
                 headers: { Accept: 'application/json' },
                 signal: this.request.signal,
             });

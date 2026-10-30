@@ -43,6 +43,9 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Audit/Domain'
                 prefix: 'App\Audit\Domain'
                 alias: Audit
+        dql:
+            string_functions:
+                CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction
         filters:
             tenant:
                 class: App\Tenancy\Infrastructure\Doctrine\TenantFilter

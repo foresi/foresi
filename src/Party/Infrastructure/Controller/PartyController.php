@@ -17,7 +17,6 @@ use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
 use App\Party\Application\RefreshRegistryChecks;
 use App\Party\Application\TransactionalWork;
-use App\Party\Application\VatPayerReliability;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
@@ -50,6 +49,7 @@ final class PartyController extends AbstractController
     private const array VIEWS = ['all', 'customers', 'suppliers', 'archived'];
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
+    private const int MAX_SEARCH = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'party', 'company', 'person'];
 
     public function __construct(
@@ -58,7 +58,6 @@ final class PartyController extends AbstractController
         private readonly ArchiveParty $archiveParty,
         private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
-        private readonly VatPayerReliability $reliability,
         private readonly TransactionalWork $transaction,
         private readonly PartyCsvExport $export,
         private readonly TranslatorInterface $translator,
@@ -71,7 +70,7 @@ final class PartyController extends AbstractController
     {
         $view = $request->query->getString('view', 'all');
         $view = \in_array($view, self::VIEWS, true) ? $view : 'all';
-        $text = trim($request->query->getString('q'));
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         $sort = $request->query->getString('sort', 'name');
         $sort = \in_array(ltrim($sort, '-'), PartyQuery::SORTS, true) ? $sort : 'name';
         $role = match ($view) {
@@ -125,7 +124,7 @@ final class PartyController extends AbstractController
             'roles' => array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $party->roles()),
             'facts' => $this->facts($party),
             'checks' => $this->checks($vies, $reliability),
-            'accounts' => $unreliable && $vatId instanceof VatId ? $this->reliability->check($vatId)->publishedBankAccounts : [],
+            'accounts' => $unreliable ? $party->publishedBankAccounts() : [],
             'hasVatId' => $vatId instanceof VatId,
             'note' => $party->privateNote(),
             'defaults' => $this->defaults($party),
@@ -137,7 +136,7 @@ final class PartyController extends AbstractController
             'addresses' => ['addressRows' => $this->addressRows($this->details->addresses($party))],
             'bank-accounts' => ['accountRows' => $this->accountRows($this->details->bankAccounts($party))],
             'history' => ['timeline' => $this->timeline($party)],
-            default => ['billing' => $this->details->billingAddress($party)?->address(), 'email' => $this->details->generalEmail($party)?->address()],
+            default => ['billing' => $this->details->billingAddress($party)?->address()],
         });
     }
 
@@ -200,8 +199,16 @@ final class PartyController extends AbstractController
             throw new NotFoundHttpException();
         }
 
+        $kinds = [];
+        foreach (PartyKind::cases() as $kind) {
+            $kinds[$kind->value] = $this->translator->trans('party.kind.'.$kind->value);
+        }
+        $roles = [];
+        foreach (PartyRole::cases() as $role) {
+            $roles[$role->value] = $this->translator->trans('party.role.'.$role->value);
+        }
         $header = array_map(fn (string $column): string => $this->translator->trans('party.export.'.$column), ['name', 'kind', 'roles', 'registration_number', 'vat_id', 'email', 'phone', 'street', 'city', 'postal_code', 'country']);
-        $response = new Response($this->export->render($found, $header));
+        $response = new Response($this->export->render($found, $header, $kinds, $roles));
         $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
         $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.csv'));
         $response->headers->set('Cache-Control', 'private, no-store');
@@ -243,7 +250,12 @@ final class PartyController extends AbstractController
     {
         $this->checkToken($request);
         $party = $this->party($id);
-        $this->transaction->run(fn () => $this->refreshChecks->refresh($party));
+        $vatId = $party->vatId();
+        if ($vatId instanceof VatId) {
+            // Ask the registers first (this can take seconds); the transaction only stores the answers.
+            $outcome = $this->refreshChecks->fetch($vatId);
+            $this->transaction->run(fn () => $this->refreshChecks->store($party, $outcome));
+        }
         $this->addFlash('success', $this->translator->trans('party.flash.checks_refreshed'));
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);

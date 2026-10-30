@@ -26,10 +26,12 @@ final readonly class PartyCsvExport
     }
 
     /**
-     * @param list<Party>  $parties
-     * @param list<string> $header  already translated column names
+     * @param list<Party>           $parties
+     * @param list<string>          $header     already translated column names
+     * @param array<string, string> $kindLabels translated kind per kind value
+     * @param array<string, string> $roleLabels translated role per role value
      */
-    public function render(array $parties, array $header): string
+    public function render(array $parties, array $header, array $kindLabels, array $roleLabels): string
     {
         $handle = fopen('php://temp', 'w+b');
         if (false === $handle) {
@@ -40,8 +42,8 @@ final readonly class PartyCsvExport
             $billing = $this->details->billingAddress($party)?->address();
             fputcsv($handle, $this->safe([
                 $party->displayName(),
-                $party->kind()->value,
-                implode(',', array_map(static fn (PartyRole $role): string => $role->value, $party->roles())),
+                $kindLabels[$party->kind()->value] ?? $party->kind()->value,
+                implode(', ', array_map(static fn (PartyRole $role): string => $roleLabels[$role->value] ?? $role->value, $party->roles())),
                 $party->registrationNumber()->value ?? '',
                 $party->vatId()?->toString() ?? '',
                 $this->details->generalEmail($party)?->address() ?? '',

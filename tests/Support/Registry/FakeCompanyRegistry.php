@@ -24,11 +24,14 @@ final class FakeCompanyRegistry implements CompanyRegistry
 
     public function lookupByRegistrationNumber(RegistrationNumber $number): ?RegistryRecord
     {
+        ++RegistryCalls::$count;
+
         return 'CZ' === $number->countryCode && self::KNOWN_NUMBER === $number->normalised() ? self::exampleCompany() : null;
     }
 
     public function searchByName(string $country, string $query, int $limit): array
     {
+        ++RegistryCalls::$count;
         $needle = mb_strtolower(trim($query));
         if ('CZ' !== strtoupper($country) || $limit < 1 || '' === $needle || !str_contains('example company s.r.o.', $needle)) {
             return [];

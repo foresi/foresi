@@ -104,6 +104,17 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertSame('info@example.com', $this->details()->generalEmail($stored)?->address());
     }
 
+    public function testUpdateWithoutABillingAddressFailsInsteadOfSkippingIt(): void
+    {
+        $party = $this->create('Example Company');
+        $this->em->getConnection()->executeStatement('DELETE FROM party_address');
+        $this->em->clear();
+        $party = $this->query()->find((int) $party->id()) ?? self::fail();
+
+        $this->expectException(\DomainException::class);
+        $this->update($party, $this->input('Renamed', ''));
+    }
+
     public function testArchiveAndRestoreAreRepeatableAndAudited(): void
     {
         $party = $this->create('Example Company');

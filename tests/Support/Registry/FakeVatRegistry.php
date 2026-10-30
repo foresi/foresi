@@ -27,6 +27,7 @@ final readonly class FakeVatRegistry implements VatRegistry
 
     public function checkVatId(VatId $vatId): RegistryCheck
     {
+        ++RegistryCalls::$count;
         $result = match ($vatId->toString()) {
             'CZ12345687', 'CZ12345695' => RegistryResult::Valid,
             'CZ99999999' => RegistryResult::Unavailable,

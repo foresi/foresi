@@ -20,6 +20,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Party\Infrastructure\Support\RejectingParties;
+use App\Tests\Support\Registry\RegistryCalls;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -36,6 +37,7 @@ final class PartyControllerTest extends WebTestCase
     protected function tearDown(): void
     {
         RejectingParties::$reject = false;
+        RegistryCalls::reset();
         parent::tearDown();
     }
 
@@ -370,7 +372,7 @@ final class PartyControllerTest extends WebTestCase
         self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.csv$/', (string) $response->headers->get('Content-Disposition'));
         $csv = (string) $response->getContent();
         self::assertStringStartsWith("\xEF\xBB\xBF", $csv);
-        self::assertStringContainsString('"Example Company s.r.o.";company;customer;12345687;CZ12345687;info@example.com;', $csv);
+        self::assertStringContainsString('"Example Company s.r.o.";Company;Customer;12345687;CZ12345687;info@example.com;', $csv);
         self::assertStringNotContainsString('Foreign Trading', $csv);
         self::assertStringNotContainsString('Not Selected', $csv);
         self::assertStringContainsString("'=HYPERLINK", $csv);
@@ -426,9 +428,12 @@ final class PartyControllerTest extends WebTestCase
         $this->signIn('cs');
         $party = $this->party('Unreliable Company', $this->tenant, vat: 'CZ12345687', refresh: true);
 
+        RegistryCalls::reset();
+
         $this->client->request('GET', '/contacts/'.$party->id());
 
         self::assertResponseIsSuccessful();
+        self::assertSame(0, RegistryCalls::$count, 'viewing a contact never asks a register');
         self::assertSelectorTextContains('h1 + span', 'Nespolehlivý plátce DPH');
         self::assertSelectorTextContains('[data-party-summary]', 'zkontrolováno');
         self::assertSelectorExists('[data-party-summary] time[datetime]');
@@ -444,6 +449,61 @@ final class PartyControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('[data-party-summary]', 'Není plátce DPH');
         self::assertSelectorNotExists('[data-published-accounts]');
+    }
+
+    public function testLookupIsRateLimitedPerUserWithAJsonAnswer(): void
+    {
+        $this->signIn();
+
+        for ($i = 0; $i < 30; ++$i) {
+            $this->client->request('GET', '/contacts/lookup?q=exa');
+            self::assertResponseIsSuccessful();
+        }
+        $this->client->request('GET', '/contacts/lookup?q=exa');
+
+        self::assertResponseStatusCodeSame(429);
+        self::assertSame('{"error":"rate_limited"}', $this->client->getResponse()->getContent());
+        self::assertGreaterThanOrEqual(1, (int) $this->client->getResponse()->headers->get('Retry-After'));
+    }
+
+    public function testRegistrationNumbersAreLookedUpOnlyAtExactlyEightDigits(): void
+    {
+        $this->signIn();
+        RegistryCalls::reset();
+
+        foreach (['1234568', '123456870', '1234 568'] as $query) {
+            $this->client->request('GET', '/contacts/lookup?q='.urlencode($query));
+            self::assertSame('{"results":[]}', $this->client->getResponse()->getContent(), $query);
+        }
+        self::assertSame(0, RegistryCalls::$count);
+
+        $this->client->request('GET', '/contacts/lookup?q='.urlencode('1234 5687'));
+        self::assertSame(1, RegistryCalls::$count);
+        self::assertStringContainsString('Example Company s.r.o.', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testLongSearchTextIsCutToOneHundredCharacters(): void
+    {
+        $this->signIn();
+        $this->party('Example Company', $this->tenant);
+
+        $crawler = $this->client->request('GET', '/contacts?q='.str_repeat('a', 300));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(100, \strlen((string) $crawler->filter('input[type="search"]')->attr('value')));
+    }
+
+    public function testManualRefreshStoresThePublishedAccountsSoViewingNeedsNoRegister(): void
+    {
+        $this->signIn();
+        $party = $this->party('Unreliable Company', $this->tenant, vat: 'CZ12345687');
+        $this->client->request('POST', '/contacts/'.$party->id().'/registry-checks', ['_token' => $this->token('party_action')]);
+        RegistryCalls::reset();
+
+        $this->client->request('GET', '/contacts/'.$party->id());
+
+        self::assertSame(0, RegistryCalls::$count);
+        self::assertSelectorTextContains('[data-published-accounts]', 'CZ7308000000002000000007');
     }
 
     public function testRegistryChecksCanBeRefreshedByHand(): void

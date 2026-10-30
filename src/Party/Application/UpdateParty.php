@@ -31,7 +31,7 @@ final readonly class UpdateParty
             $party->changeIdentifiers($input->registrationNumber, $input->vatId);
             $party->assignRoles($input->roles);
             $party->changePrivateNote($input->privateNote);
-            $this->details->billingAddress($party)?->relocate($input->billingAddress);
+            ($this->details->billingAddress($party) ?? throw new \DomainException('The party has no billing address to change.'))->relocate($input->billingAddress);
             $this->changeEmail($party, trim($input->email));
         });
     }

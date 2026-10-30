@@ -44,6 +44,19 @@ final class RegistryCheckFlowTest extends KernelTestCase
         self::assertSame(RegistryResult::Unavailable, $party->unreliablePayerCheck()?->result);
     }
 
+    public function testPublishedAccountsAreStoredAndKeptWhenTheRegisterIsDown(): void
+    {
+        $party = new Party(PartyKind::Company, 'Example Company s.r.o.', null, VatId::fromString('CZ12345687'), '');
+        $this->refresh()->refresh($party);
+        self::assertSame(['2000000011/0800', '19-2000000007/0800', 'CZ7308000000002000000007'], $party->publishedBankAccounts());
+
+        $party->changeIdentifiers(null, VatId::fromString('CZ99999999'));
+        $this->refresh()->refresh($party);
+
+        self::assertSame(RegistryResult::Unavailable, $party->unreliablePayerCheck()?->result);
+        self::assertCount(3, $party->publishedBankAccounts(), 'an unreachable register keeps the accounts known before');
+    }
+
     public function testPartyWithoutVatIdIsLeftAlone(): void
     {
         $party = PartyFactory::person();

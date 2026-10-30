@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Controller;
 
+use App\Audit\Application\AuditActor;
 use App\Party\Application\CreateParty;
 use App\Party\Application\DuplicateFinder;
 use App\Party\Application\DuplicateMatch;
@@ -27,11 +28,13 @@ use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use App\Party\Infrastructure\Registry\RegistryLookup;
 use App\Tenancy\Application\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -57,6 +60,9 @@ final class PartyFormController extends AbstractController
         private readonly SubmissionTokens $tokens,
         private readonly RegistryLookup $lookup,
         private readonly TenantContext $context,
+        private readonly AuditActor $actor,
+        #[Autowire(service: 'limiter.party_lookup')]
+        private readonly RateLimiterFactory $lookupLimiter,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -106,6 +112,12 @@ final class PartyFormController extends AbstractController
     {
         if (!$this->context->has()) {
             throw new NotFoundHttpException();
+        }
+        $limit = $this->lookupLimiter->create((string) ($this->actor->userId() ?? $request->getClientIp()))->consume();
+        if (!$limit->isAccepted()) {
+            $retry = max(1, $limit->getRetryAfter()->getTimestamp() - time());
+
+            return new JsonResponse(['error' => 'rate_limited'], Response::HTTP_TOO_MANY_REQUESTS, ['Retry-After' => (string) $retry]);
         }
 
         $results = [];

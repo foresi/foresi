@@ -15,11 +15,20 @@ framework:
             limit: 300
             interval: '1 minute'
 
+        # Registry lookups of the contact form, per signed-in user.
+        party_lookup:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
 when@test:
     framework:
+        rate_limiter:
+            party_lookup:
+                storage_service: test.party_lookup_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

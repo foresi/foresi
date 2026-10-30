@@ -67,6 +67,10 @@ when@test:
             autowire: true
             autoconfigure: true
 
+        # In memory, so lookups never leak between test runs.
+        test.party_lookup_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 

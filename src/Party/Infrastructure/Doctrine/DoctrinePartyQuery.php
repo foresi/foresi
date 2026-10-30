@@ -37,44 +37,59 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         'vat' => ['p.vatId', 'LOWER(p.displayName)'],
     ];
 
+    private const int MAX_TEXT = 100;
+
     public function __construct(private EntityManagerInterface $em)
     {
     }
 
     public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page): PartyPage
     {
-        $matches = $this->matching($text, $archived, $sort);
-        $ids = [];
-        foreach ($matches as $match) {
-            if (!$role instanceof PartyRole || \in_array($role->value, $match['roles'], true)) {
-                $ids[] = $match['id'];
-            }
-        }
+        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived);
 
-        $total = \count($ids);
+        $count = $this->em->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p WHERE '.$where);
+        foreach ($parameters as $name => $value) {
+            $count->setParameter($name, $value);
+        }
+        $total = (int) $count->getSingleScalarResult();
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($page, $pages));
 
-        return new PartyPage($this->rows(\array_slice($ids, ($page - 1) * self::PER_PAGE, self::PER_PAGE)), $total, $page, $pages);
+        $descending = str_starts_with($sort, '-');
+        $order = self::ORDER[ltrim($sort, '-')] ?? self::ORDER['name'];
+        $ids = $this->em->createQuery(
+            'SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY '
+            .implode(', ', array_map(static fn (string $column, int $index): string => $column.($descending && 0 === $index ? ' DESC' : ''), $order, array_keys($order))).', p.id',
+        )->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE);
+        foreach ($parameters as $name => $value) {
+            $ids->setParameter($name, $value);
+        }
+
+        $pageIds = [];
+        foreach ($ids->getSingleColumnResult() as $id) {
+            if (\is_int($id)) {
+                $pageIds[] = $id;
+            }
+        }
+
+        return new PartyPage($this->rows($pageIds), $total, $page, $pages);
     }
 
     public function counts(): PartyCounts
     {
-        /** @var list<array{roles: list<string>, unreliablePayerResult: RegistryResult|null, archivedAt: \DateTimeImmutable|null}> $rows */
-        $rows = $this->em->createQuery('SELECT p.roles, p.unreliablePayerResult, p.archivedAt FROM '.Party::class.' p')->getResult();
-        $all = $customers = $suppliers = $unreliable = $archived = 0;
-        foreach ($rows as $row) {
-            if (null !== $row['archivedAt']) {
-                ++$archived;
-                continue;
-            }
-            ++$all;
-            $customers += \in_array(PartyRole::Customer->value, $row['roles'], true) ? 1 : 0;
-            $suppliers += \in_array(PartyRole::Supplier->value, $row['roles'], true) ? 1 : 0;
-            $unreliable += RegistryResult::Unreliable === $row['unreliablePayerResult'] ? 1 : 0;
-        }
+        $active = 'p.archivedAt IS NULL';
+        $row = $this->em->createQuery(
+            'SELECT SUM(CASE WHEN '.$active.' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN '.$active.' AND '.$this->roleCondition('customer').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN '.$active.' AND '.$this->roleCondition('supplier').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN '.$active.' AND p.unreliablePayerResult = :unreliable THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN p.archivedAt IS NOT NULL THEN 1 ELSE 0 END) FROM '.Party::class.' p',
+        )->setParameter('unreliable', RegistryResult::Unreliable)->getSingleResult(Query::HYDRATE_ARRAY);
 
-        return new PartyCounts($all, $customers, $suppliers, $unreliable, $archived);
+        /** @var list<numeric-string|int|null> $values */
+        $values = array_values((array) $row);
+
+        return new PartyCounts((int) $values[0], (int) $values[1], (int) $values[2], (int) $values[3], (int) $values[4]);
     }
 
     public function find(int $id): ?Party
@@ -106,40 +121,36 @@ final readonly class DoctrinePartyQuery implements PartyQuery
     }
 
     /**
-     * @return list<array{id: int, roles: list<string>}>
+     * @return array{string, array<string, string>}
      */
-    private function matching(string $text, bool $archived, string $sort): array
+    private function conditions(string $text, ?PartyRole $role, bool $archived): array
     {
-        $dql = 'SELECT p.id, p.roles FROM '.Party::class.' p WHERE '.($archived ? 'p.archivedAt IS NOT NULL' : 'p.archivedAt IS NULL');
+        $where = $archived ? 'p.archivedAt IS NOT NULL' : 'p.archivedAt IS NULL';
         $parameters = [];
+        if ($role instanceof PartyRole) {
+            $where .= ' AND '.$this->roleCondition($role->value);
+        }
         $text = trim($text);
         if ('' !== $text) {
             $conditions = ['LOWER(p.displayName) LIKE :name ESCAPE \'!\'', 'LOWER(p.vatId) LIKE :vat ESCAPE \'!\''];
-            $parameters['name'] = '%'.$this->like(mb_strtolower($text)).'%';
-            $parameters['vat'] = '%'.$this->like(mb_strtolower((string) preg_replace('/\s+/', '', $text))).'%';
+            $parameters['name'] = '%'.self::like(mb_strtolower($text)).'%';
+            $parameters['vat'] = '%'.self::like(mb_strtolower((string) preg_replace('/\s+/', '', $text))).'%';
             $key = mb_strtoupper((string) preg_replace('/[^\p{L}\p{N}]/u', '', $text));
             if ('' !== $key) {
                 $conditions[] = 'p.registrationKey LIKE :key ESCAPE \'!\'';
-                $parameters['key'] = '%'.$this->like($key).'%';
+                $parameters['key'] = '%'.self::like($key).'%';
             }
             $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
-            $parameters['email'] = '%'.$this->like(mb_strtolower($text)).'%';
-            $dql .= ' AND ('.implode(' OR ', $conditions).')';
+            $parameters['email'] = '%'.self::like(mb_strtolower($text)).'%';
+            $where .= ' AND ('.implode(' OR ', $conditions).')';
         }
 
-        $descending = str_starts_with($sort, '-');
-        $order = self::ORDER[ltrim($sort, '-')] ?? self::ORDER['name'];
-        $dql .= ' ORDER BY '.implode(', ', array_map(static fn (string $column, int $index): string => $column.($descending && 0 === $index ? ' DESC' : ''), $order, array_keys($order))).', p.id';
+        return [$where, $parameters];
+    }
 
-        $query = $this->em->createQuery($dql);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
-        }
-
-        /** @var list<array{id: int, roles: list<string>}> $rows */
-        $rows = $query->getResult(Query::HYDRATE_ARRAY);
-
-        return $rows;
+    private function roleCondition(string $role): string
+    {
+        return 'CAST_TEXT(p.roles) LIKE \'%"'.$role.'"%\'';
     }
 
     /**

@@ -80,6 +80,10 @@ class Party implements TenantOwned, Audited
     #[ORM\Column(name: 'unreliable_payer_checked_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $unreliablePayerCheckedAt = null;
 
+    /** @var list<string>|null the bank accounts published with the last unreliable payer check */
+    #[ORM\Column(name: 'unreliable_payer_accounts', type: 'json', nullable: true)]
+    private ?array $unreliablePayerAccounts = null;
+
     /**
      * @param list<PartyRole> $roles
      */
@@ -176,6 +180,14 @@ class Party implements TenantOwned, Audited
         return $this->check(RegistrySource::UnreliablePayer, $this->unreliablePayerResult, $this->unreliablePayerCheckedAt);
     }
 
+    /**
+     * @return list<string> account numbers or IBANs as the register publishes them
+     */
+    public function publishedBankAccounts(): array
+    {
+        return $this->unreliablePayerAccounts ?? [];
+    }
+
     public function rename(string $displayName): void
     {
         $displayName = trim($displayName);
@@ -243,6 +255,14 @@ class Party implements TenantOwned, Audited
             $this->unreliablePayerResult = $check->result;
             $this->unreliablePayerCheckedAt = $check->checkedAt;
         }
+    }
+
+    /**
+     * @param list<string> $accounts
+     */
+    public function recordPublishedBankAccounts(array $accounts): void
+    {
+        $this->unreliablePayerAccounts = $accounts;
     }
 
     public function tenantId(): TenantId
