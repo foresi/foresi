@@ -17,7 +17,7 @@
         <nav class="border-b border-line px-6 py-3" aria-label="{{ 'catalogue.jump'|trans }}">
             <ul class="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]">
                 {% for name in sections %}
-                    <li><a href="#component-{{ name }}" class="text-muted hover:text-ink">{{ name }}</a></li>
+                    <li><a href="#component-{{ name }}" class="inline-flex min-h-6 items-center text-muted hover:text-ink">{{ name }}</a></li>
                 {% endfor %}
             </ul>
         </nav>

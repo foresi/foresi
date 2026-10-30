@@ -41,6 +41,21 @@ The built CSS is not committed, and tests and `composer qa` do not need it. Inte
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
+## End-to-end tests
+
+Playwright tests in `tests/e2e` drive the real application in a browser: sign-in, the address book, keyboard use, accessibility (axe, WCAG 2.2 AA, zero serious or critical violations) and layout on a desktop (1440 px) and a mobile (390 px) viewport. They run in their own `e2e` environment with a separate SQLite database (`var/e2e.db`, recreated and seeded with example data by `tests/e2e/serve.sh`), and the registers (ARES, VIES, the unreliable payer register) are replaced by the same fixture-backed fakes the PHPUnit suite uses, so nothing calls the network. Your development database is never touched.
+
+```bash
+bin/console tailwind:build           # styles must be built once
+cd tests/e2e
+npm ci
+npx playwright install chromium
+npx playwright test                  # everything, including the screenshot specs
+npx playwright test --grep-invert @visual   # what CI runs until the baselines are approved
+```
+
+Screenshot specs carry `@visual` in their title. A screen's baseline image is committed only after its look is approved; until then a run writes the candidates to `tests/e2e/screenshots/` and reports "missing snapshot". After approval, run `npx playwright test --update-snapshots` and commit the images.
+
 ## Architecture
 
 The code base is a modular monolith. See [docs/adr](docs/adr) for the architecture decisions.

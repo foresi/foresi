@@ -61,6 +61,44 @@ when@dev:
             autowire: true
             autoconfigure: true
 
+# The end-to-end environment (tests/e2e) runs the real application against its own
+# SQLite database. Registry adapters are replaced by the fixture-backed fakes of the
+# PHPUnit suite, so no browser test ever calls a live register.
+when@e2e:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        App\Ui\Controller\CatalogueController: ~
+
+        App\Party\Application\CompanyRegistry:
+            alias: App\Tests\Support\Registry\FakeCompanyRegistry
+        App\Party\Application\VatRegistry:
+            alias: App\Tests\Support\Registry\FakeVatRegistry
+        App\Party\Application\VatPayerReliability:
+            alias: App\Tests\Support\Registry\FakeVatPayerReliability
+        App\Tests\Support\Registry\FakeCompanyRegistry: ~
+        App\Tests\Support\Registry\FakeVatRegistry: ~
+        App\Tests\Support\Registry\FakeVatPayerReliability: ~
+
+        # Public handles for tests/e2e/seed.php.
+        e2e.tenant_context:
+            alias: App\Tenancy\Application\TenantContext
+            public: true
+        e2e.create_party:
+            alias: App\Party\Application\CreateParty
+            public: true
+        e2e.registration_numbers:
+            alias: App\Party\Application\RegistrationNumberFactory
+            public: true
+        e2e.password_hashers:
+            alias: Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface
+            public: true
+        e2e.entity_manager:
+            alias: Doctrine\ORM\EntityManagerInterface
+            public: true
+
 when@test:
     services:
         _defaults:

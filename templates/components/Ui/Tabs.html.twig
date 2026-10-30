@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-<nav {{ attributes.defaults({class: 'inline-flex gap-0.5 rounded-[10px] bg-badge-gray p-[3px]'}) }}{% if label %} aria-label="{{ label }}"{% endif %}>
+<nav {{ attributes.defaults({class: 'inline-flex max-w-full flex-wrap gap-0.5 rounded-[10px] bg-badge-gray p-[3px]'}) }}{% if label %} aria-label="{{ label }}"{% endif %}>
     {%- for item in items %}
         <a href="{{ item.href }}"{% if item.active ?? false %} aria-current="page"{% endif %} class="inline-flex h-7 items-center rounded-[7px] px-3 font-medium no-underline {{ (item.active ?? false) ? 'bg-white text-ink shadow-[0_1px_2px_rgba(28,29,26,.08)]' : 'bg-transparent text-muted hover:text-ink' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
             {{- item.label -}}

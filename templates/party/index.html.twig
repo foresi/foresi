@@ -19,7 +19,7 @@
             <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
     {% else %}
-        <div class="grid gap-4">
+        <div class="grid grid-cols-1 gap-4">
             <twig:Ui:KpiStrip :items="[
                 {label: 'party.kpi.all'|trans, value: counts.all ~ ''},
                 {label: 'party.kpi.customers'|trans, value: counts.customers ~ ''},
@@ -31,10 +31,10 @@
 
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
-                <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex items-center gap-2">
+                <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex w-full items-center gap-2 sm:w-auto">
                     {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
                     {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control w-72 max-w-full rounded-control border border-line-strong bg-white px-2.5 text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control min-w-0 flex-1 rounded-control sm:w-72 sm:flex-none border border-line-strong bg-white px-2.5 text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
                     <twig:Ui:Button type="submit" icon="search">{{ 'party.search.submit'|trans }}</twig:Ui:Button>
                 </form>
             </div>

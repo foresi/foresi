@@ -23,7 +23,7 @@
 {% endblock %}
 
 {% block content %}
-    <div class="grid gap-4">
+    <div class="grid grid-cols-1 gap-4">
         {% for message in app.flashes('success') %}
             <p role="status" class="rounded-control bg-badge-green px-3 py-2 text-[13px] font-medium text-badge-green-text">{{ message }}</p>
         {% endfor %}
@@ -48,7 +48,7 @@
         <twig:Ui:Tabs :items="tabs" :label="'party.sections'|trans" />
 
         {% if tab == 'overview' %}
-            <div class="grid gap-4 lg:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <twig:Ui:Card :title="'party.card.checks'|trans" icon="circle-check">
                     {% if not hasVatId %}
                         <p class="text-muted">{{ 'party.checks.no_vat_id'|trans }}</p>
