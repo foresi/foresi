@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:Card title="Billing details" icon="landmark" class="w-72">Example Company s.r.o.<br>Example Street 1, 100 00 Example City</twig:Ui:Card>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<twig:Ui:Card title="Notes" class="w-72"><twig:Ui:EmptyState class="!py-6" /></twig:Ui:Card>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<twig:Ui:Card title="Example Company Holding of Central European Trading s.r.o." icon="building-2" class="w-72">Příliš žluťoučký kůň úpěl ďábelské ódy</twig:Ui:Card>
+{% endblock %}{% endembed %}
+</div>

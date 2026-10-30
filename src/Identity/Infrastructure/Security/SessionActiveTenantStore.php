@@ -44,4 +44,9 @@ final readonly class SessionActiveTenantStore implements ActiveTenantStore
     {
         $this->requests->getSession()->remove(self::KEY);
     }
+
+    public function migrate(): void
+    {
+        $this->requests->getSession()->migrate(true);
+    }
 }

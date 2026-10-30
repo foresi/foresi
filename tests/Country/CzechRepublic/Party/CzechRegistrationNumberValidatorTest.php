@@ -30,8 +30,8 @@ final class CzechRegistrationNumberValidatorTest extends TestCase
      */
     public static function validNumbers(): iterable
     {
-        // The last one has remainder 1, so its check digit is 0.
-        foreach (['12345679', '12345687', '00003000'] as $number) {
+        // 00003000 has remainder 1 (so its check digit is 0); 00000019 has remainder 2 (check digit 9).
+        foreach (['12345687', '12345695', '00000019', '00003000'] as $number) {
             yield $number => [$number];
         }
     }
@@ -40,7 +40,7 @@ final class CzechRegistrationNumberValidatorTest extends TestCase
     {
         $validator = new CzechRegistrationNumberValidator();
 
-        self::assertSame('12345679', $validator->normalize('1234 5679'));
+        self::assertSame('12345687', $validator->normalize('1234 5687'));
         self::assertSame('00000001', $validator->normalize('1'));
         $validator->validate('00000001');
     }
@@ -65,7 +65,7 @@ final class CzechRegistrationNumberValidatorTest extends TestCase
      */
     public static function malformedNumbers(): iterable
     {
-        foreach (['1234567A', '123456791', '1234567', "12345679\n"] as $bad) {
+        foreach (['1234567A', '123456871', '1234567', "12345687\n"] as $bad) {
             yield $bad => [$bad];
         }
     }

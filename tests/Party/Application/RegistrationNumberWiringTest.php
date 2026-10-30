@@ -16,7 +16,7 @@ final class RegistrationNumberWiringTest extends KernelTestCase
 {
     public function testContainerFactoryAcceptsValidCzechNumber(): void
     {
-        self::assertSame('12345679', $this->factory()->create('CZ', '1234 5679')->value);
+        self::assertSame('12345687', $this->factory()->create('CZ', '1234 5687')->value);
     }
 
     public function testContainerFactoryRejectsBadCzechChecksum(): void

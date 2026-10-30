@@ -1,9 +1,8 @@
-{% extends 'base.html.twig' %}
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ 'dashboard.title'|trans }}{% endblock %}
 
-{% block body %}
-    <h1>Dashboard</h1>
-    <p>Signed in as {{ app.user.userIdentifier }}.</p>
-    <p><a href="{{ path('app_logout') }}">Sign out</a></p>
+{% block content %}
+    <twig:Ui:EmptyState icon="layout-grid" :title="'dashboard.empty.title'|trans" :text="'dashboard.empty.text'|trans" />
 {% endblock %}

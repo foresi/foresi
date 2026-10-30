@@ -19,3 +19,19 @@
 /.deptrac.cache
 /var/infection/
 ###< project ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+###> symfony/framework-bundle (generated) ###
+/config/reference.php
+###< symfony/framework-bundle (generated) ###
+
+###> tests/e2e ###
+/tests/e2e/node_modules/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/tests/e2e/.auth/
+###< tests/e2e ###

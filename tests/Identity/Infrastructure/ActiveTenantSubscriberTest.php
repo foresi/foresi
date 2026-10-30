@@ -20,8 +20,10 @@ use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\InMemoryActiveTenantStore;
 use App\Tests\Tenancy\Fixtures\TestNote;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -51,7 +53,7 @@ final class ActiveTenantSubscriberTest extends KernelTestCase
         $this->context = $context;
         $this->tokens = new TokenStorage();
         $this->store = new InMemoryActiveTenantStore();
-        $this->subscriber = new ActiveTenantSubscriber($this->tokens, $users, $directory, $this->store, $context);
+        $this->subscriber = new ActiveTenantSubscriber($this->tokens, $users, $directory, $this->store, $context, $container->get('router'));
         $this->fixtures = new IdentityFixtures($em, $context);
         $this->fixtures->rebuildSchema();
     }
@@ -163,13 +165,149 @@ final class ActiveTenantSubscriberTest extends KernelTestCase
         self::assertFalse($this->context->has());
     }
 
+    public function testSeveralMembershipsWithoutChoiceRedirectHtmlRequestsToTheChoicePage(): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(request: $this->request('app_dashboard'));
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('/organisation/choose', $response->getTargetUrl());
+        self::assertFalse($this->context->has());
+    }
+
+    public function testBrowsersAcceptingAnythingAreRedirectedToo(): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(request: $this->request('app_dashboard', 'text/html,application/xhtml+xml,*/*;q=0.8'));
+
+        self::assertInstanceOf(RedirectResponse::class, $event->getResponse());
+    }
+
+    public function testJsonRequestsAreNeverRedirected(): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(request: $this->request('app_dashboard', 'application/json'));
+
+        self::assertNull($event->getResponse());
+    }
+
+    public function testSubRequestsAreNeverRedirected(): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(HttpKernelInterface::SUB_REQUEST, $this->request('app_dashboard'));
+
+        self::assertNull($event->getResponse());
+    }
+
+    #[DataProvider('exemptRoutes')]
+    public function testChoicePageLoginAndLogoutAreNotRedirected(string $route): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(request: $this->request($route));
+
+        self::assertNull($event->getResponse());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function exemptRoutes(): iterable
+    {
+        yield 'choice page' => ['app_organisation_choose'];
+        yield 'switch' => ['app_organisation_switch'];
+        yield 'login' => ['app_login'];
+        yield 'logout' => ['app_logout'];
+        yield 'language switch' => ['app_account_language'];
+    }
+
+    #[DataProvider('assetPaths')]
+    public function testAssetsAreNotRedirected(string $path): void
+    {
+        $this->userInTwoTenants();
+
+        $event = $this->handle(request: $this->request('assets', path: $path));
+
+        self::assertNull($event->getResponse());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function assetPaths(): iterable
+    {
+        yield 'assets' => ['/assets/app-123.css'];
+        yield 'profiler' => ['/_profiler/abc'];
+        yield 'toolbar' => ['/_wdt/abc'];
+    }
+
+    public function testAUserWithAStoredValidChoiceIsNotRedirected(): void
+    {
+        $user = $this->fixtures->user();
+        $a = $this->fixtures->tenant('Tenant A');
+        $this->fixtures->join($user, $a);
+        $this->fixtures->join($user, $this->fixtures->tenant('Tenant B'));
+        $this->signIn($user);
+        $this->store->store($a);
+
+        $event = $this->handle(request: $this->request('app_dashboard'));
+
+        self::assertNull($event->getResponse());
+        self::assertTrue($this->context->current()->equals($a));
+    }
+
+    public function testAStaleChoiceOfAUserWithSeveralMembershipsRedirectsToTheChoicePage(): void
+    {
+        $this->userInTwoTenants();
+        $this->store->store(TenantId::generate());
+
+        $event = $this->handle(request: $this->request('app_dashboard'));
+
+        self::assertInstanceOf(RedirectResponse::class, $event->getResponse());
+        self::assertNull($this->store->tenant);
+    }
+
+    public function testAUserWithoutMembershipsIsNotRedirected(): void
+    {
+        $this->signIn($this->fixtures->user());
+
+        $event = $this->handle(request: $this->request('app_dashboard'));
+
+        self::assertNull($event->getResponse());
+        self::assertFalse($this->context->has());
+    }
+
     private function signIn(User $user): void
     {
         $this->tokens->setToken(new UsernamePasswordToken(SecurityUser::fromUser($user), 'main', ['ROLE_USER']));
     }
 
-    private function handle(int $type = HttpKernelInterface::MAIN_REQUEST): void
+    private function handle(int $type = HttpKernelInterface::MAIN_REQUEST, ?Request $request = null): RequestEvent
     {
-        $this->subscriber->onRequest(new RequestEvent(self::$kernel ?? throw new \LogicException('No kernel.'), new Request(), $type));
+        $event = new RequestEvent(self::$kernel ?? throw new \LogicException('No kernel.'), $request ?? new Request(), $type);
+        $this->subscriber->onRequest($event);
+
+        return $event;
+    }
+
+    private function userInTwoTenants(): void
+    {
+        $user = $this->fixtures->user();
+        $this->fixtures->join($user, $this->fixtures->tenant('Tenant A'));
+        $this->fixtures->join($user, $this->fixtures->tenant('Tenant B'));
+        $this->signIn($user);
+    }
+
+    private function request(string $route, string $accept = 'text/html', string $path = '/'): Request
+    {
+        $request = Request::create($path, 'GET', server: ['HTTP_ACCEPT' => $accept]);
+        $request->attributes->set('_route', $route);
+
+        return $request;
     }
 }

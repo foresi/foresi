@@ -1,0 +1,34 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% if pages > 1 %}
+    {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+    {% set box = 'inline-grid h-[30px] min-w-[30px] place-items-center rounded-control border px-1.5 no-underline ' %}
+    <nav {{ attributes.defaults({class: 'flex'}) }} aria-label="{{ 'ui.pagination.label'|trans }}">
+        <ul class="flex list-none items-center gap-1 p-0">
+            <li>
+                {% if page > 1 %}
+                    <a href="{{ this.url(page - 1) }}" aria-label="{{ 'ui.pagination.previous'|trans }}" class="{{ box }}border-line-strong bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                {% else %}
+                    <span aria-disabled="true" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.previous'|trans }}</span></span>
+                {% endif %}
+            </li>
+            {% for item in this.items %}
+                <li>
+                    {% if item is null %}
+                        <span class="inline-grid h-[30px] min-w-[20px] place-items-center text-muted" aria-hidden="true">…</span>
+                    {% elseif item == page %}
+                        <a href="{{ this.url(item) }}" aria-current="page" aria-label="{{ 'ui.pagination.page'|trans({page: item}) }}" class="{{ box }}num border-green bg-green text-white {{ focus }}">{{ item }}</a>
+                    {% else %}
+                        <a href="{{ this.url(item) }}" aria-label="{{ 'ui.pagination.page'|trans({page: item}) }}" class="{{ box }}num border-line-strong bg-white text-ink hover:bg-head {{ focus }}">{{ item }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            <li>
+                {% if page < pages %}
+                    <a href="{{ this.url(page + 1) }}" aria-label="{{ 'ui.pagination.next'|trans }}" class="{{ box }}border-line-strong bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                {% else %}
+                    <span aria-disabled="true" class="{{ box }}border-line-strong bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.next'|trans }}</span></span>
+                {% endif %}
+            </li>
+        </ul>
+    </nav>
+{% endif %}

@@ -14,6 +14,7 @@ use App\Tenancy\Domain\TenantId;
 final class InMemoryActiveTenantStore implements ActiveTenantStore
 {
     public ?TenantId $tenant = null;
+    public int $migrations = 0;
 
     public function get(): ?TenantId
     {
@@ -28,5 +29,10 @@ final class InMemoryActiveTenantStore implements ActiveTenantStore
     public function clear(): void
     {
         $this->tenant = null;
+    }
+
+    public function migrate(): void
+    {
+        ++$this->migrations;
     }
 }

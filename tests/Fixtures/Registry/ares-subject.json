@@ -1,0 +1,26 @@
+{
+  "ico": "12345687",
+  "obchodniJmeno": "Example Company s.r.o.",
+  "sidlo": {
+    "kodStatu": "CZ",
+    "nazevStatu": "Česká republika",
+    "nazevObce": "Ostrava",
+    "nazevUlice": "Příkladná",
+    "cisloDomovni": 1444,
+    "cisloOrientacni": 2,
+    "cisloOrientacniPismeno": "a",
+    "nazevCastiObce": "Moravská Ostrava",
+    "psc": 70200,
+    "textovaAdresa": "Příkladná 1444/2a, Moravská Ostrava, 70200 Ostrava",
+    "standardizaceAdresy": true
+  },
+  "pravniForma": "112",
+  "datumVzniku": "2001-02-03",
+  "dic": "CZ12345687",
+  "seznamRegistraci": {
+    "stavZdrojeRos": "AKTIVNI",
+    "stavZdrojeVr": "AKTIVNI",
+    "stavZdrojeDph": "AKTIVNI"
+  },
+  "primarniZdroj": "ros"
+}

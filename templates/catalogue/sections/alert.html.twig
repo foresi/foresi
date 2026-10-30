@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'variants'} %}{% block sample %}
+<div class="grid w-full max-w-xl gap-2">
+    <twig:Ui:Alert tone="success">The contact is saved.</twig:Ui:Alert>
+    <twig:Ui:Alert tone="info">Registers are asked again after 24 hours.</twig:Ui:Alert>
+    <twig:Ui:Alert tone="error" role="note">Enter a valid e-mail address.</twig:Ui:Alert>
+    <twig:Ui:Alert tone="warning" role="note">A contact with this registration number exists.</twig:Ui:Alert>
+</div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'titled'} %}{% block sample %}
+<div class="w-full max-w-xl">
+    <twig:Ui:Alert tone="warning" icon="triangle-alert" title="Possible duplicate" role="note">
+        <p class="mb-2">A contact with the same registration number is already in your address book.</p>
+        <twig:Ui:Button variant="primary" size="sm">Save anyway</twig:Ui:Button>
+    </twig:Ui:Alert>
+</div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Alert tone="error" role="note">The address accounting.department.of.the.example.company@subdomain.example.com could not be delivered to because the mailbox is full.</twig:Ui:Alert></div>
+{% endblock %}{% endembed %}
+</div>

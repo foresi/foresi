@@ -52,12 +52,16 @@ class User
         if ('' === $displayName) {
             throw new \InvalidArgumentException('A user needs a display name.');
         }
-        if (!\in_array($locale, self::LOCALES, true)) {
-            throw new \InvalidArgumentException(sprintf('Unsupported locale "%s".', $locale));
-        }
+        $this->assertSupported($locale);
 
         $this->email = $email;
         $this->displayName = $displayName;
+        $this->locale = $locale;
+    }
+
+    public function changeLocale(string $locale): void
+    {
+        $this->assertSupported($locale);
         $this->locale = $locale;
     }
 
@@ -84,5 +88,12 @@ class User
     public function locale(): string
     {
         return $this->locale;
+    }
+
+    private function assertSupported(string $locale): void
+    {
+        if (!\in_array($locale, self::LOCALES, true)) {
+            throw new \InvalidArgumentException(sprintf('Unsupported locale "%s".', $locale));
+        }
     }
 }

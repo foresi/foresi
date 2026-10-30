@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set body %}{% block content %}{% endblock %}{% endset %}
+<div {{ attributes.defaults({role: this.role, class: this.classes}) }}>
+    {% if title %}
+        <p class="mb-1 flex items-center gap-2 text-sm font-semibold">
+            {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
+            <span>{{ title }}</span>
+        </p>
+        <div>{{ body }}</div>
+    {% else %}
+        <div class="font-medium">{{ body }}</div>
+    {% endif %}
+</div>

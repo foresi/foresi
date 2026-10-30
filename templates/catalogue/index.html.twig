@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends frame ? 'catalogue/frame.html.twig' : 'catalogue/layout.html.twig' %}
+
+{% block panel %}
+    {% if not frame %}
+        <header class="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
+            <div class="min-w-0">
+                <h1 class="m-0 text-xl font-semibold tracking-tight text-ink">{{ 'catalogue.title'|trans }}</h1>
+                <p class="m-0 text-muted">{{ 'catalogue.intro'|trans }}</p>
+            </div>
+            <nav class="ml-auto flex items-center gap-2" aria-label="{{ 'catalogue.language'|trans }}">
+                {% for code in locales %}
+                    <twig:Ui:Button :href="path('catalogue', {locale: code})" :variant="code == locale ? 'primary' : 'secondary'" size="sm" hreflang="{{ code }}" lang="{{ code }}" :aria-current="code == locale ? 'true' : null">{{ ('locale.' ~ code)|trans({}, 'messages', code) }}</twig:Ui:Button>
+                {% endfor %}
+            </nav>
+        </header>
+        <nav class="border-b border-line px-6 py-3" aria-label="{{ 'catalogue.jump'|trans }}">
+            <ul class="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]">
+                {% for name in sections %}
+                    <li><a href="#component-{{ name }}" class="inline-flex min-h-6 items-center text-muted hover:text-ink">{{ name }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+    <div class="grid gap-8 p-6 max-[899px]:p-3.5">
+        {% for name in sections %}
+            <section id="component-{{ name }}" aria-labelledby="component-{{ name }}-title" class="scroll-mt-4 grid gap-4">
+                <h2 id="component-{{ name }}-title" class="m-0 border-b border-line pb-2 text-lg font-semibold text-ink">{{ name }}</h2>
+                <p class="m-0 text-xs text-muted">{{ 'catalogue.interaction_note'|trans }}</p>
+                {% include 'catalogue/sections/' ~ name ~ '.html.twig' %}
+                {% if not frame %}
+                    <details class="rounded-panel border border-line">
+                        <summary class="cursor-pointer px-3.5 py-2 text-[13px] font-medium text-ink">{{ 'catalogue.mobile_preview'|trans }}</summary>
+                        <iframe data-mobile-preview width="390" height="480" loading="lazy" title="{{ 'catalogue.mobile_preview'|trans }}: {{ name }}" src="{{ path('catalogue', {frame: 'mobile', section: name, locale: locale}) }}" class="mx-auto my-3 block max-w-full border border-line-strong bg-white"></iframe>
+                    </details>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

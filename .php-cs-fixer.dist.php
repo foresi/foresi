@@ -8,7 +8,8 @@ use PhpCsFixer\Finder;
 
 $finder = (new Finder())
     ->in([__DIR__.'/src', __DIR__.'/tests', __DIR__.'/config'])
-    ->notPath('reference.php');
+    ->notPath('reference.php')
+    ->exclude('e2e/node_modules');
 
 return (new Config())
     ->setRiskyAllowed(true)

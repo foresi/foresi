@@ -1,0 +1,11 @@
+{
+  "countryCode": "CZ",
+  "vatNumber": "12345687",
+  "requestDate": "2026-10-29T12:00:00.000Z",
+  "requestIdentifier": "",
+  "name": "Example Company s.r.o.",
+  "address": "Příkladná 1444/2a\nMORAVSKÁ OSTRAVA\n702 00  OSTRAVA",
+  "traderName": "---",
+  "traderNameMatch": "NOT_PROCESSED",
+  "valid": true
+}

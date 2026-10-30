@@ -12,6 +12,7 @@ use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
+use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
@@ -44,20 +45,20 @@ final class PartyPersistenceTest extends KernelTestCase
     public function testPartyRoundTripsWithAndWithoutIdentifiers(): void
     {
         $this->context->switchTo(TenantId::generate());
-        $address = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $this->em->persist(new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address, 'testing@example.com', '+420000000000', true, true));
-        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, $address, 'testing@example.com', '', true, false));
+        $this->em->persist(new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), '+420000000000', [PartyRole::Customer, PartyRole::Supplier]));
+        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
         $this->em->flush();
         $this->em->clear();
 
         $parties = $this->em->getRepository(Party::class)->findBy([], ['id' => 'ASC']);
 
         self::assertCount(2, $parties);
-        self::assertSame('12345687', $parties[0]->registrationNumber()?->value);
+        self::assertSame('12345695', $parties[0]->registrationNumber()?->value);
         self::assertSame('CZ', $parties[0]->registrationNumber()->countryCode);
-        self::assertSame('CZ12345687', $parties[0]->vatId()?->toString());
+        self::assertSame('CZ12345695', $parties[0]->vatId()?->toString());
         self::assertSame(PartyKind::Company, $parties[0]->kind());
-        self::assertSame('Example City', $parties[0]->address()->city);
+        self::assertSame([PartyRole::Customer, PartyRole::Supplier], $parties[0]->roles());
+        self::assertSame([], $parties[1]->roles());
         self::assertNull($parties[1]->registrationNumber());
         self::assertNull($parties[1]->vatId());
     }
@@ -67,7 +68,7 @@ final class PartyPersistenceTest extends KernelTestCase
         $this->context->switchTo(TenantId::generate());
         $this->em->persist(new LegalEntity(
             'Example Company',
-            new RegistrationNumber('CZ', '12345687'),
+            new RegistrationNumber('CZ', '12345695'),
             null,
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             VatStatus::IdentifiedPerson,
@@ -82,15 +83,14 @@ final class PartyPersistenceTest extends KernelTestCase
         self::assertSame(['DE89370400440532013000', 'GB82WEST12345698765432'], $entity->bankAccounts());
         self::assertSame(VatStatus::IdentifiedPerson, $entity->vatStatus());
         self::assertNull($entity->vatId());
-        self::assertSame('12345687', $entity->registrationNumber()->value);
+        self::assertSame('12345695', $entity->registrationNumber()->value);
     }
 
     public function testPartiesAreIsolatedPerTenant(): void
     {
-        $address = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
         $a = TenantId::generate();
         $this->context->switchTo($a);
-        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, $address, '', '', true, false));
+        $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
         $this->em->flush();
         $this->context->switchTo(TenantId::generate());
 

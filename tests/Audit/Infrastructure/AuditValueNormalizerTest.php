@@ -43,7 +43,7 @@ final class AuditValueNormalizerTest extends TestCase
     {
         self::assertSame('sole_trader', $this->normalizer->normalize(PartyKind::SoleTrader, 'string'));
         self::assertSame('2026-10-29T10:00:00.000000+02:00', $this->normalizer->normalize(new \DateTimeImmutable('2026-10-29T10:00:00+02:00'), 'datetime_immutable'));
-        self::assertSame('CZ12345687', $this->normalizer->normalize(VatId::fromString('CZ12345687'), 'vat_id'));
+        self::assertSame('CZ12345695', $this->normalizer->normalize(VatId::fromString('CZ12345695'), 'vat_id'));
         $tenant = TenantId::generate();
         self::assertSame($tenant->toString(), $this->normalizer->normalize($tenant, 'tenant_id'));
     }

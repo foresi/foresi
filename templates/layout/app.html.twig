@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page frame of every signed-in page: sidebar, one white panel with the page header.
+    Pages extend it and fill the blocks "title" (plain text), "actions" (header buttons) and "content".
+    Breadcrumbs are given as a "crumbs" variable: {% set crumbs = [{label: 'Contacts', href: path('...')}, {label: 'Detail'}] %}.
+    A status badge next to the title is given as a "badge" variable: {% set badge = {label: 'Archived', tone: 'gray'} %}.
+#}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% set shell = shell() %}
+    {% set pageTitle = block('title')|striptags|html_decode|trim %}
+    {% set headerActions %}{% block actions %}{% endblock %}{% endset %}
+    <div class="grid min-h-screen min-[900px]:grid-cols-[248px_minmax(0,1fr)] max-[899px]:p-2 min-[900px]:py-2.5 min-[900px]:pr-2.5" data-controller="sidebar">
+        <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-white focus:px-3 focus:py-2 focus:text-ink focus:outline-2 focus:outline-green">{{ 'shell.skip_to_content'|trans }}</a>
+        <div hidden data-sidebar-target="scrim" data-action="click->sidebar#close" class="fixed inset-0 z-30 bg-ink/25 min-[900px]:hidden"></div>
+        <aside id="sidebar" data-sidebar-target="panel" class="flex flex-col px-3.5 pb-2.5 pt-1.5 max-[899px]:invisible max-[899px]:fixed max-[899px]:inset-y-0 max-[899px]:left-0 max-[899px]:z-40 max-[899px]:w-[82%] max-[899px]:max-w-80 max-[899px]:overflow-y-auto max-[899px]:bg-frame max-[899px]:pt-3 max-[899px]:data-[open]:visible min-[900px]:sticky min-[900px]:top-2.5 min-[900px]:h-[calc(100vh-20px)] min-[900px]:overflow-y-auto max-[899px]:[&_[data-command-palette-target=overlay]]:visible">
+            {% include 'layout/_sidebar.html.twig' with {shell: shell} only %}
+        </aside>
+        <main id="main" tabindex="-1" data-sidebar-target="page" class="min-w-0 rounded-panel border border-frame-line bg-white shadow-[0_1px_2px_rgba(28,29,26,.04)] outline-none">
+            <div class="flex items-center gap-2 border-b border-line px-3.5 py-2 min-[900px]:hidden">
+                <twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="sidebar" aria-expanded="false" />
+                <span class="font-semibold text-ink">{{ product_name }}</span>
+            </div>
+            <twig:Ui:PageHeader :title="pageTitle" :crumbs="crumbs|default([])" :badge="badge|default(null)">{{ headerActions }}</twig:Ui:PageHeader>
+            <div class="p-6 max-[899px]:p-3.5">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+{% endblock %}

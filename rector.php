@@ -11,6 +11,7 @@ return RectorConfig::configure()
     ->withSkip([
         __DIR__.'/tests/bootstrap.php',
         __DIR__.'/tests/object-manager.php',
+        __DIR__.'/tests/e2e/node_modules',
         // Conflicts with phpstan-strict-rules (staticMethod.dynamicCall).
         PreferPHPUnitThisCallRector::class,
     ])

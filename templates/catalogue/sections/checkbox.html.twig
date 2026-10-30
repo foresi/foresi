@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:Checkbox name="cat-check-default" label="Send a copy to me" />
+<twig:Ui:Checkbox name="cat-check-checked" label="Customer" :checked="true" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'required'} %}{% block sample %}
+<twig:Ui:Checkbox name="cat-check-required" label="I agree to the terms" :required="true" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<twig:Ui:Checkbox name="cat-check-disabled" label="Archived" :disabled="true" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<twig:Ui:Checkbox name="cat-check-error" label="I agree to the terms" error="You must agree to continue." />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Checkbox name="cat-check-long" label="Example Company Holding of Central European Trading s.r.o. Příliš žluťoučký kůň úpěl ďábelské ódy" /></div>
+{% endblock %}{% endembed %}
+</div>

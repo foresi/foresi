@@ -12,8 +12,12 @@ use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Party\Domain\ContactLink;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
+use App\Party\Domain\PartyAddress;
+use App\Party\Domain\PartyBankAccount;
+use App\Party\Domain\PartyEmail;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -44,7 +48,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, LegalEntity::class, Membership::class, AuditEntry::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class] as $class) {
             yield $class => [$class];
         }
     }

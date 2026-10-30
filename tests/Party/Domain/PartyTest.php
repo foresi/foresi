@@ -15,6 +15,7 @@ use App\Party\Domain\InvalidRegistrationNumber;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
+use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
@@ -35,8 +36,7 @@ final class PartyTest extends TestCase
         $party = $this->party(PartyKind::Company, null, VatId::fromString('DE123456789'));
 
         self::assertSame('Example Company', $party->displayName());
-        self::assertTrue($party->isCustomer());
-        self::assertFalse($party->isSupplier());
+        self::assertSame([PartyRole::Customer], $party->roles());
     }
 
     public function testPersonNeedsNoIdentifiers(): void
@@ -59,7 +59,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        new Party(PartyKind::Person, ' ', null, null, $this->address(), 'testing@example.com', '', true, false);
+        new Party(PartyKind::Person, ' ', null, null, '');
     }
 
     public function testLegalEntityExposesItsData(): void
@@ -88,7 +88,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\LogicException::class);
 
-        new Party(PartyKind::Person, 'Test Person', null, null, $this->address(), 'testing@example.com', '', true, false)->tenantId();
+        new Party(PartyKind::Person, 'Test Person', null, null, '')->tenantId();
     }
 
     public function testLegalEntityTenantIsUnavailableBeforePersist(): void
@@ -131,6 +131,7 @@ final class PartyTest extends TestCase
         yield 'empty country' => ['', '1'];
         yield 'blank value' => ['DE', '  '];
         yield 'empty value' => ['DE', ''];
+        yield 'punctuation only' => ['DE', ' - / . '];
     }
 
     public function testLegalEntityRequiresAName(): void
@@ -165,7 +166,7 @@ final class PartyTest extends TestCase
 
     private function party(PartyKind $kind, ?RegistrationNumber $number, ?VatId $vatId): Party
     {
-        return new Party($kind, 'Example Company', $number, $vatId, $this->address(), 'testing@example.com', '', true, false);
+        return new Party($kind, 'Example Company', $number, $vatId, '', [PartyRole::Customer]);
     }
 
     private function address(): Address

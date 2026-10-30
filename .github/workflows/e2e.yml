@@ -1,0 +1,95 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update-snapshots:
+        description: Regenerate Linux screenshot baselines and upload them as an artifact
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ctype, iconv, intl, pdo_sqlite
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # Dev dependencies are needed: the e2e environment uses the registry fakes of the test suite.
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install JavaScript dependencies
+        run: bin/console importmap:install
+
+      - name: Build styles
+        run: bin/console tailwind:build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install Playwright
+        working-directory: tests/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # Screenshot baselines are kept per platform. Linux baselines are generated on request or when none are committed yet. Decided before the
+      # tests run, because generating them creates the files the check looks for.
+      - name: Decide whether to generate Linux screenshot baselines
+        id: baselines
+        run: echo "generate=${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}" >> "$GITHUB_OUTPUT"
+
+      # While baselines are being generated, the screenshot specs (tagged @visual) are skipped here.
+      - name: End-to-end, accessibility, layout and screenshot tests
+        working-directory: tests/e2e
+        run: npx playwright test ${{ steps.baselines.outputs.generate == 'true' && '--grep-invert @visual' || '' }}
+
+      - name: Generate Linux screenshot baselines
+        if: ${{ steps.baselines.outputs.generate == 'true' }}
+        working-directory: tests/e2e
+        run: npx playwright test --grep @visual --update-snapshots=all
+
+      - name: Upload the Linux screenshot baselines
+        if: ${{ steps.baselines.outputs.generate == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-linux
+          path: tests/e2e/screenshots/*-linux/
+          retention-days: 7
+
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
+          retention-days: 7

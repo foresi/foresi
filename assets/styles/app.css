@@ -1,0 +1,134 @@
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ *
+ * Tailwind entry. Design tokens come from the approved Foresi design direction.
+ */
+@import "tailwindcss";
+
+@source "../../templates";
+@source "../../src";
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/inter/Inter-Regular.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/inter/Inter-Medium.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/inter/Inter-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/inter/Inter-Bold.woff2") format("woff2");
+}
+
+@theme {
+    --font-sans: "Inter", system-ui, sans-serif;
+
+    --color-frame: #f4f2ec;
+    --color-frame-line: #e6e2d8;
+    --color-frame-hover: #ece9e1;
+    --color-white: #ffffff;
+    --color-line: #ece9e2;
+    --color-line-strong: #dcd7cb;
+    --color-control-line: #cfc9bb;
+    --color-head: #faf9f6;
+    --color-green: #2f4a3a;
+    --color-green-hover: #243a2d;
+    --color-green-tint: #eef2ee;
+    --color-ink: #1c1d1a;
+    --color-text: #3e3d38;
+    --color-muted: #6b695f;
+
+    --color-badge-gray: #f1efea;
+    --color-badge-gray-text: #57554e;
+    --color-badge-green: #e7efe8;
+    --color-badge-green-text: #2f5e3d;
+    --color-badge-amber: #fbf0df;
+    --color-badge-amber-text: #8a5310;
+    --color-badge-red: #fbe7e4;
+    --color-badge-red-text: #a3342a;
+
+    --radius-control: 8px;
+    --radius-panel: 14px;
+    --spacing-control: 34px;
+}
+
+:root {
+    --frame: #f4f2ec;
+    --frame-line: #e6e2d8;
+    --frame-hover: #ece9e1;
+    --white: #ffffff;
+    --line: #ece9e2;
+    --line-strong: #dcd7cb;
+    --control-line: #cfc9bb;
+    --head: #faf9f6;
+    --green: #2f4a3a;
+    --green-hover: #243a2d;
+    --green-tint: #eef2ee;
+    --ink: #1c1d1a;
+    --text: #3e3d38;
+    --muted: #6b695f;
+
+    --b-gray: #f1efea;
+    --t-gray: #57554e;
+    --b-green: #e7efe8;
+    --t-green: #2f5e3d;
+    --b-amber: #fbf0df;
+    --t-amber: #8a5310;
+    --b-red: #fbe7e4;
+    --t-red: #a3342a;
+
+    --r: 8px;
+    --r-lg: 14px;
+    --h: 34px;
+}
+
+body {
+    background: var(--frame);
+    color: var(--text);
+    font: 14px/1.45 var(--font-sans);
+}
+
+:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 1px;
+}
+
+/* Keep focused elements clear of the floating bulk bar. */
+html:has([data-table-selection-target~="bar"]:not([hidden])) {
+    scroll-padding-bottom: 6rem;
+}
+
+.num {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

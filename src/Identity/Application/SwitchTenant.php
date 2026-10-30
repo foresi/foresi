@@ -32,6 +32,7 @@ final readonly class SwitchTenant
         }
 
         $this->store->store($tenant);
+        $this->store->migrate();
         $this->context->switchTo($tenant);
     }
 }

@@ -17,3 +17,7 @@ framework:
         # Namespaced pools use the above "app" backend by default
         #pools:
             #my.dedicated.cache: null
+        pools:
+            # Answers of the public registers (ARES, VIES, ADIS) for 24 hours. The data is
+            # public, so the pool is shared by all tenants; see App\Shared\Infrastructure\Registry.
+            cache.registry: ~

@@ -20,6 +20,8 @@
         // Equivalent mutant: a numeric string added to an int yields the same value.
         "CastInt": {"ignore": ["App\\Tenancy\\Domain\\TenantId::generate"]},
         // Equivalent mutant: both columns are always set together.
-        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber"]}
+        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check"]},
+        // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
+        "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]}
     }
 }

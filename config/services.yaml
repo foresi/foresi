@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # The product name shown on every page; the only place it is defined.
+    app.product_name: Foresi
 
 services:
     # default configuration for services in *this* file
@@ -18,6 +20,9 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            # Development tool: registered, and so routable, in the dev and test environments only.
+            - '../src/Ui/Controller/CatalogueController.php'
 
     # Country modules plug into the core through tagged interfaces.
     _instanceof:
@@ -33,6 +38,14 @@ services:
     test.registration_number_factory:
         alias: App\Party\Application\RegistrationNumberFactory
 
+    App\Shared\Infrastructure\Registry\RegistryCache:
+        arguments:
+            $registryCache: '@cache.registry'
+
+    App\Shared\Infrastructure\Registry\PublicRegistryClient:
+        arguments:
+            $registryOutgoingLimiter: '@limiter.registry_outgoing'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
@@ -42,12 +55,98 @@ services:
         tags:
             - { name: kernel.reset, method: reset }
 
+when@dev:
+    services:
+        App\Ui\Controller\CatalogueController:
+            autowire: true
+            autoconfigure: true
+
+# The end-to-end environment (tests/e2e) runs the real application against its own
+# SQLite database. Registry adapters are replaced by the fixture-backed fakes of the
+# PHPUnit suite, so no browser test ever calls a live register.
+when@e2e:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        App\Ui\Controller\CatalogueController: ~
+
+        App\Party\Application\CompanyRegistry:
+            alias: App\Tests\Support\Registry\FakeCompanyRegistry
+        App\Party\Application\VatRegistry:
+            alias: App\Tests\Support\Registry\FakeVatRegistry
+        App\Party\Application\VatPayerReliability:
+            alias: App\Tests\Support\Registry\FakeVatPayerReliability
+        App\Tests\Support\Registry\FakeCompanyRegistry: ~
+        App\Tests\Support\Registry\FakeVatRegistry: ~
+        App\Tests\Support\Registry\FakeVatPayerReliability: ~
+
+        # Public handles for tests/e2e/seed.php.
+        e2e.tenant_context:
+            alias: App\Tenancy\Application\TenantContext
+            public: true
+        e2e.create_party:
+            alias: App\Party\Application\CreateParty
+            public: true
+        e2e.registration_numbers:
+            alias: App\Party\Application\RegistrationNumberFactory
+            public: true
+        e2e.password_hashers:
+            alias: Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface
+            public: true
+        e2e.entity_manager:
+            alias: Doctrine\ORM\EntityManagerInterface
+            public: true
+
 when@test:
     services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        # In memory, so lookups never leak between test runs.
+        test.party_lookup_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.party_refresh_checks_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        # Stands in for a plugin adding a sidebar item.
+        App\Tests\Ui\Support\TestNavigationProvider: ~
+        App\Tests\Ui\Support\ShellProbeController: ~
+        App\Ui\Controller\CatalogueController: ~
+
+        # Registry adapters are replaced by fixture-backed fakes: no test ever calls a live register.
+        App\Party\Application\CompanyRegistry:
+            alias: App\Tests\Support\Registry\FakeCompanyRegistry
+            public: true
+        App\Party\Application\VatRegistry:
+            alias: App\Tests\Support\Registry\FakeVatRegistry
+            public: true
+        App\Party\Application\VatPayerReliability:
+            alias: App\Tests\Support\Registry\FakeVatPayerReliability
+            public: true
+        App\Tests\Support\Registry\FakeCompanyRegistry: ~
+        App\Tests\Support\Registry\FakeVatRegistry: ~
+        App\Tests\Support\Registry\FakeVatPayerReliability: ~
+
+        # Lets a test make storing a party fail with a domain error after it was written.
+        App\Tests\Party\Infrastructure\Support\RejectingParties:
+            decorates: App\Party\Application\Parties
 
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory
             public: true
+
+        # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and
+        # Infection aborts its initial test run on any stderr output, so the test log goes to a file.
+        logger:
+            class: Symfony\Component\HttpKernel\Log\Logger
+            arguments:
+                $minLevel: info
+                $output: '%kernel.cache_dir%/test.log'

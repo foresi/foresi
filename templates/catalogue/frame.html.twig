@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# A single section without the catalogue chrome, shown inside the 390 px preview frame. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'catalogue.title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="bg-white">
+        {% block panel %}{% endblock %}
+    </main>
+{% endblock %}

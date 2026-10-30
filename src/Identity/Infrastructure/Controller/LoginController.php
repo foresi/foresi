@@ -24,7 +24,11 @@ final class LoginController extends AbstractController
         ]);
     }
 
-    #[Route('/logout', name: 'app_logout', methods: ['GET'])]
+    /**
+     * POST only, with the CSRF token of the user menu form: a link or an image
+     * tag on another site can never sign the user out.
+     */
+    #[Route('/logout', name: 'app_logout', methods: ['POST'])]
     public function logout(): never
     {
         throw new \LogicException('The firewall intercepts this route.');

@@ -43,6 +43,9 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Audit/Domain'
                 prefix: 'App\Audit\Domain'
                 alias: Audit
+        dql:
+            string_functions:
+                CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction
         filters:
             tenant:
                 class: App\Tenancy\Infrastructure\Doctrine\TenantFilter
@@ -70,6 +73,13 @@ when@test:
                     dir: '%kernel.project_dir%/tests/Audit/Fixtures'
                     prefix: 'App\Tests\Audit\Fixtures'
                     alias: AuditFixtures
+
+# The end-to-end environment (tests/e2e) owns its database. The URL is fixed here, not read
+# from the environment, so no local .env file can ever point the browser tests at real data.
+when@e2e:
+    doctrine:
+        dbal:
+            url: 'sqlite:///%kernel.project_dir%/var/e2e.db'
 
 when@prod:
     doctrine:

@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'selectable'} %}{% block sample %}
+<div class="w-full"><twig:Ui:DataTable caption="Contacts" :columns="[{key: 'name', label: 'Name'}]" :rows="[{id: 'a1', label: 'Example Company', cells: {name: 'Example Company s.r.o.'}}, {id: 'b2', label: 'Second Ltd', cells: {name: 'Druhá společnost a.s.'}}]" :selectable="true"><twig:block name="bulk"><twig:Ui:Button variant="secondary" size="sm">Export</twig:Ui:Button><twig:Ui:Button variant="danger" size="sm">Archive</twig:Ui:Button></twig:block></twig:Ui:DataTable></div>
+{% endblock %}{% endembed %}
+</div>

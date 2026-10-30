@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Select name="cat-select-default" label="Country" :options="{cz: 'Česko', sk: 'Slovensko', de: 'Německo'}" value="cz" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Select name="cat-select-disabled" label="Country" :options="{cz: 'Česko'}" value="cz" :disabled="true" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Select name="cat-select-error" label="Country" :options="{'': '—', cz: 'Česko'}" error="Choose a country." /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Select name="cat-select-long" label="Company" :options="{a: 'Example Company Holding of Central European Trading s.r.o.', b: 'Příliš žluťoučký kůň úpěl ďábelské ódy'}" value="a" /></div>
+{% endblock %}{% endembed %}
+</div>

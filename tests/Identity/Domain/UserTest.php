@@ -30,6 +30,27 @@ final class UserTest extends TestCase
         self::assertSame('cs', $user->locale());
     }
 
+    public function testLocaleCanBeChanged(): void
+    {
+        $user = new User('testing@example.com', 'hash', 'Example Company', 'en');
+
+        $user->changeLocale('cs');
+
+        self::assertSame('cs', $user->locale());
+    }
+
+    public function testUnsupportedLocaleIsRefusedAndTheOldOneKept(): void
+    {
+        $user = new User('testing@example.com', 'hash', 'Example Company', 'en');
+
+        try {
+            $user->changeLocale('de');
+            self::fail('An unsupported locale must throw.');
+        } catch (\InvalidArgumentException) {
+            self::assertSame('en', $user->locale());
+        }
+    }
+
     public function testLocaleDefaultsToEnglish(): void
     {
         self::assertSame('en', new User('testing@example.com', 'hash', 'Example Company')->locale());

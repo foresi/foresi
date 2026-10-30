@@ -1,0 +1,307 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+login:
+  title: Přihlášení
+  email: E-mail
+  password: Heslo
+  submit: Přihlásit se
+dashboard:
+  title: Přehled
+  empty:
+    title: Přehled se připravuje
+    text: Jakmile v této organizaci budou data, objeví se tu přehled.
+registry:
+  result:
+    valid: Platné ve VIES
+    invalid: Neplatné ve VIES
+    reliable: Spolehlivý plátce DPH
+    unreliable: Nespolehlivý plátce DPH
+    not_registered: Není plátce DPH
+    unavailable: Rejstřík není dostupný
+auth:
+  logout: Odhlásit se
+nav:
+  group:
+    main: Hlavní
+    sales: Obchod
+    money: Peníze
+    contacts: Kontakty
+    extensions: Rozšíření
+  item:
+    dashboard: Přehled
+    contacts: Adresář
+ui:
+  empty_state:
+    title: Zatím tu nic není
+  table:
+    caption: Tabulka
+    select_all: Vybrat všechny řádky
+    select_row: 'Vybrat řádek {label}'
+    total: Celkem
+  bulk:
+    label: Hromadné akce
+    selected:
+      one: "Vybrán '{'count'}' záznam"
+      few: "Vybrány '{'count'}' záznamy"
+      other: "Vybráno '{'count'}' záznamů"
+  pagination:
+    label: Stránkování
+    previous: Předchozí stránka
+    next: Další stránka
+    page: 'Stránka {page}'
+  breadcrumb:
+    label: Drobečková navigace
+  palette:
+    open: Hledat nebo spustit příkaz
+    label: Příkazová paleta
+    placeholder: Zadejte příkaz nebo hledejte
+    close: Zavřít
+    empty: Nic nenalezeno
+shell:
+  skip_to_content: Přeskočit na obsah
+  sidebar_label: Hlavní navigace
+  menu:
+    open: Otevřít menu
+  palette:
+    go_to: Přejít na
+  organisation:
+    none: Bez organizace
+    switch: Přepnout organizaci
+  user_menu:
+    label: Menu účtu
+    profile: Můj profil
+    api_access: Přístupy k API a MCP
+    language: 'Přepnout jazyk na {language}'
+    switch_organisation: Přepnout organizaci
+    soon: Brzy
+organisation:
+  choose:
+    title: Vyberte organizaci
+    intro: Patříte do několika organizací. Vyberte tu, ve které chcete pracovat.
+    empty_title: Zatím žádná organizace
+    empty_text: Váš účet není členem žádné organizace. Požádejte vlastníka organizace o pozvánku.
+role:
+  owner: Vlastník
+  member: Člen
+  subcontractor: Subdodavatel
+  client: Klient
+locale:
+  cs: Čeština
+  en: English
+catalogue:
+  title: Katalog komponent
+  intro: Každá komponenta v každém stavu, se syntetickými daty. Vývojářský nástroj, v ostrém provozu neexistuje.
+  language: Jazyk
+  jump: Komponenty
+  mobile_preview: Náhled 390 px
+  interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
+  state:
+    default: Výchozí
+    variants: Varianty
+    sizes: Velikosti
+    pressed: Stisknuto
+    disabled: Zakázáno
+    error: Chyba
+    required: Povinné
+    empty: Prázdné
+    loading: Načítání
+    titled: S nadpisem
+    long: Dlouhý text
+    selectable: S výběrem a hromadnou lištou
+    sorted: Seřazeno se součty
+
+format:
+  datetime: 'j. n. Y H:i'
+party:
+  title: Adresář
+  new: Nový kontakt
+  edit: Upravit
+  save: Uložit
+  cancel: Zrušit
+  archive: Archivovat
+  restore: Obnovit
+  archived: Archivováno
+  yes: Ano
+  no: Ne
+  views: Zobrazení kontaktů
+  sections: Části kontaktu
+  empty:
+    title: V adresáři zatím nic není
+    text: Přidejte první kontakt a najdete ho tu spolu se zákazníky a dodavateli.
+  empty_filtered:
+    title: Nic nenalezeno
+    text: Zkuste jiné hledání nebo zrušte filtr.
+    reset: Zrušit filtr
+  kpi:
+    all: Všechny kontakty
+    customers: Zákazníci
+    suppliers: Dodavatelé
+    unreliable: Nespolehliví plátci
+    check: Zkontrolovat
+  view:
+    all: Všechny
+    customers: Zákazníci
+    suppliers: Dodavatelé
+    archived: Archivované
+  search:
+    label: Hledat v kontaktech
+    placeholder: Název, IČO, DIČ nebo e-mail
+    submit: Hledat
+  pagination:
+    summary: '{total, plural, one {# kontakt} few {# kontakty} other {# kontaktů}}'
+  bulk:
+    archive: Archivovat
+    export: Exportovat CSV
+  export:
+    name: Název
+    kind: Druh
+    roles: Role
+    registration_number: IČO
+    vat_id: DIČ
+    email: E-mail
+    phone: Telefon
+    street: Ulice
+    city: Město
+    postal_code: PSČ
+    country: Země
+  column:
+    name: Název
+    kind: Druh
+    roles: Role
+    registration: IČO
+    vat: DIČ
+    email: E-mail
+    status: Stav
+    position: Pozice
+    primary: Hlavní
+    type: Typ
+    label: Popisek
+    address: Adresa
+    iban: IBAN
+    bic: BIC
+  kind:
+    person: Osoba
+    sole_trader: OSVČ
+    company: Firma
+  role:
+    customer: Zákazník
+    supplier: Dodavatel
+    partner: Partner
+    authority: Úřad
+  address_type:
+    billing: Fakturační
+    delivery: Dodací
+    postal: Poštovní
+    other: Jiná
+  tab:
+    overview: Přehled
+    contacts: Kontaktní osoby
+    addresses: Adresy
+    bank-accounts: Bankovní účty
+    history: Historie
+  card:
+    identification: Identifikace
+    contact: Kontakt
+    billing: Fakturační adresa
+    roles: Role a poznámka
+    checks: Kontroly v rejstřících
+    defaults: Výchozí údaje pro doklady
+    note: Soukromá poznámka
+    note_empty: Poznámka není vyplněna.
+  field:
+    kind: Druh
+    displayName: Název
+    registrationCountry: Země registru
+    registrationNumber: IČO
+    vatId: DIČ
+    vatId_help: Například CZ12345678. Po uložení se ověří ve VIES a v registru nespolehlivých plátců.
+    email: E-mail
+    phone: Telefon
+    street: Ulice a číslo
+    city: Město
+    postalCode: PSČ
+    countryCode: Země
+    roles: Role
+    privateNote: Soukromá poznámka
+    privateNote_help: Poznámku vidí jen vaše organizace.
+    address: Adresa
+    purpose: Účel
+    label: Popisek
+    iban: IBAN
+    bic: BIC
+    position: Pozice
+    primary: Hlavní
+    type: Typ
+    archivedAt: Archivace
+    unreliablePayerResult: Nespolehlivý plátce
+    viesResult: VIES
+    invoicingDefaults: Výchozí údaje pro doklady
+    invoicingDueDays: Splatnost
+  lookup:
+    label: Najít v rejstříku
+    help: Zadejte IČO nebo alespoň tři písmena názvu a údaje se doplní z ARES.
+    existing: Už v adresáři
+    empty: V rejstříku nic nenalezeno.
+  duplicate:
+    title: Takový kontakt už máte
+    text: Kontakt se stejným IČO nebo DIČ už v adresáři je. Uložit i tak můžete.
+    confirm: Uložit i tak
+  check:
+    vies: VIES
+    unreliable_payer: Registr nespolehlivých plátců
+    at: 'zkontrolováno {time}'
+  checks:
+    no_vat_id: Kontakt nemá DIČ, není co kontrolovat.
+    never: Kontrola zatím neproběhla. Spustí se po uložení.
+    accounts: 'Zveřejněné účty plátce:'
+    refresh: Zkontrolovat znovu
+  contacts:
+    empty: Zatím tu není žádná kontaktní osoba.
+    empty_person: Tato osoba zatím není kontaktem žádné firmy.
+    add: Přidat kontaktní osobu
+    person: Osoba
+    primary: Hlavní kontaktní osoba
+    link: Přidat osobu
+    no_candidates: V adresáři není žádná další osoba. Nejdřív ji přidejte jako nový kontakt s druhem Osoba.
+  accounts:
+    empty: Zatím tu není žádný bankovní účet.
+  defaults:
+    due_days: Splatnost
+    days: '{count, plural, one {# den} few {# dny} other {# dní}}'
+    currency: Měna
+    language: Jazyk dokladů
+    reverse_charge: Přenesená daňová povinnost
+  history:
+    empty: Zatím tu není žádná změna.
+    entry: '{action}: {subject} ({fields})'
+    action:
+      created: Vytvořeno
+      updated: Změněno
+      deleted: Odstraněno
+    subject:
+      party: kontakt
+      address: adresa
+      email: e-mail
+      bank_account: bankovní účet
+      contact: kontaktní osoba
+  flash:
+    created: Kontakt je uložen.
+    updated: Změny jsou uloženy.
+    archived: Kontakt je archivován.
+    archived_many: '{count, plural, one {Archivován # kontakt.} few {Archivovány # kontakty.} other {Archivováno # kontaktů.}}'
+    restored: Kontakt je obnoven.
+    linked: Kontaktní osoba je přidána.
+    link_invalid: Tuto osobu nelze přidat. Buď už je u firmy uvedena, nebo nejde o osobu.
+    checks_refreshed: Kontroly v rejstřících jsou aktualizovány.
+    checks_recent: 'Kontroly se dělaly nedávno ({time}), zobrazujeme jejich výsledky. Rejstříky se znovu ptáme nejdřív po 24 hodinách.'
+    checks_rate_limited: Příliš mnoho obnovení kontrol. Zkuste to za minutu.
+  error:
+    required: Vyplňte toto pole.
+    too_long: Hodnota je příliš dlouhá.
+    kind: Vyberte druh kontaktu.
+    country: Vyberte zemi ze seznamu.
+    email: Zadejte platný e-mail.
+    registration_number: Neplatné IČO. Zkontrolujte číslo.
+    vat_id: Neplatné DIČ. Zadejte například CZ12345678.
+    company_identifier: Firma potřebuje IČO nebo DIČ.
+    save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
+    expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.

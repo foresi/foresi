@@ -8,6 +8,9 @@ parameters:
         - tests
     excludePaths:
         - tests/object-manager.php
+        - tests/e2e/node_modules (?)
+        # Boots the e2e environment and reads its public services; PHPStan only knows the dev container.
+        - tests/e2e/seed.php
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
     doctrine:

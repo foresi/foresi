@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+symfonycasts_tailwind:
+    # Standalone binary, downloaded by the bundle on the first build into var/tailwind/.
+    binary_version: 'v4.1.18'
+    # Not strict in the test environment (bundle default), so pages render without a prior build.
+    # Strict elsewhere: a missing build fails loudly instead of serving unstyled pages.

@@ -15,12 +15,17 @@ use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Party\Domain\Address;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
+use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
 use App\Tenancy\Application\NoActiveTenant;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
@@ -69,10 +74,9 @@ final class AuditLogTest extends KernelTestCase
         $changes = $entries[0]->changes();
         self::assertSame([null, 'Example Company'], $changes['displayName']);
         self::assertSame([null, 'company'], $changes['kind']);
-        self::assertSame([null, 'CZ12345687'], $changes['vatId']);
-        self::assertSame([null, 'Example City'], $changes['address.city']);
-        self::assertSame([null, true], $changes['isCustomer']);
-        self::assertSame([null, false], $changes['isSupplier']);
+        self::assertSame([null, 'CZ12345695'], $changes['vatId']);
+        self::assertSame([null, 14], $changes['invoicingDefaults.dueDays']);
+        self::assertSame([null, ['customer']], $changes['roles']);
         self::assertArrayNotHasKey('id', $changes);
         self::assertArrayNotHasKey('tenantId', $changes);
     }
@@ -100,14 +104,14 @@ final class AuditLogTest extends KernelTestCase
         $this->em->persist($party);
         $this->em->flush();
 
-        $this->setProperty($party, 'address', new Address('Main 1', 'Example City', '100 00', 'CZ'));
+        $this->setProperty($party, 'invoicingDefaults', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->setProperty($party, 'kind', PartyKind::Person);
         $this->setProperty($party, 'vatId', null);
         $this->em->flush();
 
         $changes = $this->entries(AuditAction::Updated)[0]->changes();
         ksort($changes);
-        self::assertSame(['address.street' => ['Example Street 1', 'Main 1'], 'kind' => ['company', 'person'], 'vatId' => ['CZ12345687', null]], $changes);
+        self::assertSame(['invoicingDefaults.dueDays' => [14, 30], 'kind' => ['company', 'person'], 'vatId' => ['CZ12345695', null]], $changes);
     }
 
     public function testFlushWithoutChangesWritesNothing(): void
@@ -135,7 +139,7 @@ final class AuditLogTest extends KernelTestCase
         self::assertCount(1, $deleted);
         self::assertSame($id, $deleted[0]->entityId());
         self::assertSame(['Example Company', null], $deleted[0]->changes()['displayName']);
-        self::assertSame(['CZ12345687', null], $deleted[0]->changes()['vatId']);
+        self::assertSame(['CZ12345695', null], $deleted[0]->changes()['vatId']);
         self::assertArrayNotHasKey('id', $deleted[0]->changes());
     }
 
@@ -234,7 +238,7 @@ final class AuditLogTest extends KernelTestCase
         $this->em->persist($party);
         $this->em->persist(new LegalEntity(
             'Example Company',
-            new RegistrationNumber('CZ', '12345687'),
+            new RegistrationNumber('CZ', '12345695'),
             null,
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             VatStatus::IdentifiedPerson,
@@ -250,7 +254,7 @@ final class AuditLogTest extends KernelTestCase
         }
         self::assertSame([null, ['DE89370400440532013000']], $byClass[LegalEntity::class]['bankAccounts']);
         self::assertSame([null, 'identified_person'], $byClass[LegalEntity::class]['vatStatus']);
-        self::assertSame([null, '12345687'], $byClass[LegalEntity::class]['registrationNumber.value']);
+        self::assertSame([null, '12345695'], $byClass[LegalEntity::class]['registrationNumber.value']);
         self::assertSame([null, $this->partyId($party)], $byClass[Membership::class]['party']);
         self::assertSame([null, $user->id()], $byClass[Membership::class]['user']);
         self::assertSame([null, 'owner'], $byClass[Membership::class]['role']);
@@ -346,14 +350,10 @@ final class AuditLogTest extends KernelTestCase
         return new Party(
             PartyKind::Company,
             'Example Company',
-            new RegistrationNumber('CZ', '12345687'),
-            VatId::fromString('CZ12345687'),
-            new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
-            'testing@example.com',
+            new RegistrationNumber('CZ', '12345695'),
+            VatId::fromString('CZ12345695'),
             '+420000000000',
-            true,
-            false,
-        );
+            [PartyRole::Customer]);
     }
 
     private function partyId(Party $party): int

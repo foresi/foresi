@@ -1,0 +1,138 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
+{% set formatTime = 'format.datetime'|trans %}
+{% set token = csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) %}
+
+{% block title %}{{ party.displayName }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_contact_edit', {id: id})">{{ 'party.edit'|trans }}</twig:Ui:Button>
+    {% if party.archived %}
+        <form method="post" action="{{ path('app_contact_restore', {id: id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="archive-restore">{{ 'party.restore'|trans }}</twig:Ui:Button>
+        </form>
+    {% else %}
+        <form method="post" action="{{ path('app_contact_archive', {id: id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="archive">{{ 'party.archive'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-4">
+        {% for message in app.flashes('success') %}
+            <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <twig:Ui:Alert tone="error">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+
+        <div class="flex flex-wrap items-center gap-2" data-party-summary>
+            <twig:Ui:Badge tone="gray">{{ kind }}</twig:Ui:Badge>
+            {% for role in roles %}<twig:Ui:Badge tone="green">{{ role }}</twig:Ui:Badge>{% endfor %}
+            {% if party.archived %}<twig:Ui:Badge tone="gray">{{ 'party.archived'|trans }}</twig:Ui:Badge>{% endif %}
+            {% for check in checks %}
+                <span class="inline-flex items-center gap-1.5 text-[13px] text-muted">
+                    <twig:Ui:Badge :tone="check.tone">{{ check.text }}</twig:Ui:Badge>
+                    <time datetime="{{ check.checkedAt|date('c') }}">{{ 'party.check.at'|trans({time: check.checkedAt|date(formatTime)}) }}</time>
+                </span>
+            {% endfor %}
+        </div>
+
+        <twig:Ui:FactsGrid :items="facts" />
+
+        <twig:Ui:Tabs :items="tabs" :label="'party.sections'|trans" />
+
+        {% if tab == 'overview' %}
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <twig:Ui:Card :title="'party.card.checks'|trans" icon="circle-check">
+                    {% if not hasVatId %}
+                        <p class="text-muted">{{ 'party.checks.no_vat_id'|trans }}</p>
+                    {% else %}
+                        <ul class="m-0 grid list-none gap-2 p-0">
+                            {% for check in checks %}
+                                <li class="flex flex-wrap items-center gap-2">
+                                    <span class="w-40 text-muted">{{ check.label }}</span>
+                                    <twig:Ui:Badge :tone="check.tone">{{ check.text }}</twig:Ui:Badge>
+                                    <time class="text-[13px] text-muted" datetime="{{ check.checkedAt|date('c') }}">{{ 'party.check.at'|trans({time: check.checkedAt|date(formatTime)}) }}</time>
+                                </li>
+                            {% else %}
+                                <li class="text-muted">{{ 'party.checks.never'|trans }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% if accounts is not empty %}
+                            <twig:Ui:Alert tone="error" :title="'party.checks.accounts'|trans" class="mt-3" role="note" data-published-accounts>
+                                <ul class="m-0 list-none p-0">
+                                    {% for account in accounts %}<li class="num font-normal">{{ account }}</li>{% endfor %}
+                                </ul>
+                            </twig:Ui:Alert>
+                        {% endif %}
+                        <form method="post" action="{{ path('app_contact_refresh_checks', {id: id}) }}" class="mt-3">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <twig:Ui:Button type="submit" size="sm" icon="refresh-cw">{{ 'party.checks.refresh'|trans }}</twig:Ui:Button>
+                        </form>
+                    {% endif %}
+                </twig:Ui:Card>
+
+                <twig:Ui:Card :title="'party.card.billing'|trans" icon="building-2">
+                    {% if billing %}
+                        <address class="not-italic text-text">
+                            {{ billing.street }}<br>{{ billing.postalCode }} {{ billing.city }}<br>{{ billing.countryCode }}
+                        </address>
+                    {% else %}
+                        <p class="text-muted">—</p>
+                    {% endif %}
+                </twig:Ui:Card>
+
+                <twig:Ui:Card :title="'party.card.defaults'|trans" icon="receipt-text">
+                    <twig:Ui:FactsGrid :items="defaults" />
+                </twig:Ui:Card>
+
+                <twig:Ui:Card :title="'party.card.note'|trans" icon="pencil">
+                    {% if note %}<p class="whitespace-pre-line text-text">{{ note }}</p>{% else %}<p class="text-muted">{{ 'party.card.note_empty'|trans }}</p>{% endif %}
+                </twig:Ui:Card>
+            </div>
+        {% elseif tab == 'contacts' %}
+            <twig:Ui:DataTable :caption="'party.tab.contacts'|trans" :columns="[{key: 'name', label: 'party.column.name'|trans}, {key: 'position', label: 'party.column.position'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="contactRows">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="users" :title="(isPerson ? 'party.contacts.empty_person' : 'party.contacts.empty')|trans" />
+                </twig:block>
+            </twig:Ui:DataTable>
+            {% if not isPerson %}
+                <twig:Ui:Card :title="'party.contacts.add'|trans" icon="user-plus">
+                    {% if candidates is empty %}
+                        <p class="text-muted">{{ 'party.contacts.no_candidates'|trans }}</p>
+                    {% else %}
+                        <form method="post" action="{{ path('app_contact_link', {id: id}) }}" class="grid gap-3 sm:grid-cols-2">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <twig:Ui:Select name="person" id="link-person" :label="'party.contacts.person'|trans" :options="candidates" required />
+                            <twig:Ui:TextInput name="position" id="link-position" :label="'party.column.position'|trans" maxlength="100" />
+                            <twig:Ui:Checkbox name="primary" id="link-primary" value="1" :label="'party.contacts.primary'|trans" />
+                            <div class="sm:col-span-2"><twig:Ui:Button type="submit" variant="primary" icon="user-plus">{{ 'party.contacts.link'|trans }}</twig:Ui:Button></div>
+                        </form>
+                    {% endif %}
+                </twig:Ui:Card>
+            {% endif %}
+        {% elseif tab == 'addresses' %}
+            <twig:Ui:DataTable :caption="'party.tab.addresses'|trans" :columns="[{key: 'type', label: 'party.column.type'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'address', label: 'party.column.address'|trans}]" :rows="addressRows" />
+        {% elseif tab == 'bank-accounts' %}
+            <twig:Ui:DataTable :caption="'party.tab.bank-accounts'|trans" :columns="[{key: 'iban', label: 'party.column.iban'|trans}, {key: 'bic', label: 'party.column.bic'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="accountRows">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="landmark" :title="'party.accounts.empty'|trans" />
+                </twig:block>
+            </twig:Ui:DataTable>
+        {% else %}
+            {% if timeline is empty %}
+                <twig:Ui:EmptyState icon="history" :title="'party.history.empty'|trans" />
+            {% else %}
+                <twig:Ui:Card :title="'party.tab.history'|trans" icon="history">
+                    <twig:Ui:Timeline :items="timeline" data-party-history />
+                </twig:Ui:Card>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}

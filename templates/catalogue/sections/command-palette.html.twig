@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full max-w-sm"><twig:Ui:CommandPalette id="cat-palette" :commands="[{label: 'New contact', href: '#', group: 'Create', icon: 'plus', shortcut: 'N'}, {label: 'Contacts', href: '#', group: 'Go to', icon: 'users', keywords: 'customers suppliers'}, {label: 'Settings', href: '#', group: 'Go to', icon: 'settings'}]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<div class="w-full max-w-sm"><twig:Ui:CommandPalette id="cat-palette-empty" :commands="[]" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full max-w-sm"><twig:Ui:CommandPalette id="cat-palette-long" :commands="[{label: 'Example Company Holding of Central European Trading s.r.o.', href: '#', group: 'Příliš žluťoučký kůň úpěl ďábelské ódy', icon: 'building-2'}]" /></div>
+{% endblock %}{% endembed %}
+</div>

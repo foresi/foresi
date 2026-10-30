@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:TextInput name="cat-text-default" label="Company name" value="Example Company s.r.o." help="As in the commercial register." /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'required'} %}{% block sample %}
+<div class="w-72"><twig:Ui:TextInput name="cat-text-required" label="E-mail" type="email" :required="true" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:TextInput name="cat-text-disabled" label="Registration number" value="12345678" :disabled="true" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-72"><twig:Ui:TextInput name="cat-text-error" label="E-mail" value="not-an-email" error="Enter a valid e-mail address." /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:TextInput name="cat-text-long" label="Example Company Holding of Central European Trading s.r.o." value="accounting.department.of.the.example.company@subdomain.example.com" /></div>
+{% endblock %}{% endembed %}
+</div>

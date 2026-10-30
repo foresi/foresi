@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:Pagination :page="1" :pages="5" baseUrl="/_catalogue" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<twig:Ui:Pagination :page="42" :pages="128" baseUrl="/_catalogue?locale=cs" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<twig:Ui:Pagination :page="1" :pages="1" baseUrl="/_catalogue" /><span class="text-muted">—</span>
+{% endblock %}{% endembed %}
+</div>

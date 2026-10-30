@@ -6,11 +6,42 @@ framework:
     session: true
     csrf_protection: true
 
+    rate_limiter:
+        # Outgoing calls to public registers. PublicRegistryClient keys the limiter by registry
+        # name (ares, vies, adis), so each host gets its own budget of 300 calls per minute.
+        # ARES may restrict clients above 500 queries per minute; stay well under that.
+        registry_outgoing:
+            policy: sliding_window
+            limit: 300
+            interval: '1 minute'
+
+        # Registry lookups of the contact form, per signed-in user.
+        party_lookup:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+
+        # Manual "refresh checks" on a contact, per signed-in user.
+        party_refresh_checks:
+            policy: sliding_window
+            limit: 10
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
 when@test:
     framework:
+        rate_limiter:
+            party_lookup:
+                storage_service: test.party_lookup_storage
+            party_refresh_checks:
+                storage_service: test.party_refresh_checks_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+
+when@e2e:
+    framework:
+        # Fixed here so the browser tests need no local .env file; never used outside tests/e2e.
+        secret: 'e2e-only-secret-not-for-real-use'
