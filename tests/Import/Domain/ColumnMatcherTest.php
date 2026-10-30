@@ -173,6 +173,54 @@ final class ColumnMatcherTest extends TestCase
         );
     }
 
+    public function testLaterPresetColumnBeatsEarlierSameNameColumn(): void
+    {
+        $preset = $this->preset(['Contact' => 'email']);
+
+        self::assertSame(
+            [[null, MatchReason::None], ['email', MatchReason::Preset]],
+            $this->propose(['Email', 'Contact'], [], null, $preset),
+        );
+    }
+
+    public function testPresetMayOverrideTheRecognitionRule(): void
+    {
+        $preset = new class extends AbstractSourcePreset {
+            public function key(): string
+            {
+                return 'few';
+            }
+
+            public function labelKey(): string
+            {
+                return 'import.preset.few';
+            }
+
+            public function targetKey(): string
+            {
+                return 'party';
+            }
+
+            public function columns(): array
+            {
+                return ['a' => 'email', 'b' => 'phone', 'c' => 'display_name', 'd' => 'birth_date'];
+            }
+
+            public function values(): array
+            {
+                return [];
+            }
+
+            protected function isRecognised(int $known, int $total): bool
+            {
+                return $known >= 4;
+            }
+        };
+
+        self::assertTrue($preset->recognises(['A', 'B', 'C', 'D', 'x', 'y', 'z', 'w', 'v', 'u', 't']));
+        self::assertFalse($preset->recognises(['A', 'B', 'C', 'x']));
+    }
+
     public function testSimilarNameDoesNotTakeAClaimedField(): void
     {
         $emails = ['a@example.com'];

@@ -18,7 +18,7 @@ abstract class AbstractSourcePreset implements SourcePreset
     /**
      * @param list<string> $headers
      */
-    final public function recognises(array $headers): bool
+    public function recognises(array $headers): bool
     {
         $known = array_map(static fn (int|string $header): string => HeaderName::normalise((string) $header), array_keys($this->columns()));
         $headers = array_map(HeaderName::normalise(...), $headers);
@@ -27,6 +27,18 @@ abstract class AbstractSourcePreset implements SourcePreset
         }
         $matched = \count(array_filter($headers, static fn (string $header): bool => \in_array($header, $known, true)));
 
-        return $matched / \count($headers) >= self::RECOGNISED_SHARE;
+        return $this->isRecognised($matched, \count($headers));
+    }
+
+    /**
+     * The rule that turns the known headers into a verdict; a preset whose
+     * exports carry many unrelated columns overrides it.
+     *
+     * @param int $known how many of the headers the preset knows
+     * @param int $total how many headers the source has
+     */
+    protected function isRecognised(int $known, int $total): bool
+    {
+        return $known / $total >= self::RECOGNISED_SHARE;
     }
 }

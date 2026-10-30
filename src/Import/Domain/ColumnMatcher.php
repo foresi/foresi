@@ -138,9 +138,10 @@ final readonly class ColumnMatcher
             if (isset($taken[$field->key])) {
                 continue;
             }
+            $accepted = null;
             foreach ($candidates[$field->key] as $spelling) {
                 $ratio = 1 - $this->distance($name, $spelling) / max(\strlen($name), \strlen($spelling));
-                if ($ratio >= $bestRatio && (null === $best || $ratio > $bestRatio) && $this->accepts($field, $samples)) {
+                if ($ratio >= $bestRatio && (null === $best || $ratio > $bestRatio) && ($accepted ??= $this->accepts($field, $samples))) {
                     $best = $field->key;
                     $bestRatio = $ratio;
                 }
