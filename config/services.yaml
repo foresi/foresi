@@ -142,3 +142,11 @@ when@test:
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory
             public: true
+
+        # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and
+        # Infection aborts its initial test run on any stderr output, so the test log goes to a file.
+        logger:
+            class: Symfony\Component\HttpKernel\Log\Logger
+            arguments:
+                $minLevel: info
+                $output: '%kernel.cache_dir%/test.log'
