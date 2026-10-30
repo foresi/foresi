@@ -22,4 +22,14 @@ interface Parties
      * @param list<PartyEmail> $emails
      */
     public function register(Party $party, PartyAddress $billing, array $emails): void;
+
+    /**
+     * Stores an e-mail of a stored party; the surrounding unit of work flushes.
+     */
+    public function addEmail(PartyEmail $email): void;
+
+    /**
+     * Removes an e-mail of a stored party; the surrounding unit of work flushes.
+     */
+    public function removeEmail(PartyEmail $email): void;
 }

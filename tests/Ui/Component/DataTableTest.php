@@ -86,6 +86,15 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('scroll-mb-24', $html);
     }
 
+    public function testSelectionNameMakesTheRowCheckboxesSubmitTheirIds(): void
+    {
+        $html = $this->render(['selectable' => true, 'selectionName' => 'ids[]']);
+
+        self::assertSame(2, substr_count($html, 'name="ids[]"'));
+        self::assertMatchesRegularExpression('#<input type="checkbox" name="ids\[\]" value="a1"#', $html);
+        self::assertStringNotContainsString('name="ids[]"', $this->render(['selectable' => true]));
+    }
+
     public function testPreselectedRowIsChecked(): void
     {
         $rows = $this->rows();

@@ -164,7 +164,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
     public function testCreatingAPartyAlwaysYieldsExactlyOneBillingAddress(): void
     {
-        $create = new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em));
+        $create = new CreateParty(new DoctrineParties($this->em), $this->transaction());
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
         $create->create(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), null, 'invoices@example.com', '', [PartyRole::Customer], $billing);
         $create->create(PartyKind::Person, 'Test Person', null, null, '  ', '', [], $billing);
@@ -182,7 +182,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
     public function testAnotherBillingAddressAfterCreationIsRejected(): void
     {
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $party = new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
+        $party = new CreateParty(new DoctrineParties($this->em), $this->transaction())->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
 
         $this->expectException(\DomainException::class);
         $this->addresses()->add(new PartyAddress($party, AddressType::Billing, $billing));
@@ -255,7 +255,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
         });
 
         try {
-            new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+            new CreateParty(new DoctrineParties($this->em), $this->transaction())->create(PartyKind::Person, 'Test Person', null, null, '', '', [], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
             self::fail('The failure should surface.');
         } catch (\RuntimeException) {
         }
@@ -554,5 +554,10 @@ final class AddressBookPersistenceTest extends KernelTestCase
     private function links(): DoctrineContactLinks
     {
         return new DoctrineContactLinks($this->em);
+    }
+
+    private function transaction(): DoctrineTransactionalWork
+    {
+        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $this->context);
     }
 }

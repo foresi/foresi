@@ -1,0 +1,64 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.contacts'|trans}, {label: 'party.title'|trans}] %}
+
+{% block title %}{{ 'party.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if not firstRun %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% for message in app.flashes('success') %}
+        <p role="status" class="mb-4 rounded-control bg-badge-green px-3 py-2 text-[13px] font-medium text-badge-green-text">{{ message }}</p>
+    {% endfor %}
+
+    {% if firstRun %}
+        <twig:Ui:EmptyState icon="users" :title="'party.empty.title'|trans" :text="'party.empty.text'|trans">
+            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <div class="grid gap-4">
+            <twig:Ui:KpiStrip :items="[
+                {label: 'party.kpi.all'|trans, value: counts.all ~ ''},
+                {label: 'party.kpi.customers'|trans, value: counts.customers ~ ''},
+                {label: 'party.kpi.suppliers'|trans, value: counts.suppliers ~ ''},
+                (counts.unreliablePayers > 0
+                    ? {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ '', badge: {label: 'party.kpi.check'|trans, tone: 'red'}}
+                    : {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ ''}),
+            ]" />
+
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
+                <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex items-center gap-2">
+                    {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+                    {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control w-72 max-w-full rounded-control border border-line-strong bg-white px-2.5 text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                    <twig:Ui:Button type="submit" icon="search">{{ 'party.search.submit'|trans }}</twig:Ui:Button>
+                </form>
+            </div>
+
+            <form method="post" action="{{ path('app_contacts_export') }}" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
+                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :rows="rows" :selectable="true" selectionName="ids[]">
+                    <twig:block name="empty">
+                        <twig:Ui:EmptyState icon="search" :title="'party.empty_filtered.title'|trans" :text="'party.empty_filtered.text'|trans">
+                            <twig:Ui:Button :href="path('app_contacts')">{{ 'party.empty_filtered.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    </twig:block>
+                    <twig:block name="footer">
+                        <span class="num">{{ 'party.pagination.summary'|trans({total: page.total}) }}</span>
+                        <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
+                    </twig:block>
+                    <twig:block name="bulk">
+                        {% if view != 'archived' %}
+                            <twig:Ui:Button type="submit" size="sm" icon="archive" formaction="{{ path('app_contacts_archive') }}">{{ 'party.bulk.archive'|trans }}</twig:Ui:Button>
+                        {% endif %}
+                        <twig:Ui:Button type="submit" size="sm" icon="download">{{ 'party.bulk.export'|trans }}</twig:Ui:Button>
+                    </twig:block>
+                </twig:Ui:DataTable>
+            </form>
+        </div>
+    {% endif %}
+{% endblock %}

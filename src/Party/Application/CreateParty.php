@@ -44,10 +44,16 @@ final readonly class CreateParty
         array $roles,
         Address $billingAddress,
     ): Party {
-        return $this->transaction->run(function () use ($kind, $displayName, $registrationNumber, $vatId, $email, $phone, $roles, $billingAddress): Party {
-            $party = new Party($kind, $displayName, $registrationNumber, $vatId, $phone, $roles);
-            $emails = '' === trim($email) ? [] : [new PartyEmail($party, $email, EmailPurpose::General)];
-            $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $billingAddress), $emails);
+        return $this->createFrom(new PartyInput($kind, $displayName, $registrationNumber, $vatId, $email, $phone, $roles, $billingAddress));
+    }
+
+    public function createFrom(PartyInput $input): Party
+    {
+        return $this->transaction->run(function () use ($input): Party {
+            $party = new Party($input->kind, $input->displayName, $input->registrationNumber, $input->vatId, $input->phone, $input->roles);
+            $party->changePrivateNote($input->privateNote);
+            $emails = '' === trim($input->email) ? [] : [new PartyEmail($party, $input->email, EmailPurpose::General)];
+            $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $input->billingAddress), $emails);
 
             return $party;
         });

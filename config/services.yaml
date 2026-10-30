@@ -89,6 +89,10 @@ when@test:
         App\Tests\Support\Registry\FakeVatRegistry: ~
         App\Tests\Support\Registry\FakeVatPayerReliability: ~
 
+        # Lets a test make storing a party fail with a domain error after it was written.
+        App\Tests\Party\Infrastructure\Support\RejectingParties:
+            decorates: App\Party\Application\Parties
+
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory

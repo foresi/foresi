@@ -38,6 +38,9 @@ final class DataTable
      */
     public ?array $totals = null;
     public bool $selectable = false;
+
+    /** Form field name of the row checkboxes, so a surrounding form submits the selected ids. */
+    public ?string $selectionName = null;
     public ?string $caption = null;
 
     /** @var list<ColumnView> */

@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <ol {{ attributes.defaults({class: 'm-0 list-none p-0'}) }}>
     {% for item in this.views %}
-        <li class="grid grid-cols-[20px_72px_1fr] items-center gap-x-2 py-1.5">
+        <li class="grid grid-cols-[20px_9.5rem_1fr] items-center gap-x-2 py-1.5">
             {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
             <time{% if item.datetime %} datetime="{{ item.datetime }}"{% endif %} class="num text-muted">{{ item.time }}</time>
             <span class="min-w-0 text-text">{{ item.text }}</span>

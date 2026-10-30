@@ -40,7 +40,7 @@
                                 {% if selectable %}
                                     <td class="h-11 w-11 border-b border-line px-3.5 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:shadow-[inset_3px_0_0_var(--color-green)]">
                                         <label class="inline-grid size-6 place-items-center">
-                                            <input type="checkbox" value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
+                                            <input type="checkbox"{% if selectionName %} name="{{ selectionName }}"{% endif %} value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
                                         </label>
                                     </td>
                                 {% endif %}

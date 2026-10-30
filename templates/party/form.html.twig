@@ -1,0 +1,86 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set editing = party is not null %}
+{% set crumbs = editing
+    ? [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName, href: cancel}, {label: 'party.edit'|trans}]
+    : [{label: 'party.title'|trans, href: path('app_contacts')}, {label: 'party.new'|trans}] %}
+{% set roleValues = values.roles %}
+
+{% block title %}{{ editing ? 'party.edit'|trans : 'party.new'|trans }}{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
+        {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
+
+        {% if errors.form is defined %}
+            <p role="alert" class="rounded-control bg-badge-red px-3 py-2 text-[13px] font-medium text-badge-red-text">{{ errors.form }}</p>
+        {% endif %}
+
+        {% if duplicates is not empty %}
+            <section role="alert" class="rounded-panel border border-line bg-badge-amber px-4 py-3.5 text-badge-amber-text" data-duplicate-warning>
+                <h2 class="mb-1.5 flex items-center gap-2 text-sm font-semibold">{{ ux_icon('lucide:triangle-alert', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{{ 'party.duplicate.title'|trans }}</h2>
+                <p class="mb-2">{{ 'party.duplicate.text'|trans }}</p>
+                <ul class="m-0 mb-3 list-none p-0">
+                    {% for match in duplicates %}
+                        <li><a href="{{ match.url }}" class="font-medium text-badge-amber-text underline" target="_blank" rel="noopener">{{ match.name }}</a>{% if match.archived %} ({{ 'party.archived'|trans }}){% endif %}</li>
+                    {% endfor %}
+                </ul>
+                <twig:Ui:Button type="submit" variant="primary" name="confirm_duplicate" value="1">{{ 'party.duplicate.confirm'|trans }}</twig:Ui:Button>
+            </section>
+        {% endif %}
+
+        <twig:Ui:Card :title="'party.card.identification'|trans" icon="building-2">
+            <div class="grid gap-3 sm:grid-cols-2">
+                {% if not editing %}
+                    <div class="sm:col-span-2">
+                        <twig:Ui:TextInput id="lookup" type="search" :label="'party.lookup.label'|trans" :help="'party.lookup.help'|trans" autocomplete="off" data-party-lookup-target="query" data-action="input->party-lookup#search" />
+                        <div class="mt-2" data-party-lookup-target="results" aria-live="polite"></div>
+                    </div>
+                {% endif %}
+                {% if editing %}
+                    <input type="hidden" name="kind" value="{{ values.kind }}">
+                    <twig:Ui:TextInput name="kind_label" id="kind-label" :label="'party.field.kind'|trans" :value="kinds[values.kind]|default('')" disabled />
+                {% else %}
+                    <twig:Ui:Select name="kind" id="kind" :label="'party.field.kind'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" required />
+                {% endif %}
+                <twig:Ui:TextInput name="displayName" id="displayName" :label="'party.field.displayName'|trans" :value="values.displayName" :error="errors.displayName|default(null)" maxlength="255" required data-party-lookup-target="name" />
+                <twig:Ui:Select name="registrationCountry" id="registrationCountry" :label="'party.field.registrationCountry'|trans" :options="countries" :value="values.registrationCountry" data-party-lookup-target="registrationCountry" />
+                <twig:Ui:TextInput name="registrationNumber" id="registrationNumber" :label="'party.field.registrationNumber'|trans" :value="values.registrationNumber" :error="errors.registrationNumber|default(null)" maxlength="64" data-party-lookup-target="registrationNumber" />
+                <twig:Ui:TextInput name="vatId" id="vatId" :label="'party.field.vatId'|trans" :help="'party.field.vatId_help'|trans" :value="values.vatId" :error="errors.vatId|default(null)" maxlength="16" data-party-lookup-target="vatId" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'party.card.contact'|trans" icon="send">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <twig:Ui:TextInput name="email" id="email" type="email" :label="'party.field.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="254" />
+                <twig:Ui:TextInput name="phone" id="phone" type="tel" :label="'party.field.phone'|trans" :value="values.phone" :error="errors.phone|default(null)" maxlength="64" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'party.card.billing'|trans" icon="landmark">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="street" id="street" :label="'party.field.street'|trans" :value="values.street" :error="errors.street|default(null)" maxlength="255" required data-party-lookup-target="street" /></div>
+                <twig:Ui:TextInput name="city" id="city" :label="'party.field.city'|trans" :value="values.city" :error="errors.city|default(null)" maxlength="128" required data-party-lookup-target="city" />
+                <twig:Ui:TextInput name="postalCode" id="postalCode" :label="'party.field.postalCode'|trans" :value="values.postalCode" :error="errors.postalCode|default(null)" maxlength="32" required data-party-lookup-target="postalCode" />
+                <twig:Ui:Select name="countryCode" id="countryCode" :label="'party.field.countryCode'|trans" :options="countries" :value="values.countryCode" :error="errors.countryCode|default(null)" data-party-lookup-target="countryCode" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
+            <fieldset class="m-0 mb-3 grid gap-1.5 border-0 p-0">
+                <legend class="mb-1.5 p-0 text-[13px] font-medium text-ink">{{ 'party.field.roles'|trans }}</legend>
+                {% for role, label in roleOptions %}
+                    <twig:Ui:Checkbox name="roles[]" :id="'role-' ~ role" :value="role" :label="label" :checked="role in roleValues" />
+                {% endfor %}
+            </fieldset>
+            <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
+        </twig:Ui:Card>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+        </div>
+    </form>
+{% endblock %}

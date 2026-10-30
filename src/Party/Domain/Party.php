@@ -99,6 +99,11 @@ class Party implements TenantOwned, Audited
         $this->invoicingDefaults = InvoicingDefaults::standard();
     }
 
+    public function id(): ?int
+    {
+        return $this->id;
+    }
+
     public function kind(): PartyKind
     {
         return $this->kind;

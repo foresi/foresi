@@ -177,6 +177,10 @@ deptrac:
       - TenancyApplication
       - IdentityApplication
       - AuditApplication
+      # The history of a party reads its audit entries.
+      - AuditDomain
+      # Contributes the sidebar item and its count.
+      - Ui
     IdentityDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

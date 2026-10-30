@@ -11,6 +11,7 @@ namespace App\Party\Infrastructure\Doctrine;
 use App\Party\Application\Parties;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
+use App\Party\Domain\PartyEmail;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineParties implements Parties
@@ -27,5 +28,15 @@ final readonly class DoctrineParties implements Parties
             $this->em->persist($email);
         }
         $this->em->flush();
+    }
+
+    public function addEmail(PartyEmail $email): void
+    {
+        $this->em->persist($email);
+    }
+
+    public function removeEmail(PartyEmail $email): void
+    {
+        $this->em->remove($email);
     }
 }
