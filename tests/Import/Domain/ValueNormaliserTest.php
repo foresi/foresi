@@ -86,6 +86,10 @@ final class ValueNormaliserTest extends TestCase
         yield 'decimal comma whole' => [FieldType::Decimal, '42', '42'];
         yield 'decimal comma negative' => [FieldType::Decimal, '-1 234,5', '-1234.5'];
         yield 'decimal comma plus sign' => [FieldType::Decimal, '+3,5', '3.5'];
+        yield 'decimal comma grouping only' => [FieldType::Decimal, '1.234', '1234'];
+        yield 'decimal point grouping only' => [FieldType::Decimal, '1,234', '1234', $point];
+        yield 'decimal point millions' => [FieldType::Decimal, '1,234,567.89', '1234567.89', $point];
+        yield 'decimal comma zero' => [FieldType::Decimal, '0,123', '0.123'];
         yield 'decimal point' => [FieldType::Decimal, '1,234.50', '1234.50', $point];
         yield 'decimal point plain' => [FieldType::Decimal, '1234.5', '1234.5', $point];
         yield 'decimal point with spaces' => [FieldType::Decimal, '1 234.5', '1234.5', $point];
@@ -126,6 +130,7 @@ final class ValueNormaliserTest extends TestCase
         yield 'choice case-insensitive' => [FieldType::Choice, 'sUpPlIeR', 'Supplier'];
         yield 'choice mapped' => [FieldType::Choice, 'odberatel', 'Customer', null, ['odberatel' => 'Customer']];
         yield 'choice map wins' => [FieldType::Choice, 'Customer', 'Supplier', null, ['Customer' => 'Supplier']];
+        yield 'map keys are trimmed' => [FieldType::Choice, 'odberatel', 'Customer', null, [' odberatel ' => 'Customer']];
         yield 'choice numeric key' => [FieldType::Choice, '1', 'Supplier', null, ['1' => 'Supplier']];
 
         yield 'country code' => [FieldType::Country, 'cz', 'CZ'];
@@ -143,12 +148,15 @@ final class ValueNormaliserTest extends TestCase
         yield 'identifier nbsp' => [FieldType::Identifier, 'ab'.self::NBSP.'12', 'AB12'];
     }
 
+    /**
+     * @param array<array-key, mixed>|null $map
+     */
     #[DataProvider('invalidValues')]
-    public function testRejectsInvalidValues(FieldType $type, string $raw, string $messageKey, ?NormalisationOptions $options = null, ?string $badPart = null): void
+    public function testRejectsInvalidValues(FieldType $type, string $raw, string $messageKey, ?NormalisationOptions $options = null, ?string $badPart = null, ?array $map = null): void
     {
         $field = new FieldDefinition('myField', 'label', $type, choices: ['Customer', 'Supplier']);
 
-        $actual = new ValueNormaliser()->normalise($field, $raw, $options ?? new NormalisationOptions(), ['ČR' => 'CZ', 'on' => 'yes', 'word' => 5]);
+        $actual = new ValueNormaliser()->normalise($field, $raw, $options ?? new NormalisationOptions(), $map ?? ['ČR' => 'CZ', 'on' => 'yes', 'word' => 5]);
 
         self::assertInstanceOf(RowError::class, $actual);
         self::assertSame('myField', $actual->field);
@@ -157,7 +165,7 @@ final class ValueNormaliserTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{0: FieldType, 1: string, 2: string, 3?: ?NormalisationOptions, 4?: string}>
+     * @return iterable<string, array{0: FieldType, 1: string, 2: string, 3?: ?NormalisationOptions, 4?: ?string, 5?: array<array-key, mixed>}>
      */
     public static function invalidValues(): iterable
     {
@@ -171,6 +179,14 @@ final class ValueNormaliserTest extends TestCase
         yield 'phone letters' => [FieldType::Phone, '123 abc 456', 'import.error.invalid_phone'];
         yield 'phone too short' => [FieldType::Phone, '1234', 'import.error.invalid_phone'];
         yield 'phone too long' => [FieldType::Phone, '123456789012345678901', 'import.error.invalid_phone'];
+        yield 'decimal wrong separator comma mode' => [FieldType::Decimal, '12.50', 'import.error.invalid_decimal'];
+        yield 'decimal wrong separator short' => [FieldType::Decimal, '1.5', 'import.error.invalid_decimal'];
+        yield 'decimal leading zero grouping' => [FieldType::Decimal, '0.123', 'import.error.invalid_decimal'];
+        yield 'decimal bad grouping' => [FieldType::Decimal, '1.23.456', 'import.error.invalid_decimal'];
+        yield 'decimal long first group' => [FieldType::Decimal, '1234.567', 'import.error.invalid_decimal'];
+        yield 'decimal grouping then wrong decimals' => [FieldType::Decimal, '1,234.5', 'import.error.invalid_decimal'];
+        yield 'decimal wrong separator point mode' => [FieldType::Decimal, '1,5', 'import.error.invalid_decimal', $point];
+        yield 'decimal point mode comma decimals' => [FieldType::Decimal, '1.234,50', 'import.error.invalid_decimal', $point];
         yield 'decimal letters' => [FieldType::Decimal, '12a', 'import.error.invalid_decimal'];
         yield 'decimal two separators' => [FieldType::Decimal, '1,2,3', 'import.error.invalid_decimal'];
         yield 'decimal double sign' => [FieldType::Decimal, '--5', 'import.error.invalid_decimal'];
@@ -199,6 +215,9 @@ final class ValueNormaliserTest extends TestCase
         yield 'boolean mapped to non-boolean' => [FieldType::Boolean, 'word', 'import.error.unknown_value'];
         yield 'boolean mapped to string' => [FieldType::Boolean, 'on', 'import.error.unknown_value'];
         yield 'choice unknown' => [FieldType::Choice, 'Partner', 'import.error.unknown_value'];
+        yield 'country mapped to unknown code' => [FieldType::Country, 'ČR', 'import.error.unknown_value', null, null, ['ČR' => 'XX']];
+        yield 'choice mapped to disallowed value' => [FieldType::Choice, 'odberatel', 'import.error.unknown_value', null, null, ['odberatel' => 'Partner']];
+        yield 'choice mapped to non-string' => [FieldType::Choice, 'odberatel', 'import.error.unknown_value', null, null, ['odberatel' => 5]];
         yield 'country unknown' => [FieldType::Country, 'Atlantis', 'import.error.unknown_value'];
         yield 'country not offered' => [FieldType::Country, 'JP', 'import.error.unknown_value'];
         yield 'country unmapped abbreviation' => [FieldType::Country, 'ČRR', 'import.error.unknown_value'];
@@ -221,17 +240,18 @@ final class ValueNormaliserTest extends TestCase
      * @param list<string> $samples
      */
     #[DataProvider('detections')]
-    public function testDetectsOptions(array $samples, DateOrder $order, DecimalSeparator $separator, bool $ambiguous): void
+    public function testDetectsOptions(array $samples, DateOrder $order, DecimalSeparator $separator, bool $ambiguous, bool $ambiguousDecimal = false): void
     {
         $options = NormalisationOptions::detect($samples);
 
         self::assertSame($order, $options->dateOrder);
         self::assertSame($separator, $options->decimalSeparator);
-        self::assertSame($ambiguous, $options->ambiguous);
+        self::assertSame($ambiguous, $options->ambiguousDateOrder);
+        self::assertSame($ambiguousDecimal, $options->ambiguousDecimal);
     }
 
     /**
-     * @return iterable<string, array{0: list<string>, 1: DateOrder, 2: DecimalSeparator, 3: bool}>
+     * @return iterable<string, array{0: list<string>, 1: DateOrder, 2: DecimalSeparator, 3: bool, 4?: bool}>
      */
     public static function detections(): iterable
     {
@@ -254,8 +274,14 @@ final class ValueNormaliserTest extends TestCase
         yield 'point wins by majority' => [['1.5', '2.5', '3,5'], DateOrder::DayMonthYear, DecimalSeparator::Point, false];
         yield 'comma wins by majority' => [['1,5', '2,5', '3.5'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
         yield 'tie goes to comma' => [['1.5', '2,5'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
-        yield 'three digits are thousands' => [['1.234', '5.678'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
-        yield 'three digits after comma are thousands' => [['1,234'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
+        yield 'three digits are ambiguous' => [['1.234', '5.678'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false, true];
+        yield 'three digits after comma are ambiguous' => [['1,234'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false, true];
+        yield 'ambiguous but decided by another' => [['1,234', '5,5'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
+        yield 'leading zero votes for the point' => [['0.123'], DateOrder::DayMonthYear, DecimalSeparator::Point, false];
+        yield 'leading zero votes for the comma' => [['0,123', '1.5'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
+        yield 'four leading digits are not grouping' => [['1234.567'], DateOrder::DayMonthYear, DecimalSeparator::Point, false];
+        yield 'signed ambiguous' => [['-1.234'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false, true];
+        yield 'ambiguous with integers' => [['5', '1.234'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false, true];
         yield 'repeated points are thousands' => [['1.234.567'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
         yield 'repeated commas are thousands' => [['1,234,567', '5.5'], DateOrder::DayMonthYear, DecimalSeparator::Point, false];
         yield 'mixed with last comma' => [['1.234,5'], DateOrder::DayMonthYear, DecimalSeparator::Comma, false];
@@ -277,7 +303,7 @@ final class ValueNormaliserTest extends TestCase
 
         self::assertSame(DateOrder::DayMonthYear, $options->dateOrder);
         self::assertSame(DecimalSeparator::Comma, $options->decimalSeparator);
-        self::assertFalse($options->ambiguous);
+        self::assertFalse($options->ambiguousDateOrder);
     }
 
     public function testFieldDefinitionDefaults(): void

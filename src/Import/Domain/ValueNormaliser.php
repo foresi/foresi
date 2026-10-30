@@ -78,14 +78,16 @@ final readonly class ValueNormaliser
     private function decimal(FieldDefinition $field, string $text, NormalisationOptions $options): string|RowError
     {
         $number = Text::squash($text);
-        $number = DecimalSeparator::Comma === $options->decimalSeparator
-            ? str_replace(['.', ','], ['', '.'], $number)
-            : str_replace(',', '', $number);
-        if (1 !== preg_match('/^([+-]?)(\d+(?:\.\d+)?)$/', $number, $parts)) {
+        // The other separator is accepted only as thousands grouping: 1.234.567,89 yes, 12.50 no.
+        $pattern = DecimalSeparator::Comma === $options->decimalSeparator
+            ? '/^([+-]?)(\d+|[1-9]\d{0,2}(?:\.\d{3})+)(?:,(\d+))?$/'
+            : '/^([+-]?)(\d+|[1-9]\d{0,2}(?:,\d{3})+)(?:\.(\d+))?$/';
+        if (1 !== preg_match($pattern, $number, $parts)) {
             return $this->error($field, 'import.error.invalid_decimal', $text);
         }
+        $whole = str_replace(['.', ','], '', $parts[2]);
 
-        return ('-' === $parts[1] ? '-' : '').$parts[2];
+        return ('-' === $parts[1] ? '-' : '').$whole.(isset($parts[3]) ? '.'.$parts[3] : '');
     }
 
     private function integer(FieldDefinition $field, string $text): int|RowError
@@ -108,7 +110,7 @@ final readonly class ValueNormaliser
         if (\in_array($word, self::FALSE_WORDS, true)) {
             return false;
         }
-        $mapped = $valueMap[$text] ?? null;
+        $mapped = $this->mapped($valueMap, $text);
 
         return \is_bool($mapped) ? $mapped : $this->error($field, 'import.error.unknown_value', $text);
     }
@@ -118,8 +120,9 @@ final readonly class ValueNormaliser
      */
     private function choice(FieldDefinition $field, string $text, array $valueMap): mixed
     {
-        if (\array_key_exists($text, $valueMap)) {
-            return $valueMap[$text];
+        $mapped = $this->mapped($valueMap, $text);
+        if (null !== $mapped) {
+            return \is_string($mapped) && \in_array($mapped, $field->choices, true) ? $mapped : $this->error($field, 'import.error.unknown_value', $text);
         }
         foreach ($field->choices as $choice) {
             if (mb_strtolower($choice) === mb_strtolower($text)) {
@@ -135,11 +138,28 @@ final readonly class ValueNormaliser
      */
     private function country(FieldDefinition $field, string $text, array $valueMap): mixed
     {
-        if (\array_key_exists($text, $valueMap)) {
-            return $valueMap[$text];
+        $mapped = $this->mapped($valueMap, $text);
+        if (null !== $mapped) {
+            return \is_string($mapped) && Countries::supports($mapped) ? $mapped : $this->error($field, 'import.error.unknown_value', $text);
         }
 
         return Countries::find($text) ?? $this->error($field, 'import.error.unknown_value', $text);
+    }
+
+    /**
+     * What the user decided the text means; the keys of the map may carry stray white space.
+     *
+     * @param array<array-key, mixed> $valueMap
+     */
+    private function mapped(array $valueMap, string $text): mixed
+    {
+        foreach ($valueMap as $key => $value) {
+            if (Text::clean((string) $key) === $text) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     private function error(FieldDefinition $field, string $messageKey, string $value): RowError
