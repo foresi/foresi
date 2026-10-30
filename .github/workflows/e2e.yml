@@ -60,20 +60,24 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      # Screenshot baselines are kept per platform and only macOS baselines exist so far,
-      # so the screenshot specs (tagged @visual) are skipped here until Linux baselines are added.
-      - name: End-to-end, accessibility and layout tests
-        if: ${{ !inputs.update-snapshots }}
+      # Screenshot baselines are kept per platform. Linux baselines are generated on request or when none are committed yet. Decided before the
+      # tests run, because generating them creates the files the check looks for.
+      - name: Decide whether to generate Linux screenshot baselines
+        id: baselines
+        run: echo "generate=${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}" >> "$GITHUB_OUTPUT"
+
+      # While baselines are being generated, the screenshot specs (tagged @visual) are skipped here.
+      - name: End-to-end, accessibility, layout and screenshot tests
         working-directory: tests/e2e
-        run: npx playwright test --grep-invert @visual
+        run: npx playwright test ${{ steps.baselines.outputs.generate == 'true' && '--grep-invert @visual' || '' }}
 
       - name: Generate Linux screenshot baselines
-        if: ${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
+        if: ${{ steps.baselines.outputs.generate == 'true' }}
         working-directory: tests/e2e
         run: npx playwright test --grep @visual --update-snapshots=all
 
       - name: Upload the Linux screenshot baselines
-        if: ${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
+        if: ${{ steps.baselines.outputs.generate == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-linux
