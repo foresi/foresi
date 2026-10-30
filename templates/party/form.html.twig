@@ -19,7 +19,7 @@
         {% endif %}
 
         {% if duplicates is not empty %}
-            <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'party.duplicate.title'|trans" data-duplicate-warning>
+            <twig:Ui:Alert tone="warning" role="alert" icon="triangle-alert" :title="'party.duplicate.title'|trans" data-duplicate-warning>
                 <p class="mb-2">{{ 'party.duplicate.text'|trans }}</p>
                 <ul class="m-0 mb-3 list-none p-0">
                     {% for match in duplicates %}
