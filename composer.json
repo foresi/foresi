@@ -15,6 +15,7 @@
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
+        "openspout/openspout": "^4",
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
         "symfony/console": "7.4.*",

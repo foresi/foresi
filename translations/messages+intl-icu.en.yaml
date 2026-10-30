@@ -305,3 +305,12 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
+import:
+  source:
+    rejected:
+      too_large: 'The file is larger than {limit} MB.'
+      too_many_rows: 'The file has more than {limit, number} data rows.'
+      archive_too_large: 'The spreadsheet would unpack to more than {limit} MB.'
+      suspicious_compression: 'The spreadsheet is compressed more than {limit}:1, which a real workbook never is.'
+      unknown_format: 'This is not a CSV or XLSX file we can read.'
+      empty: 'The file contains no data.'

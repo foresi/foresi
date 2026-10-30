@@ -11,3 +11,7 @@
 *.gif binary
 *.ico binary
 *.woff2 binary
+
+# Import reader fixtures must keep their exact bytes (encodings, BOM, line endings).
+/tests/Import/Fixtures/*.csv binary
+/tests/Import/Fixtures/*.xlsx binary

@@ -56,6 +56,18 @@ deptrac:
       collectors:
         - type: directory
           value: src/Party/Infrastructure/.*
+    - name: ImportDomain
+      collectors:
+        - type: directory
+          value: src/Import/Domain/.*
+    - name: ImportApplication
+      collectors:
+        - type: directory
+          value: src/Import/Application/.*
+    - name: ImportInfrastructure
+      collectors:
+        - type: directory
+          value: src/Import/Infrastructure/.*
     - name: IdentityDomain
       collectors:
         - type: directory
@@ -97,6 +109,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Brick\\(Money|Math)\\
+    # Spreadsheet reading; only the Import module's infrastructure may use it.
+    - name: VendorOpenSpout
+      collectors:
+        - type: classLike
+          value: ^OpenSpout\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -181,6 +198,32 @@ deptrac:
       - AuditDomain
       # Contributes the sidebar item and its count.
       - Ui
+    ImportDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+    ImportApplication:
+      - ImportDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+    ImportInfrastructure:
+      - SharedInfrastructure
+      - ImportDomain
+      - ImportApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - VendorOpenSpout
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
     IdentityDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain
