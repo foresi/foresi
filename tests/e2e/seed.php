@@ -69,7 +69,7 @@ $tenantWithOwner = static function (string $tenantName, string $email, string $d
     $entityManager->flush();
 
     $context->switchTo($tenant->id());
-    $user = new User($email, $hash, $displayName, 'en');
+    $user = new User($email, $hash, $displayName, 'cs');
     $entityManager->persist($user);
     $entityManager->persist(new Membership($user, Role::Owner));
     $entityManager->flush();

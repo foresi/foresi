@@ -29,38 +29,38 @@ test.describe('contact life cycle', () => {
     await expect(page.locator('#vatId')).toHaveValue('CZ12345687');
     await expect(page.locator('#street')).not.toHaveValue('');
 
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Uložit' }).click();
     await expect(page.getByRole('heading', { level: 1, name: COMPANY })).toBeVisible();
-    await expect(page.getByRole('status').filter({ hasText: 'The contact is saved.' })).toBeVisible();
-    await expect(page.locator('[data-party-summary]')).toContainText('Company');
+    await expect(page.getByRole('status').filter({ hasText: 'Kontakt je uložen.' })).toBeVisible();
+    await expect(page.locator('[data-party-summary]')).toContainText('Firma');
   });
 
   test('views and edits the contact', async ({ page }) => {
     await openContact(page, COMPANY);
     await expect(page.getByText('12345687').first()).toBeVisible();
 
-    await page.getByRole('link', { name: 'Edit' }).click();
+    await page.getByRole('link', { name: 'Upravit' }).click();
     await page.locator('#phone').fill('+420 000 000 999');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Uložit' }).click();
 
-    await expect(page.getByRole('status').filter({ hasText: 'The changes are saved.' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Změny jsou uloženy.' })).toBeVisible();
     await expect(page.getByText('+420 000 000 999')).toBeVisible();
 
     // Every change is in the history.
-    await page.getByRole('link', { name: 'History' }).click();
-    await expect(page.locator('[data-party-history]')).toContainText('contact');
+    await page.getByRole('link', { name: 'Historie' }).click();
+    await expect(page.locator('[data-party-history]')).toContainText('kontakt');
   });
 
   test('links a contact person', async ({ page }) => {
     await openContact(page, COMPANY);
-    await page.getByRole('link', { name: 'Contact persons' }).click();
-    await expect(page.getByText('There is no contact person yet.')).toBeVisible();
+    await page.getByRole('link', { name: 'Kontaktní osoby' }).click();
+    await expect(page.getByText('Zatím tu není žádná kontaktní osoba.')).toBeVisible();
 
     await page.locator('#link-person').selectOption({ label: 'Alex Example' });
     await page.locator('#link-position').fill('Accountant');
-    await page.getByRole('button', { name: 'Add person' }).click();
+    await page.getByRole('button', { name: 'Přidat osobu' }).click();
 
-    await expect(page.getByRole('status').filter({ hasText: 'The contact person is added.' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Kontaktní osoba je přidána.' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Alex Example' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Accountant' })).toBeVisible();
   });
@@ -68,10 +68,10 @@ test.describe('contact life cycle', () => {
   test('archives and restores the contact', async ({ page }) => {
     await openContact(page, COMPANY);
 
-    await page.getByRole('button', { name: 'Archive' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'The contact is archived.' })).toBeVisible();
-    await expect(page.locator('[data-party-summary]')).toContainText('Archived');
-    await expect(page.getByRole('button', { name: 'Restore' })).toBeVisible();
+    await page.getByRole('button', { name: 'Archivovat' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Kontakt je archivován.' })).toBeVisible();
+    await expect(page.locator('[data-party-summary]')).toContainText('Archivováno');
+    await expect(page.getByRole('button', { name: 'Obnovit' })).toBeVisible();
 
     await page.goto('/contacts?view=archived');
     await expect(page.getByRole('link', { name: COMPANY, exact: true })).toBeVisible();
@@ -84,6 +84,6 @@ test.describe('contact life cycle', () => {
 
 async function openArchivedAndRestore(page: Page): Promise<void> {
   await page.getByRole('link', { name: COMPANY, exact: true }).click();
-  await page.getByRole('button', { name: 'Restore' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'The contact is restored.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Obnovit' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Kontakt je obnoven.' })).toBeVisible();
 }

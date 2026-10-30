@@ -24,7 +24,7 @@ export default defineConfig({
   },
   use: {
     baseURL,
-    locale: 'en',
+    locale: 'cs-CZ',
     reducedMotion: 'reduce',
     trace: 'retain-on-failure',
   },

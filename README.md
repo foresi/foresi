@@ -55,7 +55,7 @@ npx playwright test                  # everything, including the screenshot spec
 npx playwright test --grep-invert @visual   # what CI runs until the baselines are approved
 ```
 
-Screenshot specs carry `@visual` in their title. A screen's baseline image is committed only after its look is approved; until then a run writes the candidates to `tests/e2e/screenshots/` and reports "missing snapshot". After approval, run `npx playwright test --update-snapshots` and commit the images.
+Screenshot specs carry `@visual` in their title. A screen is captured as the viewport (the shell as a user sees it) and, for long pages, a second image of the main content only. The UI is shown in the default language (Czech). Candidates are written to `tests/e2e/screenshots/<project>-<platform>/` (for example `desktop-darwin`, `mobile-linux`); the platform is part of the folder name, so macOS images for review never collide with the Linux baselines, which are generated separately on Linux (CI). A screen's baseline image is committed only after its look is approved; until then a run writes the candidates and reports "missing snapshot". After approval, run `npx playwright test --update-snapshots` and commit the images.
 
 ## Architecture
 

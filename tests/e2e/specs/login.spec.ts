@@ -25,7 +25,7 @@ test('an owner signs in and signs out again', async ({ page }) => {
   await expect(page.locator('#user-menu-button')).toContainText(OWNER);
 
   await page.locator('#user-menu-button').click();
-  await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  await page.getByRole('menuitem', { name: 'Odhlásit se' }).click();
 
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/contacts');
@@ -35,5 +35,5 @@ test('an owner signs in and signs out again', async ({ page }) => {
 test('login screen looks as approved @visual', async ({ page }) => {
   await page.goto('/login');
   await expect(page.locator('#username')).toBeVisible();
-  await expect(page).toHaveScreenshot('login.png', { fullPage: true });
+  await expect(page).toHaveScreenshot('login.png');
 });

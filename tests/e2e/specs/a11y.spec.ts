@@ -33,8 +33,8 @@ test.describe('signed in', () => {
 
   test('contact list with a selection has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('checkbox', { name: /^Select / }).nth(1).check();
-    await expect(page.getByRole('region', { name: 'Bulk actions' })).toBeVisible();
+    await page.getByRole('checkbox', { name: /^Vybrat řádek / }).nth(1).check();
+    await expect(page.getByRole('region', { name: 'Hromadné akce' })).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 
@@ -53,8 +53,8 @@ test.describe('signed in', () => {
 
 
   test('component catalogue has no serious accessibility violations @a11y', async ({ page }) => {
-    await page.goto('/_catalogue?locale=en');
-    await expect(page.getByRole('heading', { level: 1, name: 'Component catalogue' })).toBeVisible();
+    await page.goto('/_catalogue?locale=cs');
+    await expect(page.getByRole('heading', { level: 1, name: 'Katalog komponent' })).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 });
@@ -64,7 +64,7 @@ test.describe('first run', () => {
 
   test('empty address book has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/contacts');
-    await expect(page.getByText('Your address book is empty')).toBeVisible();
+    await expect(page.getByText('V adresáři zatím nic není')).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 });

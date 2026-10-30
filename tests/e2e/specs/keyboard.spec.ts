@@ -7,7 +7,7 @@ test.use({ storageState: OWNER_STATE });
 
 test('selects rows with the arrow keys and space, and focus stays clear of the bulk bar @layout', async ({ page }) => {
   await page.goto('/contacts');
-  const bar = page.getByRole('region', { name: 'Bulk actions' });
+  const bar = page.getByRole('region', { name: 'Hromadné akce' });
   await expect(bar).toBeHidden();
   const rows = page.locator('tbody tr');
   const last = (await rows.count()) - 1;
@@ -24,7 +24,7 @@ test('selects rows with the arrow keys and space, and focus stays clear of the b
     expect(clear).toBe(true);
   };
 
-  await page.getByRole('checkbox', { name: 'Select all' }).focus();
+  await page.getByRole('checkbox', { name: 'Vybrat všechny řádky' }).focus();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Space');
   await expect(bar).toBeVisible();
@@ -45,20 +45,20 @@ test('selects rows with the arrow keys and space, and focus stays clear of the b
   expect(await page.locator('tbody input[type=checkbox]:focus').evaluate((element) => element.matches(':focus-visible'))).toBe(true);
 
   // Every row is selected, so one Space on "Select all" clears the selection and hides the bar.
-  await page.getByRole('checkbox', { name: 'Select all' }).focus();
+  await page.getByRole('checkbox', { name: 'Vybrat všechny řádky' }).focus();
   await page.keyboard.press('Space');
   await expect(bar).toBeHidden();
 });
 
 test('the bulk bar actions are reachable and operable by keyboard', async ({ page }) => {
   await page.goto('/contacts');
-  await page.getByRole('checkbox', { name: 'Select all' }).focus();
+  await page.getByRole('checkbox', { name: 'Vybrat všechny řádky' }).focus();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Space');
-  const bar = page.getByRole('region', { name: 'Bulk actions' });
+  const bar = page.getByRole('region', { name: 'Hromadné akce' });
   await expect(bar).toBeVisible();
 
-  const archive = bar.getByRole('button', { name: 'Archive' });
+  const archive = bar.getByRole('button', { name: 'Archivovat' });
   for (let presses = 0; presses < 80; presses++) {
     if (await archive.evaluate((element) => element === document.activeElement)) {
       break;
@@ -71,7 +71,7 @@ test('the bulk bar actions are reachable and operable by keyboard', async ({ pag
 
 test('opens the command palette with Ctrl+K and closes it with Escape', async ({ page }) => {
   await page.goto('/contacts');
-  const dialog = page.getByRole('dialog', { name: 'Command palette' });
+  const dialog = page.getByRole('dialog', { name: 'Příkazová paleta' });
   await expect(dialog).toBeHidden();
 
   await page.keyboard.press('Control+K');
@@ -79,7 +79,7 @@ test('opens the command palette with Ctrl+K and closes it with Escape', async ({
   const input = dialog.getByRole('combobox');
   await expect(input).toBeFocused();
 
-  await input.fill('address');
+  await input.fill('adres');
   await expect(dialog.getByRole('option').first()).toBeVisible();
 
   await page.keyboard.press('Escape');
@@ -88,7 +88,7 @@ test('opens the command palette with Ctrl+K and closes it with Escape', async ({
   // Pressing the shortcut again toggles it, and Enter follows the chosen command.
   await page.keyboard.press('Control+K');
   await expect(dialog).toBeVisible();
-  await input.fill('address');
+  await input.fill('adres');
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
   await expect(page).toHaveURL(/\/contacts/);
@@ -96,7 +96,7 @@ test('opens the command palette with Ctrl+K and closes it with Escape', async ({
 
 test('the view tabs are reachable by keyboard', async ({ page }) => {
   await page.goto('/contacts');
-  const suppliers = page.getByRole('navigation', { name: 'Contact views' }).getByRole('link', { name: /^Suppliers/ });
+  const suppliers = page.getByRole('navigation', { name: 'Zobrazení kontaktů' }).getByRole('link', { name: /^Dodavatelé/ });
   await suppliers.focus();
   await expect(suppliers).toBeFocused();
   await page.keyboard.press('Enter');
