@@ -291,6 +291,8 @@ party:
     linked: The contact person is added.
     link_invalid: This person cannot be added. They are listed for the company already, or they are not a person.
     checks_refreshed: The register checks are updated.
+    checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
+    checks_rate_limited: Too many refreshes. Try again in a minute.
   error:
     required: Fill in this field.
     too_long: The value is too long.

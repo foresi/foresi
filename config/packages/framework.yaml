@@ -21,6 +21,12 @@ framework:
             limit: 30
             interval: '1 minute'
 
+        # Manual "refresh checks" on a contact, per signed-in user.
+        party_refresh_checks:
+            policy: sliding_window
+            limit: 10
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -29,6 +35,8 @@ when@test:
         rate_limiter:
             party_lookup:
                 storage_service: test.party_lookup_storage
+            party_refresh_checks:
+                storage_service: test.party_refresh_checks_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

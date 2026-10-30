@@ -291,6 +291,8 @@ party:
     linked: Kontaktní osoba je přidána.
     link_invalid: Tuto osobu nelze přidat. Buď už je u firmy uvedena, nebo nejde o osobu.
     checks_refreshed: Kontroly v rejstřících jsou aktualizovány.
+    checks_recent: 'Kontroly se dělaly nedávno ({time}), zobrazujeme jejich výsledky. Rejstříky se znovu ptáme nejdřív po 24 hodinách.'
+    checks_rate_limited: Příliš mnoho obnovení kontrol. Zkuste to za minutu.
   error:
     required: Vyplňte toto pole.
     too_long: Hodnota je příliš dlouhá.

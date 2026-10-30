@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Controller;
 
+use App\Audit\Application\AuditActor;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\LinkContactPerson;
 use App\Party\Application\PartyDetails;
@@ -28,12 +29,14 @@ use App\Party\Domain\VatId;
 use App\Party\Infrastructure\Http\PartyCsvExport;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -50,7 +53,7 @@ final class PartyController extends AbstractController
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
     private const int MAX_SEARCH = 100;
-    private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'party', 'company', 'person'];
+    private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
     public function __construct(
         private readonly PartyQuery $parties,
@@ -62,6 +65,9 @@ final class PartyController extends AbstractController
         private readonly PartyCsvExport $export,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly AuditActor $actor,
+        #[Autowire(service: 'limiter.party_refresh_checks')]
+        private readonly RateLimiterFactory $refreshLimiter,
     ) {
     }
 
@@ -250,13 +256,24 @@ final class PartyController extends AbstractController
     {
         $this->checkToken($request);
         $party = $this->party($id);
+        if (!$this->refreshLimiter->create((string) ($this->actor->userId() ?? $request->getClientIp()))->consume()->isAccepted()) {
+            $this->addFlash('error', $this->translator->trans('party.flash.checks_rate_limited'));
+
+            return $this->redirectToRoute('app_contact_show', ['id' => $id]);
+        }
+        $message = $this->translator->trans('party.flash.checks_refreshed');
         $vatId = $party->vatId();
         if ($vatId instanceof VatId) {
+            $started = $this->clock->now();
             // Ask the registers first (this can take seconds); the transaction only stores the answers.
             $outcome = $this->refreshChecks->fetch($vatId);
             $this->transaction->run(fn () => $this->refreshChecks->store($party, $outcome));
+            if ($outcome->answeredBefore($started)) {
+                // The registers keep answers for a day; say so instead of claiming a fresh check.
+                $message = $this->translator->trans('party.flash.checks_recent', ['time' => $outcome->oldest()->format($this->translator->trans('format.datetime'))]);
+            }
         }
-        $this->addFlash('success', $this->translator->trans('party.flash.checks_refreshed'));
+        $this->addFlash('success', $message);
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
     }

@@ -521,6 +521,24 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-party-summary]', 'Reliable VAT payer');
     }
 
+    public function testRefreshingChecksIsLimitedPerUser(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant, vat: 'CZ12345695');
+
+        for ($i = 0; $i < 10; ++$i) {
+            $this->client->request('POST', '/contacts/'.$party->id().'/registry-checks', ['_token' => $this->token('party_action')]);
+            $this->client->followRedirect();
+            self::assertSelectorNotExists('[role="alert"]');
+        }
+        RegistryCalls::reset();
+        $this->client->request('POST', '/contacts/'.$party->id().'/registry-checks', ['_token' => $this->token('party_action')]);
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('[role="alert"]', 'Too many refreshes');
+        self::assertSame(0, RegistryCalls::$count);
+    }
+
     public function testContactPersonsCanBeLinkedToACompany(): void
     {
         $this->signIn();

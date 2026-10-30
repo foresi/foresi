@@ -25,4 +25,26 @@ final readonly class RegistryOutcome
         public array $publishedBankAccounts,
     ) {
     }
+
+    /**
+     * True when no answer was given after $since, so the registers were not asked
+     * (the answers came from the cache of recent answers).
+     */
+    public function answeredBefore(\DateTimeImmutable $since): bool
+    {
+        return $this->oldest() < $since;
+    }
+
+    /**
+     * The time of the oldest check in this outcome.
+     */
+    public function oldest(): \DateTimeImmutable
+    {
+        $times = [$this->vies->checkedAt];
+        if ($this->reliability instanceof RegistryCheck) {
+            $times[] = $this->reliability->checkedAt;
+        }
+
+        return min($times);
+    }
 }

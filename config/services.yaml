@@ -109,6 +109,9 @@ when@test:
         test.party_lookup_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.party_refresh_checks_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
