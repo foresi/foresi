@@ -34,7 +34,7 @@
                 <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex w-full items-center gap-2 sm:w-auto">
                     {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
                     {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control min-w-0 flex-1 rounded-control sm:w-72 sm:flex-none border border-line-strong bg-white px-2.5 text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                    <input type="search" name="q" value="{{ text }}" maxlength="100" aria-label="{{ 'party.search.label'|trans }}" placeholder="{{ 'party.search.placeholder'|trans }}" class="h-control min-w-0 flex-1 rounded-control border border-line-strong bg-white px-2.5 text-ink sm:w-72 sm:flex-none {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
                     <twig:Ui:Button type="submit" icon="search">{{ 'party.search.submit'|trans }}</twig:Ui:Button>
                 </form>
             </div>

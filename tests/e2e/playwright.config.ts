@@ -18,7 +18,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   // Candidate and approved screenshots live next to the specs, one folder per viewport.
-  snapshotPathTemplate: '{testDir}/../screenshots/{projectName}/{testFilePath}/{arg}{ext}',
+  snapshotPathTemplate: '{testDir}/../screenshots/{projectName}-{platform}/{testFilePath}/{arg}{ext}',
   expect: {
     toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 },
   },
@@ -35,7 +35,7 @@ export default defineConfig({
     // Must run after the read-only projects: it creates, edits and archives a contact. With one
     // worker, projects run in the order they are listed here (dependencies would skip it whenever a
     // screenshot candidate is still missing).
-    { name: 'lifecycle', dependencies: ['setup'], testMatch: WRITES_DATA, use: { browserName: 'chromium', viewport: { width: 1440, height: 960 } } },
+    { name: 'lifecycle', dependencies: ['setup'], retries: 0, testMatch: WRITES_DATA, use: { browserName: 'chromium', viewport: { width: 1440, height: 960 } } },
   ],
   // Fresh database, migrated and seeded with example.com data, served on its own port.
   webServer: {

@@ -5,25 +5,15 @@ import { OWNER_STATE } from '../support/session';
 
 test.use({ storageState: OWNER_STATE });
 
-test('selects rows with the arrow keys and space, and focus stays clear of the bulk bar', async ({ page }) => {
+test('selects rows with the arrow keys and space, and focus stays clear of the bulk bar @layout', async ({ page }) => {
   await page.goto('/contacts');
   const bar = page.getByRole('region', { name: 'Bulk actions' });
   await expect(bar).toBeHidden();
+  const rows = page.locator('tbody tr');
+  const last = (await rows.count()) - 1;
+  expect(last).toBeGreaterThan(20);
 
-  await page.getByRole('checkbox', { name: 'Select all' }).focus();
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Space');
-  await expect(bar).toBeVisible();
-  await expect(bar).toContainText('1');
-
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Space');
-  await expect(bar).toContainText('2');
-  await expect(page.locator('tbody input[type=checkbox]:checked')).toHaveCount(2);
-
-  // Walk down the list: the focused row is always visible and never hidden behind the sticky bar.
-  for (let step = 0; step < 12; step++) {
-    await page.keyboard.press('ArrowDown');
+  const expectClearOfBar = async (): Promise<void> => {
     const focused = page.locator('tbody input[type=checkbox]:focus');
     await expect(focused).toBeVisible();
     await expect(focused).toBeInViewport();
@@ -32,13 +22,30 @@ test('selects rows with the arrow keys and space, and focus stays clear of the b
     expect(barBox).not.toBeNull();
     const clear = box!.y + box!.height <= barBox!.y || box!.y >= barBox!.y + barBox!.height || box!.x + box!.width <= barBox!.x || box!.x >= barBox!.x + barBox!.width;
     expect(clear).toBe(true);
+  };
+
+  await page.getByRole('checkbox', { name: 'Select all' }).focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Space');
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText('1');
+  await expectClearOfBar();
+
+  // Select and walk down to the last row: at every step the focused row is visible and never behind the bar.
+  for (let row = 1; row <= last; row++) {
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Space');
+    await expect(page.locator('tbody input[type=checkbox]:checked')).toHaveCount(row + 1);
+    await expectClearOfBar();
   }
+  await expect(rows.nth(last).locator('input[type=checkbox]')).toBeFocused();
+  await expect(bar).toContainText(String(last + 1));
+
   // The focus ring is shown for keyboard use.
   expect(await page.locator('tbody input[type=checkbox]:focus').evaluate((element) => element.matches(':focus-visible'))).toBe(true);
 
-  // Deselecting everything hides the bar again.
+  // Every row is selected, so one Space on "Select all" clears the selection and hides the bar.
   await page.getByRole('checkbox', { name: 'Select all' }).focus();
-  await page.keyboard.press('Space');
   await page.keyboard.press('Space');
   await expect(bar).toBeHidden();
 });

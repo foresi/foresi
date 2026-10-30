@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Install JavaScript dependencies
+        run: bin/console importmap:install
+
       - name: Build styles
         run: bin/console tailwind:build
 

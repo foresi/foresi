@@ -114,7 +114,7 @@ for ($i = 6; $i <= 30; ++$i) {
         2 => [PartyRole::Customer, PartyRole::Supplier],
         default => [PartyRole::Partner],
     };
-    $name = PartyKind::Person === $kind ? sprintf('%s Example %02d', $prefix, $i) : sprintf('%s Example %02d', $prefix, $i);
+    $name = sprintf('%s Example %02d', $prefix, $i);
     $inputs[] = $party($kind, $name, $roles, sprintf('contact%02d@example.com', $i), $i);
 }
 
