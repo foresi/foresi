@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      update-snapshots:
+        description: Generate Linux screenshot baselines and upload them as an artifact
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -57,8 +63,22 @@ jobs:
       # Screenshot baselines are kept per platform and only macOS baselines exist so far,
       # so the screenshot specs (tagged @visual) are skipped here until Linux baselines are added.
       - name: End-to-end, accessibility and layout tests
+        if: ${{ !inputs.update-snapshots }}
         working-directory: tests/e2e
         run: npx playwright test --grep-invert @visual
+
+      - name: Generate Linux screenshot baselines
+        if: ${{ inputs.update-snapshots }}
+        working-directory: tests/e2e
+        run: npx playwright test --grep @visual --update-snapshots=all
+
+      - name: Upload the Linux screenshot baselines
+        if: ${{ inputs.update-snapshots }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-linux
+          path: tests/e2e/screenshots/*-linux/
+          retention-days: 7
 
       - name: Upload the report
         if: failure()
