@@ -45,9 +45,9 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testMatchesARegistrationNumberWrittenWithSpaces(): void
     {
-        $this->save($this->company('Example Company', '12345679'));
+        $this->save($this->company('Example Company', '12345687'));
 
-        $matches = $this->finder->find(new RegistrationNumber('CZ', '1234 5679'), null);
+        $matches = $this->finder->find(new RegistrationNumber('CZ', '1234 5687'), null);
 
         self::assertCount(1, $matches);
         self::assertSame('Example Company', $matches[0]->displayName);
@@ -65,17 +65,17 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testDoesNotMatchOtherNumbersOrOtherCountries(): void
     {
-        $this->save($this->company('Example Company', '12345679'));
+        $this->save($this->company('Example Company', '12345687'));
 
-        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345687'), null));
-        self::assertSame([], $this->finder->find(new RegistrationNumber('SK', '12345679'), null));
+        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345695'), null));
+        self::assertSame([], $this->finder->find(new RegistrationNumber('SK', '12345687'), null));
     }
 
     public function testMatchesAVatIdEvenWithADifferentRegistrationNumber(): void
     {
-        $this->save($this->company('Example Company', '12345679', 'CZ12345679'));
+        $this->save($this->company('Example Company', '12345687', 'CZ12345687'));
 
-        $matches = $this->finder->find(new RegistrationNumber('CZ', '99999990'), VatId::fromString('CZ 12345679'));
+        $matches = $this->finder->find(new RegistrationNumber('CZ', '99999990'), VatId::fromString('CZ 12345687'));
 
         self::assertCount(1, $matches);
         self::assertTrue($matches[0]->sameVatId);
@@ -84,9 +84,9 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testReportsBothMatchesOnOneParty(): void
     {
-        $this->save($this->company('Example Company', '12345679', 'CZ12345679'));
+        $this->save($this->company('Example Company', '12345687', 'CZ12345687'));
 
-        $matches = $this->finder->find(new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'));
+        $matches = $this->finder->find(new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'));
 
         self::assertCount(1, $matches);
         self::assertTrue($matches[0]->sameRegistrationNumber);
@@ -95,19 +95,19 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testNothingToCompareFindsNothing(): void
     {
-        $this->save($this->company('Example Company', '12345679'));
+        $this->save($this->company('Example Company', '12345687'));
 
         self::assertSame([], $this->finder->find(null, null));
     }
 
     public function testArchivedPartiesAreIncludedAndFlaggedOrLeftOut(): void
     {
-        $archived = $this->company('Archived Company', '12345679');
+        $archived = $this->company('Archived Company', '12345687');
         $archived->archive(new \DateTimeImmutable('2026-10-30 10:00:00'));
         $this->save($archived);
 
-        $with = $this->finder->find(new RegistrationNumber('CZ', '1234 5679'), null);
-        $without = $this->finder->find(new RegistrationNumber('CZ', '1234 5679'), null, false);
+        $with = $this->finder->find(new RegistrationNumber('CZ', '1234 5687'), null);
+        $without = $this->finder->find(new RegistrationNumber('CZ', '1234 5687'), null, false);
 
         self::assertCount(1, $with);
         self::assertTrue($with[0]->archived);
@@ -116,15 +116,15 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testNeverReturnsPartiesOfOtherTenants(): void
     {
-        $this->save($this->company('Example Company', '12345679', 'CZ12345679'));
+        $this->save($this->company('Example Company', '12345687', 'CZ12345687'));
         $this->context->switchTo(TenantId::generate());
 
-        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679')));
+        self::assertSame([], $this->finder->find(new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687')));
     }
 
     public function testAnUnusableRegistrationNumberIsNotMatchedAndCannotBeBuilt(): void
     {
-        $this->save($this->company('Example Company', '12345679'));
+        $this->save($this->company('Example Company', '12345687'));
 
         $this->expectException(InvalidRegistrationNumber::class);
         new RegistrationNumber('CZ', ' - ');
@@ -143,14 +143,14 @@ final class DuplicateFinderTest extends KernelTestCase
 
     public function testExcludesThePartyBeingEdited(): void
     {
-        $edited = $this->company('Edited Company', '12345679');
-        $other = $this->company('Other Company', '12345679');
+        $edited = $this->company('Edited Company', '12345687');
+        $other = $this->company('Other Company', '12345687');
         $this->save($edited);
         $this->save($other);
         $id = $this->em->getUnitOfWork()->getSingleIdentifierValue($edited);
         self::assertIsInt($id);
 
-        $matches = $this->finder->find(new RegistrationNumber('CZ', '12345679'), null, true, $id);
+        $matches = $this->finder->find(new RegistrationNumber('CZ', '12345687'), null, true, $id);
 
         self::assertCount(1, $matches);
         self::assertSame('Other Company', $matches[0]->displayName);

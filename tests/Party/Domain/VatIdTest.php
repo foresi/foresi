@@ -23,7 +23,7 @@ final class VatIdTest extends TestCase
 
     public function testCzechVatIdRequires8To10Digits(): void
     {
-        self::assertSame('CZ12345687', VatId::fromString('CZ12345687')->toString());
+        self::assertSame('CZ12345695', VatId::fromString('CZ12345695')->toString());
         self::assertSame('CZ1234567890', VatId::fromString('CZ1234567890')->toString());
     }
 

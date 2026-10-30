@@ -14,6 +14,8 @@ enum RegistryResult: string
     case Invalid = 'invalid';
     case Reliable = 'reliable';
     case Unreliable = 'unreliable';
+    /** The unreliable payer register does not list the subject: it is not a Czech VAT payer. */
+    case NotRegistered = 'not_registered';
     case Unavailable = 'unavailable';
 
     public function isPossibleFor(RegistrySource $source): bool
@@ -21,7 +23,7 @@ enum RegistryResult: string
         return match ($this) {
             self::Unavailable => true,
             self::Valid, self::Invalid => RegistrySource::Vies === $source,
-            self::Reliable, self::Unreliable => RegistrySource::UnreliablePayer === $source,
+            self::Reliable, self::Unreliable, self::NotRegistered => RegistrySource::UnreliablePayer === $source,
         };
     }
 }

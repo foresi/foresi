@@ -17,9 +17,9 @@ use App\Party\Domain\VatId;
 use Psr\Clock\ClockInterface;
 
 /**
- * Test-env stand-in for the unreliable payer register: CZ12345679 is
- * unreliable with two published accounts, CZ99999999 is unavailable, every
- * other VAT id is reliable.
+ * Test-env stand-in for the unreliable payer register: CZ12345687 is
+ * unreliable with the three published accounts of the ADIS fixture, CZ99999994
+ * is not registered, CZ99999999 is unavailable, every other VAT id is reliable.
  */
 final readonly class FakeVatPayerReliability implements VatPayerReliability
 {
@@ -30,7 +30,8 @@ final readonly class FakeVatPayerReliability implements VatPayerReliability
     public function check(VatId $vatId): ReliabilityResult
     {
         [$result, $accounts] = match ($vatId->toString()) {
-            'CZ12345679' => [RegistryResult::Unreliable, ['2000000011/0800', 'CZ7308000000002000000007']],
+            'CZ12345687' => [RegistryResult::Unreliable, ['2000000011/0800', '19-2000000007/0800', 'CZ7308000000002000000007']],
+            'CZ99999994' => [RegistryResult::NotRegistered, []],
             'CZ99999999' => [RegistryResult::Unavailable, []],
             default => [RegistryResult::Reliable, []],
         };

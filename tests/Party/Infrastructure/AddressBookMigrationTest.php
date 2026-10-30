@@ -65,7 +65,7 @@ final class AddressBookMigrationTest extends TestCase
 
     public function testEmailsKeysAndPrimaryFlagsAreMoved(): void
     {
-        $this->legacyParty('With email', true, false, 'Street 1', 'invoices@example.com', 'CZ', '1234 5679');
+        $this->legacyParty('With email', true, false, 'Street 1', 'invoices@example.com', 'CZ', '1234 5687');
         $this->legacyParty('Without email', true, false, 'Street 2');
         $partyId = $this->connection->fetchOne("SELECT id FROM party WHERE display_name = 'With email'");
         $this->migrateTo('DoctrineMigrations\\Version20261029000007');
@@ -74,7 +74,7 @@ final class AddressBookMigrationTest extends TestCase
 
         $this->migrateTo(null);
 
-        self::assertSame(['With email' => '12345679'], $this->connection->fetchAllKeyValue('SELECT display_name, registration_key FROM party WHERE registration_key IS NOT NULL'));
+        self::assertSame(['With email' => '12345687'], $this->connection->fetchAllKeyValue('SELECT display_name, registration_key FROM party WHERE registration_key IS NOT NULL'));
         self::assertSame([['invoices@example.com', 'general']], $this->connection->fetchAllNumeric('SELECT address, purpose FROM party_email'));
         self::assertSame(['DE89370400440532013000' => 1, 'GB82WEST12345698765432' => null], $this->connection->fetchAllKeyValue('SELECT iban, primary_flag FROM party_bank_account'));
         $row = $this->connection->fetchAssociative('SELECT * FROM party');

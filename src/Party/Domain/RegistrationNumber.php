@@ -39,8 +39,8 @@ final readonly class RegistrationNumber
     }
 
     /**
-     * The comparison form: letters and digits only (any script), upper case. "1234 5679"
-     * and "12345679" are the same number.
+     * The comparison form: letters and digits only (any script), upper case. "1234 5687"
+     * and "12345687" are the same number.
      */
     public function normalised(): string
     {

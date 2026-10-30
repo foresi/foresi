@@ -70,6 +70,9 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
             foreach ($batch as $key => $dic) {
                 $answer = $answers[$dic] ?? null;
                 if (null === $answer) {
+                    if (null !== $answers) {
+                        $this->client->fail('adis', 'the answer does not mention a requested VAT id');
+                    }
                     $results[$key] = $this->unavailable();
                     continue;
                 }
@@ -85,9 +88,9 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
     /**
      * @param list<string> $dics
      *
-     * @return array<string, array{result: RegistryResult, accounts: list<string>}> keyed by DIC without the prefix; ids the register did not answer for are missing
+     * @return array<string, array{result: RegistryResult, accounts: list<string>}>|null keyed by DIC without the prefix, ids the register left out are missing; null when the register gave no usable answer
      */
-    private function ask(array $dics): array
+    private function ask(array $dics): ?array
     {
         $answer = $this->client->request('adis', 'POST', self::URL, [
             'headers' => [
@@ -97,8 +100,8 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
             'body' => $this->envelope($dics),
         ]);
 
-        if (null === $answer || 200 !== $answer['status']) {
-            return [];
+        if (null === $answer) {
+            return null;
         }
 
         return $this->parse($answer['body']);
@@ -120,20 +123,24 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
     }
 
     /**
-     * @return array<string, array{result: RegistryResult, accounts: list<string>}>
+     * @return array<string, array{result: RegistryResult, accounts: list<string>}>|null
      */
-    private function parse(string $xml): array
+    private function parse(string $xml): ?array
     {
         // The answer is untrusted input: no DTDs, no network access.
         if ('' === trim($xml) || str_contains($xml, '<!DOCTYPE') || str_contains($xml, '<!ENTITY')) {
-            return [];
+            $this->client->fail('adis', 'answer is empty or contains a DTD');
+
+            return null;
         }
 
         $previous = libxml_use_internal_errors(true);
         try {
             $document = new \DOMDocument();
             if (!$document->loadXML($xml, \LIBXML_NONET | \LIBXML_NOERROR | \LIBXML_NOWARNING)) {
-                return [];
+                $this->client->fail('adis', 'answer is not valid XML');
+
+                return null;
             }
         } finally {
             libxml_clear_errors();
@@ -143,7 +150,7 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
         $xpath = new \DOMXPath($document);
         $xpath->registerNamespace('r', self::NAMESPACE);
 
-        // Ids the register does not list (or lists as NENALEZEN) simply get no answer.
+        // Ids the register leaves out of its answer get no result and become Unavailable.
         $answers = [];
         $payers = $xpath->query('//r:statusPlatceDPH');
         foreach (false === $payers ? [] : $payers as $payer) {
@@ -151,9 +158,11 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
             $result = match ($payer->getAttribute('nespolehlivyPlatce')) {
                 'ANO' => RegistryResult::Unreliable,
                 'NE' => RegistryResult::Reliable,
-                default => null, // NENALEZEN: not a VAT payer, so there is nothing to conclude
+                'NENALEZEN' => RegistryResult::NotRegistered,
+                default => null,
             };
             if (null === $result) {
+                $this->client->fail('adis', 'unknown payer status in answer');
                 continue;
             }
             $answers[$payer->getAttribute('dic')] = ['result' => $result, 'accounts' => $this->accounts($xpath, $payer)];

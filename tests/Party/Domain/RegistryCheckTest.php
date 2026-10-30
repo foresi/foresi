@@ -38,6 +38,7 @@ final class RegistryCheckTest extends TestCase
         yield 'vies unavailable' => [RegistrySource::Vies, RegistryResult::Unavailable];
         yield 'payer reliable' => [RegistrySource::UnreliablePayer, RegistryResult::Reliable];
         yield 'payer unreliable' => [RegistrySource::UnreliablePayer, RegistryResult::Unreliable];
+        yield 'payer not registered' => [RegistrySource::UnreliablePayer, RegistryResult::NotRegistered];
         yield 'payer unavailable' => [RegistrySource::UnreliablePayer, RegistryResult::Unavailable];
     }
 
@@ -56,6 +57,7 @@ final class RegistryCheckTest extends TestCase
     {
         yield 'vies reliable' => [RegistrySource::Vies, RegistryResult::Reliable];
         yield 'vies unreliable' => [RegistrySource::Vies, RegistryResult::Unreliable];
+        yield 'vies not registered' => [RegistrySource::Vies, RegistryResult::NotRegistered];
         yield 'payer valid' => [RegistrySource::UnreliablePayer, RegistryResult::Valid];
         yield 'payer invalid' => [RegistrySource::UnreliablePayer, RegistryResult::Invalid];
     }

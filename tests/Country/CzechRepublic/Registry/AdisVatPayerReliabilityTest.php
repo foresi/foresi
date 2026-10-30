@@ -22,7 +22,7 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = $this->kit('adis-unreliable.xml');
 
-        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345679'));
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
 
         self::assertSame(RegistrySource::UnreliablePayer, $result->check->source);
         self::assertSame(RegistryResult::Unreliable, $result->check->result);
@@ -34,12 +34,12 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = $this->kit('adis-unreliable.xml');
 
-        new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345679'));
+        new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
 
         $request = $kit->requests[0];
         self::assertSame('POST', $request['method']);
         self::assertSame('https://adisrws.mfcr.cz/adistc/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP', $request['url']);
-        self::assertStringContainsString('<roz:dic>12345679</roz:dic>', $request['body']);
+        self::assertStringContainsString('<roz:dic>12345687</roz:dic>', $request['body']);
         self::assertContains('Content-Type: text/xml; charset=utf-8', $request['headers']);
         self::assertContains('SOAPAction: "http://adis.mfcr.cz/rozhraniCRPDPH/getStatusNespolehlivyPlatceRozsireny"', $request['headers']);
         self::assertContains('User-Agent: Foresi (+https://foresi.app)', $request['headers']);
@@ -48,17 +48,50 @@ final class AdisVatPayerReliabilityTest extends TestCase
         self::assertTrue($document->loadXML($request['body']));
     }
 
-    public function testReliablePayerAndUnknownPayerInOneBatch(): void
+    public function testReliablePayerAndNotRegisteredPayerInOneBatch(): void
     {
         $kit = $this->kit('adis-reliable.xml');
 
-        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345687'), VatId::fromString('CZ12345695')]);
+        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345695'), VatId::fromString('CZ99999994')]);
 
-        self::assertSame(RegistryResult::Reliable, $results['CZ12345687']->check->result);
-        self::assertSame(['2000000026/0800'], $results['CZ12345687']->publishedBankAccounts);
-        self::assertSame(RegistryResult::Unavailable, $results['CZ12345695']->check->result);
-        self::assertSame([], $results['CZ12345695']->publishedBankAccounts);
+        self::assertSame(RegistryResult::Reliable, $results['CZ12345695']->check->result);
+        self::assertSame(['2000000026/0800'], $results['CZ12345695']->publishedBankAccounts);
+        self::assertSame(RegistryResult::NotRegistered, $results['CZ99999994']->check->result);
+        self::assertSame([], $results['CZ99999994']->publishedBankAccounts);
         self::assertCount(1, $kit->requests);
+        self::assertSame(0, $kit->logger->warnings());
+    }
+
+    public function testNotRegisteredIsCachedLikeAnyOtherAnswer(): void
+    {
+        $kit = $this->kit('adis-reliable.xml');
+        $adis = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock);
+        $adis->check(VatId::fromString('CZ99999994'));
+
+        self::assertSame(RegistryResult::NotRegistered, $adis->check(VatId::fromString('CZ99999994'))->check->result);
+        self::assertCount(1, $kit->requests);
+    }
+
+    public function testIdLeftOutOfTheAnswerIsUnavailableWithWarning(): void
+    {
+        $kit = $this->kit('adis-reliable.xml');
+
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
+
+        self::assertSame(RegistryResult::Unavailable, $result->check->result);
+        self::assertSame(1, $kit->logger->warnings());
+    }
+
+    public function testClientErrorStatusIsUnavailableWithWarning(): void
+    {
+        foreach ([400, 403, 429] as $status) {
+            $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse(RegistryTestKit::fixture('adis-unreliable.xml'), ['http_code' => $status]));
+
+            $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
+
+            self::assertSame(RegistryResult::Unavailable, $result->check->result);
+            self::assertSame(1, $kit->logger->warnings());
+        }
     }
 
     public function testBatchesOf100(): void
@@ -66,7 +99,7 @@ final class AdisVatPayerReliabilityTest extends TestCase
         $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse(RegistryTestKit::fixture('adis-reliable.xml')));
         $ids = [];
         for ($i = 0; $i < 150; ++$i) {
-            $ids[] = VatId::fromString('CZ'.(27074358 + $i));
+            $ids[] = VatId::fromString('CZ'.(99000000 + $i));
         }
 
         $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany($ids);
@@ -81,7 +114,7 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = $this->kit('adis-unreliable.xml');
 
-        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345679'), VatId::fromString('cz12345679')]);
+        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345687'), VatId::fromString('cz12345687')]);
 
         self::assertCount(1, $results);
         self::assertSame(1, substr_count($kit->requests[0]['body'], '<roz:dic>'));
@@ -91,10 +124,10 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = $this->kit('adis-unreliable.xml');
         $adis = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock);
-        $adis->check(VatId::fromString('CZ12345679'));
+        $adis->check(VatId::fromString('CZ12345687'));
 
         $kit->clock->modify('+1 hour');
-        $again = $adis->check(VatId::fromString('CZ12345679'));
+        $again = $adis->check(VatId::fromString('CZ12345687'));
 
         self::assertCount(1, $kit->requests);
         self::assertSame(RegistryResult::Unreliable, $again->check->result);
@@ -106,12 +139,12 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = $this->kit('adis-reliable.xml');
         $adis = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock);
-        $adis->check(VatId::fromString('CZ12345687'));
+        $adis->check(VatId::fromString('CZ12345695'));
 
-        $adis->checkMany([VatId::fromString('CZ12345687'), VatId::fromString('CZ12345679')]);
+        $adis->checkMany([VatId::fromString('CZ12345695'), VatId::fromString('CZ12345687')]);
 
         self::assertSame(1, substr_count($kit->requests[1]['body'], '<roz:dic>'));
-        self::assertStringContainsString('12345679', $kit->requests[1]['body']);
+        self::assertStringContainsString('12345687', $kit->requests[1]['body']);
     }
 
     public function testForeignVatIdIsUnavailableWithoutACall(): void
@@ -128,7 +161,7 @@ final class AdisVatPayerReliabilityTest extends TestCase
     {
         $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse('', ['http_code' => 500]));
 
-        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345679'));
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
 
         self::assertSame(RegistryResult::Unavailable, $result->check->result);
         self::assertSame(1, $kit->logger->warnings());
@@ -139,8 +172,8 @@ final class AdisVatPayerReliabilityTest extends TestCase
         $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse('', ['error' => 'timeout']));
         $adis = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock);
 
-        self::assertSame(RegistryResult::Unavailable, $adis->check(VatId::fromString('CZ12345679'))->check->result);
-        self::assertSame(RegistryResult::Unavailable, $adis->check(VatId::fromString('CZ12345679'))->check->result);
+        self::assertSame(RegistryResult::Unavailable, $adis->check(VatId::fromString('CZ12345687'))->check->result);
+        self::assertSame(RegistryResult::Unavailable, $adis->check(VatId::fromString('CZ12345687'))->check->result);
         self::assertCount(2, $kit->requests);
         self::assertSame(2, $kit->logger->warnings());
     }
@@ -150,7 +183,8 @@ final class AdisVatPayerReliabilityTest extends TestCase
         foreach (['<not-xml', '<?xml version="1.0"?><!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>', ''] as $body) {
             $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse($body));
 
-            self::assertSame(RegistryResult::Unavailable, new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345679'))->check->result);
+            self::assertSame(RegistryResult::Unavailable, new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'))->check->result);
+            self::assertSame(1, $kit->logger->warnings());
         }
     }
 

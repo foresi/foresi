@@ -37,8 +37,12 @@ final readonly class ViesVatRegistry implements VatRegistry
         $outcome = $this->cache->remember('vies', $vatId->toString(), function () use ($vatId): ?array {
             $answer = $this->client->requestJson('vies', 'POST', self::URL, [
                 'json' => ['countryCode' => $vatId->country(), 'vatNumber' => substr($vatId->toString(), 2)],
-            ]);
-            $result = null === $answer || 200 !== $answer['status'] ? null : $this->result($answer['data']);
+            ], [200, 400]);
+            // A 400 answer counts only as the definite "malformed input"; its other fields are not a verdict.
+            $result = null === $answer || (200 !== $answer['status'] && !\in_array('INVALID_INPUT', $this->errors($answer['data']), true)) ? null : $this->result($answer['data']);
+            if (!$result instanceof RegistryResult && null !== $answer) {
+                $this->client->fail('vies', 'the register could not decide ('.$this->errorCodes($answer['data']).')');
+            }
 
             return $result instanceof RegistryResult ? ['result' => $result->value, 'checkedAt' => $this->clock->now()->format(\DATE_ATOM)] : null;
         });
@@ -57,16 +61,50 @@ final readonly class ViesVatRegistry implements VatRegistry
      */
     private function result(array $data): ?RegistryResult
     {
-        // Error answers carry wrappers or a user error other than VALID/INVALID: the register could not decide.
-        if ([] !== ($data['errorWrappers'] ?? [])) {
-            return null;
+        $errors = $this->errors($data);
+        // Malformed input is a definite no: the number cannot exist.
+        if (\in_array('INVALID_INPUT', $errors, true)) {
+            return RegistryResult::Invalid;
         }
-        $userError = $data['userError'] ?? null;
-        if (\is_string($userError) && !\in_array($userError, ['VALID', 'INVALID'], true)) {
+        // Any other error (MS_UNAVAILABLE, MS_MAX_CONCURRENT_REQ, ...): the register could not decide.
+        if ([] !== $errors) {
             return null;
         }
         $valid = $data['valid'] ?? null;
 
         return \is_bool($valid) ? ($valid ? RegistryResult::Valid : RegistryResult::Invalid) : null;
+    }
+
+    /**
+     * Error codes of an answer: the user error (unless VALID/INVALID) and the error wrappers.
+     *
+     * @param array<mixed> $data
+     *
+     * @return list<string>
+     */
+    private function errors(array $data): array
+    {
+        $errors = [];
+        $userError = $data['userError'] ?? null;
+        if (\is_string($userError) && !\in_array($userError, ['VALID', 'INVALID'], true)) {
+            $errors[] = $userError;
+        }
+        $wrappers = $data['errorWrappers'] ?? [];
+        foreach (\is_array($wrappers) ? $wrappers : [] as $wrapper) {
+            $code = \is_array($wrapper) ? ($wrapper['error'] ?? null) : null;
+            $errors[] = \is_string($code) ? $code : 'UNKNOWN';
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    private function errorCodes(array $data): string
+    {
+        $errors = $this->errors($data);
+
+        return [] === $errors ? 'no verdict' : implode(', ', $errors);
     }
 }

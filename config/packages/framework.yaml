@@ -7,8 +7,9 @@ framework:
     csrf_protection: true
 
     rate_limiter:
-        # Outgoing calls to public registers, per registry. ARES may restrict clients above
-        # 500 queries per minute; stay well under that.
+        # Outgoing calls to public registers. PublicRegistryClient keys the limiter by registry
+        # name (ares, vies, adis), so each host gets its own budget of 300 calls per minute.
+        # ARES may restrict clients above 500 queries per minute; stay well under that.
         registry_outgoing:
             policy: sliding_window
             limit: 300

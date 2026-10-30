@@ -166,7 +166,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
     {
         $create = new CreateParty(new DoctrineParties($this->em), new DoctrineTransactionalWork($this->em));
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $create->create(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), null, 'invoices@example.com', '', [PartyRole::Customer], $billing);
+        $create->create(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), null, 'invoices@example.com', '', [PartyRole::Customer], $billing);
         $create->create(PartyKind::Person, 'Test Person', null, null, '  ', '', [], $billing);
         $this->em->flush();
         $this->em->clear();
@@ -538,7 +538,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
     private function company(string $name = 'Example Company'): Party
     {
-        return new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), '', [PartyRole::Customer, PartyRole::Partner]);
+        return new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), '', [PartyRole::Customer, PartyRole::Partner]);
     }
 
     private function addresses(): DoctrinePartyAddresses

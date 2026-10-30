@@ -20,7 +20,7 @@ final class PartyFactory
 {
     public static function company(string $name = 'Example Company', ?TenantId $tenant = null): Party
     {
-        return self::stamp(new Party(PartyKind::Company, $name, null, VatId::fromString('CZ12345687'), ''), $tenant);
+        return self::stamp(new Party(PartyKind::Company, $name, null, VatId::fromString('CZ12345695'), ''), $tenant);
     }
 
     public static function person(string $name = 'Test Person', ?TenantId $tenant = null): Party

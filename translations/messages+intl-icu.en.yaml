@@ -11,6 +11,14 @@ dashboard:
     text: Once there is data in this organisation, the overview will appear here.
 auth:
   logout: Sign out
+registry:
+  result:
+    valid: Valid in VIES
+    invalid: Not valid in VIES
+    reliable: Reliable VAT payer
+    unreliable: Unreliable VAT payer
+    not_registered: Not a registered VAT payer
+    unavailable: Register unavailable
 nav:
   group:
     main: Main

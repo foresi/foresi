@@ -72,7 +72,7 @@ final class PartyAddressBookTest extends TestCase
         self::assertTrue($party->isArchived());
         self::assertSame($at, $party->archivedAt());
         self::assertSame('Example Company', $party->displayName());
-        self::assertSame('12345687', $party->registrationNumber()?->value);
+        self::assertSame('12345695', $party->registrationNumber()?->value);
         self::assertSame([PartyRole::Customer], $party->roles());
 
         $party->restore();
@@ -177,13 +177,13 @@ final class PartyAddressBookTest extends TestCase
 
     public function testRegistryNumberComparisonFormIgnoresSpacesAndCase(): void
     {
-        self::assertSame('12345679', new RegistrationNumber('CZ', '1234 5679')->normalised());
+        self::assertSame('12345687', new RegistrationNumber('CZ', '1234 5687')->normalised());
         self::assertSame('HRB1A', new RegistrationNumber('DE', 'hrb-1 / a')->normalised());
         self::assertSame('ŽLUTÝ1', new RegistrationNumber('CZ', 'žlutý 1')->normalised());
     }
 
     private function company(): Party
     {
-        return new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345687'), null, '', [PartyRole::Customer]);
+        return new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), null, '', [PartyRole::Customer]);
     }
 }

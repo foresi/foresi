@@ -16,11 +16,11 @@ use App\Party\Domain\VatId;
 
 /**
  * Test-env stand-in for the company register: knows one synthetic subject,
- * registration number 12345679 ("Example Company s.r.o."), and nothing else.
+ * registration number 12345687 ("Example Company s.r.o."), and nothing else.
  */
 final class FakeCompanyRegistry implements CompanyRegistry
 {
-    public const string KNOWN_NUMBER = '12345679';
+    public const string KNOWN_NUMBER = '12345687';
 
     public function lookupByRegistrationNumber(RegistrationNumber $number): ?RegistryRecord
     {
@@ -29,7 +29,8 @@ final class FakeCompanyRegistry implements CompanyRegistry
 
     public function searchByName(string $country, string $query, int $limit): array
     {
-        if ('CZ' !== strtoupper($country) || $limit < 1 || !str_contains(mb_strtolower('Example Company s.r.o.'), mb_strtolower(trim($query))) || '' === trim($query)) {
+        $needle = mb_strtolower(trim($query));
+        if ('CZ' !== strtoupper($country) || $limit < 1 || '' === $needle || !str_contains('example company s.r.o.', $needle)) {
             return [];
         }
 
@@ -41,7 +42,7 @@ final class FakeCompanyRegistry implements CompanyRegistry
         return new RegistryRecord(
             new RegistrationNumber('CZ', self::KNOWN_NUMBER),
             'Example Company s.r.o.',
-            VatId::fromString('CZ12345679'),
+            VatId::fromString('CZ12345687'),
             new Address('Příkladná 1444/2a', 'Ostrava', '702 00', 'CZ'),
         );
     }

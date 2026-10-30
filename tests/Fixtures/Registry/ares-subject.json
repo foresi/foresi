@@ -1,5 +1,5 @@
 {
-  "ico": "12345679",
+  "ico": "12345687",
   "obchodniJmeno": "Example Company s.r.o.",
   "sidlo": {
     "kodStatu": "CZ",
@@ -16,7 +16,7 @@
   },
   "pravniForma": "112",
   "datumVzniku": "2001-02-03",
-  "dic": "CZ12345679",
+  "dic": "CZ12345687",
   "seznamRegistraci": {
     "stavZdrojeRos": "AKTIVNI",
     "stavZdrojeVr": "AKTIVNI",

@@ -16,7 +16,7 @@ use App\Party\Domain\VatId;
 use Psr\Clock\ClockInterface;
 
 /**
- * Test-env stand-in for VIES: CZ12345679 and CZ12345687 are valid, CZ99999999
+ * Test-env stand-in for VIES: CZ12345687 and CZ12345695 are valid, CZ99999999
  * is unavailable, every other VAT id is invalid.
  */
 final readonly class FakeVatRegistry implements VatRegistry
@@ -28,7 +28,7 @@ final readonly class FakeVatRegistry implements VatRegistry
     public function checkVatId(VatId $vatId): RegistryCheck
     {
         $result = match ($vatId->toString()) {
-            'CZ12345679', 'CZ12345687' => RegistryResult::Valid,
+            'CZ12345687', 'CZ12345695' => RegistryResult::Valid,
             'CZ99999999' => RegistryResult::Unavailable,
             default => RegistryResult::Invalid,
         };

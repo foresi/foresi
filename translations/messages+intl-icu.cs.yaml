@@ -9,6 +9,14 @@ dashboard:
   empty:
     title: Přehled se připravuje
     text: Jakmile v této organizaci budou data, objeví se tu přehled.
+registry:
+  result:
+    valid: Platné ve VIES
+    invalid: Neplatné ve VIES
+    reliable: Spolehlivý plátce DPH
+    unreliable: Nespolehlivý plátce DPH
+    not_registered: Není registrovaným plátcem DPH
+    unavailable: Rejstřík není dostupný
 auth:
   logout: Odhlásit se
 nav:

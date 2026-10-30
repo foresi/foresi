@@ -39,21 +39,30 @@ final readonly class AresCompanyRegistry implements CompanyRegistry
         $ico = $number->normalised();
 
         $subject = $this->cache->remember('ares', 'ico.'.$ico, function () use ($ico): ?array {
-            $answer = $this->client->requestJson('ares', 'GET', self::BASE_URL.'ekonomicke-subjekty/'.$ico);
+            $answer = $this->client->requestJson('ares', 'GET', self::BASE_URL.'ekonomicke-subjekty/'.$ico, [], [200, 404]);
             if (null === $answer) {
                 return null;
             }
 
-            // 404 is a definite "no such subject"; any other client error is not an answer worth keeping.
-            return 200 === $answer['status'] ? $answer['data'] : (404 === $answer['status'] ? [] : null);
+            // 404 is a definite "no such subject"; every other status was already logged as a failure.
+            return 200 === $answer['status'] ? $answer['data'] : [];
         });
 
-        return [] === $subject || null === $subject ? null : $this->record($subject);
+        if ([] === $subject || null === $subject) {
+            return null;
+        }
+
+        $record = $this->record($subject);
+        if (!$record instanceof RegistryRecord) {
+            $this->client->fail('ares', 'subject answer is incomplete');
+        }
+
+        return $record;
     }
 
     public function searchByName(string $country, string $query, int $limit): array
     {
-        $query = trim($query);
+        $query = $this->normaliseQuery($query);
         if ('CZ' !== strtoupper($country) || '' === $query || $limit < 1) {
             return [];
         }
@@ -63,7 +72,7 @@ final readonly class AresCompanyRegistry implements CompanyRegistry
             $answer = $this->client->requestJson('ares', 'POST', self::BASE_URL.'ekonomicke-subjekty/vyhledat', [
                 'json' => ['obchodniJmeno' => $query, 'start' => 0, 'pocet' => $limit],
             ]);
-            if (null === $answer || 200 !== $answer['status']) {
+            if (null === $answer) {
                 return null;
             }
             $subjects = $answer['data']['ekonomickeSubjekty'] ?? [];
@@ -142,6 +151,17 @@ final readonly class AresCompanyRegistry implements CompanyRegistry
         $country = $this->text($sidlo['kodStatu'] ?? null);
 
         return new Address(trim($place.' '.$number), $city, $postalCode, 1 === preg_match('/^[A-Z]{2}\z/', $country) ? $country : 'CZ');
+    }
+
+    /**
+     * Whitespace collapsed and Unicode NFC, so "Příklad  s.r.o." typed two ways shares one cache entry.
+     */
+    private function normaliseQuery(string $query): string
+    {
+        $query = preg_replace('/\s+/u', ' ', $query) ?? $query;
+        $normalised = \Normalizer::normalize($query, \Normalizer::FORM_C);
+
+        return trim(\is_string($normalised) ? $normalised : $query);
     }
 
     private function text(mixed $value): string
