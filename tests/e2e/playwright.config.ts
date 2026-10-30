@@ -20,7 +20,7 @@ export default defineConfig({
   // Candidate and approved screenshots live next to the specs, one folder per viewport.
   snapshotPathTemplate: '{testDir}/../screenshots/{projectName}-{platform}/{testFilePath}/{arg}{ext}',
   expect: {
-    toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.002 },
+    toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixels: 20 },
   },
   use: {
     baseURL,
