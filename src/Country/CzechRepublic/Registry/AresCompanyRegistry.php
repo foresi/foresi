@@ -111,14 +111,14 @@ final readonly class AresCompanyRegistry implements CompanyRegistry
         return new RegistryRecord($number, trim($name), $this->vatId($subject['dic'] ?? null), $this->seat($subject['sidlo'] ?? null));
     }
 
-    private function vatId(mixed $dic): ?VatId
+    private function vatId(mixed $vatId): ?VatId
     {
-        if (!\is_string($dic) || '' === trim($dic)) {
+        if (!\is_string($vatId) || '' === trim($vatId)) {
             return null;
         }
 
         try {
-            return VatId::fromString($dic);
+            return VatId::fromString($vatId);
         } catch (InvalidVatId) {
             return null;
         }

@@ -67,8 +67,8 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
 
         foreach (array_chunk($missing, self::BATCH_SIZE, true) as $batch) {
             $answers = $this->ask(array_values($batch));
-            foreach ($batch as $key => $dic) {
-                $answer = $answers[$dic] ?? null;
+            foreach ($batch as $key => $vatId) {
+                $answer = $answers[$vatId] ?? null;
                 if (null === $answer) {
                     if (null !== $answers) {
                         $this->client->fail('adis', 'the answer does not mention a requested VAT id');
@@ -86,18 +86,18 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
     }
 
     /**
-     * @param list<string> $dics
+     * @param list<string> $vatIds
      *
      * @return array<string, array{result: RegistryResult, accounts: list<string>}>|null keyed by DIC without the prefix, ids the register left out are missing; null when the register gave no usable answer
      */
-    private function ask(array $dics): ?array
+    private function ask(array $vatIds): ?array
     {
         $answer = $this->client->request('adis', 'POST', self::URL, [
             'headers' => [
                 'Content-Type' => 'text/xml; charset=utf-8',
                 'SOAPAction' => '"'.self::NAMESPACE.self::ACTION.'"',
             ],
-            'body' => $this->envelope($dics),
+            'body' => $this->envelope($vatIds),
         ]);
 
         if (null === $answer) {
@@ -108,13 +108,13 @@ final readonly class AdisVatPayerReliability implements VatPayerReliability
     }
 
     /**
-     * @param list<string> $dics
+     * @param list<string> $vatIds
      */
-    private function envelope(array $dics): string
+    private function envelope(array $vatIds): string
     {
         $items = '';
-        foreach ($dics as $dic) {
-            $items .= '<roz:dic>'.htmlspecialchars($dic, \ENT_XML1 | \ENT_QUOTES).'</roz:dic>';
+        foreach ($vatIds as $vatId) {
+            $items .= '<roz:dic>'.htmlspecialchars($vatId, \ENT_XML1 | \ENT_QUOTES).'</roz:dic>';
         }
 
         return '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:roz="'.self::NAMESPACE.'">'
