@@ -50,31 +50,31 @@
         {% if tab == 'overview' %}
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <twig:Ui:Card :title="'party.card.checks'|trans" icon="circle-check">
+                    <twig:block name="actions">
+                        {% if hasVatId %}
+                            <form method="post" action="{{ path('app_contact_refresh_checks', {id: id}) }}">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="refresh-cw">{{ 'party.checks.refresh'|trans }}</twig:Ui:Button>
+                            </form>
+                        {% endif %}
+                    </twig:block>
                     {% if not hasVatId %}
-                        <p class="text-muted">{{ 'party.checks.no_vat_id'|trans }}</p>
+                        <p class="m-0 text-muted">{{ 'party.checks.no_vat_id'|trans }}</p>
+                    {% elseif checks is empty %}
+                        <p class="m-0 text-muted">{{ 'party.checks.never'|trans }}</p>
                     {% else %}
-                        <ul class="m-0 grid list-none gap-2 p-0">
-                            {% for check in checks %}
-                                <li class="flex flex-wrap items-center gap-2">
-                                    <span class="w-40 text-muted">{{ check.label }}</span>
-                                    <twig:Ui:Badge :tone="check.tone">{{ check.text }}</twig:Ui:Badge>
-                                    <time class="text-[13px] text-muted" datetime="{{ check.checkedAt|date('c') }}">{{ 'party.check.at'|trans({time: check.checkedAt|date(formatTime)}) }}</time>
-                                </li>
-                            {% else %}
-                                <li class="text-muted">{{ 'party.checks.never'|trans }}</li>
-                            {% endfor %}
-                        </ul>
+                        {% set checkItems = [] %}
+                        {% for check in checks %}
+                            {% set checkItems = checkItems|merge([{label: check.label, badge: {label: check.text, tone: check.tone}, note: 'party.check.at'|trans({time: check.checkedAt|date(formatTime)})}]) %}
+                        {% endfor %}
+                        <twig:Ui:DescriptionList :items="checkItems" data-party-checks />
                         {% if accounts is not empty %}
-                            <twig:Ui:Alert tone="error" :title="'party.checks.accounts'|trans" class="mt-3" role="note" data-published-accounts>
+                            <twig:Ui:Alert tone="error" role="note" :title="'party.checks.accounts'|trans" class="mt-3" data-published-accounts>
                                 <ul class="m-0 list-none p-0">
                                     {% for account in accounts %}<li class="num font-normal">{{ account }}</li>{% endfor %}
                                 </ul>
                             </twig:Ui:Alert>
                         {% endif %}
-                        <form method="post" action="{{ path('app_contact_refresh_checks', {id: id}) }}" class="mt-3">
-                            <input type="hidden" name="_token" value="{{ token }}">
-                            <twig:Ui:Button type="submit" size="sm" icon="refresh-cw">{{ 'party.checks.refresh'|trans }}</twig:Ui:Button>
-                        </form>
                     {% endif %}
                 </twig:Ui:Card>
 
@@ -89,7 +89,7 @@
                 </twig:Ui:Card>
 
                 <twig:Ui:Card :title="'party.card.defaults'|trans" icon="receipt-text">
-                    <twig:Ui:FactsGrid :items="defaults" />
+                    <twig:Ui:DescriptionList :items="defaults" />
                 </twig:Ui:Card>
 
                 <twig:Ui:Card :title="'party.card.note'|trans" icon="pencil">

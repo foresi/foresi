@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set ctl = this %}
+<fieldset {{ attributes.defaults({class: 'm-0 min-w-0 border-0 p-0'}) }}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}>
+    <legend class="mb-1.5 p-0 text-[13px] font-medium text-ink">{{ legend }}</legend>
+    <div class="flex flex-wrap gap-2">
+        {% for value, label in options %}
+            {% set checked = ctl.isChecked(value) %}
+            <label class="group inline-flex h-control cursor-pointer select-none items-center gap-1.5 rounded-full border px-3 font-medium has-[:checked]:border-green has-[:checked]:bg-green-tint has-[:checked]:text-green has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green {{ error ? 'border-badge-red-text' : 'border-control-line' }} bg-white text-text hover:border-muted">
+                <input type="checkbox" id="{{ id }}-{{ value }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}{% if error %} aria-invalid="true"{% endif %} class="sr-only">
+                {{ ux_icon('lucide:check', {class: 'hidden size-4 shrink-0 group-has-[:checked]:block', 'aria-hidden': 'true'}) }}
+                <span>{{ label }}</span>
+            </label>
+        {% endfor %}
+    </div>
+    {% if help %}<p id="{{ id }}-help" class="mt-1.5 text-[13px] text-muted">{{ help }}</p>{% endif %}
+    {% if error %}<p id="{{ id }}-error" class="mt-1.5 text-[13px] font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+</fieldset>

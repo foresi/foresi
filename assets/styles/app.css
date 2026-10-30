@@ -108,9 +108,25 @@ body {
     font: 14px/1.45 var(--font-sans);
 }
 
-:focus-visible {
-    outline: 2px solid var(--green);
-    outline-offset: 1px;
+/*
+ * In the base layer, so a component's own focus utilities (or outline-none on
+ * an input that sits inside a focused dialog) win over this default.
+ */
+@layer base {
+    :focus-visible {
+        outline: 2px solid var(--green);
+        outline-offset: 1px;
+    }
+
+    /* Browser autofill paints fields light blue; keep them on the page surface. */
+    input:autofill,
+    select:autofill,
+    textarea:autofill {
+        -webkit-box-shadow: 0 0 0 1000px var(--white) inset;
+        box-shadow: 0 0 0 1000px var(--white) inset;
+        -webkit-text-fill-color: var(--ink);
+        caret-color: var(--ink);
+    }
 }
 
 /* Keep focused elements clear of the floating bulk bar. */

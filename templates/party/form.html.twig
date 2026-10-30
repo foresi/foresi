@@ -68,12 +68,7 @@
         </twig:Ui:Card>
 
         <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
-            <fieldset class="m-0 mb-3 grid gap-1.5 border-0 p-0">
-                <legend class="mb-1.5 p-0 text-[13px] font-medium text-ink">{{ 'party.field.roles'|trans }}</legend>
-                {% for role, label in roleOptions %}
-                    <twig:Ui:Checkbox name="roles[]" :id="'role-' ~ role" :value="role" :label="label" :checked="role in roleValues" />
-                {% endfor %}
-            </fieldset>
+            <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" class="mb-4" />
             <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
         </twig:Ui:Card>
 

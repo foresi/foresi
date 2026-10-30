@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% if this.views is not empty %}
+    <dl {{ attributes.defaults({class: 'm-0 divide-y divide-line'}) }}>
+        {% for item in this.views %}
+            <div class="flex items-start justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+                <dt class="min-w-0 text-text">
+                    {{ item.label }}
+                    {% if item.note %}<span class="mt-0.5 block text-xs text-muted">{{ item.note }}</span>{% endif %}
+                </dt>
+                <dd class="m-0 shrink-0 text-right font-medium text-ink">
+                    {%- if item.badge -%}
+                        <twig:Ui:Badge :tone="item.badge.tone">{{ item.badge.label }}</twig:Ui:Badge>
+                    {%- else -%}
+                        {{ item.value }}
+                    {%- endif -%}
+                </dd>
+            </div>
+        {% endfor %}
+    </dl>
+{% endif %}

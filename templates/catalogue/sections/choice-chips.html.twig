@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:ChoiceChips name="cat-chips-default[]" id="cat-chips-default" legend="Roles" :options="{customer: 'Customer', supplier: 'Supplier', partner: 'Partner', authority: 'Authority'}" :values="['customer']" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'help'} %}{% block sample %}
+<twig:Ui:ChoiceChips name="cat-chips-help[]" id="cat-chips-help" legend="Roles" help="Choose every role this contact has." :options="{customer: 'Customer', supplier: 'Supplier'}" :values="['customer', 'supplier']" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<twig:Ui:ChoiceChips name="cat-chips-error[]" id="cat-chips-error" legend="Roles" error="Choose at least one role." :options="{customer: 'Customer', supplier: 'Supplier'}" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-72"><twig:Ui:ChoiceChips name="cat-chips-long[]" id="cat-chips-long" legend="Příliš žluťoučký kůň" :options="{a: 'Example Company Holding of Central European Trading', b: 'Úpěl ďábelské ódy', c: 'Partner'}" :values="['b']" /></div>
+{% endblock %}{% endembed %}
+</div>
