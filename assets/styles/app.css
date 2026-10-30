@@ -48,6 +48,7 @@
     --color-white: #ffffff;
     --color-line: #ece9e2;
     --color-line-strong: #dcd7cb;
+    --color-control-line: #cfc9bb;
     --color-head: #faf9f6;
     --color-green: #2f4a3a;
     --color-green-hover: #243a2d;
@@ -76,6 +77,7 @@
     --white: #ffffff;
     --line: #ece9e2;
     --line-strong: #dcd7cb;
+    --control-line: #cfc9bb;
     --head: #faf9f6;
     --green: #2f4a3a;
     --green-hover: #243a2d;

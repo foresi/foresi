@@ -24,5 +24,5 @@
             {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
         </div>
     </div>
-    <div class="ml-auto flex flex-wrap items-center gap-2">{% block content %}{% endblock %}</div>
+    <div data-page-actions class="grid w-full auto-cols-fr grid-flow-col gap-2 max-sm:[&_a]:h-10 max-sm:[&_a]:w-full max-sm:[&_button]:h-10 max-sm:[&_button]:w-full sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">{% block content %}{% endblock %}</div>
 </header>

@@ -29,8 +29,8 @@
                     : {label: 'party.kpi.unreliable'|trans, value: counts.unreliablePayers ~ ''}),
             ]" />
 
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" />
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <twig:Ui:Tabs :items="tabs" :label="'party.views'|trans" class="min-w-0 flex-1" />
                 <form method="get" action="{{ path('app_contacts') }}" role="search" class="flex w-full items-center gap-2 sm:w-auto">
                     {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
                     {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}

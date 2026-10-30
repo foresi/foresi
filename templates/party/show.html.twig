@@ -8,7 +8,7 @@
 {% block title %}{{ party.displayName }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button icon="pencil" :href="path('app_contact_edit', {id: id})">{{ 'party.edit'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_contact_edit', {id: id})">{{ 'party.edit'|trans }}</twig:Ui:Button>
     {% if party.archived %}
         <form method="post" action="{{ path('app_contact_restore', {id: id}) }}">
             <input type="hidden" name="_token" value="{{ token }}">

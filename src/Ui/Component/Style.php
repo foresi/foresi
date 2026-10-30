@@ -19,10 +19,10 @@ final class Style
     private const string BUTTON_BASE = 'inline-flex items-center justify-center gap-[7px] rounded-control border font-medium whitespace-nowrap cursor-pointer no-underline aria-disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed';
 
     private const array BUTTON_VARIANTS = [
-        'primary' => 'bg-green border-green text-white hover:bg-green-hover',
-        'secondary' => 'bg-white border-line-strong text-ink hover:bg-head',
+        'primary' => 'bg-green border-green text-white shadow-[0_1px_2px_rgba(28,29,26,.18),inset_0_1px_0_rgba(255,255,255,.12)] hover:bg-green-hover',
+        'secondary' => 'bg-white border-control-line text-ink shadow-[0_1px_2px_rgba(28,29,26,.08)] hover:border-muted hover:bg-head',
         'ghost' => 'bg-transparent border-transparent text-text hover:bg-head',
-        'danger' => 'bg-white border-line-strong text-badge-red-text hover:bg-badge-red',
+        'danger' => 'bg-white border-control-line text-badge-red-text shadow-[0_1px_2px_rgba(28,29,26,.08)] hover:border-badge-red-text hover:bg-badge-red',
     ];
 
     private const array BUTTON_SIZES = ['md' => 'h-control', 'sm' => 'h-7 text-[13px]'];

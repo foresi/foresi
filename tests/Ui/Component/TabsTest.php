@@ -29,7 +29,7 @@ final class TabsTest extends KernelTestCase
         self::assertStringContainsString('aria-label="Views"', $html);
         self::assertSame(1, substr_count($html, 'aria-current="page"'));
         self::assertStringContainsString('href="/a" aria-current="page"', $html);
-        self::assertStringContainsString('bg-white text-ink', $html);
+        self::assertStringContainsString('border-green text-ink', $html);
         self::assertStringContainsString('>12<', $html);
         self::assertStringContainsString('Open', $html);
         self::assertStringContainsString('focus-visible:outline-2', $html);

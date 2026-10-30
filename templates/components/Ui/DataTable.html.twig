@@ -14,14 +14,14 @@
                     <thead>
                         <tr>
                             {% if selectable %}
-                                <th scope="col" class="h-10 w-11 border-b border-line bg-head px-3.5 text-left">
+                                <th scope="col" class="h-10 w-11 border-b border-line-strong bg-white px-3.5 text-left">
                                     <label class="inline-grid size-6 place-items-center">
                                         <input type="checkbox" aria-label="{{ 'ui.table.select_all'|trans }}" data-table-selection-target="all" data-action="change->table-selection#toggleAll" class="size-4 accent-green {{ focus }}">
                                     </label>
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-10 whitespace-nowrap border-b border-line bg-head px-3.5 text-[13px] font-medium text-muted {{ this.alignClass(column.align) }}{% if loop.index > 1 or selectable %} border-l{% endif %}">
+                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-10 whitespace-nowrap border-b border-line-strong bg-white px-3.5 text-xs font-medium text-muted {{ this.alignClass(column.align) }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}" class="inline-flex min-h-6 items-center gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
@@ -38,20 +38,22 @@
                         {% for row in this.rowViews %}
                             <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}">
                                 {% if selectable %}
-                                    <td class="h-11 w-11 border-b border-line px-3.5 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:shadow-[inset_3px_0_0_var(--color-green)]">
+                                    <td class="h-11 w-11 border-b border-line px-3.5 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:shadow-[inset_3px_0_0_var(--color-green)]">
                                         <label class="inline-grid size-6 place-items-center">
                                             <input type="checkbox"{% if selectionName %} name="{{ selectionName }}"{% endif %} value="{{ row.id }}" aria-label="{{ 'ui.table.select_row'|trans({label: row.label}) }}"{% if row.selected %} checked{% endif %} data-table-selection-target="check" data-action="click->table-selection#rowCheck change->table-selection#sync" class="size-4 accent-green {{ focus }}">
                                         </label>
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-11 whitespace-nowrap border-b border-line px-3.5 text-ink group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{% if loop.index > 1 or selectable %} border-l{% endif %}">
+                                    <td class="h-11 whitespace-nowrap border-b border-line px-3.5 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}">
                                         {%- if cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
                                             <a href="{{ cell.link }}" data-row-link{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
+                                        {%- elseif cell.text is same as('') -%}
+                                            <span class="text-line-strong" aria-hidden="true">—</span>
                                         {%- else -%}
                                             <span class="block max-w-[32ch] truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}
@@ -63,9 +65,9 @@
                     {% if totals is not null %}
                         <tfoot>
                             <tr>
-                                {% if selectable %}<td class="h-11 bg-head px-3.5"></td>{% endif %}
+                                {% if selectable %}<td class="h-11 border-t border-line-strong bg-head px-3.5"></td>{% endif %}
                                 {% for cell in this.totalCells %}
-                                    <td class="num h-11 whitespace-nowrap bg-head px-3.5 font-semibold text-ink {{ this.alignClass(cell.align) }}{% if loop.index > 1 or selectable %} border-l border-line{% endif %}">
+                                    <td class="num h-11 whitespace-nowrap border-t border-line-strong bg-head px-3.5 font-semibold text-ink {{ this.alignClass(cell.align) }}">
                                         {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                     </td>
                                 {% endfor %}
