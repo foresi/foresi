@@ -6,6 +6,14 @@ framework:
     session: true
     csrf_protection: true
 
+    rate_limiter:
+        # Outgoing calls to public registers, per registry. ARES may restrict clients above
+        # 500 queries per minute; stay well under that.
+        registry_outgoing:
+            policy: sliding_window
+            limit: 300
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 

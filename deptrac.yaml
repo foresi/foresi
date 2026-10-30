@@ -234,9 +234,14 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - IdentityApplication
+    # A country module may implement the ports of Party Application (company and
+    # tax registers). It reaches registers only through the shared registry client,
+    # the one place that talks HTTP to public registers.
     CountryCzechRepublic:
       - SharedDomain
+      - SharedInfrastructure
       - PartyDomain
+      - PartyApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony
