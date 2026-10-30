@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-30
+
+### Added
+
+- Design system: Twig components built on Symfony UX and Tailwind design tokens (buttons, inputs, badges, tabs, cards, data table with selection and bulk actions, pagination, KPI strip, facts grid, timeline, empty states and a command palette), with a development component catalogue.
+- App shell: sidebar navigation, user menu, active tenant choice and a styled login screen in Czech and English.
+- Address book: list with search, views, sorting and paging, detail with overview, contact persons, addresses, bank accounts and history, create and edit forms, archive and restore, bulk archive and CSV export.
+- Parties: roles, billing and delivery addresses, persons linked as contact persons, bank accounts and document defaults.
+- Registry lookups: Czech business register (ARES) autofill, EU VAT number check (VIES) and the Czech unreliable VAT payer register, with rate limiting.
+- End-to-end tests with Playwright covering accessibility (axe), keyboard use, layout on desktop and mobile, and visual regression.
+- Architecture decision record for the server-rendered user interface.
+
+### Fixed
+
+- Logout is a POST request protected by a CSRF token.
+- The session is migrated when the active tenant changes.
+
 ## [0.1.0] - 2026-10-29
 
 ### Added

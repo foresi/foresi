@@ -7,9 +7,11 @@ Foresi is an open-source business system for small and medium firms (website: ht
 - **Money**: an exact money value object stored as integer minor units plus a currency code, with allocation that never loses a minor unit.
 - **Tenancy**: row-level isolation of tenants, enforced for every ORM and DQL query and failing closed when no tenant is active.
 - **Parties**: legal entities and parties with registration numbers, VAT IDs and IBANs. Country rules are plugged in through interfaces; Czech registration number validation is included as a country module.
-- **Identity**: users, tenant memberships with roles, form login with CSRF protection and throttling, an application service for switching the active tenant (no user interface for it yet) and a console command to create users.
+- **Identity**: users, tenant memberships with roles, form login with CSRF protection and throttling, a choice of the active tenant and a console command to create users.
+- **Address book**: customers, suppliers and other parties with roles, addresses, contact persons, bank accounts and document defaults; search, views, bulk archive and CSV export; lookups in the Czech business register (ARES), the EU VAT number check (VIES) and the Czech unreliable VAT payer register.
+- **User interface**: server-rendered with Twig, Symfony UX and Tailwind; a component library with a development catalogue; Czech and English.
 - **Audit**: an append-only audit log of changes to audited entities.
-- **Quality gate**: PHPStan at maximum level, architecture rules checked by Deptrac, Rector, PHP CS Fixer and Infection mutation testing.
+- **Quality gate**: PHPStan at maximum level, architecture rules checked by Deptrac, Rector, PHP CS Fixer, Infection mutation testing and Playwright end-to-end tests with accessibility and visual checks.
 
 Foresi is at an early stage. Interfaces and data structures may change without notice.
 

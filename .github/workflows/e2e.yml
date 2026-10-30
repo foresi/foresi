@@ -54,8 +54,8 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      # The screenshot specs (tagged @visual) are skipped until Martin has approved the
-      # baselines. Remove --grep-invert @visual in the commit that adds the baseline images.
+      # Screenshot baselines are kept per platform and only macOS baselines exist so far,
+      # so the screenshot specs (tagged @visual) are skipped here until Linux baselines are added.
       - name: End-to-end, accessibility and layout tests
         working-directory: tests/e2e
         run: npx playwright test --grep-invert @visual
