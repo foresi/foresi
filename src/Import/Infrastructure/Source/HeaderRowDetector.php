@@ -30,6 +30,7 @@ final readonly class HeaderRowDetector
             return 1;
         }
 
+        // The widest row sets the width: a single stray wide row can hide a true header, which then falls back to the first filled row.
         $width = max(array_map(\count(...), $candidates));
         $firstFilled = null;
 

@@ -35,6 +35,7 @@ final class CellTextTest extends TestCase
         yield 'zero' => [0.0, '0'];
         yield 'date' => [new \DateTimeImmutable('2026-10-01'), '2026-10-01'];
         yield 'date with time' => [new \DateTimeImmutable('2026-10-01 13:45:10'), '2026-10-01 13:45:10'];
+        yield 'duration' => [new \DateInterval('PT13H45M10S'), '13:45:10'];
         yield 'not a number' => [NAN, 'NAN'];
         yield 'object' => [new \stdClass(), ''];
     }

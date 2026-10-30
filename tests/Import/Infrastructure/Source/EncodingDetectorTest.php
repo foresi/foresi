@@ -53,4 +53,23 @@ final class EncodingDetectorTest extends TestCase
 
         self::assertNotSame(Encoding::Utf8, new EncodingDetector()->detect($sample, false));
     }
+
+    public function testDetectFileFindsInvalidUtf8AndWindows1250LateInTheFile(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'enc');
+        self::assertIsString($path);
+        file_put_contents($path, str_repeat('a', 2_000_000)."\xE8");
+
+        try {
+            self::assertSame(Encoding::Windows1250, new EncodingDetector()->detectFile($path));
+            file_put_contents($path, str_repeat('a', 2_000_000)."\xE9");
+            self::assertSame(Encoding::Windows1252, new EncodingDetector()->detectFile($path));
+            file_put_contents($path, "\xEF\xBB\xBFName");
+            self::assertSame(Encoding::Utf8Bom, new EncodingDetector()->detectFile($path));
+            file_put_contents($path, 'Ústí');
+            self::assertSame(Encoding::Utf8, new EncodingDetector()->detectFile($path));
+        } finally {
+            unlink($path);
+        }
+    }
 }

@@ -45,6 +45,11 @@ final class SourceRejected extends \RuntimeException
         return new self('import.source.rejected.suspicious_compression', ['limit' => $limitRatio]);
     }
 
+    public static function invalidEncoding(int $row): self
+    {
+        return new self('import.source.rejected.invalid_encoding', ['row' => $row]);
+    }
+
     public static function unknownFormat(): self
     {
         return new self('import.source.rejected.unknown_format');

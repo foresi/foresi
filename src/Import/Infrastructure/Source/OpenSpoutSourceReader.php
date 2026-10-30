@@ -90,8 +90,7 @@ final readonly class OpenSpoutSourceReader implements SourceReader
     private function inspectCsv(string $path, ?SourceSettings $override): SourceInspection
     {
         $head = (string) file_get_contents($path, false, null, 0, self::DETECTION_BYTES);
-        $truncated = filesize($path) > self::DETECTION_BYTES;
-        $encoding = $override->encoding ?? $this->encodingDetector->detect($head, $truncated);
+        $encoding = $override->encoding ?? $this->encodingDetector->detectFile($path);
         $delimiter = $override->delimiter ?? $this->delimiterDetector->detect(
             $this->textDecoder->decode(str_starts_with($head, self::UTF8_BOM) ? substr($head, 3) : $head, $encoding),
         );
@@ -127,7 +126,8 @@ final readonly class OpenSpoutSourceReader implements SourceReader
             throw SourceRejected::empty();
         }
 
-        $headerRow = $settings->headerRow ?? $this->headerRowDetector->detect($buffer);
+        // When the first rows are all blank, the header is the first row that has content.
+        $headerRow = $settings->headerRow ?? ([] === $buffer ? $records->key() : $this->headerRowDetector->detect($buffer));
         $headers = null;
         $samples = [];
         $count = 0;
@@ -238,13 +238,23 @@ final readonly class OpenSpoutSourceReader implements SourceReader
                 ++$number;
 
                 yield $number => array_map(
-                    fn (?string $cell): string => $this->textDecoder->decode($cell ?? '', $encoding),
+                    fn (?string $cell): string => $this->decodeCell($cell ?? '', $encoding, $number),
                     $record,
                 );
             }
         } finally {
             fclose($handle);
         }
+    }
+
+    private function decodeCell(string $cell, Encoding $encoding, int $row): string
+    {
+        // Never substitute silently: a UTF-8 file with stray bytes is probably in another encoding.
+        if ((Encoding::Utf8 === $encoding || Encoding::Utf8Bom === $encoding) && !mb_check_encoding($cell, 'UTF-8')) {
+            throw SourceRejected::invalidEncoding($row);
+        }
+
+        return $this->textDecoder->decode($cell, $encoding);
     }
 
     /**
@@ -270,6 +280,11 @@ final readonly class OpenSpoutSourceReader implements SourceReader
 
                 return;
             }
+
+            // No sheet matched the name.
+            throw SourceRejected::unknownFormat();
+        } catch (IOException) {
+            throw SourceRejected::unknownFormat();
         } finally {
             $reader->close();
         }

@@ -312,5 +312,6 @@ import:
       too_many_rows: 'The file has more than {limit, number} data rows.'
       archive_too_large: 'The spreadsheet would unpack to more than {limit} MB.'
       suspicious_compression: 'The spreadsheet is compressed more than {limit}:1, which a real workbook never is.'
+      invalid_encoding: 'The file is not valid UTF-8 at row {row, number}. It is probably saved in another encoding.'
       unknown_format: 'This is not a CSV or XLSX file we can read.'
       empty: 'The file contains no data.'

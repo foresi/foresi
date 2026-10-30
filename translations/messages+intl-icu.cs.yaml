@@ -312,5 +312,6 @@ import:
       too_many_rows: 'Soubor má víc než {limit, number} datových řádků.'
       archive_too_large: 'Tabulka by se rozbalila na víc než {limit} MB.'
       suspicious_compression: 'Tabulka je komprimovaná víc než {limit}:1, což skutečný sešit nikdy není.'
+      invalid_encoding: 'Soubor není na řádku {row, number} platné UTF-8. Pravděpodobně je uložený v jiném kódování.'
       unknown_format: 'Tento soubor není CSV ani XLSX, který umíme přečíst.'
       empty: 'Soubor neobsahuje žádná data.'

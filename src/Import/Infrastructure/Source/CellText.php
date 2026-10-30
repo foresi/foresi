@@ -27,6 +27,7 @@ final class CellText
             \is_int($value) => (string) $value,
             \is_float($value) => self::number($value),
             $value instanceof \DateTimeInterface => $value->format('00:00:00' === $value->format('H:i:s') ? 'Y-m-d' : 'Y-m-d H:i:s'),
+            $value instanceof \DateInterval => $value->format('%H:%I:%S'),
             default => '',
         };
     }

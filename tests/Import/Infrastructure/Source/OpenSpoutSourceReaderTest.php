@@ -175,6 +175,63 @@ final class OpenSpoutSourceReaderTest extends TestCase
         self::assertSame(2, array_key_first($inspection->samples));
     }
 
+    public function testWindows1250AfterALongAsciiPrefixIsStillDetected(): void
+    {
+        $path = $this->write("Name;City\n".str_repeat("Example;Praha\n", 6000)."Example \xE8;\xD8\xEDm\n");
+        $reader = new OpenSpoutSourceReader();
+
+        $inspection = $reader->inspect($path);
+        $rows = iterator_to_array($reader->rows($path, $inspection->settings()));
+
+        self::assertSame(Encoding::Windows1250, $inspection->encoding);
+        self::assertSame(['Example č', 'Řím'], $rows[6002]);
+    }
+
+    public function testUtf8CharacterSplitAcrossReadChunksIsValid(): void
+    {
+        $path = $this->write("Name\n".str_repeat('x', 1_048_576 - 6).'ž'."\nOther\n");
+
+        $inspection = new OpenSpoutSourceReader()->inspect($path);
+
+        self::assertSame(Encoding::Utf8, $inspection->encoding);
+        self::assertSame(2, $inspection->dataRowCount);
+    }
+
+    public function testInvalidBytesInAForcedUtf8FileAreRejectedWithTheRow(): void
+    {
+        $path = $this->write("Name;City\nExample;Praha\nExample;Pra\xE8\n");
+        $reader = new OpenSpoutSourceReader();
+
+        try {
+            iterator_to_array($reader->rows($path, new SourceSettings(SourceFormat::Csv, Encoding::Utf8, ';', null, 1)));
+            self::fail('Expected rejection');
+        } catch (SourceRejected $e) {
+            self::assertSame('import.source.rejected.invalid_encoding', $e->reason);
+            self::assertSame(['row' => 3], $e->parameters);
+        }
+    }
+
+    public function testRowsOfAnUnknownSheetAreRejected(): void
+    {
+        $this->expectRejection('import.source.rejected.unknown_format');
+
+        iterator_to_array(new OpenSpoutSourceReader()->rows(
+            self::FIXTURES.'/two-sheets.xlsx',
+            new SourceSettings(SourceFormat::Xlsx, null, null, 'Missing', 1),
+        ));
+    }
+
+    public function testHeaderIsFoundWhenTheFirstTenRowsAreBlank(): void
+    {
+        $path = $this->write(str_repeat("\n", 12)."Name,City\nExample,Praha\n");
+
+        $inspection = new OpenSpoutSourceReader()->inspect($path);
+
+        self::assertSame(13, $inspection->headerRow);
+        self::assertSame(['Name', 'City'], $inspection->headers);
+        self::assertSame(1, $inspection->dataRowCount);
+    }
+
     public function testXlsxWithTwoSheets(): void
     {
         $reader = new OpenSpoutSourceReader();
