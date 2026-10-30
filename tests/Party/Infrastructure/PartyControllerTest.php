@@ -286,7 +286,8 @@ final class PartyControllerTest extends WebTestCase
 
         $crawler = $this->client->submit($form);
 
-        self::assertResponseIsSuccessful();
+        // 422, not 200: Turbo only renders a non-redirect form answer when it is a 4xx.
+        self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('[data-duplicate-warning]');
         self::assertSelectorExists('[data-duplicate-warning] a[href="/contacts/'.$existing->id().'"]');
         self::assertSame(1, $this->partyCount());

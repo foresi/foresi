@@ -137,7 +137,7 @@ final class PartyFormController extends AbstractController
 
         $matches = $this->duplicates->find($input->registrationNumber, $input->vatId, true, $party?->id());
         if ([] !== $matches && !$request->request->getBoolean('confirm_duplicate')) {
-            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_OK);
+            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
