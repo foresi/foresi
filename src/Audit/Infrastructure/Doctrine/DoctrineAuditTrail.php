@@ -29,7 +29,7 @@ final readonly class DoctrineAuditTrail implements AuditTrail
             ->from(AuditEntry::class, 'e')
             ->where('e.entityClass = :class')
             ->andWhere('e.entityId = :id')
-            ->andWhere('e.occurredAt > :since')
+            ->andWhere('e.occurredAt >= :since')
             ->andWhere('(e.correlationId IS NULL OR e.correlationId <> :correlation)')
             ->setParameter('class', $entityClass)
             ->setParameter('id', $entityId)
