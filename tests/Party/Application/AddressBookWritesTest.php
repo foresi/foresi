@@ -183,6 +183,16 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertSame([$free->id()], array_map(static fn (Party $party): ?int => $party->id(), $candidates));
     }
 
+    public function testSearchAndSortIgnoreTheCaseOfLettersWithDiacritics(): void
+    {
+        $this->create('Čapek s.r.o.', number: '12345687');
+        $this->create('čzech', number: '12345695');
+
+        self::assertSame(['Čapek s.r.o.'], $this->names($this->query()->search('čapek', null, false, 'name', 1)->rows));
+        self::assertSame(['Čapek s.r.o.'], $this->names($this->query()->search('ČAPEK', null, false, 'name', 1)->rows));
+        self::assertSame(['Čapek s.r.o.', 'čzech'], $this->names($this->query()->search('', null, false, 'name', 1)->rows), 'an upper-case Č sorts with the lower-case č');
+    }
+
     public function testSearchIsTenantScopedAndSorts(): void
     {
         $this->create('Beta', number: '12345687');
