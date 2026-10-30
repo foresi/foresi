@@ -8,10 +8,9 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-/** The order of day, month and year in a date that is not written in ISO form. */
-enum DateOrder
+enum DateOrder: string
 {
-    case DayMonthYear;
-    case MonthDayYear;
-    case YearMonthDay;
+    case DayMonthYear = 'day_month_year';
+    case MonthDayYear = 'month_day_year';
+    case YearMonthDay = 'year_month_day';
 }

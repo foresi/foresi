@@ -205,6 +205,8 @@ deptrac:
       - AuditDomain
     ImportApplication:
       - ImportDomain
+      # The file store is keyed by tenant.
+      - TenancyDomain
       - SharedDomain
       - SharedApplication
       - TenancyApplication
@@ -213,6 +215,7 @@ deptrac:
     ImportInfrastructure:
       - SharedInfrastructure
       - ImportDomain
+      - TenancyDomain
       - ImportApplication
       - VendorSymfony
       - VendorDoctrine

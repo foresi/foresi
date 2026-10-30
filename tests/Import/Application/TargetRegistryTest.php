@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Import\Application;
 
-use App\Import\Application\Target\BlankCells;
 use App\Import\Application\Target\ImportTarget;
 use App\Import\Application\Target\RecordSnapshot;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Application\Target\WriteResult;
+use App\Import\Domain\BlankCells;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

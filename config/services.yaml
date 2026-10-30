@@ -9,6 +9,8 @@
 parameters:
     # The product name shown on every page; the only place it is defined.
     app.product_name: Foresi
+    # Uploaded import sources; never below public/, tenant directories inside.
+    app.import_files_dir: '%kernel.project_dir%/var/imports'
 
 services:
     # default configuration for services in *this* file
@@ -35,6 +37,10 @@ services:
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
+
+    App\Import\Infrastructure\LocalImportFiles:
+        arguments:
+            $root: '%app.import_files_dir%'
 
     App\Import\Application\Target\TargetRegistry:
         arguments:
@@ -130,6 +136,17 @@ when@test:
         # undo will), so the test kernel keeps the alias.
         App\Audit\Application\AuditTrail:
             alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
+            public: true
+
+        # Nothing consumes the import ports yet (the pipeline will), so the test kernel keeps the aliases.
+        App\Import\Application\Imports:
+            alias: App\Import\Infrastructure\Doctrine\DoctrineImports
+            public: true
+        App\Import\Application\ProfileRepository:
+            alias: App\Import\Infrastructure\Doctrine\DoctrineProfileRepository
+            public: true
+        App\Import\Application\ImportFiles:
+            alias: App\Import\Infrastructure\LocalImportFiles
             public: true
 
         # Stands in for a plugin adding a sidebar item.

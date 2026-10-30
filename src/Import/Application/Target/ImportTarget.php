@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Application\Target;
 
+use App\Import\Domain\BlankCells;
 use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\RowError;
 

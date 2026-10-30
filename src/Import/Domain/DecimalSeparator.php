@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
-enum DecimalSeparator
+enum DecimalSeparator: string
 {
-    case Comma;
-    case Point;
+    case Comma = 'comma';
+    case Point = 'point';
 }

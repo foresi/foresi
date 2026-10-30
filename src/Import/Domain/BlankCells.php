@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace App\Import\Application\Target;
+namespace App\Import\Domain;
 
 /** What an empty cell does to an existing record. */
-enum BlankCells
+enum BlankCells: string
 {
     /** The value stays as it is. */
-    case Keep;
+    case Keep = 'keep';
     /** The value is cleared. */
-    case Clear;
+    case Clear = 'clear';
 }
