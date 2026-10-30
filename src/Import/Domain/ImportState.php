@@ -42,6 +42,14 @@ enum ImportState: string
     }
 
     /**
+     * Waiting for the user, with no worker that may still own it, so a long-idle import can be cancelled.
+     */
+    public function isAbandonable(): bool
+    {
+        return !$this->isEnd() && !\in_array($this, [self::Queued, self::Running, self::Undoing], true);
+    }
+
+    /**
      * @return list<self>
      */
     private function next(): array
@@ -54,9 +62,10 @@ enum ImportState: string
             self::Checked => [self::Mapping, self::Queued, self::Cancelled],
             self::Queued => [self::Running, self::Cancelled],
             self::Running => [self::Finished, self::FinishedWithErrors, self::Failed, self::Stopped, self::Cancelled],
-            self::Finished, self::FinishedWithErrors => [self::Undoing],
+            // A stopped run has written rows before the threshold tripped, so it can be undone too.
+            self::Finished, self::FinishedWithErrors, self::Stopped => [self::Undoing],
             self::Undoing => [self::Undone, self::Failed],
-            self::Stopped, self::Failed, self::Cancelled, self::Undone => [],
+            self::Failed, self::Cancelled, self::Undone => [],
         };
     }
 }

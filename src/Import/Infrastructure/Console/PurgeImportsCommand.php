@@ -20,7 +20,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Deletes the source file and the staged rows of imports that ended more than
- * 30 days ago. The Import record and its counters stay. It works across all
+ * 30 days ago. Imports that never ended and were created more than 30 days ago
+ * (waiting for the user, not owned by a worker) are cancelled first. The Import
+ * record and its counters stay. It works across all
  * tenants, so it reads through the connection and not through the tenant-scoped
  * entity manager.
  */
@@ -38,40 +40,53 @@ final readonly class PurgeImportsCommand
 
     public function __invoke(SymfonyStyle $io): int
     {
-        $cutoff = $this->clock->now()->modify(\sprintf('-%d days', self::RETENTION_DAYS));
-        $ended = array_map(
+        $now = $this->clock->now();
+        $cutoff = $now->modify(\sprintf('-%d days', self::RETENTION_DAYS));
+        $values = static fn (callable $filter): array => array_values(array_map(
             static fn (ImportState $state): string => $state->value,
-            array_values(array_filter(ImportState::cases(), static fn (ImportState $state): bool => $state->isEnd())),
-        );
+            array_filter(ImportState::cases(), $filter),
+        ));
+        $ended = $values(static fn (ImportState $state): bool => $state->isEnd());
+        $abandoned = $values(static fn (ImportState $state): bool => $state->isAbandonable());
 
-        /** @var list<array{id: int|string, file_key: string|null}> $imports */
+        /** @var list<array{id: int|string, file_key: string|null, state: string}> $imports */
         $imports = $this->connection->fetchAllAssociative(
-            'SELECT i.id, i.file_key FROM import i'
-            .' WHERE i.state IN (?) AND i.finished_at < ?'
+            'SELECT i.id, i.file_key, i.state FROM import i'
+            .' WHERE ((i.state IN (?) AND i.finished_at < ?) OR (i.state IN (?) AND i.created_at < ?))'
             .' AND (i.file_key IS NOT NULL OR EXISTS (SELECT 1 FROM import_row r WHERE r.import_id = i.id))'
             .' ORDER BY i.id',
-            [$ended, $cutoff],
-            [ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE],
+            [$ended, $cutoff, $abandoned, $cutoff],
+            [ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE, ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE],
         );
 
         $rows = 0;
         $files = 0;
+        $cancelled = 0;
         foreach ($imports as $import) {
             $id = (int) $import['id'];
+            $cancel = \in_array($import['state'], $abandoned, true);
             // The file goes first and deleting is idempotent: a failure below leaves the key in place for the next run.
             if (null !== $import['file_key']) {
                 $this->files->delete($import['file_key']);
                 ++$files;
             }
-            $rows += $this->connection->transactional(function (Connection $connection) use ($id): int {
+            $rows += $this->connection->transactional(function (Connection $connection) use ($id, $cancel, $now): int {
+                if ($cancel) {
+                    $connection->executeStatement(
+                        'UPDATE import SET state = ?, finished_at = ? WHERE id = ?',
+                        [ImportState::Cancelled->value, $now, $id],
+                        [Types::STRING, Types::DATETIME_IMMUTABLE, Types::INTEGER],
+                    );
+                }
                 $deleted = $connection->executeStatement('DELETE FROM import_row WHERE import_id = ?', [$id]);
                 $connection->executeStatement('UPDATE import SET file_key = NULL WHERE id = ?', [$id]);
 
                 return (int) $deleted;
             });
+            $cancelled += $cancel ? 1 : 0;
         }
 
-        $io->success(\sprintf('Purged %d imports: %d files and %d rows deleted.', \count($imports), $files, $rows));
+        $io->success(\sprintf('Purged %d imports (%d cancelled): %d files and %d rows deleted.', \count($imports), $cancelled, $files, $rows));
 
         return Command::SUCCESS;
     }

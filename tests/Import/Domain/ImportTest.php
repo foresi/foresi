@@ -59,6 +59,7 @@ final class ImportTest extends TestCase
             [ImportState::Undoing, ImportState::Failed],
             [ImportState::Finished, ImportState::Undoing],
             [ImportState::FinishedWithErrors, ImportState::Undoing],
+            [ImportState::Stopped, ImportState::Undoing],
             [ImportState::Undoing, ImportState::Undone],
         ];
         foreach ([ImportState::Uploaded, ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked, ImportState::Queued, ImportState::Running] as $state) {
@@ -180,6 +181,26 @@ final class ImportTest extends TestCase
         yield 'stopped' => [ImportState::Running, ImportState::Stopped];
         yield 'cancelled' => [ImportState::Checked, ImportState::Cancelled];
         yield 'undone' => [ImportState::Undoing, ImportState::Undone];
+    }
+
+    public function testAStoppedImportCanBeUndone(): void
+    {
+        $import = $this->importIn(ImportState::Stopped);
+
+        $import->moveTo(ImportState::Undoing);
+        $import->moveTo(ImportState::Undone, new \DateTimeImmutable('2026-10-02'));
+
+        self::assertSame(ImportState::Undone, $import->state());
+    }
+
+    public function testOnlyIdleStatesAreAbandonable(): void
+    {
+        $abandonable = array_filter(ImportState::cases(), static fn (ImportState $state): bool => $state->isAbandonable());
+
+        self::assertSame(
+            [ImportState::Uploaded, ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked],
+            array_values($abandonable),
+        );
     }
 
     public function testMiddleStatesDoNotStampFinishedAt(): void

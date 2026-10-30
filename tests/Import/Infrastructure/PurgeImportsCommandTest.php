@@ -123,6 +123,73 @@ final class PurgeImportsCommandTest extends KernelTestCase
         self::assertSame(1, $this->rowCount($running['key']));
     }
 
+    #[DataProvider('abandoned')]
+    public function testAnImportLeftWaitingForMoreThan30DaysIsCancelledAndPurged(ImportState $waiting): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $staged = $this->stage($tenant, 2, '2026-10-16 11:59:59');
+        $this->moveThrough($staged['import'], $waiting);
+        $this->imports->save();
+        $this->em->clear();
+
+        $this->tester->execute([]);
+
+        self::assertFileDoesNotExist($this->pathOf($staged['key']));
+        self::assertSame(0, $this->rowCount($staged['key']));
+        $import = $this->imports->find($this->importIds[$staged['key']]);
+        self::assertNotNull($import);
+        self::assertSame(ImportState::Cancelled, $import->state());
+        self::assertNull($import->fileKey());
+        self::assertEquals(new \DateTimeImmutable(self::NOW), $import->finishedAt());
+        self::assertStringContainsString('1 imports (1 cancelled)', $this->tester->getDisplay());
+
+        $this->tester->execute([]);
+        self::assertStringContainsString('0 imports (0 cancelled)', $this->tester->getDisplay());
+    }
+
+    /**
+     * @return iterable<string, array{ImportState}>
+     */
+    public static function abandoned(): iterable
+    {
+        foreach ([ImportState::Uploaded, ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked] as $state) {
+            yield $state->value => [$state];
+        }
+    }
+
+    #[DataProvider('abandoned')]
+    public function testAWaitingImportYoungerThan30DaysIsKept(ImportState $waiting): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $staged = $this->stage($tenant, 1, '2026-10-16 12:00:00');
+        $this->moveThrough($staged['import'], $waiting);
+        $this->imports->save();
+        $this->em->clear();
+
+        $this->tester->execute([]);
+
+        self::assertFileExists($this->pathOf($staged['key']));
+        self::assertSame(1, $this->rowCount($staged['key']));
+        self::assertSame($waiting, $this->imports->find($this->importIds[$staged['key']])?->state());
+    }
+
+    public function testAQueuedImportIsLeftToItsWorkerHoweverOld(): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $staged = $this->stage($tenant, 1);
+        $this->moveThrough($staged['import'], ImportState::Queued);
+        $this->imports->save();
+        $this->em->clear();
+
+        $this->tester->execute([]);
+
+        self::assertFileExists($this->pathOf($staged['key']));
+        self::assertSame(ImportState::Queued, $this->imports->find($this->importIds[$staged['key']])?->state());
+    }
+
     public function testAnUndoInProgressIsNotPurged(): void
     {
         $tenant = TenantId::generate();
@@ -213,12 +280,12 @@ final class PurgeImportsCommandTest extends KernelTestCase
     /**
      * @return array{import: Import, key: string}
      */
-    private function stage(TenantId $tenant, int $rows): array
+    private function stage(TenantId $tenant, int $rows, string $createdAt = '2026-01-01'): array
     {
         $source = $this->base.'/upload.tmp';
         file_put_contents($source, "name\nExample Company\n");
         $key = $this->files->store($tenant, $source, 'contacts.csv');
-        $import = new Import('party', $key, 'contacts.csv', ['format' => 'csv'], 1, new \DateTimeImmutable('2026-01-01'));
+        $import = new Import('party', $key, 'contacts.csv', ['format' => 'csv'], 1, new \DateTimeImmutable($createdAt));
         $this->imports->add($import);
         $staged = [];
         for ($number = 1; $number <= $rows; ++$number) {
@@ -228,6 +295,20 @@ final class PurgeImportsCommandTest extends KernelTestCase
         $this->importIds[$key] = (int) $import->id();
 
         return ['import' => $import, 'key' => $key];
+    }
+
+    private function moveThrough(Import $import, ImportState $target): void
+    {
+        $path = [ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked, ImportState::Queued];
+        foreach ($path as $state) {
+            if (ImportState::Uploaded === $target) {
+                return;
+            }
+            $import->moveTo($state, new \DateTimeImmutable('2026-01-01'));
+            if ($state === $target) {
+                return;
+            }
+        }
     }
 
     private function advance(Import $import, ImportState $ending, string $at): void
