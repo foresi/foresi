@@ -22,13 +22,14 @@ interface Imports
     public function find(int $id): ?Import;
 
     /**
-     * Loads the import with a row lock (SELECT ... FOR UPDATE on PostgreSQL). Call it
-     * inside a transaction, then Import::recordChunk(), then save().
+     * Loads the import with a row lock (SELECT ... FOR UPDATE on PostgreSQL) and
+     * fresh values, even when it is already loaded. Call it inside a transaction, then Import::recordChunk(), then save().
      */
     public function findLocked(int $id): ?Import;
 
     /**
-     * Stages rows and writes them.
+     * Stages rows and writes them. The caller stages a chunk at a time and clears
+     * the persistence session between chunks, or memory grows with the source.
      *
      * @param list<ImportRow> $rows
      */

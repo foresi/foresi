@@ -54,6 +54,17 @@ final class LocalImportFilesTest extends TestCase
         self::assertFileExists($this->source);
     }
 
+    public function testAnExistingTenantDirectoryIsTightenedTo0700(): void
+    {
+        $tenant = TenantId::generate();
+        mkdir($this->root.'/'.$tenant->toString(), 0o755, true);
+
+        $this->files->store($tenant, $this->source, 'a.csv');
+
+        clearstatcache();
+        self::assertSame('0700', substr(\sprintf('%o', fileperms($this->root.'/'.$tenant->toString())), -4));
+    }
+
     public function testTheOriginalNameIsNotPartOfThePath(): void
     {
         $key = $this->files->store(TenantId::generate(), $this->source, '../../etc/passwd.csv');

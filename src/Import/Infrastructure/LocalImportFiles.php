@@ -30,6 +30,8 @@ final readonly class LocalImportFiles implements ImportFiles
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The import directory cannot be created.');
         }
+        // A directory that already exists may have been created with wider permissions.
+        chmod($directory, 0o700);
 
         $key = $tenant->toString().'/'.Uuid::v4()->toRfc4122();
         $target = $this->root.'/'.$key;

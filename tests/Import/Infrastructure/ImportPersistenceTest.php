@@ -123,6 +123,49 @@ final class ImportPersistenceTest extends KernelTestCase
         self::assertSame([2, 2, 1], [$loaded->created(), $loaded->processed(), $loaded->chunksDone()]);
     }
 
+    public function testALockedUpdateOfAnAlreadyLoadedImportKeepsCountersWrittenMeanwhile(): void
+    {
+        $this->context->switchTo(TenantId::generate());
+        $import = $this->newImport();
+        $import->countRows(10, 3);
+        $this->imports->add($import);
+        $id = (int) $import->id();
+        $this->em->clear();
+        $loaded = $this->imports->find($id);
+        self::assertSame(0, $loaded?->created());
+
+        // Another worker finishes a chunk while this one holds the stale entity.
+        $this->em->getConnection()->executeStatement('UPDATE import SET created = 5, processed = 5, chunks_done = 1 WHERE id = ?', [$id]);
+
+        $this->em->wrapInTransaction(function () use ($id): void {
+            $locked = $this->imports->findLocked($id);
+            self::assertNotNull($locked);
+            $locked->recordChunk([RowOutcome::Create->value => 2]);
+            $this->imports->save();
+        });
+        $this->em->clear();
+
+        $after = $this->imports->find($id);
+        self::assertNotNull($after);
+        self::assertSame([7, 7, 2], [$after->created(), $after->processed(), $after->chunksDone()]);
+    }
+
+    public function testStagedRowsBelongToTheTenantOfTheirImport(): void
+    {
+        $this->context->switchTo(TenantId::generate());
+        $import = $this->newImport();
+        $this->imports->add($import);
+        $this->imports->addRows([new ImportRow($import, 1, 0, ['a'])]);
+        $id = (int) $import->id();
+        self::assertCount(1, $this->imports->rowsOfChunk($import, 0));
+
+        $this->context->switchTo(TenantId::generate());
+
+        $rows = $this->em->getRepository(ImportRow::class)->findBy(['chunk' => 0]);
+        self::assertSame([], $rows);
+        self::assertNull($this->imports->find($id));
+    }
+
     public function testARowNumberIsUniquePerImport(): void
     {
         $this->context->switchTo(TenantId::generate());

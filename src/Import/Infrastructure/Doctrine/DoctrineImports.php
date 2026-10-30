@@ -38,7 +38,14 @@ final readonly class DoctrineImports implements Imports
 
     public function findLocked(int $id): ?Import
     {
-        return $this->em->find(Import::class, $id, LockMode::PESSIMISTIC_WRITE);
+        $import = $this->em->find(Import::class, $id);
+        if (!$import instanceof Import) {
+            return null;
+        }
+        // An import already in the identity map keeps its stale counters on find(), even with a lock; refresh reads them under the lock.
+        $this->em->refresh($import, LockMode::PESSIMISTIC_WRITE);
+
+        return $import;
     }
 
     public function addRows(array $rows): void

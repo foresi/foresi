@@ -100,22 +100,24 @@ class Import implements TenantOwned
     private ?string $failureMessageKey = null;
 
     /**
+     * Not readonly: DoctrineImports::findLocked() refreshes the entity, and the ORM cannot rewrite readonly properties.
+     *
      * @param array<string, mixed> $sourceSettings the output of SourceSettings::toArray()
      */
     public function __construct(
         #[ORM\Column(name: 'target_key', type: 'string', length: 64)]
-        private readonly string $targetKey,
+        private string $targetKey,
         // Null once the purge removed the file.
         #[ORM\Column(name: 'file_key', type: 'string', length: 100, nullable: true)]
-        private readonly ?string $fileKey,
+        private ?string $fileKey,
         #[ORM\Column(name: 'original_name', type: 'string', length: 255)]
-        private readonly string $originalName,
+        private string $originalName,
         #[ORM\Column(name: 'source_settings', type: 'json')]
         private array $sourceSettings,
         #[ORM\Column(name: 'actor_user_id', type: 'integer')]
-        private readonly int $actorUserId,
+        private int $actorUserId,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-        private readonly \DateTimeImmutable $createdAt,
+        private \DateTimeImmutable $createdAt,
     ) {
         $this->mapping = new Mapping()->toArray();
         $this->options = ImportOptions::standard();

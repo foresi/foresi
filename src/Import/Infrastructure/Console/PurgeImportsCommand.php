@@ -65,19 +65,16 @@ final readonly class PurgeImportsCommand
         foreach ($imports as $import) {
             $id = (int) $import['id'];
             $cancel = \in_array($import['state'], $abandoned, true);
+            // Cancel first, only while the state is still an idle one: the user may have queued the import since the SELECT.
+            if ($cancel && 1 !== $this->cancel($id, $abandoned, $now)) {
+                continue;
+            }
             // The file goes first and deleting is idempotent: a failure below leaves the key in place for the next run.
             if (null !== $import['file_key']) {
                 $this->files->delete($import['file_key']);
                 ++$files;
             }
-            $rows += $this->connection->transactional(function (Connection $connection) use ($id, $cancel, $now): int {
-                if ($cancel) {
-                    $connection->executeStatement(
-                        'UPDATE import SET state = ?, finished_at = ? WHERE id = ?',
-                        [ImportState::Cancelled->value, $now, $id],
-                        [Types::STRING, Types::DATETIME_IMMUTABLE, Types::INTEGER],
-                    );
-                }
+            $rows += $this->connection->transactional(function (Connection $connection) use ($id): int {
                 $deleted = $connection->executeStatement('DELETE FROM import_row WHERE import_id = ?', [$id]);
                 $connection->executeStatement('UPDATE import SET file_key = NULL WHERE id = ?', [$id]);
 
@@ -89,5 +86,19 @@ final readonly class PurgeImportsCommand
         $io->success(\sprintf('Purged %d imports (%d cancelled): %d files and %d rows deleted.', \count($imports), $cancelled, $files, $rows));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $idleStates
+     *
+     * @return int the number of imports cancelled: 0 when the state moved on
+     */
+    private function cancel(int $id, array $idleStates, \DateTimeImmutable $at): int
+    {
+        return (int) $this->connection->executeStatement(
+            'UPDATE import SET state = ?, finished_at = ? WHERE id = ? AND state IN (?)',
+            [ImportState::Cancelled->value, $at, $id, $idleStates],
+            [Types::STRING, Types::DATETIME_IMMUTABLE, Types::INTEGER, ArrayParameterType::STRING],
+        );
     }
 }
