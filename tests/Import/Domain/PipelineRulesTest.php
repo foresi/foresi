@@ -316,6 +316,15 @@ final class PipelineRulesTest extends TestCase
         self::assertSame(ImportState::Undoing, $import->state());
     }
 
+    public function testAFailedFullReplaceThatOnlyArchivedCanBeUndone(): void
+    {
+        $import = $this->ran(ImportState::Running, new \DateTimeImmutable('2026-10-01'));
+        $import->recordArchived(2);
+        $import->fail('import.failure.stalled', new \DateTimeImmutable('2026-10-01'));
+
+        self::assertTrue($import->canMoveTo(ImportState::Undoing));
+    }
+
     public function testAFailedImportThatWroteNothingCannotBeUndone(): void
     {
         $read = $this->ran(ImportState::Checking, new \DateTimeImmutable('2026-10-01'));

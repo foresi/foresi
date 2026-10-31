@@ -276,6 +276,9 @@ final class ImportController extends AbstractController
             $import->markSeen(\DateTimeImmutable::createFromInterface($this->clock->now()));
             $this->imports->save();
         }
+        if ('upload' === $request->query->getString('then')) {
+            return $this->redirectToRoute('app_import_new', ['target' => $import->targetKey()], Response::HTTP_SEE_OTHER);
+        }
         $this->addFlash('success', $this->translator->trans('import.flash.cancelled'));
 
         return $this->toImport($id);

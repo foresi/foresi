@@ -356,7 +356,7 @@ final class ImportControllerTest extends WebTestCase
         $bar = $crawler->filter('form[action="/imports/'.$id.'/mapping"] [data-action-bar]');
         self::assertCount(1, $bar);
         self::assertSame(['Back', 'Check'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
-        self::assertSame('/imports/new?target=party', $bar->filter('a')->attr('href'));
+        self::assertSame('/imports/'.$id.'/cancel?then=upload', $bar->filter('button')->first()->attr('formaction'));
         self::assertMatchesRegularExpression('/^\d+ of 22 columns imported$/', trim($bar->filter('[data-action-bar-status]')->text()));
         self::assertStringContainsString('__mapped__ of 22 columns imported', (string) $crawler->filter('form[data-controller="import-mapping"]')->attr('data-import-mapping-summary-value'));
 
@@ -454,6 +454,18 @@ final class ImportControllerTest extends WebTestCase
         self::assertStringContainsString('The import is cancelled.', $crawler->filter('main')->text());
         $this->client->request('GET', '/contacts');
         self::assertSelectorNotExists('[data-shell-notices]');
+    }
+
+    public function testGoingBackFromTheFirstMatchingCancelsTheImportAndOpensTheUpload(): void
+    {
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $back = $crawler->filter('button[formaction="/imports/'.$id.'/cancel?then=upload"]');
+        self::assertCount(1, $back);
+        $this->client->submit($back->form());
+
+        self::assertResponseRedirects('/imports/new?target=party', 303);
+        self::assertSame(ImportState::Cancelled, $this->fresh($id)->state());
     }
 
     public function testTheHistoryListsTheImportsOfTheTenantOnly(): void

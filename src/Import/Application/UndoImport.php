@@ -13,7 +13,7 @@ use App\Import\Domain\ImportState;
 use Psr\Clock\ClockInterface;
 
 /**
- * Undoes a finished or stopped import in the background: created records are
+ * Undoes a finished, stopped or failed import that wrote records, in the background: created records are
  * archived, updated ones get their previous values back, archived ones are
  * restored. A record someone changed after the import is left alone and listed.
  */

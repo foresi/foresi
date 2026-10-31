@@ -124,7 +124,8 @@
             {% if editingMapping %}
                 <twig:Ui:Button :href="path('app_import_show', {id: import.id})">{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
             {% else %}
-                <twig:Ui:Button :href="path('app_import_new', {target: import.targetKey})">{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
+                {# Going back to the upload cancels this import, so no half-configured import is left behind. #}
+                <twig:Ui:Button type="submit" :formaction="path('app_import_cancel', {id: import.id, then: 'upload'})" formnovalidate>{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
             {% endif %}
             <twig:Ui:Button type="submit" variant="primary" icon="square-check-big" data-import-mapping-target="submit">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>

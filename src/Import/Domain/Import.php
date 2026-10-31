@@ -349,7 +349,7 @@ class Import implements TenantOwned
             return false;
         }
 
-        return ImportState::Failed !== $this->state || ImportState::Undoing !== $next || ($this->startedAt instanceof \DateTimeImmutable && $this->processed > 0);
+        return ImportState::Failed !== $this->state || ImportState::Undoing !== $next || ($this->startedAt instanceof \DateTimeImmutable && $this->processed + $this->archived > 0);
     }
 
     /**
