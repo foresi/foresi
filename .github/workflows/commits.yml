@@ -15,7 +15,7 @@ jobs:
       PATTERN: '^(feat|fix|chore|docs|test|refactor|ci|build|perf|style|revert)(\([a-z0-9._-]+\))?!?: .+'
       PR_TITLE: ${{ github.event.pull_request.title }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
