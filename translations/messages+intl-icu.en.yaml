@@ -33,6 +33,9 @@ nav:
     dashboard: Dashboard
     contacts: Address book
 ui:
+  mapping_row:
+    # Next to a select whose proposed choice is a guess the user should check.
+    review: Check this
   empty_state:
     title: Nothing here yet
   table:
@@ -420,6 +423,16 @@ import:
   mapping:
     title: Match columns
     intro: For each column, choose the field it is imported into. Leave the columns you do not need out of the import.
+    # After the basis sentence, when some columns were proposed.
+    intro_proposed: Check them and change any that are wrong.
+    # One sentence above the columns that says where the proposals come from.
+    basis:
+      remembered: We matched the columns as in your previous import.
+      preset: 'We recognised an export {source} and matched the columns to it.'
+      known: We recognised a known file format and matched the columns to it.
+      names: We matched the columns by their names.
+    # Under the select of a column whose field was guessed.
+    review_note: We guessed the field from a similar column name.
     summary: '{mapped} of {total, number} {total, plural, one {column} other {columns}} imported'
     do_not_import: Do not import
     required_field: '{field} (required)'
@@ -428,13 +441,9 @@ import:
     assign: 'Match the field {field} to one of the columns'
     submit: Check
     back: Back
-  reason:
-    remembered: Remembered
-    preset: Known source
-    same_name: Same name
-    similar_name: Similar name
-  source_name:
-    idoklad_contacts: iDoklad
+  # The source of a recognised file, as it follows "We recognised an export".
+  source_origin:
+    idoklad_contacts: from iDoklad
   group:
     party:
       general: Contact

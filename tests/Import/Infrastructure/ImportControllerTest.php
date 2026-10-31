@@ -150,16 +150,61 @@ final class ImportControllerTest extends WebTestCase
         self::assertStringContainsString('Match columns', $crawler->filter('nav[aria-label="Import steps"] [aria-current="step"]')->text());
         $firma = $this->row($crawler, 'Firma');
         self::assertSame('display_name', $firma->filter('option[selected]')->attr('value'));
-        self::assertSame('iDoklad', $firma->filter('.bg-badge-green')->text());
+        // One sentence says where the proposals come from; confident proposals carry no marker.
+        self::assertSame('We recognised an export from iDoklad and matched the columns to it. Check them and change any that are wrong.', trim($crawler->filter('[data-mapping-basis]')->text()));
+        self::assertCount(0, $crawler->filter('form [id$="-review"]'));
+        self::assertNull($firma->filter('select')->attr('aria-describedby'));
         self::assertSame(['Example Company s.r.o.', 'Jan Example', 'Example Trade a.s.'], $firma->filter('p [title]')->each(static fn (Crawler $sample): string => $sample->text()));
-        // A column the preset leaves out is proposed as "do not import", and says why.
+        // A column the preset leaves out is proposed as "do not import".
         $discount = $this->row($crawler, 'Sleva');
         self::assertSame('', $discount->filter('option[selected]')->attr('value'));
-        self::assertSame('iDoklad', $discount->filter('.bg-badge-green')->text());
         self::assertSame(['Contact', 'Billing address', 'Delivery address', 'Bank account', 'Contact person'], $firma->filter('optgroup')->each(static fn (Crawler $group): string => (string) $group->attr('label')));
         self::assertCount(3, $crawler->filter('input[type="radio"][name="mode"]'));
         self::assertSelectorTextContains('label[for="mode-full_replace"]', 'Records that are not in the file are archived.');
         self::assertNotNull($crawler->filter('[data-missing-alert]')->attr('hidden'));
+    }
+
+    public function testColumnsMatchedByNameAreSaidOnceAndOnlyAGuessIsMarkedForChecking(): void
+    {
+        $id = $this->uploadAndRead("Name,Emial\nExample Company,testing@example.com\n");
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+
+        self::assertSame('We matched the columns by their names. Check them and change any that are wrong.', trim($crawler->filter('[data-mapping-basis]')->text()));
+        // The same name is confident: no marker.
+        $name = $this->row($crawler, 'Name');
+        self::assertSame('display_name', $name->filter('option[selected]')->attr('value'));
+        self::assertCount(0, $name->filter('[id$="-review"]'));
+        // The similar name is a guess: a text marker and a reason, both describing its select.
+        $email = $this->row($crawler, 'Emial');
+        self::assertSame('email', $email->filter('option[selected]')->attr('value'));
+        self::assertSame('Check this', $email->filter('#column-1-review')->text());
+        self::assertSame('We guessed the field from a similar column name.', $email->filter('#column-1-review-note')->text());
+        self::assertSame('column-1-review column-1-review-note', $email->filter('select')->attr('aria-describedby'));
+
+        // Once the user chose another field, the guess is no longer theirs to check.
+        $form = $crawler->selectButton('Check')->form();
+        $form->setValues(['columns[0]' => '', 'columns[1]' => '']);
+        $crawler = $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(0, $crawler->filter('#column-1-review'));
+    }
+
+    public function testAFileWithNothingRecognisedKeepsThePlainIntroduction(): void
+    {
+        $id = $this->uploadAndRead("Foo,Bar\nx,y\n");
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+
+        self::assertSame('For each column, choose the field it is imported into. Leave the columns you do not need out of the import.', trim($crawler->filter('[data-mapping-basis]')->text()));
+        self::assertCount(0, $crawler->filter('form [id$="-review"]'));
+    }
+
+    public function testASecondImportOfTheSameColumnsSaysItFollowsThePreviousOne(): void
+    {
+        $this->finishedWithProfile();
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+
+        self::assertStringStartsWith('We matched the columns as in your previous import.', trim($crawler->filter('[data-mapping-basis]')->text()));
     }
 
     public function testAMissingRequiredFieldIsMarkedAtTheColumnThatMostLikelyHoldsIt(): void
@@ -708,6 +753,18 @@ final class ImportControllerTest extends WebTestCase
         self::assertSame(ImportState::Checked, $this->fresh($id)->state());
 
         return $id;
+    }
+
+    private function finishedWithProfile(): void
+    {
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $this->client->submit($crawler->selectButton('Check')->form(['mode' => 'update', 'profile_name' => 'Contacts from iDoklad']));
+        $this->worker->run();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $this->client->submit($crawler->selectButton('Start import')->form());
+        $this->worker->run();
+        self::assertSame(ImportState::FinishedWithErrors, $this->fresh($id)->state());
     }
 
     private function finished(): int

@@ -33,6 +33,9 @@ nav:
     dashboard: Přehled
     contacts: Adresář
 ui:
+  mapping_row:
+    # Next to a select whose proposed choice is a guess the user should check.
+    review: Ověřte
   empty_state:
     title: Zatím tu nic není
   table:
@@ -420,6 +423,16 @@ import:
   mapping:
     title: Přiřazení sloupců
     intro: U každého sloupce vyberte pole, do kterého se má importovat. Sloupce, které nepotřebujete, nechte neimportované.
+    # After the basis sentence, when some columns were proposed.
+    intro_proposed: Zkontrolujte je a případně změňte.
+    # One sentence above the columns that says where the proposals come from.
+    basis:
+      remembered: Sloupce jsme přiřadili podle vašeho minulého importu.
+      preset: 'Poznali jsme export {source} a sloupce přiřadili podle něj.'
+      known: Poznali jsme známý formát souboru a sloupce přiřadili podle něj.
+      names: Sloupce jsme přiřadili podle jejich názvů.
+    # Under the select of a column whose field was guessed.
+    review_note: Pole jsme odhadli podle podobného názvu sloupce.
     summary: '{mapped} z {total, number} {total, plural, one {sloupce} other {sloupců}} se importuje'
     do_not_import: Neimportovat
     required_field: '{field} (povinné)'
@@ -428,13 +441,9 @@ import:
     assign: 'Přiřaďte k některému sloupci pole {field}'
     submit: Zkontrolovat
     back: Zpět
-  reason:
-    remembered: Zapamatováno
-    preset: Známý zdroj
-    same_name: Stejný název
-    similar_name: Podobný název
-  source_name:
-    idoklad_contacts: iDoklad
+  # The source of a recognised file, as it follows "Poznali jsme export".
+  source_origin:
+    idoklad_contacts: z iDokladu
   group:
     party:
       general: Kontakt
