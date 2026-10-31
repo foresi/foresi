@@ -162,25 +162,64 @@ final class ImportControllerTest extends WebTestCase
         self::assertNotNull($crawler->filter('[data-missing-alert]')->attr('hidden'));
     }
 
-    public function testAMissingRequiredFieldBlocksTheCheckAndNamesTheField(): void
+    public function testAMissingRequiredFieldIsMarkedAtTheColumnThatMostLikelyHoldsIt(): void
     {
         $id = $this->uploadAndRead();
         $crawler = $this->client->request('GET', '/imports/'.$id);
+        // The check button is never held back, and the bar carries no error text.
+        self::assertNull($crawler->selectButton('Check')->attr('disabled'));
         $form = $crawler->selectButton('Check')->form();
-        $form->setValues(['columns[0]' => '']);
+        $form->setValues(['columns[0]' => '', 'columns[9]' => '']);
 
         $crawler = $this->client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('main [role="alert"]', 'Name');
         self::assertSame(ImportState::Mapping, $this->fresh($id)->state());
-        // The choice the user made is kept, and the warning above the columns names the field.
+        self::assertSame('Error: idoklad-contacts.csv', $crawler->filter('title')->text());
+        // "Firma" is the column whose header names the field, so the message is under its select.
+        $select = $crawler->filter('#column-0');
+        self::assertSame('true', $select->attr('aria-invalid'));
+        self::assertSame('column-0-error', $select->attr('aria-describedby'));
+        self::assertNotNull($select->attr('autofocus'));
+        self::assertStringContainsString('border-badge-red-text', (string) $select->attr('class'));
+        self::assertSame('Match the field Name to one of the columns', trim($crawler->filter('#column-0-error')->text()));
+        self::assertCount(1, $crawler->filter('[aria-invalid="true"]'));
+        self::assertCount(1, $crawler->filter('[autofocus]'));
+        // Everything the user chose is kept.
         self::assertSame('', $this->row($crawler, 'Firma')->filter('option[selected]')->attr('value'));
+        self::assertSame('', $this->row($crawler, 'Telefon')->filter('option[selected]')->attr('value'));
+        self::assertSame('registration_number', $this->row($crawler, 'IČ')->filter('option[selected]')->attr('value'));
+        // The warning above the columns names the field; the bar only counts and the button stays enabled.
         self::assertNull($crawler->filter('[data-missing-alert]')->attr('hidden'));
         self::assertStringContainsString('Name', $crawler->filter('[data-missing-alert]')->text());
-        // The docked bar names it next to the held-back button too.
-        self::assertSame('The check starts once you match a column to the required field Name.', trim($crawler->filter('[data-action-bar-status]')->text()));
+        self::assertSame('18 of 22 columns imported', trim($crawler->filter('[data-action-bar-status]')->text()));
+        self::assertNull($crawler->selectButton('Check')->attr('disabled'));
+        self::assertNull($crawler->selectButton('Check')->attr('data-import-mapping-target'));
         self::assertSame('{"display_name":"Name"}', $crawler->filter('form[data-controller="import-mapping"]')->attr('data-import-mapping-required-value'));
+        self::assertNotNull($crawler->filter('form[data-controller="import-mapping"]')->attr('novalidate'));
+    }
+
+    public function testEveryProblemOfTheMappingIsMarkedAtOnceAndTheFirstTakesTheFocus(): void
+    {
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $form = $crawler->selectButton('Check')->form();
+        // No name, a match key no column fills, and a full replace without a profile.
+        $form->setValues(['columns[0]' => '', 'columns[1]' => '', 'match_key' => 'registration_number', 'mode' => 'full_replace', 'scope' => 'profile', 'profile_name' => '']);
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(['column-0', 'match_key', 'profile_name'], $crawler->filter('[aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(['column-0'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSelectorTextContains('#match_key-error', 'Choose a match key that a column is mapped to.');
+        self::assertSelectorTextContains('#profile_name-error', 'Name the import profile');
+        self::assertSame('match_key-help match_key-error', $crawler->filter('#match_key')->attr('aria-describedby'));
+        // No message about the form as a whole: each problem is at its field.
+        self::assertSelectorNotExists('main [role="alert"]:not([id$="-error"])');
+        self::assertSame('full_replace', $crawler->filter('input[name="mode"][checked]')->attr('value'));
+        self::assertSame('registration_number', $crawler->filter('#match_key option[selected]')->attr('value'));
+        self::assertSame(ImportState::Mapping, $this->fresh($id)->state());
     }
 
     public function testTheMappingIsCheckedAndTheCheckShowsWhatTheImportWillDo(): void
@@ -223,6 +262,13 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#confirmation-error', 'Type 1');
+        $crawler = $this->client->getCrawler();
+        self::assertSame('Error: idoklad-contacts.csv', $crawler->filter('title')->text());
+        self::assertNotNull($crawler->filter('form[action$="/run"]')->attr('novalidate'));
+        self::assertSame('true', $crawler->filter('#confirmation')->attr('aria-invalid'));
+        self::assertSame('confirmation-error', $crawler->filter('#confirmation')->attr('aria-describedby'));
+        self::assertSame(['confirmation'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertNull($crawler->selectButton('Start import')->attr('disabled'));
         self::assertSame(ImportState::Checked, $this->fresh($id)->state());
 
         $crawler = $this->client->request('GET', '/imports/'.$id);
@@ -516,6 +562,49 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#file-error', 'Choose the file you want to upload.');
+        $crawler = $this->client->getCrawler();
+        self::assertSame('Error: New import', $crawler->filter('title')->text());
+        self::assertNotNull($crawler->filter('form[enctype]')->attr('novalidate'));
+        self::assertSame('true', $crawler->filter('#file')->attr('aria-invalid'));
+        self::assertSame('file-help file-error', $crawler->filter('#file')->attr('aria-describedby'));
+        self::assertSame(['file'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertNull($crawler->selectButton('Upload file')->attr('disabled'));
+    }
+
+    public function testAFileOverOurLimitIsMarkedAtTheFileField(): void
+    {
+        $path = $this->dir.'/big.csv';
+        $handle = fopen($path, 'w');
+        self::assertIsResource($handle);
+        ftruncate($handle, 51 * 1_048_576);
+        fclose($handle);
+
+        $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party'], ['file' => new UploadedFile($path, 'big.csv', 'text/csv', null, true)]);
+
+        self::assertResponseStatusCodeSame(422);
+        $crawler = $this->client->getCrawler();
+        self::assertSame('Error: New import', $crawler->filter('title')->text());
+        self::assertSame('true', $crawler->filter('#file')->attr('aria-invalid'));
+        self::assertSelectorTextContains('#file-error', 'larger than 50 MB');
+        self::assertNotNull($crawler->filter('#file')->attr('autofocus'));
+    }
+
+    public function testAProfileThatIsGoneIsMarkedAtTheProfileField(): void
+    {
+        // A first import names a profile, so the upload offers it.
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $this->client->submit($crawler->selectButton('Check')->form(['mode' => 'update', 'profile_name' => 'Contacts from iDoklad']));
+        $path = $this->dir.'/upload.csv';
+        file_put_contents($path, (string) file_get_contents(self::FIXTURE));
+
+        $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party', 'profile' => '99999'], ['file' => new UploadedFile($path, 'upload.csv', 'text/csv', null, true)]);
+
+        self::assertResponseStatusCodeSame(422);
+        $crawler = $this->client->getCrawler();
+        self::assertSame('true', $crawler->filter('#profile')->attr('aria-invalid'));
+        self::assertSelectorTextContains('#profile-error', 'does not exist');
+        self::assertSame(['profile'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
     }
 
     public function testALongFileNameIsCutToTheColumnAndKeepsItsExtension(): void

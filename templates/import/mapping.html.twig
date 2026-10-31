@@ -4,6 +4,7 @@
 {% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
 {% set source = screen.source %}
 {% set options = screen.options %}
+{% set form_invalid = screen.invalid %}
 
 {% block title %}{{ import.originalName }}{% endblock %}
 
@@ -12,8 +13,8 @@
 {% endblock %}
 
 {% block screen %}
-    {% if error is defined %}
-        <twig:Ui:Alert tone="error">{{ error }}</twig:Ui:Alert>
+    {% if screen.errors.form is defined %}
+        <twig:Ui:Alert tone="error">{{ screen.errors.form }}</twig:Ui:Alert>
     {% endif %}
 
     <twig:Ui:Card :title="'import.file.title'|trans" icon="inbox">
@@ -45,7 +46,7 @@
         {% endif %}
     </twig:Ui:Card>
 
-    <form method="post" action="{{ path('app_import_mapping', {id: import.id}) }}" class="grid gap-4"
+    <form method="post" action="{{ path('app_import_mapping', {id: import.id}) }}" class="grid gap-4" novalidate
           data-controller="import-mapping"
           data-action="change->import-mapping#update"
           data-import-mapping-required-value="{{ screen.required|json_encode }}"
@@ -62,7 +63,7 @@
             <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.mapping.intro'|trans }}</p>
             <div class="divide-y divide-line">
                 {% for column in screen.columns %}
-                    <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :badge="column.badge" />
+                    <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :badge="column.badge" :errors="column.errors" />
                 {% endfor %}
             </div>
         </twig:Ui:Card>
@@ -91,7 +92,7 @@
             <div class="grid gap-4">
                 <twig:Ui:RadioCards name="mode" id="mode" :legend="'import.options.mode'|trans" :options="screen.modes" :value="options.mode.value" />
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <twig:Ui:Select name="match_key" id="match_key" :label="'import.options.match_key'|trans" :help="'import.options.match_key_help'|trans" :options="screen.matchKeys" :value="options.matchKey|default('')" />
+                    <twig:Ui:Select name="match_key" id="match_key" :label="'import.options.match_key'|trans" :help="'import.options.match_key_help'|trans" :options="screen.matchKeys" :value="options.matchKey|default('')" :error="screen.errors.match_key|default(null)" />
                     <div data-import-mapping-target="writeOnly">
                         <twig:Ui:Select name="blank_cells" id="blank_cells" :label="'import.options.blank_cells'|trans" :help="'import.options.blank_cells_help'|trans" :options="screen.blankCells" :value="options.blankCells.value" />
                     </div>
@@ -112,22 +113,22 @@
                         <input type="hidden" name="profile_id" value="{{ screen.profileId }}">
                         <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept'|trans" :value="screen.profile" disabled />
                     {% else %}
-                        <twig:Ui:TextInput name="profile_name" id="profile_name" :label="'import.options.profile_name'|trans" :help="'import.options.profile_name_help'|trans" :value="screen.profileName" maxlength="255" autocomplete="off" />
+                        <twig:Ui:TextInput name="profile_name" id="profile_name" :label="'import.options.profile_name'|trans" :help="'import.options.profile_name_help'|trans" :value="screen.profileName" :error="screen.errors.profile_name|default(null)" maxlength="255" autocomplete="off" />
                     {% endif %}
                 </div>
             </div>
         </twig:Ui:Card>
 
         <twig:Ui:ActionBar>
-            {# Names the missing required fields while the check is held back, so the reason is next to the disabled button. #}
-            <twig:block name="status"><span class="num" data-import-mapping-target="summary">{% if screen.missing is not empty %}{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }} {{ screen.missing|join(', ') }}.{% else %}{{ 'import.mapping.summary'|trans({mapped: screen.mappedCount, total: screen.columns|length}) }}{% endif %}</span></twig:block>
+            {# A neutral count only: problems are shown at their fields, and the check button is never held back. #}
+            <twig:block name="status"><span class="num" data-import-mapping-target="summary">{{ 'import.mapping.summary'|trans({mapped: screen.mappedCount, total: screen.columns|length}) }}</span></twig:block>
             {% if editingMapping %}
                 <twig:Ui:Button :href="path('app_import_show', {id: import.id})">{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
             {% else %}
                 {# Going back to the upload cancels this import, so no half-configured import is left behind. #}
                 <twig:Ui:Button type="submit" :formaction="path('app_import_cancel', {id: import.id, then: 'upload'})" formnovalidate>{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
             {% endif %}
-            <twig:Ui:Button type="submit" variant="primary" icon="square-check-big" data-import-mapping-target="submit">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" icon="square-check-big">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </form>
 {% endblock %}

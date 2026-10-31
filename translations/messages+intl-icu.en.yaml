@@ -419,6 +419,8 @@ import:
     do_not_import: Do not import
     required_field: '{field} (required)'
     missing: 'The check starts once you match a column to the required {count, plural, one {field} other {fields}}'
+    # Under the select of the column that most likely holds a required field no column fills.
+    assign: 'Match the field {field} to one of the columns'
     submit: Check
     back: Back
   reason:

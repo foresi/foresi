@@ -2,6 +2,7 @@
 {% extends 'import/_flow.html.twig' %}
 
 {% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
+{% set form_invalid = confirmationError|default(null) is not null %}
 
 {% block title %}{{ import.originalName }}{% endblock %}
 
@@ -11,7 +12,7 @@
 
 {% block screen %}
     {# One form for the whole screen, so the docked action bar at its end stays in view over the preview. #}
-    <form method="post" action="{{ path('app_import_run', {id: import.id}) }}" class="grid gap-4 [&>*]:min-w-0">
+    <form method="post" action="{{ path('app_import_run', {id: import.id}) }}" class="grid gap-4 [&>*]:min-w-0" novalidate>
         <input type="hidden" name="_token" value="{{ token }}">
 
         <p class="m-0 text-text">{{ 'import.check.intro'|trans({mode: ('import.mode.' ~ import.options.mode.value ~ '.label')|trans}) }}</p>

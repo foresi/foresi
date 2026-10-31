@@ -113,6 +113,46 @@ final readonly class ColumnMatcher
     }
 
     /**
+     * The column a required field that no column fills most likely belongs to,
+     * so the message about it sits at that column's select: the column whose
+     * header is closest to the field (at least as similar as a proposal has to
+     * be), else the first column left out of the import, else the first column.
+     * Ties go to the leftmost column. Null when there are no columns.
+     *
+     * @param array<int, string>             $headers by column
+     * @param callable(string): list<string> $labels  the translated names of a label key
+     */
+    public function likelyColumn(array $headers, Mapping $mapping, FieldDefinition $field, callable $labels): ?int
+    {
+        $spellings = $this->candidates($field, $labels);
+        $best = null;
+        $bestRatio = self::SIMILARITY;
+        foreach ($headers as $column => $header) {
+            $name = HeaderName::compact($header);
+            if ('' === $name) {
+                continue;
+            }
+            foreach ($spellings as $spelling) {
+                $ratio = $this->similarity($name, $spelling);
+                if ($ratio >= $bestRatio && (null === $best || $ratio > $bestRatio)) {
+                    $best = $column;
+                    $bestRatio = $ratio;
+                }
+            }
+        }
+        if (null !== $best) {
+            return $best;
+        }
+        foreach (array_keys($headers) as $column) {
+            if (null === $mapping->fieldFor($column)) {
+                return $column;
+            }
+        }
+
+        return array_key_first($headers);
+    }
+
+    /**
      * @param callable(string): list<string> $labels
      *
      * @return list<string> the compact spellings that name the field
@@ -144,7 +184,7 @@ final readonly class ColumnMatcher
             }
             $accepted = null;
             foreach ($candidates[$field->key] as $spelling) {
-                $ratio = 1 - $this->distance($name, $spelling) / max(\strlen($name), \strlen($spelling));
+                $ratio = $this->similarity($name, $spelling);
                 if ($ratio >= $bestRatio && (null === $best || $ratio > $bestRatio) && ($accepted ??= $this->accepts($field, $samples))) {
                     $best = $field->key;
                     $bestRatio = $ratio;
@@ -167,6 +207,12 @@ final readonly class ColumnMatcher
         $read = \count(array_filter($samples, fn (string $sample): bool => !$this->normaliser->normalise($field, $sample, $options) instanceof RowError));
 
         return $read / \count($samples) >= self::SAMPLE_SHARE;
+    }
+
+    /** 1 for the same name, falling with each edit; both names are compact and non-empty. */
+    private function similarity(string $name, string $spelling): float
+    {
+        return 1 - $this->distance($name, $spelling) / max(\strlen($name), \strlen($spelling));
     }
 
     /**

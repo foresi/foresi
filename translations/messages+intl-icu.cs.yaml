@@ -419,6 +419,8 @@ import:
     do_not_import: Neimportovat
     required_field: '{field} (povinné)'
     missing: 'Kontrola začne, až přiřadíte sloupec {count, plural, one {k povinnému poli} other {k povinným polím}}'
+    # Under the select of the column that most likely holds a required field no column fills.
+    assign: 'Přiřaďte k některému sloupci pole {field}'
     submit: Zkontrolovat
     back: Zpět
   reason:

@@ -100,31 +100,36 @@ final class ImportController extends AbstractController
         if (0 === $request->request->count() && 0 === $request->files->count() && $request->server->getInt('CONTENT_LENGTH') > 0) {
             $this->requireTenant();
 
-            return $this->upload($this->chosenTarget($request->query->getString('target')), $this->serverLimit(), null, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->upload($this->chosenTarget($request->query->getString('target')), ['file' => $this->serverLimit()], null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->checkToken($request);
         $target = $this->chosenTarget($request->request->getString('target'));
         $file = $request->files->get('file');
-        if (!$target instanceof ImportTarget) {
-            return $this->upload(null, $this->translator->trans('import.upload.target_missing'), null, Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
         $profile = $request->request->getString('profile');
         $profileId = ctype_digit($profile) ? (int) $profile : null;
 
+        // Every problem of the form at once, each at its field.
+        $fileError = null;
         if (!$file instanceof UploadedFile || !$file->isValid()) {
             // The server's own limit (upload_max_filesize) stopped the file, which may be lower than ours.
-            $error = $file instanceof UploadedFile && \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true) ? $this->serverLimit() : $this->translator->trans('import.upload.missing');
-
-            return $this->upload($target, $error, $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            $fileError = $file instanceof UploadedFile && \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true) ? $this->serverLimit() : $this->translator->trans('import.upload.missing');
+        } elseif ($file->getSize() > self::MAX_UPLOAD_BYTES) {
+            $fileError = $this->translator->trans('import.upload.too_large');
         }
-        if ($file->getSize() > self::MAX_UPLOAD_BYTES) {
-            return $this->upload($target, $this->translator->trans('import.upload.too_large'), $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
+        if (!$target instanceof ImportTarget || !$file instanceof UploadedFile || null !== $fileError) {
+            $errors = array_filter([
+                'target' => $target instanceof ImportTarget ? null : $this->translator->trans('import.upload.target_missing'),
+                'file' => $fileError,
+            ], static fn (?string $error): bool => null !== $error);
+
+            return $this->upload($target, $errors, $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
             $id = $this->start->start($target->key(), $file->getPathname(), $file->getClientOriginalName(), $this->userId(), $profileId);
         } catch (ImportRefused $refused) {
-            return $this->upload($target, $this->refusal($refused), null, Response::HTTP_UNPROCESSABLE_ENTITY);
+            // The profile chosen is gone (the only refusal of a start); everything else is kept.
+            return $this->upload($target, ['profile' => $this->refusal($refused)], null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return $this->toImport($id);
@@ -182,13 +187,15 @@ final class ImportController extends AbstractController
                 return $this->refused($id, $refused);
             }
 
+            // Shown again as it was sent, with every problem at its field.
+            $errors = $this->screens->mappingErrors($import, $submission, $refused, $this->refusal($refused, $import->targetKey()));
+
             return $this->screen(
                 'import/mapping.html.twig',
                 $import,
-                $this->screens->mapping($import, $submission->mapping, $submission->options, $submission->profileName),
+                $this->screens->mapping($import, $submission->mapping, $submission->options, $submission->profileName, errors: $errors),
                 ImportState::Checked === $import->state(),
-                ['error' => $this->refusal($refused, $import->targetKey())],
-                Response::HTTP_UNPROCESSABLE_ENTITY,
+                status: Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }
 
@@ -356,9 +363,10 @@ final class ImportController extends AbstractController
     }
 
     /**
-     * @param ImportTarget|null $target null lets the user choose among all targets
+     * @param ImportTarget|null     $target null lets the user choose among all targets
+     * @param array<string, string> $errors field (target, file, profile) => message
      */
-    private function upload(?ImportTarget $target, ?string $error = null, ?int $profileId = null, int $status = Response::HTTP_OK): Response
+    private function upload(?ImportTarget $target, array $errors = [], ?int $profileId = null, int $status = Response::HTTP_OK): Response
     {
         $profiles = [];
         foreach ($target instanceof ImportTarget ? $this->profiles->forTarget($target->key()) : [] as $profile) {
@@ -375,7 +383,7 @@ final class ImportController extends AbstractController
             'targets' => $targets,
             'profiles' => $profiles,
             'profileId' => null === $profileId ? '' : (string) $profileId,
-            'error' => $error,
+            'errors' => $errors,
             'stepper' => ['steps' => $this->screens->steps(), 'current' => 0],
             'crumbs' => $target instanceof ImportTarget ? $this->screens->crumbs($target->key()) : [['label' => $this->translator->trans('import.history.title'), 'href' => $this->generateUrl('app_imports')], ['label' => $this->translator->trans('import.upload.title')]],
         ]);

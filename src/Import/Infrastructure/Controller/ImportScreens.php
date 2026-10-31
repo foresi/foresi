@@ -9,14 +9,17 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure\Controller;
 
 use App\Identity\Application\UserRepository;
+use App\Import\Application\ImportRefused;
 use App\Import\Application\Imports;
 use App\Import\Application\PresetRegistry;
+use App\Import\Application\RowReader;
 use App\Import\Application\Source\Encoding;
 use App\Import\Application\Source\SourceFormat;
 use App\Import\Application\Source\SourceSettings;
 use App\Import\Application\Target\ImportTarget;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Domain\BlankCells;
+use App\Import\Domain\ColumnMatcher;
 use App\Import\Domain\ColumnProposal;
 use App\Import\Domain\DateOrder;
 use App\Import\Domain\DecimalSeparator;
@@ -74,6 +77,12 @@ final readonly class ImportScreens
 
     private const array DELIMITERS = [';' => 'semicolon', ',' => 'comma', "\t" => 'tab', '|' => 'pipe'];
 
+    /** The languages whose field names a column header is compared with. */
+    private const array LABEL_LOCALES = ['cs', 'en'];
+
+    /** The refusals of the mapping that belong to one of its fields. */
+    private const array FIELD_REFUSALS = ['import.refused.required_unmapped', 'import.refused.match_key', 'import.refused.profile_required'];
+
     public function __construct(
         private Imports $imports,
         private TargetRegistry $targets,
@@ -81,6 +90,7 @@ final readonly class ImportScreens
         private PresetRegistry $presets,
         private UserRepository $users,
         private ValueNormaliser $normaliser,
+        private ColumnMatcher $matcher,
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urls,
         private ClockInterface $clock,
@@ -215,12 +225,52 @@ final readonly class ImportScreens
     }
 
     /**
+     * Every problem of a refused mapping at the field it belongs to, so the
+     * screen marks all of them at once: a required field no column fills at
+     * the select of the column it most likely is (a select may carry several),
+     * a match key no column fills at the match key, a full replace without a
+     * profile at the profile name. A refusal that belongs to no field, or
+     * that the fields do not explain, is the form's own message.
+     *
+     * @return array{columns: array<int, list<string>>, match_key?: string, profile_name?: string, form?: string}
+     */
+    public function mappingErrors(Import $import, MappingSubmission $submission, ImportRefused $refused, string $refusalText): array
+    {
+        $mapping = $submission->mapping;
+        $options = $submission->options;
+        $target = $this->targets->get($import->targetKey());
+        $fields = $this->fieldsByKey($target);
+        $errors = ['columns' => []];
+        foreach ($mapping->missingRequired($target->fields()) as $key) {
+            $column = $this->matcher->likelyColumn($import->headers(), $mapping, $fields[$key], $this->labels(...));
+            if (null !== $column) {
+                $errors['columns'][$column][] = $this->trans('import.mapping.assign', ['field' => $this->trans($fields[$key]->labelKey)]);
+            }
+        }
+        if (null !== $options->matchKey && null === RowReader::matchKeyOf($target, $mapping, $options->matchKey)) {
+            $errors['match_key'] = $this->trans('import.refused.match_key');
+        }
+        if (ImportMode::FullReplace === $options->mode && ReplaceScope::Profile === $options->scope && null === $submission->profileId && null === $submission->profileName) {
+            $errors['profile_name'] = $this->trans('import.refused.profile_required');
+        }
+        $explained = [] !== $errors['columns'] || \count($errors) > 1;
+        if (!\in_array($refused->reason, self::FIELD_REFUSALS, true) || !$explained) {
+            $errors['form'] = $refusalText;
+        }
+
+        return $errors;
+    }
+
+    /**
      * Everything the mapping screen shows. The mapping and options are the
-     * import's own, or what the user just sent when it was refused.
+     * import's own, or what the user just sent when it was refused, with the
+     * errors of that refusal (see mappingErrors()).
+     *
+     * @param array{columns?: array<int, list<string>>, match_key?: string, profile_name?: string, form?: string} $errors
      *
      * @return array<string, mixed>
      */
-    public function mapping(Import $import, ?Mapping $mapping = null, ?ImportOptions $options = null, ?string $profileName = null, bool $editSource = false): array
+    public function mapping(Import $import, ?Mapping $mapping = null, ?ImportOptions $options = null, ?string $profileName = null, bool $editSource = false, array $errors = []): array
     {
         $target = $this->targets->get($import->targetKey());
         $mapping ??= $import->mapping();
@@ -244,6 +294,7 @@ final readonly class ImportScreens
                 'samples' => $samples[$column] ?? [],
                 'value' => $value ?? '',
                 'badge' => $this->reasonBadge($proposals[$column] ?? null, $value, $import->presetKey()),
+                'errors' => $errors['columns'][$column] ?? [],
             ];
         }
 
@@ -256,6 +307,8 @@ final readonly class ImportScreens
         $missing = array_map(fn (string $key): string => $required[$key] ?? $key, $mapping->missingRequired($target->fields()));
         $mapped = array_filter($mapping->columns, static fn (?string $key): bool => null !== $key);
         $ambiguity = $this->ambiguity($mapping, $fields, $rows);
+        $columnErrors = $errors['columns'] ?? [];
+        unset($errors['columns']);
 
         return [
             'source' => $this->source($import, $editSource),
@@ -275,6 +328,8 @@ final readonly class ImportScreens
             'profile' => $import->profile()?->name(),
             'profileId' => $import->profile()?->id(),
             'profileName' => $profileName ?? '',
+            'errors' => $errors,
+            'invalid' => [] !== $errors || [] !== $columnErrors,
         ];
     }
 
@@ -773,6 +828,14 @@ final readonly class ImportScreens
     private function number(int $value): string
     {
         return $this->trans('import.number', ['value' => $value]);
+    }
+
+    /**
+     * @return list<string> the names of a field in every language a header may be written in
+     */
+    private function labels(string $labelKey): array
+    {
+        return array_values(array_unique(array_map(fn (string $locale): string => $this->translator->trans($labelKey, [], 'messages', $locale), self::LABEL_LOCALES)));
     }
 
     /**

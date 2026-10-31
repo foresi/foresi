@@ -329,6 +329,66 @@ final class ColumnMatcherTest extends TestCase
         self::assertFalse($preset->recognises([...array_slice($known, 0, 6), 'a', 'b', 'c', 'd']), '6 of 10 is not');
     }
 
+    /**
+     * @param array<int, string>      $headers
+     * @param array<int, string|null> $columns the current choice of each column
+     */
+    private function likely(array $headers, array $columns, string $fieldKey = 'display_name'): ?int
+    {
+        $labels = static fn (string $key): array => match ($key) {
+            'field.display_name' => ['Název', 'Name'],
+            'field.email' => ['E-mailová adresa', 'Email address'],
+            default => [],
+        };
+        $field = array_values(array_filter($this->fields(), static fn (FieldDefinition $field): bool => $field->key === $fieldKey))[0];
+
+        return new ColumnMatcher(new ValueNormaliser())->likelyColumn($headers, new Mapping($columns), $field, $labels);
+    }
+
+    public function testTheMessageAboutAMissingFieldGoesToTheColumnWhoseHeaderNamesIt(): void
+    {
+        // "Nazev firmy" is an alias, "Název" the label; a column mapped elsewhere still counts.
+        self::assertSame(2, $this->likely(['Telefon', 'Mesto', 'Nazev firmy'], [0 => 'phone', 1 => null, 2 => 'email']));
+        self::assertSame(1, $this->likely(['Telefon', 'Název', 'Nazev firmy'], [0 => null, 1 => 'email', 2 => 'email']));
+    }
+
+    public function testASimilarHeaderIsEnoughAndTheClosestWins(): void
+    {
+        // "Nazve" is a transposition of "Nazev" (similar), "Name" is the English label (the same).
+        self::assertSame(1, $this->likely(['Nazve', 'Name'], [0 => null, 1 => null]));
+        self::assertSame(0, $this->likely(['Nazve', 'Telefon'], [0 => 'phone', 1 => null]));
+        self::assertSame(1, $this->likely(['Emial', 'Email'], [0 => null, 1 => null], 'email'));
+    }
+
+    public function testAColumnWithoutAHeaderIsPassedOver(): void
+    {
+        self::assertSame(1, $this->likely(['', 'Name'], [0 => 'email', 1 => 'phone']));
+    }
+
+    public function testEqualCandidatesGoToTheLeftmostColumn(): void
+    {
+        self::assertSame(0, $this->likely(['Name', 'Name'], [0 => 'email', 1 => null]));
+    }
+
+    public function testWithoutASimilarHeaderTheFirstColumnLeftOutGetsTheMessage(): void
+    {
+        // "Nazev xyz" is not similar enough; column 1 is the first not imported.
+        self::assertSame(1, $this->likely(['Telefon', 'Mesto', 'Nazev xyz', ''], [0 => 'phone', 1 => null, 2 => null, 3 => null]));
+        // A column missing from the mapping is not imported either.
+        self::assertSame(1, $this->likely(['Telefon', 'Mesto'], [0 => 'phone']));
+    }
+
+    public function testWhenEveryColumnIsImportedTheFirstColumnGetsTheMessage(): void
+    {
+        self::assertSame(0, $this->likely(['Telefon', 'Mesto'], [0 => 'phone', 1 => 'email']));
+        self::assertSame(3, $this->likely([3 => 'Telefon', 4 => 'Mesto'], [3 => 'phone', 4 => 'email']));
+    }
+
+    public function testNoColumnsMeansNoSelectForTheMessage(): void
+    {
+        self::assertNull($this->likely([], []));
+    }
+
     /** @param array<array-key, string|null> $columns */
     private function preset(array $columns): AbstractSourcePreset
     {
