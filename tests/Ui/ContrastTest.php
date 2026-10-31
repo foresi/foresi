@@ -42,6 +42,28 @@ final class ContrastTest extends TestCase
         yield 'badge red text on head' => ['badge-red-text', 'head'];
     }
 
+    /**
+     * Control boundaries (WCAG 2.2 SC 1.4.11 non-text contrast, 3:1): every control
+     * sits on white, and the palette opener and nav sit on the frame.
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function controlBoundaries(): iterable
+    {
+        yield 'control line on white' => ['control-line', 'white'];
+        yield 'control line on frame' => ['control-line', 'frame'];
+        yield 'error line on white' => ['badge-red-text', 'white'];
+        yield 'selected line on white' => ['green', 'white'];
+    }
+
+    #[DataProvider('controlBoundaries')]
+    public function testControlBoundaryMeetsNonTextContrast(string $line, string $background): void
+    {
+        $ratio = $this->ratio($this->token($line), $this->token($background));
+
+        self::assertGreaterThanOrEqual(3.0, $ratio, sprintf('%s on %s is %.2f:1', $line, $background, $ratio));
+    }
+
     #[DataProvider('pairs')]
     public function testPairMeetsAa(string $foreground, string $background): void
     {

@@ -63,10 +63,14 @@
     --color-text: #3e3d38;
     --color-muted: #6b695f;
 
-    /* Border roles: a line inside a surface, the edge of a surface, the edge of a control. */
+    /*
+     * Border roles: a line inside a surface, the edge of a surface, the edge of a control.
+     * Only the control edge identifies a component, so only it must reach 3:1 against
+     * white and the frame (WCAG 2.2 SC 1.4.11, tests/Ui/ContrastTest.php).
+     */
     --color-divider: #ece9e2;
     --color-container: #e6e2d8;
-    --color-control-line: #cfc9bb;
+    --color-control-line: #8f897a;
 
     --color-badge-gray: #f1efea;
     --color-badge-gray-text: #57554e;
