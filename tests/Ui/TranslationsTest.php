@@ -13,6 +13,8 @@ use Symfony\Component\Yaml\Yaml;
 
 final class TranslationsTest extends TestCase
 {
+    private const int HELP_LENGTH = 60;
+
     public function testCzechAndEnglishCatalogsHaveTheSameKeys(): void
     {
         self::assertSame($this->keys('cs'), $this->keys('en'));
@@ -23,6 +25,18 @@ final class TranslationsTest extends TestCase
         foreach (['cs', 'en'] as $locale) {
             foreach ($this->flatten($this->load($locale)) as $key => $value) {
                 self::assertNotSame('', trim($value), sprintf('%s.%s is empty.', $locale, $key));
+            }
+        }
+    }
+
+    /** A help text is one short line that helps fill the field: it fits a half-width field on the desktop. */
+    public function testEveryHelpTextFitsOneLine(): void
+    {
+        foreach (['cs', 'en'] as $locale) {
+            $help = array_filter($this->flatten($this->load($locale)), static fn (string $key): bool => 1 === preg_match('/[._]help$/', $key), \ARRAY_FILTER_USE_KEY);
+            self::assertNotSame([], $help);
+            foreach ($help as $key => $text) {
+                self::assertLessThanOrEqual(self::HELP_LENGTH, mb_strlen($text), sprintf('%s.%s is longer than one line.', $locale, $key));
             }
         }
     }

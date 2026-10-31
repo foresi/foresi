@@ -293,7 +293,7 @@ final readonly class ImportScreens
                 'label' => $header,
                 'samples' => $samples[$column] ?? [],
                 'value' => $value ?? '',
-                'badge' => $this->reasonBadge($proposals[$column] ?? null, $value, $import->presetKey()),
+                'review' => $this->reviewNote($proposals[$column] ?? null, $value),
                 'errors' => $errors['columns'][$column] ?? [],
             ];
         }
@@ -313,6 +313,7 @@ final readonly class ImportScreens
         return [
             'source' => $this->source($import, $editSource),
             'columns' => $columns,
+            'basis' => $this->basis($proposals, $import->presetKey()),
             'fieldOptions' => $fieldOptions,
             'mappedCount' => \count($mapped),
             'required' => $required,
@@ -548,23 +549,40 @@ final readonly class ImportScreens
     }
 
     /**
-     * Why the column was proposed for the field it is mapped to now; nothing once the user chose another field.
+     * The one sentence that says where the proposed columns come from: the
+     * previous import of a profile, a recognised source, or the column names.
+     * Null when nothing was proposed.
      *
-     * @return array{label: string, tone: string}|null
+     * @param array<int, ColumnProposal> $proposals
      */
-    private function reasonBadge(?ColumnProposal $proposal, ?string $value, ?string $presetKey): ?array
+    private function basis(array $proposals, ?string $presetKey): ?string
     {
-        if (!$proposal instanceof ColumnProposal || MatchReason::None === $proposal->reason || $proposal->fieldKey !== $value) {
+        $reasons = array_map(static fn (ColumnProposal $proposal): MatchReason => $proposal->reason, $proposals);
+        if (\in_array(MatchReason::Remembered, $reasons, true)) {
+            return $this->trans('import.mapping.basis.remembered');
+        }
+        if (\in_array(MatchReason::Preset, $reasons, true)) {
+            $preset = $this->presets->find($presetKey);
+
+            return $preset instanceof SourcePreset
+                ? $this->trans('import.mapping.basis.preset', ['source' => $this->trans('import.source_origin.'.$preset->key())])
+                : $this->trans('import.mapping.basis.known');
+        }
+        if (\in_array(MatchReason::SameName, $reasons, true) || \in_array(MatchReason::SimilarName, $reasons, true)) {
+            return $this->trans('import.mapping.basis.names');
+        }
+
+        return null;
+    }
+
+    /** Why the user should check the field the column is mapped to now: a guess by a similar name; nothing once the user chose another field. */
+    private function reviewNote(?ColumnProposal $proposal, ?string $value): ?string
+    {
+        if (!$proposal instanceof ColumnProposal || MatchReason::SimilarName !== $proposal->reason || $proposal->fieldKey !== $value) {
             return null;
         }
-        if (MatchReason::Preset === $proposal->reason) {
-            $preset = $this->presets->find($presetKey);
-            $label = $preset instanceof SourcePreset ? $this->trans('import.source_name.'.$preset->key()) : $this->trans('import.reason.preset');
 
-            return ['label' => $label, 'tone' => 'green'];
-        }
-
-        return ['label' => $this->trans('import.reason.'.$proposal->reason->value), 'tone' => MatchReason::SimilarName === $proposal->reason ? 'amber' : 'green'];
+        return $this->trans('import.mapping.review_note');
     }
 
     /**

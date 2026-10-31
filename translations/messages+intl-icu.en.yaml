@@ -33,6 +33,9 @@ nav:
     dashboard: Dashboard
     contacts: Address book
 ui:
+  mapping_row:
+    # Next to a select whose proposed choice is a guess the user should check.
+    review: Check this
   empty_state:
     title: Nothing here yet
   table:
@@ -229,7 +232,7 @@ party:
     registrationCountry: Register country
     registrationNumber: Registration number
     vatId: VAT ID
-    vatId_help: For example CZ12345678. After saving it is checked in VIES and in the register of unreliable payers.
+    vatId_help: For example CZ12345678
     email: E-mail
     phone: Phone
     mobile: Mobile
@@ -256,7 +259,7 @@ party:
     invoicingDueDays: Due period
   lookup:
     label: Find in a register
-    help: Enter a registration number or at least three letters of a name and the details are filled in from ARES.
+    help: Registration number or at least three letters of a name
     existing: Already in your address book
     empty: Nothing found in the register.
     limited: Too many searches. Try again in a minute.
@@ -382,10 +385,10 @@ import:
     target_choose: Choose the kind of records
     target_missing: Choose which records you want to import.
     file: File
-    file_help: CSV or XLSX up to 50 MB and 200,000 rows. You match the columns to fields in the next step.
+    file_help: CSV or XLSX, up to 50 MB
     profile: Import profile
     profile_none: No profile
-    profile_help: A profile uses the columns and options that worked in an earlier import.
+    profile_help: Uses the matching and options of an earlier import
     submit: Upload file
     missing: Choose the file you want to upload.
     server_limit: 'The file is larger than the server accepts ({limit}). Make it smaller, or ask the server administrator for a higher limit.'
@@ -396,7 +399,7 @@ import:
   file:
     title: File
     change: Change
-    change_help: The file is read again with the new settings and the columns are proposed again.
+    change_help: The file is read again with these settings
     format: Format
     encoding: Encoding
     delimiter: Delimiter
@@ -420,6 +423,16 @@ import:
   mapping:
     title: Match columns
     intro: For each column, choose the field it is imported into. Leave the columns you do not need out of the import.
+    # After the basis sentence, when some columns were proposed.
+    intro_proposed: Check them and change any that are wrong.
+    # One sentence above the columns that says where the proposals come from.
+    basis:
+      remembered: We matched the columns as in your previous import.
+      preset: 'We recognised an export {source} and matched the columns to it.'
+      known: We recognised a known file format and matched the columns to it.
+      names: We matched the columns by their names.
+    # Under the select of a column whose field was guessed.
+    review_note: We guessed the field from a similar column name.
     summary: '{mapped} of {total, number} {total, plural, one {column} other {columns}} imported'
     do_not_import: Do not import
     required_field: '{field} (required)'
@@ -428,13 +441,9 @@ import:
     assign: 'Match the field {field} to one of the columns'
     submit: Check
     back: Back
-  reason:
-    remembered: Remembered
-    preset: Known source
-    same_name: Same name
-    similar_name: Similar name
-  source_name:
-    idoklad_contacts: iDoklad
+  # The source of a recognised file, as it follows "We recognised an export".
+  source_origin:
+    idoklad_contacts: from iDoklad
   group:
     party:
       general: Contact
@@ -463,19 +472,19 @@ import:
     mode: What should happen to the records
     match_key: How records are found
     match_key_auto: Automatically
-    match_key_help: A record with the same value is updated or skipped. Without a key every row is added as new.
+    match_key_help: Existing records are found by this value
     blank_cells: Empty cells
     blank_cells_help: Applies to records that are updated.
     scope: What may be archived
     scope_help: Archived records can be restored at any time.
     date_order: Date order
-    date_order_help: The dates of the file can be read in more than one way. Choose how they are written.
+    date_order_help: Choose how the dates are written
     decimal: Decimal separator
-    decimal_help: The numbers of the file can be read in more than one way. Choose how they are written.
+    decimal_help: Choose how the numbers are written
     profile: Import profile
-    profile_kept: After a successful import, the columns and options are saved to this profile.
+    profile_kept_help: Saved to this profile after a successful import
     profile_name: Save as profile
-    profile_name_help: Optional. Under this name you repeat the import next time with the same columns and options.
+    profile_name_help: Optional, for repeating the same import
   blank_cells:
     keep: Keep the value
     clear: Clear the value
