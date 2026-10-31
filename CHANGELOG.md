@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-31
+
+### Changed
+
+- The column matching step says once where the proposals come from and marks only columns matched by a similar name.
+- Help texts under fields fit on one line, and a test keeps them at 60 characters or fewer.
+
 ## [0.3.0] - 2026-10-31
 
 ### Added
