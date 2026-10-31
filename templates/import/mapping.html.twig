@@ -50,13 +50,11 @@
           data-action="change->import-mapping#update"
           data-import-mapping-required-value="{{ screen.required|json_encode }}"
           data-import-mapping-one-value="{{ 'import.mapping.missing'|trans({count: 1}) }}"
-          data-import-mapping-other-value="{{ 'import.mapping.missing'|trans({count: 2}) }}">
+          data-import-mapping-other-value="{{ 'import.mapping.missing'|trans({count: 2}) }}"
+          data-import-mapping-summary-value="{{ 'import.mapping.summary'|trans({mapped: '__mapped__', total: screen.columns|length}) }}">
         <input type="hidden" name="_token" value="{{ token }}">
 
         <twig:Ui:Card :title="'import.mapping.title'|trans" icon="columns-3">
-            <twig:block name="actions">
-                <span class="num text-[13px] text-muted">{{ 'import.mapping.summary'|trans({mapped: screen.mappedCount, total: screen.columns|length}) }}</span>
-            </twig:block>
             <twig:Ui:Alert tone="warning" class="mb-3" data-import-mapping-target="missing" data-missing-alert :hidden="screen.missing is empty">
                 <span data-import-mapping-target="message">{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }}</span>
                 <span data-import-mapping-target="fields">{{ screen.missing|join(', ') }}</span>.
@@ -120,11 +118,15 @@
             </div>
         </twig:Ui:Card>
 
-        <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:w-full">
-            <twig:Ui:Button type="submit" variant="primary" icon="square-check-big" data-import-mapping-target="submit">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
+        <twig:Ui:ActionBar>
+            {# Names the missing required fields while the check is held back, so the reason is next to the disabled button. #}
+            <twig:block name="status"><span class="num" data-import-mapping-target="summary">{% if screen.missing is not empty %}{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }} {{ screen.missing|join(', ') }}.{% else %}{{ 'import.mapping.summary'|trans({mapped: screen.mappedCount, total: screen.columns|length}) }}{% endif %}</span></twig:block>
             {% if editingMapping %}
-                <twig:Ui:Button :href="path('app_import_show', {id: import.id})">{{ 'import.mapping.back_to_check'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :href="path('app_import_show', {id: import.id})">{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
+            {% else %}
+                <twig:Ui:Button :href="path('app_import_new', {target: import.targetKey})">{{ 'import.mapping.back'|trans }}</twig:Ui:Button>
             {% endif %}
-        </div>
+            <twig:Ui:Button type="submit" variant="primary" icon="square-check-big" data-import-mapping-target="submit">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
     </form>
 {% endblock %}

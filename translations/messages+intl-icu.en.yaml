@@ -321,23 +321,23 @@ import:
   new: New import
   steps:
     label: Import steps
-    upload: Upload
-    columns: Columns
+    upload: Upload file
+    columns: Match columns
     check: Check
     run: Import
-    summary: Summary
+    summary: Result
   state:
     uploaded: Uploaded
     reading: Reading
-    mapping: Waiting for columns
+    mapping: Matching columns
     checking: Checking
     checked: Checked
     queued: Queued
     running: Importing
-    finished: Done
-    finished_with_errors: Done with errors
+    finished: Finished
+    finished_with_errors: Finished with errors
     stopped: Stopped
-    failed: Not finished
+    failed: Failed
     cancelled: Cancelled
     undoing: Undoing
     undone: Undone
@@ -410,14 +410,14 @@ import:
     pipe: Vertical bar
     other: Other character
   mapping:
-    title: Columns
+    title: Match columns
     intro: For each column, choose the field it is imported into. Leave the columns you do not need out of the import.
-    summary: '{mapped, number} of {total, number} imported'
+    summary: '{mapped} of {total, number} {total, plural, one {column} other {columns}} imported'
     do_not_import: Do not import
     required_field: '{field} (required)'
     missing: 'The check starts once you match a column to the required {count, plural, one {field} other {fields}}'
     submit: Check
-    back_to_check: Back to the check
+    back: Back
   reason:
     remembered: Remembered
     preset: Known source
@@ -505,7 +505,7 @@ import:
       text: These records are not in the file. Archived records are kept and can be restored.
       confirm: 'To confirm, type {count}'
     run: Start import
-    edit: Edit mapping
+    edit: Edit matching
   progress:
     title: Progress
     reading: Reading the file
@@ -551,6 +551,7 @@ import:
       deadline: 'The import can be undone until {date}.'
       button: Undo import
       confirm: Do you really want to undo the import?
+    done: Done
   notice:
     finished: 'The import of {name} is done.'
     finished_with_errors: 'The import of {name} ended with errors.'
@@ -558,7 +559,7 @@ import:
     failed: 'The import of {name} could not be finished.'
     cancelled: 'The import of {name} is cancelled.'
     undone: 'The import of {name} is undone.'
-    link: Show summary
+    link: Show result
   flash:
     cancelled: The import is cancelled.
   source:

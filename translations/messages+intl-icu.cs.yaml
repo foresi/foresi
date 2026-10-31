@@ -321,23 +321,23 @@ import:
   new: Nový import
   steps:
     label: Kroky importu
-    upload: Nahrání
-    columns: Sloupce
+    upload: Nahrání souboru
+    columns: Přiřazení sloupců
     check: Kontrola
     run: Import
-    summary: Souhrn
+    summary: Výsledek
   state:
     uploaded: Nahráno
-    reading: Čte se
-    mapping: Čeká na sloupce
+    reading: Načítá se
+    mapping: Přiřazení sloupců
     checking: Kontroluje se
     checked: Zkontrolováno
     queued: Ve frontě
     running: Importuje se
-    finished: Hotovo
-    finished_with_errors: Hotovo s chybami
+    finished: Dokončeno
+    finished_with_errors: Dokončeno s chybami
     stopped: Zastaveno
-    failed: Nedokončeno
+    failed: Selhalo
     cancelled: Zrušeno
     undoing: Vrací se
     undone: Vráceno
@@ -410,14 +410,14 @@ import:
     pipe: Svislá čára
     other: Jiný znak
   mapping:
-    title: Sloupce
+    title: Přiřazení sloupců
     intro: U každého sloupce vyberte pole, do kterého se má importovat. Sloupce, které nepotřebujete, nechte neimportované.
-    summary: 'Importuje se {mapped, number} z {total, number}'
+    summary: '{mapped} z {total, number} {total, plural, one {sloupce} other {sloupců}} se importuje'
     do_not_import: Neimportovat
     required_field: '{field} (povinné)'
     missing: 'Kontrola začne, až přiřadíte sloupec {count, plural, one {k povinnému poli} other {k povinným polím}}'
     submit: Zkontrolovat
-    back_to_check: Zpět na kontrolu
+    back: Zpět
   reason:
     remembered: Zapamatováno
     preset: Známý zdroj
@@ -505,7 +505,7 @@ import:
       text: Tyto záznamy v souboru nejsou. Archivované záznamy zůstanou zachované a jde je obnovit.
       confirm: 'Pro potvrzení napište {count}'
     run: Spustit import
-    edit: Upravit mapování
+    edit: Upravit přiřazení
   progress:
     title: Průběh
     reading: Čteme soubor
@@ -551,6 +551,7 @@ import:
       deadline: 'Import jde vrátit do {date}.'
       button: Vrátit import
       confirm: Opravdu chcete import vrátit?
+    done: Hotovo
   notice:
     finished: 'Import souboru {name} je hotový.'
     finished_with_errors: 'Import souboru {name} skončil s chybami.'
@@ -558,7 +559,7 @@ import:
     failed: 'Import souboru {name} se nepodařilo dokončit.'
     cancelled: 'Import souboru {name} je zrušený.'
     undone: 'Import souboru {name} je vrácený.'
-    link: Zobrazit souhrn
+    link: Zobrazit výsledek
   flash:
     cancelled: Import je zrušený.
   source:

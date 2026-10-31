@@ -4,7 +4,6 @@
 {% block title %}{{ import.originalName }}{% endblock %}
 
 {% block actions %}
-    {% if screen.listUrl %}<twig:Ui:Button icon="users" :href="screen.listUrl">{{ screen.listLabel }}</twig:Ui:Button>{% endif %}
     <twig:Ui:Button icon="history" :href="path('app_imports')">{{ 'import.history.title'|trans }}</twig:Ui:Button>
 {% endblock %}
 
@@ -32,11 +31,7 @@
             {% if screen.undoable %}
                 <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">
                     <p class="mb-1 mt-0 text-text">{{ 'import.summary.undo.text'|trans }}</p>
-                    <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.summary.undo.deadline'|trans({date: screen.undoDeadline}) }}</p>
-                    <form method="post" action="{{ path('app_import_undo', {id: import.id}) }}" data-turbo-confirm="{{ 'import.summary.undo.confirm'|trans }}">
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
-                        <twig:Ui:Button type="submit" variant="danger" icon="archive-restore">{{ 'import.summary.undo.button'|trans }}</twig:Ui:Button>
-                    </form>
+                    <p class="m-0 text-[13px] text-muted">{{ 'import.summary.undo.deadline'|trans({date: screen.undoDeadline}) }}</p>
                 </twig:Ui:Card>
             {% elseif screen.undoExpired %}
                 <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">
@@ -45,4 +40,14 @@
             {% endif %}
         </div>{% endif %}
     </div>
+
+    <twig:Ui:ActionBar>
+        {% if screen.undoable %}
+            <form method="post" action="{{ path('app_import_undo', {id: import.id}) }}" data-turbo-confirm="{{ 'import.summary.undo.confirm'|trans }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
+                <twig:Ui:Button type="submit" icon="archive-restore">{{ 'import.summary.undo.button'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+        <twig:Ui:Button variant="primary" icon="check" :href="screen.listUrl ?: path('app_imports')">{{ 'import.summary.done'|trans }}</twig:Ui:Button>
+    </twig:Ui:ActionBar>
 {% endblock %}

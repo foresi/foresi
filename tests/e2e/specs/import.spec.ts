@@ -34,7 +34,7 @@ test.describe('import of contacts', () => {
     await uploadFixture(page);
 
     // Columns: the iDoklad preset proposed the fields.
-    await expect(page.locator('nav[aria-label="Kroky importu"] [aria-current="step"]')).toContainText('Sloupce');
+    await expect(page.locator('nav[aria-label="Kroky importu"] [aria-current="step"]')).toContainText('Přiřazení sloupců');
     await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
     await expect(page.getByLabel('Sleva', { exact: true })).toHaveValue('');
 
@@ -58,7 +58,7 @@ test.describe('import of contacts', () => {
 
     // Run.
     await page.getByRole('button', { name: 'Spustit import' }).click();
-    await expect(page.locator('[aria-current="step"]')).toContainText('Souhrn');
+    await expect(page.locator('[aria-current="step"]')).toContainText('Výsledek');
     await expect(page.locator('[data-import-outcome]')).toContainText('Import je hotový.');
     // Opening the summary answers the notice.
     await expect(page.locator('[data-shell-notices]')).toHaveCount(0);

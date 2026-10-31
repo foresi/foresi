@@ -147,7 +147,7 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'idoklad-contacts.csv');
-        self::assertStringContainsString('Columns', $crawler->filter('nav[aria-label="Import steps"] [aria-current="step"]')->text());
+        self::assertStringContainsString('Match columns', $crawler->filter('nav[aria-label="Import steps"] [aria-current="step"]')->text());
         $firma = $this->row($crawler, 'Firma');
         self::assertSame('display_name', $firma->filter('option[selected]')->attr('value'));
         self::assertSame('iDoklad', $firma->filter('.bg-badge-green')->text());
@@ -178,6 +178,8 @@ final class ImportControllerTest extends WebTestCase
         self::assertSame('', $this->row($crawler, 'Firma')->filter('option[selected]')->attr('value'));
         self::assertNull($crawler->filter('[data-missing-alert]')->attr('hidden'));
         self::assertStringContainsString('Name', $crawler->filter('[data-missing-alert]')->text());
+        // The docked bar names it next to the held-back button too.
+        self::assertSame('The check starts once you match a column to the required field Name.', trim($crawler->filter('[data-action-bar-status]')->text()));
         self::assertSame('{"display_name":"Name"}', $crawler->filter('form[data-controller="import-mapping"]')->attr('data-import-mapping-required-value'));
     }
 
@@ -287,11 +289,11 @@ final class ImportControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts');
         $notice = $crawler->filter('[data-shell-notices]');
         self::assertStringContainsString('The import of idoklad-contacts.csv ended with errors.', $notice->text());
-        self::assertSame('/imports/'.$id, $notice->selectLink('Show summary')->attr('href'));
+        self::assertSame('/imports/'.$id, $notice->selectLink('Show result')->attr('href'));
 
         $crawler = $this->client->request('GET', '/imports/'.$id);
         self::assertSelectorNotExists('[data-shell-notices]');
-        self::assertStringContainsString('Summary', $crawler->filter('[aria-current="step"]')->text());
+        self::assertStringContainsString('Result', $crawler->filter('[aria-current="step"]')->text());
         self::assertStringContainsString('1 row could not be imported.', $crawler->filter('[data-import-outcome]')->text());
 
         $this->client->request('GET', '/contacts');
@@ -342,6 +344,46 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertSelectorNotExists('[data-imported-by]');
         self::assertCount(1, $crawler->filter('main tbody tr'));
+    }
+
+    public function testEveryStepCarriesItsActionsInTheDockedBarInsideItsForm(): void
+    {
+        $crawler = $this->client->request('GET', '/imports/new?target=party');
+        self::assertCount(1, $crawler->filter('form[action="/imports?target=party"] [data-action-bar] button[type="submit"]:contains("Upload file")'));
+
+        $id = $this->uploadAndRead();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $bar = $crawler->filter('form[action="/imports/'.$id.'/mapping"] [data-action-bar]');
+        self::assertCount(1, $bar);
+        self::assertSame(['Back', 'Check'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
+        self::assertSame('/imports/new?target=party', $bar->filter('a')->attr('href'));
+        self::assertMatchesRegularExpression('/^\d+ of 22 columns imported$/', trim($bar->filter('[data-action-bar-status]')->text()));
+        self::assertStringContainsString('__mapped__ of 22 columns imported', (string) $crawler->filter('form[data-controller="import-mapping"]')->attr('data-import-mapping-summary-value'));
+
+        $this->client->submit($crawler->selectButton('Check')->form());
+        $this->worker->run();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $bar = $crawler->filter('form[action="/imports/'.$id.'/run"] [data-action-bar]');
+        self::assertSame(['Edit matching', 'Start import'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
+        // The preview sits inside the run form too, so the docked bar stays in view over it.
+        self::assertCount(1, $crawler->filter('form[action="/imports/'.$id.'/run"] [data-kpi]')->first());
+
+        // Editing the mapping of a checked import goes back to the check.
+        $crawler = $this->client->request('GET', '/imports/'.$id.'?step=mapping');
+        self::assertSame('/imports/'.$id, $crawler->filter('[data-action-bar] a')->attr('href'));
+
+        $this->client->submit($crawler->selectButton('Check')->form());
+        $this->worker->run();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $this->client->submit($crawler->selectButton('Start import')->form());
+        $this->worker->run();
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+        $bar = $crawler->filter('[data-action-bar]');
+        self::assertSame(['Undo import', 'Done'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
+        self::assertCount(1, $bar->filter('form[action="/imports/'.$id.'/undo"] button[type="submit"]'));
+        self::assertSame('/contacts', $bar->filter('a')->attr('href'));
+        // The header keeps only the way to the history.
+        self::assertSame(['Imports'], $crawler->filter('[data-page-actions] a')->each(static fn (Crawler $action): string => trim($action->text())));
     }
 
     public function testTheUndoButtonIsGoneThirtyDaysAfterTheImport(): void
@@ -424,7 +466,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('main tbody tr'));
         $cells = $crawler->filter('main tbody tr td')->each(static fn (Crawler $cell): string => trim($cell->text()));
-        self::assertSame(['idoklad-contacts.csv', '2026-10-01 10:00', 'Example Company', 'Contacts', 'Update existing', '3', '0', '1', 'Done with errors'], $cells);
+        self::assertSame(['idoklad-contacts.csv', '2026-10-01 10:00', 'Example Company', 'Contacts', 'Update existing', '3', '0', '1', 'Finished with errors'], $cells);
         self::assertSame('/imports/'.$id, $crawler->filter('main tbody a')->attr('href'));
     }
 

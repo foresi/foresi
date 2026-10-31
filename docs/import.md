@@ -4,15 +4,15 @@ Foresi can load records from a CSV or XLSX file and write them back out. Contact
 
 ## How an import works
 
-Open the address book and choose **Import**. Every step is saved, so you can leave and come back from the list of imports.
+Open the address book and choose **Import**. Every step is saved, so you can leave and come back from the list of imports. The action that moves the import on (Upload file, Check, Start import, Done) and the way back sit in a bar docked to the bottom of the screen.
 
-1. **Upload** a CSV or XLSX file. The file is stored privately for your organisation.
+1. **Upload file.** Choose a CSV or XLSX file. It is stored privately for your organisation.
 2. **Reading** (background). Foresi detects the encoding (UTF-8, or Windows-1250 as a fallback), the delimiter, the sheets and the header row. You can change each of them, and the file is read again.
-3. **Mapping.** Each column is matched to a field, and the reason is shown next to it: a mapping remembered from an earlier import with the same headers, a known source such as iDoklad, the same name, or a similar name. Change any proposal or set a column to "do not import". Required fields that stay unmapped block the next step. Where a field has a fixed set of values (roles, countries, yes/no), the values found in the file are mapped once for the whole file.
+3. **Match columns.** Each column is matched to a field, and the reason is shown next to it: a mapping remembered from an earlier import with the same headers, a known source such as iDoklad, the same name, or a similar name. Change any proposal or set a column to "do not import". Required fields that stay unmapped block the next step. Where a field has a fixed set of values (roles, countries, yes/no), the values found in the file are mapped once for the whole file.
 4. **Options.** The mode, the key used to find existing records, what an empty cell does, and the date order and decimal separator when the file is ambiguous.
 5. **Check** (background). A dry run of the whole import without writing anything. It shows how many records would be created, updated, skipped and archived, a sample per outcome, and every row that has an error, with the column and the value. The rows with errors can be downloaded as a file in the format you uploaded, with an added error column.
 6. **Run** (background). Progress is shown live. You can leave the page; the import appears in the notices when it ends.
-7. **Summary** with the counts and links to the records that were created or changed.
+7. **Result** with the counts and links to the records that were created or changed. **Done** takes you back to the records, and **Undo import** is next to it while the import can be undone.
 
 ### Modes
 

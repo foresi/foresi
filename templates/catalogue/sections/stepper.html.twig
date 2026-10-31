@@ -1,12 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <div class="grid gap-5">
 {% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
-<twig:Ui:Stepper class="w-full" label="Import steps" :steps="['Upload', 'Columns', 'Check', 'Import', 'Summary']" :current="0" />
+<twig:Ui:Stepper class="w-full" label="Import steps" :steps="['Upload file', 'Match columns', 'Check', 'Import', 'Result']" :current="0" />
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'progress'} %}{% block sample %}
-<twig:Ui:Stepper class="w-full" label="Kroky importu" :steps="['Nahrání', 'Sloupce', 'Kontrola', 'Import', 'Souhrn']" :current="2" />
+<twig:Ui:Stepper class="w-full" label="Kroky importu" :steps="['Nahrání souboru', 'Přiřazení sloupců', 'Kontrola', 'Import', 'Výsledek']" :current="2" />
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'done'} %}{% block sample %}
-<twig:Ui:Stepper class="w-full" label="Kroky importu" :steps="['Nahrání', 'Sloupce', 'Kontrola', 'Import', 'Souhrn']" :current="4" />
+<twig:Ui:Stepper class="w-full" label="Kroky importu" :steps="['Nahrání souboru', 'Přiřazení sloupců', 'Kontrola', 'Import', 'Výsledek']" :current="4" />
 {% endblock %}{% endembed %}
 </div>
