@@ -48,10 +48,11 @@ final class Version20261101000002 extends AbstractMigration
         $this->addSql('UPDATE audit_entry SET root_class = entity_class, root_id = entity_id');
 
         foreach (self::CHILDREN as $class => [$table, $column]) {
-            // CAST: the ids are UUIDs on PostgreSQL and text in the audit log.
+            // One join, not a subquery per audit row: a correlated one scans the child table for each of them on PostgreSQL.
+            // UPDATE ... FROM needs SQLite 3.33. CAST: the ids are UUIDs on PostgreSQL and text in the audit log.
             $this->addSql(sprintf(
-                "UPDATE audit_entry SET root_class = '%1\$s', root_id = (SELECT CAST(c.%3\$s AS VARCHAR(64)) FROM %2\$s c WHERE CAST(c.id AS VARCHAR(64)) = audit_entry.entity_id)"
-                ." WHERE entity_class = '%4\$s' AND EXISTS (SELECT 1 FROM %2\$s c WHERE CAST(c.id AS VARCHAR(64)) = audit_entry.entity_id)",
+                "UPDATE audit_entry AS a SET root_class = '%1\$s', root_id = CAST(c.%3\$s AS VARCHAR(64))"
+                ." FROM %2\$s c WHERE a.entity_class = '%4\$s' AND a.entity_id = CAST(c.id AS VARCHAR(64))",
                 self::PARTY,
                 $table,
                 $column,

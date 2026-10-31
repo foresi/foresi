@@ -574,6 +574,24 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertTrue($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]));
     }
 
+    public function testAChildRemovedBeforeTheRootMigrationStillCountsForASnapshotThatNamesIt(): void
+    {
+        $result = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com']]));
+        $copy = $this->details()->emails($this->find($result->id))[1];
+        $copyId = $copy->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+
+        self::mockTime('2026-10-01 11:00:00');
+        $this->em->remove($copy);
+        $this->em->flush();
+        // As the migration leaves an entry of a child that was already gone: rooted at itself.
+        $this->em->getConnection()->executeStatement('UPDATE audit_entry SET root_class = entity_class, root_id = entity_id');
+
+        $old = new RecordSnapshot(['created' => true, 'children' => ['emails' => [$copyId]]]);
+        self::assertTrue($this->target->changedSince($result->id, $old, $since, [self::CORRELATION]));
+        self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]), 'a snapshot of this release has no ids to read');
+    }
+
     public function testRemovingAChildThePartyHadBeforeAnUpdateCounts(): void
     {
         $id = $this->create($this->values(['email' => ['info@example.com', 'old-copy@example.com']]))->id;

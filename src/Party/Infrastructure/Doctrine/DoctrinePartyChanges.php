@@ -30,10 +30,11 @@ final readonly class DoctrinePartyChanges
     }
 
     /**
-     * @param list<string> $partyIds
-     * @param list<string> $exceptCorrelationIds
+     * @param list<string>                      $partyIds
+     * @param array<class-string, list<string>> $legacyChildren       children by entity id, for snapshots written before entries carried a root
+     * @param list<string>                      $exceptCorrelationIds
      */
-    public function changedSince(array $partyIds, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    public function changedSince(array $partyIds, array $legacyChildren, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         if ([] === $partyIds) {
             return false;
@@ -43,6 +44,18 @@ final readonly class DoctrinePartyChanges
         $links = $this->linksOfPersons($partyIds);
         if ([] !== $links) {
             $conditions[] = '(e.entityClass = :linkClass AND e.entityId IN (:links))';
+        }
+        // Only serves snapshots written before this release: entries made earlier of a child
+        // removed before the root migration are rooted at the child itself, and the ids the
+        // snapshot noted are the only link to the party.
+        $legacy = [];
+        foreach ($legacyChildren as $class => $ids) {
+            if ([] !== $ids) {
+                $index = \count($legacy);
+                $conditions[] = sprintf('(e.entityClass = :legacyClass%1$d AND e.entityId IN (:legacyIds%1$d))', $index);
+                $legacy['legacyClass'.$index] = $class;
+                $legacy['legacyIds'.$index] = array_values(array_unique($ids));
+            }
         }
         $dql = 'SELECT COUNT(e.id) FROM '.AuditEntry::class.' e WHERE ('.implode(' OR ', $conditions).') AND e.occurredAt >= :since';
         if ([] !== $exceptCorrelationIds) {
@@ -54,6 +67,9 @@ final readonly class DoctrinePartyChanges
             ->setParameter('since', $since, 'datetime_immutable');
         if ([] !== $links) {
             $query->setParameter('linkClass', ContactLink::class)->setParameter('links', $links);
+        }
+        foreach ($legacy as $name => $value) {
+            $query->setParameter($name, $value);
         }
         if ([] !== $exceptCorrelationIds) {
             $query->setParameter('correlations', $exceptCorrelationIds);

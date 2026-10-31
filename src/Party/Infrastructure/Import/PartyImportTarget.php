@@ -313,13 +313,21 @@ final readonly class PartyImportTarget implements ImportTarget
 
     /**
      * The party and the persons the write created, with everything that belongs
-     * to them: a child removed since then is found by its party's history.
+     * to them: a child removed since then is found by its party's history. A
+     * snapshot written before entries carried a root also names the children by
+     * id; those ids are read too, for the entries that predate the root.
      */
     public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         $added = $this->added($before);
 
-        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $since, $exceptCorrelationIds);
+        $noted = \is_array($before->data['children'] ?? null) ? $before->data['children'] : [];
+        $legacy = [];
+        foreach (self::CHILDREN as $key => $class) {
+            $legacy[$class] = [...$this->ids($added[$key] ?? []), ...$this->ids($noted[$key] ?? [])];
+        }
+
+        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $legacy, $since, $exceptCorrelationIds);
     }
 
     /**
