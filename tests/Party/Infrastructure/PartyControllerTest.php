@@ -256,6 +256,50 @@ final class PartyControllerTest extends WebTestCase
         self::assertSame(0, $this->partyCount());
     }
 
+    public function testEveryInvalidFieldIsMarkedAndTheFirstTakesTheFocus(): void
+    {
+        $this->signIn();
+        $crawler = $this->client->request('GET', '/contacts/new');
+        self::assertSame('New contact', $crawler->filter('title')->text());
+        self::assertNotNull($crawler->filter('main form')->attr('novalidate'));
+        $form = $crawler->filter('main form')->form($this->values(['displayName' => '', 'vatId' => 'CZ12', 'street' => '', 'city' => 'Entered City']));
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: New contact', $crawler->filter('title')->text());
+        self::assertSame(['displayName', 'vatId', 'street'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        foreach (['displayName', 'street'] as $id) {
+            self::assertSame($id.'-error', $crawler->filter('#'.$id)->attr('aria-describedby'));
+            self::assertStringContainsString('border-badge-red-text', (string) $crawler->filter('#'.$id)->attr('class'));
+            self::assertSelectorTextContains('#'.$id.'-error', 'Fill in this field.');
+        }
+        self::assertSame('vatId-help vatId-error', $crawler->filter('#vatId')->attr('aria-describedby'));
+        // Only the first invalid field takes the focus, so it works without JavaScript too.
+        self::assertSame(['displayName'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('CZ12', $crawler->filter('#vatId')->attr('value'));
+        self::assertSame('Entered City', $crawler->filter('#city')->attr('value'));
+        // The save button is never held back, and the action bar carries no error text.
+        self::assertNull($crawler->selectButton('Save')->attr('disabled'));
+        self::assertSelectorNotExists('[data-action-bar-status]');
+    }
+
+    public function testEditingKeepsTheInputAndMarksTheInvalidField(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant);
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $form = $crawler->filter('main form')->form(['displayName' => 'Example Renamed', 'postalCode' => '', 'email' => 'not-an-email']);
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: Edit', $crawler->filter('title')->text());
+        self::assertSame(['email', 'postalCode'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(['email'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('Example Renamed', $crawler->filter('#displayName')->attr('value'));
+    }
+
     public function testADomainErrorInsideTheWriteIsAFormErrorAndThePageStillQueries(): void
     {
         $this->signIn();
@@ -637,8 +681,36 @@ final class PartyControllerTest extends WebTestCase
         $this->client->request('GET', '/contacts/'.$person->id().'?tab=contacts');
         self::assertSelectorTextContains('main table', 'Example Company');
         $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => (string) $person->id()]);
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'cannot be added');
+        self::assertResponseStatusCodeSame(422);
+        // No other person is left to offer, so the message stands on its own.
+        self::assertSelectorTextContains('[data-link-error]', 'Choose a person who is not listed for the company yet.');
+    }
+
+    public function testARefusedContactPersonIsShownAgainWithEveryProblemAtItsField(): void
+    {
+        $this->signIn();
+        $company = $this->party('Example Company', $this->tenant);
+        $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
+        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
+        self::assertNotNull($crawler->filter('form[action$="/link"]')->attr('novalidate'));
+        $form = $crawler->filter('form[action$="/link"]')->form();
+        // The page's maxlength stops typing, not a request: the server checks the length too.
+        $form->disableValidation()->setValues(['person' => '', 'position' => str_repeat('x', 101), 'primary' => '1']);
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: Example Company', $crawler->filter('title')->text());
+        self::assertSame(['link-person', 'link-position'], $crawler->filter('[aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(['link-person'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('link-person-error', $crawler->filter('#link-person')->attr('aria-describedby'));
+        self::assertSelectorTextContains('#link-position-error', 'too long');
+        // What was entered is kept and the button is not held back.
+        self::assertSame(str_repeat('x', 101), $crawler->filter('#link-position')->attr('value'));
+        self::assertNotNull($crawler->filter('#link-primary')->attr('checked'));
+        self::assertNull($crawler->selectButton('Add person')->attr('disabled'));
+        self::assertSelectorTextContains('main', 'There is no contact person yet.');
+        self::assertSame((string) $person->id(), $crawler->filter('#link-person option')->attr('value'));
     }
 
     public function testAddressAndBankAccountTabsRender(): void

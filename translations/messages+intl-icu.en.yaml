@@ -276,6 +276,7 @@ party:
     primary: Primary contact person
     link: Add person
     no_candidates: There is no other person in the address book. Add one as a new contact of kind Person first.
+    person_invalid: Choose a person who is not listed for the company yet.
   accounts:
     empty: There is no bank account yet.
   defaults:
@@ -304,7 +305,6 @@ party:
     archived_many: '{count, plural, one {# contact archived.} other {# contacts archived.}}'
     restored: The contact is restored.
     linked: The contact person is added.
-    link_invalid: This person cannot be added. They are listed for the company already, or they are not a person.
     checks_refreshed: The register checks are updated.
     checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
     checks_rate_limited: Too many refreshes. Try again in a minute.

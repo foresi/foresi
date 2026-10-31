@@ -60,6 +60,8 @@ final class PartyController extends AbstractController
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
     private const int MAX_SEARCH = 100;
+    /** The length of the position column of a contact link. */
+    private const int MAX_POSITION = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
     public function __construct(
@@ -119,11 +121,16 @@ final class PartyController extends AbstractController
     #[Route('/contacts/{id}', name: 'app_contact_show', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(int $id, Request $request): Response
     {
-        $party = $this->party($id);
         $tab = $request->query->getString('tab', 'overview');
-        $tab = \in_array($tab, self::TABS, true) ? $tab : 'overview';
-        $locale = $request->getLocale();
 
+        return $this->detail($this->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
+    }
+
+    /**
+     * @param array<string, mixed> $extra what the contacts tab shows after a refused link
+     */
+    private function detail(Party $party, int $id, string $tab, string $locale, array $extra = [], int $status = Response::HTTP_OK): Response
+    {
         $vies = $party->viesCheck();
         $reliability = $party->unreliablePayerCheck();
         $unreliable = RegistryResult::Unreliable === $reliability?->result;
@@ -149,13 +156,13 @@ final class PartyController extends AbstractController
             'locale' => $locale,
         ];
 
-        return $this->render('party/show.html.twig', $data + match ($tab) {
+        return $this->render('party/show.html.twig', $extra + $data + match ($tab) {
             'contacts' => $this->contactsTab($party),
             'addresses' => ['addressRows' => $this->addressRows($this->details->addresses($party))],
             'bank-accounts' => ['accountRows' => $this->accountRows($this->details->bankAccounts($party))],
             'history' => ['timeline' => $this->timeline($party)],
             default => ['billing' => $this->details->billingAddress($party)?->address()],
-        });
+        }, new Response(status: $status));
     }
 
     #[Route('/contacts/{id}/archive', name: 'app_contact_archive', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -249,32 +256,42 @@ final class PartyController extends AbstractController
     }
 
     #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function link(int $id, Request $request): RedirectResponse
+    public function link(int $id, Request $request): Response
     {
         $this->checkToken($request);
         $company = $this->party($id);
-        $person = $this->parties->find($request->request->getInt('person'));
-        if (!$person instanceof Party) {
-            throw new NotFoundHttpException();
+        $personId = $request->request->getString('person');
+        $position = trim($request->request->getString('position'));
+        $primary = $request->request->getBoolean('primary');
+        // A person the select never offered (another tenant's, or none at all) is not found, as everywhere.
+        $person = '' === $personId ? null : ($this->parties->find((int) $personId) ?? throw new NotFoundHttpException());
+
+        $errors = [];
+        if (!$person instanceof Party || PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
+            $errors['person'] = 'party.contacts.person_invalid';
         }
-
-        $back = $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
-        if (PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
-            $this->addFlash('error', $this->translator->trans('party.flash.link_invalid'));
-
-            return $back;
+        if (mb_strlen($position) > self::MAX_POSITION) {
+            $errors['position'] = 'party.error.too_long';
         }
-
-        try {
-            $this->linkContactPerson->link($company, $person, trim($request->request->getString('position')), $request->request->getBoolean('primary'));
-        } catch (\DomainException) {
-            $this->addFlash('error', $this->translator->trans('party.flash.link_invalid'));
-
-            return $back;
+        if ([] === $errors && $person instanceof Party) {
+            try {
+                $this->linkContactPerson->link($company, $person, $position, $primary);
+            } catch (\DomainException) {
+                $errors['person'] = 'party.contacts.person_invalid';
+                // The failed write reset the persistence session; read the company again for the page.
+                $company = $this->party($id);
+            }
+        }
+        if ([] !== $errors) {
+            // Shown again with every problem at its field and what was entered kept.
+            return $this->detail($company, $id, 'contacts', $request->getLocale(), [
+                'linkErrors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
+                'linkValues' => ['person' => $personId, 'position' => $position, 'primary' => $primary],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('party.flash.linked'));
 
-        return $back;
+        return $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
     }
 
     #[Route('/contacts/{id}/registry-checks', name: 'app_contact_refresh_checks', requirements: ['id' => '\d+'], methods: ['POST'])]

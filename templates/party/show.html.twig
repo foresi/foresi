@@ -4,6 +4,9 @@
 {% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName}] %}
 {% set formatTime = 'format.datetime'|trans %}
 {% set token = csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) %}
+{% set linkErrors = linkErrors|default({}) %}
+{% set linkValues = linkValues|default({person: '', position: '', primary: false}) %}
+{% set form_invalid = linkErrors is not empty %}
 
 {% block title %}{{ party.displayName }}{% endblock %}
 
@@ -105,13 +108,15 @@
             {% if not isPerson %}
                 <twig:Ui:Card :title="'party.contacts.add'|trans" icon="user-plus">
                     {% if candidates is empty %}
+                        {# A refused person who is no candidate any more (linked meanwhile) has no select to show the message at. #}
+                        {% if linkErrors.person is defined %}<twig:Ui:Alert tone="error" class="mb-3" data-link-error>{{ linkErrors.person }}</twig:Ui:Alert>{% endif %}
                         <p class="text-muted">{{ 'party.contacts.no_candidates'|trans }}</p>
                     {% else %}
-                        <form method="post" action="{{ path('app_contact_link', {id: id}) }}" class="grid gap-3 sm:grid-cols-2">
+                        <form method="post" action="{{ path('app_contact_link', {id: id}) }}" class="grid gap-3 sm:grid-cols-2" novalidate>
                             <input type="hidden" name="_token" value="{{ token }}">
-                            <twig:Ui:Select name="person" id="link-person" :label="'party.contacts.person'|trans" :options="candidates" required />
-                            <twig:Ui:TextInput name="position" id="link-position" :label="'party.column.position'|trans" maxlength="100" />
-                            <twig:Ui:Checkbox name="primary" id="link-primary" value="1" :label="'party.contacts.primary'|trans" />
+                            <twig:Ui:Select name="person" id="link-person" :label="'party.contacts.person'|trans" :options="candidates" :value="linkValues.person" :error="linkErrors.person|default(null)" required />
+                            <twig:Ui:TextInput name="position" id="link-position" :label="'party.column.position'|trans" :value="linkValues.position" :error="linkErrors.position|default(null)" maxlength="100" />
+                            <twig:Ui:Checkbox name="primary" id="link-primary" value="1" :label="'party.contacts.primary'|trans" :checked="linkValues.primary" />
                             <div class="sm:col-span-2"><twig:Ui:Button type="submit" variant="primary" icon="user-plus">{{ 'party.contacts.link'|trans }}</twig:Ui:Button></div>
                         </form>
                     {% endif %}

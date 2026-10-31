@@ -276,6 +276,7 @@ party:
     primary: Hlavní kontaktní osoba
     link: Přidat osobu
     no_candidates: V adresáři není žádná další osoba. Nejdřív ji přidejte jako nový kontakt s druhem Osoba.
+    person_invalid: Vyberte osobu, která u firmy ještě není uvedena.
   accounts:
     empty: Zatím tu není žádný bankovní účet.
   defaults:
@@ -304,7 +305,6 @@ party:
     archived_many: '{count, plural, one {Archivován # kontakt.} few {Archivovány # kontakty.} other {Archivováno # kontaktů.}}'
     restored: Kontakt je obnoven.
     linked: Kontaktní osoba je přidána.
-    link_invalid: Tuto osobu nelze přidat. Buď už je u firmy uvedena, nebo nejde o osobu.
     checks_refreshed: Kontroly v rejstřících jsou aktualizovány.
     checks_recent: 'Kontroly se dělaly nedávno ({time}), zobrazujeme jejich výsledky. Rejstříky se znovu ptáme nejdřív po 24 hodinách.'
     checks_rate_limited: Příliš mnoho obnovení kontrol. Zkuste to za minutu.
