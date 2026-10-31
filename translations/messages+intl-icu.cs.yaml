@@ -591,6 +591,7 @@ import:
     out_of_range: '{value, number} není mezi {min, number} a {max, number}.'
   failure:
     file_missing: 'Nahraný soubor už není k dispozici. Nahrajte ho znovu.'
+    stalled: 'Import se zastavil, aniž by skončil. Nahrajte soubor znovu.'
   refused:
     not_found: 'Tento import neexistuje.'
     not_editable: 'Tento import už nejde změnit.'

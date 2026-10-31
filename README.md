@@ -8,7 +8,8 @@ Foresi is an open-source business system for small and medium firms (website: ht
 - **Tenancy**: row-level isolation of tenants, enforced for every ORM and DQL query and failing closed when no tenant is active.
 - **Parties**: legal entities and parties with registration numbers, VAT IDs and IBANs. Country rules are plugged in through interfaces; Czech registration number validation is included as a country module.
 - **Identity**: users, tenant memberships with roles, form login with CSRF protection and throttling, a choice of the active tenant and a console command to create users.
-- **Address book**: customers, suppliers and other parties with roles, addresses, contact persons, bank accounts and document defaults; search, views, bulk archive and CSV export; lookups in the Czech business register (ARES), the EU VAT number check (VIES) and the Czech unreliable VAT payer register.
+- **Address book**: customers, suppliers and other parties with roles, addresses, contact persons, bank accounts and document defaults; search, views, bulk archive and export to CSV or XLSX; lookups in the Czech business register (ARES), the EU VAT number check (VIES) and the Czech unreliable VAT payer register.
+- **Import and export**: a generic import of CSV and XLSX files (contacts first, with an iDoklad preset) that runs in a background worker: column mapping with remembered mappings, a dry-run check, three modes (add missing, update, full replace with typed confirmation), undo within 30 days; the same field definitions drive the export. See [docs/import.md](docs/import.md).
 - **User interface**: server-rendered with Twig, Symfony UX and Tailwind; a component library with a development catalogue; Czech and English.
 - **Audit**: an append-only audit log of changes to audited entities.
 - **Quality gate**: PHPStan at maximum level, architecture rules checked by Deptrac, Rector, PHP CS Fixer, Infection mutation testing and Playwright end-to-end tests with accessibility and visual checks.
@@ -63,7 +64,7 @@ RestartSec=5
 User=www-data
 ```
 
-With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=3600`. On SQLite run exactly one worker (SQLite allows a single writer). Failed messages are retried three times (2 s, 8 s, 32 s) and then kept in the `failed` queue: inspect them with `bin/console messenger:failed:show` and retry with `messenger:failed:retry`. A message is redelivered if its handler runs longer than two hours (`redeliver_timeout: 7200`). The `e2e` environment has no worker and handles messages inline.
+With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=3600`. On SQLite run exactly one worker (SQLite allows a single writer). Failed messages are retried three times (2 s, 8 s, 32 s) and then kept in the `failed` queue: inspect them with `bin/console messenger:failed:show` and retry with `messenger:failed:retry`. A message is redelivered if its handler runs longer than two hours (`redeliver_timeout: 7200`). The `e2e` environment has no worker and handles messages inline. Imports need the worker and two scheduled commands (`app:import:purge`, `app:import:health`); see [docs/import.md](docs/import.md).
 
 ## End-to-end tests
 

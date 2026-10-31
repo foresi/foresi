@@ -591,6 +591,7 @@ import:
     out_of_range: '{value, number} is not between {min, number} and {max, number}.'
   failure:
     file_missing: 'The uploaded file is no longer available. Upload it again.'
+    stalled: 'The import stopped without finishing. Upload the file again.'
   refused:
     not_found: 'This import does not exist.'
     not_editable: 'This import can no longer be changed.'

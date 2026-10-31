@@ -98,6 +98,10 @@ class Import implements TenantOwned
     #[ORM\Column(name: 'finished_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $finishedAt = null;
 
+    /** The last time the import moved: a state change or counters from a chunk. The health check fails an import that has not moved for too long. */
+    #[ORM\Column(name: 'progressed_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $progressedAt;
+
     /** When the actor opened the summary of the finished import. */
     #[ORM\Column(name: 'seen_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $seenAt = null;
@@ -147,6 +151,7 @@ class Import implements TenantOwned
     ) {
         $this->mapping = new Mapping()->toArray();
         $this->options = ImportOptions::standard();
+        $this->progressedAt = $createdAt;
     }
 
     public function id(): ?int
@@ -285,6 +290,12 @@ class Import implements TenantOwned
         return $this->finishedAt;
     }
 
+    /** The last time the import changed state or counted a chunk; the creation time until then. */
+    public function progressedAt(): \DateTimeImmutable
+    {
+        return $this->progressedAt ?? $this->startedAt ?? $this->createdAt;
+    }
+
     public function seenAt(): ?\DateTimeImmutable
     {
         return $this->seenAt;
@@ -336,6 +347,7 @@ class Import implements TenantOwned
         }
         $at ??= new \DateTimeImmutable();
         $this->state = $next;
+        $this->progressedAt = $at;
         if (ImportState::Running === $next) {
             $this->startedAt = $at;
         }
@@ -388,6 +400,7 @@ class Import implements TenantOwned
         if ($total < 0 || $chunks < 0) {
             throw new \InvalidArgumentException('The number of rows and chunks must not be negative.');
         }
+        $this->progressedAt = new \DateTimeImmutable();
         $this->total = $total;
         $this->chunks = $chunks;
         $this->chunksDone = 0;
@@ -496,6 +509,7 @@ class Import implements TenantOwned
     public function recordChunk(array $counts): void
     {
         $counts = $this->outcomeCounts($counts);
+        $this->progressedAt = new \DateTimeImmutable();
         $this->created += $counts[0];
         $this->updated += $counts[1];
         $this->restored += $counts[2];
@@ -515,6 +529,7 @@ class Import implements TenantOwned
     public function recount(array $counts): void
     {
         [$this->created, $this->updated, $this->restored, $this->skipped, $this->archived, $this->failed] = $this->outcomeCounts($counts);
+        $this->progressedAt = new \DateTimeImmutable();
         $this->processed = $this->created + $this->updated + $this->restored + $this->skipped + $this->archived + $this->failed;
     }
 
@@ -528,6 +543,7 @@ class Import implements TenantOwned
         if ($archived < 0 || $failed < 0) {
             throw new \InvalidArgumentException('The number of records must not be negative.');
         }
+        $this->progressedAt = new \DateTimeImmutable();
         $this->archived += $archived;
         $this->failed += $failed;
     }
@@ -547,6 +563,7 @@ class Import implements TenantOwned
         if ($reverted < 0 || $changedAfterImport < 0) {
             throw new \InvalidArgumentException('The number of records must not be negative.');
         }
+        $this->progressedAt = new \DateTimeImmutable();
         $this->reverted += $reverted;
         $this->changedAfterImport += $changedAfterImport;
     }

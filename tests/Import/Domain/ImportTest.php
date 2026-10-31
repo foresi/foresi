@@ -160,6 +160,33 @@ final class ImportTest extends TestCase
         self::assertSame($start, $import->startedAt());
     }
 
+    public function testProgressIsTheLastStateChangeOrChunk(): void
+    {
+        $created = new \DateTimeImmutable('2026-01-01');
+        $import = new Import('party', 'key', 'contacts.csv', self::SETTINGS, 1, $created);
+        self::assertSame($created, $import->progressedAt());
+
+        $at = new \DateTimeImmutable('2026-10-01 10:00:00');
+        $import->moveTo(ImportState::Reading, $at);
+        self::assertSame($at, $import->progressedAt());
+
+        $this->assertCounterMovesProgress($import, static fn () => $import->countRows(10, 1));
+        $this->assertCounterMovesProgress($import, static fn () => $import->recordChunk(['create' => 1]));
+        $this->assertCounterMovesProgress($import, static fn () => $import->recount(['create' => 1]));
+        $this->assertCounterMovesProgress($import, static fn () => $import->recordArchived(1));
+        $this->assertCounterMovesProgress($import, static fn () => $import->recordUndo(1, 0));
+    }
+
+    private function assertCounterMovesProgress(Import $import, callable $change): void
+    {
+        $old = new \DateTimeImmutable('2020-01-01');
+        new \ReflectionProperty(Import::class, 'progressedAt')->setValue($import, $old);
+
+        $change();
+
+        self::assertGreaterThan($old, $import->progressedAt());
+    }
+
     #[DataProvider('terminalStates')]
     public function testEveryEndingStateStampsFinishedAt(ImportState $from, ImportState $to): void
     {
