@@ -31,7 +31,7 @@ class TestAttachment implements TenantOwned
     public function __construct(
         #[ORM\ManyToOne(targetEntity: TestNote::class, inversedBy: 'attachments')]
         #[ORM\JoinColumn(nullable: false)]
-        private readonly TestNote $note,
+        private TestNote $note,
         #[ORM\Column(type: 'string', length: 255)]
         private readonly string $label,
     ) {
