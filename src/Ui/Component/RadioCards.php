@@ -35,6 +35,12 @@ final class RadioCards
     /** @var list<array{value: string, label: string, text: string, warning: ?string}> */
     private array $views = [];
 
+    private bool $focused = false;
+
+    public function __construct(private readonly ErrorFocus $errorFocus)
+    {
+    }
+
     #[PostMount]
     public function validate(): void
     {
@@ -57,6 +63,7 @@ final class RadioCards
                 'warning' => $warning,
             ];
         }
+        $this->focused = $this->errorFocus->claim(null !== $this->error);
     }
 
     /**
@@ -65,5 +72,11 @@ final class RadioCards
     public function views(): array
     {
         return $this->views;
+    }
+
+    /** Whether the group is the first invalid control of the page; its first option takes the focus. */
+    public function focused(): bool
+    {
+        return $this->focused;
     }
 }

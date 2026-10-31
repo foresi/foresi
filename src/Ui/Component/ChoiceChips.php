@@ -34,6 +34,12 @@ final class ChoiceChips
      */
     public array $values = [];
 
+    private bool $focused = false;
+
+    public function __construct(private readonly ErrorFocus $errorFocus)
+    {
+    }
+
     #[PostMount]
     public function validate(): void
     {
@@ -48,6 +54,7 @@ final class ChoiceChips
                 throw new \InvalidArgumentException(sprintf('Choice chip "%s" needs a non-empty label.', $value));
             }
         }
+        $this->focused = $this->errorFocus->claim(null !== $this->error);
     }
 
     public function isChecked(int|string $value): bool
@@ -63,5 +70,11 @@ final class ChoiceChips
         ]);
 
         return [] === $ids ? null : implode(' ', $ids);
+    }
+
+    /** Whether the group is the first invalid control of the page; its first option takes the focus. */
+    public function focused(): bool
+    {
+        return $this->focused;
     }
 }

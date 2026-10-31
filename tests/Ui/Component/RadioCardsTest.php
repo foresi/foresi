@@ -68,4 +68,17 @@ final class RadioCardsTest extends KernelTestCase
             }
         }
     }
+
+    public function testTheFirstOptionOfAnInvalidGroupTakesTheFocus(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:RadioCards', ['name' => 'mode', 'id' => 'mode', 'legend' => 'Mode', 'options' => $this->options(), 'error' => 'Choose a mode.'])->crawler();
+
+        $radios = $crawler->filter('input[type="radio"]');
+        self::assertNotNull($radios->eq(0)->attr('autofocus'));
+        self::assertCount(1, $crawler->filter('[autofocus]'));
+        self::assertSame('mode-error', $radios->eq(1)->attr('aria-describedby'));
+
+        $valid = $this->renderTwigComponent('Ui:RadioCards', ['name' => 'other', 'id' => 'other', 'legend' => 'Other', 'options' => $this->options()])->crawler();
+        self::assertCount(0, $valid->filter('[autofocus], [aria-describedby]'));
+    }
 }

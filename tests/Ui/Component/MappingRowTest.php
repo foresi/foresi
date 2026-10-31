@@ -78,4 +78,52 @@ final class MappingRowTest extends KernelTestCase
             }
         }
     }
+
+    public function testErrorsAreListedUnderTheSelectAndMarkIt(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:MappingRow', [
+            'id' => 'column-0',
+            'name' => 'columns[0]',
+            'label' => 'Firma',
+            'options' => $this->options(),
+            'errors' => ['Match the field Name to one of the columns', 'Match the field City to one of the columns'],
+        ])->crawler();
+
+        $select = $crawler->filter('select');
+        self::assertSame('true', $select->attr('aria-invalid'));
+        self::assertSame('column-0-error', $select->attr('aria-describedby'));
+        self::assertNotNull($select->attr('autofocus'));
+        self::assertStringContainsString('border-badge-red-text', (string) $select->attr('class'));
+        self::assertStringNotContainsString('border-line-strong', (string) $select->attr('class'));
+        self::assertSame(
+            ['Match the field Name to one of the columns', 'Match the field City to one of the columns'],
+            $crawler->filter('#column-0-error p')->each(static fn ($message): string => $message->text()),
+        );
+    }
+
+    public function testARowWithoutErrorsIsNotMarked(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:MappingRow', ['id' => 'column-0', 'name' => 'columns[0]', 'label' => 'Firma', 'options' => $this->options()])->crawler();
+
+        $select = $crawler->filter('select');
+        self::assertNull($select->attr('aria-invalid'));
+        self::assertNull($select->attr('aria-describedby'));
+        self::assertNull($select->attr('autofocus'));
+        self::assertSame('h-control w-full appearance-none rounded-control border border-line-strong bg-white pl-2.5 pr-8 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green', $select->attr('class'));
+        self::assertCount(0, $crawler->filter('#column-0-error'));
+    }
+
+    public function testOnlyTheFirstInvalidRowTakesTheFocus(): void
+    {
+        $row = fn (int $column): \Symfony\Component\DomCrawler\Crawler => $this->renderTwigComponent('Ui:MappingRow', ['id' => 'column-'.$column, 'name' => 'columns['.$column.']', 'label' => 'C'.$column, 'options' => $this->options(), 'errors' => ['Bad']])->crawler();
+
+        self::assertNotNull($row(0)->filter('select')->attr('autofocus'));
+        self::assertNull($row(1)->filter('select')->attr('autofocus'));
+    }
+
+    public function testRejectsAnEmptyError(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:MappingRow', ['id' => 'column-0', 'name' => 'columns[0]', 'label' => 'Firma', 'options' => $this->options(), 'errors' => [' ']]);
+    }
 }

@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+form:
+  # Starts the page title while a form shows errors.
+  title_error: 'Error:'
 login:
   title: Sign in
   email: E-mail

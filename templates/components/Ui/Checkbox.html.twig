@@ -3,5 +3,5 @@
 {# Captured here: inside the Field block "attributes" would be the Field's own. #}
 {% set controlAttributes = attributes %}
 <twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required" :inline="true">
-    <input type="checkbox" id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} value="{{ value }}"{% if checked %} checked{% endif %} {{ controlAttributes.defaults({class: 'size-4 shrink-0 accent-green ' ~ constant('App\\Ui\\Component\\Style::FOCUS')}) }}>
+    <input type="checkbox" id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} value="{{ value }}"{% if checked %} checked{% endif %} {{ controlAttributes.defaults({class: 'size-4 shrink-0 accent-green ' ~ constant('App\\Ui\\Component\\Style::FOCUS')}) }}>
 </twig:Ui:Field>
