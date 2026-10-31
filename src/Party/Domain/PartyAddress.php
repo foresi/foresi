@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -28,9 +29,8 @@ use Doctrine\ORM\Mapping as ORM;
 class PartyAddress implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId;
@@ -51,12 +51,13 @@ class PartyAddress implements TenantOwned, Audited
         private Address $address,
         string $label = '',
     ) {
+        $this->id = Id::generate();
         $this->tenantId = $party->stampedTenantId();
         $this->label = trim($label);
         $this->billingFlag = AddressType::Billing === $type ? true : null;
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

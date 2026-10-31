@@ -51,7 +51,7 @@ final class StartImportTest extends KernelTestCase
         $imports->method('add')->willThrowException(new \RuntimeException('The database refused the import.'));
 
         try {
-            $this->start($files, $imports)->start(PartyImportTarget::KEY, $this->upload, 'contacts.csv', 1);
+            $this->start($files, $imports)->start(PartyImportTarget::KEY, $this->upload, 'contacts.csv', '019a0000-0000-7000-8000-000000000001');
             self::fail('The failure must reach the caller.');
         } catch (\RuntimeException $failure) {
             self::assertSame('The database refused the import.', $failure->getMessage());
@@ -70,7 +70,7 @@ final class StartImportTest extends KernelTestCase
         });
 
         try {
-            $this->start(new LocalImportFiles($this->root.'/store'), $imports)->start(PartyImportTarget::KEY, $this->upload, 'C:\\fakepath\\'.str_repeat('x', 300).'.csv', 1);
+            $this->start(new LocalImportFiles($this->root.'/store'), $imports)->start(PartyImportTarget::KEY, $this->upload, 'C:\\fakepath\\'.str_repeat('x', 300).'.csv', '019a0000-0000-7000-8000-000000000001');
         } catch (\RuntimeException) {
         }
 

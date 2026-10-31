@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,9 +28,8 @@ use Doctrine\ORM\Mapping as ORM;
 class ContactLink implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId;
@@ -48,6 +48,7 @@ class ContactLink implements TenantOwned, Audited
         #[ORM\Column(name: 'is_primary', type: 'boolean')]
         private bool $primary = false,
     ) {
+        $this->id = Id::generate();
         if (PartyKind::Person === $company->kind()) {
             throw new \DomainException('A contact person is linked to a company or sole trader, not to a person.');
         }
@@ -64,7 +65,7 @@ class ContactLink implements TenantOwned, Audited
         $this->position = trim($position);
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

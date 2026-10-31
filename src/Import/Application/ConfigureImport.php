@@ -38,12 +38,12 @@ final readonly class ConfigureImport
     }
 
     /**
-     * @param int|null    $profileId      an existing profile of the target the import belongs to
+     * @param string|null $profileId      an existing profile of the target the import belongs to
      * @param string|null $newProfileName a new profile to create, when no existing one is given
      *
      * @throws ImportRefused
      */
-    public function configure(int $importId, Mapping $mapping, ImportOptions $options, ?int $profileId = null, ?string $newProfileName = null): void
+    public function configure(string $importId, Mapping $mapping, ImportOptions $options, ?string $profileId = null, ?string $newProfileName = null): void
     {
         $this->imports->transactional(function () use ($importId, $mapping, $options, $profileId, $newProfileName): void {
             $import = $this->editable($importId);
@@ -88,7 +88,7 @@ final readonly class ConfigureImport
      *
      * @throws ImportRefused
      */
-    public function reread(int $importId, SourceSettings $settings): void
+    public function reread(string $importId, SourceSettings $settings): void
     {
         $this->imports->transactional(function () use ($importId, $settings): void {
             $import = $this->editable($importId);
@@ -98,7 +98,7 @@ final readonly class ConfigureImport
         $this->jobs->dispatch(new ReadImportFile($importId));
     }
 
-    private function editable(int $importId): Import
+    private function editable(string $importId): Import
     {
         $import = $this->imports->findLocked($importId) ?? throw ImportRefused::notFound();
         if (ImportState::Checked === $import->state()) {

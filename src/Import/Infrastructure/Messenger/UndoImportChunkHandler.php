@@ -68,8 +68,8 @@ final readonly class UndoImportChunkHandler
 
         $next = $this->imports->transactional(function () use ($message, $import, $target, $since, $sourceChunk): string {
             $ids = $sourceChunk
-                ? array_map(static fn (ImportRow $row): int => (int) $row->id(), array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInUndo())))
-                : array_map(static fn (ImportMissingRecord $record): int => (int) $record->id(), array_values(array_filter($this->imports->lockMissingOfChunk($import, $message->chunk), static fn (ImportMissingRecord $record): bool => !$record->processedInUndo())));
+                ? array_map(static fn (ImportRow $row): string => $row->id(), array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInUndo())))
+                : array_map(static fn (ImportMissingRecord $record): string => $record->id(), array_values(array_filter($this->imports->lockMissingOfChunk($import, $message->chunk), static fn (ImportMissingRecord $record): bool => !$record->processedInUndo())));
 
             $counts = $this->correlation->within($this->ownCorrelations($message->importId)[1], function () use ($ids, $sourceChunk, $target, $since, $message): array {
                 $counts = [RowOutcome::Reverted->value => 0, RowOutcome::ChangedAfterImport->value => 0];
@@ -112,7 +112,7 @@ final readonly class UndoImportChunkHandler
         };
     }
 
-    private function undoRow(int $id, ImportTarget $target, \DateTimeImmutable $since, int $importId): ?RowOutcome
+    private function undoRow(string $id, ImportTarget $target, \DateTimeImmutable $since, string $importId): ?RowOutcome
     {
         $row = $this->imports->findRow($id) ?? throw new \LogicException('The row is gone.');
         $outcome = $row->outcome();
@@ -137,7 +137,7 @@ final readonly class UndoImportChunkHandler
         return RowOutcome::Reverted;
     }
 
-    private function undoMissing(int $id, ImportTarget $target, \DateTimeImmutable $since, int $importId): ?RowOutcome
+    private function undoMissing(string $id, ImportTarget $target, \DateTimeImmutable $since, string $importId): ?RowOutcome
     {
         $record = $this->imports->findMissingRecord($id) ?? throw new \LogicException('The record is gone.');
         if (!$record->processedInRun() || RowOutcome::Archive !== $record->outcome()) {
@@ -161,7 +161,7 @@ final readonly class UndoImportChunkHandler
      *
      * @return array{string, string}
      */
-    private function ownCorrelations(int $importId): array
+    private function ownCorrelations(string $importId): array
     {
         return ['import:'.$importId, 'import-undo:'.$importId];
     }

@@ -643,7 +643,7 @@ final class ImportControllerTest extends WebTestCase
         $path = $this->dir.'/upload.csv';
         file_put_contents($path, (string) file_get_contents(self::FIXTURE));
 
-        $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party', 'profile' => '99999'], ['file' => new UploadedFile($path, 'upload.csv', 'text/csv', null, true)]);
+        $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party', 'profile' => '019a0000-0000-7000-8000-000000099999'], ['file' => new UploadedFile($path, 'upload.csv', 'text/csv', null, true)]);
 
         self::assertResponseStatusCodeSame(422);
         $crawler = $this->client->getCrawler();
@@ -662,7 +662,7 @@ final class ImportControllerTest extends WebTestCase
         $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party'], ['file' => new UploadedFile($path, $name, 'text/csv', null, true)]);
 
         self::assertResponseStatusCodeSame(303);
-        $id = (int) substr((string) $this->client->getResponse()->headers->get('Location'), \strlen('/imports/'));
+        $id = substr((string) $this->client->getResponse()->headers->get('Location'), \strlen('/imports/'));
         $stored = $this->fresh($id)->originalName();
         self::assertSame(255, mb_strlen($stored));
         self::assertStringEndsWith('.csv', $stored);
@@ -719,7 +719,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    private function upload(string $csv = ''): int
+    private function upload(string $csv = ''): string
     {
         $path = $this->dir.'/idoklad-contacts.csv';
         file_put_contents($path, '' === $csv ? (string) file_get_contents(self::FIXTURE) : $csv);
@@ -731,12 +731,12 @@ final class ImportControllerTest extends WebTestCase
         $this->client->submit($form);
 
         $location = (string) $this->client->getResponse()->headers->get('Location');
-        self::assertMatchesRegularExpression('#^/imports/\d+$#', $location);
+        self::assertMatchesRegularExpression('#^/imports/[0-9a-f-]{36}$#', $location);
 
-        return (int) substr($location, \strlen('/imports/'));
+        return substr($location, \strlen('/imports/'));
     }
 
-    private function uploadAndRead(string $csv = ''): int
+    private function uploadAndRead(string $csv = ''): string
     {
         $id = $this->upload($csv);
         $this->worker->run();
@@ -744,7 +744,7 @@ final class ImportControllerTest extends WebTestCase
         return $id;
     }
 
-    private function checked(string $csv = ''): int
+    private function checked(string $csv = ''): string
     {
         $id = $this->uploadAndRead($csv);
         $crawler = $this->client->request('GET', '/imports/'.$id);
@@ -767,7 +767,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertSame(ImportState::FinishedWithErrors, $this->fresh($id)->state());
     }
 
-    private function finished(): int
+    private function finished(): string
     {
         $id = $this->checked();
         $crawler = $this->client->request('GET', '/imports/'.$id);
@@ -778,12 +778,12 @@ final class ImportControllerTest extends WebTestCase
         return $id;
     }
 
-    private function foreignImport(): int
+    private function foreignImport(): string
     {
         $path = $this->dir.'/foreign.csv';
         file_put_contents($path, (string) file_get_contents(self::FIXTURE));
         $this->context->switchTo($this->foreign);
-        $id = self::getContainer()->get(StartImport::class)->start(PartyImportTarget::KEY, $path, 'foreign.csv', 1);
+        $id = self::getContainer()->get(StartImport::class)->start(PartyImportTarget::KEY, $path, 'foreign.csv', '019a0000-0000-7000-8000-000000000001');
         $this->worker->run();
         $this->context->reset();
 
@@ -836,7 +836,7 @@ final class ImportControllerTest extends WebTestCase
         return $crawler->filter('#'.$label->attr('for'))->closest('div.grid') ?? throw new \LogicException('The row has no container.');
     }
 
-    private function fresh(int $id): Import
+    private function fresh(string $id): Import
     {
         $this->context->switchTo($this->tenant);
         $import = self::getContainer()->get(Imports::class)->findFresh($id) ?? throw new \LogicException('No such import.');

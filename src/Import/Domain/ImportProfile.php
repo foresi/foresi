@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -26,9 +27,8 @@ class ImportProfile implements TenantOwned
     public const string NOT_REMEMBERED = '0000000000000000000000000000000000000000';
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -55,6 +55,7 @@ class ImportProfile implements TenantOwned
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
+        $this->id = Id::generate();
         $this->mapping = $mapping->toArray();
         $this->updatedAt = $createdAt;
     }
@@ -74,7 +75,7 @@ class ImportProfile implements TenantOwned
         return self::NOT_REMEMBERED !== $this->headerSignature;
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

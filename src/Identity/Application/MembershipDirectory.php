@@ -27,5 +27,5 @@ interface MembershipDirectory
      *
      * @return list<Organisation>
      */
-    public function organisationsOf(int $userId): array;
+    public function organisationsOf(string $userId): array;
 }

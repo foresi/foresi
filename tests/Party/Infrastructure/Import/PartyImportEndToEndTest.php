@@ -148,7 +148,7 @@ final class PartyImportEndToEndTest extends KernelTestCase
 
         // Only the company has a VAT id to check; the registers are asked later, never during the import.
         $rechecks = array_map(static fn (\Symfony\Component\Messenger\Envelope $envelope): object => $envelope->getMessage(), [...$this->registry->getSent()]);
-        self::assertEquals([new RecheckRegistry((int) $company->id(), 'import:'.$id)], $rechecks);
+        self::assertEquals([new RecheckRegistry($company->id(), 'import:'.$id)], $rechecks);
     }
 
     public function testARowWhoseWriteFailsInTheDatabaseIsAnErrorAndTheOtherRowsAreWritten(): void
@@ -289,11 +289,11 @@ final class PartyImportEndToEndTest extends KernelTestCase
         self::assertCount(2, $this->details()->emails($company));
         // The matched company: no entry for it or for anything that belongs to it.
         $companyEntries = 'SELECT COUNT(*) FROM audit_entry WHERE correlation_id = ? AND (entity_class = ? AND entity_id = ? OR entity_class = ?)';
-        self::assertSame(0, $this->rowCount($companyEntries, ['import:'.$second, Party::class, (string) $company->id(), ContactLink::class]));
+        self::assertSame(0, $this->rowCount($companyEntries, ['import:'.$second, Party::class, $company->id(), ContactLink::class]));
         self::assertGreaterThan($entries, $this->rowCount('SELECT COUNT(*) FROM audit_entry'));
     }
 
-    private function checkedAndRun(string $csv, string $name = 'contacts.csv', ImportMode $mode = ImportMode::Update): int
+    private function checkedAndRun(string $csv, string $name = 'contacts.csv', ImportMode $mode = ImportMode::Update): string
     {
         $id = $this->upload($csv, $name);
         $this->configure($id, $mode);
@@ -305,24 +305,24 @@ final class PartyImportEndToEndTest extends KernelTestCase
         return $id;
     }
 
-    private function upload(string $csv, string $name = 'contacts.csv'): int
+    private function upload(string $csv, string $name = 'contacts.csv'): string
     {
         $path = $this->dir.'/'.bin2hex(random_bytes(4)).'.csv';
         file_put_contents($path, $csv);
-        $id = $this->service(StartImport::class)->start(PartyImportTarget::KEY, $path, $name, 1);
+        $id = $this->service(StartImport::class)->start(PartyImportTarget::KEY, $path, $name, '019a0000-0000-7000-8000-000000000001');
         $this->worker->run();
 
         return $id;
     }
 
-    private function configure(int $id, ImportMode $mode): void
+    private function configure(string $id, ImportMode $mode): void
     {
         $import = $this->fresh($id);
         $options = new ImportOptions($mode, null, $import->options()->matchKey, BlankCells::Keep, DateOrder::DayMonthYear, DecimalSeparator::Comma, null);
         $this->service(ConfigureImport::class)->configure($id, $import->mapping(), $options);
     }
 
-    private function fresh(int $id): Import
+    private function fresh(string $id): Import
     {
         return $this->service(Imports::class)->findFresh($id) ?? throw new \LogicException('No such import.');
     }

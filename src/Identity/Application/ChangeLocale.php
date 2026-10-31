@@ -17,7 +17,7 @@ final readonly class ChangeLocale
     {
     }
 
-    public function __invoke(int $userId, string $locale): void
+    public function __invoke(string $userId, string $locale): void
     {
         $user = $this->users->findById($userId) ?? throw new \DomainException('The user does not exist.');
         $user->changeLocale($locale);

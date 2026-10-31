@@ -36,13 +36,13 @@ final readonly class StartImport
     }
 
     /**
-     * @param string   $tmpPath      the uploaded file; it is copied, the caller removes it
-     * @param string   $originalName as the client sent it; it is normalised (ImportFileName)
-     * @param int|null $profileId    a profile of the target to rerun, with its mapping and options
+     * @param string      $tmpPath      the uploaded file; it is copied, the caller removes it
+     * @param string      $originalName as the client sent it; it is normalised (ImportFileName)
+     * @param string|null $profileId    a profile of the target to rerun, with its mapping and options
      *
-     * @return int the id of the new import
+     * @return string the id of the new import
      */
-    public function start(string $targetKey, string $tmpPath, string $originalName, int $actorUserId, ?int $profileId = null): int
+    public function start(string $targetKey, string $tmpPath, string $originalName, string $actorUserId, ?string $profileId = null): string
     {
         $target = $this->targets->get($targetKey);
         $profile = null;
@@ -69,7 +69,7 @@ final readonly class StartImport
 
             throw $failure;
         }
-        $id = $import->id() ?? throw new \LogicException('A stored import has an id.');
+        $id = $import->id();
         $this->jobs->dispatch(new ReadImportFile($id));
 
         return $id;

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -29,9 +30,8 @@ class ImportMissingRecord implements TenantOwned
     public const string ARCHIVE_FAILED = 'import.error.archive_failed';
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -55,12 +55,13 @@ class ImportMissingRecord implements TenantOwned
         private readonly Import $import,
         #[ORM\Column(type: 'integer')]
         private readonly int $chunk,
-        #[ORM\Column(name: 'record_id', type: 'integer')]
-        private readonly int $recordId,
+        #[ORM\Column(name: 'record_id', type: 'guid')]
+        private readonly string $recordId,
     ) {
+        $this->id = Id::generate();
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
@@ -80,7 +81,7 @@ class ImportMissingRecord implements TenantOwned
         return $this->chunk;
     }
 
-    public function recordId(): int
+    public function recordId(): string
     {
         return $this->recordId;
     }

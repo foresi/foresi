@@ -75,8 +75,8 @@ final class PartyImportThroughputTest extends KernelTestCase
                     sleep(1);
                 }
                 $times = $this->pass($files[$pass], $matchKey);
-                $last = $em->getConnection()->fetchOne('SELECT MAX(id) FROM import');
-                self::assertIsInt($last);
+                $last = $em->getConnection()->fetchOne('SELECT id FROM import ORDER BY id DESC LIMIT 1');
+                self::assertIsString($last);
                 $import = $imports->findFresh($last);
                 self::assertInstanceOf(Import::class, $import);
                 self::assertSame(ImportState::Finished, $import->state());
@@ -84,8 +84,8 @@ final class PartyImportThroughputTest extends KernelTestCase
                 $line .= \sprintf(', %s: read %.1f s, check %.1f s (%.0f rows/s), run %.1f s (%.0f rows/s)', $pass, $times['read'], $times['check'], $rows / $times['check'], $times['run'], $rows / $times['run']);
                 self::assertGreaterThanOrEqual(self::MINIMUM_RUN_RATE, $rows / $times['run'], $line);
             }
-            $id = $em->getConnection()->fetchOne('SELECT MAX(id) FROM import');
-            self::assertIsInt($id);
+            $id = $em->getConnection()->fetchOne('SELECT id FROM import ORDER BY id DESC LIMIT 1');
+            self::assertIsString($id);
             $undo = $this->time(function () use ($id): void {
                 self::getContainer()->get(UndoImport::class)->undo($id);
                 $this->worker()->run();
@@ -109,13 +109,13 @@ final class PartyImportThroughputTest extends KernelTestCase
         $container = self::getContainer();
         $worker = $this->worker();
         $imports = $container->get(Imports::class);
-        $id = 0;
+        $id = '';
         // The upload is moved into the import store, so each pass gets its own copy.
         $upload = $path.'.'.bin2hex(random_bytes(4));
         copy($path, $upload);
 
         $read = $this->time(static function () use ($container, $worker, $upload, &$id): void {
-            $id = $container->get(StartImport::class)->start(PartyImportTarget::KEY, $upload, 'contacts.csv', 1);
+            $id = $container->get(StartImport::class)->start(PartyImportTarget::KEY, $upload, 'contacts.csv', '019a0000-0000-7000-8000-000000000001');
             $worker->run();
         });
         $import = $imports->findFresh($id);

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Audit\Fixtures;
 
 use App\Audit\Domain\Audited;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -24,9 +25,8 @@ use Doctrine\ORM\Mapping as ORM;
 class AuditedGroup implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -38,6 +38,7 @@ class AuditedGroup implements TenantOwned, Audited
 
     public function __construct()
     {
+        $this->id = Id::generate();
         $this->members = new ArrayCollection();
     }
 

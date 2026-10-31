@@ -21,7 +21,6 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
-use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Symfony\Component\Clock\ClockInterface;
@@ -29,15 +28,13 @@ use Symfony\Component\Clock\ClockInterface;
 /**
  * Writes the audit log in the transaction of the change it describes.
  *
- * Updates and removals are persisted as AuditEntry entities during onFlush.
- * Creations cannot be: generated ids exist only after the insert, and Doctrine
- * dispatches postPersist once every insert of the flush has run but still
- * inside the transaction, so the entry is inserted there, directly.
+ * Creations, updates and removals are persisted as AuditEntry entities during
+ * onFlush: ids are assigned when an entity is constructed, so a new entity
+ * already has the id its entry names.
  *
  * It also guards the log: updating or removing a persisted AuditEntry throws.
  */
 #[AsDoctrineListener(event: Events::onFlush)]
-#[AsDoctrineListener(event: Events::postPersist)]
 final class AuditListener
 {
     /** @var array<class-string, list<string>> */
@@ -71,6 +68,12 @@ final class AuditListener
         }
 
         $entries = [];
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if ($entity instanceof Audited) {
+                $this->tenantOf($entity);
+                $entries[] = $this->entry($em, $entity, AuditAction::Created, $this->snapshot($em, $entity, true));
+            }
+        }
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if ($entity instanceof Audited) {
                 $this->tenantOf($entity);
@@ -92,32 +95,6 @@ final class AuditListener
             $em->persist($entry);
             $uow->computeChangeSet($metadata, $entry);
         }
-    }
-
-    public function postPersist(PostPersistEventArgs $args): void
-    {
-        $entity = $args->getObject();
-        if (!$entity instanceof Audited) {
-            return;
-        }
-
-        $em = $args->getObjectManager();
-        $tenant = $this->tenantOf($entity);
-        $entry = $this->entry($em, $entity, AuditAction::Created, $this->snapshot($em, $entity, true));
-        $em->getConnection()->insert(
-            $em->getClassMetadata(AuditEntry::class)->getTableName(),
-            [
-                'tenant_id' => $tenant,
-                'entity_class' => $entry->entityClass(),
-                'entity_id' => $entry->entityId(),
-                'action' => $entry->action()->value,
-                'changes' => $entry->changes(),
-                'user_id' => $entry->userId(),
-                'occurred_at' => $entry->occurredAt(),
-                'correlation_id' => $entry->correlationId(),
-            ],
-            ['tenant_id' => 'tenant_id', 'changes' => 'json', 'occurred_at' => 'datetime_immutable'],
-        );
     }
 
     /**
@@ -213,11 +190,11 @@ final class AuditListener
         return $this->normalizer($em)->normalize($value, $metadata->getTypeOfField($field) ?? 'string');
     }
 
-    private function associatedId(EntityManagerInterface $em, object $entity): int|string|null
+    private function associatedId(EntityManagerInterface $em, object $entity): ?string
     {
         $id = $em->getUnitOfWork()->getSingleIdentifierValue($entity);
 
-        return \is_int($id) || \is_string($id) ? $id : null;
+        return \is_string($id) ? $id : null;
     }
 
     private function normalizer(EntityManagerInterface $em): AuditValueNormalizer

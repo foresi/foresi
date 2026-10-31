@@ -49,7 +49,7 @@ final readonly class PurgeImportsCommand
         $ended = $values(static fn (ImportState $state): bool => $state->isEnd());
         $abandoned = $values(static fn (ImportState $state): bool => $state->isAbandonable());
 
-        /** @var list<array{id: int|string, file_key: string|null, state: string}> $imports */
+        /** @var list<array{id: string, file_key: string|null, state: string}> $imports */
         $imports = $this->connection->fetchAllAssociative(
             'SELECT i.id, i.file_key, i.state FROM import i'
             .' WHERE ((i.state IN (?) AND i.finished_at < ?) OR (i.state IN (?) AND i.created_at < ?))'
@@ -65,7 +65,7 @@ final readonly class PurgeImportsCommand
         $files = 0;
         $cancelled = 0;
         foreach ($imports as $import) {
-            $id = (int) $import['id'];
+            $id = $import['id'];
             $cancel = \in_array($import['state'], $abandoned, true);
             // Cancel first, only while the state is still an idle one: the user may have queued the import since the SELECT.
             if ($cancel && 1 !== $this->cancel($id, $abandoned, $now)) {
@@ -97,12 +97,12 @@ final readonly class PurgeImportsCommand
      *
      * @return int the number of imports cancelled: 0 when the state moved on
      */
-    private function cancel(int $id, array $idleStates, \DateTimeImmutable $at): int
+    private function cancel(string $id, array $idleStates, \DateTimeImmutable $at): int
     {
         return (int) $this->connection->executeStatement(
             'UPDATE import SET state = ?, finished_at = ? WHERE id = ? AND state IN (?)',
             [ImportState::Cancelled->value, $at, $id, $idleStates],
-            [Types::STRING, Types::DATETIME_IMMUTABLE, Types::INTEGER, ArrayParameterType::STRING],
+            [Types::STRING, Types::DATETIME_IMMUTABLE, Types::STRING, ArrayParameterType::STRING],
         );
     }
 }

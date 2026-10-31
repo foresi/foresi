@@ -16,6 +16,7 @@ use App\Import\Domain\ImportMode;
 use App\Import\Domain\ImportOptions;
 use App\Import\Domain\Mapping;
 use App\Import\Domain\ReplaceScope;
+use App\Shared\Domain\Id;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -30,7 +31,7 @@ final readonly class MappingSubmission
     private function __construct(
         public Mapping $mapping,
         public ImportOptions $options,
-        public ?int $profileId,
+        public ?string $profileId,
         public ?string $profileName,
     ) {
     }
@@ -84,6 +85,6 @@ final readonly class MappingSubmission
         $profileId = $form->getString('profile_id');
         $profileName = trim(mb_substr($form->getString('profile_name'), 0, self::MAX_PROFILE_NAME));
 
-        return new self(new Mapping($columns, $valueMaps), $options, ctype_digit($profileId) ? (int) $profileId : null, '' === $profileName ? null : $profileName);
+        return new self(new Mapping($columns, $valueMaps), $options, Id::isValid($profileId) ? $profileId : null, '' === $profileName ? null : $profileName);
     }
 }

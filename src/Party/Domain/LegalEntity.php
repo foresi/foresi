@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,9 +24,8 @@ use Doctrine\ORM\Mapping as ORM;
 class LegalEntity implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -54,6 +54,7 @@ class LegalEntity implements TenantOwned, Audited
         private string $registerEntry,
         array $bankAccounts,
     ) {
+        $this->id = Id::generate();
         $name = trim($name);
         if ('' === $name) {
             throw new \DomainException('A legal entity needs a name.');

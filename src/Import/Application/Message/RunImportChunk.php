@@ -14,7 +14,7 @@ use App\Tenancy\Application\TenantScopedMessage;
 final readonly class RunImportChunk implements TenantScopedMessage
 {
     public function __construct(
-        public int $importId,
+        public string $importId,
         public int $chunk,
     ) {
     }

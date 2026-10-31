@@ -14,5 +14,5 @@ namespace App\Audit\Application;
  */
 interface AuditActor
 {
-    public function userId(): ?int;
+    public function userId(): ?string;
 }

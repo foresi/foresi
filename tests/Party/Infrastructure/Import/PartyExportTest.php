@@ -66,7 +66,7 @@ final class PartyExportTest extends KernelTestCase
     #[DataProvider('formatsAndLocales')]
     public function testTheExportedFileProposesEveryColumnAgainByItsName(SourceFormat $format, string $locale): void
     {
-        $id = $this->createParty('Example Company s.r.o.')->id() ?? 0;
+        $id = $this->createParty('Example Company s.r.o.')->id();
         $this->createParty('=HYPERLINK("http://example.com")');
         self::getContainer()->get(TranslatorInterface::class)->setLocale($locale);
 
@@ -98,7 +98,7 @@ final class PartyExportTest extends KernelTestCase
     {
         $party = self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, '=Example Trade', null, null, 'info@example.com', '+420 123 456 789', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
 
-        self::getContainer()->get(ExportRecords::class)->write('party', [$party->id() ?? 0], $format, $this->path);
+        self::getContainer()->get(ExportRecords::class)->write('party', [$party->id()], $format, $this->path);
 
         $reader = new OpenSpoutSourceReader();
         $headers = $reader->inspect($this->path)->headers;
@@ -133,7 +133,7 @@ final class PartyExportTest extends KernelTestCase
 
     public function testAFormulaInANameIsNeutralised(): void
     {
-        $id = $this->createParty('=HYPERLINK("http://example.com")')->id() ?? 0;
+        $id = $this->createParty('=HYPERLINK("http://example.com")')->id();
 
         self::getContainer()->get(ExportRecords::class)->write('party', [$id], SourceFormat::Csv, $this->path);
 

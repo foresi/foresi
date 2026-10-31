@@ -25,7 +25,7 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
     {
     }
 
-    public function find(?RegistrationNumber $registrationNumber, ?VatId $vatId, bool $includeArchived = true, ?int $excludePartyId = null): array
+    public function find(?RegistrationNumber $registrationNumber, ?VatId $vatId, bool $includeArchived = true, ?string $excludePartyId = null): array
     {
         $key = $registrationNumber?->normalised() ?? '';
         $conditions = [];
@@ -57,7 +57,7 @@ final readonly class DoctrineDuplicateFinder implements DuplicateFinder
         }
 
         $matches = [];
-        /** @var list<array{id: int, displayName: string, registrationCountry: string|null, registrationKey: string|null, vatId: VatId|null, archivedAt: \DateTimeImmutable|null}> $rows */
+        /** @var list<array{id: string, displayName: string, registrationCountry: string|null, registrationKey: string|null, vatId: VatId|null, archivedAt: \DateTimeImmutable|null}> $rows */
         $rows = $query->getResult();
         foreach ($rows as $row) {
             $sameNumber = '' !== $key

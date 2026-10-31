@@ -14,7 +14,7 @@ use App\Tenancy\Application\TenantScopedMessage;
 final readonly class ReadImportFile implements TenantScopedMessage
 {
     public function __construct(
-        public int $importId,
+        public string $importId,
     ) {
     }
 }

@@ -18,7 +18,7 @@ final readonly class ImportedBy
     public const array OUTCOMES = ['create', 'update', 'restore', 'archive', 'changed_after_import'];
 
     public function __construct(
-        public int $importId,
+        public string $importId,
         public string $outcome,
     ) {
         if (!\in_array($outcome, self::OUTCOMES, true)) {

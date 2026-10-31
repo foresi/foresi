@@ -10,6 +10,7 @@ namespace App\Tests\Party\Domain;
 
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\PartyEmail;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +25,7 @@ final class PartyEmailTest extends TestCase
         self::assertSame($party, $email->party());
         self::assertSame('invoices@example.com', $email->address());
         self::assertSame(EmailPurpose::Invoices, $email->purpose());
-        self::assertNull($email->id());
+        self::assertTrue(Id::isValid($email->id()));
     }
 
     public function testTheComparisonKeyIgnoresCaseAndSurroundingSpace(): void

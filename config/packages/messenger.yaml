@@ -3,6 +3,10 @@ framework:
     messenger:
         failure_transport: failed
 
+        # A message that cannot be read goes to the failed transport instead of being lost.
+        serializer:
+            default_serializer: App\Shared\Infrastructure\Messenger\KeepUndecodableMessages
+
         transports:
             # Default queue. redeliver_timeout must exceed the longest handler, or a slow
             # message is delivered to a second worker while the first is still on it.

@@ -10,6 +10,7 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,9 +28,8 @@ class PartyEmail implements TenantOwned, Audited
     private const int MAX_LENGTH = 254;
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId;
@@ -51,6 +51,7 @@ class PartyEmail implements TenantOwned, Audited
         #[ORM\Column(type: 'string', length: 16, enumType: EmailPurpose::class)]
         private EmailPurpose $purpose,
     ) {
+        $this->id = Id::generate();
         $this->tenantId = $party->stampedTenantId();
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
@@ -62,7 +63,7 @@ class PartyEmail implements TenantOwned, Audited
         return mb_strtolower(trim($address));
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

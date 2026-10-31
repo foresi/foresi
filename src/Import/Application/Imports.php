@@ -21,13 +21,13 @@ interface Imports
     /** Writes the changes of imports and rows loaded before. */
     public function save(): void;
 
-    public function find(int $id): ?Import;
+    public function find(string $id): ?Import;
 
     /**
      * Loads the import with a row lock (SELECT ... FOR UPDATE on PostgreSQL) and
      * fresh values, even when it is already loaded. Call it inside a transaction, then Import::recordChunk(), then save().
      */
-    public function findLocked(int $id): ?Import;
+    public function findLocked(string $id): ?Import;
 
     /**
      * Stages rows and writes them. The caller stages a chunk at a time and clears
@@ -56,7 +56,7 @@ interface Imports
     public function transactional(callable $work): mixed;
 
     /** Loads the import with the values stored now, even when it is already loaded. */
-    public function findFresh(int $id): ?Import;
+    public function findFresh(string $id): ?Import;
 
     /**
      * The rows of a chunk with the values stored now, locked until the transaction
@@ -86,7 +86,7 @@ interface Imports
     public function outcomeCounts(Import $import): array;
 
     /** Whether another import of the active tenant runs or undoes into this target. */
-    public function isBusy(string $targetKey, int $exceptImportId): bool;
+    public function isBusy(string $targetKey, ?string $exceptImportId = null): bool;
 
     /** The import of the target that has waited longest in the queue. */
     public function oldestQueued(string $targetKey): ?Import;
@@ -98,23 +98,23 @@ interface Imports
      */
     public function rowsWithOutcome(Import $import, RowOutcome $outcome): iterable;
 
-    public function findRow(int $id): ?ImportRow;
+    public function findRow(string $id): ?ImportRow;
 
     /**
      * Remembers the records an ambiguous row matched, so they count as in the source.
      *
-     * @param list<int> $recordIds
+     * @param list<string> $recordIds
      */
     public function addAmbiguousMatches(Import $import, array $recordIds): void;
 
-    public function findMissingRecord(int $id): ?ImportMissingRecord;
+    public function findMissingRecord(string $id): ?ImportMissingRecord;
 
     /**
      * Which of the given records a source row of the import matched (alone or among others) or wrote.
      *
-     * @param list<int> $recordIds
+     * @param list<string> $recordIds
      *
-     * @return list<int>
+     * @return list<string>
      */
     public function recordsInSource(Import $import, array $recordIds): array;
 
@@ -130,7 +130,7 @@ interface Imports
      *
      * @return list<Import>
      */
-    public function endedUnseen(int $actorUserId, int $limit): array;
+    public function endedUnseen(string $actorUserId, int $limit): array;
 
     /**
      * The first staged rows in row order, for the samples of the mapping screen.

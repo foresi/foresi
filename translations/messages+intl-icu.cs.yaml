@@ -596,6 +596,7 @@ import:
     invalid_date: '„{value}“ není datum ve zvoleném pořadí.'
     invalid_decimal: '„{value}“ není číslo.'
     invalid_integer: '„{value}“ není celé číslo.'
+    invalid_id: '„{value}“ není platný identifikátor.'
     unknown_value: '„{value}“ je hodnota, kterou neznáme. Přiřaďte ji k jedné z povolených hodnot.'
     required: 'Tato hodnota je povinná.'
     ambiguous_match: '„{value}“ odpovídá {count, number} existujícím záznamům. Vyberte klíč, který určuje jeden záznam.'

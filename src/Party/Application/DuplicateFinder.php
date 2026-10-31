@@ -18,9 +18,9 @@ use App\Party\Domain\VatId;
 interface DuplicateFinder
 {
     /**
-     * @param int|null $excludePartyId the party being edited, which is not its own duplicate
+     * @param string|null $excludePartyId the party being edited, which is not its own duplicate
      *
      * @return list<DuplicateMatch>
      */
-    public function find(?RegistrationNumber $registrationNumber, ?VatId $vatId, bool $includeArchived = true, ?int $excludePartyId = null): array;
+    public function find(?RegistrationNumber $registrationNumber, ?VatId $vatId, bool $includeArchived = true, ?string $excludePartyId = null): array;
 }

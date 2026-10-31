@@ -97,9 +97,9 @@ final readonly class DoctrinePartyDetails implements PartyDetails
 
     public function history(Party $party): array
     {
-        $keys = [Party::class => [(string) $party->id()]];
+        $keys = [Party::class => [$party->id()]];
         foreach ([...$this->addresses($party), ...$this->emails($party), ...$this->bankAccounts($party), ...$this->contactLinks($party)] as $child) {
-            $keys[$child::class][] = (string) $child->id();
+            $keys[$child::class][] = $child->id();
         }
 
         $conditions = [];

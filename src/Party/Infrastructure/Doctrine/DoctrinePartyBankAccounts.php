@@ -60,7 +60,7 @@ final readonly class DoctrinePartyBankAccounts implements PartyBankAccounts
         }
 
         // A party that is not stored yet has no stored accounts.
-        if ($this->em->contains($party) && null !== $uow->getSingleIdentifierValue($party)) {
+        if ($this->em->contains($party) && !$uow->isScheduledForInsert($party)) {
             /** @var list<PartyBankAccount> $stored */
             $stored = $this->em->createQuery('SELECT b FROM '.PartyBankAccount::class.' b WHERE b.party = :party AND b.primaryFlag = true')
                 ->setParameter('party', $party)

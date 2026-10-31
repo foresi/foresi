@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -34,9 +35,8 @@ class Import implements TenantOwned
     public const int THRESHOLD_CHUNKS = 2;
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -144,17 +144,18 @@ class Import implements TenantOwned
         private string $originalName,
         #[ORM\Column(name: 'source_settings', type: 'json')]
         private array $sourceSettings,
-        #[ORM\Column(name: 'actor_user_id', type: 'integer')]
-        private int $actorUserId,
+        #[ORM\Column(name: 'actor_user_id', type: 'guid')]
+        private string $actorUserId,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $createdAt,
     ) {
+        $this->id = Id::generate();
         $this->mapping = new Mapping()->toArray();
         $this->options = ImportOptions::standard();
         $this->progressedAt = $createdAt;
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
@@ -270,7 +271,7 @@ class Import implements TenantOwned
         return $this->archiveCandidates;
     }
 
-    public function actorUserId(): int
+    public function actorUserId(): string
     {
         return $this->actorUserId;
     }

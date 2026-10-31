@@ -67,7 +67,7 @@ final class AddressBookWritesTest extends KernelTestCase
         $this->update($party, new PartyInput(PartyKind::Company, 'Renamed Company', null, VatId::fromString('CZ12345695'), 'new@example.com', '+420000000000', [PartyRole::Supplier], new Address('Main 2', 'Other City', '200 00', 'CZ'), 'Note'));
         $this->em->clear();
 
-        $party = $this->query()->find((int) $party->id()) ?? self::fail();
+        $party = $this->query()->find($party->id()) ?? self::fail();
         self::assertSame('Renamed Company', $party->displayName());
         self::assertSame('CZ12345695', $party->vatId()?->toString());
         self::assertSame([PartyRole::Supplier], $party->roles());
@@ -91,7 +91,7 @@ final class AddressBookWritesTest extends KernelTestCase
         // The form sends no document defaults: they stay.
         $this->update($party, new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', '+420 111 222 333', ''));
         $this->em->clear();
-        $party = $this->query()->find((int) $party->id()) ?? self::fail();
+        $party = $this->query()->find($party->id()) ?? self::fail();
         self::assertSame('+420 111 222 333', $party->mobile());
         self::assertSame('', $party->website());
         self::assertEquals($defaults, $party->invoicingDefaults());
@@ -110,13 +110,13 @@ final class AddressBookWritesTest extends KernelTestCase
 
         $this->update($party, $this->input('Example Company', ''));
         $this->em->clear();
-        self::assertSame([], $this->details()->emails($this->query()->find((int) $party->id()) ?? self::fail()));
+        self::assertSame([], $this->details()->emails($this->query()->find($party->id()) ?? self::fail()));
     }
 
     public function testUpdateThatBreaksADomainRuleChangesNothing(): void
     {
         $party = $this->create('Example Company', email: 'info@example.com', number: '12345687');
-        $id = (int) $party->id();
+        $id = $party->id();
 
         try {
             $this->update($party, new PartyInput(PartyKind::Company, 'Changed', null, null, 'other@example.com', '', [], new Address('Main 2', 'Other City', '200 00', 'CZ')));
@@ -135,7 +135,7 @@ final class AddressBookWritesTest extends KernelTestCase
         $party = $this->create('Example Company');
         $this->em->getConnection()->executeStatement('DELETE FROM party_address');
         $this->em->clear();
-        $party = $this->query()->find((int) $party->id()) ?? self::fail();
+        $party = $this->query()->find($party->id()) ?? self::fail();
 
         $this->expectException(\DomainException::class);
         $this->update($party, $this->input('Renamed', ''));
@@ -154,7 +154,7 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertEquals($first, $party->archivedAt());
         $archive->restore([$party]);
         self::assertFalse($party->isArchived());
-        $updates = $this->em->getRepository(AuditEntry::class)->findBy(['entityClass' => Party::class, 'entityId' => (string) $party->id()]);
+        $updates = $this->em->getRepository(AuditEntry::class)->findBy(['entityClass' => Party::class, 'entityId' => $party->id()]);
         self::assertGreaterThanOrEqual(3, \count($updates), 'created, archived, restored');
     }
 
@@ -206,7 +206,7 @@ final class AddressBookWritesTest extends KernelTestCase
 
         $candidates = $this->query()->contactPersonCandidates($company);
 
-        self::assertSame([$free->id()], array_map(static fn (Party $party): ?int => $party->id(), $candidates));
+        self::assertSame([$free->id()], array_map(static fn (Party $party): string => $party->id(), $candidates));
     }
 
     public function testSearchAndSortIgnoreTheCaseOfLettersWithDiacritics(): void
@@ -237,7 +237,7 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertSame(2, $page->total);
         self::assertSame(1, $page->pages);
         self::assertSame(2, $this->query()->counts()->all);
-        self::assertNotInstanceOf(Party::class, $this->query()->find(999999));
+        self::assertNotInstanceOf(Party::class, $this->query()->find('019a0000-0000-7000-8000-0000000f423f'));
     }
 
     /**

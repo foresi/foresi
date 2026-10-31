@@ -19,7 +19,7 @@ use App\Tenancy\Application\TenantScopedMessage;
 final readonly class RecheckRegistry implements TenantScopedMessage
 {
     public function __construct(
-        public int $partyId,
+        public string $partyId,
         public ?string $correlationId = null,
     ) {
     }

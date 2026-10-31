@@ -596,6 +596,7 @@ import:
     invalid_date: '"{value}" is not a date in the chosen order.'
     invalid_decimal: '"{value}" is not a number.'
     invalid_integer: '"{value}" is not a whole number.'
+    invalid_id: '"{value}" is not a valid identifier.'
     unknown_value: '"{value}" is not a value we know. Map it to one of the allowed values.'
     required: 'This value is required.'
     ambiguous_match: '"{value}" matches {count, number} existing records. Choose a match key that names one record.'

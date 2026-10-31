@@ -61,7 +61,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $mapping = new Mapping([0 => 'name', 1 => null], ['kind' => ['Firma' => 'company']]);
         $profile = new ImportProfile('Contacts', 'party', 'idoklad', $mapping, $options, Mapping::signature(['Name', 'Kind']), new \DateTimeImmutable('2026-10-01 10:00:00'));
         $this->profiles->add($profile);
-        $import = new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => 'utf-8', 'delimiter' => ';', 'sheet' => null, 'headerRow' => 1], 7, new \DateTimeImmutable('2026-10-01 10:00:00'));
+        $import = new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => 'utf-8', 'delimiter' => ';', 'sheet' => null, 'headerRow' => 1], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01 10:00:00'));
         $import->readHeaders(['Name', 'Kind']);
         $import->useMapping($mapping, $options, $profile);
         $import->moveTo(ImportState::Reading);
@@ -69,12 +69,12 @@ final class ImportPersistenceTest extends KernelTestCase
         $this->imports->add($import);
         $row = new ImportRow($import, 2, 0, ['Example Company', 'Firma']);
         $row->decide(RowOutcome::Error, [new RowError('kind', 'import.error.unknown_choice', ['value' => 'Firma'])]);
-        $row->record(5, ['name' => 'Old']);
+        $row->record('019a0000-0000-7000-8000-000000000005', ['name' => 'Old']);
         $row->markProcessed();
         $this->imports->addRows([$row, new ImportRow($import, 3, 0, ['Test Person', 'Osoba'])]);
         $this->em->clear();
 
-        $loaded = $this->imports->find((int) $import->id());
+        $loaded = $this->imports->find($import->id());
 
         self::assertNotNull($loaded);
         self::assertSame('party', $loaded->targetKey());
@@ -93,7 +93,7 @@ final class ImportPersistenceTest extends KernelTestCase
         self::assertSame(RowOutcome::Error, $rows[0]->outcome());
         self::assertEquals([new RowError('kind', 'import.error.unknown_choice', ['value' => 'Firma'])], $rows[0]->errors());
         self::assertSame(['Example Company', 'Firma'], $rows[0]->raw());
-        self::assertSame(5, $rows[0]->recordId());
+        self::assertSame('019a0000-0000-7000-8000-000000000005', $rows[0]->recordId());
         self::assertSame(['name' => 'Old'], $rows[0]->before());
         self::assertTrue($rows[0]->processedInRun());
         self::assertNull($rows[1]->outcome());
@@ -107,7 +107,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $import = $this->newImport();
         $import->countRows(4, 2);
         $this->imports->add($import);
-        $id = (int) $import->id();
+        $id = $import->id();
         $this->em->clear();
 
         $this->em->wrapInTransaction(function () use ($id): void {
@@ -129,7 +129,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $import = $this->newImport();
         $import->countRows(10, 3);
         $this->imports->add($import);
-        $id = (int) $import->id();
+        $id = $import->id();
         $this->em->clear();
         $loaded = $this->imports->find($id);
         self::assertSame(0, $loaded?->created());
@@ -156,7 +156,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $import = $this->newImport();
         $this->imports->add($import);
         $this->imports->addRows([new ImportRow($import, 1, 0, ['a'])]);
-        $id = (int) $import->id();
+        $id = $import->id();
         self::assertCount(1, $this->imports->rowsOfChunk($import, 0));
 
         $this->context->switchTo(TenantId::generate());
@@ -183,7 +183,7 @@ final class ImportPersistenceTest extends KernelTestCase
         $mine = $this->newImport();
         $this->imports->add($mine);
         $this->profiles->add(new ImportProfile('Contacts', 'party', null, new Mapping(), ImportOptions::standard(), 'sig', new \DateTimeImmutable('2026-10-01')));
-        $id = (int) $mine->id();
+        $id = $mine->id();
 
         $this->context->switchTo(TenantId::generate());
 
@@ -213,7 +213,7 @@ final class ImportPersistenceTest extends KernelTestCase
         self::assertSame('Newer', $this->profiles->findByHeaders('party', 'sig')?->name());
         self::assertNull($this->profiles->findByHeaders('invoice', 'sig'));
         self::assertSame(['Other', 'Newer', 'Older'], array_map(static fn (ImportProfile $profile): string => $profile->name(), $this->profiles->forTarget('party')));
-        self::assertSame('Older', $this->profiles->find((int) $older->id())?->name());
+        self::assertSame('Older', $this->profiles->find($older->id())?->name());
     }
 
     public function testSourceFilesAreStoredOutsideThePublicWebRoot(): void
@@ -227,6 +227,6 @@ final class ImportPersistenceTest extends KernelTestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => null, 'delimiter' => null, 'sheet' => null, 'headerRow' => null], 7, new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'tenant/file', 'contacts.csv', ['format' => 'csv', 'encoding' => null, 'delimiter' => null, 'sheet' => null, 'headerRow' => null], '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 }

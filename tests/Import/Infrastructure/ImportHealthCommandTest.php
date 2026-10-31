@@ -307,9 +307,9 @@ final class ImportHealthCommandTest extends KernelTestCase
     /**
      * @param int $chunks only Queued imports are given chunks
      */
-    private function importIn(ImportState $state, string $progressedAt, int $chunks = 1, ?string $startedAt = null): int
+    private function importIn(ImportState $state, string $progressedAt, int $chunks = 1, ?string $startedAt = null): string
     {
-        $import = new Import('party', null, 'contacts.csv', ['format' => 'csv'], 1, new \DateTimeImmutable('2026-01-01'));
+        $import = new Import('party', null, 'contacts.csv', ['format' => 'csv'], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-01-01'));
         $this->imports->add($import);
         $import->countRows($chunks * 10, $chunks);
         $long = new \DateTimeImmutable('2026-01-01');
@@ -329,7 +329,7 @@ final class ImportHealthCommandTest extends KernelTestCase
             $import->moveTo($step, $long);
         }
         $this->imports->save();
-        $id = (int) $import->id();
+        $id = $import->id();
         $this->em->getConnection()->executeStatement(
             'UPDATE import SET progressed_at = ?, started_at = COALESCE(?, started_at) WHERE id = ?',
             [$progressedAt, $startedAt, $id],

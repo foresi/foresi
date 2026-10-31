@@ -28,5 +28,5 @@ interface TargetPages
      * The list of records; with an import, only those the import gave this outcome.
      * Null when the list cannot be narrowed to the outcome.
      */
-    public function listUrl(?int $importId = null, ?RowOutcome $outcome = null): ?string;
+    public function listUrl(?string $importId = null, ?RowOutcome $outcome = null): ?string;
 }

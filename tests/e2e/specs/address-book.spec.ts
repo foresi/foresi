@@ -71,7 +71,7 @@ test.describe('list, search and views', () => {
   });
 
   test('a contact that does not exist answers 404', async ({ page }) => {
-    const response = await page.goto('/contacts/999999');
+    const response = await page.goto('/contacts/019a0000-0000-7000-8000-000000000000');
     expect(response?.status()).toBe(404);
   });
 });

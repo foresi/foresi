@@ -40,7 +40,7 @@ final readonly class DuplicateRows
             .' AND EXISTS (SELECT 1 FROM import_row e WHERE e.import_id = r.import_id AND e.match_value = r.match_value AND e.row_number < r.row_number)'
             .' ORDER BY r.row_number',
             [$import->id()],
-            [ParameterType::INTEGER],
+            [ParameterType::STRING],
         ));
         foreach (array_chunk($ids, self::BATCH) as $batch) {
             $rows = array_filter(array_map($this->imports->findRow(...), $batch), static fn (?ImportRow $row): bool => $row instanceof ImportRow);

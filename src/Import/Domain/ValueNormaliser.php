@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Import\Domain;
 
 use App\Shared\Domain\Countries;
+use App\Shared\Domain\Id;
 
 /** Turns the text of a source cell into the value a target field holds. */
 final readonly class ValueNormaliser
@@ -40,6 +41,7 @@ final readonly class ValueNormaliser
             FieldType::Choice => $this->choice($field, $text, $valueMap),
             FieldType::Country => $this->country($field, $text, $valueMap),
             FieldType::Identifier => mb_strtoupper(Text::squash($text)),
+            FieldType::Uuid => $this->uuid($field, $text),
         };
     }
 
@@ -88,6 +90,13 @@ final readonly class ValueNormaliser
         $whole = str_replace(['.', ','], '', $parts[2]);
 
         return ('-' === $parts[1] ? '-' : '').$whole.(isset($parts[3]) ? '.'.$parts[3] : '');
+    }
+
+    private function uuid(FieldDefinition $field, string $text): string|RowError
+    {
+        $id = mb_strtolower(Text::squash($text));
+
+        return Id::isValid($id) ? $id : $this->error($field, 'import.error.invalid_id', $text);
     }
 
     private function integer(FieldDefinition $field, string $text): int|RowError

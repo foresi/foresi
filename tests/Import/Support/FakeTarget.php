@@ -18,6 +18,7 @@ use App\Import\Domain\BlankCells;
 use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\FieldType;
 use App\Import\Domain\RowError;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 
 /**
@@ -30,16 +31,14 @@ final class FakeTarget implements ImportTarget
 {
     public const string KEY = 'fake';
 
-    /** @var array<int, array{values: array<string, mixed>, archived: bool, tenant: string}> */
+    /** @var array<string, array{values: array<string, mixed>, archived: bool, tenant: string}> */
     public array $records = [];
 
-    /** @var list<array{string, int, string|null}> operation, record id, correlation id */
+    /** @var list<array{string, string, string|null}> operation, record id, correlation id */
     public array $writes = [];
 
     /** @var (callable(array<string, mixed>): void)|null runs inside create(), so a test can make the write fail in the database */
     public $onCreate;
-
-    private int $nextId = 1;
 
     /** Records belong to the active tenant; matching and the active ids see only its records. */
     public function __construct(private readonly AuditCorrelation $correlation, private readonly TenantContext $tenants, private readonly AuditTrail $trail)
@@ -110,14 +109,14 @@ final class FakeTarget implements ImportTarget
         if (null !== $this->onCreate) {
             ($this->onCreate)($values);
         }
-        $id = $this->nextId++;
+        $id = Id::generate();
         $this->records[$id] = ['values' => $values, 'archived' => false, 'tenant' => $this->tenant()];
         $this->log('create', $id);
 
         return new WriteResult($id, RecordSnapshot::none());
     }
 
-    public function update(int $id, array $values, BlankCells $blankCells): WriteResult
+    public function update(string $id, array $values, BlankCells $blankCells): WriteResult
     {
         $this->failOn($values);
         $before = $this->snapshot($id);
@@ -131,13 +130,13 @@ final class FakeTarget implements ImportTarget
         return new WriteResult($id, $before);
     }
 
-    public function restoreArchived(int $id): void
+    public function restoreArchived(string $id): void
     {
         $this->records[$id]['archived'] = false;
         $this->log('restore', $id);
     }
 
-    public function archive(int $id): RecordSnapshot
+    public function archive(string $id): RecordSnapshot
     {
         $this->failOn($this->records[$id]['values']);
         $before = $this->snapshot($id);
@@ -147,7 +146,7 @@ final class FakeTarget implements ImportTarget
         return $before;
     }
 
-    public function revert(int $id, RecordSnapshot $before): void
+    public function revert(string $id, RecordSnapshot $before): void
     {
         if ($before->isNone()) {
             $this->records[$id]['archived'] = true;
@@ -175,9 +174,9 @@ final class FakeTarget implements ImportTarget
         }
     }
 
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
-        return $this->trail->changedSince(self::class, (string) $id, $since, ...$exceptCorrelationIds);
+        return $this->trail->changedSince(self::class, $id, $since, ...$exceptCorrelationIds);
     }
 
     /**
@@ -185,12 +184,18 @@ final class FakeTarget implements ImportTarget
      *
      * @param array<string, mixed> $values
      */
-    public function add(array $values, bool $archived = false): int
+    public function add(array $values, bool $archived = false): string
     {
-        $id = $this->nextId++;
+        $id = Id::generate();
         $this->records[$id] = ['values' => $values, 'archived' => $archived, 'tenant' => $this->tenant()];
 
         return $id;
+    }
+
+    /** The id of the record made nth, counting from 1. */
+    public function nth(int $nth): string
+    {
+        return array_keys($this->records)[$nth - 1];
     }
 
     /**
@@ -223,7 +228,7 @@ final class FakeTarget implements ImportTarget
         return $this->tenants->current()->toString();
     }
 
-    private function snapshot(int $id): RecordSnapshot
+    private function snapshot(string $id): RecordSnapshot
     {
         return new RecordSnapshot(['values' => $this->records[$id]['values'], 'archived' => $this->records[$id]['archived']]);
     }
@@ -239,7 +244,7 @@ final class FakeTarget implements ImportTarget
         }
     }
 
-    private function log(string $operation, int $id): void
+    private function log(string $operation, string $id): void
     {
         $this->writes[] = [$operation, $id, $this->correlation->current()];
     }

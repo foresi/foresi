@@ -106,24 +106,24 @@ final class TargetRegistryTest extends TestCase
 
             public function create(array $values): WriteResult
             {
-                return new WriteResult(1, RecordSnapshot::none());
+                return new WriteResult('019a0000-0000-7000-8000-000000000001', RecordSnapshot::none());
             }
 
-            public function update(int $id, array $values, BlankCells $blankCells): WriteResult
+            public function update(string $id, array $values, BlankCells $blankCells): WriteResult
             {
                 return new WriteResult($id, RecordSnapshot::none());
             }
 
-            public function restoreArchived(int $id): void
+            public function restoreArchived(string $id): void
             {
             }
 
-            public function archive(int $id): RecordSnapshot
+            public function archive(string $id): RecordSnapshot
             {
                 return RecordSnapshot::none();
             }
 
-            public function revert(int $id, RecordSnapshot $before): void
+            public function revert(string $id, RecordSnapshot $before): void
             {
             }
 
@@ -137,7 +137,7 @@ final class TargetRegistryTest extends TestCase
                 return [];
             }
 
-            public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+            public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
             {
                 return false;
             }

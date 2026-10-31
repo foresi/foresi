@@ -22,4 +22,5 @@ enum FieldType: string
     case Choice = 'choice';
     case Country = 'country';
     case Identifier = 'identifier';
+    case Uuid = 'uuid';
 }

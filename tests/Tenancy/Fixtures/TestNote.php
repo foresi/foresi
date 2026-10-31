@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy\Fixtures;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -23,9 +24,8 @@ use Doctrine\ORM\Mapping as ORM;
 class TestNote implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -38,10 +38,11 @@ class TestNote implements TenantOwned
         #[ORM\Column(type: 'string', length: 255)]
         private readonly string $text,
     ) {
+        $this->id = Id::generate();
         $this->attachments = new ArrayCollection();
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

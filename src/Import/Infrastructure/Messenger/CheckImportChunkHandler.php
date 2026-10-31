@@ -65,7 +65,7 @@ final readonly class CheckImportChunkHandler
                     $row->keyBy($evaluation->matchValue);
                     $row->record(1 === \count($matches) ? $matches[0]->id : null, null);
                     if (\count($matches) > 1) {
-                        $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): int => $match->id, $matches));
+                        $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): string => $match->id, $matches));
                     }
                     $unidentified += $evaluation->keyUnreadable ? 1 : 0;
                     $counts[$outcome->value] = ($counts[$outcome->value] ?? 0) + 1;
@@ -85,7 +85,7 @@ final readonly class CheckImportChunkHandler
         }
     }
 
-    private function complete(int $importId): void
+    private function complete(string $importId): void
     {
         $this->imports->transactional(function () use ($importId): void {
             $import = $this->imports->findLocked($importId);

@@ -28,7 +28,7 @@ final readonly class ExportRecords
     }
 
     /**
-     * @param iterable<int> $ids
+     * @param iterable<string> $ids
      */
     public function write(string $targetKey, iterable $ids, SourceFormat $format, string $path): void
     {
@@ -37,7 +37,7 @@ final readonly class ExportRecords
     }
 
     /**
-     * @param iterable<int> $ids
+     * @param iterable<string> $ids
      *
      * @return \Generator<mixed, array<string, string>>
      */

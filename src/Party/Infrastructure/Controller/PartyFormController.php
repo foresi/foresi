@@ -36,6 +36,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -90,8 +91,8 @@ final class PartyFormController extends AbstractController
         return $this->handle($request, null, $submission, $token);
     }
 
-    #[Route('/contacts/{id}/edit', name: 'app_contact_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function edit(int $id, Request $request): Response
+    #[Route('/contacts/{id}/edit', name: 'app_contact_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function edit(string $id, Request $request): Response
     {
         $party = $this->parties->find($id) ?? throw new NotFoundHttpException();
         if (!$request->isMethod('POST')) {
@@ -149,15 +150,12 @@ final class PartyFormController extends AbstractController
                 $created = $this->createParty->createFrom($input);
                 $id = $created->id();
                 $changedVat = true;
-                $this->tokens->complete($token, $id ?? 0);
+                $this->tokens->complete($token, $id);
             }
         } catch (\DomainException) {
             return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (null === $id) {
-            throw new \LogicException('A saved party has an id.');
-        }
         if ($changedVat && $input->vatId instanceof \App\Party\Domain\VatId) {
             RefreshRegistryChecksAfterResponse::schedule($request, $id);
         }

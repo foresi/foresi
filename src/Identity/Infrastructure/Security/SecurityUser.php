@@ -19,7 +19,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 final readonly class SecurityUser implements UserInterface, PasswordAuthenticatedUserInterface
 {
     public function __construct(
-        private int $id,
+        private string $id,
         private string $email,
         private string $passwordHash,
     ) {
@@ -30,7 +30,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         return new self($user->id(), $user->email(), $user->passwordHash());
     }
 
-    public function id(): int
+    public function id(): string
     {
         return $this->id;
     }
@@ -65,5 +65,25 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
     {
         // The session never holds the real hash; Symfony compares the crc32c.
         return ['id' => $this->id, 'email' => $this->email, 'passwordHash' => hash('crc32c', $this->passwordHash)];
+    }
+
+    /**
+     * A session from before ids were UUIDs holds a whole number here. It must
+     * still load, or that user gets an error page until the cookie is gone; the
+     * firewall replaces this object with a fresh one on the same request.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $id = $data['id'] ?? '';
+        $email = $data['email'] ?? '';
+        $hash = $data['passwordHash'] ?? '';
+        if (!\is_string($email) || !\is_string($hash) || !\is_string($id) && !\is_int($id)) {
+            throw new \UnexpectedValueException('The session does not hold a user.');
+        }
+        $this->id = (string) $id;
+        $this->email = $email;
+        $this->passwordHash = $hash;
     }
 }

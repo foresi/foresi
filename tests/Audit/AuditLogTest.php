@@ -68,7 +68,7 @@ final class AuditLogTest extends KernelTestCase
         $entries = $this->entries();
         self::assertCount(1, $entries);
         self::assertSame(Party::class, $entries[0]->entityClass());
-        self::assertSame((string) $this->partyId($party), $entries[0]->entityId());
+        self::assertSame($this->partyId($party), $entries[0]->entityId());
         self::assertSame(AuditAction::Created, $entries[0]->action());
         self::assertSame($this->context->current()->toString(), $entries[0]->tenantId()->toString());
         $changes = $entries[0]->changes();
@@ -94,7 +94,7 @@ final class AuditLogTest extends KernelTestCase
         $updates = $this->entries(AuditAction::Updated);
         self::assertCount(1, $updates);
         self::assertSame(['displayName' => ['Example Company', 'Renamed Party']], $updates[0]->changes());
-        self::assertSame((string) $this->partyId($party), $updates[0]->entityId());
+        self::assertSame($this->partyId($party), $updates[0]->entityId());
     }
 
     public function testEmbeddedAndEnumChangesAreScalars(): void
@@ -130,7 +130,7 @@ final class AuditLogTest extends KernelTestCase
         $party = $this->party();
         $this->em->persist($party);
         $this->em->flush();
-        $id = (string) $this->partyId($party);
+        $id = $this->partyId($party);
 
         $this->em->remove($party);
         $this->em->flush();
@@ -268,7 +268,7 @@ final class AuditLogTest extends KernelTestCase
         $this->em->flush();
 
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
-        $user = new SecurityUser(42, 'testing@example.com', 'hash');
+        $user = new SecurityUser('019a0000-0000-7000-8000-00000000002a', 'testing@example.com', 'hash');
         $tokens->setToken(new UsernamePasswordToken($user, 'main', ['ROLE_USER']));
         $party = $this->em->getRepository(Party::class)->findAll()[0];
         $this->setProperty($party, 'phone', '+420111111111');
@@ -276,7 +276,7 @@ final class AuditLogTest extends KernelTestCase
 
         $entries = $this->entries();
         self::assertNull($entries[0]->userId());
-        self::assertSame(42, $entries[1]->userId());
+        self::assertSame('019a0000-0000-7000-8000-00000000002a', $entries[1]->userId());
     }
 
     public function testCreatedEntryUsesTheEntitysTenant(): void
@@ -356,10 +356,10 @@ final class AuditLogTest extends KernelTestCase
             [PartyRole::Customer]);
     }
 
-    private function partyId(Party $party): int
+    private function partyId(Party $party): string
     {
         $id = $this->em->getUnitOfWork()->getSingleIdentifierValue($party);
-        self::assertIsInt($id);
+        self::assertIsString($id);
 
         return $id;
     }

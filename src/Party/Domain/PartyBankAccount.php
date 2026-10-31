@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,9 +28,8 @@ use Doctrine\ORM\Mapping as ORM;
 class PartyBankAccount implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId;
@@ -55,6 +55,7 @@ class PartyBankAccount implements TenantOwned, Audited
         string $label = '',
         bool $primary = false,
     ) {
+        $this->id = Id::generate();
         $this->primaryFlag = $primary ? true : null;
         $this->tenantId = $party->stampedTenantId();
         $this->iban = $iban->toString();
@@ -62,7 +63,7 @@ class PartyBankAccount implements TenantOwned, Audited
         $this->label = trim($label);
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

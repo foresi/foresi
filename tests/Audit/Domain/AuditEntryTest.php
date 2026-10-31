@@ -10,6 +10,7 @@ namespace App\Tests\Audit\Domain;
 
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
+use App\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -18,14 +19,14 @@ final class AuditEntryTest extends TestCase
     public function testExposesWhatItWasCreatedWith(): void
     {
         $at = new \DateTimeImmutable('2026-10-29T10:00:00+00:00');
-        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], 3, $at);
+        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], '019a0000-0000-7000-8000-000000000003', $at);
 
-        self::assertNull($entry->id());
+        self::assertTrue(Id::isValid($entry->id()));
         self::assertSame('App\\Thing', $entry->entityClass());
         self::assertSame('7', $entry->entityId());
         self::assertSame(AuditAction::Updated, $entry->action());
         self::assertSame(['name' => ['a', 'b']], $entry->changes());
-        self::assertSame(3, $entry->userId());
+        self::assertSame('019a0000-0000-7000-8000-000000000003', $entry->userId());
         self::assertSame($at, $entry->occurredAt());
     }
 

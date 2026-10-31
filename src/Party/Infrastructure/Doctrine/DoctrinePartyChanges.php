@@ -31,9 +31,9 @@ final readonly class DoctrinePartyChanges
     }
 
     /**
-     * @param list<int>                      $partyIds
-     * @param array<class-string, list<int>> $knownChildren        children a write noted, such as the ones it added
-     * @param list<string>                   $exceptCorrelationIds
+     * @param list<string>                      $partyIds
+     * @param array<class-string, list<string>> $knownChildren        children a write noted, such as the ones it added
+     * @param list<string>                      $exceptCorrelationIds
      */
     public function changedSince(array $partyIds, array $knownChildren, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
@@ -56,7 +56,7 @@ final readonly class DoctrinePartyChanges
             }
             $query = $this->em->createQuery($dql)
                 ->setParameter('class', $class)
-                ->setParameter('ids', array_values(array_unique(array_map(strval(...), $ids))))
+                ->setParameter('ids', array_values(array_unique($ids)))
                 ->setParameter('since', $since, 'datetime_immutable');
             if ([] !== $exceptCorrelationIds) {
                 $query->setParameter('correlations', $exceptCorrelationIds);
@@ -74,9 +74,9 @@ final readonly class DoctrinePartyChanges
      * either side) of the parties, in one query. The parties were found through
      * the tenant filter; their children belong to the same tenant.
      *
-     * @param list<int> $partyIds
+     * @param list<string> $partyIds
      *
-     * @return array<class-string, list<int>>
+     * @return array<class-string, list<string>>
      */
     public function childrenOf(array $partyIds): array
     {
@@ -89,13 +89,13 @@ final readonly class DoctrinePartyChanges
             ." UNION ALL SELECT 'bank_account', id FROM party_bank_account WHERE party_id IN (:parties)"
             ." UNION ALL SELECT 'link', id FROM contact_link WHERE company_id IN (:parties) OR person_id IN (:parties)",
             ['parties' => $partyIds],
-            ['parties' => ArrayParameterType::INTEGER],
+            ['parties' => ArrayParameterType::STRING],
         );
         $classes = ['address' => PartyAddress::class, 'email' => PartyEmail::class, 'bank_account' => PartyBankAccount::class, 'link' => ContactLink::class];
         $children = [];
         foreach ($rows as [$kind, $id]) {
-            if (\is_string($kind) && isset($classes[$kind]) && is_numeric($id)) {
-                $children[$classes[$kind]][] = (int) $id;
+            if (\is_string($kind) && isset($classes[$kind]) && \is_string($id)) {
+                $children[$classes[$kind]][] = $id;
             }
         }
 

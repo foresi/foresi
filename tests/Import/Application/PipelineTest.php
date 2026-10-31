@@ -173,10 +173,10 @@ final class PipelineTest extends KernelTestCase
         self::assertSame([1, 1, 0, 0, 0, 0, 2], $this->counters($import));
         self::assertSame(['Name 2', 'New 1'], $this->target->activeNames());
         // Blank cells keep the value by default.
-        self::assertSame('old@example.com', $this->target->records[1]['values']['email']);
+        self::assertSame('old@example.com', $this->target->records[$this->target->nth(1)]['values']['email']);
         $row = $this->imports->rowsOfChunk($import, 0)[0];
         self::assertSame(RowOutcome::Update, $row->outcome());
-        self::assertSame(1, $row->recordId());
+        self::assertSame($this->target->nth(1), $row->recordId());
         self::assertSame(['values' => ['code' => 'C1', 'name' => 'Old 1', 'email' => 'old@example.com'], 'archived' => false], $row->before());
         self::assertTrue($row->processedInRun());
     }
@@ -188,7 +188,7 @@ final class PipelineTest extends KernelTestCase
         $this->check($id);
         $this->runImport($id);
 
-        self::assertSame([['create', 1, 'import:'.$id], ['create', 2, 'import:'.$id]], $this->target->writes);
+        self::assertSame([['create', $this->target->nth(1), 'import:'.$id], ['create', $this->target->nth(2), 'import:'.$id]], $this->target->writes);
     }
 
     public function testAnAmbiguousKeyAndAKeyRepeatedInTheFileAreErrors(): void
@@ -260,7 +260,7 @@ final class PipelineTest extends KernelTestCase
         $this->configure($first, ImportMode::Update, newProfile: 'Fake records');
         $this->check($first);
         $this->runImport($first);
-        $profileId = (int) $this->fresh($first)->profile()?->id();
+        $profileId = $this->fresh($first)->profile()?->id();
         $manual = $this->target->add(['code' => 'M1', 'name' => 'Manual', 'email' => null]);
 
         $second = $this->upload($this->rows(1));
@@ -278,7 +278,7 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(2, $import->archived());
         self::assertSame(['Manual', 'Name 1'], $this->target->activeNames());
         self::assertFalse($this->target->records[$manual]['archived']);
-        self::assertSame([['archive', 2, 'import:'.$second], ['archive', 3, 'import:'.$second]], \array_slice($this->target->writes, -2));
+        self::assertSame([['archive', $this->target->nth(2), 'import:'.$second], ['archive', $this->target->nth(3), 'import:'.$second]], \array_slice($this->target->writes, -2));
     }
 
     public function testAFullReplaceOfAllRecordsNeedsTheTypedNumber(): void
@@ -361,9 +361,9 @@ final class PipelineTest extends KernelTestCase
         $this->configure($earlier, ImportMode::Update, newProfile: 'Fake records');
         $this->check($earlier);
         $this->runImport($earlier);
-        $profileId = (int) $this->fresh($earlier)->profile()?->id();
+        $profileId = $this->fresh($earlier)->profile()?->id();
         // Someone gives the second record the same code, so the key now names two records.
-        $this->target->records[2]['values']['code'] = 'C5';
+        $this->target->records[$this->target->nth(2)]['values']['code'] = 'C5';
 
         $id = $this->upload("Code;Name;Email\nC5;Five again;\nN1;New 1;\nN2;New 2;\n");
         $this->configure($id, ImportMode::FullReplace, ReplaceScope::Profile, profileId: $profileId);
@@ -373,7 +373,7 @@ final class PipelineTest extends KernelTestCase
         $this->runImport($id, 1);
 
         self::assertSame(['Five', 'New 1', 'New 2', 'Other five'], $this->target->activeNames());
-        self::assertTrue($this->target->records[3]['archived']);
+        self::assertTrue($this->target->records[$this->target->nth(3)]['archived']);
     }
 
     public function testARowWithAnUnreadableKeyIsAnErrorAndTheArchiveIsCountedWithoutIt(): void
@@ -779,7 +779,7 @@ final class PipelineTest extends KernelTestCase
 
         // Someone edits a record after the import.
         $this->target->records[$edited]['values']['name'] = 'Edited by hand';
-        $this->em->persist(new AuditEntry(FakeTarget::class, (string) $edited, AuditAction::Updated, ['name' => ['Name 2', 'Edited by hand']], 1, new \DateTimeImmutable('2026-10-01 10:30:00')));
+        $this->em->persist(new AuditEntry(FakeTarget::class, $edited, AuditAction::Updated, ['name' => ['Name 2', 'Edited by hand']], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-10-01 10:30:00')));
         $this->em->flush();
         self::mockTime('2026-10-20 10:00:00');
 
@@ -795,7 +795,7 @@ final class PipelineTest extends KernelTestCase
         $rows = $this->imports->rowsOfChunk($import, 0);
         self::assertSame([RowOutcome::Reverted, RowOutcome::ChangedAfterImport, RowOutcome::Reverted], array_map(static fn (ImportRow $row): ?RowOutcome => $row->outcome(), $rows));
         $reverts = array_values(array_filter($this->target->writes, static fn (array $write): bool => 'revert' === $write[0]));
-        self::assertSame([[$kept, 'import-undo:'.$id], [3, 'import-undo:'.$id]], array_map(static fn (array $write): array => [$write[1], $write[2]], $reverts));
+        self::assertSame([[$kept, 'import-undo:'.$id], [$this->target->nth(3), 'import-undo:'.$id]], array_map(static fn (array $write): array => [$write[1], $write[2]], $reverts));
     }
 
     public function testUndoRestoresWhatAFullReplaceArchivedAndArchivesWhatItRestored(): void
@@ -931,7 +931,7 @@ final class PipelineTest extends KernelTestCase
         $this->runImport($id);
 
         $this->em->clear();
-        $remembered = $this->container(\App\Import\Application\ProfileRepository::class)->find((int) $profile->id());
+        $remembered = $this->container(\App\Import\Application\ProfileRepository::class)->find($profile->id());
         self::assertInstanceOf(ImportProfile::class, $remembered);
         self::assertTrue($remembered->isRemembered());
         self::assertSame([0 => 'code', 1 => 'name', 2 => 'email'], $remembered->mapping()->columns);
@@ -958,17 +958,17 @@ final class PipelineTest extends KernelTestCase
         $this->configure($id, ImportMode::FullReplace, ReplaceScope::Profile);
     }
 
-    private function upload(string $csv, ?int $profileId = null): int
+    private function upload(string $csv, ?string $profileId = null): string
     {
         $path = $this->dir.'/'.bin2hex(random_bytes(4)).'.csv';
         file_put_contents($path, $csv);
-        $id = $this->container(StartImport::class)->start(FakeTarget::KEY, $path, 'records.csv', 1, $profileId);
+        $id = $this->container(StartImport::class)->start(FakeTarget::KEY, $path, 'records.csv', '019a0000-0000-7000-8000-000000000001', $profileId);
         $this->worker->run();
 
         return $id;
     }
 
-    private function checked(string $csv, ImportMode $mode = ImportMode::Update, ?ReplaceScope $scope = null): int
+    private function checked(string $csv, ImportMode $mode = ImportMode::Update, ?ReplaceScope $scope = null): string
     {
         $id = $this->upload($csv);
         $this->configure($id, $mode, $scope);
@@ -977,7 +977,7 @@ final class PipelineTest extends KernelTestCase
         return $id;
     }
 
-    private function configure(int $id, ImportMode $mode, ?ReplaceScope $scope = null, ?int $profileId = null, ?string $newProfile = null): void
+    private function configure(string $id, ImportMode $mode, ?ReplaceScope $scope = null, ?string $profileId = null, ?string $newProfile = null): void
     {
         $this->container(ConfigureImport::class)->configure($id, $this->fresh($id)->mapping(), $this->options($mode, $scope), $profileId, $newProfile);
     }
@@ -987,20 +987,20 @@ final class PipelineTest extends KernelTestCase
         return new ImportOptions($mode, $scope, null, BlankCells::Keep, DateOrder::DayMonthYear, DecimalSeparator::Comma, null);
     }
 
-    private function check(int $id): void
+    private function check(string $id): void
     {
         $this->container(CheckImport::class)->check($id);
         $this->worker->run();
     }
 
-    private function runImport(int $id, ?int $confirmation = null): void
+    private function runImport(string $id, ?int $confirmation = null): void
     {
         $this->container(RunImport::class)->run($id, $confirmation);
         $this->worker->run();
     }
 
     /** Makes the import look as if it had not moved for a day, and runs the health check that fails it. */
-    private function stallAndCheckHealth(int $id): void
+    private function stallAndCheckHealth(string $id): void
     {
         $this->em->getConnection()->executeStatement("UPDATE import SET progressed_at = '2026-09-30 10:00:00' WHERE id = ?", [$id]);
         $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:import:health'));
@@ -1010,7 +1010,7 @@ final class PipelineTest extends KernelTestCase
         $this->tenants->switchTo($this->tenant);
     }
 
-    private function fresh(int $id): Import
+    private function fresh(string $id): Import
     {
         return $this->imports->findFresh($id) ?? throw new \LogicException('No such import.');
     }

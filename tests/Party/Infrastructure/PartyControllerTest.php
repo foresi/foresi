@@ -49,6 +49,29 @@ final class PartyControllerTest extends WebTestCase
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
     }
 
+    public function testAnOldNumericContactUrlIsNotFound(): void
+    {
+        $this->signIn();
+
+        $this->client->request('GET', '/contacts/12');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnIdThatIsNotAUuidNeverReachesTheDatabase(): void
+    {
+        $this->signIn();
+        $company = $this->party('Example Company s.r.o.', $this->tenant);
+
+        // PostgreSQL refuses such a value for a uuid column, which must not become a server error.
+        $this->client->request('GET', '/contacts?import=12&outcome=create');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Example Company s.r.o.');
+
+        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => '12']);
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testListShowsOnlyTheContactsOfTheActiveTenant(): void
     {
         $this->signIn();
@@ -157,7 +180,7 @@ final class PartyControllerTest extends WebTestCase
         $this->signIn();
         $foreign = $this->party('Foreign Trading a.s.', $this->foreign);
         $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
-        $id = (string) $foreign->id();
+        $id = $foreign->id();
         $token = $this->token('party_action');
 
         $this->client->request('GET', '/contacts/'.$id);
@@ -167,10 +190,10 @@ final class PartyControllerTest extends WebTestCase
         $this->client->request('POST', '/contacts/'.$id.'/edit');
         self::assertResponseStatusCodeSame(404);
         foreach (['archive', 'restore', 'link', 'registry-checks'] as $action) {
-            $this->client->request('POST', '/contacts/'.$id.'/'.$action, ['_token' => $token, 'person' => (string) $person->id()]);
+            $this->client->request('POST', '/contacts/'.$id.'/'.$action, ['_token' => $token, 'person' => $person->id()]);
             self::assertResponseStatusCodeSame(404, $action);
         }
-        $this->client->request('POST', '/contacts/archive', ['_token' => $token, 'ids' => [$id, (string) $person->id()]]);
+        $this->client->request('POST', '/contacts/archive', ['_token' => $token, 'ids' => [$id, $person->id()]]);
         self::assertResponseStatusCodeSame(404);
         $this->client->request('POST', '/contacts/export', ['_token' => $token, 'ids' => [$id]]);
         self::assertResponseStatusCodeSame(404);
@@ -185,7 +208,7 @@ final class PartyControllerTest extends WebTestCase
         // A foreign person cannot be linked either.
         $company = $this->party('Own Company', $this->tenant);
         $foreignPerson = $this->party('Foreign Person', $this->foreign, kind: PartyKind::Person);
-        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $token, 'person' => (string) $foreignPerson->id()]);
+        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $token, 'person' => $foreignPerson->id()]);
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -222,7 +245,7 @@ final class PartyControllerTest extends WebTestCase
         $this->client->request('POST', '/contacts/new', $values);
         $second = (string) $this->client->getResponse()->headers->get('Location');
 
-        self::assertMatchesRegularExpression('#^/contacts/\d+$#', $first);
+        self::assertMatchesRegularExpression('#^/contacts/[0-9a-f-]{36}$#', $first);
         self::assertSame($first, $second);
         self::assertSame(1, $this->partyCount());
     }
@@ -447,7 +470,7 @@ final class PartyControllerTest extends WebTestCase
         $this->party('Second Company', $this->tenant);
         $c = $this->party('Third Company', $this->tenant);
 
-        $this->client->request('POST', '/contacts/archive', ['_token' => $this->token('party_action'), 'ids' => [(string) $a->id(), (string) $c->id()]]);
+        $this->client->request('POST', '/contacts/archive', ['_token' => $this->token('party_action'), 'ids' => [$a->id(), $c->id()]]);
 
         self::assertResponseRedirects('/contacts');
         $this->client->followRedirect();
@@ -459,11 +482,11 @@ final class PartyControllerTest extends WebTestCase
     {
         $this->signIn();
         $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687', vat: 'CZ12345687', email: 'info@example.com');
-        $other = $this->party('Not Selected', $this->tenant);
+        $this->party('Not Selected', $this->tenant);
         $foreign = $this->party('Foreign Trading a.s.', $this->foreign);
         $formula = $this->party('=HYPERLINK("http://example.com")', $this->tenant);
 
-        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [(string) $mine->id(), (string) $foreign->id(), (string) $formula->id(), 'abc', '']]);
+        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id(), $foreign->id(), $formula->id(), 'abc', '']]);
 
         self::assertResponseIsSuccessful();
         $response = $this->client->getResponse();
@@ -477,7 +500,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertStringNotContainsString('Not Selected', $csv);
         self::assertStringContainsString("'=HYPERLINK", $csv);
         self::assertCount(3, array_filter(explode("\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
-        self::assertNotNull($other->id());
     }
 
     public function testXlsxExportIsAWorkbookWithTheSameContacts(): void
@@ -485,7 +507,7 @@ final class PartyControllerTest extends WebTestCase
         $this->signIn();
         $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687');
 
-        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [(string) $mine->id()], 'format' => 'xlsx']);
+        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id()], 'format' => 'xlsx']);
 
         self::assertResponseIsSuccessful();
         $response = $this->client->getResponse();
@@ -670,7 +692,7 @@ final class PartyControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
         self::assertSelectorTextContains('main', 'There is no contact person yet.');
-        $this->client->submit($crawler->filter('form[action$="/link"]')->form(['person' => (string) $person->id(), 'position' => 'Accountant', 'primary' => '1']));
+        $this->client->submit($crawler->filter('form[action$="/link"]')->form(['person' => $person->id(), 'position' => 'Accountant', 'primary' => '1']));
         $this->client->followRedirect();
 
         self::assertSelectorTextContains('main table', 'Test Person');
@@ -680,7 +702,7 @@ final class PartyControllerTest extends WebTestCase
         // The person sees the company, and the pair cannot be linked twice.
         $this->client->request('GET', '/contacts/'.$person->id().'?tab=contacts');
         self::assertSelectorTextContains('main table', 'Example Company');
-        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => (string) $person->id()]);
+        $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => $person->id()]);
         self::assertResponseStatusCodeSame(422);
         // No other person is left to offer, so the message stands on its own.
         self::assertSelectorTextContains('[data-link-error]', 'Choose a person who is not listed for the company yet.');
@@ -710,7 +732,7 @@ final class PartyControllerTest extends WebTestCase
         self::assertNotNull($crawler->filter('#link-primary')->attr('checked'));
         self::assertNull($crawler->selectButton('Add person')->attr('disabled'));
         self::assertSelectorTextContains('main', 'There is no contact person yet.');
-        self::assertSame((string) $person->id(), $crawler->filter('#link-person option')->attr('value'));
+        self::assertSame($person->id(), $crawler->filter('#link-person option')->attr('value'));
     }
 
     public function testAddressAndBankAccountTabsRender(): void
@@ -839,10 +861,10 @@ final class PartyControllerTest extends WebTestCase
         return $count;
     }
 
-    private function idOf(string $name): int
+    private function idOf(string $name): string
     {
         $id = self::getContainer()->get(EntityManagerInterface::class)->getConnection()->fetchOne('SELECT id FROM party WHERE display_name = ?', [$name]);
-        self::assertIsInt($id);
+        self::assertIsString($id);
 
         return $id;
     }

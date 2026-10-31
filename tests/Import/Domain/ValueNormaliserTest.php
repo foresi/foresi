@@ -56,6 +56,8 @@ final class ValueNormaliserTest extends TestCase
      */
     public static function values(): iterable
     {
+        yield 'uuid as written' => [FieldType::Uuid, '019a0000-0000-7000-8000-000000000000', '019a0000-0000-7000-8000-000000000000'];
+        yield 'uuid upper case and padded' => [FieldType::Uuid, ' 019A0000-0000-7000-8000-00000000000A ', '019a0000-0000-7000-8000-00000000000a'];
         $mdy = new NormalisationOptions(DateOrder::MonthDayYear);
         $ymd = new NormalisationOptions(DateOrder::YearMonthDay);
         $point = new NormalisationOptions(decimalSeparator: DecimalSeparator::Point);
@@ -194,6 +196,8 @@ final class ValueNormaliserTest extends TestCase
         yield 'decimal leading separator' => [FieldType::Decimal, ',5', 'import.error.invalid_decimal'];
         yield 'decimal point two points' => [FieldType::Decimal, '1.2.3', 'import.error.invalid_decimal', $point];
         yield 'integer fraction' => [FieldType::Integer, '1,5', 'import.error.invalid_integer'];
+        yield 'uuid an old number' => [FieldType::Uuid, '12', 'import.error.invalid_id'];
+        yield 'uuid version 4' => [FieldType::Uuid, '550e8400-e29b-41d4-a716-446655440000', 'import.error.invalid_id'];
         yield 'integer letters' => [FieldType::Integer, 'x1', 'import.error.invalid_integer'];
         yield 'integer overflow' => [FieldType::Integer, '99999999999999999999', 'import.error.invalid_integer'];
         yield 'date not a date' => [FieldType::Date, 'tomorrow', 'import.error.invalid_date'];

@@ -20,7 +20,7 @@ final readonly class SecurityAuditActor implements AuditActor
     {
     }
 
-    public function userId(): ?int
+    public function userId(): ?string
     {
         $user = $this->tokens->getToken()?->getUser();
 

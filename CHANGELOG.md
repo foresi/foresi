@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** every entity is identified by a UUIDv7 instead of a whole number. A migration converts existing data and cannot be reversed, so back up the database first. Old contact and import URLs stop working, an `id` column in a file exported earlier no longer matches, and messages queued before the upgrade land in the failed transport.
+
 ## [0.3.1] - 2026-10-31
 
 ### Changed

@@ -46,7 +46,7 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
      * filter suspended. The query returns scalar columns only (the bypass
      * enforces that); the value objects are built after the filter is back.
      */
-    public function organisationsOf(int $userId): array
+    public function organisationsOf(string $userId): array
     {
         /** @var list<array{id: string, name: string, role: string}> $rows */
         $rows = $this->bypass->run(function () use ($userId): array {

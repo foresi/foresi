@@ -10,6 +10,7 @@ namespace App\Import\Infrastructure\Doctrine;
 
 use App\Import\Domain\Import;
 use App\Import\Domain\RowOutcome;
+use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 
@@ -34,7 +35,7 @@ final readonly class RowStager
      */
     public function stageRows(Import $import, iterable $rows): int
     {
-        $importId = (int) $import->id();
+        $importId = $import->id();
         $tenant = $import->tenantId()->toString();
         $batch = [];
         $count = 0;
@@ -56,13 +57,13 @@ final readonly class RowStager
     /**
      * Stages the records a full replace would archive, in chunks numbered after the source rows.
      *
-     * @param iterable<int> $recordIds
+     * @param iterable<string> $recordIds
      *
      * @return int the number of records staged
      */
     public function stageMissing(Import $import, iterable $recordIds): int
     {
-        $importId = (int) $import->id();
+        $importId = $import->id();
         $tenant = $import->tenantId()->toString();
         $batch = [];
         $count = 0;
@@ -81,20 +82,21 @@ final readonly class RowStager
         return $count;
     }
 
-    /** An id column as the database driver returns it (an int, or a numeric string on some drivers). */
-    public static function id(mixed $value): int
+    /** An id column as the database driver returns it. */
+    public static function id(mixed $value): string
     {
-        return \is_int($value) || \is_string($value) && ctype_digit($value) ? (int) $value : throw new \UnexpectedValueException('An id column holds a whole number.');
+        return \is_string($value) ? $value : throw new \UnexpectedValueException('An id column holds a text.');
     }
 
     /**
-     * @param list<array{string, int, int, int, string}> $batch
+     * @param list<array{string, string, int, int, string}> $batch
      */
     private function insertRows(array $batch): void
     {
         $params = [];
         $types = [];
         foreach ($batch as [$tenant, $importId, $rowNumber, $chunk, $raw]) {
+            $params[] = Id::generate();
             $params[] = $tenant;
             $params[] = $importId;
             $params[] = $rowNumber;
@@ -104,7 +106,8 @@ final readonly class RowStager
             $params[] = false;
             $params[] = false;
             $types[] = ParameterType::STRING;
-            $types[] = ParameterType::INTEGER;
+            $types[] = ParameterType::STRING;
+            $types[] = ParameterType::STRING;
             $types[] = ParameterType::INTEGER;
             $types[] = ParameterType::INTEGER;
             $types[] = ParameterType::STRING;
@@ -113,21 +116,22 @@ final readonly class RowStager
             $types[] = ParameterType::BOOLEAN;
         }
         $this->connection->executeStatement(
-            'INSERT INTO import_row (tenant_id, import_id, row_number, chunk, raw, errors, processed_in_run, processed_in_undo) VALUES '
-            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?)')),
+            'INSERT INTO import_row (id, tenant_id, import_id, row_number, chunk, raw, errors, processed_in_run, processed_in_undo) VALUES '
+            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?, ?)')),
             $params,
             $types,
         );
     }
 
     /**
-     * @param list<array{string, int, int, int}> $batch
+     * @param list<array{string, string, int, string}> $batch
      */
     private function insertMissing(array $batch): void
     {
         $params = [];
         $types = [];
         foreach ($batch as [$tenant, $importId, $chunk, $recordId]) {
+            $params[] = Id::generate();
             $params[] = $tenant;
             $params[] = $importId;
             $params[] = $chunk;
@@ -136,16 +140,17 @@ final readonly class RowStager
             $params[] = false;
             $params[] = false;
             $types[] = ParameterType::STRING;
+            $types[] = ParameterType::STRING;
+            $types[] = ParameterType::STRING;
             $types[] = ParameterType::INTEGER;
-            $types[] = ParameterType::INTEGER;
-            $types[] = ParameterType::INTEGER;
+            $types[] = ParameterType::STRING;
             $types[] = ParameterType::STRING;
             $types[] = ParameterType::BOOLEAN;
             $types[] = ParameterType::BOOLEAN;
         }
         $this->connection->executeStatement(
-            'INSERT INTO import_missing_record (tenant_id, import_id, chunk, record_id, outcome, processed_in_run, processed_in_undo) VALUES '
-            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?)')),
+            'INSERT INTO import_missing_record (id, tenant_id, import_id, chunk, record_id, outcome, processed_in_run, processed_in_undo) VALUES '
+            .implode(', ', array_fill(0, \count($batch), '(?, ?, ?, ?, ?, ?, ?, ?)')),
             $params,
             $types,
         );

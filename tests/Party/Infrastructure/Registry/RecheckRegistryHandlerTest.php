@@ -52,7 +52,7 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
 
     public function testTheRecheckIsRoutedToTheRegistryTransportWithTheTenant(): void
     {
-        $this->bus()->dispatch(new RecheckRegistry(1));
+        $this->bus()->dispatch(new RecheckRegistry('019a0000-0000-7000-8000-000000000001'));
 
         $sent = $this->registry()->getSent();
         self::assertCount(1, $sent);
@@ -63,9 +63,9 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
     {
         $party = $this->party('CZ12345687');
 
-        $this->handle(new RecheckRegistry((int) $party->id(), 'import:7'));
+        $this->handle(new RecheckRegistry($party->id(), 'import:7'));
 
-        $party = $this->find((int) $party->id());
+        $party = $this->find($party->id());
         self::assertSame(RegistryResult::Valid, $party->viesCheck()?->result);
         self::assertSame(RegistryResult::Unreliable, $party->unreliablePayerCheck()?->result);
         self::assertNotSame([], $party->publishedBankAccounts());
@@ -76,9 +76,9 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
     {
         $party = $this->party('CZ12345687');
 
-        $this->handle(new RecheckRegistry((int) $party->id()));
+        $this->handle(new RecheckRegistry($party->id()));
 
-        self::assertSame(RegistryResult::Valid, $this->find((int) $party->id())->viesCheck()?->result);
+        self::assertSame(RegistryResult::Valid, $this->find($party->id())->viesCheck()?->result);
         self::assertSame([null], $this->em->createQuery('SELECT DISTINCT e.correlationId FROM '.AuditEntry::class." e WHERE e.action = 'updated'")->getSingleColumnResult());
     }
 
@@ -86,8 +86,8 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
     {
         $party = $this->party(null);
 
-        $this->handle(new RecheckRegistry((int) $party->id()));
-        $this->handle(new RecheckRegistry(999999));
+        $this->handle(new RecheckRegistry($party->id()));
+        $this->handle(new RecheckRegistry('019a0000-0000-7000-8000-0000000f423f'));
 
         self::assertSame(0, RegistryCalls::$count);
         self::assertCount(0, $this->registry()->getSent());
@@ -100,11 +100,11 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         // Leave exactly the headroom: people typing in the contact form keep it.
         $limiter->create('adis')->consume(300 - RecheckRegistryHandler::HEADROOM);
 
-        $message = new RecheckRegistry((int) $party->id(), 'import:7');
+        $message = new RecheckRegistry($party->id(), 'import:7');
         $this->handle($message);
 
         self::assertSame(0, RegistryCalls::$count);
-        self::assertNull($this->find((int) $party->id())->viesCheck());
+        self::assertNull($this->find($party->id())->viesCheck());
         $sent = $this->registry()->getSent();
         self::assertCount(1, $sent);
         self::assertEquals($message, $sent[0]->getMessage());
@@ -117,9 +117,9 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         // The Czech register is busy, but a German VAT id is checked in VIES only.
         $this->limiter()->create('adis')->consume(300);
 
-        $this->handle(new RecheckRegistry((int) $party->id()));
+        $this->handle(new RecheckRegistry($party->id()));
 
-        self::assertNotNull($this->find((int) $party->id())->viesCheck());
+        self::assertNotNull($this->find($party->id())->viesCheck());
         self::assertCount(0, $this->registry()->getSent());
     }
 
@@ -129,9 +129,9 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         $limiter = $this->limiter();
         $limiter->create('vies')->consume(300 - RecheckRegistryHandler::HEADROOM - 1);
 
-        $this->handle(new RecheckRegistry((int) $party->id()));
+        $this->handle(new RecheckRegistry($party->id()));
 
-        self::assertSame(RegistryResult::Valid, $this->find((int) $party->id())->viesCheck()?->result);
+        self::assertSame(RegistryResult::Valid, $this->find($party->id())->viesCheck()?->result);
         self::assertCount(0, $this->registry()->getSent());
     }
 
@@ -159,7 +159,7 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         );
     }
 
-    private function find(int $id): Party
+    private function find(string $id): Party
     {
         $this->em->clear();
 

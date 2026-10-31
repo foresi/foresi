@@ -157,8 +157,6 @@ final class AuditCorrelationTest extends KernelTestCase
             $this->em->flush();
         });
         $id = $party->id();
-        self::assertNotNull($id);
-        $id = (string) $id;
 
         self::assertFalse($this->trail->changedSince(Party::class, $id, $since, 'import:1'));
         self::assertTrue($this->trail->changedSince(Party::class, $id, $since, 'import:2'));
@@ -179,7 +177,7 @@ final class AuditCorrelationTest extends KernelTestCase
             $other->rename('Undone');
             $this->em->flush();
         });
-        $otherId = (string) $other->id();
+        $otherId = $other->id();
         self::assertFalse($this->trail->changedSince(Party::class, $otherId, $since, 'import:1', 'import-undo:1'));
         self::assertTrue($this->trail->changedSince(Party::class, $otherId, $since, 'import:1'));
         self::assertTrue($this->trail->changedSince(Party::class, $otherId, $since));
