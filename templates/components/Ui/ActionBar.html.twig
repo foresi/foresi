@@ -1,11 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    Docked to the bottom of the viewport (sticky, so it stays in normal flow on short pages). It is
-    one pixel past the bottom edge, so the action-bar controller can tell when it is stuck and the
-    content scrolls under it. Low screens (landscape phones, high zoom) get it in normal flow.
+    A floating bar held a little above the bottom of the viewport (sticky, so it stays in normal flow
+    on short pages), in the same style as the bulk bar. The action-bar controller marks it as stuck
+    while the content scrolls under it, which adds the shadow. Low screens (landscape phones, high
+    zoom) get it in normal flow.
 #}
 {% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
-<div {{ attributes.defaults({class: 'sticky -bottom-px z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-white pb-[calc(0.75rem+1px)] pt-3 transition-shadow data-[stuck]:shadow-[0_-8px_16px_-12px_rgba(28,29,26,.35)] [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-line-strong bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-[0_10px_30px_rgba(28,29,26,.14)] max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
     {% if statusHtml|trim is not empty %}
         <p class="m-0 min-w-0 text-[13px] text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
     {% endif %}

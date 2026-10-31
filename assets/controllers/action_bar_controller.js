@@ -4,21 +4,22 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Marks the docked action bar with data-stuck while the page scrolls under it,
- * so it shows a shadow then and stays flat when it sits under the content.
- * The bar is positioned one pixel past the bottom of the viewport: while it is
- * stuck that pixel is hidden, so it is not fully visible. Without this
- * controller the bar works the same, only without the shadow.
+ * Marks the floating action bar with data-stuck while the page scrolls under
+ * it, so it shows a shadow then and stays flat when it sits under the content.
+ * The bar floats 8 or 12 px above the bottom of the viewport; the observed area
+ * ends one pixel above that, so a stuck bar is never fully inside it. Without
+ * this controller the bar works the same, only without the shadow.
  */
 export default class extends Controller {
     connect() {
         if (!('IntersectionObserver' in window)) {
             return;
         }
+        const offset = parseFloat(getComputedStyle(this.element).bottom) || 0;
         this.observer = new IntersectionObserver(([entry]) => {
             const stuck = entry.intersectionRatio < 1 && entry.boundingClientRect.top > 0;
             this.element.toggleAttribute('data-stuck', stuck);
-        }, { threshold: [1] });
+        }, { threshold: [1], rootMargin: `0px 0px -${offset + 1}px 0px` });
         this.observer.observe(this.element);
     }
 
