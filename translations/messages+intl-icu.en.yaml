@@ -48,6 +48,8 @@ ui:
     previous: Previous page
     next: Next page
     page: 'Page {page}'
+  stepper:
+    done: done
   breadcrumb:
     label: Breadcrumb
   palette:
@@ -108,6 +110,10 @@ catalogue:
     long: Long text
     selectable: Selectable with bulk bar
     sorted: Sorted with totals
+    progress: In progress
+    done: Done
+    value_map: Value mapping
+    linked: Linked
 
 format:
   datetime: 'Y-m-d H:i'

@@ -17,11 +17,11 @@ final class KpiStrip
     private const int MAX_ITEMS = 4;
 
     /**
-     * @var list<array<string, mixed>> each with a string label and value, optional note and badge (label, tone)
+     * @var list<array<string, mixed>> each with a string label and value, optional note, badge (label, tone) and href
      */
     public array $items = [];
 
-    /** @var list<array{label: string, value: string, note: ?string, badge: ?array{label: string, tone: string}}> */
+    /** @var list<array{label: string, value: string, note: ?string, badge: ?array{label: string, tone: string}, href: ?string}> */
     private array $views = [];
 
     #[PostMount]
@@ -33,17 +33,23 @@ final class KpiStrip
         }
         foreach ($this->items as $item) {
             $note = $item['note'] ?? null;
+            $href = $item['href'] ?? null;
+            if (null !== $href && !is_string($href)) {
+                throw new \InvalidArgumentException('A KPI href must be a string.');
+            }
+            Style::href($href);
             $this->views[] = [
                 'label' => Style::requireString($item, 'label', 'A KPI'),
                 'value' => Style::requireString($item, 'value', 'A KPI'),
                 'note' => is_string($note) && '' !== $note ? $note : null,
                 'badge' => isset($item['badge']) ? Style::badge($item['badge'], 'A KPI') : null,
+                'href' => $href,
             ];
         }
     }
 
     /**
-     * @return list<array{label: string, value: string, note: ?string, badge: ?array{label: string, tone: string}}>
+     * @return list<array{label: string, value: string, note: ?string, badge: ?array{label: string, tone: string}, href: ?string}>
      */
     public function views(): array
     {

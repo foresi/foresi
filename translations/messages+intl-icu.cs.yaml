@@ -48,6 +48,8 @@ ui:
     previous: Předchozí stránka
     next: Další stránka
     page: 'Stránka {page}'
+  stepper:
+    done: hotovo
   breadcrumb:
     label: Drobečková navigace
   palette:
@@ -108,6 +110,10 @@ catalogue:
     long: Dlouhý text
     selectable: S výběrem a hromadnou lištou
     sorted: Seřazeno se součty
+    progress: Rozpracováno
+    done: Hotovo
+    value_map: Přiřazení hodnot
+    linked: S odkazy
 
 format:
   datetime: 'j. n. Y H:i'
