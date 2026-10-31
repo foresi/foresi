@@ -12,7 +12,10 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
-/** Remembers when an import last moved, so the health check can tell a stalled one from a slow one. */
+/**
+ * Remembers when an import last moved, so the health check can tell a stalled one from a slow one.
+ * No backfill: the health check falls back to started_at and created_at while the column is null.
+ */
 final class Version20261031000004 extends AbstractMigration
 {
     public function getDescription(): string

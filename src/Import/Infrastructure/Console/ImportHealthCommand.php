@@ -18,6 +18,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -27,7 +28,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * in Reading, Checking, Running or Undoing, and a Running or Undoing one keeps the
  * target away from the imports queued behind it. An import that has changed
  * neither state nor counters for STALL_SECONDS is marked Failed with
- * "import.failure.stalled", and the next queued import of the target starts.
+ * "import.failure.stalled". Then every target that has queued imports and none
+ * running gets its release, which starts the oldest queued one. Failing and
+ * releasing are separate steps, so a release that failed is repaired by the next run.
  *
  * It does not re-send lost chunk messages: the Doctrine transport has no reliable
  * way to tell which chunks of one import are still waiting, and a run is not
@@ -50,6 +53,7 @@ final readonly class ImportHealthCommand
         private Imports $imports,
         private ImportGate $gate,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -66,18 +70,53 @@ final readonly class ImportHealthCommand
         );
 
         $failed = 0;
+        $errors = 0;
+        $released = 0;
         try {
             foreach ($stalled as $row) {
-                $this->tenants->switchTo(TenantId::fromString($row['tenant_id']));
-                $failed += $this->fail((int) $row['id'], $now, $cutoff);
+                try {
+                    $this->tenants->switchTo(TenantId::fromString($row['tenant_id']));
+                    $failed += $this->fail((int) $row['id'], $now, $cutoff);
+                } catch (\Throwable $error) {
+                    ++$errors;
+                    $this->logger->error('Import health check could not fail import {import}: {class}', ['import' => $row['id'], 'class' => $error::class, 'exception' => $error]);
+                }
+            }
+            // Targets with waiting imports and none running: the one that held them just failed, or an earlier release did not finish.
+            foreach ($this->orphanedQueues() as $queue) {
+                try {
+                    $this->tenants->switchTo(TenantId::fromString($queue['tenant_id']));
+                    $this->gate->release($queue['target_key']);
+                    ++$released;
+                } catch (\Throwable $error) {
+                    ++$errors;
+                    $this->logger->error('Import health check could not release target {target}: {class}', ['target' => $queue['target_key'], 'class' => $error::class, 'exception' => $error]);
+                }
             }
         } finally {
             $this->tenants->reset();
         }
 
-        $io->success(\sprintf('Failed %d stalled imports.', $failed));
+        $io->success(\sprintf('Failed %d stalled imports, released %d waiting queues.', $failed, $released));
 
-        return Command::SUCCESS;
+        return 0 === $errors ? Command::SUCCESS : Command::FAILURE;
+    }
+
+    /**
+     * @return list<array{tenant_id: string, target_key: string}>
+     */
+    private function orphanedQueues(): array
+    {
+        /** @var list<array{tenant_id: string, target_key: string}> $queues */
+        $queues = $this->connection->fetchAllAssociative(
+            'SELECT DISTINCT q.tenant_id, q.target_key FROM import q WHERE q.state = ?'
+            .' AND NOT EXISTS (SELECT 1 FROM import b WHERE b.tenant_id = q.tenant_id AND b.target_key = q.target_key AND b.state IN (?))'
+            .' ORDER BY q.tenant_id, q.target_key',
+            [ImportState::Queued->value, [ImportState::Running->value, ImportState::Undoing->value]],
+            [Types::STRING, ArrayParameterType::STRING],
+        );
+
+        return $queues;
     }
 
     /**
@@ -85,21 +124,15 @@ final readonly class ImportHealthCommand
      */
     private function fail(int $id, \DateTimeImmutable $now, \DateTimeImmutable $cutoff): int
     {
-        $target = $this->imports->transactional(function () use ($id, $now, $cutoff): ?string {
+        return $this->imports->transactional(function () use ($id, $now, $cutoff): int {
             $import = $this->imports->findLocked($id);
             // Re-checked under the lock: a chunk may have finished since the query.
             if (!$import instanceof Import || !\in_array($import->state(), self::WORKING, true) || $import->progressedAt() >= $cutoff) {
-                return null;
+                return 0;
             }
             $import->fail('import.failure.stalled', $now);
 
-            return $import->targetKey();
+            return 1;
         });
-        if (null === $target) {
-            return 0;
-        }
-        $this->gate->release($target);
-
-        return 1;
     }
 }

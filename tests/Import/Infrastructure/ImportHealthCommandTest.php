@@ -21,6 +21,7 @@ use App\Tenancy\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Console\Application;
@@ -41,6 +42,8 @@ final class ImportHealthCommandTest extends KernelTestCase
 
     /** @var ImportJobs&object{sent: list<object>} */
     private object $jobs;
+
+    private FailingLock $lock;
 
     protected function setUp(): void
     {
@@ -63,16 +66,11 @@ final class ImportHealthCommandTest extends KernelTestCase
                 $this->sent[] = $message;
             }
         };
-        $lock = new class implements ImportLock {
-            public function synchronized(string $name, callable $work): mixed
-            {
-                return $work();
-            }
-        };
+        $this->lock = new FailingLock();
         $clock = new MockClock(self::NOW);
-        $gate = new ImportGate($this->imports, $lock, $this->jobs, $this->context, $clock);
+        $gate = new ImportGate($this->imports, $this->lock, $this->jobs, $this->context, $clock);
         $application = new Application();
-        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->context, $this->imports, $gate, $clock));
+        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->context, $this->imports, $gate, $clock, new NullLogger()));
         $this->tester = new CommandTester($application->find('app:import:health'));
     }
 
@@ -170,7 +168,7 @@ final class ImportHealthCommandTest extends KernelTestCase
      */
     public static function idle(): iterable
     {
-        foreach ([ImportState::Uploaded, ImportState::Mapping, ImportState::Checked, ImportState::Queued, ImportState::Finished, ImportState::Failed] as $state) {
+        foreach ([ImportState::Uploaded, ImportState::Mapping, ImportState::Checked, ImportState::Finished, ImportState::Failed] as $state) {
             yield $state->value => [$state];
         }
     }
@@ -209,6 +207,89 @@ final class ImportHealthCommandTest extends KernelTestCase
 
         $this->context->switchTo($tenant);
         self::assertSame(ImportState::Failed, $this->imports->find($import)?->state());
+    }
+
+    public function testAQueueWithoutARunningImportIsStartedEvenWhenNothingStalled(): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $older = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00', 2);
+        $newer = $this->importIn(ImportState::Queued, '2026-11-14 01:00:00');
+        $this->context->reset();
+
+        $status = $this->tester->execute([]);
+
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertStringContainsString('Failed 0 stalled imports, released 1 waiting queues', $this->tester->getDisplay());
+        $this->context->switchTo($tenant);
+        self::assertSame(ImportState::Running, $this->imports->find($older)?->state());
+        self::assertSame(ImportState::Queued, $this->imports->find($newer)?->state());
+        self::assertEquals([new RunImportChunk($older, 0), new RunImportChunk($older, 1)], $this->jobs->sent);
+    }
+
+    public function testAQueueBehindARunningImportIsLeftAlone(): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $this->importIn(ImportState::Running, '2026-11-15 11:59:00');
+        $waiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
+        $this->context->reset();
+
+        $this->tester->execute([]);
+
+        self::assertStringContainsString('released 0 waiting queues', $this->tester->getDisplay());
+        $this->context->switchTo($tenant);
+        self::assertSame(ImportState::Queued, $this->imports->find($waiting)?->state());
+    }
+
+    public function testAFailingReleaseDoesNotStopTheOthersAndTheNextRunRepairsIt(): void
+    {
+        $broken = TenantId::generate();
+        $this->context->switchTo($broken);
+        $brokenStalled = $this->importIn(ImportState::Running, self::STALLED);
+        $brokenWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
+        $fine = TenantId::generate();
+        $this->context->switchTo($fine);
+        $fineStalled = $this->importIn(ImportState::Running, self::STALLED);
+        $fineWaiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
+        $this->context->reset();
+        $this->lock->failFor = $broken->toString();
+
+        $status = $this->tester->execute([]);
+
+        self::assertSame(Command::FAILURE, $status);
+        self::assertFalse($this->context->has());
+        $this->context->switchTo($fine);
+        self::assertSame(ImportState::Failed, $this->imports->find($fineStalled)?->state());
+        self::assertSame(ImportState::Running, $this->imports->find($fineWaiting)?->state());
+        $this->context->switchTo($broken);
+        self::assertSame(ImportState::Failed, $this->imports->find($brokenStalled)?->state());
+        self::assertSame(ImportState::Queued, $this->imports->find($brokenWaiting)?->state());
+
+        $this->lock->failFor = null;
+        $this->context->reset();
+        self::assertSame(Command::SUCCESS, $this->tester->execute([]));
+        $this->context->switchTo($broken);
+        self::assertSame(ImportState::Running, $this->imports->find($brokenWaiting)?->state());
+    }
+
+    public function testASecondRunChangesNothing(): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $stalled = $this->importIn(ImportState::Running, self::STALLED);
+        $waiting = $this->importIn(ImportState::Queued, '2026-11-14 00:00:00');
+        $this->context->reset();
+
+        $this->tester->execute([]);
+        $sent = $this->jobs->sent;
+        $this->tester->execute([]);
+
+        self::assertStringContainsString('Failed 0 stalled imports, released 0 waiting queues', $this->tester->getDisplay());
+        self::assertSame($sent, $this->jobs->sent);
+        $this->context->switchTo($tenant);
+        self::assertSame(ImportState::Failed, $this->imports->find($stalled)?->state());
+        self::assertSame(ImportState::Running, $this->imports->find($waiting)?->state());
     }
 
     public function testTheTenantIsClearedAfterTheRun(): void
@@ -256,5 +337,20 @@ final class ImportHealthCommandTest extends KernelTestCase
         $this->em->clear();
 
         return $id;
+    }
+}
+
+/** Runs the work, or throws when the lock name contains the given text. */
+final class FailingLock implements ImportLock
+{
+    public ?string $failFor = null;
+
+    public function synchronized(string $name, callable $work): mixed
+    {
+        if (null !== $this->failFor && str_contains($name, $this->failFor)) {
+            throw new \RuntimeException('The lock store is down.');
+        }
+
+        return $work();
     }
 }

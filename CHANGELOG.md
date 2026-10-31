@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Generic import and export. Import CSV and XLSX files in the background: encoding, delimiter and header row are detected, columns are mapped with remembered mappings, a dry-run check lists every row error (downloadable as an error file), and three modes are offered (add missing, update existing, full replace, which archives records missing from the file and needs the number of records typed as confirmation). An import can be undone for 30 days. Contacts are the first target, with a preset for the iDoklad contact export. Files up to 50 MB and 200,000 rows; files and staged rows are deleted 30 days after an import ended. Documented in `docs/import.md`.
 - Commands `app:import:purge` (deletes old files and staged rows) and `app:import:health` (fails imports that stopped moving and starts the next queued one); run both from cron.
+- UI components for the import screens (stepper, progress bar, radio cards, mapping row) and notices in the app shell when an import ends.
 - Contacts have a website and a mobile phone.
 - Audit entries carry an optional correlation id that groups the changes of one operation.
 - Architecture decision records for the audit correlation id and the asynchronous import pipeline.
@@ -22,6 +23,10 @@ Upgrading: run the database migrations (`bin/console doctrine:migrations:migrate
 - Contact roles accept their translated names when imported.
 - Background messages run inside the tenant they were sent from; the default `flock` lock works on a single host, use `LOCK_DSN` for several.
 - Every response forbids content type sniffing (`X-Content-Type-Options: nosniff`).
+
+### Fixed
+
+- The register lookup names the rate limit (HTTP 429) instead of a generic failure.
 
 ## [0.2.1] - 2026-10-30
 
