@@ -24,11 +24,11 @@ use Symfony\Component\Translation\LocaleSwitcher;
 final class CatalogueController extends AbstractController
 {
     /**
-     * Section templates in display order, base components first; the name is the
-     * kebab-case component name and the anchor "component-<name>".
+     * Section templates in display order: the design tokens, then base components;
+     * the name is the kebab-case component name and the anchor "component-<name>".
      */
     public const array SECTIONS = [
-        'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea',
+        'tokens', 'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea',
         'search-field', 'radio-cards', 'card', 'description-list', 'tabs', 'stepper', 'alert', 'empty-state', 'kbd',
         'data-table', 'pagination', 'bulk-bar', 'action-bar', 'kpi-strip', 'facts-grid', 'timeline', 'progress-bar', 'mapping-row', 'page-header', 'command-palette',
     ];

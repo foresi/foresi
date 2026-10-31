@@ -118,6 +118,11 @@ catalogue:
     value_map: Přiřazení hodnot
     linked: S odkazy
     status: Se stavovým textem
+    radius: Zaoblení
+    height: Výšky
+    type: Písmo
+    border: Okraje
+    elevation: Stíny
 
 format:
   date: "j.\u00A0n.\u00A0Y"

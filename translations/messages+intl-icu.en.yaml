@@ -118,6 +118,11 @@ catalogue:
     value_map: Value mapping
     linked: Linked
     status: With status text
+    radius: Radius
+    height: Heights
+    type: Type
+    border: Borders
+    elevation: Elevation
 
 format:
   date: 'Y-m-d'
