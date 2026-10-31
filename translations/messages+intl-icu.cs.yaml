@@ -469,7 +469,7 @@ import:
     keep: Nechat hodnotu beze změny
     clear: Smazat hodnotu
   scope:
-    profile: Jen záznamy z dřívějších importů tohoto profilu
+    profile: Jen záznamy, které dřívější importy tohoto profilu vytvořily, upravily nebo obnovily
     all: Všechny záznamy
   date_order:
     day_month_year: Nejdřív den (31. 12. 2026)
@@ -613,7 +613,7 @@ import:
   target:
     party: Kontakty
   preset:
-    idoklad_contacts: iDoklad – kontakty
+    idoklad_contacts: Kontakty z iDokladu
   field:
     party:
       id: Číslo kontaktu ve Foresi

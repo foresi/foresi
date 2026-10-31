@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Generic import and export. Import CSV and XLSX files in the background: encoding, delimiter and header row are detected, columns are mapped with remembered mappings, a dry-run check lists every row error (downloadable as an error file), and three modes are offered (add missing, update existing, full replace, which archives records missing from the file and needs the number of records typed as confirmation). An import can be undone for 30 days. Contacts are the first target, with a preset for the iDoklad contact export. Files up to 50 MB and 200,000 rows; files and staged rows are deleted 30 days after an import ended. Documented in `docs/import.md`.
+- Generic import and export. Import CSV and XLSX files in the background: encoding, delimiter and header row are detected, columns are mapped with remembered mappings, a dry-run check lists every row error (downloadable as an error file), and three modes are offered (add missing, update existing, full replace, which archives records missing from the file and needs the number of records typed as confirmation). An import can be undone for 30 days, also one that failed after it started writing, and a failed undo can be started again. Contacts are the first target, with a preset for the iDoklad contact export. Files up to 50 MB and 200,000 rows; files and staged rows are deleted 30 days after an import ended. Documented in `docs/import.md`.
 - Commands `app:import:purge` (deletes old files and staged rows) and `app:import:health` (fails imports that stopped moving and starts the next queued one); run both from cron.
 - UI components for the import screens (stepper, progress bar, radio cards, mapping row) and notices in the app shell when an import ends.
 - Contacts have a website and a mobile phone.
@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Upgrading: run the database migrations (`bin/console doctrine:migrations:migrate`); they add the import tables, the audit correlation id, the e-mail comparison key and the contact fields. Start a background worker (`messenger:consume async registry`, one worker on SQLite) and schedule the two import commands; see `docs/import.md`. Set `upload_max_filesize` and `post_max_size` to at least `50M`.
 
 - The address book has import and export actions in its header; the CSV export is now an export menu with CSV and XLSX, and it exports the filtered list.
-- Contact roles accept their translated names when imported.
+- Contact roles and kinds accept their translated names when imported.
 - Background messages run inside the tenant they were sent from; the default `flock` lock works on a single host, use `LOCK_DSN` for several.
 - Every response forbids content type sniffing (`X-Content-Type-Options: nosniff`).
 

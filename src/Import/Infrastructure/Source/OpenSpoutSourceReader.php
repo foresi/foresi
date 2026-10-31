@@ -145,8 +145,9 @@ final readonly class OpenSpoutSourceReader implements SourceReader
             if (++$count > $this->maxDataRows) {
                 throw SourceRejected::tooManyRows($this->maxDataRows);
             }
+            // The mapping sees the same text as the check reads.
             if ($count <= self::SAMPLE_ROWS) {
-                $samples[$number] = $cells;
+                $samples[$number] = array_map($this->unquote(...), $cells);
             }
         }
 

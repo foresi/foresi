@@ -25,6 +25,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -355,6 +356,26 @@ final class ImportControllerTest extends WebTestCase
 
         self::assertCount(0, $crawler->filter('form[action="/imports/'.$id.'/undo"]'));
         self::assertStringContainsString('That time has passed.', $crawler->filter('main')->text());
+    }
+
+    public function testAFailedImportOffersTheUndoOnlyWhenItWroteRows(): void
+    {
+        $id = $this->finished();
+        // As the health check leaves an undo whose worker died.
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE import SET state = 'failed', failure_message_key = 'import.failure.stalled' WHERE id = ?", [$id]);
+
+        $crawler = $this->client->request('GET', '/imports/'.$id);
+
+        self::assertCount(1, $crawler->filter('form[action="/imports/'.$id.'/undo"]'));
+        $this->client->submit($crawler->filter('form[action="/imports/'.$id.'/undo"]')->form());
+        $this->worker->run();
+        self::assertSame(ImportState::Undone, $this->fresh($id)->state());
+
+        $unread = $this->upload("Firma\n");
+        $this->worker->run();
+        self::assertSame(ImportState::Failed, $this->fresh($unread)->state());
+        $crawler = $this->client->request('GET', '/imports/'.$unread);
+        self::assertCount(0, $crawler->filter('form[action="/imports/'.$unread.'/undo"]'));
     }
 
     public function testUndoingPutsTheContactsBackAndTheSummarySaysSo(): void

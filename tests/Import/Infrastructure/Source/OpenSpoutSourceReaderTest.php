@@ -131,6 +131,8 @@ final class OpenSpoutSourceReaderTest extends TestCase
         $rows = [...new OpenSpoutSourceReader()->rows($path, new SourceSettings(SourceFormat::Csv, Encoding::Utf8, ',', headerRow: 1))];
 
         self::assertSame([['=Example', '+420 123 456 789'], ['-1', '@x'], ["''=x", "'abc"], ["\t1", "'"], ["'a", "'"]], $rows);
+        $samples = new OpenSpoutSourceReader()->inspect($path, new SourceSettings(SourceFormat::Csv, Encoding::Utf8, ',', headerRow: 1))->samples;
+        self::assertSame(['=Example', '+420 123 456 789'], $samples[2]);
     }
 
     public function testTabAndPipeDelimitedFiles(): void

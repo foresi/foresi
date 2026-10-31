@@ -148,8 +148,8 @@ when@test:
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
-        # Nothing in the application consumes the audit trail yet (the import
-        # undo will), so the test kernel keeps the alias.
+        # The generic audit query; the fake import target answers changedSince()
+        # with it, while targets of the application check their own entities.
         App\Audit\Application\AuditTrail:
             alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
             public: true
@@ -163,7 +163,7 @@ when@test:
             public: true
             tags: ['app.import_target']
 
-        # Nothing calls the import services yet (the screens will); the tests drive them directly.
+        # The tests drive the import services directly, not only through the screens.
         App\Import\Application\StartImport: { public: true }
         App\Import\Application\ExportRecords: { public: true }
         App\Import\Application\ConfigureImport: { public: true }

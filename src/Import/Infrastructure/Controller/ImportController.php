@@ -315,6 +315,11 @@ final class ImportController extends AbstractController
             @unlink($path);
 
             return $this->refused($id, $refused);
+        } catch (\Throwable $failure) {
+            // Whatever else went wrong, the half-written file does not stay behind.
+            @unlink($path);
+
+            throw $failure;
         }
 
         $response = new BinaryFileResponse($path);
@@ -376,7 +381,6 @@ final class ImportController extends AbstractController
         return $response;
     }
 
-    /** Null when none is named and there is more than one to choose from. */
     /** The message for a file the server's PHP limits refused, naming the lower of them. */
     private function serverLimit(): string
     {
@@ -399,6 +403,7 @@ final class ImportController extends AbstractController
         };
     }
 
+    /** Null when none is named and there is more than one to choose from. */
     private function chosenTarget(string $key): ?ImportTarget
     {
         if ('' === $key) {

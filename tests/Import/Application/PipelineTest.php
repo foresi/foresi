@@ -49,8 +49,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use OpenSpout\Reader\CSV\Options as CsvReaderOptions;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -451,6 +454,58 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(1200, $this->fresh($id)->reverted());
         self::assertSame(1200, $this->target->count('revert'));
         self::assertSame(ImportState::Undone, $this->fresh($id)->state());
+    }
+
+    public function testARunTheHealthCheckFailedAfterItWroteRowsCanBeUndone(): void
+    {
+        $id = $this->checked($this->rows(1200), ImportMode::Update);
+        $this->container(RunImport::class)->run($id);
+        // One chunk is written, then the worker dies for good.
+        $this->worker->run(1);
+        $this->stallAndCheckHealth($id);
+        $failed = $this->fresh($id);
+        self::assertSame(ImportState::Failed, $failed->state());
+        self::assertNull($failed->undoRefusal(new \DateTimeImmutable('2026-10-02')));
+
+        $this->container(UndoImport::class)->undo($id);
+        $this->worker->run();
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::Undone, $import->state());
+        self::assertSame([500, 0], [$import->reverted(), $import->changedAfterImport()]);
+        self::assertSame(500, $this->target->count('create'));
+        self::assertSame(500, $this->target->count('revert'));
+        self::assertSame([], $this->target->activeNames());
+    }
+
+    public function testAnUndoThatFailedIsTriedAgainAndSkipsTheRowsItAlreadyReverted(): void
+    {
+        $id = $this->checked($this->rows(1200), ImportMode::Update);
+        $this->runImport($id);
+        $this->container(UndoImport::class)->undo($id);
+        $this->worker->run(1);
+        $this->stallAndCheckHealth($id);
+        // The next chunk of the undo arrives after the import failed and does nothing.
+        $this->worker->run();
+        self::assertSame(ImportState::Failed, $this->fresh($id)->state());
+        self::assertSame(500, $this->target->count('revert'));
+
+        $this->container(UndoImport::class)->undo($id);
+        $this->worker->run();
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::Undone, $import->state());
+        self::assertSame(1200, $import->reverted());
+        self::assertSame(1200, $this->target->count('revert'));
+        self::assertSame([], $this->target->activeNames());
+    }
+
+    public function testAFailedReadCannotBeUndone(): void
+    {
+        $id = $this->upload(self::HEADER);
+
+        $this->expectExceptionObject(new ImportRefused('import.refused.undo_state'));
+        $this->container(UndoImport::class)->undo($id);
     }
 
     public function testAReleaseThatFailedStartsTheNextImportWhenTheMessageComesAgain(): void
@@ -942,6 +997,17 @@ final class PipelineTest extends KernelTestCase
     {
         $this->container(RunImport::class)->run($id, $confirmation);
         $this->worker->run();
+    }
+
+    /** Makes the import look as if it had not moved for a day, and runs the health check that fails it. */
+    private function stallAndCheckHealth(int $id): void
+    {
+        $this->em->getConnection()->executeStatement("UPDATE import SET progressed_at = '2026-09-30 10:00:00' WHERE id = ?", [$id]);
+        $tester = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:import:health'));
+
+        self::assertSame(Command::SUCCESS, $tester->execute([]));
+        self::assertStringContainsString('Failed 1 stalled imports', $tester->getDisplay());
+        $this->tenants->switchTo($this->tenant);
     }
 
     private function fresh(int $id): Import

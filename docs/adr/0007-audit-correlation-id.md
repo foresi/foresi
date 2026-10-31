@@ -29,7 +29,7 @@ Chosen option: "an optional correlation id on every entry", because it needs one
 * `AuditCorrelation::within($id, $work)` makes `$id` the current correlation for the work; the listener stamps it on every entry it writes meanwhile, for creations, updates and removals alike. Outside it, entries carry none.
 * Nesting the same id is allowed; nesting a different id throws. The previous value is restored when the work ends, also by an exception, and the service is reset between messages of a worker.
 * Ids are built as `<operation>:<id>`: `import:<importId>` for an import and `import-undo:<importId>` for its undo.
-* `AuditTrail::changedSince()` answers whether an entity has a newer entry that belongs to no given correlation, so an undo can detect later edits.
+* `AuditTrail::changedSince()` answers whether an entity has a newer entry that belongs to no given correlation. The import undo asks the target (`ImportTarget::changedSince()`), which checks the record and everything that belongs to it the same way; for contacts `DoctrinePartyChanges` does so for the party and its child entities.
 
 ### Consequences
 

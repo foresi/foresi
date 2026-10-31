@@ -12,6 +12,7 @@ use App\Import\Domain\BlankCells;
 use App\Import\Domain\ColumnProposal;
 use App\Import\Domain\DateOrder;
 use App\Import\Domain\DecimalSeparator;
+use App\Import\Domain\IllegalTransition;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportAmbiguousMatch;
 use App\Import\Domain\ImportMissingRecord;
@@ -289,6 +290,46 @@ final class PipelineRulesTest extends TestCase
             self::assertNull($import->undoDeadline());
             self::assertSame('import.refused.undo_state', $import->undoRefusal(new \DateTimeImmutable('2026-10-02')));
         }
+    }
+
+    public function testARunThatFailedAfterWritingCanBeUndoneWithinTheWindow(): void
+    {
+        $import = $this->ran(ImportState::Running, new \DateTimeImmutable('2026-10-01'));
+        $import->recordChunk([RowOutcome::Create->value => 1]);
+        $import->fail('import.failure.stalled', new \DateTimeImmutable('2026-10-01 10:00:00'));
+
+        self::assertEquals(new \DateTimeImmutable('2026-10-31 10:00:00'), $import->undoDeadline());
+        self::assertNull($import->undoRefusal(new \DateTimeImmutable('2026-10-02')));
+        self::assertSame('import.refused.undo_expired', $import->undoRefusal(new \DateTimeImmutable('2026-10-31 10:00:01')));
+    }
+
+    public function testAnUndoThatFailedCanBeTriedAgain(): void
+    {
+        $import = $this->ran(ImportState::Running, new \DateTimeImmutable('2026-10-01'));
+        $import->recordChunk([RowOutcome::Update->value => 2]);
+        $import->moveTo(ImportState::Finished, new \DateTimeImmutable('2026-10-01'));
+        $import->moveTo(ImportState::Undoing);
+        $import->fail('import.failure.stalled', new \DateTimeImmutable('2026-10-02'));
+
+        self::assertNull($import->undoRefusal(new \DateTimeImmutable('2026-10-03')));
+        $import->moveTo(ImportState::Undoing);
+        self::assertSame(ImportState::Undoing, $import->state());
+    }
+
+    public function testAFailedImportThatWroteNothingCannotBeUndone(): void
+    {
+        $read = $this->ran(ImportState::Checking, new \DateTimeImmutable('2026-10-01'));
+        $read->recordChunk([RowOutcome::Create->value => 3]);
+        $read->fail('import.failure.stalled', new \DateTimeImmutable('2026-10-01'));
+        $started = $this->ran(ImportState::Running, new \DateTimeImmutable('2026-10-01'));
+        $started->fail('import.failure.stalled', new \DateTimeImmutable('2026-10-01'));
+
+        foreach ([$read, $started] as $import) {
+            self::assertFalse($import->canMoveTo(ImportState::Undoing));
+            self::assertSame('import.refused.undo_state', $import->undoRefusal(new \DateTimeImmutable('2026-10-02')));
+        }
+        $this->expectException(IllegalTransition::class);
+        $started->moveTo(ImportState::Undoing);
     }
 
     public function testAPurgedImportCannotBeUndone(): void

@@ -22,7 +22,7 @@ Open the address book and choose **Import**. Every step is saved, so you can lea
 | Update existing | overwritten from the file | left alone |
 | Full replace | overwritten from the file | **archived**, never deleted |
 
-Full replace makes the address book match the file. It can archive many records, so the check shows their number prominently and the import starts only after you type that number as a confirmation. By default it archives only records that earlier imports with the same profile (the saved mapping) created; you can widen the scope to every record of the target. An archived record can be restored, and an undo restores it too.
+Full replace makes the address book match the file. It can archive many records, so the check shows their number prominently and the import starts only after you type that number as a confirmation. By default it archives only records that earlier imports of the same profile (the saved mapping) created, updated or restored; you can widen the scope to every record of the target. A record you made by hand is therefore in the default scope once an import of the profile updated it. An archived record can be restored, and an undo restores it too.
 
 ### Matching
 
@@ -30,13 +30,13 @@ Existing records are found by a key you choose. For contacts the keys are the Fo
 
 - Archived records take part in matching. Add missing only skips an archived match. Update and full replace restore it and update it, and report it as "restored".
 - A key that matches several existing records is an error on that row ("ambiguous").
-- A key repeated in the file: the first row wins, later rows are errors ("duplicate in file").
+- A key repeated in the file: the first row wins, later rows are errors ("duplicate in file"). Keys are compared the way the target matches them, so `0000019` and `00000019` are one registration number, and `one@example.com` and `ONE@example.com, cc@example.com` are one e-mail address (the first address of a list counts).
 - Empty cells leave existing values as they are, unless you choose to clear them.
-- Registry checks (ARES, VIES, the unreliable VAT payer register) never run inside the import. New and changed records are checked later in the background, respecting the rate limits.
+- Registry checks (ARES, VIES, the unreliable VAT payer register) never run inside the import. New and changed records that have a VAT ID are checked later in the background, respecting the rate limits.
 
 ### Undo
 
-An import can be undone for 30 days after it ended, from the import's page. Created records are archived, updated records get their previous values back and archived records are restored. A record that someone changed after the import is not reverted; it is listed instead. After 30 days the file and the staged rows are deleted, undo is no longer possible, and the import record with its counts stays in the history.
+An import can be undone for 30 days after it ended, from the import's page. Created records are archived, updated records get their previous values back and archived records are restored. A record that someone changed after the import is not reverted; it is listed instead. An import that failed after it started writing (its worker died, for example) can be undone the same way: rows that were never written are passed over. An undo that failed can be started again; it skips the records it already put back. An import that failed while the file was read or checked wrote nothing and has no undo. After 30 days the file and the staged rows are deleted, undo is no longer possible, and the import record with its counts stays in the history.
 
 ### Limits
 
@@ -127,7 +127,7 @@ Run two commands regularly, for example from cron:
 
 `app:import:purge` also cancels imports that were left waiting for the user for more than 30 days.
 
-`app:import:health` looks for an import in Reading, Checking, Running or Undoing that has changed neither state nor counters for four hours (twice the `redeliver_timeout` of 7200 seconds in `config/packages/messenger.yaml`). Such an import is marked Failed with the message "stalled" and the target is freed. This recovers from a worker that died for good. A slow import is not affected as long as chunks keep finishing, but an import whose chunks wait more than four hours in the shared queue behind other work (for example when no worker runs) is failed as well. The command then also looks at every target that has queued imports and none running, and starts the oldest queued one. So a run repairs a start that failed earlier, and running the command again changes nothing. If one import or target fails (for example the lock store is down), the error is logged, the others are still handled and the command exits with an error. It does not re-send lost chunk messages; a failed import is uploaded again. An import that was undone only in part is left as it is, with the records already reverted.
+`app:import:health` looks for an import in Reading, Checking, Running or Undoing that has changed neither state nor counters for four hours (twice the `redeliver_timeout` of 7200 seconds in `config/packages/messenger.yaml`). Such an import is marked Failed with the message "stalled" and the target is freed. This recovers from a worker that died for good. A slow import is not affected as long as chunks keep finishing, but an import whose chunks wait more than four hours in the shared queue behind other work (for example when no worker runs) is failed as well. The command then also looks at every target that has queued imports and none running, and starts the oldest queued one. So a run repairs a start that failed earlier, and running the command again changes nothing. If one import or target fails (for example the lock store is down), the error is logged, the others are still handled and the command exits with an error. It does not re-send lost chunk messages. A run that failed this way can be undone from the import's page (and then uploaded again), and an undo that failed can be started again, which reverts the remaining records.
 
 ## PHP settings
 

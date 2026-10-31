@@ -32,7 +32,7 @@ enum ImportState: string
         return \in_array($next, $this->next(), true);
     }
 
-    /** Nothing more happens to the import's data from here, except an undo of a finished one. */
+    /** Nothing more happens to the import's data from here, except an undo of one that wrote rows. */
     public function isEnd(): bool
     {
         return match ($this) {
@@ -66,7 +66,9 @@ enum ImportState: string
             // A stopped run has written rows before the threshold tripped, so it can be undone too.
             self::Finished, self::FinishedWithErrors, self::Stopped => [self::Undoing],
             self::Undoing => [self::Undone, self::Failed],
-            self::Failed, self::Cancelled, self::Undone => [],
+            // Only a failed import that wrote rows (a run or an undo broke off) can be undone; Import::canMoveTo() decides.
+            self::Failed => [self::Undoing],
+            self::Cancelled, self::Undone => [],
         };
     }
 }

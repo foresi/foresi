@@ -338,11 +338,26 @@ class Import implements TenantOwned
     }
 
     /**
+     * The transitions of ImportState, except that a failed import goes back to
+     * Undoing only when it wrote rows: a run that failed after it started, or an
+     * undo that failed and is tried again. A file that could not be read or
+     * checked wrote nothing, so there is nothing to undo.
+     */
+    public function canMoveTo(ImportState $next): bool
+    {
+        if (!$this->state->canMoveTo($next)) {
+            return false;
+        }
+
+        return ImportState::Failed !== $this->state || ImportState::Undoing !== $next || ($this->startedAt instanceof \DateTimeImmutable && $this->processed > 0);
+    }
+
+    /**
      * @throws IllegalTransition
      */
     public function moveTo(ImportState $next, ?\DateTimeImmutable $at = null): void
     {
-        if (!$this->state->canMoveTo($next)) {
+        if (!$this->canMoveTo($next)) {
             throw IllegalTransition::between($this->state, $next);
         }
         $at ??= new \DateTimeImmutable();
@@ -471,7 +486,7 @@ class Import implements TenantOwned
      */
     public function undoDeadline(): ?\DateTimeImmutable
     {
-        if (!$this->state->canMoveTo(ImportState::Undoing) || !$this->finishedAt instanceof \DateTimeImmutable) {
+        if (!$this->canMoveTo(ImportState::Undoing) || !$this->finishedAt instanceof \DateTimeImmutable) {
             return null;
         }
 

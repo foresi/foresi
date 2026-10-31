@@ -469,7 +469,7 @@ import:
     keep: Keep the value
     clear: Clear the value
   scope:
-    profile: Only records of earlier imports of this profile
+    profile: Only records that earlier imports of this profile created, updated or restored
     all: All records
   date_order:
     day_month_year: Day first (31/12/2026)
