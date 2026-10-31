@@ -31,7 +31,7 @@
             {% if screen.undoable %}
                 <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">
                     <p class="mb-1 mt-0 text-text">{{ 'import.summary.undo.text'|trans }}</p>
-                    <p class="m-0 text-[13px] text-muted">{{ 'import.summary.undo.deadline'|trans({date: screen.undoDeadline}) }}</p>
+                    <p class="m-0 text-small text-muted">{{ 'import.summary.undo.deadline'|trans({date: screen.undoDeadline}) }}</p>
                 </twig:Ui:Card>
             {% elseif screen.undoExpired %}
                 <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">

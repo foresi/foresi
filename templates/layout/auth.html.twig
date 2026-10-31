@@ -4,12 +4,12 @@
 
 {% block body %}
     <main class="mx-auto grid min-h-screen w-full max-w-[420px] content-center gap-5 px-4 py-10">
-        <p class="m-0 flex items-center justify-center gap-2.5 text-lg font-semibold text-ink">
+        <p class="m-0 flex items-center justify-center gap-2.5 text-heading font-semibold text-ink">
             <span class="grid size-8 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ product_name|first|upper }}</span>
             <span>{{ product_name }}</span>
         </p>
-        <div class="rounded-panel border border-frame-line bg-white p-6 shadow-[0_1px_2px_rgba(28,29,26,.04)]">
-            <h1 class="m-0 mb-4 text-xl font-semibold tracking-tight text-ink">{% block heading %}{{ block('title') }}{% endblock %}</h1>
+        <div class="rounded-panel border border-container bg-white p-6 shadow-raised">
+            <h1 class="m-0 mb-4 text-title font-semibold text-ink">{% block heading %}{{ block('title') }}{% endblock %}</h1>
             {% block content %}{% endblock %}
         </div>
     </main>

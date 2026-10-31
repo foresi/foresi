@@ -24,9 +24,9 @@
             {% endif %}
         </twig:block>
         {% if source.edit %}
-            <form method="post" action="{{ path('app_import_source', {id: import.id}) }}" class="grid gap-4">
+            <form method="post" action="{{ path('app_import_source', {id: import.id}) }}" class="grid gap-3">
                 <input type="hidden" name="_token" value="{{ token }}">
-                <p class="m-0 text-[13px] text-muted">{{ 'import.file.change_help'|trans }}</p>
+                <p class="m-0 text-small text-muted">{{ 'import.file.change_help'|trans }}</p>
                 <div class="grid gap-3 sm:grid-cols-3">
                     {% if source.csv %}
                         <twig:Ui:Select name="encoding" id="encoding" :label="'import.file.encoding'|trans" :options="source.encodings" :value="source.settings.encoding.value|default('')" />
@@ -60,8 +60,8 @@
                 <span data-import-mapping-target="message">{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }}</span>
                 <span data-import-mapping-target="fields">{{ screen.missing|join(', ') }}</span>.
             </twig:Ui:Alert>
-            <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.mapping.intro'|trans }}</p>
-            <div class="divide-y divide-line">
+            <p class="mb-3 mt-0 text-small text-muted">{{ 'import.mapping.intro'|trans }}</p>
+            <div class="divide-y divide-divider">
                 {% for column in screen.columns %}
                     <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :badge="column.badge" :errors="column.errors" />
                 {% endfor %}
@@ -70,13 +70,13 @@
 
         {% if screen.values is not empty %}
             <twig:Ui:Card :title="'import.values.title'|trans" icon="tag">
-                <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.values.intro'|trans }}</p>
-                <div class="grid gap-5">
+                <p class="mb-3 mt-0 text-small text-muted">{{ 'import.values.intro'|trans }}</p>
+                <div class="grid gap-4">
                     {% for section in screen.values %}
                         <section aria-labelledby="values-{{ section.field }}">
-                            <h4 id="values-{{ section.field }}" class="mb-1 mt-0 text-[13px] font-semibold text-ink">{{ section.label }}</h4>
-                            {% if section.distinct > section.shown %}<p class="mb-1 mt-0 text-[13px] text-muted">{{ 'import.values.more'|trans({shown: section.shown, total: section.distinct}) }}</p>{% endif %}
-                            <div class="divide-y divide-line">
+                            <h4 id="values-{{ section.field }}" class="mb-1 mt-0 text-small font-semibold text-ink">{{ section.label }}</h4>
+                            {% if section.distinct > section.shown %}<p class="mb-1 mt-0 text-small text-muted">{{ 'import.values.more'|trans({shown: section.shown, total: section.distinct}) }}</p>{% endif %}
+                            <div class="divide-y divide-divider">
                                 {% for row in section.rows %}
                                     <input type="hidden" name="{{ row.sourceName }}" value="{{ row.source }}">
                                     <twig:Ui:MappingRow :id="row.id" :name="row.name" :label="row.label" :samples="row.samples" :options="section.options" :value="row.value" />

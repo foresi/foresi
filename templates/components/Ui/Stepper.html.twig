@@ -3,18 +3,18 @@
     <ol class="m-0 flex list-none items-center gap-2 p-0">
         {% for step in this.views %}
             <li class="flex items-center gap-2{{ loop.last ? '' : ' flex-1' }}{{ step.state == 'current' ? ' shrink-0' : ' min-w-0' }}"{% if step.state == 'current' %} aria-current="step"{% endif %}>
-                <span class="num grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold {{ step.state == 'done' ? 'bg-green text-white' : (step.state == 'current' ? 'border-2 border-green text-green' : 'border border-line-strong text-muted') }}" aria-hidden="true">
+                <span class="num grid size-6 shrink-0 place-items-center rounded-full text-caption font-semibold {{ step.state == 'done' ? 'bg-green text-white' : (step.state == 'current' ? 'border-2 border-green text-green' : 'border border-container text-muted') }}" aria-hidden="true">
                     {%- if step.state == 'done' -%}
                         {{ ux_icon('lucide:check', {class: 'size-3.5'}) }}
                     {%- else -%}
                         {{ step.number }}
                     {%- endif -%}
                 </span>
-                <span class="text-[13px] {{ step.state == 'current' ? 'shrink-0 whitespace-nowrap font-medium text-ink' : (step.state == 'done' ? 'truncate text-text max-sm:sr-only' : 'truncate text-muted max-sm:sr-only') }}">
+                <span class="text-small {{ step.state == 'current' ? 'shrink-0 whitespace-nowrap font-medium text-ink' : (step.state == 'done' ? 'truncate text-text max-sm:sr-only' : 'truncate text-muted max-sm:sr-only') }}">
                     {{- step.label -}}
                     {%- if step.state == 'done' %}<span class="sr-only">, {{ 'ui.stepper.done'|trans }}</span>{% endif -%}
                 </span>
-                {% if not loop.last %}<span class="h-px min-w-3 flex-1 {{ step.state == 'done' ? 'bg-green' : 'bg-line-strong' }}" aria-hidden="true"></span>{% endif %}
+                {% if not loop.last %}<span class="h-px min-w-3 flex-1 {{ step.state == 'done' ? 'bg-green' : 'bg-container' }}" aria-hidden="true"></span>{% endif %}
             </li>
         {% endfor %}
     </ol>

@@ -37,11 +37,11 @@
                 </twig:block>
                 <twig:Ui:Tabs :items="screen.tabs" :label="'import.check.preview'|trans" class="mb-3" />
                 {% if screen.outcome == 'error' %}
-                    <ul class="m-0 list-none divide-y divide-line p-0" data-error-rows>
+                    <ul class="m-0 list-none divide-y divide-divider p-0" data-error-rows>
                         {% for failure in screen.preview.errors %}
                             <li class="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-4">
                                 <div class="min-w-0">
-                                    <span class="num block text-[13px] text-muted">{{ failure.row }}</span>
+                                    <span class="num block text-small text-muted">{{ failure.row }}</span>
                                     {% if failure.title %}<span class="block truncate font-medium text-ink" title="{{ failure.title }}">{{ failure.title }}</span>{% endif %}
                                 </div>
                                 <ul class="m-0 list-none p-0 text-text">
@@ -53,7 +53,7 @@
                 {% else %}
                     <twig:Ui:DataTable :caption="'import.check.preview'|trans" :columns="screen.preview.columns" :rows="screen.preview.rows" />
                 {% endif %}
-                {% if screen.preview.more %}<p class="mb-0 mt-2 text-[13px] text-muted">{{ 'import.check.preview_more'|trans({count: constant('App\\Import\\Infrastructure\\Controller\\ImportScreens::PREVIEW_ROWS')}) }}</p>{% endif %}
+                {% if screen.preview.more %}<p class="mb-0 mt-2 text-small text-muted">{{ 'import.check.preview_more'|trans({count: constant('App\\Import\\Infrastructure\\Controller\\ImportScreens::PREVIEW_ROWS')}) }}</p>{% endif %}
             </twig:Ui:Card>
         {% endif %}
 

@@ -1,12 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% if this.views is not empty %}
-    <dl {{ attributes.defaults({class: 'm-0 grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.columns}) }}>
+    <dl {{ attributes.defaults({class: 'm-0 grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-container bg-divider lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.columns}) }}>
         {% for item in this.views %}
-            <div class="min-w-0 bg-white px-3.5 py-3">
-                <dt class="mb-[3px] text-xs text-muted">{{ item.label }}</dt>
-                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-lg font-semibold' : 'font-medium' }}" title="{{ item.value }}">
+            <div class="min-w-0 bg-white p-4">
+                <dt class="mb-0.5 text-caption text-muted">{{ item.label }}</dt>
+                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-heading font-semibold' : 'font-medium' }}" title="{{ item.value }}">
                     {%- if item.href is not null -%}
-                        <a href="{{ item.href }}" rel="noopener noreferrer" class="underline decoration-line-strong underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green">{{ item.value }}</a>
+                        <a href="{{ item.href }}" rel="noopener noreferrer" class="underline decoration-control-line underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green">{{ item.value }}</a>
                     {%- else -%}
                         {{ item.value }}
                     {%- endif -%}

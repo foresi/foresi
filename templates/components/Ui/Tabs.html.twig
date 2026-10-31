@@ -1,9 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-<nav {{ attributes.defaults({class: 'flex max-w-full gap-x-5 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-line)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:pr-10 max-sm:[mask-image:linear-gradient(to_right,#000_calc(100%_-_40px),transparent)]'}) }}{% if label %} aria-label="{{ label }}"{% endif %}>
+<nav {{ attributes.defaults({class: 'flex max-w-full gap-x-5 overflow-x-auto inset-shadow-rail [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:pr-10 max-sm:[mask-image:linear-gradient(to_right,#000_calc(100%_-_40px),transparent)]'}) }}{% if label %} aria-label="{{ label }}"{% endif %}>
     {%- for item in items %}
-        <a href="{{ item.href }}"{% if item.active ?? false %} aria-current="page"{% endif %} class="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 font-medium no-underline {{ (item.active ?? false) ? 'border-green text-ink' : 'border-transparent text-muted hover:border-line-strong hover:text-ink' }} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green">
+        <a href="{{ item.href }}"{% if item.active ?? false %} aria-current="page"{% endif %} class="inline-flex h-control shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 font-medium no-underline {{ (item.active ?? false) ? 'border-green text-ink' : 'border-transparent text-muted hover:border-control-line hover:text-ink' }} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green">
             {{- item.label -}}
-            {%- if item.count is defined and item.count is not null %}<span class="num rounded-full px-1.5 text-xs font-medium {{ (item.active ?? false) ? 'bg-green-tint text-green' : 'bg-badge-gray text-badge-gray-text' }}">{{ item.count }}</span>{% endif -%}
+            {%- if item.count is defined and item.count is not null %}<span class="num inline-flex h-badge items-center rounded-sm px-1.5 text-caption font-medium {{ (item.active ?? false) ? 'bg-green-tint text-green' : 'bg-badge-gray text-badge-gray-text' }}">{{ item.count }}</span>{% endif -%}
         </a>
     {%- endfor %}
 </nav>

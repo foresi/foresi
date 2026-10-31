@@ -24,7 +24,7 @@ final class ActionBarTest extends KernelTestCase
         self::assertStringContainsString('data-controller="action-bar"', $html);
         self::assertStringContainsString('sticky', $html);
         self::assertStringContainsString('bottom-3', $html);
-        self::assertStringContainsString('rounded-panel border border-line-strong', $html);
+        self::assertStringContainsString('rounded-panel border border-container', $html);
         self::assertStringContainsString('bg-white', $html);
         // In normal flow on low screens, where a docked bar would cover most of the page.
         self::assertStringContainsString('[@media(max-height:480px)]:static', $html);

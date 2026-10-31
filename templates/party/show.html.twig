@@ -39,7 +39,7 @@
             {% for role in roles %}<twig:Ui:Badge tone="green">{{ role }}</twig:Ui:Badge>{% endfor %}
             {% if party.archived %}<twig:Ui:Badge tone="gray">{{ 'party.archived'|trans }}</twig:Ui:Badge>{% endif %}
             {% for check in checks %}
-                <span class="inline-flex items-center gap-1.5 text-[13px] text-muted">
+                <span class="inline-flex items-center gap-1.5 text-small text-muted">
                     <twig:Ui:Badge :tone="check.tone">{{ check.text }}</twig:Ui:Badge>
                     <time datetime="{{ check.checkedAt|date('c') }}">{{ 'party.check.at'|trans({time: check.checkedAt|date(formatTime)}) }}</time>
                 </span>

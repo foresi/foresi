@@ -76,7 +76,7 @@ export default class extends Controller {
             const item = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'flex w-full min-h-6 flex-wrap items-center gap-x-3 rounded-control border border-line-strong bg-white px-2.5 py-1.5 text-left text-ink hover:bg-head focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green';
+            button.className = 'flex w-full min-h-6 flex-wrap items-center gap-x-3 rounded-control border border-control-line bg-white px-2.5 py-1.5 text-left text-ink hover:bg-head focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green';
             const name = document.createElement('span');
             name.className = 'truncate font-medium';
             name.textContent = record.name;
@@ -92,7 +92,7 @@ export default class extends Controller {
                 link.href = record.existing.url;
                 link.target = '_blank';
                 link.rel = 'noopener';
-                link.className = 'text-[13px] text-badge-amber-text underline';
+                link.className = 'text-small text-badge-amber-text underline';
                 link.textContent = `${this.existingValue}: ${record.existing.name}`;
                 item.append(link);
             }
@@ -104,7 +104,7 @@ export default class extends Controller {
     note(text) {
         this.resultsTarget.replaceChildren();
         const note = document.createElement('p');
-        note.className = 'text-[13px] text-muted';
+        note.className = 'text-small text-muted';
         note.textContent = text;
         this.resultsTarget.append(note);
     }

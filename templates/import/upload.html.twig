@@ -15,11 +15,11 @@
         {% if target %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
 
         <twig:Ui:Card :title="'import.upload.card'|trans" icon="upload">
-            <div class="grid gap-4 sm:max-w-xl">
+            <div class="grid gap-3 sm:max-w-xl">
                 {% if not target %}
                     <twig:Ui:Select name="target" id="target" :label="'import.upload.target'|trans" :options="targets" :error="errors.target|default(null)" required />
                 {% endif %}
-                <twig:Ui:TextInput type="file" name="file" id="file" :label="'import.upload.file'|trans" :help="'import.upload.file_help'|trans" :error="errors.file|default(null)" accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="py-1 file:mr-3 file:h-[26px] file:cursor-pointer file:rounded-md file:border-0 file:bg-badge-gray file:px-2.5 file:text-[13px] file:font-medium file:text-ink" />
+                <twig:Ui:TextInput type="file" name="file" id="file" :label="'import.upload.file'|trans" :help="'import.upload.file_help'|trans" :error="errors.file|default(null)" accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="py-0.5 pl-0.5 file:mr-3 file:h-control-sm file:cursor-pointer file:rounded-sm file:border-0 file:bg-badge-gray file:px-2.5 file:text-small file:font-medium file:text-ink" />
                 {% if profiles is not empty %}
                     <twig:Ui:Select name="profile" id="profile" :label="'import.upload.profile'|trans" :help="'import.upload.profile_help'|trans" :options="profiles" :value="profileId" :error="errors.profile|default(null)" />
                 {% elseif errors.profile is defined %}

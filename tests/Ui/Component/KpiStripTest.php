@@ -63,7 +63,7 @@ final class KpiStripTest extends KernelTestCase
         self::assertCount(1, $crawler->filter('a[data-kpi][href="/contacts?import=1"]'));
         self::assertStringContainsString('Created', $crawler->filter('a[data-kpi]')->text());
         self::assertCount(1, $crawler->filter('div[data-kpi]'));
-        self::assertSame('min-w-0 bg-white px-4 py-3.5', $crawler->filter('div[data-kpi]')->attr('class'));
+        self::assertSame('min-w-0 bg-white p-4', $crawler->filter('div[data-kpi]')->attr('class'));
     }
 
     public function testValuesAreEscaped(): void

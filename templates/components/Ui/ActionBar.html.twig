@@ -6,9 +6,9 @@
     zoom) get it in normal flow.
 #}
 {% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
-<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-line-strong bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-[0_10px_30px_rgba(28,29,26,.14)] max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-container bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-floating max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
     {% if statusHtml|trim is not empty %}
-        <p class="m-0 min-w-0 text-[13px] text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
+        <p class="m-0 min-w-0 text-small text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
     {% endif %}
-    <div class="ml-auto flex items-center gap-2 max-sm:grid max-sm:w-full max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-10 max-sm:[&_a]:w-full max-sm:[&_button]:h-10 max-sm:[&_button]:w-full">{% block content %}{% endblock %}</div>
+    <div class="ml-auto flex items-center gap-2 max-sm:grid max-sm:w-full max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-control-lg max-sm:[&_a]:w-full max-sm:[&_button]:h-control-lg max-sm:[&_button]:w-full">{% block content %}{% endblock %}</div>
 </div>

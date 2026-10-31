@@ -1,15 +1,15 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <fieldset {{ attributes.defaults({class: 'm-0 min-w-0 border-0 p-0'}) }}{% if error %} aria-describedby="{{ id }}-error"{% endif %}>
-    <legend class="mb-1.5 p-0 text-[13px] font-medium text-ink">{{ legend }}</legend>
+    <legend class="mb-1.5 p-0 text-small font-medium text-ink">{{ legend }}</legend>
     <div class="grid gap-2 lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]" style="--n:{{ this.views|length }}">
         {% for option in this.views %}
             <label for="{{ id }}-{{ option.value }}" class="flex cursor-pointer gap-2.5 rounded-control border bg-white px-3 py-2.5 hover:border-muted has-[:checked]:border-green has-[:checked]:bg-green-tint has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green {{ error ? 'border-badge-red-text' : 'border-control-line' }}">
                 <input type="radio" id="{{ id }}-{{ option.value }}" name="{{ name }}" value="{{ option.value }}"{% if option.value == value %} checked{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-error"{% endif %}{% if loop.first and this.focused %} autofocus{% endif %} class="mt-0.5 size-4 shrink-0 accent-green focus-visible:outline-none">
                 <span class="min-w-0">
                     <span class="block font-medium text-ink">{{ option.label }}</span>
-                    <span class="mt-0.5 block text-[13px] text-text">{{ option.text }}</span>
+                    <span class="mt-0.5 block text-small text-text">{{ option.text }}</span>
                     {% if option.warning %}
-                        <span class="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-badge-amber-text">
+                        <span class="mt-1.5 flex items-start gap-1.5 text-small font-medium text-badge-amber-text">
                             {{- ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) -}}
                             <span>{{ option.warning }}</span>
                         </span>
@@ -18,5 +18,5 @@
             </label>
         {% endfor %}
     </div>
-    {% if error %}<p id="{{ id }}-error" class="mt-1.5 text-[13px] font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+    {% if error %}<p id="{{ id }}-error" class="mt-1.5 text-caption font-medium text-badge-red-text">{{ error }}</p>{% endif %}
 </fieldset>

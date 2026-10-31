@@ -80,6 +80,6 @@ abstract class AbstractControl
 
     public function classes(): string
     {
-        return 'w-full rounded-control border bg-white px-2.5 text-ink '.($this->invalid() ? 'border-badge-red-text' : 'border-line-strong').' disabled:bg-head disabled:text-muted '.Style::FOCUS;
+        return 'w-full rounded-control border bg-white px-2.5 text-ink '.($this->invalid() ? 'border-badge-red-text' : 'border-control-line').' disabled:bg-head disabled:text-muted '.Style::FOCUS;
     }
 }

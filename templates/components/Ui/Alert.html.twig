@@ -2,7 +2,7 @@
 {% set body %}{% block content %}{% endblock %}{% endset %}
 <div {{ attributes.defaults({role: this.role, class: this.classes}) }}>
     {% if title %}
-        <p class="mb-1 flex items-center gap-2 text-sm font-semibold">
+        <p class="mb-1 flex items-center gap-2 text-body font-semibold">
             {%- if icon %}{{ ux_icon('lucide:' ~ icon, {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
             <span>{{ title }}</span>
         </p>

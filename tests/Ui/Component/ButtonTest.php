@@ -50,8 +50,8 @@ final class ButtonTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:Button', ['size' => 'sm'], 'X');
 
-        self::assertStringContainsString('h-7', $html);
-        self::assertStringNotContainsString('h-control', $html);
+        self::assertStringContainsString('h-control-sm', $html);
+        self::assertDoesNotMatchRegularExpression('/\bh-control(?![\w-])/', $html);
     }
 
     public function testHrefRendersAnchor(): void

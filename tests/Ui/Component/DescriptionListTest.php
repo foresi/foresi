@@ -50,6 +50,6 @@ final class DescriptionListTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:Card', ['title' => 'Checks'], blocks: ['actions' => '<button>Again</button>', 'content' => 'Body']);
 
-        self::assertMatchesRegularExpression('#</h3>\s*<div class="-my-1.5 ml-auto[^"]*"><button>Again</button></div>#', $html);
+        self::assertMatchesRegularExpression('#</h3>\s*<div class="-my-1 ml-auto[^"]*"><button>Again</button></div>#', $html);
     }
 }

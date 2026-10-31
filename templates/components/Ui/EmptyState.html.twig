@@ -1,9 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <div {{ attributes.defaults({class: 'grid place-items-center px-5 py-20 text-center'}) }}>
-    <span class="mb-3.5 grid size-[52px] place-items-center rounded-panel border border-line-strong text-green">
-        {{- ux_icon('lucide:' ~ icon, {class: 'size-[22px]', 'aria-hidden': 'true'}) -}}
+    <span class="mb-3.5 grid size-12 place-items-center rounded-panel border border-container text-green">
+        {{- ux_icon('lucide:' ~ icon, {class: 'size-6', 'aria-hidden': 'true'}) -}}
     </span>
-    <h2 class="mb-1.5 text-lg font-semibold text-ink">{{ title ?: 'ui.empty_state.title'|trans }}</h2>
+    <h2 class="mb-1.5 text-heading font-semibold text-ink">{{ title ?: 'ui.empty_state.title'|trans }}</h2>
     {% if text %}<p class="mb-4 max-w-[460px] text-muted">{{ text }}</p>{% endif %}
     <div class="flex flex-wrap items-center justify-center gap-2">{% block content %}{% endblock %}</div>
 </div>

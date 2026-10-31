@@ -6,7 +6,7 @@
             {% if progress.phase == 'queued' %}
                 <p class="m-0 text-text">{{ 'import.progress.queued_text'|trans }}</p>
             {% endif %}
-            <p class="m-0 text-[13px] text-muted">{{ (progress.active ? 'import.progress.leave' : 'import.progress.finished')|trans }}</p>
+            <p class="m-0 text-small text-muted">{{ (progress.active ? 'import.progress.leave' : 'import.progress.finished')|trans }}</p>
         </div>
     </twig:Ui:Card>
 </div>

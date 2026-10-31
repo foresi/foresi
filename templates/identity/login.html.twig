@@ -9,10 +9,10 @@
 
 {% block content %}
     {% if error %}
-        <p id="login-error" role="alert" class="mb-4 rounded-control bg-badge-red px-3 py-2 text-[13px] font-medium text-badge-red-text">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        <twig:Ui:Alert tone="error" id="login-error" class="mb-4">{{ error.messageKey|trans(error.messageData, 'security') }}</twig:Ui:Alert>
     {% endif %}
 
-    <form method="post" action="{{ path('app_login') }}" class="grid gap-4" novalidate>
+    <form method="post" action="{{ path('app_login') }}" class="grid gap-3" novalidate>
         <twig:Ui:TextInput name="_username" id="username" type="email" :label="'login.email'|trans" :value="lastUsername" :errorRef="errorRef" required autocomplete="username" autofocus />
         <twig:Ui:TextInput name="_password" id="password" type="password" :label="'login.password'|trans" :errorRef="errorRef" required autocomplete="current-password" />
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">

@@ -94,7 +94,7 @@ final class MappingRowTest extends KernelTestCase
         self::assertSame('column-0-error', $select->attr('aria-describedby'));
         self::assertNotNull($select->attr('autofocus'));
         self::assertStringContainsString('border-badge-red-text', (string) $select->attr('class'));
-        self::assertStringNotContainsString('border-line-strong', (string) $select->attr('class'));
+        self::assertStringNotContainsString('border-control-line', (string) $select->attr('class'));
         self::assertSame(
             ['Match the field Name to one of the columns', 'Match the field City to one of the columns'],
             $crawler->filter('#column-0-error p')->each(static fn ($message): string => $message->text()),
@@ -109,7 +109,7 @@ final class MappingRowTest extends KernelTestCase
         self::assertNull($select->attr('aria-invalid'));
         self::assertNull($select->attr('aria-describedby'));
         self::assertNull($select->attr('autofocus'));
-        self::assertSame('h-control w-full appearance-none rounded-control border border-line-strong bg-white pl-2.5 pr-8 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green', $select->attr('class'));
+        self::assertSame('h-control w-full appearance-none rounded-control border border-control-line bg-white pl-2.5 pr-8 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green', $select->attr('class'));
         self::assertCount(0, $crawler->filter('#column-0-error'));
     }
 

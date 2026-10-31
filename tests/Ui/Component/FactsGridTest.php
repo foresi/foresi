@@ -50,7 +50,7 @@ final class FactsGridTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [['label' => 'Balance', 'value' => '9 000', 'big' => true]]]);
 
-        self::assertStringContainsString('text-lg', $html);
+        self::assertStringContainsString('text-heading', $html);
         self::assertStringContainsString('num', $html);
     }
 
@@ -58,7 +58,7 @@ final class FactsGridTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [['label' => 'A', 'value' => 'b']]]);
 
-        self::assertStringNotContainsString('text-lg', $html);
+        self::assertStringNotContainsString('text-heading', $html);
     }
 
     public function testAValueWithAnHrefIsALinkThatOpensNoReferrer(): void
