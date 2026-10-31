@@ -130,7 +130,9 @@ final readonly class ValueNormaliser
             }
         }
 
-        return $this->error($field, 'import.error.unknown_value', $text);
+        $named = $field->choiceNames[HeaderName::normalise($text)] ?? null;
+
+        return $named ?? $this->error($field, 'import.error.unknown_value', $text);
     }
 
     /**

@@ -616,7 +616,7 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertCount(1, $rows);
         self::assertSame(array_keys($this->fields()), array_keys($rows[0]), 'the field keys, so the file maps by name');
         self::assertSame('info@example.com, copy@example.com', $rows[0]['email']);
-        self::assertSame('customer, supplier', $rows[0]['roles']);
+        self::assertSame('Zákazník, Dodavatel', $rows[0]['roles']);
         self::assertSame('Jana Example', $rows[0]['contact_name']);
 
         $values = $this->normalise($rows[0]);

@@ -76,6 +76,7 @@ final readonly class OpenSpoutSourceReader implements SourceReader
     {
         $count = 0;
         foreach ($records as $number => $cells) {
+            $cells = array_map($this->unquote(...), $cells);
             if ($number <= $headerRow) {
                 continue;
             }
@@ -216,6 +217,14 @@ final readonly class OpenSpoutSourceReader implements SourceReader
                 yield $number => $cells;
             }
         }
+    }
+
+    /**
+     * Takes the apostrophe off a cell that an export protected against formulas.
+     */
+    private function unquote(string $cell): string
+    {
+        return \strlen($cell) > 1 && "'" === $cell[0] && str_contains("=+-@\t\r", $cell[1]) ? substr($cell, 1) : $cell;
     }
 
     /**

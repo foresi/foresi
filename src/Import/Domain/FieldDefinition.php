@@ -12,8 +12,9 @@ namespace App\Import\Domain;
 final readonly class FieldDefinition
 {
     /**
-     * @param list<string> $aliases lower-case, diacritics-free header names that suggest this field
-     * @param list<string> $choices the allowed values of a Choice field
+     * @param list<string>          $aliases     lower-case, diacritics-free header names that suggest this field
+     * @param list<string>          $choices     the allowed values of a Choice field
+     * @param array<string, string> $choiceNames other names of the choices (translated ones), by folded name (see HeaderName::normalise), each naming one of the choices
      */
     public function __construct(
         public string $key,
@@ -23,6 +24,7 @@ final readonly class FieldDefinition
         public array $aliases = [],
         public array $choices = [],
         public string $group = '',
+        public array $choiceNames = [],
     ) {
     }
 }

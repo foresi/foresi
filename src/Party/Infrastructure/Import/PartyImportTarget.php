@@ -115,7 +115,7 @@ final readonly class PartyImportTarget implements ImportTarget
         return [
             $field('id', FieldType::Integer, ['id']),
             $field('display_name', FieldType::Text, ['nazev', 'nazev firmy', 'firma', 'obchodni jmeno', 'name', 'company', 'company name'], required: true),
-            $field('kind', FieldType::Choice, ['druh', 'typ', 'kind', 'type'], choices: array_map(static fn (PartyKind $kind): string => $kind->value, PartyKind::cases())),
+            $field('kind', FieldType::Choice, ['druh', 'typ', 'kind', 'type'], choices: array_map(static fn (PartyKind $kind): string => $kind->value, PartyKind::cases()), choiceNames: $this->kindNames()),
             $field('registration_number', FieldType::Identifier, ['ic', 'ico', 'registration number', 'company id']),
             $field('registration_country', FieldType::Country, ['zeme registrace', 'registration country']),
             $field('vat_id', FieldType::Identifier, ['dic', 'vat', 'vat id', 'vat number']),
@@ -147,12 +147,13 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * @param list<string> $aliases
-     * @param list<string> $choices
+     * @param list<string>          $aliases
+     * @param list<string>          $choices
+     * @param array<string, string> $choiceNames
      */
-    private function field(string $key, FieldType $type, array $aliases = [], string $group = '', bool $required = false, array $choices = []): FieldDefinition
+    private function field(string $key, FieldType $type, array $aliases = [], string $group = '', bool $required = false, array $choices = [], array $choiceNames = []): FieldDefinition
     {
-        return new FieldDefinition($key, 'import.field.party.'.$key, $type, $required, $aliases, $choices, $group);
+        return new FieldDefinition($key, 'import.field.party.'.$key, $type, $required, $aliases, $choices, $group, $choiceNames);
     }
 
     /**
@@ -325,6 +326,23 @@ final readonly class PartyImportTarget implements ImportTarget
         }
 
         return $this->reader->read($values);
+    }
+
+    /**
+     * The kinds by their Czech and English names, compared as headers are.
+     *
+     * @return array<string, string> folded name => kind key
+     */
+    private function kindNames(): array
+    {
+        $names = [];
+        foreach (PartyKind::cases() as $kind) {
+            foreach (self::ROLE_NAME_LOCALES as $locale) {
+                $names[HeaderName::normalise($this->translator->trans('party.kind.'.$kind->value, [], 'messages', $locale))] = $kind->value;
+            }
+        }
+
+        return $names;
     }
 
     /**
@@ -628,7 +646,7 @@ final readonly class PartyImportTarget implements ImportTarget
         return [
             'id' => (string) $this->id($party),
             'display_name' => $party->displayName(),
-            'kind' => $party->kind()->value,
+            'kind' => $this->translator->trans('party.kind.'.$party->kind()->value),
             'registration_number' => $registration->value ?? '',
             'registration_country' => $registration->countryCode ?? '',
             'vat_id' => $party->vatId()?->toString() ?? '',
@@ -639,7 +657,7 @@ final readonly class PartyImportTarget implements ImportTarget
             'phone' => $party->phone(),
             'mobile' => $party->mobile(),
             'website' => $party->website(),
-            'roles' => implode(', ', array_map(static fn (PartyRole $role): string => $role->value, $party->roles())),
+            'roles' => implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $party->roles())),
             'billing_street' => $billing->street ?? '',
             'billing_city' => $billing->city ?? '',
             'billing_postal_code' => $billing->postalCode ?? '',

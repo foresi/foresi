@@ -20,7 +20,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * CSV as UTF-8 with a byte order mark and semicolons, or XLSX. Every cell is
- * text and formulas are neutralised the way the error file does it.
+ * text. In CSV a cell that a spreadsheet would run as a formula gets a leading
+ * apostrophe, as in the error file; the import strips it again. XLSX cells are
+ * typed strings, so they are written as they are.
  */
 final readonly class OpenSpoutExportWriter implements ExportWriter
 {
@@ -33,9 +35,9 @@ final readonly class OpenSpoutExportWriter implements ExportWriter
         $writer = $this->writer($format);
         $writer->openToFile($path);
         try {
-            $writer->addRow($this->row(array_map(fn (\App\Import\Domain\FieldDefinition $field): string => $this->translator->trans($field->labelKey), $fields)));
+            $writer->addRow($this->row($format, array_map(fn (\App\Import\Domain\FieldDefinition $field): string => $this->translator->trans($field->labelKey), $fields)));
             foreach ($rows as $values) {
-                $writer->addRow($this->row(array_map(static fn (\App\Import\Domain\FieldDefinition $field): string => $values[$field->key] ?? '', $fields)));
+                $writer->addRow($this->row($format, array_map(static fn (\App\Import\Domain\FieldDefinition $field): string => $values[$field->key] ?? '', $fields)));
             }
         } finally {
             $writer->close();
@@ -57,8 +59,8 @@ final readonly class OpenSpoutExportWriter implements ExportWriter
     /**
      * @param list<string> $cells
      */
-    private function row(array $cells): Row
+    private function row(SourceFormat $format, array $cells): Row
     {
-        return new Row(array_map(static fn (string $cell): StringCell => new StringCell(OpenSpoutErrorFileWriter::neutralise($cell), null), $cells));
+        return new Row(array_map(static fn (string $cell): StringCell => new StringCell(SourceFormat::Csv === $format ? OpenSpoutErrorFileWriter::neutralise($cell) : $cell, null), $cells));
     }
 }

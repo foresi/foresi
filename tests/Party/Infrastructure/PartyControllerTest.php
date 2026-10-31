@@ -422,7 +422,7 @@ final class PartyControllerTest extends WebTestCase
         self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.csv$/', (string) $response->headers->get('Content-Disposition'));
         $csv = $this->client->getInternalResponse()->getContent();
         self::assertStringStartsWith("\xEF\xBB\xBF\"Číslo kontaktu ve Foresi\";Název;Druh;", $csv);
-        self::assertStringContainsString(';"Example Company s.r.o.";company;12345687;', $csv);
+        self::assertStringContainsString(';"Example Company s.r.o.";Firma;12345687;', $csv);
         self::assertStringContainsString(';CZ12345687;info@example.com;', $csv);
         self::assertStringNotContainsString('Foreign Trading', $csv);
         self::assertStringNotContainsString('Not Selected', $csv);

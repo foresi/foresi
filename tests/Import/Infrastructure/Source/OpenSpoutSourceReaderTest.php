@@ -123,6 +123,16 @@ final class OpenSpoutSourceReaderTest extends TestCase
         self::assertSame(['a', 'b,c'], $inspection->headers);
     }
 
+    public function testOneApostropheBeforeAFormulaCharacterIsTakenOff(): void
+    {
+        $path = $this->directory.'/quoted.csv';
+        file_put_contents($path, "Name,Phone\n'=Example,'+420 123 456 789\n'-1,'@x\n''=x,'abc\n'\t1,'\n'a,'\n");
+
+        $rows = [...new OpenSpoutSourceReader()->rows($path, new SourceSettings(SourceFormat::Csv, Encoding::Utf8, ',', headerRow: 1))];
+
+        self::assertSame([['=Example', '+420 123 456 789'], ['-1', '@x'], ["''=x", "'abc"], ["\t1", "'"], ["'a", "'"]], $rows);
+    }
+
     public function testTabAndPipeDelimitedFiles(): void
     {
         $reader = new OpenSpoutSourceReader();

@@ -14,6 +14,7 @@ use App\Import\Application\Source\SourceSettings;
 use App\Import\Domain\ColumnMatcher;
 use App\Import\Domain\ColumnProposal;
 use App\Import\Domain\MatchReason;
+use App\Import\Domain\NormalisationOptions;
 use App\Import\Domain\ValueNormaliser;
 use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use App\Party\Application\CreateParty;
@@ -90,6 +91,44 @@ final class PartyExportTest extends KernelTestCase
         $rows = [...$reader->rows($this->path, new SourceSettings($format, headerRow: 1))];
         self::assertCount(1, $rows);
         self::assertContains('Example Company s.r.o.', $rows[0]);
+    }
+
+    #[DataProvider('formats')]
+    public function testAPhoneWithAPlusAndANameWithAnEqualsSignComeBackAsTheyWere(SourceFormat $format): void
+    {
+        $party = self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, '=Example Trade', null, null, 'info@example.com', '+420 123 456 789', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+
+        self::getContainer()->get(ExportRecords::class)->write('party', [$party->id() ?? 0], $format, $this->path);
+
+        $reader = new OpenSpoutSourceReader();
+        $headers = $reader->inspect($this->path)->headers;
+        $row = [...$reader->rows($this->path, new SourceSettings($format, headerRow: 1))][0];
+        $values = array_combine($headers, $row);
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        self::assertSame('+420 123 456 789', $values[$translator->trans('import.field.party.phone')]);
+        self::assertSame('=Example Trade', $values[$translator->trans('import.field.party.display_name')]);
+        // CSV protects the cell with an apostrophe, XLSX writes the text as it is.
+        self::assertSame(SourceFormat::Csv === $format, str_contains((string) file_get_contents($this->path), "'+420"));
+    }
+
+    public function testTheKindNamesOfTheExportReadBackInBothLanguages(): void
+    {
+        $kind = array_values(array_filter(self::getContainer()->get(\App\Import\Application\Target\TargetRegistry::class)->get('party')->fields(), static fn ($field): bool => 'kind' === $field->key))[0];
+        $normaliser = new ValueNormaliser();
+
+        foreach (['Firma' => 'company', 'company' => 'company', 'Company' => 'company', 'OSVČ' => 'sole_trader', 'osvc' => 'sole_trader', 'Sole trader' => 'sole_trader', 'Osoba' => 'person', 'person' => 'person'] as $text => $key) {
+            self::assertSame($key, $normaliser->normalise($kind, $text, new NormalisationOptions(), []), $text);
+        }
+        self::assertInstanceOf(\App\Import\Domain\RowError::class, $normaliser->normalise($kind, 'Spaceship', new NormalisationOptions(), []));
+    }
+
+    /**
+     * @return iterable<string, array{SourceFormat}>
+     */
+    public static function formats(): iterable
+    {
+        yield 'CSV' => [SourceFormat::Csv];
+        yield 'XLSX' => [SourceFormat::Xlsx];
     }
 
     public function testAFormulaInANameIsNeutralised(): void

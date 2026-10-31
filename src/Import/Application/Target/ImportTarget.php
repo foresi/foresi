@@ -87,6 +87,10 @@ interface ImportTarget
     public function activeIds(): iterable;
 
     /**
+     * Called in batches by the export; an implementation may release what it loaded
+     * once the batch is yielded. Values are text in the user's locale, in the
+     * form the import reads back.
+     *
      * @param list<int> $ids
      *
      * @return iterable<array<string, string>> export rows by field key

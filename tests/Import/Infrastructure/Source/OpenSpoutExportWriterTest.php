@@ -51,7 +51,7 @@ final class OpenSpoutExportWriterTest extends TestCase
         $inspection = $reader->inspect($this->path);
         self::assertSame(SourceFormat::Xlsx, $inspection->format);
         self::assertSame(['label.name', 'label.city'], $inspection->headers);
-        self::assertSame([['Example Company', 'Prague'], ["'=SUM(1;2)", ''], ["'@cmd", "'+1"]], [...$reader->rows($this->path, new SourceSettings(SourceFormat::Xlsx, headerRow: 1))]);
+        self::assertSame([['Example Company', 'Prague'], ['=SUM(1;2)', ''], ['@cmd', '+1']], [...$reader->rows($this->path, new SourceSettings(SourceFormat::Xlsx, headerRow: 1))]);
     }
 
     public function testCellsThatASpreadsheetWouldRunAsFormulasAreNeutralised(): void
