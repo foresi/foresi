@@ -189,6 +189,23 @@ final readonly class PartyImportTarget implements ImportTarget
         return $errors;
     }
 
+    /**
+     * The registration number padded and with its country, the VAT id in capitals,
+     * the first general e-mail in lower case, the id as text: what match() looks for.
+     */
+    public function matchKeyValue(string $matchKey, array $values): ?string
+    {
+        $row = $this->read($values);
+
+        return match ($matchKey) {
+            'id' => \is_int($values['id'] ?? null) ? (string) $values['id'] : null,
+            'registration_number' => $row->registrationNumber instanceof RegistrationNumber ? $row->registrationNumber->countryCode.' '.$row->registrationNumber->normalised() : null,
+            'vat_id' => $row->vatId?->toString(),
+            'email' => null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail),
+            default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
+        };
+    }
+
     public function match(string $matchKey, array $values): array
     {
         $row = $this->read($values);

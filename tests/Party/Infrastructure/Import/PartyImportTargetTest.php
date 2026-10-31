@@ -251,6 +251,22 @@ final class PartyImportTargetTest extends KernelTestCase
         $this->target->match('phone', $this->values());
     }
 
+    public function testTheMatchKeyValueIsTheFormTheMatchLooksFor(): void
+    {
+        self::assertSame('7', $this->target->matchKeyValue('id', $this->values(['id' => 7])));
+        self::assertNull($this->target->matchKeyValue('id', $this->values(['id' => '7'])));
+        self::assertSame('CZ 00000019', $this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '0000019'])));
+        self::assertSame('CZ 00000019', $this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '00000019'])));
+        self::assertNull($this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '1234567'])));
+        self::assertSame('CZ12345687', $this->target->matchKeyValue('vat_id', $this->values(['vat_id' => 'cz 12345687'])));
+        self::assertNull($this->target->matchKeyValue('vat_id', $this->values()));
+        self::assertSame('one@example.com', $this->target->matchKeyValue('email', $this->values(['email' => ['ONE@example.com', 'cc@example.com']])));
+        self::assertNull($this->target->matchKeyValue('email', $this->values()));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->target->matchKeyValue('phone', $this->values());
+    }
+
     public function testMatchingByEmailLeavesOutContactPersonsWithTheSameAddress(): void
     {
         $values = $this->values(['email' => ['office@example.com'], 'contact_name' => 'Jana Example', 'contact_email' => 'office@example.com']);

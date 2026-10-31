@@ -128,6 +128,11 @@ final class RecordingTarget implements ImportTarget
         return [];
     }
 
+    public function matchKeyValue(string $matchKey, array $values): ?string
+    {
+        return null;
+    }
+
     public function match(string $matchKey, array $values): array
     {
         return [];

@@ -212,6 +212,23 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(['First', 'No key', 'Second', 'Seven'], $this->target->activeNames());
     }
 
+    public function testTwoCellsTheTargetReadsAsOneKeyAreADuplicateAtTheCheckAndTheRun(): void
+    {
+        $existing = $this->target->add(['code' => '42', 'name' => 'Old', 'email' => null]);
+        // "0042" and "42" differ as text, but the target matches both to one record.
+        $id = $this->checked("Code;Name;Email\n0042;First;\n42;Second;\n", ImportMode::Update);
+
+        $rows = $this->imports->rowsOfChunk($this->fresh($id), 0);
+        self::assertSame([RowOutcome::Update, RowOutcome::Error], array_map(static fn (ImportRow $row): ?RowOutcome => $row->outcome(), $rows));
+        self::assertSame('import.error.duplicate_in_file', $rows[1]->errors()[0]->messageKey);
+
+        $this->runImport($id);
+
+        self::assertSame([0, 1, 0, 0, 0, 1, 2], $this->counters($this->fresh($id)));
+        self::assertSame(1, $this->target->count('update'));
+        self::assertSame('First', $this->target->records[$existing]['values']['name']);
+    }
+
     public function testAnArchivedMatchIsRestoredByUpdateAndSkippedByAddMissing(): void
     {
         $archived = $this->target->add(['code' => 'C1', 'name' => 'Archived', 'email' => null], archived: true);

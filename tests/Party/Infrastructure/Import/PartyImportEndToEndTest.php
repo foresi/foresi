@@ -40,6 +40,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Filesystem\Filesystem;
@@ -223,6 +224,56 @@ final class PartyImportEndToEndTest extends KernelTestCase
         self::assertSame(1, $this->rowCount('SELECT COUNT(*) FROM contact_link'));
     }
 
+    /**
+     * @return iterable<string, array{string, string, string}> header, key of the first row, key of the second row
+     */
+    public static function keysNamingOneParty(): iterable
+    {
+        yield 'registration number with and without its leading zero' => ['IČ', '0000019', '00000019'];
+        yield 'one e-mail and a list that starts with it' => ['E-mailová adresa', 'one@example.com', '"ONE@example.com, cc@example.com"'];
+    }
+
+    #[DataProvider('keysNamingOneParty')]
+    public function testTwoRowsNamingOnePartyUpdateItOnceAndTheUndoPutsItBack(string $header, string $first, string $second): void
+    {
+        $this->checkedAndRun("Firma,IČ,E-mailová adresa,Ulice,Město,PSČ\nExample One,00000019,one@example.com,Example Street 1,Praha,110 00\n");
+
+        self::mockTime('2026-10-01 11:00:00');
+        $id = $this->checkedAndRun("Firma,{$header},Ulice,Město,PSČ\nRenamed A,{$first},Example Street 2,Brno,602 00\nRenamed B,{$second},Example Street 3,Ostrava,702 00\n", 'second.csv');
+
+        $import = $this->fresh($id);
+        self::assertSame([0, 1, 1], [$import->created(), $import->updated(), $import->failed()]);
+        self::assertSame([3 => [$this->fresh($id)->options()->matchKey ?? '' => 'import.error.duplicate_in_file']], array_filter($this->errorsOf($import)));
+        self::assertSame(['Renamed A'], $this->names());
+
+        self::mockTime('2026-10-01 12:00:00');
+        $this->service(UndoImport::class)->undo($id);
+        $this->worker->run();
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::Undone, $import->state());
+        self::assertSame([1, 0], [$import->reverted(), $import->changedAfterImport()]);
+        $one = $this->partyNamed('Example One');
+        self::assertSame('Praha', $this->details()->billingAddress($one)?->address()->city);
+    }
+
+    #[DataProvider('keysNamingOneParty')]
+    public function testTwoRowsNamingOneNewPartyCreateItOnceInAddMissing(string $header, string $first, string $second): void
+    {
+        $id = $this->checkedAndRun("Firma,{$header},Ulice,Město,PSČ\nNew A,{$first},Example Street 2,Brno,602 00\nNew B,{$second},Example Street 3,Ostrava,702 00\n", 'new.csv', ImportMode::AddMissing);
+
+        $import = $this->fresh($id);
+        self::assertSame([1, 1], [$import->created(), $import->failed()]);
+        self::assertSame(['New A'], $this->names());
+
+        self::mockTime('2026-10-01 12:00:00');
+        $this->service(UndoImport::class)->undo($id);
+        $this->worker->run();
+
+        self::assertSame([ImportState::Undone, 1], [$this->fresh($id)->state(), $this->fresh($id)->reverted()]);
+        self::assertSame([], $this->names());
+    }
+
     public function testReimportingTheSameFileChangesNothingAndLinksTheContactPersonOnce(): void
     {
         $this->checkedAndRun((string) file_get_contents(self::FIXTURE));
@@ -242,10 +293,10 @@ final class PartyImportEndToEndTest extends KernelTestCase
         self::assertGreaterThan($entries, $this->rowCount('SELECT COUNT(*) FROM audit_entry'));
     }
 
-    private function checkedAndRun(string $csv, string $name = 'contacts.csv'): int
+    private function checkedAndRun(string $csv, string $name = 'contacts.csv', ImportMode $mode = ImportMode::Update): int
     {
         $id = $this->upload($csv, $name);
-        $this->configure($id, ImportMode::Update);
+        $this->configure($id, $mode);
         $this->service(CheckImport::class)->check($id);
         $this->worker->run();
         $this->service(RunImport::class)->run($id);

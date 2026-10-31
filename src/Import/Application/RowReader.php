@@ -100,7 +100,8 @@ final readonly class RowReader
                 $errors[] = $error;
             }
         }
-        $matchValue = null === $this->matchKey ? null : ImportRow::fingerprint($values[$this->matchKey] ?? null);
+        // The target's own form of the key, so two cells that name one record (a lost leading zero, a list of e-mails) are one key.
+        $matchValue = null === $this->matchKey ? null : ImportRow::fingerprint($this->target->matchKeyValue($this->matchKey, $values));
         $keyUnreadable = null !== $this->matchKey && \in_array($this->matchKey, $failed, true);
 
         return new RowEvaluation($values, $errors, $matchValue, null === $this->keyColumn ? '' : ($raw[$this->keyColumn] ?? ''), $keyUnreadable);

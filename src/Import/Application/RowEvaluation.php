@@ -16,7 +16,7 @@ final readonly class RowEvaluation
     /**
      * @param array<string, mixed> $values        normalised by field key; null for an empty cell
      * @param list<RowError>       $errors
-     * @param string|null          $matchValue    the fingerprint of the match key value; null when it is empty or unreadable
+     * @param string|null          $matchValue    the fingerprint of the match key value in the target's form; null when it is empty or unreadable
      * @param string               $keyText       the cell text of the match key, for messages
      * @param bool                 $keyUnreadable true when the match key cell holds text that cannot be read, so the row identifies no record
      */

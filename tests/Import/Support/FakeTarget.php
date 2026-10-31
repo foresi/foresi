@@ -22,7 +22,7 @@ use App\Tenancy\Application\TenantContext;
 
 /**
  * An import target that keeps its records in memory: a code (the match key),
- * a required name and an e-mail. It logs every write with the audit correlation
+ * a required name and an e-mail. A code matches without its leading zeros. It logs every write with the audit correlation
  * active at the time, so tests see what the pipeline wrote and under which id.
  * A name containing FAIL makes a write or an archive throw; INVALID makes validation fail.
  */
@@ -80,11 +80,23 @@ final class FakeTarget implements ImportTarget
         return \is_string($name) && str_contains($name, 'INVALID') ? [new RowError('name', 'import.error.unknown_value', ['value' => $name])] : [];
     }
 
+    /** A code is matched without its leading zeros and an e-mail in lower case, as a target matches on its own canonical form. */
+    public function matchKeyValue(string $matchKey, array $values): ?string
+    {
+        $value = $values[$matchKey] ?? null;
+        if (!\is_string($value) || '' === $value) {
+            return null;
+        }
+
+        return 'code' === $matchKey ? ltrim($value, '0') : mb_strtolower($value);
+    }
+
     public function match(string $matchKey, array $values): array
     {
+        $key = $this->matchKeyValue($matchKey, $values);
         $matches = [];
         foreach ($this->records as $id => $record) {
-            if ($record['tenant'] === $this->tenant() && null !== ($values[$matchKey] ?? null) && ($record['values'][$matchKey] ?? null) === $values[$matchKey]) {
+            if ($record['tenant'] === $this->tenant() && null !== $key && $this->matchKeyValue($matchKey, $record['values']) === $key) {
                 $matches[] = new RecordMatch($id, $record['archived']);
             }
         }

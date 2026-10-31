@@ -42,6 +42,16 @@ interface ImportTarget
     public function validate(array $values): array;
 
     /**
+     * The value of the match key in the form the target matches on, for example a
+     * padded registration number or the first of several e-mail addresses. Two rows
+     * of one file with the same value name the same record, so the later one is a
+     * duplicate. Null when the row has no usable value for the key.
+     *
+     * @param array<string, mixed> $values normalised by field key
+     */
+    public function matchKeyValue(string $matchKey, array $values): ?string;
+
+    /**
      * @param array<string, mixed> $values
      *
      * @return list<RecordMatch>
