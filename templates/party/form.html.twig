@@ -77,6 +77,18 @@
             </div>
         </twig:Ui:Card>
 
+        {% for section in firmSections %}
+            <twig:Ui:Card :title="'party.card.firm'|trans({name: section.name})" icon="landmark" data-firm-settings="{{ section.id }}">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <twig:Ui:TextInput :name="'firms[' ~ section.id ~ '][dueDays]'" :id="'firm-' ~ section.id ~ '-dueDays'" inputmode="numeric" :label="'party.firm_settings.due_days'|trans" :help="'party.firm_settings.due_days_help'|trans" :value="section.values.dueDays" :error="section.errors.dueDays|default(null)" maxlength="3" required />
+                    <twig:Ui:Select :name="'firms[' ~ section.id ~ '][currency]'" :id="'firm-' ~ section.id ~ '-currency'" :label="'party.firm_settings.currency'|trans" :options="currencies" :value="section.values.currency" :error="section.errors.currency|default(null)" />
+                    <twig:Ui:Select :name="'firms[' ~ section.id ~ '][language]'" :id="'firm-' ~ section.id ~ '-language'" :label="'party.firm_settings.language'|trans" :options="languages" :value="section.values.language" :error="section.errors.language|default(null)" />
+                    <twig:Ui:Select :name="'firms[' ~ section.id ~ '][paymentMethod]'" :id="'firm-' ~ section.id ~ '-paymentMethod'" :label="'party.firm_settings.payment_method'|trans" :options="paymentMethods" :value="section.values.paymentMethod" :error="section.errors.paymentMethod|default(null)" />
+                    <div class="sm:col-span-2"><twig:Ui:Checkbox :name="'firms[' ~ section.id ~ '][reverseCharge]'" :id="'firm-' ~ section.id ~ '-reverseCharge'" :label="'party.firm_settings.reverse_charge'|trans" :checked="section.values.reverseCharge == '1'" /></div>
+                </div>
+            </twig:Ui:Card>
+        {% endfor %}
+
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>

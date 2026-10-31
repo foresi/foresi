@@ -18,6 +18,7 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
+use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -33,6 +34,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         PartyEmail::class => 'email',
         PartyBankAccount::class => 'bank_account',
         ContactLink::class => 'contact',
+        PartyFirmSettings::class => 'firm_settings',
     ];
 
     public function __construct(private EntityManagerInterface $em)

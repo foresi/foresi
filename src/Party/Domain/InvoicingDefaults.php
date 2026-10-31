@@ -41,4 +41,13 @@ final readonly class InvoicingDefaults
     {
         return new self(self::DEFAULT_DUE_DAYS, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false);
     }
+
+    public function equals(self $other): bool
+    {
+        return $this->dueDays === $other->dueDays
+            && $this->currency === $other->currency
+            && $this->language === $other->language
+            && $this->paymentMethod === $other->paymentMethod
+            && $this->reverseCharge === $other->reverseCharge;
+    }
 }

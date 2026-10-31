@@ -226,6 +226,7 @@ party:
     roles: Roles and note
     checks: Register checks
     defaults: Document defaults
+    firm: 'Settings for {name}'
     note: Private note
     note_empty: No note yet.
   field:
@@ -295,6 +296,17 @@ party:
     currency: Currency
     language: Document language
     reverse_charge: Reverse charge
+  firm_settings:
+    due_days: Due period in days
+    due_days_help: Applies to new documents from this firm.
+    currency: Currency
+    language: Document language
+    payment_method: Payment method
+    reverse_charge: Reverse charge
+  payment_method:
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
   history:
     empty: There is no change yet.
     entry: '{action}: {subject} ({fields})'
@@ -308,6 +320,7 @@ party:
       email: e-mail
       bank_account: bank account
       contact: contact person
+      firm_settings: firm settings
   flash:
     created: The contact is saved.
     updated: The changes are saved.
@@ -329,6 +342,8 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
+    due_days: Enter a whole number of days from 0 to 365.
+    choice: Choose one of the options.
 firm:
   title: Firms
   new: New firm

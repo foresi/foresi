@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Several firms in one organisation. The owner lists, adds, edits and archives them under Settings, with the register lookup of the contact form. A registration number is unique among the active firms of an organisation.
+- Per-firm contact settings. With two or more active firms, the contact form has a section per firm for the due period, currency, document language, payment method and reverse charge. A firm without settings for a contact falls back to the contact's own defaults.
 
 ### Changed
 

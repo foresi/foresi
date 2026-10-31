@@ -9,23 +9,33 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
 use App\Party\Application\DuplicateFinder;
 use App\Party\Application\DuplicateMatch;
+use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyInput;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RegistryRecord;
+use App\Party\Application\TransactionalWork;
 use App\Party\Application\UpdateParty;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
+use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Infrastructure\Form\CountryOptions;
+use App\Party\Infrastructure\Form\FirmSettingsReader;
+use App\Party\Infrastructure\Form\FirmSettingsSubmission;
 use App\Party\Infrastructure\Form\PartySubmission;
 use App\Party\Infrastructure\Form\PartySubmissionReader;
 use App\Party\Infrastructure\Http\SubmissionTokens;
 use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use App\Party\Infrastructure\Registry\RegistryLookup;
+use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -65,6 +75,10 @@ final class PartyFormController extends AbstractController
         #[Autowire(service: 'limiter.party_lookup')]
         private readonly RateLimiterFactory $lookupLimiter,
         private readonly TranslatorInterface $translator,
+        private readonly LegalEntities $firms,
+        private readonly ContactSettingsForFirm $firmSettings,
+        private readonly FirmSettingsReader $firmReader,
+        private readonly TransactionalWork $transaction,
     ) {
     }
 
@@ -131,29 +145,40 @@ final class PartyFormController extends AbstractController
 
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
+        $firms = $this->sectionFirms();
+        $firmSubmission = $this->firmReader->read($request, array_values($firms));
         $input = $submission->input;
-        if (!$submission->valid() || !$input instanceof PartyInput) {
-            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+        if (!$submission->valid() || !$input instanceof PartyInput || !$firmSubmission->valid()) {
+            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
         }
 
         $matches = $this->duplicates->find($input->registrationNumber, $input->vatId, true, $party?->id());
         if ([] !== $matches && !$request->request->getBoolean('confirm_duplicate')) {
-            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
         }
 
         try {
-            if ($party instanceof Party) {
-                $changedVat = $party->vatId()?->toString() !== $input->vatId?->toString();
-                $this->updateParty->update($party, $input);
-                $id = $party->id();
-            } else {
-                $created = $this->createParty->createFrom($input);
-                $id = $created->id();
-                $changedVat = true;
+            // One unit of work: the contact and its firm settings are stored together or not at all.
+            [$id, $changedVat] = $this->transaction->run(function () use ($party, $input, $firmSubmission, $firms): array {
+                if ($party instanceof Party) {
+                    $changedVat = $party->vatId()?->toString() !== $input->vatId?->toString();
+                    $this->updateParty->update($party, $input);
+                    $saved = $party;
+                } else {
+                    $saved = $this->createParty->createFrom($input);
+                    $changedVat = true;
+                }
+                foreach ($firmSubmission->settings as $firmId => $defaults) {
+                    $this->firmSettings->change($saved, $firms[$firmId], $defaults);
+                }
+
+                return [$saved->id(), $changedVat];
+            });
+            if (!$party instanceof Party) {
                 $this->tokens->complete($token, $id);
             }
         } catch (\DomainException) {
-            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);
         }
 
         if ($changedVat && $input->vatId instanceof \App\Party\Domain\VatId) {
@@ -169,7 +194,7 @@ final class PartyFormController extends AbstractController
      * @param array<string, string>              $errors  field => translation key
      * @param list<DuplicateMatch>               $matches
      */
-    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status): Response
+    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status, ?FirmSettingsSubmission $firmSubmission = null): Response
     {
         $locale = $request->getLocale();
         $messages = array_map(fn (string $key): string => $this->translator->trans($key), $errors);
@@ -186,12 +211,61 @@ final class PartyFormController extends AbstractController
                 'vat' => $match->sameVatId,
             ], $matches),
             'token' => $token,
+            'firmSections' => $this->firmSections($party, $firmSubmission),
+            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
+            'languages' => array_combine(array_map(static fn (DocumentLanguage $language): string => $language->value, DocumentLanguage::cases()), array_map(fn (DocumentLanguage $language): string => $this->translator->trans('locale.'.$language->value), DocumentLanguage::cases())),
+            'paymentMethods' => array_combine(array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases()), array_map(fn (PaymentMethod $method): string => $this->translator->trans('party.payment_method.'.$method->value), PaymentMethod::cases())),
             'kinds' => $this->kindOptions(),
             'roleOptions' => array_combine(array_map(static fn (PartyRole $role): string => $role->value, PartyRole::cases()), array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), PartyRole::cases())),
             'countries' => CountryOptions::options($locale),
             'action' => $party instanceof Party ? $this->generateUrl('app_contact_edit', ['id' => $party->id()]) : $this->generateUrl('app_contact_new'),
             'cancel' => $party instanceof Party ? $this->generateUrl('app_contact_show', ['id' => $party->id()]) : $this->generateUrl('app_contacts'),
         ], new Response(status: $status));
+    }
+
+    /**
+     * The active firms that get a section in the form, by id: none unless there are at least two.
+     *
+     * @return array<string, LegalEntity>
+     */
+    private function sectionFirms(): array
+    {
+        $active = array_filter($this->firms->all(), static fn (LegalEntity $firm): bool => !$firm->isArchived());
+        if (\count($active) < 2) {
+            return [];
+        }
+
+        $byId = [];
+        foreach ($active as $firm) {
+            $byId[$firm->id()] = $firm;
+        }
+
+        return $byId;
+    }
+
+    /**
+     * @return list<array{id: string, name: string, values: array<string, string>, errors: array<string, string>}>
+     */
+    private function firmSections(?Party $party, ?FirmSettingsSubmission $submission): array
+    {
+        $sections = [];
+        foreach ($this->sectionFirms() as $id => $firm) {
+            $stored = $party instanceof Party ? $this->firmSettings->defaultsFor($party, $firm) : InvoicingDefaults::standard();
+            $sections[] = [
+                'id' => $id,
+                'name' => $firm->name(),
+                'values' => $submission?->values[$id] ?? [
+                    'dueDays' => (string) $stored->dueDays,
+                    'currency' => $stored->currency->value,
+                    'language' => $stored->language->value,
+                    'paymentMethod' => $stored->paymentMethod->value,
+                    'reverseCharge' => $stored->reverseCharge ? '1' : '',
+                ],
+                'errors' => array_map(fn (string $key): string => $this->translator->trans($key), $submission?->errors[$id] ?? []),
+            ];
+        }
+
+        return $sections;
     }
 
     /**
