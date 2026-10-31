@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-30
+
+### Added
+
+- Choice chips component; contact roles are chosen with it.
+- Description list component for label and value rows, and an actions slot in the card header; the contact overview uses both.
+
+### Fixed
+
+- The command palette and the user menu appear above the page panel, and the user menu can be wider than the sidebar.
+- Organisation and user names in the sidebar wrap to two lines instead of being cut; a user without a name sees the e-mail once.
+- The command palette input no longer shows the global focus outline.
+- Browser autofill no longer paints form fields blue.
+
 ## [0.2.0] - 2026-10-30
 
 ### Added

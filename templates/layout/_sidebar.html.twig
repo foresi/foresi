@@ -13,7 +13,7 @@
 {% set orgContent %}
     <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
     <span class="min-w-0">
-        <b class="block truncate text-sm text-ink" title="{{ orgName }}">{{ orgName }}</b>
+        <b class="line-clamp-2 block text-sm leading-tight text-ink [overflow-wrap:anywhere]" title="{{ orgName }}">{{ orgName }}</b>
         {% if shell.organisation %}<small class="block truncate text-xs text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
     </span>
 {% endset %}

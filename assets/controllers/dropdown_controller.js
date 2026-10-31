@@ -11,6 +11,10 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = ['button', 'menu'];
 
+    // When true, the open menu is placed with fixed positioning next to the
+    // button, so a scrolling container (the sidebar) cannot clip it.
+    static values = { float: Boolean };
+
     connect() {
         this.onDocumentClick = (event) => {
             if (!this.element.contains(event.target)) {
@@ -41,11 +45,26 @@ export default class extends Controller {
 
     open(focus = 'first') {
         this.menuTarget.hidden = false;
+        if (this.floatValue) {
+            this.place();
+        }
         this.buttonTarget.setAttribute('aria-expanded', 'true');
         const items = this.items();
         if (items.length > 0) {
             (focus === 'last' ? items[items.length - 1] : items[0]).focus();
         }
+    }
+
+    place() {
+        const rect = this.buttonTarget.getBoundingClientRect();
+        const style = this.menuTarget.style;
+        style.position = 'fixed';
+        style.left = `${rect.left}px`;
+        style.right = 'auto';
+        style.top = 'auto';
+        style.bottom = `${window.innerHeight - rect.top + 8}px`;
+        style.minWidth = `${rect.width}px`;
+        style.marginBottom = '0';
     }
 
     close(restoreFocus = true) {
