@@ -16,6 +16,8 @@ use Doctrine\Persistence\ManagerRegistry;
  * Writes one row inside the transaction of its chunk, in a savepoint (DBAL 4
  * nests every inner transaction as a savepoint, on SQLite and PostgreSQL alike).
  * When the row fails, only its writes are rolled back and the chunk goes on.
+ * Either way the row leaves nothing loaded behind: every flush of the next row
+ * would otherwise walk all the entities the chunk has written so far.
  */
 final readonly class RowSavepoint
 {
@@ -27,9 +29,10 @@ final readonly class RowSavepoint
     }
 
     /**
-     * Runs the work and flushes it. On failure the savepoint is rolled back, a
-     * manager closed by a failed flush is replaced and bound to the active tenant
-     * again, and everything loaded is detached: the caller loads what it needs anew.
+     * Runs the work and flushes it, then detaches everything loaded. On failure
+     * the savepoint is rolled back, a manager closed by a failed flush is
+     * replaced and bound to the active tenant again, and everything loaded is
+     * detached as well: the caller loads what it needs anew, by id.
      *
      * @param callable(): void $work
      *
@@ -44,6 +47,7 @@ final readonly class RowSavepoint
             $work();
             $this->em->flush();
             $connection->commit();
+            $this->em->clear();
 
             return null;
         } catch (\Throwable $failure) {

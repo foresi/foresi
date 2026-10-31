@@ -188,7 +188,7 @@ final readonly class PartyImportTarget implements ImportTarget
             'id' => ['p.id = :value', \is_int($values['id'] ?? null) ? $values['id'] : null],
             'registration_number' => ['p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
             'vat_id' => ['p.vatId = :value', $row->vatId?->toString()],
-            'email' => ['EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) = :value)', isset($row->emails[0]) ? mb_strtolower($row->emails[0]) : null],
+            'email' => ['p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :value)', isset($row->emails[0]) ? PartyEmail::key($row->emails[0]) : null],
             default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
         };
         if (null === $parameter) {

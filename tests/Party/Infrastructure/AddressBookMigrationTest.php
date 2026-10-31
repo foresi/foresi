@@ -125,6 +125,21 @@ final class AddressBookMigrationTest extends TestCase
         self::assertArrayNotHasKey('address_street', $row);
     }
 
+    public function testStoredEmailsGetTheirComparisonKeyAndPartiesNoMobileOrWebsite(): void
+    {
+        $this->legacyParty('With email', true, false, 'Street 1', ' Invoices@Example.COM ');
+
+        $this->migrateTo(null);
+
+        self::assertSame([['Invoices@Example.COM', 'invoices@example.com']], $this->connection->fetchAllNumeric('SELECT address, address_key FROM party_email'));
+        self::assertSame([['', '']], $this->connection->fetchAllNumeric('SELECT mobile, website FROM party'));
+
+        $this->migrateTo('DoctrineMigrations\\Version20261031000001');
+        $row = $this->connection->fetchAssociative('SELECT * FROM party_email');
+        self::assertIsArray($row);
+        self::assertArrayNotHasKey('address_key', $row);
+    }
+
     public function testGoingDownRestoresTheBooleansAndTheAddress(): void
     {
         $this->legacyParty('Both', true, true, 'Both Street 3');

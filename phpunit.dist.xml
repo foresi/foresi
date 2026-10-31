@@ -17,6 +17,13 @@
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 
+    <!-- Measurements, not checks: run them by asking for the group throughput. -->
+    <groups>
+        <exclude>
+            <group>throughput</group>
+        </exclude>
+    </groups>
+
     <testsuites>
         <testsuite name="Project Test Suite">
             <directory>tests</directory>

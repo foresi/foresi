@@ -214,8 +214,10 @@ final readonly class DoctrineImports implements Imports
 
     public function addAmbiguousMatches(Import $import, array $recordIds): void
     {
+        // The import the caller holds may be detached by now (RowSavepoint detaches after every row).
+        $managed = $this->em->getReference(Import::class, $import->id() ?? throw new \LogicException('The import is not stored.')) ?? throw new \LogicException('The import is gone.');
         foreach (array_unique($recordIds) as $recordId) {
-            $this->em->persist(new ImportAmbiguousMatch($import, $recordId));
+            $this->em->persist(new ImportAmbiguousMatch($managed, $recordId));
         }
     }
 

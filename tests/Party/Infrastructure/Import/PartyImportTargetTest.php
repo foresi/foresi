@@ -235,6 +235,10 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertSame([], $this->target->match('registration_number', $this->values(['registration_country' => 'SK'])));
         self::assertSame([], $this->target->match('id', $this->values(['id' => null])));
         self::assertSame([], $this->target->match('email', $this->values()));
+        $this->details()->generalEmail($this->find($id))?->change('Changed@example.com', EmailPurpose::General);
+        $this->em->flush();
+        self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $this->values(['email' => ['changed@example.COM']])));
+        self::assertSame([], $this->target->match('email', $this->values(['email' => ['info@example.com']])));
 
         $this->target->archive($id);
         self::assertEquals([new RecordMatch($id, true)], $this->target->match('id', $this->values(['id' => $id])));

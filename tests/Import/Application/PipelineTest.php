@@ -320,6 +320,21 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(['First', 'New', 'Second'], $this->target->activeNames());
     }
 
+    public function testAnAmbiguousRowAfterAWrittenRowIsRememberedToo(): void
+    {
+        // The written row leaves nothing loaded, the import included; the ambiguous row after it must still be stored against it.
+        $first = $this->target->add(['code' => 'C5', 'name' => 'First', 'email' => null]);
+        $second = $this->target->add(['code' => 'C5', 'name' => 'Second', 'email' => null]);
+        $id = $this->checked("Code;Name;Email\nC1;New;\nC5;Five;\n", ImportMode::FullReplace, ReplaceScope::All);
+        $this->runImport($id);
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::FinishedWithErrors, $import->state());
+        self::assertSame([1, 0, 0, 0, 0, 1, 2], $this->counters($import));
+        self::assertEquals([$first, $second], $this->em->getConnection()->fetchFirstColumn('SELECT DISTINCT record_id FROM import_ambiguous_match WHERE import_id = ? ORDER BY record_id', [$id]));
+        self::assertFalse($this->target->records[$first]['archived']);
+    }
+
     public function testRecordsAnAmbiguousRowNamesAreNotArchivedFromTheProfile(): void
     {
         $earlier = $this->upload("Code;Name;Email\nC5;Five;\nD5;Other five;\nE1;Elsewhere;\n");
