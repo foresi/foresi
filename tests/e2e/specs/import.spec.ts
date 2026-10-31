@@ -47,6 +47,9 @@ test.describe('import of contacts', () => {
     await expect(page.locator('nav[aria-label="Kroky importu"] [aria-current="step"]')).toContainText('Přiřazení sloupců');
     await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
     await expect(page.getByLabel('Sleva', { exact: true })).toHaveValue('');
+    // Where the proposals come from is said once; confident columns carry no marker.
+    await expect(page.locator('[data-mapping-basis]')).toContainText('Poznali jsme export z iDokladu a sloupce přiřadili podle něj.');
+    await expect(page.locator('form[data-controller="import-mapping"]').getByText('Ověřte', { exact: true })).toHaveCount(0);
 
     // A required field left out is named above the columns; the check button stays enabled.
     await page.getByLabel('Firma', { exact: true }).selectOption('');
@@ -123,6 +126,25 @@ test.describe('import of contacts', () => {
     await check.click();
     await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
     await expectFocusedClearOfActionBar(page, page.locator('#match_key'));
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
+  });
+
+  test('a guess by a similar name is marked in text and described to its select @a11y', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.getByRole('link', { name: 'Importovat' }).click();
+    await page.locator('#file').setInputFiles({ name: 'guess.csv', mimeType: 'text/csv', buffer: Buffer.from('Název,Emial\nExample Company,testing@example.com\n') });
+    await page.getByRole('button', { name: 'Nahrát soubor' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'guess.csv' })).toBeVisible();
+
+    await expect(page.locator('[data-mapping-basis]')).toContainText('Sloupce jsme přiřadili podle jejich názvů.');
+    await expect(page.locator('#column-1-review')).toHaveText('Ověřte');
+    await expect(page.locator('#column-1-review-note')).toHaveText('Pole jsme odhadli podle podobného názvu sloupce.');
+    await expect(page.locator('#column-1')).toHaveAttribute('aria-describedby', 'column-1-review column-1-review-note');
+    await expect(page.locator('#column-0-review')).toHaveCount(0);
+    await expectNoSeriousViolations(page);
 
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Zrušit import' }).click();

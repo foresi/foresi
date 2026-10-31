@@ -3,8 +3,8 @@
 <div class="grid gap-5">
 {% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
 <div class="w-full divide-y divide-divider">
-    <twig:Ui:MappingRow id="cat-map-1" name="cat-map[0]" label="Firma" :samples="['Example Company s.r.o.', 'Příliš žluťoučký kůň a.s.', 'Example International Wholesale and Distribution Company Ltd']" :options="fields" value="display_name" :badge="{label: 'iDoklad', tone: 'green'}" />
-    <twig:Ui:MappingRow id="cat-map-2" name="cat-map[1]" label="E-mailová adresa" :samples="['testing@example.com']" :options="fields" value="email" :badge="{label: 'Podobný název', tone: 'amber'}" />
+    <twig:Ui:MappingRow id="cat-map-1" name="cat-map[0]" label="Firma" :samples="['Example Company s.r.o.', 'Příliš žluťoučký kůň a.s.', 'Example International Wholesale and Distribution Company Ltd']" :options="fields" value="display_name" />
+    <twig:Ui:MappingRow id="cat-map-2" name="cat-map[1]" label="E-mailová adresa" :samples="['testing@example.com']" :options="fields" value="email" review="Pole jsme odhadli podle podobného názvu sloupce." />
     <twig:Ui:MappingRow id="cat-map-3" name="cat-map[2]" label="Sleva" :samples="['0.00', '0.00', '0.00']" :options="fields" value="" />
 </div>
 {% endblock %}{% endembed %}

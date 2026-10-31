@@ -60,10 +60,17 @@
                 <span data-import-mapping-target="message">{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }}</span>
                 <span data-import-mapping-target="fields">{{ screen.missing|join(', ') }}</span>.
             </twig:Ui:Alert>
-            <p class="mb-3 mt-0 text-small text-muted">{{ 'import.mapping.intro'|trans }}</p>
+            {# Where the proposals come from, said once; only guesses are marked at their columns. #}
+            <p class="mb-3 mt-0 text-small text-muted" data-mapping-basis>
+                {%- if screen.basis -%}
+                    {{ screen.basis }} {{ 'import.mapping.intro_proposed'|trans }}
+                {%- else -%}
+                    {{ 'import.mapping.intro'|trans }}
+                {%- endif -%}
+            </p>
             <div class="divide-y divide-divider">
                 {% for column in screen.columns %}
-                    <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :badge="column.badge" :errors="column.errors" />
+                    <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :review="column.review" :errors="column.errors" />
                 {% endfor %}
             </div>
         </twig:Ui:Card>
@@ -111,7 +118,7 @@
                     {% endif %}
                     {% if screen.profile %}
                         <input type="hidden" name="profile_id" value="{{ screen.profileId }}">
-                        <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept'|trans" :value="screen.profile" disabled />
+                        <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept_help'|trans" :value="screen.profile" disabled />
                     {% else %}
                         <twig:Ui:TextInput name="profile_name" id="profile_name" :label="'import.options.profile_name'|trans" :help="'import.options.profile_name_help'|trans" :value="screen.profileName" :error="screen.errors.profile_name|default(null)" maxlength="255" autocomplete="off" />
                     {% endif %}

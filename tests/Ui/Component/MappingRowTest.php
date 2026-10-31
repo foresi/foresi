@@ -32,7 +32,6 @@ final class MappingRowTest extends KernelTestCase
             'samples' => ['testing@example.com', 'office@example.com'],
             'options' => $this->options(),
             'value' => 'email',
-            'badge' => ['label' => 'Same name', 'tone' => 'green'],
         ])->crawler();
 
         self::assertSame('column-0', $crawler->filter('label')->attr('for'));
@@ -41,11 +40,13 @@ final class MappingRowTest extends KernelTestCase
         self::assertSame(['General', 'Billing address'], $crawler->filter('optgroup')->each(static fn ($group): ?string => $group->attr('label')));
         self::assertSame('Do not import', $crawler->filter('select > option')->text());
         self::assertSame('email', $crawler->filter('option[selected]')->attr('value'));
-        self::assertSame('Same name', $crawler->filter('.bg-badge-green')->text());
+        // A confident proposal carries no marker.
+        self::assertCount(0, $crawler->filter('[class*="bg-badge-"]'));
+        self::assertNull($crawler->filter('select')->attr('aria-describedby'));
         self::assertSame(['testing@example.com', 'office@example.com'], $crawler->filter('p [title]')->each(static fn ($sample): string => $sample->text()));
     }
 
-    public function testShowsAtMostThreeNonEmptySamplesAndNoBadgeWithoutAReason(): void
+    public function testShowsAtMostThreeNonEmptySamplesAndNoMarkerWithoutAReviewNote(): void
     {
         $crawler = $this->renderTwigComponent('Ui:MappingRow', [
             'id' => 'column-1',
@@ -58,6 +59,48 @@ final class MappingRowTest extends KernelTestCase
         self::assertSame(['one', 'two', 'three'], $crawler->filter('p [title]')->each(static fn ($sample): string => $sample->text()));
         self::assertCount(0, $crawler->filter('[class*="bg-badge-"]'));
         self::assertSame('', $crawler->filter('option[selected]')->attr('value'));
+    }
+
+    public function testAGuessIsMarkedAsTextAndExplainedUnderTheSelect(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:MappingRow', [
+            'id' => 'column-2',
+            'name' => 'columns[2]',
+            'label' => 'Emial',
+            'samples' => ['testing@example.com'],
+            'options' => $this->options(),
+            'value' => 'email',
+            'review' => 'We guessed the field from a similar column name.',
+        ])->crawler();
+
+        $marker = $crawler->filter('#column-2-review');
+        self::assertSame('Ověřte', $marker->text());
+        self::assertStringContainsString('bg-badge-amber', (string) $marker->attr('class'));
+        self::assertSame('We guessed the field from a similar column name.', $crawler->filter('p#column-2-review-note')->text());
+        self::assertSame('column-2-review column-2-review-note', $crawler->filter('select')->attr('aria-describedby'));
+        self::assertNull($crawler->filter('select')->attr('aria-invalid'));
+    }
+
+    public function testAGuessWithErrorsIsDescribedByBoth(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:MappingRow', [
+            'id' => 'column-3',
+            'name' => 'columns[3]',
+            'label' => 'Emial',
+            'options' => $this->options(),
+            'value' => 'email',
+            'review' => 'We guessed the field from a similar column name.',
+            'errors' => ['Bad'],
+        ])->crawler();
+
+        self::assertSame('column-3-review column-3-review-note column-3-error', $crawler->filter('select')->attr('aria-describedby'));
+        self::assertSame('true', $crawler->filter('select')->attr('aria-invalid'));
+    }
+
+    public function testRejectsAnEmptyReviewNote(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:MappingRow', ['id' => 'column-0', 'name' => 'columns[0]', 'label' => 'Firma', 'options' => $this->options(), 'review' => ' ']);
     }
 
     public function testAColumnWithoutSamplesShowsADash(): void

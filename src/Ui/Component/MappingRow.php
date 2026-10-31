@@ -14,10 +14,13 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 /**
  * One source item mapped to a target: a column of an import file and the
  * field it fills, or a source value and what it means. The label names the
- * select, a few sample values sit below it, a badge says why the current
- * choice was proposed. Rows are stacked in a divided list inside a card.
- * Errors (one or more messages about this select) are listed under it, and
- * mark the select invalid; the first invalid control of a page takes the focus.
+ * select, a few sample values sit below it. A choice the user should check
+ * (a guess) carries a "Check this" marker next to the select and a short
+ * reason under it, both linked to the select with aria-describedby, so the
+ * marker is text, not colour alone. Confident choices carry nothing. Rows are
+ * stacked in a divided list inside a card. Errors (one or more messages about
+ * this select) are listed under it, and mark the select invalid; the first
+ * invalid control of a page takes the focus.
  */
 #[AsTwigComponent]
 final class MappingRow
@@ -37,14 +40,11 @@ final class MappingRow
      */
     public array $options = [];
 
-    /** @var array<string, mixed>|null label and tone */
-    public ?array $badge = null;
+    /** Why the current choice should be checked; null when there is nothing to check. */
+    public ?string $review = null;
 
     /** @var list<string> messages about this select, shown under it */
     public array $errors = [];
-
-    /** @var array{label: string, tone: string}|null */
-    private ?array $badgeView = null;
 
     private bool $focused = false;
 
@@ -71,7 +71,9 @@ final class MappingRow
                 throw new \InvalidArgumentException('An error of a mapping row must be a non-empty string.');
             }
         }
-        $this->badgeView = null === $this->badge ? null : Style::badge($this->badge, 'A mapping row');
+        if (null !== $this->review && '' === trim($this->review)) {
+            throw new \InvalidArgumentException('The review note of a mapping row must be a non-empty string.');
+        }
         $this->focused = $this->errorFocus->claim($this->invalid());
     }
 
@@ -93,12 +95,24 @@ final class MappingRow
         return \array_slice(array_values(array_filter($this->samples, static fn (string $sample): bool => '' !== trim($sample))), 0, self::MAX_SAMPLES);
     }
 
-    /**
-     * @return array{label: string, tone: string}|null
-     */
-    public function badgeView(): ?array
+    public function needsReview(): bool
     {
-        return $this->badgeView;
+        return null !== $this->review;
+    }
+
+    /** The ids that describe the select: the review marker and note, then the errors. */
+    public function describedBy(): string
+    {
+        $ids = [];
+        if ($this->needsReview()) {
+            $ids[] = $this->id.'-review';
+            $ids[] = $this->id.'-review-note';
+        }
+        if ($this->invalid()) {
+            $ids[] = $this->id.'-error';
+        }
+
+        return implode(' ', $ids);
     }
 
     public function selectClasses(): string
