@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, test, type Page } from '@playwright/test';
+import { expectRowControlsAligned } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
 
 test.use({ storageState: OWNER_STATE });
@@ -84,6 +85,17 @@ test.describe('layout', () => {
       expect(overflow).toBeLessThanOrEqual(0);
     });
   }
+
+  test('fields side by side on the contact form line up, with and without errors @layout', async ({ page }) => {
+    await page.goto('/contacts/new');
+    await expectRowControlsAligned(page.locator('main form'));
+
+    // Errors under some fields of a row must not push the controls of the others down.
+    // A form that fails validation saves nothing.
+    await page.getByRole('button', { name: 'Uložit' }).click();
+    await expect(page.locator('#displayName')).toHaveAttribute('aria-invalid', 'true');
+    await expectRowControlsAligned(page.locator('main form'));
+  });
 
   test('the detail does not scroll sideways @layout', async ({ page }) => {
     await openContact(page, 'Example Supplies s.r.o.');
