@@ -232,7 +232,7 @@ party:
     registrationCountry: Register country
     registrationNumber: Registration number
     vatId: VAT ID
-    vatId_help: For example CZ12345678. After saving it is checked in VIES and in the register of unreliable payers.
+    vatId_help: For example CZ12345678
     email: E-mail
     phone: Phone
     mobile: Mobile
@@ -259,7 +259,7 @@ party:
     invoicingDueDays: Due period
   lookup:
     label: Find in a register
-    help: Enter a registration number or at least three letters of a name and the details are filled in from ARES.
+    help: Registration number or at least three letters of a name
     existing: Already in your address book
     empty: Nothing found in the register.
     limited: Too many searches. Try again in a minute.
@@ -385,10 +385,10 @@ import:
     target_choose: Choose the kind of records
     target_missing: Choose which records you want to import.
     file: File
-    file_help: CSV or XLSX up to 50 MB and 200,000 rows. You match the columns to fields in the next step.
+    file_help: CSV or XLSX, up to 50 MB
     profile: Import profile
     profile_none: No profile
-    profile_help: A profile uses the columns and options that worked in an earlier import.
+    profile_help: Uses the matching and options of an earlier import
     submit: Upload file
     missing: Choose the file you want to upload.
     server_limit: 'The file is larger than the server accepts ({limit}). Make it smaller, or ask the server administrator for a higher limit.'
@@ -399,7 +399,7 @@ import:
   file:
     title: File
     change: Change
-    change_help: The file is read again with the new settings and the columns are proposed again.
+    change_help: The file is read again with these settings
     format: Format
     encoding: Encoding
     delimiter: Delimiter
@@ -472,19 +472,19 @@ import:
     mode: What should happen to the records
     match_key: How records are found
     match_key_auto: Automatically
-    match_key_help: A record with the same value is updated or skipped. Without a key every row is added as new.
+    match_key_help: Existing records are found by this value
     blank_cells: Empty cells
     blank_cells_help: Applies to records that are updated.
     scope: What may be archived
     scope_help: Archived records can be restored at any time.
     date_order: Date order
-    date_order_help: The dates of the file can be read in more than one way. Choose how they are written.
+    date_order_help: Choose how the dates are written
     decimal: Decimal separator
-    decimal_help: The numbers of the file can be read in more than one way. Choose how they are written.
+    decimal_help: Choose how the numbers are written
     profile: Import profile
-    profile_kept: After a successful import, the columns and options are saved to this profile.
+    profile_kept_help: Saved to this profile after a successful import
     profile_name: Save as profile
-    profile_name_help: Optional. Under this name you repeat the import next time with the same columns and options.
+    profile_name_help: Optional, for repeating the same import
   blank_cells:
     keep: Keep the value
     clear: Clear the value

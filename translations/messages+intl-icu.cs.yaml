@@ -232,7 +232,7 @@ party:
     registrationCountry: Země registru
     registrationNumber: IČO
     vatId: DIČ
-    vatId_help: Například CZ12345678. Po uložení se ověří ve VIES a v registru nespolehlivých plátců.
+    vatId_help: Například CZ12345678
     email: E-mail
     phone: Telefon
     mobile: Mobil
@@ -259,7 +259,7 @@ party:
     invoicingDueDays: Splatnost
   lookup:
     label: Najít v rejstříku
-    help: Zadejte IČO nebo alespoň tři písmena názvu a údaje se doplní z ARES.
+    help: IČO nebo alespoň tři písmena názvu
     existing: Už v adresáři
     empty: V rejstříku nic nenalezeno.
     limited: Příliš mnoho hledání. Zkuste to za minutu.
@@ -385,10 +385,10 @@ import:
     target_choose: Vyberte druh záznamů
     target_missing: Vyberte, jaké záznamy chcete importovat.
     file: Soubor
-    file_help: CSV nebo XLSX do 50 MB a 200 000 řádků. Sloupce přiřadíte k polím v dalším kroku.
+    file_help: CSV nebo XLSX, nejvýš 50 MB
     profile: Importní profil
     profile_none: Bez profilu
-    profile_help: Profil použije sloupce a volby, které se osvědčily při dřívějším importu.
+    profile_help: Použije přiřazení a volby z dřívějšího importu
     submit: Nahrát soubor
     missing: Vyberte soubor, který chcete nahrát.
     server_limit: 'Soubor je větší, než server dovolí přijmout ({limit}). Zmenšete ho, nebo požádejte správce serveru o vyšší limit.'
@@ -399,7 +399,7 @@ import:
   file:
     title: Soubor
     change: Změnit
-    change_help: Soubor se načte znovu s novým nastavením a sloupce se navrhnou znovu.
+    change_help: Soubor se načte znovu s tímto nastavením
     format: Formát
     encoding: Kódování
     delimiter: Oddělovač
@@ -472,19 +472,19 @@ import:
     mode: Co se má stát se záznamy
     match_key: Podle čeho se záznamy najdou
     match_key_auto: Automaticky
-    match_key_help: Záznam se stejnou hodnotou se aktualizuje nebo přeskočí. Bez klíče se každý řádek přidá jako nový.
+    match_key_help: Podle této hodnoty se najdou existující záznamy
     blank_cells: Prázdné buňky
     blank_cells_help: Platí pro záznamy, které se aktualizují.
     scope: Co se může archivovat
     scope_help: Archivované záznamy jde kdykoli obnovit.
     date_order: Pořadí v datu
-    date_order_help: Data v souboru jde přečíst více způsoby. Vyberte, jak jsou zapsaná.
+    date_order_help: Vyberte, jak jsou data zapsaná
     decimal: Oddělovač desetinných míst
-    decimal_help: Čísla v souboru jde přečíst více způsoby. Vyberte, jak jsou zapsaná.
+    decimal_help: Vyberte, jak jsou čísla zapsaná
     profile: Importní profil
-    profile_kept: Sloupce a volby se po úspěšném importu uloží do tohoto profilu.
+    profile_kept_help: Po úspěšném importu se uloží do tohoto profilu
     profile_name: Uložit jako profil
-    profile_name_help: Nepovinné. Pod tímto názvem import příště zopakujete se stejnými sloupci a volbami.
+    profile_name_help: Nepovinné, pro opakování stejného importu
   blank_cells:
     keep: Nechat hodnotu beze změny
     clear: Smazat hodnotu

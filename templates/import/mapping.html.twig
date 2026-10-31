@@ -118,7 +118,7 @@
                     {% endif %}
                     {% if screen.profile %}
                         <input type="hidden" name="profile_id" value="{{ screen.profileId }}">
-                        <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept'|trans" :value="screen.profile" disabled />
+                        <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept_help'|trans" :value="screen.profile" disabled />
                     {% else %}
                         <twig:Ui:TextInput name="profile_name" id="profile_name" :label="'import.options.profile_name'|trans" :help="'import.options.profile_name_help'|trans" :value="screen.profileName" :error="screen.errors.profile_name|default(null)" maxlength="255" autocomplete="off" />
                     {% endif %}
