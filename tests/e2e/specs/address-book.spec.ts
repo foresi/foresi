@@ -31,6 +31,18 @@ test.describe('list, search and views', () => {
     await expect(page.locator('tbody tr').first()).toBeVisible();
   });
 
+  test('offers the export as CSV or Excel from a menu and downloads the file', async ({ page }) => {
+    await page.goto('/contacts');
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeHidden();
+    await page.getByRole('button', { name: 'Exportovat' }).click();
+    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)']);
+
+    const download = page.waitForEvent('download');
+    await menu.getByRole('menuitem', { name: /Excel/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/^contacts-\d{8}\.xlsx$/);
+  });
+
   test('switches between the views', async ({ page }) => {
     await page.goto('/contacts');
     const views = page.getByRole('navigation', { name: 'Zobrazení kontaktů' });

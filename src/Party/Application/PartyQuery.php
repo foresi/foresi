@@ -36,7 +36,7 @@ interface PartyQuery
      *
      * @return list<int>
      */
-    public function matchingIds(string $text, ?PartyRole $role, bool $archived, int $limit, ?ImportedBy $import = null): array;
+    public function matchingIds(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array;
 
     public function counts(): PartyCounts;
 

@@ -122,6 +122,8 @@ party:
   header:
     import: Import
     export: Export
+    export_csv: Export as CSV
+    export_xlsx: 'Export as Excel (XLSX)'
   imported_by:
     create: 'Contacts the import of {name} created.'
     update: 'Contacts the import of {name} updated.'
@@ -168,18 +170,6 @@ party:
   bulk:
     archive: Archive
     export: Export CSV
-  export:
-    name: Name
-    kind: Kind
-    roles: Roles
-    registration_number: Registration number
-    vat_id: VAT ID
-    email: E-mail
-    phone: Phone
-    street: Street
-    city: City
-    postal_code: Postal code
-    country: Country
   column:
     name: Name
     kind: Kind

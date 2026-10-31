@@ -122,6 +122,8 @@ party:
   header:
     import: Importovat
     export: Exportovat
+    export_csv: Exportovat jako CSV
+    export_xlsx: 'Exportovat jako Excel (XLSX)'
   imported_by:
     create: 'Kontakty, které vytvořil import souboru {name}.'
     update: 'Kontakty, které aktualizoval import souboru {name}.'
@@ -168,18 +170,6 @@ party:
   bulk:
     archive: Archivovat
     export: Exportovat CSV
-  export:
-    name: Název
-    kind: Druh
-    roles: Role
-    registration_number: IČO
-    vat_id: DIČ
-    email: E-mail
-    phone: Telefon
-    street: Ulice
-    city: Město
-    postal_code: PSČ
-    country: Země
   column:
     name: Název
     kind: Druh

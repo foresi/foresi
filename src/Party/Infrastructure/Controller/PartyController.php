@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Import\Application\ExportRecords;
 use App\Import\Application\Imports;
+use App\Import\Application\Source\SourceFormat;
 use App\Import\Domain\Import;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\ImportedBy;
@@ -29,7 +31,6 @@ use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Http\PartyCsvExport;
 use App\Party\Infrastructure\Http\WebsiteLink;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,6 +40,7 @@ use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
@@ -57,7 +59,6 @@ final class PartyController extends AbstractController
     private const array VIEWS = ['all', 'customers', 'suppliers', 'archived'];
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
-    private const int MAX_EXPORT = 10000;
     private const int MAX_SEARCH = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
@@ -68,7 +69,7 @@ final class PartyController extends AbstractController
         private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
         private readonly TransactionalWork $transaction,
-        private readonly PartyCsvExport $export,
+        private readonly ExportRecords $export,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly AuditActor $actor,
@@ -200,14 +201,17 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * Exports the selected contacts; ids of other tenants are ignored. The file
-     * name carries the date only, never a name or a number.
+     * Exports the selected contacts, or the whole view as it is filtered, through
+     * the import target: the file has the columns the import maps and imports
+     * again. Ids of other tenants are ignored. The file name carries the date
+     * only, never a name or a number. It is streamed, so a large address book
+     * needs no limit.
      */
     #[Route('/contacts/export', name: 'app_contacts_export', methods: ['POST'])]
     public function export(Request $request): Response
     {
         $this->checkToken($request);
-        $ids = $this->selectedIds($request);
+        $format = 'xlsx' === $request->request->getString('format') ? SourceFormat::Xlsx : SourceFormat::Csv;
         // The header action exports the whole view as it is filtered, not a selection.
         if ('view' === $request->request->getString('scope')) {
             $view = $request->request->getString('view', 'all');
@@ -218,28 +222,27 @@ final class PartyController extends AbstractController
             };
             // A list narrowed to an import exports exactly what it shows.
             [$importedBy] = $this->importedBy($request->request);
-            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, self::MAX_EXPORT, $importedBy);
+            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, $importedBy);
+        } else {
+            $selected = $this->selectedIds($request);
+            $found = [] === $selected ? [] : $this->parties->findMany($selected);
+            if ([] === $found) {
+                if ([] === $selected) {
+                    return $this->redirectToRoute('app_contacts');
+                }
+                throw new NotFoundHttpException();
+            }
+            $ids = array_values(array_filter(array_map(static fn (Party $party): ?int => $party->id(), $found), \is_int(...)));
         }
         if ([] === $ids) {
             return $this->redirectToRoute('app_contacts');
         }
-        $found = $this->parties->findMany($ids);
-        if ([] === $found) {
-            throw new NotFoundHttpException();
-        }
 
-        $kinds = [];
-        foreach (PartyKind::cases() as $kind) {
-            $kinds[$kind->value] = $this->translator->trans('party.kind.'.$kind->value);
-        }
-        $roles = [];
-        foreach (PartyRole::cases() as $role) {
-            $roles[$role->value] = $this->translator->trans('party.role.'.$role->value);
-        }
-        $header = array_map(fn (string $column): string => $this->translator->trans('party.export.'.$column), ['name', 'kind', 'roles', 'registration_number', 'vat_id', 'email', 'phone', 'street', 'city', 'postal_code', 'country']);
-        $response = new Response($this->export->render($found, $header, $kinds, $roles));
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.csv'));
+        $response = new StreamedResponse(function () use ($ids, $format): void {
+            $this->export->write('party', $ids, $format, 'php://output');
+        });
+        $response->headers->set('Content-Type', SourceFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.'.$format->value));
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;

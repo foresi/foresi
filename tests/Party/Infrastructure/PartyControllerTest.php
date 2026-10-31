@@ -420,14 +420,39 @@ final class PartyControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         self::assertSame('text/csv; charset=utf-8', $response->headers->get('Content-Type'));
         self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.csv$/', (string) $response->headers->get('Content-Disposition'));
-        $csv = (string) $response->getContent();
-        self::assertStringStartsWith("\xEF\xBB\xBF", $csv);
-        self::assertStringContainsString('"Example Company s.r.o.";Company;Customer;12345687;CZ12345687;info@example.com;', $csv);
+        $csv = $this->client->getInternalResponse()->getContent();
+        self::assertStringStartsWith("\xEF\xBB\xBF\"Číslo kontaktu ve Foresi\";Název;Druh;", $csv);
+        self::assertStringContainsString(';"Example Company s.r.o.";company;12345687;', $csv);
+        self::assertStringContainsString(';CZ12345687;info@example.com;', $csv);
         self::assertStringNotContainsString('Foreign Trading', $csv);
         self::assertStringNotContainsString('Not Selected', $csv);
         self::assertStringContainsString("'=HYPERLINK", $csv);
-        self::assertCount(3, array_filter(explode("\r\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
+        self::assertCount(3, array_filter(explode("\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
         self::assertNotNull($other->id());
+    }
+
+    public function testXlsxExportIsAWorkbookWithTheSameContacts(): void
+    {
+        $this->signIn();
+        $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687');
+
+        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [(string) $mine->id()], 'format' => 'xlsx']);
+
+        self::assertResponseIsSuccessful();
+        $response = $this->client->getResponse();
+        self::assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
+        self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.xlsx$/', (string) $response->headers->get('Content-Disposition'));
+        $content = $this->client->getInternalResponse()->getContent();
+        self::assertStringStartsWith('PK', $content);
+        $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
+        file_put_contents($path, $content);
+        try {
+            $rows = [...new \App\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \App\Import\Application\Source\SourceSettings(\App\Import\Application\Source\SourceFormat::Xlsx, headerRow: 1))];
+        } finally {
+            unlink($path);
+        }
+        self::assertCount(1, $rows);
+        self::assertContains('Example Company s.r.o.', $rows[0]);
     }
 
     public function testLookupReturnsTheMappedRegistryRecord(): void

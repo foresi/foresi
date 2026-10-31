@@ -78,10 +78,10 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         return new PartyPage($this->rows($pageIds), $total, $page, $pages);
     }
 
-    public function matchingIds(string $text, ?PartyRole $role, bool $archived, int $limit, ?ImportedBy $import = null): array
+    public function matchingIds(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array
     {
         [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
-        $query = $this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY LOWER(p.displayName), p.id')->setMaxResults($limit);
+        $query = $this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY LOWER(p.displayName), p.id');
         foreach ($parameters as $name => $value) {
             $query->setParameter($name, $value);
         }

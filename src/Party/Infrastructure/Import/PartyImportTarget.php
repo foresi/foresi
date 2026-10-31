@@ -387,6 +387,8 @@ final readonly class PartyImportTarget implements ImportTarget
         foreach ($this->parties->findMany($ids) as $party) {
             yield $this->exportRow($party);
         }
+        // An export reads whole address books in batches; the batch is not needed any more.
+        $this->em->clear();
     }
 
     /**

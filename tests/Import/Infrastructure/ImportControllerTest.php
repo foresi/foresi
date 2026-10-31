@@ -10,9 +10,12 @@ namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Application\Imports;
 use App\Import\Application\Message\RunImportChunk;
+use App\Import\Application\Source\SourceFormat;
+use App\Import\Application\Source\SourceSettings;
 use App\Import\Application\StartImport;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
+use App\Import\Infrastructure\Source\OpenSpoutSourceReader;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyKind;
@@ -86,7 +89,7 @@ final class ImportControllerTest extends WebTestCase
 
         $actions = $crawler->filter('[data-page-actions]');
         self::assertSame('/imports/new?target=party', $actions->selectLink('Import')->attr('href'));
-        self::assertCount(1, $actions->filter('form[action="/contacts/export"] button:contains("Export")'));
+        self::assertCount(1, $actions->filter('form[action="/contacts/export"] #export-button'));
         self::assertStringContainsString('New contact', $actions->filter('a.bg-green')->text());
     }
 
@@ -102,6 +105,29 @@ final class ImportControllerTest extends WebTestCase
         $csv = $this->client->getInternalResponse()->getContent();
         self::assertStringContainsString('Example Supplies a.s.', $csv);
         self::assertStringNotContainsString('Example Company s.r.o.', $csv);
+    }
+
+    public function testTheHeaderOffersBothFormatsAndExportsTheSearchedViewAsAWorkbook(): void
+    {
+        $this->party('Example Company s.r.o.');
+        $this->party('Example Supplies a.s.', [PartyRole::Supplier]);
+
+        $crawler = $this->client->request('GET', '/contacts?q=Supplies');
+        $menu = $crawler->filter('[data-page-actions] #export-menu');
+        self::assertSame(['csv', 'xlsx'], $menu->filter('button[name="format"]')->each(static fn (Crawler $item): string => (string) $item->attr('value')));
+        $this->client->submit($menu->filter('button[value="xlsx"]')->form());
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('spreadsheetml', (string) $this->client->getResponse()->headers->get('Content-Type'));
+        $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
+        file_put_contents($path, $this->client->getInternalResponse()->getContent());
+        try {
+            $rows = [...new OpenSpoutSourceReader()->rows($path, new SourceSettings(SourceFormat::Xlsx, headerRow: 1))];
+        } finally {
+            unlink($path);
+        }
+        self::assertCount(1, $rows);
+        self::assertContains('Example Supplies a.s.', $rows[0]);
     }
 
     public function testAnUploadedFileIsReadAndItsColumnsAreProposed(): void
