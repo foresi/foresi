@@ -25,6 +25,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_import_missing_record', columns: ['import_id', 'record_id'])]
 class ImportMissingRecord implements TenantOwned
 {
+    /** The message of a record the run could not archive. */
+    public const string ARCHIVE_FAILED = 'import.error.archive_failed';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -82,7 +85,7 @@ class ImportMissingRecord implements TenantOwned
         return $this->recordId;
     }
 
-    /** Archive until the run decides; Skip when the run found the record after all, then Reverted or ChangedAfterImport after an undo. */
+    /** Archive until the run decides; Skip when the run found the record after all, Error when archiving failed, then Reverted or ChangedAfterImport after an undo. */
     public function outcome(): RowOutcome
     {
         return $this->outcome;
@@ -121,6 +124,20 @@ class ImportMissingRecord implements TenantOwned
     {
         $this->outcome = RowOutcome::Skip;
         $this->processedInRun = true;
+    }
+
+    /** The target refused to archive the record; it stays active and counts as failed. */
+    public function failed(): void
+    {
+        $this->outcome = RowOutcome::Error;
+        $this->before = null;
+        $this->processedInRun = true;
+    }
+
+    /** The translation key explaining a record that failed, or null. */
+    public function errorKey(): ?string
+    {
+        return RowOutcome::Error === $this->outcome ? self::ARCHIVE_FAILED : null;
     }
 
     /** The undo has nothing to put back for a record the run did not archive. */

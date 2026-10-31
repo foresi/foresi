@@ -20,7 +20,7 @@ use Doctrine\DBAL\ParameterType;
 
 /**
  * Finds the records a full replace archives: the active records of its scope
- * that no row of the source matched. Scope Profile reaches only records that
+ * that no row of the source matched, alone or among other records. Scope Profile reaches only records that
  * earlier finished imports of the same profile wrote and did not undo, so
  * records made by hand are never archived by it.
  */
@@ -35,10 +35,12 @@ final readonly class MissingRecordFinder
      */
     public function find(Import $import, ImportTarget $target): \Generator
     {
+        // Records a row matched alone, or among others: an ambiguous row still names them.
         $inSource = array_fill_keys($this->ids(
-            'SELECT DISTINCT record_id FROM import_row WHERE import_id = ? AND record_id IS NOT NULL',
-            [$import->id()],
-            [ParameterType::INTEGER],
+            'SELECT record_id FROM import_row WHERE import_id = ? AND record_id IS NOT NULL'
+            .' UNION SELECT record_id FROM import_ambiguous_match WHERE import_id = ?',
+            [$import->id(), $import->id()],
+            [ParameterType::INTEGER, ParameterType::INTEGER],
         ), true);
         $scope = null;
         if (ReplaceScope::Profile === $import->options()->scope) {

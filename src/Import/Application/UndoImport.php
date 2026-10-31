@@ -41,7 +41,7 @@ final readonly class UndoImport
                 throw new ImportRefused($refusal);
             }
             if ($this->gate->isBusy($targetKey, $importId)) {
-                throw new ImportRefused('import.refused.busy');
+                throw new ImportRefused('import.refused.target_busy');
             }
             $import->moveTo(ImportState::Undoing);
 

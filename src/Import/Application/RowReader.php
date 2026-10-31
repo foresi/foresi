@@ -101,8 +101,9 @@ final readonly class RowReader
             }
         }
         $matchValue = null === $this->matchKey ? null : ImportRow::fingerprint($values[$this->matchKey] ?? null);
+        $keyUnreadable = null !== $this->matchKey && \in_array($this->matchKey, $failed, true);
 
-        return new RowEvaluation($values, $errors, $matchValue, null === $this->keyColumn ? '' : ($raw[$this->keyColumn] ?? ''));
+        return new RowEvaluation($values, $errors, $matchValue, null === $this->keyColumn ? '' : ($raw[$this->keyColumn] ?? ''), $keyUnreadable);
     }
 
     /**

@@ -10,6 +10,7 @@ namespace App\Import\Infrastructure\Doctrine;
 
 use App\Import\Application\Imports;
 use App\Import\Domain\Import;
+use App\Import\Domain\ImportAmbiguousMatch;
 use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
@@ -211,6 +212,13 @@ final readonly class DoctrineImports implements Imports
         }
     }
 
+    public function addAmbiguousMatches(Import $import, array $recordIds): void
+    {
+        foreach (array_unique($recordIds) as $recordId) {
+            $this->em->persist(new ImportAmbiguousMatch($import, $recordId));
+        }
+    }
+
     public function findRow(int $id): ?ImportRow
     {
         return $this->em->find(ImportRow::class, $id);
@@ -237,7 +245,18 @@ final readonly class DoctrineImports implements Imports
             ->getQuery()
             ->getSingleColumnResult();
 
-        return array_map(intval(...), $found);
+        /** @var list<int|string> $ambiguous */
+        $ambiguous = $this->em->createQueryBuilder()
+            ->select('DISTINCT m.recordId')
+            ->from(ImportAmbiguousMatch::class, 'm')
+            ->where('m.import = :import')
+            ->andWhere('m.recordId IN (:ids)')
+            ->setParameter('import', $import)
+            ->setParameter('ids', $recordIds)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_unique(array_map(intval(...), [...$found, ...$ambiguous])));
     }
 
     /**
@@ -267,6 +286,7 @@ final readonly class DoctrineImports implements Imports
 
     private function deleteMissing(Import $import): void
     {
+        $this->em->createQueryBuilder()->delete(ImportAmbiguousMatch::class, 'a')->where('a.import = :import')->setParameter('import', $import)->getQuery()->execute();
         $this->em->createQueryBuilder()->delete(ImportMissingRecord::class, 'm')->where('m.import = :import')->setParameter('import', $import)->getQuery()->execute();
     }
 }

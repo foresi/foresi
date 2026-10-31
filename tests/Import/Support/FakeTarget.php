@@ -23,7 +23,7 @@ use App\Tenancy\Application\TenantContext;
  * An import target that keeps its records in memory: a code (the match key),
  * a required name and an e-mail. It logs every write with the audit correlation
  * active at the time, so tests see what the pipeline wrote and under which id.
- * A name containing FAIL makes the write throw; INVALID makes validation fail.
+ * A name containing FAIL makes a write or an archive throw; INVALID makes validation fail.
  */
 final class FakeTarget implements ImportTarget
 {
@@ -126,6 +126,7 @@ final class FakeTarget implements ImportTarget
 
     public function archive(int $id): RecordSnapshot
     {
+        $this->failOn($this->records[$id]['values']);
         $before = $this->snapshot($id);
         $this->records[$id]['archived'] = true;
         $this->log('archive', $id);

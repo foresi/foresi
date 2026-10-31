@@ -53,8 +53,9 @@ final class RunMessages
                 break;
             }
             $this->transport->ack($next);
-            $this->deliver($next);
+            // Remembered first, so a message whose handler throws can be delivered again.
             $this->handled[] = $next;
+            $this->deliver($next);
             ++$count;
         }
 

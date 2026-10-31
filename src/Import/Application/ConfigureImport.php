@@ -11,6 +11,7 @@ namespace App\Import\Application;
 use App\Import\Application\Message\ReadImportFile;
 use App\Import\Application\Source\SourceSettings;
 use App\Import\Application\Target\TargetRegistry;
+use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportMode;
 use App\Import\Domain\ImportOptions;
@@ -48,7 +49,7 @@ final readonly class ConfigureImport
             $import = $this->editable($importId);
             $target = $this->targets->get($import->targetKey());
 
-            $fields = array_map(static fn (\App\Import\Domain\FieldDefinition $field): string => $field->key, $target->fields());
+            $fields = array_map(static fn (FieldDefinition $field): string => $field->key, $target->fields());
             foreach ($mapping->columns as $column => $key) {
                 if ($column < 0 || $column >= \count($import->headers()) || null !== $key && !\in_array($key, $fields, true)) {
                     throw new ImportRefused('import.refused.unknown_field');

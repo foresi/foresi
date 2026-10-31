@@ -16,9 +16,11 @@ use App\Import\Application\ConfigureImport;
 use App\Import\Application\ImportErrorFile;
 use App\Import\Application\ImportRefused;
 use App\Import\Application\Imports;
+use App\Import\Application\Message\ArchiveMissing;
 use App\Import\Application\Message\CheckImportChunk;
 use App\Import\Application\Message\ReadImportFile;
 use App\Import\Application\Message\RunImportChunk;
+use App\Import\Application\Message\UndoImportChunk;
 use App\Import\Application\RunImport;
 use App\Import\Application\Source\SourceFormat;
 use App\Import\Application\StartImport;
@@ -28,6 +30,7 @@ use App\Import\Domain\BlankCells;
 use App\Import\Domain\DateOrder;
 use App\Import\Domain\DecimalSeparator;
 use App\Import\Domain\Import;
+use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportMode;
 use App\Import\Domain\ImportOptions;
 use App\Import\Domain\ImportProfile;
@@ -40,6 +43,7 @@ use App\Import\Domain\RowOutcome;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Import\Support\FakeTarget;
+use App\Tests\Import\Support\FlakyImportLock;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -49,6 +53,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -94,6 +99,7 @@ final class PipelineTest extends KernelTestCase
 
     protected function tearDown(): void
     {
+        FlakyImportLock::$failures = 0;
         new Filesystem()->remove($this->dir);
         parent::tearDown();
     }
@@ -296,6 +302,166 @@ final class PipelineTest extends KernelTestCase
         self::assertSame(['Kept'], $this->target->activeNames());
     }
 
+    public function testRecordsAnAmbiguousRowNamesAreNotArchivedFromAllRecords(): void
+    {
+        $first = $this->target->add(['code' => 'C5', 'name' => 'First', 'email' => null]);
+        $second = $this->target->add(['code' => 'C5', 'name' => 'Second', 'email' => null]);
+        $this->target->add(['code' => 'X1', 'name' => 'Missing', 'email' => null]);
+        $id = $this->checked("Code;Name;Email\nC5;Five;\nC1;New;\n", ImportMode::FullReplace, ReplaceScope::All);
+
+        self::assertSame(1, $this->fresh($id)->archiveCandidates());
+        $this->runImport($id, 1);
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::FinishedWithErrors, $import->state());
+        self::assertSame(1, $import->archived());
+        self::assertFalse($this->target->records[$first]['archived']);
+        self::assertFalse($this->target->records[$second]['archived']);
+        self::assertSame(['First', 'New', 'Second'], $this->target->activeNames());
+    }
+
+    public function testRecordsAnAmbiguousRowNamesAreNotArchivedFromTheProfile(): void
+    {
+        $earlier = $this->upload("Code;Name;Email\nC5;Five;\nD5;Other five;\nE1;Elsewhere;\n");
+        $this->configure($earlier, ImportMode::Update, newProfile: 'Fake records');
+        $this->check($earlier);
+        $this->runImport($earlier);
+        $profileId = (int) $this->fresh($earlier)->profile()?->id();
+        // Someone gives the second record the same code, so the key now names two records.
+        $this->target->records[2]['values']['code'] = 'C5';
+
+        $id = $this->upload("Code;Name;Email\nC5;Five again;\nN1;New 1;\nN2;New 2;\n");
+        $this->configure($id, ImportMode::FullReplace, ReplaceScope::Profile, profileId: $profileId);
+        $this->check($id);
+
+        self::assertSame(1, $this->fresh($id)->archiveCandidates());
+        $this->runImport($id, 1);
+
+        self::assertSame(['Five', 'New 1', 'New 2', 'Other five'], $this->target->activeNames());
+        self::assertTrue($this->target->records[3]['archived']);
+    }
+
+    public function testARowWithAnUnreadableKeyIsAnErrorAndTheArchiveIsCountedWithoutIt(): void
+    {
+        $this->target->add(['code' => 'X1', 'name' => 'Missing', 'email' => 'missing@example.com']);
+        $id = $this->upload("Code;Name;Email\nC1;Name 1;person1@example.com\nC2;Name 2;not-an-address\n");
+        $this->container(ConfigureImport::class)->configure($id, $this->fresh($id)->mapping(), new ImportOptions(ImportMode::FullReplace, ReplaceScope::All, 'email', BlankCells::Keep, DateOrder::DayMonthYear, DecimalSeparator::Comma, null));
+        $this->check($id);
+
+        $import = $this->fresh($id);
+        self::assertSame(1, $import->unidentified());
+        self::assertSame(1, $import->failed());
+        self::assertSame(1, $import->archiveCandidates());
+        $this->runImport($id, 1);
+        self::assertSame(1, $this->fresh($id)->archived());
+    }
+
+    public function testARunChunkDeliveredAgainWhileTheImportRunsWritesNothingTwice(): void
+    {
+        $id = $this->checked($this->rows(1200), ImportMode::Update);
+        $this->container(RunImport::class)->run($id);
+        $this->worker->run(1);
+        $first = $this->worker->last();
+        self::assertInstanceOf(RunImportChunk::class, $first->getMessage());
+
+        $this->worker->redeliver($first);
+
+        $running = $this->fresh($id);
+        self::assertSame(ImportState::Running, $running->state());
+        self::assertSame(1, $running->chunksDone());
+        self::assertSame([500, 0, 0, 0, 0, 0, 500], $this->counters($running));
+        self::assertSame(500, $this->target->count('create'));
+
+        $this->worker->run();
+
+        self::assertSame([1200, 0, 0, 0, 0, 0, 1200], $this->counters($this->fresh($id)));
+        self::assertSame(1200, $this->target->count('create'));
+    }
+
+    public function testTheLastRunChunkDeliveredAgainBeforeTheArchiveArchivesNothingTwice(): void
+    {
+        $this->target->add(['code' => 'X1', 'name' => 'Missing', 'email' => null]);
+        $id = $this->checked($this->rows(600), ImportMode::FullReplace, ReplaceScope::All);
+        $this->container(RunImport::class)->run($id, 1);
+        $this->worker->run(only: static fn (object $message): bool => $message instanceof RunImportChunk);
+        $last = $this->worker->last();
+        self::assertSame(ImportState::Running, $this->fresh($id)->state());
+
+        $this->worker->redeliver($last);
+
+        self::assertCount(2, array_filter($this->worker->pending(), static fn (object $message): bool => $message instanceof ArchiveMissing));
+        self::assertSame([600, 0, 0, 0, 0, 0, 600], $this->counters($this->fresh($id)));
+        $this->worker->run();
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::Finished, $import->state());
+        self::assertSame([600, 0, 0, 0, 1, 0, 600], $this->counters($import));
+        self::assertSame(1, $this->target->count('archive'));
+    }
+
+    public function testAnUndoChunkDeliveredAgainMidUndoRevertsNothingTwice(): void
+    {
+        $id = $this->checked($this->rows(1200), ImportMode::Update);
+        $this->runImport($id);
+        $this->container(UndoImport::class)->undo($id);
+        $this->worker->run(1);
+        $first = $this->worker->last();
+        self::assertInstanceOf(UndoImportChunk::class, $first->getMessage());
+
+        $this->worker->redeliver($first);
+
+        $undoing = $this->fresh($id);
+        self::assertSame(ImportState::Undoing, $undoing->state());
+        self::assertSame(500, $undoing->reverted());
+        self::assertSame(500, $this->target->count('revert'));
+        $this->worker->run();
+
+        self::assertSame(1200, $this->fresh($id)->reverted());
+        self::assertSame(1200, $this->target->count('revert'));
+        self::assertSame(ImportState::Undone, $this->fresh($id)->state());
+    }
+
+    public function testAReleaseThatFailedStartsTheNextImportWhenTheMessageComesAgain(): void
+    {
+        $first = $this->checked($this->rows(1));
+        $second = $this->checked("Code;Name;Email\nD1;Other 1;\n");
+        $this->container(RunImport::class)->run($first);
+        $this->container(RunImport::class)->run($second);
+        FlakyImportLock::$failures = 1;
+
+        try {
+            $this->worker->run();
+            self::fail('The release must fail.');
+        } catch (HandlerFailedException) {
+            self::assertSame(ImportState::Finished, $this->fresh($first)->state());
+            self::assertSame(ImportState::Queued, $this->fresh($second)->state());
+        }
+
+        $this->worker->redeliver($this->worker->last());
+        $this->worker->run();
+
+        self::assertSame(ImportState::Finished, $this->fresh($second)->state());
+        self::assertSame(['Name 1', 'Other 1'], $this->target->activeNames());
+    }
+
+    public function testARecordTheTargetCannotArchiveCountsAsFailed(): void
+    {
+        $refused = $this->target->add(['code' => 'X1', 'name' => 'FAIL to archive', 'email' => null]);
+        $this->target->add(['code' => 'X2', 'name' => 'Missing', 'email' => null]);
+        $id = $this->checked($this->rows(1), ImportMode::FullReplace, ReplaceScope::All);
+        $this->runImport($id, 2);
+
+        $import = $this->fresh($id);
+        self::assertSame(ImportState::FinishedWithErrors, $import->state());
+        self::assertSame(1, $import->archived());
+        self::assertSame(1, $import->failed());
+        self::assertFalse($this->target->records[$refused]['archived']);
+        $records = $this->em->getRepository(ImportMissingRecord::class)->findBy(['import' => $import], ['recordId' => 'ASC']);
+        self::assertSame([RowOutcome::Error, RowOutcome::Archive], array_map(static fn (ImportMissingRecord $record): RowOutcome => $record->outcome(), $records));
+        self::assertSame('import.error.archive_failed', $records[0]->errorKey());
+        self::assertNull($records[1]->errorKey());
+    }
+
     public function testARedeliveredChunkWritesNothingTwice(): void
     {
         $id = $this->upload($this->rows(1200));
@@ -431,6 +597,8 @@ final class PipelineTest extends KernelTestCase
         self::assertSame([2, 0, 0, 0, 0, 1, 3], $this->counters($import));
         self::assertSame('import.error.write_failed', $this->imports->rowsOfChunk($import, 0)[1]->errors()[0]->messageKey);
         self::assertTrue($this->em->isOpen());
+        // The row the target tried to store was rolled back with its savepoint.
+        self::assertEquals(1, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM import_row WHERE import_id = ? AND row_number = 3', [$id]));
     }
 
     public function testAStoppedRunCanBeUndone(): void
@@ -604,7 +772,7 @@ final class PipelineTest extends KernelTestCase
         $running = $this->checked("Code;Name;Email\nD1;Other;\n");
         $this->container(RunImport::class)->run($running);
 
-        $this->expectExceptionObject(new ImportRefused('import.refused.busy'));
+        $this->expectExceptionObject(new ImportRefused('import.refused.target_busy'));
         $this->container(UndoImport::class)->undo($done);
     }
 
@@ -632,8 +800,8 @@ final class PipelineTest extends KernelTestCase
         $reader->close();
         self::assertSame([
             ['Code', 'Name', 'Email', 'Error'],
-            ["'=1+1", 'Name 2', 'broken', '"broken" is not a valid e-mail address. (column Email)'],
-            ['C3', 'INVALID', '', '"INVALID" is not a value we know. Map it to one of the allowed values. (column Name)'],
+            ["'=1+1", 'Name 2', 'broken', 'Column Email. "broken" is not a valid e-mail address.'],
+            ['C3', 'INVALID', '', 'Column Name. "INVALID" is not a value we know. Map it to one of the allowed values.'],
         ], $rows);
     }
 

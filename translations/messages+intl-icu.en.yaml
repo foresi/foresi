@@ -326,6 +326,7 @@ import:
     ambiguous_match: '"{value}" matches {count, number} existing records. Choose a match key that names one record.'
     duplicate_in_file: '"{value}" is already used by an earlier row of this file. Only the first row with it is imported.'
     write_failed: 'This row could not be saved. Check its values and import it again.'
+    archive_failed: 'This record could not be archived. It stays as it was.'
   failure:
     file_missing: 'The uploaded file is no longer available. Upload it again.'
   refused:
@@ -337,12 +338,14 @@ import:
     unknown_profile: 'This import profile does not exist for this kind of record.'
     profile_required: 'Name the import profile, so a full replace knows which records earlier imports brought in.'
     not_checked: 'Run the check before you start the import.'
-    archive_not_confirmed: 'Type {count, number} to confirm that {count, plural, one {# record} other {# records}} will be archived.'
-    undo_state: 'Only a finished import can be undone.'
+    archive_not_confirmed: 'Type {count} to confirm that {count, plural, one {# record} other {# records}} will be archived.'
+    undo_state: 'Only a finished or stopped import can be undone.'
     undo_expired: 'Undo was possible for 30 days after the import. That time has passed.'
-    busy: 'Another import of the same records is running. Try again when it ends.'
+    target_busy: 'Another import of these records is running right now. Undo this import once that one ends.'
     not_cancellable: 'This import can no longer be cancelled.'
     rows_purged: 'The rows of this import were deleted after 30 days.'
+  check:
+    unidentified: '{count, plural, one {# row has a match key} other {# rows have a match key}} we could not read. The records to archive are counted without {count, plural, one {it} other {them}}.'
   error_file:
     column: 'Error'
-    in_column: '{message} (column {column})'
+    in_column: 'Column {column}. {message}'

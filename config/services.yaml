@@ -145,6 +145,10 @@ when@test:
             alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
             public: true
 
+        # Lets a test make the gate's lock fail once.
+        App\Tests\Import\Support\FlakyImportLock:
+            decorates: App\Import\Application\ImportLock
+
         # A target living in memory, for the pipeline tests.
         App\Tests\Import\Support\FakeTarget:
             public: true

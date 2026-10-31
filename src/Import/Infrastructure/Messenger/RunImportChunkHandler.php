@@ -58,16 +58,26 @@ final readonly class RunImportChunkHandler
     public function __invoke(RunImportChunk $message): void
     {
         $import = $this->imports->findFresh($message->importId);
-        if (!$import instanceof Import || ImportState::Running !== $import->state()) {
+        if (!$import instanceof Import) {
+            return;
+        }
+        // A message delivered again after the import ended: the release of the gate may not have happened (the worker died, or it threw), so do it now. It is idempotent.
+        if ($import->state()->isEnd()) {
+            $this->gate->release($import->targetKey());
+
+            return;
+        }
+        if (ImportState::Running !== $import->state()) {
             return;
         }
         $target = $this->targets->get($import->targetKey());
         $reader = new RowReader($target, $import, $this->normaliser);
 
         $next = $this->imports->transactional(function () use ($message, $import, $target, $reader): string {
+            // Rows an undo has already passed stay as they are: a chunk still in flight when the run stopped must not write behind the undo.
             $ids = array_map(
                 static fn (ImportRow $row): int => (int) $row->id(),
-                array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInRun())),
+                array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInRun() && !$row->processedInUndo())),
             );
             $counts = $this->correlation->within(
                 'import:'.$message->importId,
@@ -141,6 +151,9 @@ final readonly class RunImportChunkHandler
         $evaluation = $reader->read($row);
         $matches = [] === $evaluation->errors ? $reader->matches($evaluation) : [];
         [$outcome, $errors] = $reader->decide($evaluation, $matches);
+        if (\count($matches) > 1) {
+            $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): int => $match->id, $matches));
+        }
         $blankCells = $import->options()->blankCells;
         $result = match ($outcome) {
             RowOutcome::Create => $target->create($evaluation->values),

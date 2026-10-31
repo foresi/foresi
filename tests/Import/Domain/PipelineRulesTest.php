@@ -13,6 +13,7 @@ use App\Import\Domain\ColumnProposal;
 use App\Import\Domain\DateOrder;
 use App\Import\Domain\DecimalSeparator;
 use App\Import\Domain\Import;
+use App\Import\Domain\ImportAmbiguousMatch;
 use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportMode;
 use App\Import\Domain\ImportOptions;
@@ -31,6 +32,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Import::class)]
 #[CoversClass(ImportRow::class)]
 #[CoversClass(ImportMissingRecord::class)]
+#[CoversClass(ImportAmbiguousMatch::class)]
 #[CoversClass(ImportProfile::class)]
 #[CoversClass(RowOutcome::class)]
 final class PipelineRulesTest extends TestCase
@@ -169,6 +171,59 @@ final class PipelineRulesTest extends TestCase
         self::assertSame(0, $import->chunksDone());
         $this->expectException(\InvalidArgumentException::class);
         $import->recordArchived(-1);
+    }
+
+    public function testRecordsTheRunCouldNotArchiveCountAsFailed(): void
+    {
+        $import = $this->newImport();
+        $import->countRows(1, 1);
+
+        $import->recordArchived(2, 1);
+        $import->recordArchived(1, 0);
+
+        self::assertSame([3, 1, 0], [$import->archived(), $import->failed(), $import->processed()]);
+        $this->expectException(\InvalidArgumentException::class);
+        $import->recordArchived(0, -1);
+    }
+
+    public function testRowsWithAnUnreadableKeyAddUpAndCountingStartsThemOver(): void
+    {
+        $import = $this->newImport();
+        self::assertSame(0, $import->unidentified());
+
+        $import->recordUnidentified(2);
+        $import->recordUnidentified(0);
+        $import->recordUnidentified(1);
+        self::assertSame(3, $import->unidentified());
+
+        $import->countRows(5, 1);
+        self::assertSame(0, $import->unidentified());
+
+        try {
+            $import->recordUnidentified(-1);
+            self::fail('Expected InvalidArgumentException.');
+        } catch (\InvalidArgumentException) {
+            self::assertSame(0, $import->unidentified());
+        }
+    }
+
+    public function testAnAmbiguousMatchNamesItsRecord(): void
+    {
+        $import = $this->newImport();
+        $match = new ImportAmbiguousMatch($import, 9);
+
+        self::assertNull($match->id());
+        self::assertSame($import, $match->import());
+        self::assertSame(9, $match->recordId());
+        $tenant = TenantId::generate();
+        new \ReflectionProperty(ImportAmbiguousMatch::class, 'tenantId')->setValue($match, $tenant);
+        self::assertSame($tenant, $match->tenantId());
+    }
+
+    public function testAnAmbiguousMatchNeedsItsTenantStamped(): void
+    {
+        $this->expectException(\LogicException::class);
+        new ImportAmbiguousMatch($this->newImport(), 9)->tenantId();
     }
 
     public function testUndoCountsAddUp(): void
@@ -378,6 +433,21 @@ final class PipelineRulesTest extends TestCase
         $record->passedByUndo();
         self::assertTrue($record->processedInUndo());
         self::assertSame(RowOutcome::Skip, $record->outcome());
+    }
+
+    public function testAMissingRecordTheTargetRefusedFailsWithItsMessage(): void
+    {
+        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        self::assertNull($record->errorKey());
+        $record->archived(['name' => 'Old']);
+        self::assertNull($record->errorKey());
+
+        $record->failed();
+
+        self::assertSame(RowOutcome::Error, $record->outcome());
+        self::assertSame('import.error.archive_failed', $record->errorKey());
+        self::assertNull($record->before());
+        self::assertTrue($record->processedInRun());
     }
 
     public function testAnUndoOnlyRevertsOrKeepsAChangedRecord(): void

@@ -100,10 +100,17 @@ interface Imports
 
     public function findRow(int $id): ?ImportRow;
 
+    /**
+     * Remembers the records an ambiguous row matched, so they count as in the source.
+     *
+     * @param list<int> $recordIds
+     */
+    public function addAmbiguousMatches(Import $import, array $recordIds): void;
+
     public function findMissingRecord(int $id): ?ImportMissingRecord;
 
     /**
-     * Which of the given records a source row of the import matched or wrote.
+     * Which of the given records a source row of the import matched (alone or among others) or wrote.
      *
      * @param list<int> $recordIds
      *

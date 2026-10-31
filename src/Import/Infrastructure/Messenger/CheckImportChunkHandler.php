@@ -53,6 +53,7 @@ final readonly class CheckImportChunkHandler
             // A chunk is checked in one transaction, so a redelivered one is either all done or not at all.
             $done = [] !== $rows && array_all($rows, static fn ($row): bool => null !== $row->outcome());
             $counts = [];
+            $unidentified = 0;
             if (!$done) {
                 $reader = new RowReader($target, $import, $this->normaliser);
                 foreach ($rows as $row) {
@@ -63,12 +64,17 @@ final readonly class CheckImportChunkHandler
                     $row->decide($outcome, $errors);
                     $row->keyBy($evaluation->matchValue);
                     $row->record(1 === \count($matches) ? $matches[0]->id : null, null);
+                    if (\count($matches) > 1) {
+                        $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): int => $match->id, $matches));
+                    }
+                    $unidentified += $evaluation->keyUnreadable ? 1 : 0;
                     $counts[$outcome->value] = ($counts[$outcome->value] ?? 0) + 1;
                 }
             }
             $import = $this->imports->findLocked($message->importId) ?? throw new \LogicException('The import is gone.');
             if (!$done && ImportState::Checking === $import->state()) {
                 $import->recordChunk($counts);
+                $import->recordUnidentified($unidentified);
             }
 
             return ImportState::Checking === $import->state() && $import->chunksDone() >= $import->chunks();

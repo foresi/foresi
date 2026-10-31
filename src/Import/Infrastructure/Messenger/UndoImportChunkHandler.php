@@ -51,7 +51,16 @@ final readonly class UndoImportChunkHandler
     public function __invoke(UndoImportChunk $message): void
     {
         $import = $this->imports->findFresh($message->importId);
-        if (!$import instanceof Import || ImportState::Undoing !== $import->state()) {
+        if (!$import instanceof Import) {
+            return;
+        }
+        // A message delivered again after the import ended: the release of the gate may not have happened (the worker died, or it threw), so do it now. It is idempotent.
+        if ($import->state()->isEnd()) {
+            $this->gate->release($import->targetKey());
+
+            return;
+        }
+        if (ImportState::Undoing !== $import->state()) {
             return;
         }
         $target = $this->targets->get($import->targetKey());

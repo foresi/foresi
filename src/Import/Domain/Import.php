@@ -113,6 +113,10 @@ class Import implements TenantOwned
     #[ORM\Column(name: 'preset_key', type: 'string', length: 64, nullable: true)]
     private ?string $presetKey = null;
 
+    /** Rows whose match key cell could not be read: they identify no record, so a full replace counts its archive without them. */
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $unidentified = 0;
+
     /** Records the undo put back as they were. */
     #[ORM\Column(type: 'integer', options: ['default' => 0])]
     private int $reverted = 0;
@@ -307,6 +311,11 @@ class Import implements TenantOwned
         return $this->presetKey;
     }
 
+    public function unidentified(): int
+    {
+        return $this->unidentified;
+    }
+
     public function reverted(): int
     {
         return $this->reverted;
@@ -389,6 +398,7 @@ class Import implements TenantOwned
         $this->skipped = 0;
         $this->archived = 0;
         $this->failed = 0;
+        $this->unidentified = 0;
     }
 
     public function findArchiveCandidates(int $count): void
@@ -508,13 +518,27 @@ class Import implements TenantOwned
         $this->processed = $this->created + $this->updated + $this->restored + $this->skipped + $this->archived + $this->failed;
     }
 
-    /** Adds records a full replace archived; they are not source rows, so the progress stays. */
-    public function recordArchived(int $count): void
+    /**
+     * Adds records a full replace archived, and those it failed to archive (they
+     * count as failed, so the run ends with errors). They are not source rows, so
+     * the progress stays.
+     */
+    public function recordArchived(int $archived, int $failed = 0): void
     {
-        if ($count < 0) {
-            throw new \InvalidArgumentException('The number of archived records must not be negative.');
+        if ($archived < 0 || $failed < 0) {
+            throw new \InvalidArgumentException('The number of records must not be negative.');
         }
-        $this->archived += $count;
+        $this->archived += $archived;
+        $this->failed += $failed;
+    }
+
+    /** Adds rows of a checked chunk whose match key cell could not be read. */
+    public function recordUnidentified(int $rows): void
+    {
+        if ($rows < 0) {
+            throw new \InvalidArgumentException('The number of rows must not be negative.');
+        }
+        $this->unidentified += $rows;
     }
 
     /** Adds the outcome of one chunk of an undo. */

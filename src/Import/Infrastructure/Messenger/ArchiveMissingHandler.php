@@ -46,7 +46,16 @@ final readonly class ArchiveMissingHandler
     public function __invoke(ArchiveMissing $message): void
     {
         $import = $this->imports->findFresh($message->importId);
-        if (!$import instanceof Import || ImportState::Running !== $import->state()) {
+        if (!$import instanceof Import) {
+            return;
+        }
+        // A message delivered again after the import ended: the release of the gate may not have happened (the worker died, or it threw), so do it now. It is idempotent.
+        if ($import->state()->isEnd()) {
+            $this->gate->release($import->targetKey());
+
+            return;
+        }
+        if (ImportState::Running !== $import->state()) {
             return;
         }
         $target = $this->targets->get($import->targetKey());
@@ -56,8 +65,9 @@ final readonly class ArchiveMissingHandler
             $inSource = $this->imports->recordsInSource($import, array_map(static fn (ImportMissingRecord $record): int => $record->recordId(), $records));
             $ids = array_map(static fn (ImportMissingRecord $record): int => (int) $record->id(), $records);
 
-            $archived = $this->correlation->within('import:'.$message->importId, function () use ($ids, $inSource, $target, $import): int {
+            [$archived, $failed] = $this->correlation->within('import:'.$message->importId, function () use ($ids, $inSource, $target, $import): array {
                 $archived = 0;
+                $failed = 0;
                 foreach ($ids as $id) {
                     $failure = $this->savepoint->attempt(function () use ($id, $inSource, $target, &$archived): void {
                         $record = $this->imports->findMissingRecord($id) ?? throw new \LogicException('The record is gone.');
@@ -71,20 +81,22 @@ final readonly class ArchiveMissingHandler
                     });
                     if ($failure instanceof \Throwable) {
                         $this->logger->warning('Import {import} could not archive record {record}: {class}', ['import' => $import->id(), 'record' => $id, 'class' => $failure::class]);
-                        $kept = $this->savepoint->attempt(function () use ($id): void {
-                            ($this->imports->findMissingRecord($id) ?? throw new \LogicException('The record is gone.'))->kept();
+                        // It stays active and counts as failed, so the run ends with errors and the summary lists it.
+                        $marked = $this->savepoint->attempt(function () use ($id): void {
+                            ($this->imports->findMissingRecord($id) ?? throw new \LogicException('The record is gone.'))->failed();
                         });
-                        if ($kept instanceof \Throwable) {
-                            throw $kept;
+                        if ($marked instanceof \Throwable) {
+                            throw $marked;
                         }
+                        ++$failed;
                     }
                 }
 
-                return $archived;
+                return [$archived, $failed];
             });
 
             $import = $this->imports->findLocked($message->importId) ?? throw new \LogicException('The import is gone.');
-            $import->recordArchived($archived);
+            $import->recordArchived($archived, $failed);
             if (ImportState::Running !== $import->state()) {
                 return 'none';
             }

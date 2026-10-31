@@ -10,6 +10,7 @@ namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Application\Imports;
 use App\Import\Domain\Import;
+use App\Import\Domain\ImportAmbiguousMatch;
 use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
@@ -90,7 +91,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
         self::assertStringContainsString('1 files and 2 rows', $this->tester->getDisplay());
     }
 
-    public function testRemovesTheMissingRecordsOfAFullReplaceToo(): void
+    public function testRemovesTheMissingRecordsAndAmbiguousMatchesToo(): void
     {
         $tenant = TenantId::generate();
         $this->context->switchTo($tenant);
@@ -98,6 +99,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
         $import = $this->imports->find($this->importIds[$old]);
         self::assertNotNull($import);
         $this->em->persist(new ImportMissingRecord($import, 1, 42));
+        $this->em->persist(new ImportAmbiguousMatch($import, 43));
         $this->em->flush();
         $this->em->getConnection()->executeStatement('DELETE FROM import_row');
         $this->files->delete($old);
@@ -107,6 +109,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
         $this->tester->execute([]);
 
         self::assertEquals(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM import_missing_record'));
+        self::assertEquals(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM import_ambiguous_match'));
         self::assertStringContainsString('1 imports', $this->tester->getDisplay());
     }
 
