@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Several firms in one organisation. The owner lists, adds, edits and archives them under Settings, with the register lookup of the contact form. A registration number is unique among the active firms of an organisation.
+
 ### Changed
 
 - **Breaking:** every entity is identified by a UUIDv7 instead of a whole number. A migration converts existing data and cannot be reversed, so back up the database first. Old contact and import URLs stop working, an `id` column in a file exported earlier no longer matches, and messages queued before the upgrade land in the failed transport.

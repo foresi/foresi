@@ -29,9 +29,11 @@ nav:
     money: Peníze
     contacts: Kontakty
     extensions: Rozšíření
+    settings: Nastavení
   item:
     dashboard: Přehled
     contacts: Adresář
+    firms: Firmy
 ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
@@ -327,6 +329,51 @@ party:
     company_identifier: Firma potřebuje IČO nebo DIČ.
     save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
+firm:
+  title: Firmy
+  new: Nová firma
+  edit: Upravit firmu
+  views: Pohledy na firmy
+  empty:
+    title: Zatím tu nejsou žádné firmy
+    text: Přidejte firmu, za kterou vaše organizace vystavuje doklady.
+  empty_view:
+    title: Nic tu není
+    text: V tomto pohledu není žádná firma.
+  view:
+    active: Aktivní
+    archived: Archivované
+  summary: '{total, plural, one {# firma} few {# firmy} other {# firem}}'
+  column:
+    name: Název
+    registration: IČO
+    vat: DIČ
+    vat_status: Vztah k DPH
+  card:
+    tax: DPH
+    seat: Sídlo
+    documents: Údaje na dokladech
+  field:
+    name: Název
+    vatStatus: Vztah k DPH
+    registerEntry: Zápis v rejstříku
+    registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
+    bankAccounts: Bankovní účty
+    bankAccounts_help: 'IBAN, každý na samostatný řádek'
+  vat_status:
+    registered: Plátce DPH
+    not_registered: Neplátce DPH
+    identified_person: Identifikovaná osoba
+  flash:
+    created: Firma je uložená.
+    updated: Změny jsou uložené.
+    archived: Firma je archivovaná.
+  error:
+    registration_taken: Toto IČO už má jiná firma.
+    vat_status: Vyberte vztah k DPH.
+    vat_id_required: Zadejte DIČ této firmy.
+    iban: 'Zkontrolujte IBAN: {iban}'
+    save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
 import:
   number: '{value, number}'
   new: Nový import

@@ -207,6 +207,10 @@ when@test:
         App\Tests\Party\Infrastructure\Support\RejectingParties:
             decorates: App\Party\Application\Parties
 
+        # Lets a test lose the race for a registration number: the form check sees no other firm.
+        App\Tests\Party\Infrastructure\Support\RacingLegalEntities:
+            decorates: App\Party\Application\LegalEntities
+
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory

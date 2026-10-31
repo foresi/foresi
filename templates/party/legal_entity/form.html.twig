@@ -1,0 +1,73 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set editing = firm is not null %}
+{% set crumbs = editing
+    ? [{label: 'firm.title'|trans, href: cancel}, {label: firm.name}]
+    : [{label: 'firm.title'|trans, href: cancel}, {label: 'firm.new'|trans}] %}
+{% set badge = editing and firm.archived ? {label: 'party.archived'|trans, tone: 'gray'} : null %}
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ editing ? 'firm.edit'|trans : 'firm.new'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if editing and not firm.archived %}
+        <form method="post" action="{{ path('app_firm_archive', {id: firm.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::ACTION_TOKEN')) }}">
+            <twig:Ui:Button type="submit" icon="archive">{{ 'party.archive'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::FORM_TOKEN')) }}">
+        {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'party.card.identification'|trans" icon="building-2">
+            <div class="grid gap-3 sm:grid-cols-2">
+                {% if not editing %}
+                    <div class="sm:col-span-2">
+                        <twig:Ui:TextInput id="lookup" type="search" :label="'party.lookup.label'|trans" :help="'party.lookup.help'|trans" autocomplete="off" data-party-lookup-target="query" data-action="input->party-lookup#search" />
+                        <div class="mt-2" data-party-lookup-target="results" aria-live="polite"></div>
+                    </div>
+                {% endif %}
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'firm.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="255" required data-party-lookup-target="name" /></div>
+                <twig:Ui:Select name="registrationCountry" id="registrationCountry" :label="'party.field.registrationCountry'|trans" :options="countries" :value="values.registrationCountry" data-party-lookup-target="registrationCountry" />
+                <twig:Ui:TextInput name="registrationNumber" id="registrationNumber" :label="'party.field.registrationNumber'|trans" :value="values.registrationNumber" :error="errors.registrationNumber|default(null)" maxlength="64" required data-party-lookup-target="registrationNumber" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'firm.card.tax'|trans" icon="receipt-text">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <twig:Ui:Select name="vatStatus" id="vatStatus" :label="'firm.field.vatStatus'|trans" :options="statuses" :value="values.vatStatus" :error="errors.vatStatus|default(null)" required />
+                <twig:Ui:TextInput name="vatId" id="vatId" :label="'party.field.vatId'|trans" :help="'party.field.vatId_help'|trans" :value="values.vatId" :error="errors.vatId|default(null)" maxlength="16" data-party-lookup-target="vatId" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'firm.card.seat'|trans" icon="landmark">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="street" id="street" :label="'party.field.street'|trans" :value="values.street" :error="errors.street|default(null)" maxlength="255" required data-party-lookup-target="street" /></div>
+                <twig:Ui:TextInput name="city" id="city" :label="'party.field.city'|trans" :value="values.city" :error="errors.city|default(null)" maxlength="128" required data-party-lookup-target="city" />
+                <twig:Ui:TextInput name="postalCode" id="postalCode" :label="'party.field.postalCode'|trans" :value="values.postalCode" :error="errors.postalCode|default(null)" maxlength="32" required data-party-lookup-target="postalCode" />
+                <twig:Ui:Select name="countryCode" id="countryCode" :label="'party.field.countryCode'|trans" :options="countries" :value="values.countryCode" :error="errors.countryCode|default(null)" data-party-lookup-target="countryCode" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'firm.card.documents'|trans" icon="file-pen-line">
+            <div class="grid gap-3">
+                <twig:Ui:TextInput name="registerEntry" id="registerEntry" :label="'firm.field.registerEntry'|trans" :help="'firm.field.registerEntry_help'|trans" :value="values.registerEntry" :error="errors.registerEntry|default(null)" maxlength="255" />
+                <twig:Ui:Textarea name="bankAccounts" id="bankAccounts" :label="'firm.field.bankAccounts'|trans" :help="'firm.field.bankAccounts_help'|trans" :value="values.bankAccounts" :error="errors.bankAccounts|default(null)" :rows="3" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

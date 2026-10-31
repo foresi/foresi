@@ -29,9 +29,11 @@ nav:
     money: Money
     contacts: Contacts
     extensions: Extensions
+    settings: Settings
   item:
     dashboard: Dashboard
     contacts: Address book
+    firms: Firms
 ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
@@ -327,6 +329,51 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
+firm:
+  title: Firms
+  new: New firm
+  edit: Edit firm
+  views: Firm views
+  empty:
+    title: No firms yet
+    text: Add the firm your organisation issues documents from.
+  empty_view:
+    title: Nothing here
+    text: There is no firm in this view.
+  view:
+    active: Active
+    archived: Archived
+  summary: '{total, plural, one {# firm} other {# firms}}'
+  column:
+    name: Name
+    registration: Reg. no.
+    vat: VAT ID
+    vat_status: VAT status
+  card:
+    tax: VAT
+    seat: Registered office
+    documents: On documents
+  field:
+    name: Name
+    vatStatus: VAT status
+    registerEntry: Register entry
+    registerEntry_help: The register and file number, as printed on documents
+    bankAccounts: Bank accounts
+    bankAccounts_help: 'IBAN, one per line'
+  vat_status:
+    registered: VAT payer
+    not_registered: Non-payer
+    identified_person: Identified person
+  flash:
+    created: The firm is saved.
+    updated: The changes are saved.
+    archived: The firm is archived.
+  error:
+    registration_taken: Another firm already has this registration number.
+    vat_status: Choose the VAT status.
+    vat_id_required: Enter the VAT ID of this firm.
+    iban: 'Check the IBAN: {iban}'
+    save_failed: The firm could not be saved. Check the details and try again.
 import:
   number: '{value, number}'
   new: New import
