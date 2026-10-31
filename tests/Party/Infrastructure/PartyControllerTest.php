@@ -312,6 +312,11 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         self::assertResponseIsSuccessful();
         self::assertSame('Old Name', $crawler->filter('#displayName')->attr('value'));
+        // Save and Cancel live in the docked bar at the end of the form, Cancel first and Save on the right.
+        $bar = $crawler->filter('main form [data-action-bar]');
+        self::assertSame(['Cancel', 'Save'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
+        self::assertSame('/contacts/'.$party->id(), $bar->filter('a')->attr('href'));
+        self::assertCount(1, $bar->filter('button[type="submit"]'));
         $form = $crawler->filter('main form')->form(['displayName' => 'New Name', 'email' => 'new@example.com', 'city' => 'Moved City']);
         $this->client->submit($form);
 
