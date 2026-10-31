@@ -330,6 +330,14 @@ import:
     duplicate_in_file: '„{value}“ už má dřívější řádek tohoto souboru. Importuje se jen první řádek s touto hodnotou.'
     write_failed: 'Tento řádek se nepodařilo uložit. Zkontrolujte jeho hodnoty a importujte ho znovu.'
     archive_failed: 'Tento záznam se nepodařilo archivovat. Zůstává beze změny.'
+    invalid_registration_number: '„{value}“ není platné IČO. Zkontrolujte číslice.'
+    invalid_vat_id: '„{value}“ není platné DIČ. Zadejte například CZ12345678.'
+    invalid_iban: '„{value}“ není platný IBAN.'
+    invalid_bic: '„{value}“ není platný kód BIC (SWIFT). Má 8 nebo 11 znaků.'
+    invalid_bank_account: '„{value}“ není úplné číslo účtu s kódem banky.'
+    company_identifier: 'Firma potřebuje IČO nebo DIČ.'
+    too_long: '„{value}“ je delší než {max, number} znaků.'
+    out_of_range: '{value, number} není mezi {min, number} a {max, number}.'
   failure:
     file_missing: 'Nahraný soubor už není k dispozici. Nahrajte ho znovu.'
   refused:
@@ -352,3 +360,45 @@ import:
   error_file:
     column: 'Chyba'
     in_column: 'Sloupec {column}. {message}'
+  target:
+    party: Kontakty
+  preset:
+    idoklad_contacts: iDoklad – kontakty
+  field:
+    party:
+      id: Číslo kontaktu ve Foresi
+      display_name: Název
+      kind: Druh
+      registration_number: IČO
+      registration_country: Země registrace
+      vat_id: DIČ
+      email: E-mail
+      copy_email: E-mail pro kopie
+      invoice_email: E-mail pro faktury
+      phone: Telefon
+      mobile: Mobil
+      website: Web
+      roles: Role
+      billing_street: Fakturační ulice
+      billing_city: Fakturační město
+      billing_postal_code: Fakturační PSČ
+      billing_country: Fakturační stát
+      delivery_street: Dodací ulice
+      delivery_city: Dodací město
+      delivery_postal_code: Dodací PSČ
+      delivery_country: Dodací stát
+      bank_account_iban: IBAN
+      bank_account_bic: BIC (SWIFT)
+      bank_account_number: Číslo účtu
+      bank_code: Kód banky
+      contact_name: Kontaktní osoba
+      contact_title: Titul kontaktní osoby
+      contact_first_name: Jméno kontaktní osoby
+      contact_last_name: Příjmení kontaktní osoby
+      contact_email: E-mail kontaktní osoby
+      contact_phone: Telefon kontaktní osoby
+      contact_position: Pozice kontaktní osoby
+      due_days: Splatnost (dny)
+      currency: Měna
+      payment_method: Způsob platby
+      private_note: Soukromá poznámka

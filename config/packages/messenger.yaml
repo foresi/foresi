@@ -42,6 +42,8 @@ framework:
             App\Import\Application\Message\RunImportChunk: async
             App\Import\Application\Message\ArchiveMissing: async
             App\Import\Application\Message\UndoImportChunk: async
+            # Imported contacts are checked in the public registers later, at low priority.
+            App\Party\Application\RecheckRegistry: registry
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:

@@ -1,0 +1,5 @@
+﻿Firma,IČ,DIČ,Ulice,PSČ,Město,Stát,E-mailová adresa,Další příjemci,Telefon,www,Sleva,Splatnost,Nastavení odesílaní upomínek,Titul,Jméno,Příjmení,Mobil,Číslo účtu,Kód banky,IBAN,SWIFT
+Example Company s.r.o.,12345687,CZ12345687,Example Street 1,110 00,Praha,Česká republika,testing@example.com,billing@example.com,+420 123 456 789,https://www.example.com,0.00,14,Ano,Ing.,Jana,Example,+420 987 654 321,,,,
+Jan Example,,,Example Street 2,70030,Ostrava,Česká republika,jan@example.com,,,,0.00,,Ano,,Jan,Example,,,,,
+Example Trade a.s.,,,Příliš žluťoučký 3,40001,Ústí nad Labem,Česká republika,,,,,0.00,,Ano,,,,,123456789,0100,,
+Example Invalid,12345678,CZ1,,,,Česká republika,,,,,0.00,,Ano,,,,,,,,

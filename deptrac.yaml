@@ -198,6 +198,9 @@ deptrac:
       - AuditDomain
       # Contributes the sidebar item and its count.
       - Ui
+      # Contacts are an import target with a preset for the iDoklad export.
+      - ImportDomain
+      - ImportApplication
     ImportDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

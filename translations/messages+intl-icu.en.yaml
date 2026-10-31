@@ -330,6 +330,14 @@ import:
     duplicate_in_file: '"{value}" is already used by an earlier row of this file. Only the first row with it is imported.'
     write_failed: 'This row could not be saved. Check its values and import it again.'
     archive_failed: 'This record could not be archived. It stays as it was.'
+    invalid_registration_number: '"{value}" is not a valid registration number. Check the digits.'
+    invalid_vat_id: '"{value}" is not a valid VAT ID. Enter for example CZ12345678.'
+    invalid_iban: '"{value}" is not a valid IBAN.'
+    invalid_bic: '"{value}" is not a valid BIC (SWIFT) code. It has 8 or 11 characters.'
+    invalid_bank_account: '"{value}" is not a complete account number with a bank code.'
+    company_identifier: 'A company needs a registration number or a VAT ID.'
+    too_long: '"{value}" is longer than {max, number} characters.'
+    out_of_range: '{value, number} is not between {min, number} and {max, number}.'
   failure:
     file_missing: 'The uploaded file is no longer available. Upload it again.'
   refused:
@@ -352,3 +360,45 @@ import:
   error_file:
     column: 'Error'
     in_column: 'Column {column}. {message}'
+  target:
+    party: Contacts
+  preset:
+    idoklad_contacts: iDoklad contacts
+  field:
+    party:
+      id: Foresi contact number
+      display_name: Name
+      kind: Kind
+      registration_number: Registration number
+      registration_country: Register country
+      vat_id: VAT ID
+      email: E-mail
+      copy_email: Copy e-mail
+      invoice_email: Invoice e-mail
+      phone: Phone
+      mobile: Mobile
+      website: Website
+      roles: Roles
+      billing_street: Billing street
+      billing_city: Billing city
+      billing_postal_code: Billing postal code
+      billing_country: Billing country
+      delivery_street: Delivery street
+      delivery_city: Delivery city
+      delivery_postal_code: Delivery postal code
+      delivery_country: Delivery country
+      bank_account_iban: IBAN
+      bank_account_bic: BIC (SWIFT)
+      bank_account_number: Account number
+      bank_code: Bank code
+      contact_name: Contact person
+      contact_title: Contact person title
+      contact_first_name: Contact person first name
+      contact_last_name: Contact person last name
+      contact_email: Contact person e-mail
+      contact_phone: Contact person phone
+      contact_position: Contact person position
+      due_days: Due period (days)
+      currency: Currency
+      payment_method: Payment method
+      private_note: Private note

@@ -30,6 +30,8 @@ services:
     _instanceof:
         App\Party\Domain\RegistrationNumberValidator:
             tags: ['app.registration_number_validator']
+        App\Party\Domain\DomesticBankAccount:
+            tags: ['app.domestic_bank_account']
         # Modules plug into the import by implementing its target contract.
         App\Import\Application\Target\ImportTarget:
             tags: ['app.import_target']
@@ -40,6 +42,10 @@ services:
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
+
+    App\Party\Application\ImportPartyValues:
+        arguments:
+            $domesticAccounts: !tagged_iterator app.domestic_bank_account
 
     App\Import\Infrastructure\LocalImportFiles:
         arguments:
@@ -134,6 +140,9 @@ when@test:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.party_refresh_checks_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.registry_outgoing_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.login_throttling_storage:
