@@ -33,6 +33,9 @@ services:
         # Modules plug into the import by implementing its target contract.
         App\Import\Application\Target\ImportTarget:
             tags: ['app.import_target']
+        # ...and contribute presets of the known sources they can read.
+        App\Import\Domain\Preset\SourcePreset:
+            tags: ['app.import_preset']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -45,6 +48,10 @@ services:
     App\Import\Application\Target\TargetRegistry:
         arguments:
             $targets: !tagged_iterator app.import_target
+
+    App\Import\Application\PresetRegistry:
+        arguments:
+            $presets: !tagged_iterator app.import_preset
 
     # Declared here (private) so PHPStan, which reads the dev container, knows the
     # id used by the wiring test; it is made public in the test env below.
@@ -138,7 +145,17 @@ when@test:
             alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
             public: true
 
-        # Nothing consumes the import ports yet (the pipeline will), so the test kernel keeps the aliases.
+        # A target living in memory, for the pipeline tests.
+        App\Tests\Import\Support\FakeTarget:
+            public: true
+            tags: ['app.import_target']
+
+        # Nothing calls the import services yet (the screens will); the tests drive them directly.
+        App\Import\Application\StartImport: { public: true }
+        App\Import\Application\ConfigureImport: { public: true }
+        App\Import\Application\CheckImport: { public: true }
+
+        # Public for the tests, which use the ports directly.
         App\Import\Application\Imports:
             alias: App\Import\Infrastructure\Doctrine\DoctrineImports
             public: true
