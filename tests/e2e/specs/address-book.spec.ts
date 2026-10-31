@@ -115,6 +115,9 @@ test.describe('screens', () => {
     await page.goto('/contacts/new');
     await expect(page.locator('#displayName')).toBeVisible();
     await expect(page).toHaveScreenshot('form.png');
+    // The content capture shows the docked action bar where it sits at the end of the form.
+    await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+    await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
     await expect(page.locator('main')).toHaveScreenshot('form-content.png');
   });
 
