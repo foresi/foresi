@@ -9,12 +9,14 @@ declare(strict_types=1);
 namespace DoctrineMigrations;
 
 use App\Shared\Domain\Id;
+use App\Shared\Infrastructure\Doctrine\RunsOnlyForReal;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
@@ -30,10 +32,12 @@ use Doctrine\Migrations\Exception\IrreversibleMigration;
  * together. Classes are named as literals: this is a record of how the data
  * looked, and must not follow later renames.
  *
+ * All work runs in up(), so RunsOnlyForReal refuses --dry-run and --write-sql.
+ *
  * The audit log is rewritten here on purpose: its entries stay append-only for
  * the application, but an id they hold would otherwise point at nothing.
  */
-final class Version20261101000001 extends AbstractMigration
+final class Version20261101000001 extends AbstractMigration implements RunsOnlyForReal
 {
     private const int BATCH = 5000;
 
@@ -50,7 +54,8 @@ final class Version20261101000001 extends AbstractMigration
 
     /**
      * Parents before children: a table gets its foreign keys back when it is
-     * rebuilt, and on SQLite rebuilding a parent would cascade into its children.
+     * rebuilt, so what they point at must be converted already. Foreign keys are
+     * dropped in the opposite order, see replaceColumns().
      *
      * @var array<string, array{class-string|string|null, array<string, string>}> table => the class its ids are mapped under (null: nothing refers to them), and its references, column => class
      */
@@ -99,6 +104,10 @@ final class Version20261101000001 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        $this->abortIf(
+            !$this->connection->createSchemaManager()->introspectTable('party')->getColumn('id')->getType() instanceof IntegerType,
+            'The ids are UUIDs already, so this conversion ran without being recorded. Check the data; if it is complete, record it with: bin/console doctrine:migrations:version "DoctrineMigrations\Version20261101000001" --add. Otherwise restore the backup and migrate again.',
+        );
         $this->addColumns();
         foreach (self::TABLES as $table => [$class]) {
             if (null !== $class) {
@@ -262,16 +271,17 @@ final class Version20261101000001 extends AbstractMigration
     }
 
     /**
-     * Foreign keys go first, on their own: with them gone, rebuilding a table on
-     * SQLite cannot cascade. Then each table swaps its columns and gets its keys
-     * and indexes back as they were.
+     * Foreign keys go first, children before parents: SQLite rebuilds a table to
+     * alter it, and with foreign keys enforced, dropping a table that is still
+     * referenced cascades into the rows that refer to it. Then each table, parents
+     * first, swaps its columns and gets its keys and indexes back as they were.
      */
     private function replaceColumns(): void
     {
         $manager = $this->connection->createSchemaManager();
         $comparator = $manager->createComparator();
         $foreignKeys = [];
-        foreach (self::TABLES as $table => $config) {
+        foreach (array_reverse(self::TABLES) as $table => $config) {
             $foreignKeys[$table] = $manager->introspectTable($table)->getForeignKeys();
             $this->alter($comparator, $manager, $table, static function (Table $definition): void {
                 foreach ($definition->getForeignKeys() as $name => $foreignKey) {

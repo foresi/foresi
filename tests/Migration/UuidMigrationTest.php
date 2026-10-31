@@ -17,7 +17,9 @@ use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
+use App\Shared\Infrastructure\Doctrine\RefuseMigrationRehearsal;
 use App\Tenancy\Infrastructure\Doctrine\TenantIdType;
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
@@ -27,6 +29,9 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
 use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
+use Doctrine\Migrations\EventDispatcher;
+use Doctrine\Migrations\Events;
+use Doctrine\Migrations\Exception\AbortMigration;
 use Doctrine\Migrations\Exception\IrreversibleMigration;
 use Doctrine\Migrations\MigratorConfiguration;
 use Doctrine\Migrations\Version\Version;
@@ -276,6 +281,54 @@ final class UuidMigrationTest extends TestCase
         self::assertSame(self::COMPANY, $this->db->fetchOne('SELECT company_id FROM contact_link'));
     }
 
+    public function testEnforcedForeignKeysLoseNoRows(): void
+    {
+        $this->enableForeignKeys();
+
+        $this->migrateTo(null);
+
+        $importId = $this->text('SELECT id FROM import');
+        foreach (['import_row', 'import_missing_record', 'import_ambiguous_match'] as $table) {
+            self::assertSame($importId, $this->text('SELECT import_id FROM '.$table));
+        }
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM party_address'));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM contact_link'));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM membership'));
+        self::assertSame(3, $this->rows('SELECT COUNT(*) FROM party'));
+    }
+
+    public function testADryRunIsRefusedBeforeAnyChange(): void
+    {
+        $listeners = new EventManager();
+        $listeners->addEventListener(Events::onMigrationsMigrating, new RefuseMigrationRehearsal());
+        $migrations = $this->migrations();
+        $migrations->setService(EventDispatcher::class, new EventDispatcher($this->db, $listeners));
+
+        try {
+            $this->plan($migrations, new MigratorConfiguration()->setDryRun(true));
+            self::fail('A dry run must be refused.');
+        } catch (\RuntimeException $refused) {
+            self::assertStringContainsString('Version20261101000001', $refused->getMessage());
+        }
+
+        self::assertSame(self::COMPANY, $this->db->fetchOne("SELECT id FROM party WHERE display_name = 'Example Company s.r.o.'"));
+        self::assertFalse($this->db->isTransactionActive());
+
+        $this->migrateTo(null);
+
+        self::assertTrue(Id::isValid($this->text("SELECT id FROM party WHERE display_name = 'Example Company s.r.o.'")));
+    }
+
+    public function testIdsThatAreUuidsAlreadyStopTheMigrationWithTheWayOut(): void
+    {
+        // Without the listener a dry run converts everything and records nothing.
+        $this->plan($this->migrations(), new MigratorConfiguration()->setDryRun(true));
+
+        $this->expectException(AbortMigration::class);
+        $this->expectExceptionMessageIsOrContains('doctrine:migrations:version "DoctrineMigrations\Version20261101000001" --add');
+        $this->migrateTo(null);
+    }
+
     public function testItCannotBeReversed(): void
     {
         $this->migrateTo(null);
@@ -454,6 +507,11 @@ final class UuidMigrationTest extends TestCase
 
     private function migrateTo(?string $version): void
     {
+        $this->plan($this->migrations(), new MigratorConfiguration(), $version);
+    }
+
+    private function migrations(): DependencyFactory
+    {
         // A fresh factory per run: executed migration instances are frozen.
         $migrations = DependencyFactory::fromConnection(
             new ConfigurationArray([
@@ -461,10 +519,16 @@ final class UuidMigrationTest extends TestCase
             ]),
             new ExistingConnection($this->db),
         );
+
+        return $migrations;
+    }
+
+    private function plan(DependencyFactory $migrations, MigratorConfiguration $configuration, ?string $version = null): void
+    {
         $migrations->getMetadataStorage()->ensureInitialized();
         $plan = $migrations->getMigrationPlanCalculator()->getPlanUntilVersion(
             null === $version ? $migrations->getVersionAliasResolver()->resolveVersionAlias('latest') : new Version($version),
         );
-        $migrations->getMigrator()->migrate($plan, new MigratorConfiguration());
+        $migrations->getMigrator()->migrate($plan, $configuration);
     }
 }
