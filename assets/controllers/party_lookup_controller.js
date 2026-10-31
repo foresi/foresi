@@ -6,6 +6,7 @@ import { Controller } from '@hotwired/stimulus';
 const MIN_LENGTH = 3;
 const NUMBER_LENGTH = 8;
 const DELAY = 300;
+const TOO_MANY_REQUESTS = 429;
 
 /**
  * Registry lookup of the contact form: typing a registration number or the
@@ -14,7 +15,7 @@ const DELAY = 300;
  */
 export default class extends Controller {
     static targets = ['query', 'results', 'name', 'registrationCountry', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode'];
-    static values = { url: String, existing: String, empty: String };
+    static values = { url: String, existing: String, empty: String, limited: String };
 
     disconnect() {
         clearTimeout(this.timer);
@@ -45,6 +46,10 @@ export default class extends Controller {
                 headers: { Accept: 'application/json' },
                 signal: this.request.signal,
             });
+            if (response.status === TOO_MANY_REQUESTS) {
+                this.note(this.limitedValue);
+                return;
+            }
             if (!response.ok) {
                 this.clear();
                 return;
@@ -61,10 +66,7 @@ export default class extends Controller {
     show(results) {
         this.resultsTarget.replaceChildren();
         if (results.length === 0) {
-            const note = document.createElement('p');
-            note.className = 'text-[13px] text-muted';
-            note.textContent = this.emptyValue;
-            this.resultsTarget.append(note);
+            this.note(this.emptyValue);
             return;
         }
 
@@ -97,6 +99,14 @@ export default class extends Controller {
             list.append(item);
         }
         this.resultsTarget.append(list);
+    }
+
+    note(text) {
+        this.resultsTarget.replaceChildren();
+        const note = document.createElement('p');
+        note.className = 'text-[13px] text-muted';
+        note.textContent = text;
+        this.resultsTarget.append(note);
     }
 
     choose(record) {

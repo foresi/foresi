@@ -241,6 +241,7 @@ party:
     help: Zadejte IČO nebo alespoň tři písmena názvu a údaje se doplní z ARES.
     existing: Už v adresáři
     empty: V rejstříku nic nenalezeno.
+    limited: Příliš mnoho hledání. Zkuste to za minutu.
   duplicate:
     title: Takový kontakt už máte
     text: Kontakt se stejným IČO nebo DIČ už v adresáři je. Uložit i tak můžete.

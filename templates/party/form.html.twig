@@ -10,7 +10,7 @@
 {% block title %}{{ editing ? 'party.edit'|trans : 'party.new'|trans }}{% endblock %}
 
 {% block content %}
-    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}">
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
 

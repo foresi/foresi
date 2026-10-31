@@ -241,6 +241,7 @@ party:
     help: Enter a registration number or at least three letters of a name and the details are filled in from ARES.
     existing: Already in your address book
     empty: Nothing found in the register.
+    limited: Too many searches. Try again in a minute.
   duplicate:
     title: You already have this contact
     text: A contact with the same registration number or VAT ID is in the address book already. You can still save this one.

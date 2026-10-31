@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Application;
 
 use App\Party\Domain\Party;
+use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
 
@@ -41,7 +42,7 @@ final readonly class RefreshRegistryChecks
     public function store(Party $party, RegistryOutcome $outcome): void
     {
         $party->recordRegistryCheck($outcome->vies);
-        if ($outcome->reliability instanceof \App\Party\Domain\RegistryCheck) {
+        if ($outcome->reliability instanceof RegistryCheck) {
             $party->recordRegistryCheck($outcome->reliability);
             // An unreachable register says nothing about the accounts: keep what it published before.
             if (RegistryResult::Unavailable !== $outcome->reliability->result) {
