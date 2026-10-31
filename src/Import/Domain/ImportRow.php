@@ -204,7 +204,7 @@ class ImportRow implements TenantOwned
     private static function canonical(mixed $value): ?string
     {
         if (\is_array($value)) {
-            $parts = array_values(array_filter(array_map(self::canonical(...), $value), static fn (?string $part): bool => null !== $part));
+            $parts = array_filter(array_map(self::canonical(...), $value), static fn (?string $part): bool => null !== $part);
             sort($parts);
 
             return [] === $parts ? null : implode("\n", $parts);

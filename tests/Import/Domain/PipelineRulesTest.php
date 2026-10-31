@@ -23,6 +23,7 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowOutcome;
+use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -390,6 +391,15 @@ final class PipelineRulesTest extends TestCase
             self::assertFalse($record->processedInUndo());
             self::assertSame(RowOutcome::Archive, $record->outcome());
         }
+    }
+
+    public function testAMissingRecordKeepsTheStampedTenant(): void
+    {
+        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        $tenant = TenantId::generate();
+        new \ReflectionProperty(ImportMissingRecord::class, 'tenantId')->setValue($record, $tenant);
+
+        self::assertSame($tenant, $record->tenantId());
     }
 
     public function testAMissingRecordNeedsItsTenantStamped(): void
