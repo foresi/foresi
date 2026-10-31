@@ -68,8 +68,12 @@ final readonly class ColumnMatcher
                 $presetColumns[HeaderName::normalise((string) $header)] = $fieldKey;
             }
             foreach ($names as $column => $name) {
-                $key = $presetColumns[$name] ?? null;
-                if (!isset($proposals[$column]) && null !== $key && isset($known[$key])) {
+                if (isset($proposals[$column]) || !\array_key_exists($name, $presetColumns)) {
+                    continue;
+                }
+                $key = $presetColumns[$name];
+                // A column the preset leaves out is proposed as "do not import", so no name match claims it.
+                if (null === $key || isset($known[$key])) {
                     $claim($column, $key, MatchReason::Preset);
                 }
             }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Import\Support;
 
 use App\Audit\Application\AuditCorrelation;
+use App\Audit\Application\AuditTrail;
 use App\Import\Application\Target\ImportTarget;
 use App\Import\Application\Target\RecordMatch;
 use App\Import\Application\Target\RecordSnapshot;
@@ -41,7 +42,7 @@ final class FakeTarget implements ImportTarget
     private int $nextId = 1;
 
     /** Records belong to the active tenant; matching and the active ids see only its records. */
-    public function __construct(private readonly AuditCorrelation $correlation, private readonly TenantContext $tenants)
+    public function __construct(private readonly AuditCorrelation $correlation, private readonly TenantContext $tenants, private readonly AuditTrail $trail)
     {
     }
 
@@ -162,9 +163,9 @@ final class FakeTarget implements ImportTarget
         }
     }
 
-    public function entityClass(): string
+    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool
     {
-        return self::class;
+        return $this->trail->changedSince(self::class, (string) $id, $since, $exceptCorrelationId);
     }
 
     /**

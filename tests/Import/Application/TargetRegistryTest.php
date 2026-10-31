@@ -132,9 +132,9 @@ final class TargetRegistryTest extends TestCase
                 return [];
             }
 
-            public function entityClass(): string
+            public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool
             {
-                return \stdClass::class;
+                return false;
             }
         };
     }

@@ -94,6 +94,18 @@ final class ColumnMatcherTest extends TestCase
         );
     }
 
+    public function testAColumnThePresetLeavesOutIsProposedAsNotImportedAndCountsForRecognition(): void
+    {
+        // "Email" alone would match the email field by name.
+        $preset = $this->preset(['Name' => 'display_name', 'Email' => null]);
+
+        self::assertSame(
+            [['display_name', MatchReason::Preset], [null, MatchReason::Preset], ['email', MatchReason::SameName]],
+            $this->propose(['Name', 'Email', 'E-mail'], [], null, $preset),
+        );
+        self::assertTrue($preset->recognises(['Name', 'Email']));
+    }
+
     #[DataProvider('sameNames')]
     public function testSameName(string $header, string $field): void
     {
@@ -317,11 +329,11 @@ final class ColumnMatcherTest extends TestCase
         self::assertFalse($preset->recognises([...array_slice($known, 0, 6), 'a', 'b', 'c', 'd']), '6 of 10 is not');
     }
 
-    /** @param array<array-key, string> $columns */
+    /** @param array<array-key, string|null> $columns */
     private function preset(array $columns): AbstractSourcePreset
     {
         return new class($columns) extends AbstractSourcePreset {
-            /** @param array<array-key, string> $columns */
+            /** @param array<array-key, string|null> $columns */
             public function __construct(private readonly array $columns)
             {
             }

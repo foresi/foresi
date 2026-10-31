@@ -20,7 +20,10 @@ interface SourcePreset
     public function targetKey(): string;
 
     /**
-     * @return array<array-key, string> normalised header (see HeaderName) => field key
+     * A header mapped to null is a column the preset knows and leaves out: it is
+     * proposed as "do not import" and still counts for recognition.
+     *
+     * @return array<array-key, string|null> header (compared as HeaderName normalises it) => field key, or null
      */
     public function columns(): array;
 

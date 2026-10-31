@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure\Messenger;
 
 use App\Audit\Application\AuditCorrelation;
-use App\Audit\Application\AuditTrail;
 use App\Import\Application\ImportGate;
 use App\Import\Application\ImportJobs;
 use App\Import\Application\Imports;
@@ -39,7 +38,6 @@ final readonly class UndoImportChunkHandler
     public function __construct(
         private Imports $imports,
         private TargetRegistry $targets,
-        private AuditTrail $trail,
         private RowSavepoint $savepoint,
         private AuditCorrelation $correlation,
         private ImportGate $gate,
@@ -123,12 +121,13 @@ final readonly class UndoImportChunkHandler
         if (!$row->processedInRun() || !$outcome instanceof RowOutcome || !$outcome->wroteRecord() || null === $recordId) {
             return null;
         }
-        if ($this->changed($target, $recordId, $since, $importId)) {
+        $before = new RecordSnapshot($row->before() ?? []);
+        if ($target->changedSince($recordId, $before, $since, 'import:'.$importId)) {
             $row->decide(RowOutcome::ChangedAfterImport);
 
             return RowOutcome::ChangedAfterImport;
         }
-        $target->revert($recordId, new RecordSnapshot($row->before() ?? []));
+        $target->revert($recordId, $before);
         // The run restored an archived record before updating it; the undo archives it again.
         if (RowOutcome::Restore === $outcome) {
             $target->archive($recordId);
@@ -146,7 +145,7 @@ final readonly class UndoImportChunkHandler
 
             return null;
         }
-        if ($this->changed($target, $record->recordId(), $since, $importId)) {
+        if ($target->changedSince($record->recordId(), new RecordSnapshot($record->before() ?? []), $since, 'import:'.$importId)) {
             $record->undone(RowOutcome::ChangedAfterImport);
 
             return RowOutcome::ChangedAfterImport;
@@ -155,13 +154,5 @@ final readonly class UndoImportChunkHandler
         $record->undone(RowOutcome::Reverted);
 
         return RowOutcome::Reverted;
-    }
-
-    private function changed(ImportTarget $target, int $recordId, \DateTimeImmutable $since, int $importId): bool
-    {
-        /** @var class-string $entityClass */
-        $entityClass = $target->entityClass();
-
-        return $this->trail->changedSince($entityClass, (string) $recordId, $since, 'import:'.$importId);
     }
 }

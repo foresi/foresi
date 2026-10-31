@@ -64,8 +64,20 @@ interface ImportTarget
 
     public function archive(int $id): RecordSnapshot;
 
-    /** A record the import created has RecordSnapshot::none() as before-state and is archived. */
+    /**
+     * Puts the record back as the snapshot describes it. A record the import
+     * created is archived; its before-state is RecordSnapshot::none(), or what
+     * the target noted to undo along with it.
+     */
     public function revert(int $id, RecordSnapshot $before): void;
+
+    /**
+     * Whether the record, or anything that belongs to it, changed at or after
+     * $since outside the given audit correlation. Undo leaves such a record as it is.
+     *
+     * @param RecordSnapshot $before the snapshot the write returned, which may name what it added
+     */
+    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool;
 
     /**
      * @return iterable<int> ids of all non-archived records
@@ -78,7 +90,4 @@ interface ImportTarget
      * @return iterable<array<string, string>> export rows by field key
      */
     public function export(array $ids): iterable;
-
-    /** The audited entity class, for the audit trail. */
-    public function entityClass(): string;
 }
