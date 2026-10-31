@@ -154,6 +154,9 @@ when@test:
         App\Import\Application\StartImport: { public: true }
         App\Import\Application\ConfigureImport: { public: true }
         App\Import\Application\CheckImport: { public: true }
+        App\Import\Application\RunImport: { public: true }
+        App\Import\Application\UndoImport: { public: true }
+        App\Import\Application\CancelImport: { public: true }
 
         # Public for the tests, which use the ports directly.
         App\Import\Application\Imports:

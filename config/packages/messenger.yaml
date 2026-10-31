@@ -39,6 +39,9 @@ framework:
             # The import pipeline: one message per chunk, so a crash loses one chunk, not the import.
             App\Import\Application\Message\ReadImportFile: async
             App\Import\Application\Message\CheckImportChunk: async
+            App\Import\Application\Message\RunImportChunk: async
+            App\Import\Application\Message\ArchiveMissing: async
+            App\Import\Application\Message\UndoImportChunk: async
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
