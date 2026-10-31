@@ -17,13 +17,24 @@
         <aside id="sidebar" data-sidebar-target="panel" class="flex flex-col px-3.5 pb-2.5 pt-1.5 max-[899px]:invisible max-[899px]:fixed max-[899px]:inset-y-0 max-[899px]:left-0 max-[899px]:z-40 max-[899px]:w-[82%] max-[899px]:max-w-80 max-[899px]:overflow-y-auto max-[899px]:bg-frame max-[899px]:pt-3 max-[899px]:data-[open]:visible min-[900px]:sticky min-[900px]:z-10 min-[900px]:top-2.5 min-[900px]:h-[calc(100vh-20px)] min-[900px]:overflow-y-auto max-[899px]:[&_[data-command-palette-target=overlay]]:visible">
             {% include 'layout/_sidebar.html.twig' with {shell: shell} only %}
         </aside>
-        <main id="main" tabindex="-1" data-sidebar-target="page" class="min-w-0 rounded-panel border border-frame-line bg-white shadow-[0_1px_2px_rgba(28,29,26,.04)] outline-none">
-            <div class="flex items-center gap-2 border-b border-line px-3.5 py-2 min-[900px]:hidden">
+        <main id="main" tabindex="-1" data-sidebar-target="page" class="min-w-0 rounded-panel border border-container bg-white shadow-raised outline-none">
+            <div class="flex items-center gap-2 border-b border-divider px-3.5 py-2 min-[900px]:hidden">
                 <twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="sidebar" aria-expanded="false" />
                 <span class="font-semibold text-ink">{{ product_name }}</span>
             </div>
             <twig:Ui:PageHeader :title="pageTitle" :crumbs="crumbs|default([])" :badge="badge|default(null)">{{ headerActions }}</twig:Ui:PageHeader>
             <div class="p-6 max-[899px]:p-3.5">
+                {% set notices = shell_notices(shell ? shell.tenantActive : false) %}
+                {% if notices is not empty %}
+                    <div data-shell-notices class="mb-4 grid gap-2">
+                        {% for notice in notices %}
+                            <twig:Ui:Alert :tone="notice.tone">
+                                <span>{{ notice.text }}</span>
+                                <a href="{{ notice.href }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
+                            </twig:Ui:Alert>
+                        {% endfor %}
+                    </div>
+                {% endif %}
                 {% block content %}{% endblock %}
             </div>
         </main>

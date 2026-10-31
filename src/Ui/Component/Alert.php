@@ -45,6 +45,6 @@ final class Alert
 
     public function classes(): string
     {
-        return 'rounded-control px-3 py-2 text-[13px] '.Style::tone(self::TONES[$this->tone]);
+        return 'rounded-panel px-4 py-3 text-small '.Style::tone(self::TONES[$this->tone]);
     }
 }

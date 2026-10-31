@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'import.history.title'|trans}] %}
+
+{% block title %}{{ 'import.history.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="upload" :href="path('app_import_new', newTarget ? {target: newTarget} : {})">{{ 'import.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    <twig:Ui:DataTable :caption="'import.history.title'|trans" :columns="columns" :rows="rows">
+        <twig:block name="empty">
+            <twig:Ui:EmptyState icon="history" :title="'import.history.empty.title'|trans" :text="'import.history.empty.text'|trans">
+                <twig:Ui:Button variant="primary" icon="upload" :href="path('app_import_new', newTarget ? {target: newTarget} : {})">{{ 'import.new'|trans }}</twig:Ui:Button>
+            </twig:Ui:EmptyState>
+        </twig:block>
+    </twig:Ui:DataTable>
+{% endblock %}

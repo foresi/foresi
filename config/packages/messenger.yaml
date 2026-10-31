@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            # Default queue. redeliver_timeout must exceed the longest handler, or a slow
+            # message is delivered to a second worker while the first is still on it.
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: async
+                    redeliver_timeout: 7200
+                retry_strategy:
+                    max_retries: 3
+                    delay: 2000
+                    multiplier: 4
+            # Low priority: public register re-checks. Consume it after async.
+            registry:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: registry
+                    redeliver_timeout: 7200
+                retry_strategy:
+                    max_retries: 3
+                    delay: 2000
+                    multiplier: 4
+            failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: failed
+
+        buses:
+            messenger.bus.default:
+                middleware:
+                    - App\Tenancy\Infrastructure\Messenger\TenantMiddleware
+
+        routing:
+            # The import pipeline: one message per chunk, so a crash loses one chunk, not the import.
+            App\Import\Application\Message\ReadImportFile: async
+            App\Import\Application\Message\CheckImportChunk: async
+            App\Import\Application\Message\RunImportChunk: async
+            App\Import\Application\Message\ArchiveMissing: async
+            App\Import\Application\Message\UndoImportChunk: async
+            # Imported contacts are checked in the public registers later, at low priority.
+            App\Party\Application\RecheckRegistry: registry
+
+# The end-to-end environment has no worker: messages are handled inline.
+when@e2e:
+    framework:
+        messenger:
+            transports:
+                async: 'sync://'
+                registry: 'sync://'
+                failed: 'in-memory://'

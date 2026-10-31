@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full"><twig:Ui:ActionBar><twig:Ui:Button>Zrušit</twig:Ui:Button><twig:Ui:Button type="submit" variant="primary">Uložit</twig:Ui:Button></twig:Ui:ActionBar></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'status'} %}{% block sample %}
+<div class="w-full"><twig:Ui:ActionBar status="20 z 22 sloupců se importuje"><twig:Ui:Button>Zpět</twig:Ui:Button><twig:Ui:Button type="submit" variant="primary" icon="square-check-big">Zkontrolovat</twig:Ui:Button></twig:Ui:ActionBar></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
+<div class="w-full"><twig:Ui:ActionBar status="2,000 rows will be created, 120 updated and 3 have an error"><twig:Ui:Button icon="columns-3">Match columns again</twig:Ui:Button><twig:Ui:Button type="submit" variant="primary" icon="send">Start import</twig:Ui:Button></twig:Ui:ActionBar></div>
+{% endblock %}{% endembed %}
+</div>

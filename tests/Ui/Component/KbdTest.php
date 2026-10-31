@@ -21,6 +21,6 @@ final class KbdTest extends KernelTestCase
 
         self::assertStringStartsWith('<kbd', $html);
         self::assertStringContainsString('F', $html);
-        self::assertStringContainsString('border-frame-line', $html);
+        self::assertStringContainsString('border-container', $html);
     }
 }

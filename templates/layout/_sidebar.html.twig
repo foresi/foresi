@@ -9,12 +9,12 @@
     {% endfor %}
 {% endfor %}
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
-{% set orgClass = 'flex items-center gap-2.5 rounded-panel border border-frame-line bg-white p-2.5 text-left no-underline' %}
+{% set orgClass = 'flex items-center gap-2.5 rounded-panel border border-container bg-white p-2.5 text-left no-underline' %}
 {% set orgContent %}
     <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
     <span class="min-w-0">
-        <b class="line-clamp-2 block text-sm leading-tight text-ink [overflow-wrap:anywhere]" title="{{ orgName }}">{{ orgName }}</b>
-        {% if shell.organisation %}<small class="block truncate text-xs text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
+        <b class="line-clamp-2 block text-body leading-tight text-ink [overflow-wrap:anywhere]" title="{{ orgName }}">{{ orgName }}</b>
+        {% if shell.organisation %}<small class="block truncate text-caption text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
     </span>
 {% endset %}
 {% if shell.organisations|length > 1 %}
@@ -31,17 +31,17 @@
 </div>
 
 {% macro item(entry, focus) %}
-    <a href="{{ path(entry.route) }}"{% if entry.current %} aria-current="page"{% endif %} class="flex h-[34px] items-center gap-2.5 rounded-control border px-2.5 no-underline {{ entry.current ? 'border-frame-line bg-white font-medium text-ink shadow-[0_1px_2px_rgba(28,29,26,.05)]' : 'border-transparent text-text hover:bg-frame-hover' }} {{ focus }}">
+    <a href="{{ path(entry.route) }}"{% if entry.current %} aria-current="page"{% endif %} class="flex h-control items-center gap-2.5 rounded-control border px-2.5 no-underline {{ entry.current ? 'border-container bg-white font-medium text-ink shadow-raised' : 'border-transparent text-text hover:bg-frame-hover' }} {{ focus }}">
         {{ ux_icon('lucide:' ~ entry.icon, {class: 'size-4 shrink-0 ' ~ (entry.current ? 'text-green' : ''), 'aria-hidden': 'true'}) }}
         <span class="truncate">{{ entry.labelKey|trans }}</span>
-        {% if entry.count is not null %}<span data-nav-count class="num ml-auto rounded-md px-1.5 text-xs leading-5 {{ entry.current ? 'bg-green-tint text-green' : 'bg-frame-hover text-muted' }}">{{ entry.count }}</span>{% endif %}
+        {% if entry.count is not null %}<span data-nav-count class="num ml-auto inline-flex h-badge items-center rounded-sm px-1.5 text-caption font-medium {{ entry.current ? 'bg-green-tint text-green' : 'bg-frame-hover text-muted' }}">{{ entry.count }}</span>{% endif %}
     </a>
 {% endmacro %}
 
 <nav aria-label="{{ 'shell.sidebar_label'|trans }}" class="flex-1">
     {% for group in groups|filter(g => g.key != 'settings') %}
         <section data-nav-group="{{ group.key }}" aria-labelledby="nav-group-{{ group.key }}">
-            <h2 id="nav-group-{{ group.key }}" class="mx-2.5 mb-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wider text-muted">{{ group.labelKey|trans }}</h2>
+            <h2 id="nav-group-{{ group.key }}" class="mx-2.5 mb-1.5 mt-4 text-caption font-semibold uppercase tracking-wide text-muted">{{ group.labelKey|trans }}</h2>
             <ul class="m-0 grid list-none gap-0.5 p-0">
                 {% for entry in group.items %}<li>{{ _self.item(entry, focus) }}</li>{% endfor %}
             </ul>

@@ -1,15 +1,17 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-<div {{ attributes.defaults({class: 'grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-line bg-line lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.views|length}) }}>
+{# A KPI with an href opens the list behind its number; the whole tile is the link. #}
+<div {{ attributes.defaults({class: 'grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-container bg-divider lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]', style: '--n:' ~ this.views|length}) }}>
     {% for item in this.views %}
-        <div data-kpi class="min-w-0 bg-white px-4 py-3.5">
-            <div class="flex items-center gap-1.5 text-[13px] text-muted"><span class="truncate" title="{{ item.label }}">{{ item.label }}</span></div>
-            <div class="num mb-1 mt-1.5 truncate text-2xl font-semibold tracking-tight text-ink" title="{{ item.value }}">{{ item.value }}</div>
+        {% set tag = item.href ? 'a' : 'div' %}
+        <{{ tag }} data-kpi{% if item.href %} href="{{ item.href }}"{% endif %} class="min-w-0 bg-white p-4{{ item.href ? ' block no-underline hover:bg-head focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green' : '' }}">
+            <div class="flex items-center gap-1.5 text-small text-muted"><span class="truncate" title="{{ item.label }}">{{ item.label }}</span>{% if item.href %}{{ ux_icon('lucide:chevron-right', {class: 'ml-auto size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif %}</div>
+            <div class="num mb-1 mt-1.5 truncate text-figure font-semibold text-ink" title="{{ item.value }}">{{ item.value }}</div>
             {% if item.note or item.badge %}
-                <div class="flex items-center gap-1.5 text-xs text-muted">
+                <div class="flex items-center gap-1.5 text-caption text-muted">
                     {% if item.badge %}<twig:Ui:Badge :tone="item.badge.tone">{{ item.badge.label }}</twig:Ui:Badge>{% endif %}
                     {% if item.note %}<span class="truncate">{{ item.note }}</span>{% endif %}
                 </div>
             {% endif %}
-        </div>
+        </{{ tag }}>
     {% endfor %}
 </div>

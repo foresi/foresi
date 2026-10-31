@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+form:
+  # Starts the page title while a form shows errors.
+  title_error: 'Error:'
 login:
   title: Sign in
   email: E-mail
@@ -48,6 +51,8 @@ ui:
     previous: Previous page
     next: Next page
     page: 'Page {page}'
+  stepper:
+    done: done
   breadcrumb:
     label: Breadcrumb
   palette:
@@ -108,10 +113,33 @@ catalogue:
     long: Long text
     selectable: Selectable with bulk bar
     sorted: Sorted with totals
+    progress: In progress
+    done: Done
+    value_map: Value mapping
+    linked: Linked
+    status: With status text
+    radius: Radius
+    height: Heights
+    type: Type
+    border: Borders
+    elevation: Elevation
 
 format:
+  date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 party:
+  header:
+    import: Import
+    export: Export
+    export_csv: Export as CSV
+    export_xlsx: 'Export as Excel (XLSX)'
+  imported_by:
+    create: 'Contacts the import of {name} created.'
+    update: 'Contacts the import of {name} updated.'
+    restore: 'Contacts the import of {name} restored from the archive.'
+    archive: 'Contacts the import of {name} archived.'
+    changed_after_import: 'Contacts of the import of {name} that someone changed after the import.'
+    summary: Import summary
   title: Address book
   new: New contact
   edit: Edit
@@ -151,18 +179,6 @@ party:
   bulk:
     archive: Archive
     export: Export CSV
-  export:
-    name: Name
-    kind: Kind
-    roles: Roles
-    registration_number: Registration number
-    vat_id: VAT ID
-    email: E-mail
-    phone: Phone
-    street: Street
-    city: City
-    postal_code: Postal code
-    country: Country
   column:
     name: Name
     kind: Kind
@@ -216,6 +232,8 @@ party:
     vatId_help: For example CZ12345678. After saving it is checked in VIES and in the register of unreliable payers.
     email: E-mail
     phone: Phone
+    mobile: Mobile
+    website: Website
     street: Street and number
     city: City
     postalCode: Postal code
@@ -241,6 +259,7 @@ party:
     help: Enter a registration number or at least three letters of a name and the details are filled in from ARES.
     existing: Already in your address book
     empty: Nothing found in the register.
+    limited: Too many searches. Try again in a minute.
   duplicate:
     title: You already have this contact
     text: A contact with the same registration number or VAT ID is in the address book already. You can still save this one.
@@ -262,6 +281,7 @@ party:
     primary: Primary contact person
     link: Add person
     no_candidates: There is no other person in the address book. Add one as a new contact of kind Person first.
+    person_invalid: Choose a person who is not listed for the company yet.
   accounts:
     empty: There is no bank account yet.
   defaults:
@@ -290,7 +310,6 @@ party:
     archived_many: '{count, plural, one {# contact archived.} other {# contacts archived.}}'
     restored: The contact is restored.
     linked: The contact person is added.
-    link_invalid: This person cannot be added. They are listed for the company already, or they are not a person.
     checks_refreshed: The register checks are updated.
     checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
     checks_rate_limited: Too many refreshes. Try again in a minute.
@@ -305,3 +324,343 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
+import:
+  number: '{value, number}'
+  new: New import
+  steps:
+    label: Import steps
+    upload: Upload file
+    columns: Match columns
+    check: Check
+    run: Import
+    summary: Result
+  state:
+    uploaded: Uploaded
+    reading: Reading
+    mapping: Matching columns
+    checking: Checking
+    checked: Checked
+    queued: Queued
+    running: Importing
+    finished: Finished
+    finished_with_errors: Finished with errors
+    stopped: Stopped
+    failed: Failed
+    cancelled: Cancelled
+    undoing: Undoing
+    undone: Undone
+  mode:
+    add_missing:
+      label: Add new only
+      text: Only new records are added. Records that already exist stay as they are.
+    update:
+      label: Update existing
+      text: Records that are found take the values of the file, and new ones are added.
+    full_replace:
+      label: Replace fully
+      text: The records will match the file. Found ones are updated and new ones are added.
+      warning: Records that are not in the file are archived.
+  history:
+    title: Imports
+    empty:
+      title: No imports yet
+      text: Once you upload your first file, you will see here how the import went.
+    column:
+      file: File
+      when: When
+      who: Who
+      target: Records
+      mode: Mode
+      created: New
+      updated: Updated
+      failed: Errors
+      state: State
+  upload:
+    title: New import
+    card: File to import
+    target: Kind of records
+    target_choose: Choose the kind of records
+    target_missing: Choose which records you want to import.
+    file: File
+    file_help: CSV or XLSX up to 50 MB and 200,000 rows. You match the columns to fields in the next step.
+    profile: Import profile
+    profile_none: No profile
+    profile_help: A profile uses the columns and options that worked in an earlier import.
+    submit: Upload file
+    missing: Choose the file you want to upload.
+    server_limit: 'The file is larger than the server accepts ({limit}). Make it smaller, or ask the server administrator for a higher limit.'
+    too_large: The file is larger than 50 MB. Split it into smaller parts.
+  cancel:
+    button: Cancel import
+    confirm: Do you really want to cancel the import? Nothing will be written.
+  file:
+    title: File
+    change: Change
+    change_help: The file is read again with the new settings and the columns are proposed again.
+    format: Format
+    encoding: Encoding
+    delimiter: Delimiter
+    sheet: Sheet
+    header_row: Header row
+    rows: Data rows
+    reread: Read again
+    keep: Keep
+  encoding:
+    utf-8: UTF-8
+    utf-8-bom: UTF-8 with BOM
+    windows-1250: Windows-1250
+    iso-8859-2: ISO-8859-2
+    windows-1252: Windows-1252
+  delimiter:
+    semicolon: Semicolon
+    comma: Comma
+    tab: Tab
+    pipe: Vertical bar
+    other: Other character
+  mapping:
+    title: Match columns
+    intro: For each column, choose the field it is imported into. Leave the columns you do not need out of the import.
+    summary: '{mapped} of {total, number} {total, plural, one {column} other {columns}} imported'
+    do_not_import: Do not import
+    required_field: '{field} (required)'
+    missing: 'The check starts once you match a column to the required {count, plural, one {field} other {fields}}'
+    # Under the select of the column that most likely holds a required field no column fills.
+    assign: 'Match the field {field} to one of the columns'
+    submit: Check
+    back: Back
+  reason:
+    remembered: Remembered
+    preset: Known source
+    same_name: Same name
+    similar_name: Similar name
+  source_name:
+    idoklad_contacts: iDoklad
+  group:
+    party:
+      general: Contact
+      billing: Billing address
+      delivery: Delivery address
+      bank: Bank account
+      contact: Contact person
+  value:
+    party:
+      kind:
+        person: Person
+        sole_trader: Sole trader
+        company: Company
+      payment_method:
+        bank_transfer: Bank transfer
+        cash: Cash
+        card: Card
+  values:
+    title: Values
+    intro: We do not know these values of the file. Choose what they mean. Rows with a value left unassigned are not imported and appear among the errors.
+    rows: '{count, plural, one {# row} other {# rows}}'
+    unassigned: Not assigned
+    more: 'Showing the {shown, number} most frequent of {total, number} values.'
+  options:
+    title: Options
+    mode: What should happen to the records
+    match_key: How records are found
+    match_key_auto: Automatically
+    match_key_help: A record with the same value is updated or skipped. Without a key every row is added as new.
+    blank_cells: Empty cells
+    blank_cells_help: Applies to records that are updated.
+    scope: What may be archived
+    scope_help: Archived records can be restored at any time.
+    date_order: Date order
+    date_order_help: The dates of the file can be read in more than one way. Choose how they are written.
+    decimal: Decimal separator
+    decimal_help: The numbers of the file can be read in more than one way. Choose how they are written.
+    profile: Import profile
+    profile_kept: After a successful import, the columns and options are saved to this profile.
+    profile_name: Save as profile
+    profile_name_help: Optional. Under this name you repeat the import next time with the same columns and options.
+  blank_cells:
+    keep: Keep the value
+    clear: Clear the value
+  scope:
+    profile: Only records that earlier imports of this profile created, updated or restored
+    all: All records
+  date_order:
+    day_month_year: Day first (31/12/2026)
+    month_day_year: Month first (12/31/2026)
+    year_month_day: Year first (2026-12-31)
+  decimal:
+    comma: Comma (1.234,50)
+    point: Point (1,234.50)
+  check:
+    unidentified: '{count, plural, one {# row has a match key} other {# rows have a match key}} we could not read. The records to archive are counted without {count, plural, one {it} other {them}}.'
+    intro: 'The check went through the whole file and wrote nothing. This is how the import in the mode {mode} will turn out.'
+    kpi:
+      create: To create
+      update: To update
+      skip: To skip
+      error: With errors
+      error_badge: Not imported
+    restored_note: '{count, plural, one {# of them restored from the archive} other {# of them restored from the archive}}'
+    preview: Rows preview
+    preview_more: 'Showing the first {count, number} rows.'
+    tab:
+      create: New
+      update: Updated
+      restore: Restored
+      skip: Skipped
+      error: With errors
+    row: 'Row {number, number}'
+    column_row: Row
+    download_errors: Download errors
+    archive:
+      title: '{count, plural, one {# record will be archived} other {# records will be archived}}'
+      text: These records are not in the file. Archived records are kept and can be restored.
+      confirm: 'To confirm, type {count}'
+    run: Start import
+    edit: Edit matching
+  progress:
+    title: Progress
+    reading: Reading the file
+    checking: Checking the rows
+    queued: The import is queued
+    running: Importing the rows
+    undoing: Undoing the import
+    done: Done
+    rows: '{done, number} of {total, number} rows'
+    queued_text: Another import is writing into the same records right now. This one starts as soon as that one ends.
+    leave: You can go on with other work. When the import ends, we show you a notice.
+    finished: Done. Opening the next step.
+  summary:
+    outcome:
+      finished: The import is done.
+      finished_with_errors: '{count, plural, one {The import is done. # row could not be imported.} other {The import is done. # rows could not be imported.}}'
+      stopped: The import stopped because more than half of the rows had an error. Check how the columns are matched and upload the file again.
+      failed: The import could not be finished.
+      cancelled: The import is cancelled. Nothing was written.
+      undone: The import is undone.
+    failure_unreadable: The file could not be read. Save it as CSV in UTF-8 or as XLSX and upload it again.
+    kpi:
+      created: Created
+      updated: Updated
+      archived: Archived
+      failed: Errors
+      reverted: Undone
+      changed: Changed after the import
+    details: Details
+    target: Records
+    mode: Mode
+    actor: Imported by
+    started: Started
+    finished: Ended
+    skipped: Skipped
+    errors:
+      title: Rows with errors
+      text: '{count, plural, one {# row was not imported.} other {# rows were not imported.}} Download them with a description of the error, fix them and upload them again.'
+      download: Download errors
+    undo:
+      title: Undoing the import
+      text: Created records are archived, updated ones get their previous values back and archived ones are restored. Records someone changed in the meantime stay as they are.
+      deadline: 'The import can be undone until {date}.'
+      button: Undo import
+      confirm: Do you really want to undo the import?
+    done: Done
+  notice:
+    finished: 'The import of {name} is done.'
+    finished_with_errors: 'The import of {name} ended with errors.'
+    stopped: 'The import of {name} stopped.'
+    failed: 'The import of {name} could not be finished.'
+    cancelled: 'The import of {name} is cancelled.'
+    undone: 'The import of {name} is undone.'
+    link: Show result
+  flash:
+    cancelled: The import is cancelled.
+  source:
+    rejected:
+      too_large: 'The file is larger than {limit} MB.'
+      too_many_rows: 'The file has more than {limit, number} data rows.'
+      archive_too_large: 'The spreadsheet would unpack to more than {limit} MB.'
+      suspicious_compression: 'The spreadsheet is compressed more than {limit}:1, which a real workbook never is.'
+      invalid_encoding: 'The file is not valid UTF-8 at row {row, number}. It is probably saved in another encoding.'
+      unknown_format: 'This is not a CSV or XLSX file we can read.'
+      empty: 'The file contains no data.'
+  error:
+    invalid_email: '"{value}" is not a valid e-mail address.'
+    invalid_phone: '"{value}" is not a valid phone number.'
+    invalid_date: '"{value}" is not a date in the chosen order.'
+    invalid_decimal: '"{value}" is not a number.'
+    invalid_integer: '"{value}" is not a whole number.'
+    unknown_value: '"{value}" is not a value we know. Map it to one of the allowed values.'
+    required: 'This value is required.'
+    ambiguous_match: '"{value}" matches {count, number} existing records. Choose a match key that names one record.'
+    duplicate_in_file: '"{value}" is already used by an earlier row of this file. Only the first row with it is imported.'
+    write_failed: 'This row could not be saved. Check its values and import it again.'
+    archive_failed: 'This record could not be archived. It stays as it was.'
+    invalid_registration_number: '"{value}" is not a valid registration number. Check the digits.'
+    invalid_vat_id: '"{value}" is not a valid VAT ID. Enter for example CZ12345678.'
+    invalid_iban: '"{value}" is not a valid IBAN.'
+    invalid_bic: '"{value}" is not a valid BIC (SWIFT) code. It has 8 or 11 characters.'
+    invalid_bank_account: '"{value}" is not a complete account number with a bank code.'
+    company_identifier: 'A company needs a registration number or a VAT ID.'
+    too_long: '"{value}" is longer than {max, number} characters.'
+    out_of_range: '{value, number} is not between {min, number} and {max, number}.'
+  failure:
+    file_missing: 'The uploaded file is no longer available. Upload it again.'
+    stalled: 'The import stopped without finishing. Upload the file again.'
+  refused:
+    not_found: 'This import does not exist.'
+    not_editable: 'This import can no longer be changed.'
+    required_unmapped: 'Map a column to each required field first. Missing {fields}.'
+    unknown_field: 'A column is mapped to a field this import does not know.'
+    match_key: 'Choose a match key that a column is mapped to.'
+    unknown_profile: 'This import profile does not exist for this kind of record.'
+    profile_required: 'Name the import profile, so a full replace knows which records earlier imports brought in.'
+    not_checked: 'Run the check before you start the import.'
+    archive_not_confirmed: 'Type {count, number, ::group-off} to confirm that {count, plural, one {# record} other {# records}} will be archived.'
+    undo_state: 'Only a finished or stopped import can be undone.'
+    undo_expired: 'Undo was possible for 30 days after the import. That time has passed.'
+    target_busy: 'Another import of these records is running right now. Undo this import once that one ends.'
+    not_cancellable: 'This import can no longer be cancelled.'
+    rows_purged: 'The rows of this import were deleted after 30 days.'
+  error_file:
+    column: 'Error'
+    in_column: 'Column {column}. {message}'
+  target:
+    party: Contacts
+  preset:
+    idoklad_contacts: iDoklad contacts
+  field:
+    party:
+      id: Foresi contact number
+      display_name: Name
+      kind: Kind
+      registration_number: Registration number
+      registration_country: Register country
+      vat_id: VAT ID
+      email: E-mail
+      copy_email: Copy e-mail
+      invoice_email: Invoice e-mail
+      phone: Phone
+      mobile: Mobile
+      website: Website
+      roles: Roles
+      billing_street: Billing street
+      billing_city: Billing city
+      billing_postal_code: Billing postal code
+      billing_country: Billing country
+      delivery_street: Delivery street
+      delivery_city: Delivery city
+      delivery_postal_code: Delivery postal code
+      delivery_country: Delivery country
+      bank_account_iban: IBAN
+      bank_account_bic: BIC (SWIFT)
+      bank_account_number: Account number
+      bank_code: Bank code
+      contact_name: Contact person
+      contact_title: Contact person title
+      contact_first_name: Contact person first name
+      contact_last_name: Contact person last name
+      contact_email: Contact person e-mail
+      contact_phone: Contact person phone
+      contact_position: Contact person position
+      due_days: Due period (days)
+      currency: Currency
+      payment_method: Payment method
+      private_note: Private note

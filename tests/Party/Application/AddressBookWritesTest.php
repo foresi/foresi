@@ -18,12 +18,16 @@ use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
 use App\Party\Application\UpdateParty;
 use App\Party\Domain\Address;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
+use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
@@ -72,6 +76,28 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertSame('Other City', $this->details()->billingAddress($party)?->address()->city);
         self::assertSame('new@example.com', $this->details()->generalEmail($party)?->address());
         self::assertCount(1, $this->details()->emails($party));
+    }
+
+    public function testMobileWebsiteAndDocumentDefaultsAreStoredOnCreateAndUpdate(): void
+    {
+        $address = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
+        $defaults = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, false);
+        $party = self::getContainer()->get(CreateParty::class)->createFrom(new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', ' +420 987 654 321 ', ' www.example.com ', $defaults));
+
+        self::assertSame('+420 987 654 321', $party->mobile());
+        self::assertSame('www.example.com', $party->website());
+        self::assertEquals($defaults, $party->invoicingDefaults());
+
+        // The form sends no document defaults: they stay.
+        $this->update($party, new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', '+420 111 222 333', ''));
+        $this->em->clear();
+        $party = $this->query()->find((int) $party->id()) ?? self::fail();
+        self::assertSame('+420 111 222 333', $party->mobile());
+        self::assertSame('', $party->website());
+        self::assertEquals($defaults, $party->invoicingDefaults());
+
+        $this->update($party, new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, invoicingDefaults: InvoicingDefaults::standard()));
+        self::assertEquals(InvoicingDefaults::standard(), $party->invoicingDefaults());
     }
 
     public function testUpdateAddsAMissingEmailAndRemovesAClearedOne(): void

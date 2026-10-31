@@ -4,7 +4,7 @@
 {% set controlAttributes = attributes %}
 <twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required">
     <div class="relative">
-    <select id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %} {{ controlAttributes.defaults({class: 'h-control appearance-none pr-8 ' ~ ctl.classes}) }}>
+    <select id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} {{ controlAttributes.defaults({class: 'h-control appearance-none pr-8 ' ~ ctl.classes}) }}>
         {% for optionValue, optionLabel in options %}
             <option value="{{ optionValue }}"{% if optionValue ~ "" == value %} selected{% endif %}>{{ optionLabel }}</option>
         {% endfor %}

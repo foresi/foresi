@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The header action that cancels an import which has written nothing yet. Variables: import. #}
+<form method="post" action="{{ path('app_import_cancel', {id: import.id}) }}" data-turbo-confirm="{{ 'import.cancel.confirm'|trans }}">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
+    <twig:Ui:Button type="submit" icon="x">{{ 'import.cancel.button'|trans }}</twig:Ui:Button>
+</form>

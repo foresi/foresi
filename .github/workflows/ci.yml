@@ -25,6 +25,8 @@ jobs:
           extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
           coverage: pcov
           tools: composer:v2
+          # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
+          ini-values: upload_max_filesize=64M, post_max_size=64M
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -103,6 +105,8 @@ jobs:
           extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
           coverage: pcov
           tools: composer:v2
+          # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
+          ini-values: upload_max_filesize=64M, post_max_size=64M
 
       - name: Get Composer cache directory
         id: composer-cache

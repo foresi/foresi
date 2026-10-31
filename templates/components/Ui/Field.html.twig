@@ -1,14 +1,14 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% set control = block('content') %}
 {% set labelHtml %}
-    <label for="{{ id }}" class="text-[13px] font-medium text-ink">{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</label>
+    <label for="{{ id }}" class="text-small font-medium text-ink">{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</label>
 {% endset %}
-<div {{ attributes.defaults({class: 'grid gap-1.5'}) }}>
+<div {{ attributes.defaults({class: 'grid content-start gap-1.5'}) }}>
     {% if inline %}
-        <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-[13px] font-medium text-ink">{{ control|raw }}<span>{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</span></label>
+        <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">{{ control|raw }}<span>{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</span></label>
     {% else %}
         {{ labelHtml }}{{ control|raw }}
     {% endif %}
-    {% if help %}<p id="{{ id }}-help" class="text-xs text-muted">{{ help }}</p>{% endif %}
-    {% if error %}<p id="{{ id }}-error" role="alert" class="text-xs font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+    {% if help %}<p id="{{ id }}-help" class="text-caption text-muted">{{ help }}</p>{% endif %}
+    {% if error %}<p id="{{ id }}-error" role="alert" class="text-caption font-medium text-badge-red-text">{{ error }}</p>{% endif %}
 </div>

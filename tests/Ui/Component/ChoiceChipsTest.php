@@ -61,4 +61,28 @@ final class ChoiceChipsTest extends KernelTestCase
         $this->expectException(\Throwable::class);
         $this->renderTwigComponent('Ui:ChoiceChips', ['name' => 'roles[]', 'id' => 'roles', 'legend' => 'Roles', 'options' => ['customer' => '']]);
     }
+
+    public function testTheFirstChipOfAnInvalidGroupTakesTheFocusAndEveryChipNamesTheError(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:ChoiceChips', [
+            'name' => 'roles[]', 'id' => 'roles', 'legend' => 'Roles',
+            'options' => ['customer' => 'Customer', 'supplier' => 'Supplier'],
+            'error' => 'Choose a role.',
+        ])->crawler();
+
+        $chips = $crawler->filter('input');
+        self::assertSame(['roles-error', 'roles-error'], $chips->each(static fn ($chip): ?string => $chip->attr('aria-describedby')));
+        self::assertNotNull($chips->eq(0)->attr('autofocus'));
+        self::assertNull($chips->eq(1)->attr('autofocus'));
+        // A second invalid group on the same page does not take it.
+        $other = $this->renderTwigComponent('Ui:ChoiceChips', ['name' => 'x[]', 'id' => 'x', 'legend' => 'X', 'options' => ['a' => 'A'], 'error' => 'Bad'])->crawler();
+        self::assertCount(0, $other->filter('[autofocus]'));
+    }
+
+    public function testAValidGroupTakesNoFocus(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:ChoiceChips', ['name' => 'roles[]', 'id' => 'roles', 'legend' => 'Roles', 'options' => ['customer' => 'Customer']])->crawler();
+
+        self::assertCount(0, $crawler->filter('[autofocus], [aria-describedby="roles-error"]'));
+    }
 }

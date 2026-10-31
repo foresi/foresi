@@ -26,8 +26,17 @@ interface PartyQuery
      * Matches the name, the registration number (ignoring spaces and
      * punctuation), the VAT id and the e-mail addresses. Archived parties are
      * listed only when asked for. An unknown sort falls back to the name.
+     * Narrowed to an import, the list shows its parties whether archived or
+     * not, since an import can archive them.
      */
-    public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page): PartyPage;
+    public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page, ?ImportedBy $import = null): PartyPage;
+
+    /**
+     * The ids of the parties the same search lists, on every page, in name order.
+     *
+     * @return list<int>
+     */
+    public function matchingIds(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array;
 
     public function counts(): PartyCounts;
 

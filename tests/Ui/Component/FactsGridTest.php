@@ -50,7 +50,7 @@ final class FactsGridTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [['label' => 'Balance', 'value' => '9 000', 'big' => true]]]);
 
-        self::assertStringContainsString('text-lg', $html);
+        self::assertStringContainsString('text-heading', $html);
         self::assertStringContainsString('num', $html);
     }
 
@@ -58,7 +58,20 @@ final class FactsGridTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [['label' => 'A', 'value' => 'b']]]);
 
-        self::assertStringNotContainsString('text-lg', $html);
+        self::assertStringNotContainsString('text-heading', $html);
+    }
+
+    public function testAValueWithAnHrefIsALinkThatOpensNoReferrer(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:FactsGrid', ['items' => [
+            ['label' => 'Website', 'value' => 'example.com', 'href' => 'https://example.com'],
+            ['label' => 'Phone', 'value' => '+420 123 456 789'],
+        ]]);
+
+        self::assertSame(1, substr_count($html, '<a '));
+        self::assertStringContainsString('<a href="https://example.com" rel="noopener noreferrer"', $html);
+        self::assertStringContainsString('>example.com</a>', $html);
+        self::assertStringNotContainsString('target=', $html);
     }
 
     public function testValuesAreEscaped(): void
@@ -76,6 +89,8 @@ final class FactsGridTest extends KernelTestCase
         yield 'no label' => [[['value' => 'x']]];
         yield 'no value' => [[['label' => 'x']]];
         yield 'non-string value' => [[['label' => 'x', 'value' => ['a']]]];
+        yield 'non-string href' => [[['label' => 'x', 'value' => 'y', 'href' => ['a']]]];
+        yield 'unsafe href' => [[['label' => 'x', 'value' => 'y', 'href' => 'javascript:alert(1)']]];
     }
 
     /**

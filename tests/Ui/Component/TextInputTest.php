@@ -85,4 +85,38 @@ final class TextInputTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:TextInput', ['name' => 'n']);
     }
+
+    public function testOnlyTheFirstInvalidControlOfARequestTakesTheFocus(): void
+    {
+        $valid = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'a', 'label' => 'A']);
+        $first = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'b', 'label' => 'B', 'error' => 'Bad']);
+        $second = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'c', 'label' => 'C', 'error' => 'Bad']);
+
+        self::assertStringNotContainsString('autofocus', $valid);
+        self::assertSame(1, substr_count($first, 'autofocus'));
+        self::assertStringNotContainsString('autofocus', $second);
+
+        // The next request starts again.
+        self::getContainer()->get(\App\Ui\Component\ErrorFocus::class)->reset();
+        self::assertStringContainsString(' autofocus', (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'd', 'label' => 'D', 'error' => 'Bad']));
+    }
+
+    public function testAnAutofocusGivenByThePageIsNotRepeated(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:TextInput', ['name' => 'a', 'label' => 'A', 'error' => 'Bad', 'attributes' => ['autofocus' => true]]);
+
+        self::assertSame(1, substr_count($html, 'autofocus'));
+    }
+
+    public function testAMessageShownElsewhereMarksTheControlWithoutItsOwnText(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:TextInput', ['name' => 'email', 'label' => 'E-mail', 'help' => 'Hint', 'errorRef' => 'login-error'])->crawler();
+
+        $input = $crawler->filter('input');
+        self::assertSame('true', $input->attr('aria-invalid'));
+        self::assertSame('email-help login-error', $input->attr('aria-describedby'));
+        self::assertStringContainsString('border-badge-red-text', (string) $input->attr('class'));
+        self::assertNotNull($input->attr('autofocus'));
+        self::assertCount(0, $crawler->filter('#email-error'));
+    }
 }

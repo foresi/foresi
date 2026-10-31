@@ -1,14 +1,14 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# Variables: shell (ShellView). #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set itemClass = 'flex h-[34px] w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head' %}
+{% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head' %}
 <div class="relative mt-2.5" data-controller="dropdown" data-dropdown-float-value="true">
-    <div id="user-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-label="{{ 'shell.user_menu.label'|trans }}" class="absolute inset-x-0 bottom-full z-50 mb-2 w-max min-w-full max-w-[min(340px,calc(100vw-24px))] rounded-panel border border-frame-line bg-white p-1.5 shadow-[0_12px_30px_rgba(28,29,26,.14)]">
+    <div id="user-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-label="{{ 'shell.user_menu.label'|trans }}" class="absolute inset-x-0 bottom-full z-50 mb-2 w-max min-w-full max-w-[min(340px,calc(100vw-24px))] rounded-panel border border-container bg-white p-1.5 shadow-floating">
         <span role="menuitem" tabindex="-1" aria-disabled="true" class="{{ itemClass }} cursor-default opacity-60 {{ focus }}">
-            {{ ux_icon('lucide:user', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.profile'|trans }}</span><span class="ml-auto text-xs text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
+            {{ ux_icon('lucide:user', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.profile'|trans }}</span><span class="ml-auto text-caption text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
         </span>
         <span role="menuitem" tabindex="-1" aria-disabled="true" class="{{ itemClass }} cursor-default opacity-60 {{ focus }}">
-            {{ ux_icon('lucide:key-round', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.api_access'|trans }}</span><span class="ml-auto text-xs text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
+            {{ ux_icon('lucide:key-round', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.api_access'|trans }}</span><span class="ml-auto text-caption text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
         </span>
         <form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
@@ -23,7 +23,7 @@
                 {{ ux_icon('lucide:building-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.switch_organisation'|trans }}</span>
             </a>
         {% endif %}
-        <div role="separator" class="my-1.5 h-px bg-line"></div>
+        <div role="separator" class="my-1.5 h-px bg-divider"></div>
         <form method="post" action="{{ path('app_logout') }}" data-turbo="false" role="none">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
             <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
@@ -31,14 +31,14 @@
             </button>
         </form>
     </div>
-    <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" class="flex w-full cursor-pointer items-center gap-2.5 rounded-panel border border-frame-line bg-white p-2.5 text-left hover:bg-head {{ focus }}">
-        <span class="grid size-8 shrink-0 place-items-center rounded-control bg-ink text-xs font-semibold text-white" aria-hidden="true">{{ shell.initials }}</span>
+    <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" class="flex w-full cursor-pointer items-center gap-2.5 rounded-panel border border-container bg-white p-2.5 text-left hover:bg-head {{ focus }}">
+        <span class="grid size-8 shrink-0 place-items-center rounded-control bg-ink text-caption font-semibold text-white" aria-hidden="true">{{ shell.initials }}</span>
         <span class="min-w-0">
             {% if shell.userName != shell.userEmail %}
-                <b class="line-clamp-2 block text-[13px] leading-tight text-ink [overflow-wrap:anywhere]" title="{{ shell.userName }}">{{ shell.userName }}</b>
-                <small class="mt-0.5 block truncate text-xs text-muted" title="{{ shell.userEmail }}">{{ shell.userEmail }}</small>
+                <b class="line-clamp-2 block text-small leading-tight text-ink [overflow-wrap:anywhere]" title="{{ shell.userName }}">{{ shell.userName }}</b>
+                <small class="mt-0.5 block truncate text-caption text-muted" title="{{ shell.userEmail }}">{{ shell.userEmail }}</small>
             {% else %}
-                <b class="line-clamp-2 block text-[13px] leading-tight text-ink [overflow-wrap:anywhere]" title="{{ shell.userEmail }}">{{ shell.userEmail|split('@')|first }}@<wbr>{{ shell.userEmail|split('@')|slice(1)|join('@') }}</b>
+                <b class="line-clamp-2 block text-small leading-tight text-ink [overflow-wrap:anywhere]" title="{{ shell.userEmail }}">{{ shell.userEmail|split('@')|first }}@<wbr>{{ shell.userEmail|split('@')|slice(1)|join('@') }}</b>
             {% endif %}
         </span>
         {{ ux_icon('lucide:chevrons-up-down', {class: 'ml-auto size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}

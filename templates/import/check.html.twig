@@ -1,0 +1,65 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'import/_flow.html.twig' %}
+
+{% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
+{% set form_invalid = confirmationError|default(null) is not null %}
+
+{% block title %}{{ import.originalName }}{% endblock %}
+
+{% block actions %}
+    {% include 'import/_cancel.html.twig' %}
+{% endblock %}
+
+{% block screen %}
+    {# One form for the whole screen, so the docked action bar at its end stays in view over the preview. #}
+    <form method="post" action="{{ path('app_import_run', {id: import.id}) }}" class="grid gap-4 [&>*]:min-w-0" novalidate>
+        <input type="hidden" name="_token" value="{{ token }}">
+
+        <p class="m-0 text-text">{{ 'import.check.intro'|trans({mode: ('import.mode.' ~ import.options.mode.value ~ '.label')|trans}) }}</p>
+
+        <twig:Ui:KpiStrip :items="screen.kpis" />
+
+        {% if screen.archive > 0 %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" role="alert" :title="'import.check.archive.title'|trans({count: screen.archive})" data-archive-warning>
+                <p class="mb-3 mt-0">{{ 'import.check.archive.text'|trans }}{% if screen.unidentified > 0 %} {{ 'import.check.unidentified'|trans({count: screen.unidentified}) }}{% endif %}</p>
+                <div class="max-w-xs text-ink">
+                    <twig:Ui:TextInput name="confirmation" id="confirmation" :label="'import.check.archive.confirm'|trans({count: screen.archive ~ ''})" :error="confirmationError|default(null)" inputmode="numeric" autocomplete="off" required />
+                </div>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if screen.preview %}
+            <twig:Ui:Card :title="'import.check.preview'|trans" icon="list-filter">
+                <twig:block name="actions">
+                    {% if screen.hasErrors %}
+                        <twig:Ui:Button size="sm" variant="ghost" icon="download" :href="path('app_import_errors', {id: import.id})" data-turbo="false">{{ 'import.check.download_errors'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                </twig:block>
+                <twig:Ui:Tabs :items="screen.tabs" :label="'import.check.preview'|trans" class="mb-3" />
+                {% if screen.outcome == 'error' %}
+                    <ul class="m-0 list-none divide-y divide-divider p-0" data-error-rows>
+                        {% for failure in screen.preview.errors %}
+                            <li class="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-4">
+                                <div class="min-w-0">
+                                    <span class="num block text-small text-muted">{{ failure.row }}</span>
+                                    {% if failure.title %}<span class="block truncate font-medium text-ink" title="{{ failure.title }}">{{ failure.title }}</span>{% endif %}
+                                </div>
+                                <ul class="m-0 list-none p-0 text-text">
+                                    {% for message in failure.messages %}<li>{{ message }}</li>{% endfor %}
+                                </ul>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <twig:Ui:DataTable :caption="'import.check.preview'|trans" :columns="screen.preview.columns" :rows="screen.preview.rows" />
+                {% endif %}
+                {% if screen.preview.more %}<p class="mb-0 mt-2 text-small text-muted">{{ 'import.check.preview_more'|trans({count: constant('App\\Import\\Infrastructure\\Controller\\ImportScreens::PREVIEW_ROWS')}) }}</p>{% endif %}
+            </twig:Ui:Card>
+        {% endif %}
+
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button icon="columns-3" :href="path('app_import_show', {id: import.id, step: 'mapping'})">{{ 'import.check.edit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" icon="send">{{ 'import.check.run'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

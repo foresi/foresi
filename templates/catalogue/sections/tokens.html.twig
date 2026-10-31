@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The closed design scales of assets/styles/app.css; nothing outside them is used (tests/Ui/DesignTokensTest.php). #}
+{% set label = 'text-caption text-muted' %}
+<div class="grid gap-5" data-tokens>
+{% embed 'catalogue/_state.html.twig' with {state: 'radius'} %}{% block sample %}
+    {% for name, use in {'rounded-sm': 'sm · 4 px · badge, tag, kbd, progress', 'rounded-control': 'control · 8 px · button, input, chip, menu item', 'rounded-panel': 'panel · 14 px · card, table, menu, bar, dialog'} %}
+        <figure class="m-0 grid w-48 gap-2">
+            <span class="block h-16 border border-control-line bg-head {{ name }}"></span>
+            <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>
+        </figure>
+    {% endfor %}
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'height'} %}{% block sample %}
+    {% for name, use in {'h-badge': 'badge · 22 px', 'h-control-sm': 'control-sm · 28 px', 'h-control': 'control · 34 px', 'h-control-lg': 'control-lg · 40 px (touch, palette field)', 'h-row': 'row · 44 px (table row)'} %}
+        <figure class="m-0 grid w-40 gap-2">
+            <span class="block w-full rounded-sm bg-green-tint {{ name }}"></span>
+            <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>
+        </figure>
+    {% endfor %}
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'type'} %}{% block sample %}
+    <dl class="m-0 grid w-full gap-2">
+        {% for name, use in {'text-figure': 'figure · 24/32 · KPI value', 'text-title': 'title · 20/28 · page title', 'text-heading': 'heading · 16/24 · empty state, section', 'text-body': 'body · 14/20 · text, card title, controls', 'text-small': 'small · 13/18 · label, secondary text, alert', 'text-caption': 'caption · 12/16 · help, error, badge, table head, group label'} %}
+            <div class="grid items-baseline gap-1 sm:grid-cols-3">
+                <dt class="{{ name }} font-semibold text-ink">Příliš žluťoučký kůň</dt>
+                <dd class="m-0 {{ label }} sm:col-span-2"><span class="font-medium text-ink">{{ name }}</span> · {{ use }}</dd>
+            </div>
+        {% endfor %}
+    </dl>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'border'} %}{% block sample %}
+    {% for name, use in {'border-divider': 'divider · a line inside a surface', 'border-container': 'container · the edge of a surface', 'border-control-line': 'control-line · the edge of every control'} %}
+        <figure class="m-0 grid w-48 gap-2">
+            <span class="block h-16 rounded-panel border-2 bg-white {{ name }}"></span>
+            <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>
+        </figure>
+    {% endfor %}
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'elevation'} %}{% block sample %}
+    <div class="flex w-full flex-wrap gap-6 rounded-panel bg-frame p-6">
+        {% for name, use in {'shadow-raised': 'raised · button, page panel', 'shadow-floating': 'floating · action bar, bulk bar, menu', 'shadow-overlay': 'overlay · command palette, dialog'} %}
+            <figure class="m-0 grid w-48 gap-2">
+                <span class="block h-16 rounded-panel border border-container bg-white {{ name }}"></span>
+                <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>
+            </figure>
+        {% endfor %}
+    </div>
+{% endblock %}{% endembed %}
+</div>

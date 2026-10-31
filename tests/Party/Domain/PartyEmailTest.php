@@ -27,6 +27,16 @@ final class PartyEmailTest extends TestCase
         self::assertNull($email->id());
     }
 
+    public function testTheComparisonKeyIgnoresCaseAndSurroundingSpace(): void
+    {
+        self::assertSame('jana.ěščř@example.com', PartyEmail::key(' Jana.ĚŠČŘ@Example.COM '));
+
+        $email = new PartyEmail(PartyFactory::company(), 'Info@Example.com', EmailPurpose::General);
+        self::assertSame('info@example.com', new \ReflectionProperty($email, 'addressKey')->getValue($email));
+        $email->change('New@Example.com', EmailPurpose::General);
+        self::assertSame('new@example.com', new \ReflectionProperty($email, 'addressKey')->getValue($email));
+    }
+
     public function testChanges(): void
     {
         $email = new PartyEmail(PartyFactory::company(), 'testing@example.com', EmailPurpose::General);

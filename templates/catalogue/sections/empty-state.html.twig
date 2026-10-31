@@ -1,12 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <div class="grid gap-5">
 {% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
-<div class="w-full rounded-panel border border-line"><twig:Ui:EmptyState /></div>
+<div class="w-full rounded-panel border border-container"><twig:Ui:EmptyState /></div>
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
-<div class="w-full rounded-panel border border-line"><twig:Ui:EmptyState icon="users" title="No contacts yet" text="Add your first contact to start invoicing."><twig:Ui:Button variant="primary" icon="plus">New contact</twig:Ui:Button></twig:Ui:EmptyState></div>
+<div class="w-full rounded-panel border border-container"><twig:Ui:EmptyState icon="users" title="No contacts yet" text="Add your first contact to start invoicing."><twig:Ui:Button variant="primary" icon="plus">New contact</twig:Ui:Button></twig:Ui:EmptyState></div>
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
-<div class="w-full rounded-panel border border-line"><twig:Ui:EmptyState icon="inbox" title="Example Company Holding of Central European Trading s.r.o." text="Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy." /></div>
+<div class="w-full rounded-panel border border-container"><twig:Ui:EmptyState icon="inbox" title="Example Company Holding of Central European Trading s.r.o." text="Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy." /></div>
 {% endblock %}{% endembed %}
 </div>

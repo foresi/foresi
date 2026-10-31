@@ -40,16 +40,21 @@
     src: url("../fonts/inter/Inter-Bold.woff2") format("woff2");
 }
 
+/*
+ * Design tokens. Each scale is closed: the defaults of a namespace are cleared
+ * ("initial") and only the steps below exist, so an off-scale class does not
+ * even compile. tests/Ui/DesignTokensTest.php guards the templates against
+ * arbitrary values; docs and the "tokens" section of the dev catalogue show the
+ * scales. Sources: Shopify Polaris tokens, Material 3 shape scale, IBM Carbon
+ * type sets and Atlassian radius/elevation tokens (see the consistency report).
+ */
 @theme {
     --font-sans: "Inter", system-ui, sans-serif;
 
+    --color-*: initial;
     --color-frame: #f4f2ec;
-    --color-frame-line: #e6e2d8;
     --color-frame-hover: #ece9e1;
     --color-white: #ffffff;
-    --color-line: #ece9e2;
-    --color-line-strong: #dcd7cb;
-    --color-control-line: #cfc9bb;
     --color-head: #faf9f6;
     --color-green: #2f4a3a;
     --color-green-hover: #243a2d;
@@ -57,6 +62,15 @@
     --color-ink: #1c1d1a;
     --color-text: #3e3d38;
     --color-muted: #6b695f;
+
+    /*
+     * Border roles: a line inside a surface, the edge of a surface, the edge of a control.
+     * Only the control edge identifies a component, so only it must reach 3:1 against
+     * white and the frame (WCAG 2.2 SC 1.4.11, tests/Ui/ContrastTest.php).
+     */
+    --color-divider: #ece9e2;
+    --color-container: #e6e2d8;
+    --color-control-line: #8f897a;
 
     --color-badge-gray: #f1efea;
     --color-badge-gray-text: #57554e;
@@ -67,45 +81,55 @@
     --color-badge-red: #fbe7e4;
     --color-badge-red-text: #a3342a;
 
+    /* Radius: small marks, every interactive control, every surface. */
+    --radius-*: initial;
+    --radius-sm: 4px;
     --radius-control: 8px;
     --radius-panel: 14px;
+
+    /* Heights: controls (sm, md, lg = touch and the palette field) and table rows. */
+    --spacing-control-sm: 28px;
     --spacing-control: 34px;
-}
+    --spacing-control-lg: 40px;
+    --spacing-row: 44px;
+    --spacing-badge: 22px;
 
-:root {
-    --frame: #f4f2ec;
-    --frame-line: #e6e2d8;
-    --frame-hover: #ece9e1;
-    --white: #ffffff;
-    --line: #ece9e2;
-    --line-strong: #dcd7cb;
-    --control-line: #cfc9bb;
-    --head: #faf9f6;
-    --green: #2f4a3a;
-    --green-hover: #243a2d;
-    --green-tint: #eef2ee;
-    --ink: #1c1d1a;
-    --text: #3e3d38;
-    --muted: #6b695f;
+    /* Type: size / line height. */
+    --text-*: initial;
+    --text-caption: 12px;
+    --text-caption--line-height: 16px;
+    --text-small: 13px;
+    --text-small--line-height: 18px;
+    --text-body: 14px;
+    --text-body--line-height: 20px;
+    --text-heading: 16px;
+    --text-heading--line-height: 24px;
+    --text-title: 20px;
+    --text-title--line-height: 28px;
+    --text-title--letter-spacing: -0.025em;
+    --text-figure: 24px;
+    --text-figure--line-height: 32px;
+    --text-figure--letter-spacing: -0.025em;
 
-    --b-gray: #f1efea;
-    --t-gray: #57554e;
-    --b-green: #e7efe8;
-    --t-green: #2f5e3d;
-    --b-amber: #fbf0df;
-    --t-amber: #8a5310;
-    --b-red: #fbe7e4;
-    --t-red: #a3342a;
+    /* Elevation: resting on the page, floating over content, overlaying the page. */
+    --shadow-*: initial;
+    --shadow-raised: 0 1px 2px rgba(28, 29, 26, 0.08);
+    --shadow-floating: 0 10px 30px rgba(28, 29, 26, 0.14);
+    --shadow-overlay: 0 20px 50px rgba(28, 29, 26, 0.2);
 
-    --r: 8px;
-    --r-lg: 14px;
-    --h: 34px;
+    /* Inset lines that are not elevation: the tab rail and the selected-row marker. */
+    --inset-shadow-*: initial;
+    --inset-shadow-rail: inset 0 -1px 0 var(--color-divider);
+    --inset-shadow-selected: inset 3px 0 0 var(--color-green);
+
+    --drop-shadow-*: initial;
+    --text-shadow-*: initial;
 }
 
 body {
-    background: var(--frame);
-    color: var(--text);
-    font: 14px/1.45 var(--font-sans);
+    background: var(--color-frame);
+    color: var(--color-text);
+    font: var(--text-body) / var(--text-body--line-height) var(--font-sans);
 }
 
 /*
@@ -114,7 +138,7 @@ body {
  */
 @layer base {
     :focus-visible {
-        outline: 2px solid var(--green);
+        outline: 2px solid var(--color-green);
         outline-offset: 1px;
     }
 
@@ -122,16 +146,26 @@ body {
     input:autofill,
     select:autofill,
     textarea:autofill {
-        -webkit-box-shadow: 0 0 0 1000px var(--white) inset;
-        box-shadow: 0 0 0 1000px var(--white) inset;
-        -webkit-text-fill-color: var(--ink);
-        caret-color: var(--ink);
+        -webkit-box-shadow: 0 0 0 1000px var(--color-white) inset;
+        box-shadow: 0 0 0 1000px var(--color-white) inset;
+        -webkit-text-fill-color: var(--color-ink);
+        caret-color: var(--color-ink);
     }
 }
 
 /* Keep focused elements clear of the floating bulk bar. */
 html:has([data-table-selection-target~="bar"]:not([hidden])) {
     scroll-padding-bottom: 6rem;
+}
+
+/*
+ * Keep focused fields clear of the docked action bar (WCAG 2.4.11). The bar is
+ * in normal flow on low screens, so it needs no room there.
+ */
+@media (min-height: 481px) {
+    html:has([data-action-bar]) {
+        scroll-padding-bottom: 6rem;
+    }
 }
 
 .num {

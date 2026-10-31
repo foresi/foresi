@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, test, type Page } from '@playwright/test';
+import { expectRowControlsAligned } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
 
 test.use({ storageState: OWNER_STATE });
@@ -29,6 +30,18 @@ test.describe('list, search and views', () => {
     await expect(page.getByRole('heading', { name: 'Nic nenalezeno' })).toBeVisible();
     await page.getByRole('link', { name: 'Zrušit filtr' }).click();
     await expect(page.locator('tbody tr').first()).toBeVisible();
+  });
+
+  test('offers the export as CSV or Excel from a menu and downloads the file', async ({ page }) => {
+    await page.goto('/contacts');
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeHidden();
+    await page.getByRole('button', { name: 'Exportovat' }).click();
+    await expect(menu.getByRole('menuitem')).toHaveText(['Exportovat jako CSV', 'Exportovat jako Excel (XLSX)']);
+
+    const download = page.waitForEvent('download');
+    await menu.getByRole('menuitem', { name: /Excel/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/^contacts-\d{8}\.xlsx$/);
   });
 
   test('switches between the views', async ({ page }) => {
@@ -73,6 +86,17 @@ test.describe('layout', () => {
     });
   }
 
+  test('fields side by side on the contact form line up, with and without errors @layout', async ({ page }) => {
+    await page.goto('/contacts/new');
+    await expectRowControlsAligned(page.locator('main form'));
+
+    // Errors under some fields of a row must not push the controls of the others down.
+    // A form that fails validation saves nothing.
+    await page.getByRole('button', { name: 'Uložit' }).click();
+    await expect(page.locator('#displayName')).toHaveAttribute('aria-invalid', 'true');
+    await expectRowControlsAligned(page.locator('main form'));
+  });
+
   test('the detail does not scroll sideways @layout', async ({ page }) => {
     await openContact(page, 'Example Supplies s.r.o.');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -103,6 +127,9 @@ test.describe('screens', () => {
     await page.goto('/contacts/new');
     await expect(page.locator('#displayName')).toBeVisible();
     await expect(page).toHaveScreenshot('form.png');
+    // The content capture shows the docked action bar where it sits at the end of the form.
+    await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+    await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
     await expect(page.locator('main')).toHaveScreenshot('form-content.png');
   });
 

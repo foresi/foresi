@@ -1,0 +1,4 @@
+﻿"Company name","Registration number",Email,City,Note
+"Example Company",12345687,testing@example.com,"Ústí nad Labem","Příliš žluťoučký kůň"
+"Example Trade",12345687,trade@example.com,Ostrava,
+"Example Studio",,studio@example.com,Praha,"Quoted ""value"", with comma"

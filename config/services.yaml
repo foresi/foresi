@@ -9,6 +9,8 @@
 parameters:
     # The product name shown on every page; the only place it is defined.
     app.product_name: Foresi
+    # Uploaded import sources; never below public/, tenant directories inside.
+    app.import_files_dir: '%kernel.project_dir%/var/imports'
 
 services:
     # default configuration for services in *this* file
@@ -28,10 +30,34 @@ services:
     _instanceof:
         App\Party\Domain\RegistrationNumberValidator:
             tags: ['app.registration_number_validator']
+        App\Party\Domain\DomesticBankAccount:
+            tags: ['app.domestic_bank_account']
+        # Modules plug into the import by implementing its target contract.
+        App\Import\Application\Target\ImportTarget:
+            tags: ['app.import_target']
+        # ...and contribute presets of the known sources they can read.
+        App\Import\Domain\Preset\SourcePreset:
+            tags: ['app.import_preset']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
+
+    App\Party\Application\ImportPartyValues:
+        arguments:
+            $domesticAccounts: !tagged_iterator app.domestic_bank_account
+
+    App\Import\Infrastructure\LocalImportFiles:
+        arguments:
+            $root: '%app.import_files_dir%'
+
+    App\Import\Application\Target\TargetRegistry:
+        arguments:
+            $targets: !tagged_iterator app.import_target
+
+    App\Import\Application\PresetRegistry:
+        arguments:
+            $presets: !tagged_iterator app.import_preset
 
     # Declared here (private) so PHPStan, which reads the dev container, knows the
     # id used by the wiring test; it is made public in the test env below.
@@ -52,6 +78,10 @@ services:
     # Application classes stay framework-free, so the reset tag is declared here:
     # long-running workers and Messenger never carry a tenant into the next job.
     App\Tenancy\Application\TenantContext:
+        tags:
+            - { name: kernel.reset, method: reset }
+
+    App\Audit\Application\AuditCorrelation:
         tags:
             - { name: kernel.reset, method: reset }
 
@@ -112,8 +142,47 @@ when@test:
         test.party_refresh_checks_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.registry_outgoing_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        # The generic audit query; the fake import target answers changedSince()
+        # with it, while targets of the application check their own entities.
+        App\Audit\Application\AuditTrail:
+            alias: App\Audit\Infrastructure\Doctrine\DoctrineAuditTrail
+            public: true
+
+        # Lets a test make the gate's lock fail once.
+        App\Tests\Import\Support\FlakyImportLock:
+            decorates: App\Import\Application\ImportLock
+
+        # A target living in memory, for the pipeline tests.
+        App\Tests\Import\Support\FakeTarget:
+            public: true
+            tags: ['app.import_target']
+
+        # The tests drive the import services directly, not only through the screens.
+        App\Import\Application\StartImport: { public: true }
+        App\Import\Application\ExportRecords: { public: true }
+        App\Import\Application\ConfigureImport: { public: true }
+        App\Import\Application\CheckImport: { public: true }
+        App\Import\Application\RunImport: { public: true }
+        App\Import\Application\UndoImport: { public: true }
+        App\Import\Application\CancelImport: { public: true }
+        App\Import\Application\ImportErrorFile: { public: true }
+
+        # Public for the tests, which use the ports directly.
+        App\Import\Application\Imports:
+            alias: App\Import\Infrastructure\Doctrine\DoctrineImports
+            public: true
+        App\Import\Application\ProfileRepository:
+            alias: App\Import\Infrastructure\Doctrine\DoctrineProfileRepository
+            public: true
+        App\Import\Application\ImportFiles:
+            alias: App\Import\Infrastructure\LocalImportFiles
+            public: true
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

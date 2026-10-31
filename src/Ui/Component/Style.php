@@ -16,20 +16,20 @@ final class Style
 {
     public const string FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green';
 
-    private const string BUTTON_BASE = 'inline-flex items-center justify-center gap-[7px] rounded-control border font-medium whitespace-nowrap cursor-pointer no-underline aria-disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed';
+    private const string BUTTON_BASE = 'inline-flex items-center justify-center gap-1.5 rounded-control border font-medium whitespace-nowrap cursor-pointer no-underline aria-disabled:opacity-50 disabled:opacity-50 disabled:cursor-not-allowed';
 
     private const array BUTTON_VARIANTS = [
-        'primary' => 'bg-green border-green text-white shadow-[0_1px_2px_rgba(28,29,26,.18),inset_0_1px_0_rgba(255,255,255,.12)] hover:bg-green-hover',
-        'secondary' => 'bg-white border-control-line text-ink shadow-[0_1px_2px_rgba(28,29,26,.08)] hover:border-muted hover:bg-head',
+        'primary' => 'bg-green border-green text-white shadow-raised hover:bg-green-hover',
+        'secondary' => 'bg-white border-control-line text-ink shadow-raised hover:border-muted hover:bg-head',
         'ghost' => 'bg-transparent border-transparent text-text hover:bg-head',
-        'danger' => 'bg-white border-control-line text-badge-red-text shadow-[0_1px_2px_rgba(28,29,26,.08)] hover:border-badge-red-text hover:bg-badge-red',
+        'danger' => 'bg-white border-control-line text-badge-red-text shadow-raised hover:border-badge-red-text hover:bg-badge-red',
     ];
 
-    private const array BUTTON_SIZES = ['md' => 'h-control', 'sm' => 'h-7 text-[13px]'];
+    private const array BUTTON_SIZES = ['md' => 'h-control', 'sm' => 'h-control-sm text-small'];
 
     private const array BUTTON_PADDING = ['md' => 'px-3', 'sm' => 'px-2.5'];
 
-    private const array ICON_BUTTON_WIDTH = ['md' => 'w-control', 'sm' => 'w-7'];
+    private const array ICON_BUTTON_WIDTH = ['md' => 'w-control', 'sm' => 'w-control-sm'];
 
     private const array TONES = [
         'gray' => 'bg-badge-gray text-badge-gray-text',

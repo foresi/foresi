@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set modes = [
+    {value: 'add_missing', label: 'Přidat jen nové', text: 'Kontakty, které už v adresáři jsou, zůstanou beze změny.'},
+    {value: 'update', label: 'Aktualizovat existující', text: 'Nalezené kontakty se přepíšou hodnotami ze souboru a nové se přidají.'},
+    {value: 'full_replace', label: 'Úplně nahradit', text: 'Adresář bude odpovídat souboru.', warning: 'Kontakty, které v souboru nejsou, se archivují.'},
+] %}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:RadioCards class="w-full" name="cat-radio-default" id="cat-radio-default" legend="Co se má stát s kontakty" :options="modes" value="add_missing" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<twig:Ui:RadioCards class="w-full" name="cat-radio-error" id="cat-radio-error" legend="Mode" error="Choose what the import does." :options="[{value: 'a', label: 'Add missing only', text: 'Existing records stay as they are.'}, {value: 'b', label: 'Update existing', text: 'Matched records take the values of the file.'}]" />
+{% endblock %}{% endembed %}
+</div>

@@ -37,6 +37,8 @@ when@test:
                 storage_service: test.party_lookup_storage
             party_refresh_checks:
                 storage_service: test.party_refresh_checks_storage
+            registry_outgoing:
+                storage_service: test.registry_outgoing_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

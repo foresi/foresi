@@ -11,6 +11,7 @@ namespace App\Party\Application;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\EmailPurpose;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyEmail;
@@ -52,6 +53,11 @@ final readonly class CreateParty
         return $this->transaction->run(function () use ($input): Party {
             $party = new Party($input->kind, $input->displayName, $input->registrationNumber, $input->vatId, $input->phone, $input->roles);
             $party->changePrivateNote($input->privateNote);
+            $party->changeMobile($input->mobile);
+            $party->changeWebsite($input->website);
+            if ($input->invoicingDefaults instanceof InvoicingDefaults) {
+                $party->changeInvoicingDefaults($input->invoicingDefaults);
+            }
             $emails = '' === trim($input->email) ? [] : [new PartyEmail($party, $input->email, EmailPurpose::General)];
             $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $input->billingAddress), $emails);
 

@@ -56,6 +56,16 @@ final class KpiStripTest extends KernelTestCase
         self::assertSame(2, substr_count($html, 'data-kpi'));
     }
 
+    public function testAKpiWithAnHrefIsALinkAndTheOthersStayPlain(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:KpiStrip', ['items' => [['label' => 'Created', 'value' => '12', 'href' => '/contacts?import=1'], ['label' => 'Failed', 'value' => '0']]])->crawler();
+
+        self::assertCount(1, $crawler->filter('a[data-kpi][href="/contacts?import=1"]'));
+        self::assertStringContainsString('Created', $crawler->filter('a[data-kpi]')->text());
+        self::assertCount(1, $crawler->filter('div[data-kpi]'));
+        self::assertSame('min-w-0 bg-white p-4', $crawler->filter('div[data-kpi]')->attr('class'));
+    }
+
     public function testValuesAreEscaped(): void
     {
         $html = (string) $this->renderTwigComponent('Ui:KpiStrip', ['items' => [['label' => '<b>x</b>', 'value' => '1']]]);
@@ -74,6 +84,8 @@ final class KpiStripTest extends KernelTestCase
         yield 'no value' => [[['label' => 'a']]];
         yield 'bad badge' => [[['label' => 'a', 'value' => '1', 'badge' => ['tone' => 'red']]]];
         yield 'bad badge tone' => [[['label' => 'a', 'value' => '1', 'badge' => ['label' => 'x', 'tone' => 'pink']]]];
+        yield 'unsafe href' => [[['label' => 'a', 'value' => '1', 'href' => 'javascript:alert(1)']]];
+        yield 'href not text' => [[['label' => 'a', 'value' => '1', 'href' => 5]]];
     }
 
     /**

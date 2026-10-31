@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A floating bar held a little above the bottom of the viewport (sticky, so it stays in normal flow
+    on short pages), in the same style as the bulk bar. The action-bar controller marks it as stuck
+    while the content scrolls under it, which adds the shadow. Low screens (landscape phones, high
+    zoom) get it in normal flow.
+#}
+{% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
+<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-container bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-floating max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+    {% if statusHtml|trim is not empty %}
+        <p class="m-0 min-w-0 text-small text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
+    {% endif %}
+    <div class="ml-auto flex items-center gap-2 max-sm:grid max-sm:w-full max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-control-lg max-sm:[&_a]:w-full max-sm:[&_button]:h-control-lg max-sm:[&_button]:w-full">{% block content %}{% endblock %}</div>
+</div>

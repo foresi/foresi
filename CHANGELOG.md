@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-31
+
+### Added
+
+- Generic import and export. Import CSV and XLSX files in the background: encoding, delimiter and header row are detected, columns are mapped with remembered mappings, a dry-run check lists every row error (downloadable as an error file), and three modes are offered (add missing, update existing, full replace, which archives records missing from the file and needs the number of records typed as confirmation). An import can be undone for 30 days, also one that failed after it started writing, and a failed undo can be started again. Contacts are the first target, with a preset for the iDoklad contact export. Files up to 50 MB and 200,000 rows; files and staged rows are deleted 30 days after an import ended. Documented in `docs/import.md`.
+- Commands `app:import:purge` (deletes old files and staged rows) and `app:import:health` (fails imports that stopped moving and starts the next queued one); run both from cron.
+- UI components for the import screens (stepper, progress bar, radio cards, mapping row) and notices in the app shell when an import ends.
+- Contacts have a website and a mobile phone.
+- Audit entries carry an optional correlation id that groups the changes of one operation.
+- Architecture decision records for the audit correlation id and the asynchronous import pipeline.
+- A floating action bar holds the primary action of every form and wizard step, so it stays in reach on long pages.
+- Closed design token scales for radius, control height, type, borders and shadows, shown in the component catalogue and enforced by a test.
+
+### Changed
+
+Upgrading: run the database migrations (`bin/console doctrine:migrations:migrate`); they add the import tables, the audit correlation id, the e-mail comparison key and the contact fields. Start a background worker (`messenger:consume async registry`, one worker on SQLite) and schedule the two import commands; see `docs/import.md`. Set `upload_max_filesize` and `post_max_size` to at least `50M`.
+
+- The address book has import and export actions in its header; the CSV export is now an export menu with CSV and XLSX, and it exports the filtered list.
+- Contact roles and kinds accept their translated names when imported.
+- Background messages run inside the tenant they were sent from; the default `flock` lock works on a single host, use `LOCK_DSN` for several.
+- Every response forbids content type sniffing (`X-Content-Type-Options: nosniff`).
+- Forms are validated on submit: every invalid field is marked with its message, the input is kept, focus moves to the first invalid field and the page title starts with "Error". Primary buttons are never disabled for validation.
+- Control borders meet 3:1 non-text contrast, and fields side by side line up whatever text sits under them.
+
+### Fixed
+
+- The register lookup names the rate limit (HTTP 429) instead of a generic failure.
+
 ## [0.2.1] - 2026-10-30
 
 ### Added

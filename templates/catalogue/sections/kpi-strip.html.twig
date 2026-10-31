@@ -9,4 +9,7 @@
 {% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
 <div class="w-full"><twig:Ui:KpiStrip :items="[{label: 'Example Company Holding of Central European Trading s.r.o.', value: '999 999 999 999,00 Kč', note: 'Příliš žluťoučký kůň úpěl ďábelské ódy'}, {label: 'Short', value: '1'}]" /></div>
 {% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'linked'} %}{% block sample %}
+<div class="w-full"><twig:Ui:KpiStrip :items="[{label: 'Vytvořeno', value: '12', href: '#component-kpi-strip'}, {label: 'Aktualizováno', value: '3', href: '#component-kpi-strip'}, {label: 'Archivováno', value: '0'}, {label: 'Chyby', value: '1', badge: {label: 'Stáhnout', tone: 'amber'}, href: '#component-kpi-strip'}]" /></div>
+{% endblock %}{% endembed %}
 </div>

@@ -56,6 +56,18 @@ deptrac:
       collectors:
         - type: directory
           value: src/Party/Infrastructure/.*
+    - name: ImportDomain
+      collectors:
+        - type: directory
+          value: src/Import/Domain/.*
+    - name: ImportApplication
+      collectors:
+        - type: directory
+          value: src/Import/Application/.*
+    - name: ImportInfrastructure
+      collectors:
+        - type: directory
+          value: src/Import/Infrastructure/.*
     - name: IdentityDomain
       collectors:
         - type: directory
@@ -97,6 +109,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Brick\\(Money|Math)\\
+    # Spreadsheet reading; only the Import module's infrastructure may use it.
+    - name: VendorOpenSpout
+      collectors:
+        - type: classLike
+          value: ^OpenSpout\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -180,6 +197,43 @@ deptrac:
       # The history of a party reads its audit entries.
       - AuditDomain
       # Contributes the sidebar item and its count.
+      - Ui
+      # Contacts are an import target with a preset for the iDoklad export,
+      # and the import screens link to the address book.
+      - ImportDomain
+      - ImportApplication
+      - ImportInfrastructure
+    ImportDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+    ImportApplication:
+      - ImportDomain
+      # The file store is keyed by tenant.
+      - TenancyDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+    ImportInfrastructure:
+      - SharedInfrastructure
+      - ImportDomain
+      - TenancyDomain
+      - ImportApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - VendorOpenSpout
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - IdentityDomain
+      - AuditApplication
+      # The import screens and the finish notice in the app shell.
       - Ui
     IdentityDomain:
       - VendorDoctrineOrmMapping

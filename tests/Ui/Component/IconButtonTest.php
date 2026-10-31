@@ -30,7 +30,7 @@ final class IconButtonTest extends KernelTestCase
         $html = (string) $this->renderTwigComponent('Ui:IconButton', ['icon' => 'x', 'label' => 'Close', 'size' => 'sm', 'href' => '/x']);
 
         self::assertStringStartsWith('<a', $html);
-        self::assertStringContainsString('w-7', $html);
+        self::assertStringContainsString('w-control-sm', $html);
         self::assertStringContainsString('aria-label="Close"', $html);
     }
 

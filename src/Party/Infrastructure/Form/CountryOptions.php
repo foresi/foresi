@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
+use App\Shared\Domain\Countries;
+
 /**
  * The countries the address book offers, named in the language of the user
  * (the display names come from the ICU data of the PHP intl extension).
@@ -15,14 +17,11 @@ namespace App\Party\Infrastructure\Form;
 final class CountryOptions
 {
     /** The EU member states, then the neighbours the tenants most often trade with. */
-    public const array CODES = [
-        'CZ', 'SK', 'PL', 'DE', 'AT', 'HU', 'BE', 'BG', 'HR', 'CY', 'DK', 'EE', 'FI', 'FR', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'RO', 'SI', 'ES', 'SE',
-        'GB', 'CH', 'NO', 'UA', 'US',
-    ];
+    public const array CODES = Countries::CODES;
 
     public static function supports(string $code): bool
     {
-        return \in_array($code, self::CODES, true);
+        return Countries::supports($code);
     }
 
     /**
@@ -32,8 +31,7 @@ final class CountryOptions
     {
         $names = [];
         foreach (self::CODES as $code) {
-            $name = \Locale::getDisplayRegion('und_'.$code, $locale);
-            $names[$code] = false === $name ? $code : $name;
+            $names[$code] = Countries::name($code, $locale);
         }
         $top = \array_slice($names, 0, 2, true);
         $rest = \array_slice($names, 2, null, true);

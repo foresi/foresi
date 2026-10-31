@@ -63,6 +63,12 @@ class Party implements TenantOwned, Audited
     #[ORM\Column(name: 'private_note', type: 'text')]
     private string $privateNote = '';
 
+    #[ORM\Column(type: 'string', length: 64, options: ['default' => ''])]
+    private string $mobile = '';
+
+    #[ORM\Column(type: 'string', length: 255, options: ['default' => ''])]
+    private string $website = '';
+
     #[ORM\Embedded(class: InvoicingDefaults::class, columnPrefix: 'invoicing_')]
     private InvoicingDefaults $invoicingDefaults;
 
@@ -137,6 +143,16 @@ class Party implements TenantOwned, Audited
         return $this->phone;
     }
 
+    public function mobile(): string
+    {
+        return $this->mobile;
+    }
+
+    public function website(): string
+    {
+        return $this->website;
+    }
+
     /**
      * @return list<PartyRole>
      */
@@ -200,6 +216,16 @@ class Party implements TenantOwned, Audited
     public function changePhone(string $phone): void
     {
         $this->phone = $phone;
+    }
+
+    public function changeMobile(string $mobile): void
+    {
+        $this->mobile = trim($mobile);
+    }
+
+    public function changeWebsite(string $website): void
+    {
+        $this->website = trim($website);
     }
 
     public function changeIdentifiers(?RegistrationNumber $registrationNumber, ?VatId $vatId): void

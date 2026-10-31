@@ -42,6 +42,28 @@ final class ContrastTest extends TestCase
         yield 'badge red text on head' => ['badge-red-text', 'head'];
     }
 
+    /**
+     * Control boundaries (WCAG 2.2 SC 1.4.11 non-text contrast, 3:1): every control
+     * sits on white, and the palette opener and nav sit on the frame.
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function controlBoundaries(): iterable
+    {
+        yield 'control line on white' => ['control-line', 'white'];
+        yield 'control line on frame' => ['control-line', 'frame'];
+        yield 'error line on white' => ['badge-red-text', 'white'];
+        yield 'selected line on white' => ['green', 'white'];
+    }
+
+    #[DataProvider('controlBoundaries')]
+    public function testControlBoundaryMeetsNonTextContrast(string $line, string $background): void
+    {
+        $ratio = $this->ratio($this->token($line), $this->token($background));
+
+        self::assertGreaterThanOrEqual(3.0, $ratio, sprintf('%s on %s is %.2f:1', $line, $background, $ratio));
+    }
+
     #[DataProvider('pairs')]
     public function testPairMeetsAa(string $foreground, string $background): void
     {
@@ -50,15 +72,16 @@ final class ContrastTest extends TestCase
         self::assertGreaterThanOrEqual(4.5, $ratio, sprintf('%s on %s is %.2f:1', $foreground, $background, $ratio));
     }
 
-    public function testPlainAliasesEqualTheThemeTokens(): void
+    public function testTheThemeIsTheOnlySourceOfColours(): void
     {
         $css = file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
         self::assertIsString($css);
-        preg_match_all('/^\s*--(frame|frame-line|white|line|line-strong|head|green|green-hover|green-tint|ink|text|muted):\s*(#[0-9a-f]{6});/mi', $css, $aliases, PREG_SET_ORDER);
 
-        self::assertCount(12, $aliases);
-        foreach ($aliases as [, $name, $value]) {
-            self::assertSame($this->token($name), $value, $name);
+        // Every colour is a --color-* theme token; no plain alias repeats a value outside the theme.
+        preg_match_all('/^\s*--(?!color-)[a-z-]+:\s*#[0-9a-f]{3,8};/mi', $css, $aliases);
+        self::assertSame([], $aliases[0]);
+        foreach (['divider', 'container', 'control-line'] as $role) {
+            self::assertMatchesRegularExpression('/^#[0-9a-f]{6}$/i', $this->token($role), $role);
         }
     }
 

@@ -256,6 +256,50 @@ final class PartyControllerTest extends WebTestCase
         self::assertSame(0, $this->partyCount());
     }
 
+    public function testEveryInvalidFieldIsMarkedAndTheFirstTakesTheFocus(): void
+    {
+        $this->signIn();
+        $crawler = $this->client->request('GET', '/contacts/new');
+        self::assertSame('New contact', $crawler->filter('title')->text());
+        self::assertNotNull($crawler->filter('main form')->attr('novalidate'));
+        $form = $crawler->filter('main form')->form($this->values(['displayName' => '', 'vatId' => 'CZ12', 'street' => '', 'city' => 'Entered City']));
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: New contact', $crawler->filter('title')->text());
+        self::assertSame(['displayName', 'vatId', 'street'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        foreach (['displayName', 'street'] as $id) {
+            self::assertSame($id.'-error', $crawler->filter('#'.$id)->attr('aria-describedby'));
+            self::assertStringContainsString('border-badge-red-text', (string) $crawler->filter('#'.$id)->attr('class'));
+            self::assertSelectorTextContains('#'.$id.'-error', 'Fill in this field.');
+        }
+        self::assertSame('vatId-help vatId-error', $crawler->filter('#vatId')->attr('aria-describedby'));
+        // Only the first invalid field takes the focus, so it works without JavaScript too.
+        self::assertSame(['displayName'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('CZ12', $crawler->filter('#vatId')->attr('value'));
+        self::assertSame('Entered City', $crawler->filter('#city')->attr('value'));
+        // The save button is never held back, and the action bar carries no error text.
+        self::assertNull($crawler->selectButton('Save')->attr('disabled'));
+        self::assertSelectorNotExists('[data-action-bar-status]');
+    }
+
+    public function testEditingKeepsTheInputAndMarksTheInvalidField(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant);
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $form = $crawler->filter('main form')->form(['displayName' => 'Example Renamed', 'postalCode' => '', 'email' => 'not-an-email']);
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: Edit', $crawler->filter('title')->text());
+        self::assertSame(['email', 'postalCode'], $crawler->filter('main form [aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(['email'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('Example Renamed', $crawler->filter('#displayName')->attr('value'));
+    }
+
     public function testADomainErrorInsideTheWriteIsAFormErrorAndThePageStillQueries(): void
     {
         $this->signIn();
@@ -312,6 +356,11 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         self::assertResponseIsSuccessful();
         self::assertSame('Old Name', $crawler->filter('#displayName')->attr('value'));
+        // Save and Cancel live in the docked bar at the end of the form, Cancel first and Save on the right.
+        $bar = $crawler->filter('main form [data-action-bar]');
+        self::assertSame(['Cancel', 'Save'], $bar->filter('a, button')->each(static fn (Crawler $action): string => trim($action->text())));
+        self::assertSame('/contacts/'.$party->id(), $bar->filter('a')->attr('href'));
+        self::assertCount(1, $bar->filter('button[type="submit"]'));
         $form = $crawler->filter('main form')->form(['displayName' => 'New Name', 'email' => 'new@example.com', 'city' => 'Moved City']);
         $this->client->submit($form);
 
@@ -320,6 +369,55 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'New Name');
         self::assertSelectorTextContains('[data-party-facts], main', 'new@example.com');
         self::assertSelectorTextContains('main', 'Moved City');
+    }
+
+    public function testMobileAndWebsiteAreEditedAndShownOnlyWhenKnown(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant, number: '12345687');
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id());
+        self::assertCount(4, $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Registration number', 'VAT ID', 'E-mail', 'Phone', 'Mobile', 'Website'], true)));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $form = $crawler->filter('main form')->form(['mobile' => ' +420 987 654 321 ', 'website' => 'https://www.example.com']);
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', '+420 987 654 321');
+        self::assertSelectorTextContains('main', 'https://www.example.com');
+        self::assertSame(['Mobile', 'Website'], $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Mobile', 'Website'], true))->each(static fn ($node): string => $node->text()));
+        $link = $crawler->filter('main dl a[href="https://www.example.com"]');
+        self::assertCount(1, $link);
+        self::assertSame('noopener noreferrer', $link->attr('rel'));
+
+        // A bare domain links with https in front; anything else stays text.
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['website' => 'example.com']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('main dl a[href="https://example.com"]'));
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['website' => 'javascript:alert(1)']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(0, $crawler->filter('main dl a'));
+        self::assertSelectorTextContains('main dl', 'javascript:alert(1)');
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertSame('+420 987 654 321', $crawler->filter('#mobile')->attr('value'));
+        self::assertSame('javascript:alert(1)', $crawler->filter('#website')->attr('value'));
+    }
+
+    public function testTooLongMobileAndWebsiteAreFormErrors(): void
+    {
+        $this->signIn();
+
+        $crawler = $this->client->request('GET', '/contacts/new');
+        $this->client->submit($crawler->filter('main form')->form($this->values(['mobile' => str_repeat('1', 65), 'website' => 'https://'.str_repeat('a', 250)])));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#mobile-error', 'too long');
+        self::assertSelectorTextContains('#website-error', 'too long');
     }
 
     public function testArchiveAndRestoreAreCsrfProtectedPosts(): void
@@ -371,14 +469,39 @@ final class PartyControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         self::assertSame('text/csv; charset=utf-8', $response->headers->get('Content-Type'));
         self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.csv$/', (string) $response->headers->get('Content-Disposition'));
-        $csv = (string) $response->getContent();
-        self::assertStringStartsWith("\xEF\xBB\xBF", $csv);
-        self::assertStringContainsString('"Example Company s.r.o.";Company;Customer;12345687;CZ12345687;info@example.com;', $csv);
+        $csv = $this->client->getInternalResponse()->getContent();
+        self::assertStringStartsWith("\xEF\xBB\xBF\"Číslo kontaktu ve Foresi\";Název;Druh;", $csv);
+        self::assertStringContainsString(';"Example Company s.r.o.";Firma;12345687;', $csv);
+        self::assertStringContainsString(';CZ12345687;info@example.com;', $csv);
         self::assertStringNotContainsString('Foreign Trading', $csv);
         self::assertStringNotContainsString('Not Selected', $csv);
         self::assertStringContainsString("'=HYPERLINK", $csv);
-        self::assertCount(3, array_filter(explode("\r\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
+        self::assertCount(3, array_filter(explode("\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
         self::assertNotNull($other->id());
+    }
+
+    public function testXlsxExportIsAWorkbookWithTheSameContacts(): void
+    {
+        $this->signIn();
+        $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687');
+
+        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [(string) $mine->id()], 'format' => 'xlsx']);
+
+        self::assertResponseIsSuccessful();
+        $response = $this->client->getResponse();
+        self::assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
+        self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.xlsx$/', (string) $response->headers->get('Content-Disposition'));
+        $content = $this->client->getInternalResponse()->getContent();
+        self::assertStringStartsWith('PK', $content);
+        $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
+        file_put_contents($path, $content);
+        try {
+            $rows = [...new \App\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \App\Import\Application\Source\SourceSettings(\App\Import\Application\Source\SourceFormat::Xlsx, headerRow: 1))];
+        } finally {
+            unlink($path);
+        }
+        self::assertCount(1, $rows);
+        self::assertContains('Example Company s.r.o.', $rows[0]);
     }
 
     public function testLookupReturnsTheMappedRegistryRecord(): void
@@ -558,8 +681,36 @@ final class PartyControllerTest extends WebTestCase
         $this->client->request('GET', '/contacts/'.$person->id().'?tab=contacts');
         self::assertSelectorTextContains('main table', 'Example Company');
         $this->client->request('POST', '/contacts/'.$company->id().'/link', ['_token' => $this->token('party_action'), 'person' => (string) $person->id()]);
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'cannot be added');
+        self::assertResponseStatusCodeSame(422);
+        // No other person is left to offer, so the message stands on its own.
+        self::assertSelectorTextContains('[data-link-error]', 'Choose a person who is not listed for the company yet.');
+    }
+
+    public function testARefusedContactPersonIsShownAgainWithEveryProblemAtItsField(): void
+    {
+        $this->signIn();
+        $company = $this->party('Example Company', $this->tenant);
+        $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
+        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
+        self::assertNotNull($crawler->filter('form[action$="/link"]')->attr('novalidate'));
+        $form = $crawler->filter('form[action$="/link"]')->form();
+        // The page's maxlength stops typing, not a request: the server checks the length too.
+        $form->disableValidation()->setValues(['person' => '', 'position' => str_repeat('x', 101), 'primary' => '1']);
+
+        $crawler = $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Error: Example Company', $crawler->filter('title')->text());
+        self::assertSame(['link-person', 'link-position'], $crawler->filter('[aria-invalid="true"]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(['link-person'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame('link-person-error', $crawler->filter('#link-person')->attr('aria-describedby'));
+        self::assertSelectorTextContains('#link-position-error', 'too long');
+        // What was entered is kept and the button is not held back.
+        self::assertSame(str_repeat('x', 101), $crawler->filter('#link-position')->attr('value'));
+        self::assertNotNull($crawler->filter('#link-primary')->attr('checked'));
+        self::assertNull($crawler->selectButton('Add person')->attr('disabled'));
+        self::assertSelectorTextContains('main', 'There is no contact person yet.');
+        self::assertSame((string) $person->id(), $crawler->filter('#link-person option')->attr('value'));
     }
 
     public function testAddressAndBankAccountTabsRender(): void
@@ -595,6 +746,21 @@ final class PartyControllerTest extends WebTestCase
 
         $second = $this->client->request('GET', '/contacts/'.$this->idOf('Second Company').'?tab=history');
         self::assertCount(2, $second->filter('[data-party-history] li'));
+    }
+
+    public function testTheHistoryOfAnEmailChangeNamesOnlyTheAddress(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant, email: 'info@example.com');
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['email' => 'Changed@example.com']));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'?tab=history');
+
+        $entries = implode("\n", $crawler->filter('[data-party-history] li')->each(static fn (Crawler $li): string => trim($li->text())));
+        self::assertStringContainsString('Changed: e-mail (Address)', $entries);
+        self::assertStringNotContainsString('addressKey', $entries);
+        self::assertStringNotContainsString('address_key', $entries);
     }
 
     public function testListNeedsLogin(): void

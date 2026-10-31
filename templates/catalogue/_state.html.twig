@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# One labelled state of a component. Embed it and fill the block "sample"; "state" is a catalogue.state key. #}
 <div class="grid gap-2">
-    <h3 class="m-0 text-xs font-semibold uppercase tracking-wide text-muted">{{ ('catalogue.state.' ~ state)|trans }}</h3>
+    <h3 class="m-0 text-caption font-semibold uppercase tracking-wide text-muted">{{ ('catalogue.state.' ~ state)|trans }}</h3>
     <div class="flex flex-wrap items-start gap-3">{% block sample %}{% endblock %}</div>
 </div>

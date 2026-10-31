@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+framework:
+    messenger:
+        transports:
+            async: 'in-memory://'
+            registry: 'in-memory://'
+            failed: 'in-memory://'
+        routing:
+            App\Tests\Tenancy\Infrastructure\ScopedProbe: async

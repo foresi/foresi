@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <div class="grid gap-5">
 {% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
-<div class="w-full"><twig:Ui:FactsGrid :items="[{label: 'Registration number', value: '12345678'}, {label: 'VAT number', value: 'CZ12345678'}, {label: 'Balance', value: '12 400,00 Kč', big: true}]" /></div>
+<div class="w-full"><twig:Ui:FactsGrid :items="[{label: 'Registration number', value: '12345678'}, {label: 'VAT number', value: 'CZ12345678'}, {label: 'Website', value: 'www.example.com', href: 'https://www.example.com'}, {label: 'Balance', value: '12 400,00 Kč', big: true}]" /></div>
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
 <div class="w-full"><twig:Ui:FactsGrid :items="[]" /><span class="text-muted">—</span></div>

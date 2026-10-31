@@ -1,16 +1,20 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'layout/auth.html.twig' %}
 
+{% set form_invalid = error is not null %}
+{# A failed sign-in names no single field: both fields point at the one message above the form. #}
+{% set errorRef = error ? 'login-error' : null %}
+
 {% block title %}{{ 'login.title'|trans }}{% endblock %}
 
 {% block content %}
     {% if error %}
-        <p role="alert" class="mb-4 rounded-control bg-badge-red px-3 py-2 text-[13px] font-medium text-badge-red-text">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+        <twig:Ui:Alert tone="error" id="login-error" class="mb-4">{{ error.messageKey|trans(error.messageData, 'security') }}</twig:Ui:Alert>
     {% endif %}
 
-    <form method="post" action="{{ path('app_login') }}" class="grid gap-4">
-        <twig:Ui:TextInput name="_username" id="username" type="email" :label="'login.email'|trans" :value="lastUsername" required autocomplete="username" autofocus />
-        <twig:Ui:TextInput name="_password" id="password" type="password" :label="'login.password'|trans" required autocomplete="current-password" />
+    <form method="post" action="{{ path('app_login') }}" class="grid gap-3" novalidate>
+        <twig:Ui:TextInput name="_username" id="username" type="email" :label="'login.email'|trans" :value="lastUsername" :errorRef="errorRef" required autocomplete="username" autofocus />
+        <twig:Ui:TextInput name="_password" id="password" type="password" :label="'login.password'|trans" :errorRef="errorRef" required autocomplete="current-password" />
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
         <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'login.submit'|trans }}</twig:Ui:Button>
     </form>

@@ -9,7 +9,12 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Import\Application\ExportRecords;
+use App\Import\Application\Imports;
+use App\Import\Application\Source\SourceFormat;
+use App\Import\Domain\Import;
 use App\Party\Application\ArchiveParty;
+use App\Party\Application\ImportedBy;
 use App\Party\Application\LinkContactPerson;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyHistoryEntry;
@@ -26,14 +31,16 @@ use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
-use App\Party\Infrastructure\Http\PartyCsvExport;
+use App\Party\Infrastructure\Http\WebsiteLink;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
@@ -53,6 +60,8 @@ final class PartyController extends AbstractController
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
     private const int MAX_SEARCH = 100;
+    /** The length of the position column of a contact link. */
+    private const int MAX_POSITION = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
     public function __construct(
@@ -62,10 +71,11 @@ final class PartyController extends AbstractController
         private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
         private readonly TransactionalWork $transaction,
-        private readonly PartyCsvExport $export,
+        private readonly ExportRecords $export,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly AuditActor $actor,
+        private readonly Imports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
     ) {
@@ -85,9 +95,11 @@ final class PartyController extends AbstractController
             default => null,
         };
 
-        $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)));
+        [$importedBy, $import] = $this->importedBy($request->query);
+        $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->parties->counts();
-        $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort];
+        $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
+            + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
 
         return $this->render('party/index.html.twig', [
             'counts' => $counts,
@@ -100,18 +112,25 @@ final class PartyController extends AbstractController
             'columns' => $this->columns($sort, $query),
             'rows' => $this->rows($page),
             'baseUrl' => $this->generateUrl('app_contacts', $query),
-            'filtered' => '' !== $text || 'all' !== $view,
+            'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
+            'importedBy' => $importedBy instanceof ImportedBy && $import instanceof Import ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $import->originalName()]), 'href' => $this->generateUrl('app_import_show', ['id' => $importedBy->importId])] : null,
+            'exportQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
         ]);
     }
 
     #[Route('/contacts/{id}', name: 'app_contact_show', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function show(int $id, Request $request): Response
     {
-        $party = $this->party($id);
         $tab = $request->query->getString('tab', 'overview');
-        $tab = \in_array($tab, self::TABS, true) ? $tab : 'overview';
-        $locale = $request->getLocale();
 
+        return $this->detail($this->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
+    }
+
+    /**
+     * @param array<string, mixed> $extra what the contacts tab shows after a refused link
+     */
+    private function detail(Party $party, int $id, string $tab, string $locale, array $extra = [], int $status = Response::HTTP_OK): Response
+    {
         $vies = $party->viesCheck();
         $reliability = $party->unreliablePayerCheck();
         $unreliable = RegistryResult::Unreliable === $reliability?->result;
@@ -137,13 +156,13 @@ final class PartyController extends AbstractController
             'locale' => $locale,
         ];
 
-        return $this->render('party/show.html.twig', $data + match ($tab) {
+        return $this->render('party/show.html.twig', $extra + $data + match ($tab) {
             'contacts' => $this->contactsTab($party),
             'addresses' => ['addressRows' => $this->addressRows($this->details->addresses($party))],
             'bank-accounts' => ['accountRows' => $this->accountRows($this->details->bankAccounts($party))],
             'history' => ['timeline' => $this->timeline($party)],
             default => ['billing' => $this->details->billingAddress($party)?->address()],
-        });
+        }, new Response(status: $status));
     }
 
     #[Route('/contacts/{id}/archive', name: 'app_contact_archive', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -189,66 +208,90 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * Exports the selected contacts; ids of other tenants are ignored. The file
-     * name carries the date only, never a name or a number.
+     * Exports the selected contacts, or the whole view as it is filtered, through
+     * the import target: the file has the columns the import maps and imports
+     * again. Ids of other tenants are ignored. The file name carries the date
+     * only, never a name or a number. It is streamed, so a large address book
+     * needs no limit.
      */
     #[Route('/contacts/export', name: 'app_contacts_export', methods: ['POST'])]
     public function export(Request $request): Response
     {
         $this->checkToken($request);
-        $ids = $this->selectedIds($request);
+        $format = 'xlsx' === $request->request->getString('format') ? SourceFormat::Xlsx : SourceFormat::Csv;
+        // The header action exports the whole view as it is filtered, not a selection.
+        if ('view' === $request->request->getString('scope')) {
+            $view = $request->request->getString('view', 'all');
+            $role = match ($view) {
+                'customers' => PartyRole::Customer,
+                'suppliers' => PartyRole::Supplier,
+                default => null,
+            };
+            // A list narrowed to an import exports exactly what it shows.
+            [$importedBy] = $this->importedBy($request->request);
+            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, $importedBy);
+        } else {
+            $selected = $this->selectedIds($request);
+            $found = [] === $selected ? [] : $this->parties->findMany($selected);
+            if ([] === $found) {
+                if ([] === $selected) {
+                    return $this->redirectToRoute('app_contacts');
+                }
+                throw new NotFoundHttpException();
+            }
+            $ids = array_values(array_filter(array_map(static fn (Party $party): ?int => $party->id(), $found), \is_int(...)));
+        }
         if ([] === $ids) {
             return $this->redirectToRoute('app_contacts');
         }
-        $found = $this->parties->findMany($ids);
-        if ([] === $found) {
-            throw new NotFoundHttpException();
-        }
 
-        $kinds = [];
-        foreach (PartyKind::cases() as $kind) {
-            $kinds[$kind->value] = $this->translator->trans('party.kind.'.$kind->value);
-        }
-        $roles = [];
-        foreach (PartyRole::cases() as $role) {
-            $roles[$role->value] = $this->translator->trans('party.role.'.$role->value);
-        }
-        $header = array_map(fn (string $column): string => $this->translator->trans('party.export.'.$column), ['name', 'kind', 'roles', 'registration_number', 'vat_id', 'email', 'phone', 'street', 'city', 'postal_code', 'country']);
-        $response = new Response($this->export->render($found, $header, $kinds, $roles));
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.csv'));
+        $response = new StreamedResponse(function () use ($ids, $format): void {
+            $this->export->write('party', $ids, $format, 'php://output');
+        });
+        $response->headers->set('Content-Type', SourceFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'contacts-'.$this->clock->now()->format('Ymd').'.'.$format->value));
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
     }
 
     #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function link(int $id, Request $request): RedirectResponse
+    public function link(int $id, Request $request): Response
     {
         $this->checkToken($request);
         $company = $this->party($id);
-        $person = $this->parties->find($request->request->getInt('person'));
-        if (!$person instanceof Party) {
-            throw new NotFoundHttpException();
+        $personId = $request->request->getString('person');
+        $position = trim($request->request->getString('position'));
+        $primary = $request->request->getBoolean('primary');
+        // A person the select never offered (another tenant's, or none at all) is not found, as everywhere.
+        $person = '' === $personId ? null : ($this->parties->find((int) $personId) ?? throw new NotFoundHttpException());
+
+        $errors = [];
+        if (!$person instanceof Party || PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
+            $errors['person'] = 'party.contacts.person_invalid';
         }
-
-        $back = $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
-        if (PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
-            $this->addFlash('error', $this->translator->trans('party.flash.link_invalid'));
-
-            return $back;
+        if (mb_strlen($position) > self::MAX_POSITION) {
+            $errors['position'] = 'party.error.too_long';
         }
-
-        try {
-            $this->linkContactPerson->link($company, $person, trim($request->request->getString('position')), $request->request->getBoolean('primary'));
-        } catch (\DomainException) {
-            $this->addFlash('error', $this->translator->trans('party.flash.link_invalid'));
-
-            return $back;
+        if ([] === $errors && $person instanceof Party) {
+            try {
+                $this->linkContactPerson->link($company, $person, $position, $primary);
+            } catch (\DomainException) {
+                $errors['person'] = 'party.contacts.person_invalid';
+                // The failed write reset the persistence session; read the company again for the page.
+                $company = $this->party($id);
+            }
+        }
+        if ([] !== $errors) {
+            // Shown again with every problem at its field and what was entered kept.
+            return $this->detail($company, $id, 'contacts', $request->getLocale(), [
+                'linkErrors' => array_map(fn (string $key): string => $this->translator->trans($key), $errors),
+                'linkValues' => ['person' => $personId, 'position' => $position, 'primary' => $primary],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('party.flash.linked'));
 
-        return $back;
+        return $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
     }
 
     #[Route('/contacts/{id}/registry-checks', name: 'app_contact_refresh_checks', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -276,6 +319,26 @@ final class PartyController extends AbstractController
         $this->addFlash('success', $message);
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
+    }
+
+    /**
+     * The import the list is narrowed to, when the link of an import summary opened it.
+     *
+     * @param InputBag<string> $input the query of the list, or the form of its export
+     *
+     * @return array{?ImportedBy, ?Import}
+     */
+    private function importedBy(InputBag $input): array
+    {
+        $id = $input->getString('import');
+        $outcome = $input->getString('outcome', 'create');
+        if (!ctype_digit($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
+            return [null, null];
+        }
+        // An import of another tenant is not found, so its id narrows nothing.
+        $import = $this->imports->find((int) $id);
+
+        return $import instanceof Import ? [new ImportedBy((int) $id, $outcome), $import] : [null, null];
     }
 
     private function party(int $id): Party
@@ -403,13 +466,21 @@ final class PartyController extends AbstractController
     private function facts(Party $party): array
     {
         $dash = '—';
-
-        return [
+        $facts = [
             ['label' => $this->translator->trans('party.field.registrationNumber'), 'value' => $party->registrationNumber()->value ?? $dash],
             ['label' => $this->translator->trans('party.field.vatId'), 'value' => $party->vatId()?->toString() ?? $dash],
             ['label' => $this->translator->trans('party.field.email'), 'value' => $this->details->generalEmail($party)?->address() ?? $dash],
             ['label' => $this->translator->trans('party.field.phone'), 'value' => '' === $party->phone() ? $dash : $party->phone()],
         ];
+        // Shown only when known, so a contact without them keeps the four facts every contact has.
+        if ('' !== $party->mobile()) {
+            $facts[] = ['label' => $this->translator->trans('party.field.mobile'), 'value' => $party->mobile()];
+        }
+        if ('' !== $party->website()) {
+            $facts[] = ['label' => $this->translator->trans('party.field.website'), 'value' => $party->website(), 'href' => WebsiteLink::of($party->website())];
+        }
+
+        return $facts;
     }
 
     /**

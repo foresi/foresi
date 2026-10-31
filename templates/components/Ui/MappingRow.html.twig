@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set samples = this.shownSamples %}
+{% set badgeView = this.badgeView %}
+<div {{ attributes.defaults({class: 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,20rem)_8.5rem] sm:gap-x-4'}) }}>
+    <label for="{{ id }}" class="col-start-1 row-start-1 block min-w-0 truncate font-medium text-ink" title="{{ label }}">{{ label }}</label>
+    <div class="col-start-2 row-start-1 justify-self-end sm:col-start-3 sm:row-span-2 sm:justify-self-start">
+        {%- if badgeView %}<twig:Ui:Badge :tone="badgeView.tone">{{ badgeView.label }}</twig:Ui:Badge>{% endif -%}
+    </div>
+    <p class="col-span-2 row-start-2 m-0 flex min-w-0 gap-x-2 text-small text-muted sm:col-span-1 sm:col-start-1">
+        {%- for sample in samples %}
+            {%- if not loop.first %}<span aria-hidden="true">·</span>{% endif -%}
+            <span class="min-w-0 max-w-[14rem] truncate" title="{{ sample }}">{{ sample }}</span>
+        {%- else -%}
+            <span class="text-control-line" aria-hidden="true">—</span>
+        {%- endfor -%}
+    </p>
+    <div class="relative col-span-2 row-start-3 mt-1 sm:col-span-1 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:mt-0">
+        <select id="{{ id }}" name="{{ name }}"{% if this.invalid %} aria-invalid="true" aria-describedby="{{ id }}-error"{% endif %}{% if this.focused %} autofocus{% endif %} class="{{ this.selectClasses }}">
+            {% for key, option in options %}
+                {% if option is iterable %}
+                    <optgroup label="{{ key }}">
+                        {% for optionValue, optionLabel in option %}
+                            <option value="{{ optionValue }}"{% if optionValue ~ '' == value %} selected{% endif %}>{{ optionLabel }}</option>
+                        {% endfor %}
+                    </optgroup>
+                {% else %}
+                    <option value="{{ key }}"{% if key ~ '' == value %} selected{% endif %}>{{ option }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        {{ ux_icon('lucide:chevron-down', {class: 'pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted', 'aria-hidden': 'true'}) }}
+    </div>
+    {% if this.invalid %}
+        <div id="{{ id }}-error" class="col-span-2 grid gap-0.5 text-caption font-medium text-badge-red-text sm:col-span-1 sm:col-start-2">
+            {%- for error in errors %}<p class="m-0">{{ error }}</p>{% endfor -%}
+        </div>
+    {% endif %}
+</div>

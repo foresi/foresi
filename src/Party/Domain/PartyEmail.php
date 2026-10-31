@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Audit\Domain\AuditExcluded;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,6 +21,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'party_email')]
 #[ORM\Index(name: 'idx_party_email_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
+#[ORM\Index(name: 'idx_party_email_key', columns: ['tenant_id', 'address_key'])]
 class PartyEmail implements TenantOwned, Audited
 {
     private const int MAX_LENGTH = 254;
@@ -35,6 +37,12 @@ class PartyEmail implements TenantOwned, Audited
     #[ORM\Column(type: 'string', length: 254)]
     private string $address;
 
+    // The comparison form of the address, so a party is found by its e-mail in SQL, through an index.
+    // Derived from the address, so it is left out of the audit log.
+    #[AuditExcluded]
+    #[ORM\Column(name: 'address_key', type: 'string', length: 254, options: ['default' => ''])]
+    private string $addressKey;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Party::class)]
         #[ORM\JoinColumn(name: 'party_id', nullable: false)]
@@ -45,6 +53,13 @@ class PartyEmail implements TenantOwned, Audited
     ) {
         $this->tenantId = $party->stampedTenantId();
         $this->address = $this->validate($address);
+        $this->addressKey = self::key($this->address);
+    }
+
+    /** E-mail addresses are compared without regard to case. */
+    public static function key(string $address): string
+    {
+        return mb_strtolower(trim($address));
     }
 
     public function id(): ?int
@@ -70,6 +85,7 @@ class PartyEmail implements TenantOwned, Audited
     public function change(string $address, EmailPurpose $purpose): void
     {
         $this->address = $this->validate($address);
+        $this->addressKey = self::key($this->address);
         $this->purpose = $purpose;
     }
 

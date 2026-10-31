@@ -1,0 +1,21 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set fields = {'': 'Neimportovat', 'Obecné': {display_name: 'Název (povinné)', registration_number: 'IČO', email: 'E-mail'}, 'Fakturační adresa': {billing_street: 'Fakturační ulice', billing_city: 'Fakturační město'}} %}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-full divide-y divide-divider">
+    <twig:Ui:MappingRow id="cat-map-1" name="cat-map[0]" label="Firma" :samples="['Example Company s.r.o.', 'Příliš žluťoučký kůň a.s.', 'Example International Wholesale and Distribution Company Ltd']" :options="fields" value="display_name" :badge="{label: 'iDoklad', tone: 'green'}" />
+    <twig:Ui:MappingRow id="cat-map-2" name="cat-map[1]" label="E-mailová adresa" :samples="['testing@example.com']" :options="fields" value="email" :badge="{label: 'Podobný název', tone: 'amber'}" />
+    <twig:Ui:MappingRow id="cat-map-3" name="cat-map[2]" label="Sleva" :samples="['0.00', '0.00', '0.00']" :options="fields" value="" />
+</div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
+<div class="w-full divide-y divide-divider">
+    <twig:Ui:MappingRow id="cat-map-4" name="cat-map[3]" label="Column 7" :options="fields" value="" />
+</div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'value_map'} %}{% block sample %}
+<div class="w-full divide-y divide-divider">
+    <twig:Ui:MappingRow id="cat-map-5" name="cat-values[kind][Firma]" label="Firma" :samples="['12 řádků']" :options="{'': 'Vyberte hodnotu', company: 'Firma', person: 'Osoba', sole_trader: 'Podnikatel'}" value="company" />
+</div>
+{% endblock %}{% endembed %}
+</div>

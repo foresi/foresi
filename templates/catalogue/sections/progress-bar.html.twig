@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'loading'} %}{% block sample %}
+<twig:Ui:ProgressBar class="w-full max-w-md" label="Čteme soubor" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'progress'} %}{% block sample %}
+<twig:Ui:ProgressBar class="w-full max-w-md" label="Importujeme řádky" :value="1500" :max="3000" valueText="1 500 z 3 000 řádků" />
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'done'} %}{% block sample %}
+<twig:Ui:ProgressBar class="w-full max-w-md" label="Rows checked" :value="200000" :max="200000" valueText="200,000 of 200,000 rows" />
+{% endblock %}{% endembed %}
+</div>

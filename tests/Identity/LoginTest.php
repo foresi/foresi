@@ -13,6 +13,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class LoginTest extends WebTestCase
 {
@@ -55,6 +56,29 @@ final class LoginTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorExists('[role="alert"]');
         self::assertSelectorExists('form input[name="_password"]');
+    }
+
+    public function testAFailedLoginMarksBothFieldsKeepsTheEmailAndFocusesTheFirst(): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+        self::assertNotNull($crawler->filter('form')->attr('novalidate'));
+        self::assertNull($crawler->filter('#username')->attr('aria-invalid'));
+        self::assertSame('Přihlášení', $crawler->filter('title')->text());
+
+        $this->submit(IdentityFixtures::EMAIL, 'wrong-password');
+        $crawler = $this->client->followRedirect();
+
+        // The message stays where it was; both fields point at it, as the sign-in names no single field.
+        self::assertSame('Chyba: Přihlášení', $crawler->filter('title')->text());
+        self::assertSame('login-error', $crawler->filter('[role="alert"]')->attr('id'));
+        foreach (['username', 'password'] as $id) {
+            self::assertSame('true', $crawler->filter('#'.$id)->attr('aria-invalid'));
+            self::assertSame('login-error', $crawler->filter('#'.$id)->attr('aria-describedby'));
+            self::assertStringContainsString('border-badge-red-text', (string) $crawler->filter('#'.$id)->attr('class'));
+        }
+        self::assertSame(['username'], $crawler->filter('[autofocus]')->each(static fn (Crawler $control): string => (string) $control->attr('id')));
+        self::assertSame(IdentityFixtures::EMAIL, $crawler->filter('#username')->attr('value'));
+        self::assertNull($crawler->filter('form button[type="submit"]')->attr('disabled'));
     }
 
     public function testLoginRejectsUnknownUser(): void

@@ -19,7 +19,7 @@ final class TagTest extends KernelTestCase
     {
         $html = (string) $this->renderTwigComponent('Ui:Tag', ['label' => 'Partner', 'color' => '#2f5e3d']);
 
-        self::assertStringContainsString('border-line-strong', $html);
+        self::assertStringContainsString('border-container', $html);
         self::assertStringContainsString('background-color: #2f5e3d', $html);
         self::assertStringContainsString('aria-hidden="true"', $html);
         self::assertStringContainsString('title="Partner"', $html);

@@ -6,11 +6,12 @@
     ? [{label: 'party.title'|trans, href: path('app_contacts')}, {label: party.displayName, href: cancel}, {label: 'party.edit'|trans}]
     : [{label: 'party.title'|trans, href: path('app_contacts')}, {label: 'party.new'|trans}] %}
 {% set roleValues = values.roles %}
+{% set form_invalid = errors is not empty %}
 
 {% block title %}{{ editing ? 'party.edit'|trans : 'party.new'|trans }}{% endblock %}
 
 {% block content %}
-    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}">
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
 
@@ -55,6 +56,8 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 <twig:Ui:TextInput name="email" id="email" type="email" :label="'party.field.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="254" />
                 <twig:Ui:TextInput name="phone" id="phone" type="tel" :label="'party.field.phone'|trans" :value="values.phone" :error="errors.phone|default(null)" maxlength="64" />
+                <twig:Ui:TextInput name="mobile" id="mobile" type="tel" :label="'party.field.mobile'|trans" :value="values.mobile" :error="errors.mobile|default(null)" maxlength="64" />
+                <twig:Ui:TextInput name="website" id="website" inputmode="url" :label="'party.field.website'|trans" :value="values.website" :error="errors.website|default(null)" maxlength="255" />
             </div>
         </twig:Ui:Card>
 
@@ -68,13 +71,15 @@
         </twig:Ui:Card>
 
         <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
-            <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" class="mb-4" />
-            <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
+            <div class="grid gap-3">
+                <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" />
+                <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
+            </div>
         </twig:Ui:Card>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+        <twig:Ui:ActionBar>
             <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
-        </div>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
     </form>
 {% endblock %}
