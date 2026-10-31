@@ -45,6 +45,7 @@ final class ImportTest extends TestCase
         $pairs = [
             [ImportState::Uploaded, ImportState::Reading],
             [ImportState::Reading, ImportState::Mapping],
+            [ImportState::Mapping, ImportState::Reading],
             [ImportState::Mapping, ImportState::Checking],
             [ImportState::Checking, ImportState::Checked],
             [ImportState::Checked, ImportState::Mapping],

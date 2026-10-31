@@ -10,6 +10,7 @@ namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Application\Imports;
 use App\Import\Domain\Import;
+use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Console\PurgeImportsCommand;
@@ -87,6 +88,26 @@ final class PurgeImportsCommandTest extends KernelTestCase
         self::assertSame(2, $kept->total());
         self::assertStringContainsString('1 imports', $this->tester->getDisplay());
         self::assertStringContainsString('1 files and 2 rows', $this->tester->getDisplay());
+    }
+
+    public function testRemovesTheMissingRecordsOfAFullReplaceToo(): void
+    {
+        $tenant = TenantId::generate();
+        $this->context->switchTo($tenant);
+        $old = $this->finished($tenant, '2026-10-16 11:59:59', 1);
+        $import = $this->imports->find($this->importIds[$old]);
+        self::assertNotNull($import);
+        $this->em->persist(new ImportMissingRecord($import, 1, 42));
+        $this->em->flush();
+        $this->em->getConnection()->executeStatement('DELETE FROM import_row');
+        $this->files->delete($old);
+        $this->em->getConnection()->executeStatement('UPDATE import SET file_key = NULL');
+        $this->em->clear();
+
+        $this->tester->execute([]);
+
+        self::assertEquals(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM import_missing_record'));
+        self::assertStringContainsString('1 imports', $this->tester->getDisplay());
     }
 
     public function testKeepsImportsThatEndedExactly30DaysAgoOrLater(): void

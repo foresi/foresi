@@ -20,6 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'import_row')]
 #[ORM\Index(name: 'idx_import_row_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_import_row_chunk', columns: ['import_id', 'chunk'])]
+#[ORM\Index(name: 'idx_import_row_match', columns: ['import_id', 'match_value'])]
+#[ORM\Index(name: 'idx_import_row_record', columns: ['import_id', 'record_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_import_row_number', columns: ['import_id', 'row_number'])]
 class ImportRow implements TenantOwned
 {
@@ -44,6 +46,10 @@ class ImportRow implements TenantOwned
     /** @var array<string, mixed>|null the record before the import changed it */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $before = null;
+
+    /** A fingerprint of the match key value, so a key repeated in the file is found. */
+    #[ORM\Column(name: 'match_value', type: 'string', length: 40, nullable: true, options: ['fixed' => true])]
+    private ?string $matchValue = null;
 
     #[ORM\Column(name: 'processed_in_run', type: 'boolean')]
     private bool $processedInRun = false;
@@ -132,6 +138,28 @@ class ImportRow implements TenantOwned
         return $this->before;
     }
 
+    public function matchValue(): ?string
+    {
+        return $this->matchValue;
+    }
+
+    /**
+     * The fingerprint of a normalised match key value: the same for values that
+     * name the same record (letter case and the order of a list do not matter),
+     * null for an empty value.
+     */
+    public static function fingerprint(mixed $value): ?string
+    {
+        $canonical = self::canonical($value);
+
+        return null === $canonical ? null : sha1($canonical);
+    }
+
+    public function keyBy(?string $matchValue): void
+    {
+        $this->matchValue = $matchValue;
+    }
+
     public function processedInRun(): bool
     {
         return $this->processedInRun;
@@ -171,5 +199,24 @@ class ImportRow implements TenantOwned
     public function markUndone(): void
     {
         $this->processedInUndo = true;
+    }
+
+    private static function canonical(mixed $value): ?string
+    {
+        if (\is_array($value)) {
+            $parts = array_values(array_filter(array_map(self::canonical(...), $value), static fn (?string $part): bool => null !== $part));
+            sort($parts);
+
+            return [] === $parts ? null : implode("\n", $parts);
+        }
+
+        $text = match (true) {
+            $value instanceof \DateTimeInterface => $value->format('Y-m-d'),
+            \is_bool($value) => $value ? '1' : '0',
+            \is_scalar($value) => mb_strtolower(trim((string) $value)),
+            default => '',
+        };
+
+        return '' === $text ? null : $text;
     }
 }

@@ -57,7 +57,8 @@ enum ImportState: string
         return match ($this) {
             self::Uploaded => [self::Reading, self::Cancelled],
             self::Reading => [self::Mapping, self::Failed, self::Cancelled],
-            self::Mapping => [self::Checking, self::Cancelled],
+            // Reading again with other settings (encoding, delimiter, sheet, header row).
+            self::Mapping => [self::Reading, self::Checking, self::Cancelled],
             self::Checking => [self::Checked, self::Failed, self::Cancelled],
             self::Checked => [self::Mapping, self::Queued, self::Cancelled],
             self::Queued => [self::Running, self::Cancelled],

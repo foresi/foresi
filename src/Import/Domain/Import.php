@@ -27,6 +27,12 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_import_finished', columns: ['state', 'finished_at'])]
 class Import implements TenantOwned
 {
+    /** Undo stays possible this long after the run ended; the purge removes the staged rows at the same age. */
+    public const int UNDO_DAYS = 30;
+
+    /** The share of error rows is judged once this many chunks are done (or all of them, when there are fewer). */
+    public const int THRESHOLD_CHUNKS = 2;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -98,6 +104,22 @@ class Import implements TenantOwned
 
     #[ORM\Column(name: 'failure_message_key', type: 'string', length: 128, nullable: true)]
     private ?string $failureMessageKey = null;
+
+    /** @var list<array{column: int, field: string|null, reason: string}> what the column matcher proposed */
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $proposals = [];
+
+    /** The known source the headers were recognised as. */
+    #[ORM\Column(name: 'preset_key', type: 'string', length: 64, nullable: true)]
+    private ?string $presetKey = null;
+
+    /** Records the undo put back as they were. */
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $reverted = 0;
+
+    /** Records the undo left alone because someone changed them after the import. */
+    #[ORM\Column(name: 'changed_after_import', type: 'integer', options: ['default' => 0])]
+    private int $changedAfterImport = 0;
 
     /**
      * Not readonly: DoctrineImports::findLocked() refreshes the entity, and the ORM cannot rewrite readonly properties.
@@ -270,6 +292,32 @@ class Import implements TenantOwned
     }
 
     /**
+     * @return list<ColumnProposal> one per header, in column order
+     */
+    public function proposals(): array
+    {
+        return array_map(
+            static fn (array $proposal): ColumnProposal => new ColumnProposal($proposal['column'], $proposal['field'], MatchReason::from($proposal['reason'])),
+            $this->proposals,
+        );
+    }
+
+    public function presetKey(): ?string
+    {
+        return $this->presetKey;
+    }
+
+    public function reverted(): int
+    {
+        return $this->reverted;
+    }
+
+    public function changedAfterImport(): int
+    {
+        return $this->changedAfterImport;
+    }
+
+    /**
      * @throws IllegalTransition
      */
     public function moveTo(ImportState $next, ?\DateTimeImmutable $at = null): void
@@ -351,6 +399,79 @@ class Import implements TenantOwned
         $this->archiveCandidates = $count;
     }
 
+    /**
+     * Keeps what the column matcher proposed and the known source it recognised, for the mapping screen.
+     *
+     * @param list<ColumnProposal> $proposals
+     */
+    public function propose(array $proposals, ?string $presetKey): void
+    {
+        $this->proposals = array_map(
+            static fn (ColumnProposal $proposal): array => ['column' => $proposal->column, 'field' => $proposal->fieldKey, 'reason' => $proposal->reason->value],
+            $proposals,
+        );
+        $this->presetKey = $presetKey;
+    }
+
+    /**
+     * The number of records the user typed to confirm the archiving of a full replace; null withdraws it.
+     */
+    public function confirmArchive(?int $count): void
+    {
+        $o = $this->options;
+        $this->options = new ImportOptions($o->mode, $o->scope, $o->matchKey, $o->blankCells, $o->dateOrder, $o->decimalSeparator, $count);
+    }
+
+    /** A full replace that would archive records runs only once the user typed their number. */
+    public function needsArchiveConfirmation(): bool
+    {
+        return ImportMode::FullReplace === $this->options->mode && $this->archiveCandidates > 0;
+    }
+
+    public function isArchiveConfirmed(): bool
+    {
+        return !$this->needsArchiveConfirmation() || $this->options->archiveConfirmation === $this->archiveCandidates;
+    }
+
+    /**
+     * True on the chunk that completes the first THRESHOLD_CHUNKS (or all chunks,
+     * when there are fewer) if more than half of the rows done so far failed:
+     * the mapping is then most likely wrong.
+     */
+    public function reachedErrorThreshold(): bool
+    {
+        return $this->chunksDone === min(self::THRESHOLD_CHUNKS, $this->chunks) && $this->failed * 2 > $this->processed;
+    }
+
+    /**
+     * The last moment the import can still be undone, or null when its state cannot be undone at all.
+     */
+    public function undoDeadline(): ?\DateTimeImmutable
+    {
+        if (!$this->state->canMoveTo(ImportState::Undoing) || !$this->finishedAt instanceof \DateTimeImmutable) {
+            return null;
+        }
+
+        return $this->finishedAt->modify(\sprintf('+%d days', self::UNDO_DAYS));
+    }
+
+    /**
+     * @return string|null why the import cannot be undone now, as a translation key; null when it can
+     */
+    public function undoRefusal(\DateTimeImmutable $now): ?string
+    {
+        $deadline = $this->undoDeadline();
+        if (!$deadline instanceof \DateTimeImmutable) {
+            return 'import.refused.undo_state';
+        }
+        // The purge removes the file and the staged rows together; without the rows nothing can be put back.
+        if (null === $this->fileKey || $now > $deadline) {
+            return 'import.refused.undo_expired';
+        }
+
+        return null;
+    }
+
     public function markSeen(\DateTimeImmutable $at): void
     {
         $this->seenAt = $at;
@@ -364,6 +485,55 @@ class Import implements TenantOwned
      */
     public function recordChunk(array $counts): void
     {
+        $counts = $this->outcomeCounts($counts);
+        $this->created += $counts[0];
+        $this->updated += $counts[1];
+        $this->restored += $counts[2];
+        $this->skipped += $counts[3];
+        $this->archived += $counts[4];
+        $this->failed += $counts[5];
+        $this->processed += array_sum($counts);
+        ++$this->chunksDone;
+    }
+
+    /**
+     * Replaces the counters with the exact numbers of the whole source, as the
+     * check counts them once every chunk is done. The chunk progress stays.
+     *
+     * @param array<string, int> $counts the number of rows per outcome, keyed by RowOutcome::value
+     */
+    public function recount(array $counts): void
+    {
+        [$this->created, $this->updated, $this->restored, $this->skipped, $this->archived, $this->failed] = $this->outcomeCounts($counts);
+        $this->processed = $this->created + $this->updated + $this->restored + $this->skipped + $this->archived + $this->failed;
+    }
+
+    /** Adds records a full replace archived; they are not source rows, so the progress stays. */
+    public function recordArchived(int $count): void
+    {
+        if ($count < 0) {
+            throw new \InvalidArgumentException('The number of archived records must not be negative.');
+        }
+        $this->archived += $count;
+    }
+
+    /** Adds the outcome of one chunk of an undo. */
+    public function recordUndo(int $reverted, int $changedAfterImport): void
+    {
+        if ($reverted < 0 || $changedAfterImport < 0) {
+            throw new \InvalidArgumentException('The number of records must not be negative.');
+        }
+        $this->reverted += $reverted;
+        $this->changedAfterImport += $changedAfterImport;
+    }
+
+    /**
+     * @param array<string, int> $counts
+     *
+     * @return array{int, int, int, int, int, int} created, updated, restored, skipped, archived, failed
+     */
+    private function outcomeCounts(array $counts): array
+    {
         $unknown = array_diff(array_keys($counts), array_map(static fn (RowOutcome $outcome): string => $outcome->value, RowOutcome::cases()));
         if ([] !== $unknown) {
             throw new \InvalidArgumentException(\sprintf('"%s" is not a row outcome.', reset($unknown)));
@@ -372,20 +542,13 @@ class Import implements TenantOwned
             throw new \InvalidArgumentException('The number of rows must not be negative.');
         }
 
-        $created = $counts[RowOutcome::Create->value] ?? 0;
-        $updated = $counts[RowOutcome::Update->value] ?? 0;
-        $restored = $counts[RowOutcome::Restore->value] ?? 0;
-        $skipped = $counts[RowOutcome::Skip->value] ?? 0;
-        $archived = $counts[RowOutcome::Archive->value] ?? 0;
-        $failed = $counts[RowOutcome::Error->value] ?? 0;
-
-        $this->created += $created;
-        $this->updated += $updated;
-        $this->restored += $restored;
-        $this->skipped += $skipped;
-        $this->archived += $archived;
-        $this->failed += $failed;
-        $this->processed += $created + $updated + $restored + $skipped + $archived + $failed;
-        ++$this->chunksDone;
+        return [
+            $counts[RowOutcome::Create->value] ?? 0,
+            $counts[RowOutcome::Update->value] ?? 0,
+            $counts[RowOutcome::Restore->value] ?? 0,
+            $counts[RowOutcome::Skip->value] ?? 0,
+            $counts[RowOutcome::Archive->value] ?? 0,
+            $counts[RowOutcome::Error->value] ?? 0,
+        ];
     }
 }

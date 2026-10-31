@@ -22,6 +22,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_import_profile_signature', columns: ['tenant_id', 'target_key', 'header_signature'])]
 class ImportProfile implements TenantOwned
 {
+    /** The header signature of a profile no successful run has taught a mapping yet; no sha1 equals it. */
+    public const string NOT_REMEMBERED = '0000000000000000000000000000000000000000';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -54,6 +57,21 @@ class ImportProfile implements TenantOwned
     ) {
         $this->mapping = $mapping->toArray();
         $this->updatedAt = $createdAt;
+    }
+
+    /**
+     * A profile the user just named. It proposes nothing until a run of it succeeds
+     * and remember() stores the mapping, so an abandoned import never shadows a
+     * profile that works.
+     */
+    public static function named(string $name, string $targetKey, ?string $presetKey, ImportOptions $options, \DateTimeImmutable $at): self
+    {
+        return new self($name, $targetKey, $presetKey, new Mapping(), $options, self::NOT_REMEMBERED, $at);
+    }
+
+    public function isRemembered(): bool
+    {
+        return self::NOT_REMEMBERED !== $this->headerSignature;
     }
 
     public function id(): ?int

@@ -19,7 +19,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Deletes the source file and the staged rows of imports that ended more than
+ * Deletes the source file, the staged rows and the staged missing records of imports that ended more than
  * 30 days ago. Imports that never ended and were created more than 30 days ago
  * (waiting for the user, not owned by a worker) are cancelled first. The Import
  * record and its counters stay. It works across all
@@ -53,7 +53,8 @@ final readonly class PurgeImportsCommand
         $imports = $this->connection->fetchAllAssociative(
             'SELECT i.id, i.file_key, i.state FROM import i'
             .' WHERE ((i.state IN (?) AND i.finished_at < ?) OR (i.state IN (?) AND i.created_at < ?))'
-            .' AND (i.file_key IS NOT NULL OR EXISTS (SELECT 1 FROM import_row r WHERE r.import_id = i.id))'
+            .' AND (i.file_key IS NOT NULL OR EXISTS (SELECT 1 FROM import_row r WHERE r.import_id = i.id)'
+            .' OR EXISTS (SELECT 1 FROM import_missing_record m WHERE m.import_id = i.id))'
             .' ORDER BY i.id',
             [$ended, $cutoff, $abandoned, $cutoff],
             [ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE, ArrayParameterType::STRING, Types::DATETIME_IMMUTABLE],
@@ -76,6 +77,7 @@ final readonly class PurgeImportsCommand
             }
             $rows += $this->connection->transactional(function (Connection $connection) use ($id): int {
                 $deleted = $connection->executeStatement('DELETE FROM import_row WHERE import_id = ?', [$id]);
+                $connection->executeStatement('DELETE FROM import_missing_record WHERE import_id = ?', [$id]);
                 $connection->executeStatement('UPDATE import SET file_key = NULL WHERE id = ?', [$id]);
 
                 return (int) $deleted;
