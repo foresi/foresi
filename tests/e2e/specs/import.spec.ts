@@ -3,6 +3,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
+import { expectFocusedClearOfActionBar } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
 
 // This spec changes data. It runs in the "lifecycle" project, after the read-only specs.
@@ -47,11 +48,11 @@ test.describe('import of contacts', () => {
     await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
     await expect(page.getByLabel('Sleva', { exact: true })).toHaveValue('');
 
-    // A required field left out holds the check back and names the field.
+    // A required field left out is named above the columns; the check button stays enabled.
     await page.getByLabel('Firma', { exact: true }).selectOption('');
     await expect(page.locator('[data-missing-alert]')).toBeVisible();
     await expect(page.locator('[data-missing-alert]')).toContainText('Název');
-    await expect(page.getByRole('button', { name: 'Zkontrolovat' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Zkontrolovat' })).toBeEnabled();
     await page.getByLabel('Firma', { exact: true }).selectOption('display_name');
     await expect(page.locator('[data-missing-alert]')).toBeHidden();
 
@@ -83,6 +84,49 @@ test.describe('import of contacts', () => {
     page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Vrátit import' }).click();
     await expect(page.locator('[data-import-outcome]')).toContainText('Import je vrácený.');
+  });
+
+  test('a check with problems marks each at its field and focuses the first, clear of the action bar', async ({ page }) => {
+    await uploadFixture(page);
+    const check = page.getByRole('button', { name: 'Zkontrolovat' });
+
+    // No column for the name, and a match key no column fills.
+    await page.getByLabel('Firma', { exact: true }).selectOption('');
+    await page.getByLabel('IČ', { exact: true }).selectOption('');
+    await page.locator('#match_key').selectOption('registration_number');
+    await expect(check).toBeEnabled();
+    await expect(page.locator('[data-action-bar-status]')).toHaveText('18 z 22 sloupců se importuje');
+    await check.click();
+
+    await expect(page).toHaveTitle(/^Chyba: idoklad-contacts\.csv/);
+    await expect(page.locator('#column-0-error')).toHaveText('Přiřaďte k některému sloupci pole Název');
+    await expect(page.locator('#column-0')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#match_key-error')).toBeVisible();
+    // The choices are kept, and the bar still only counts.
+    await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('');
+    await expect(page.getByLabel('IČ', { exact: true })).toHaveValue('');
+    await expect(page.locator('#match_key')).toHaveValue('registration_number');
+    await expect(page.locator('[data-action-bar-status]')).toHaveText('18 z 22 sloupců se importuje');
+    await expect(check).toBeEnabled();
+    await expectFocusedClearOfActionBar(page, page.locator('#column-0'));
+
+    // With the name back, the match key near the floating bar is the first problem.
+    await page.getByLabel('Firma', { exact: true }).selectOption('display_name');
+    await check.click();
+    await expect(page.locator('#column-0')).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
+    await expectFocusedClearOfActionBar(page, page.locator('#match_key'));
+
+    // On a phone too.
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await check.click();
+    await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
+    await expectFocusedClearOfActionBar(page, page.locator('#match_key'));
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
   });
 
   test('mapping and check screens have no serious accessibility violations @a11y', async ({ page }) => {
@@ -135,10 +179,12 @@ test.describe('import of contacts', () => {
     await uploadFixture(page);
     const bar = page.locator('form[data-controller="import-mapping"] [data-action-bar]');
     await expect(bar).toBeVisible();
-    // Docked to the bottom of the viewport while the long mapping scrolls under it, with a shadow.
+    // Floating a little (12 px) above the bottom of the viewport while the long mapping scrolls under it, with a shadow.
     const viewportHeight = page.viewportSize()?.height ?? 0;
     const box = await bar.boundingBox();
-    expect(Math.round((box?.y ?? 0) + (box?.height ?? 0))).toBeGreaterThanOrEqual(viewportHeight);
+    const bottom = Math.round((box?.y ?? 0) + (box?.height ?? 0));
+    expect(bottom).toBeLessThanOrEqual(viewportHeight - 8);
+    expect(bottom).toBeGreaterThanOrEqual(viewportHeight - 16);
     await expect(bar).toHaveAttribute('data-stuck', '');
 
     // A field reached with the keyboard is never hidden behind the bar (WCAG 2.4.11).
