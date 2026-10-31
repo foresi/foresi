@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Docked to the bottom of the viewport (sticky, so it stays in normal flow on short pages). It is
+    one pixel past the bottom edge, so the action-bar controller can tell when it is stuck and the
+    content scrolls under it. Low screens (landscape phones, high zoom) get it in normal flow.
+#}
+{% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
+<div {{ attributes.defaults({class: 'sticky -bottom-px z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-white pb-[calc(0.75rem+1px)] pt-3 transition-shadow data-[stuck]:shadow-[0_-8px_16px_-12px_rgba(28,29,26,.35)] [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+    {% if statusHtml|trim is not empty %}
+        <p class="m-0 min-w-0 text-[13px] text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
+    {% endif %}
+    <div class="ml-auto flex items-center gap-2 max-sm:grid max-sm:w-full max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-10 max-sm:[&_a]:w-full max-sm:[&_button]:h-10 max-sm:[&_button]:w-full">{% block content %}{% endblock %}</div>
+</div>

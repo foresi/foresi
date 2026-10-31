@@ -114,6 +114,7 @@ catalogue:
     done: Hotovo
     value_map: Přiřazení hodnot
     linked: S odkazy
+    status: Se stavovým textem
 
 format:
   date: "j.\u00A0n.\u00A0Y"

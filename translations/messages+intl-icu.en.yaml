@@ -114,6 +114,7 @@ catalogue:
     done: Done
     value_map: Value mapping
     linked: Linked
+    status: With status text
 
 format:
   date: 'Y-m-d'

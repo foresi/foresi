@@ -134,6 +134,16 @@ html:has([data-table-selection-target~="bar"]:not([hidden])) {
     scroll-padding-bottom: 6rem;
 }
 
+/*
+ * Keep focused fields clear of the docked action bar (WCAG 2.4.11). The bar is
+ * in normal flow on low screens, so it needs no room there.
+ */
+@media (min-height: 481px) {
+    html:has([data-action-bar]) {
+        scroll-padding-bottom: 6rem;
+    }
+}
+
 .num {
     font-variant-numeric: tabular-nums;
 }
