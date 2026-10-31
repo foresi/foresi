@@ -9,12 +9,14 @@ declare(strict_types=1);
 namespace App\Party\Application;
 
 use App\Party\Domain\EmailPurpose;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyEmail;
 
 /**
- * Changes what the address book form edits: the name, identifiers, phone,
- * roles, note, billing address and general e-mail. The kind of a party does
+ * Changes what the address book form edits: the name, identifiers, phones,
+ * website, roles, note, billing address and general e-mail, and the document
+ * defaults when given. The kind of a party does
  * not change. One unit of work: everything is stored or nothing is.
  */
 final readonly class UpdateParty
@@ -31,6 +33,11 @@ final readonly class UpdateParty
             $party->changeIdentifiers($input->registrationNumber, $input->vatId);
             $party->assignRoles($input->roles);
             $party->changePrivateNote($input->privateNote);
+            $party->changeMobile($input->mobile);
+            $party->changeWebsite($input->website);
+            if ($input->invoicingDefaults instanceof InvoicingDefaults) {
+                $party->changeInvoicingDefaults($input->invoicingDefaults);
+            }
             ($this->details->billingAddress($party) ?? throw new \DomainException('The party has no billing address to change.'))->relocate($input->billingAddress);
             $this->changeEmail($party, trim($input->email));
         });

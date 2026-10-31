@@ -216,6 +216,8 @@ party:
     vatId_help: For example CZ12345678. After saving it is checked in VIES and in the register of unreliable payers.
     email: E-mail
     phone: Phone
+    mobile: Mobile
+    website: Website
     street: Street and number
     city: City
     postalCode: Postal code

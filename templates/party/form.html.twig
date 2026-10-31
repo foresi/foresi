@@ -55,6 +55,8 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 <twig:Ui:TextInput name="email" id="email" type="email" :label="'party.field.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="254" />
                 <twig:Ui:TextInput name="phone" id="phone" type="tel" :label="'party.field.phone'|trans" :value="values.phone" :error="errors.phone|default(null)" maxlength="64" />
+                <twig:Ui:TextInput name="mobile" id="mobile" type="tel" :label="'party.field.mobile'|trans" :value="values.mobile" :error="errors.mobile|default(null)" maxlength="64" />
+                <twig:Ui:TextInput name="website" id="website" inputmode="url" :label="'party.field.website'|trans" :value="values.website" :error="errors.website|default(null)" maxlength="255" />
             </div>
         </twig:Ui:Card>
 

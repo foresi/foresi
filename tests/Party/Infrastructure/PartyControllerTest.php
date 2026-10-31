@@ -322,6 +322,41 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Moved City');
     }
 
+    public function testMobileAndWebsiteAreEditedAndShownOnlyWhenKnown(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant, number: '12345687');
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id());
+        self::assertCount(4, $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Registration number', 'VAT ID', 'E-mail', 'Phone', 'Mobile', 'Website'], true)));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $form = $crawler->filter('main form')->form(['mobile' => ' +420 987 654 321 ', 'website' => 'https://www.example.com']);
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', '+420 987 654 321');
+        self::assertSelectorTextContains('main', 'https://www.example.com');
+        self::assertSame(['Mobile', 'Website'], $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Mobile', 'Website'], true))->each(static fn ($node): string => $node->text()));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertSame('+420 987 654 321', $crawler->filter('#mobile')->attr('value'));
+        self::assertSame('https://www.example.com', $crawler->filter('#website')->attr('value'));
+    }
+
+    public function testTooLongMobileAndWebsiteAreFormErrors(): void
+    {
+        $this->signIn();
+
+        $crawler = $this->client->request('GET', '/contacts/new');
+        $this->client->submit($crawler->filter('main form')->form($this->values(['mobile' => str_repeat('1', 65), 'website' => 'https://'.str_repeat('a', 250)])));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#mobile-error', 'too long');
+        self::assertSelectorTextContains('#website-error', 'too long');
+    }
+
     public function testArchiveAndRestoreAreCsrfProtectedPosts(): void
     {
         $this->signIn();

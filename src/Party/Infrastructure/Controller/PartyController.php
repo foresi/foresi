@@ -403,13 +403,20 @@ final class PartyController extends AbstractController
     private function facts(Party $party): array
     {
         $dash = '—';
-
-        return [
+        $facts = [
             ['label' => $this->translator->trans('party.field.registrationNumber'), 'value' => $party->registrationNumber()->value ?? $dash],
             ['label' => $this->translator->trans('party.field.vatId'), 'value' => $party->vatId()?->toString() ?? $dash],
             ['label' => $this->translator->trans('party.field.email'), 'value' => $this->details->generalEmail($party)?->address() ?? $dash],
             ['label' => $this->translator->trans('party.field.phone'), 'value' => '' === $party->phone() ? $dash : $party->phone()],
         ];
+        // Shown only when known, so a contact without them keeps the four facts every contact has.
+        foreach (['mobile' => $party->mobile(), 'website' => $party->website()] as $field => $value) {
+            if ('' !== $value) {
+                $facts[] = ['label' => $this->translator->trans('party.field.'.$field), 'value' => $value];
+            }
+        }
+
+        return $facts;
     }
 
     /**

@@ -216,6 +216,8 @@ party:
     vatId_help: Například CZ12345678. Po uložení se ověří ve VIES a v registru nespolehlivých plátců.
     email: E-mail
     phone: Telefon
+    mobile: Mobil
+    website: Web
     street: Ulice a číslo
     city: Město
     postalCode: PSČ

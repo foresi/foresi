@@ -31,6 +31,7 @@ final readonly class PartySubmissionReader
 {
     private const int MAX_NAME = 255;
     private const int MAX_PHONE = 64;
+    private const int MAX_WEBSITE = 255;
     private const int MAX_STREET = 255;
     private const int MAX_CITY = 128;
     private const int MAX_POSTAL_CODE = 32;
@@ -55,6 +56,8 @@ final readonly class PartySubmissionReader
             'vatId' => trim($post->getString('vatId')),
             'email' => trim($post->getString('email')),
             'phone' => trim($post->getString('phone')),
+            'mobile' => trim($post->getString('mobile')),
+            'website' => trim($post->getString('website')),
             'roles' => $this->roleValues($post),
             'street' => trim($post->getString('street')),
             'city' => trim($post->getString('city')),
@@ -73,6 +76,12 @@ final readonly class PartySubmissionReader
         $this->require($errors, 'postalCode', $values['postalCode'], self::MAX_POSTAL_CODE);
         if (mb_strlen($values['phone']) > self::MAX_PHONE) {
             $errors['phone'] = 'party.error.too_long';
+        }
+        if (mb_strlen($values['mobile']) > self::MAX_PHONE) {
+            $errors['mobile'] = 'party.error.too_long';
+        }
+        if (mb_strlen($values['website']) > self::MAX_WEBSITE) {
+            $errors['website'] = 'party.error.too_long';
         }
         if (!CountryOptions::supports($values['countryCode'])) {
             $errors['countryCode'] = 'party.error.country';
@@ -103,6 +112,8 @@ final readonly class PartySubmissionReader
             $roles,
             new Address($values['street'], $values['city'], $values['postalCode'], $values['countryCode']),
             $values['privateNote'],
+            $values['mobile'],
+            $values['website'],
         ));
     }
 
