@@ -27,6 +27,7 @@ use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
 use App\Party\Infrastructure\Http\PartyCsvExport;
+use App\Party\Infrastructure\Http\WebsiteLink;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -410,10 +411,11 @@ final class PartyController extends AbstractController
             ['label' => $this->translator->trans('party.field.phone'), 'value' => '' === $party->phone() ? $dash : $party->phone()],
         ];
         // Shown only when known, so a contact without them keeps the four facts every contact has.
-        foreach (['mobile' => $party->mobile(), 'website' => $party->website()] as $field => $value) {
-            if ('' !== $value) {
-                $facts[] = ['label' => $this->translator->trans('party.field.'.$field), 'value' => $value];
-            }
+        if ('' !== $party->mobile()) {
+            $facts[] = ['label' => $this->translator->trans('party.field.mobile'), 'value' => $party->mobile()];
+        }
+        if ('' !== $party->website()) {
+            $facts[] = ['label' => $this->translator->trans('party.field.website'), 'value' => $party->website(), 'href' => WebsiteLink::of($party->website())];
         }
 
         return $facts;

@@ -16,9 +16,11 @@ use App\Import\Application\Target\WriteResult;
 use App\Import\Domain\BlankCells;
 use App\Import\Domain\FieldDefinition;
 use App\Import\Domain\FieldType;
+use App\Import\Domain\HeaderName;
 use App\Import\Domain\RowError;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
+use App\Party\Application\ImportedContact;
 use App\Party\Application\ImportedParty;
 use App\Party\Application\ImportPartyValues;
 use App\Party\Application\LinkContactPerson;
@@ -50,6 +52,7 @@ use App\Party\Infrastructure\Doctrine\DoctrinePartyChanges;
 use App\Shared\Domain\Currency;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Contacts as an import target. A row creates a party with its billing
@@ -64,6 +67,9 @@ final readonly class PartyImportTarget implements ImportTarget
     public const string KEY = 'party';
 
     private const array MATCH_KEYS = ['id', 'registration_number', 'vat_id', 'email'];
+
+    /** The languages whose role names a roles cell may use. */
+    private const array ROLE_NAME_LOCALES = ['cs', 'en'];
 
     /** The children an import adds, as noted in the snapshot, by their entity. */
     private const array CHILDREN = [
@@ -88,6 +94,7 @@ final readonly class PartyImportTarget implements ImportTarget
         private DoctrinePartyChanges $changes,
         private MessageBusInterface $bus,
         private AuditCorrelation $correlation,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -174,7 +181,7 @@ final readonly class PartyImportTarget implements ImportTarget
     public function validate(array $values): array
     {
         $errors = [];
-        foreach ($this->reader->read($values)->errors as $field => [$messageKey, $parameters]) {
+        foreach ($this->read($values)->errors as $field => [$messageKey, $parameters]) {
             $errors[] = new RowError($field, $messageKey, $parameters);
         }
 
@@ -183,12 +190,14 @@ final readonly class PartyImportTarget implements ImportTarget
 
     public function match(string $matchKey, array $values): array
     {
-        $row = $this->reader->read($values);
+        $row = $this->read($values);
         [$where, $parameter] = match ($matchKey) {
             'id' => ['p.id = :value', \is_int($values['id'] ?? null) ? $values['id'] : null],
             'registration_number' => ['p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
             'vat_id' => ['p.vatId = :value', $row->vatId?->toString()],
-            'email' => ['p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :value)', isset($row->emails[0]) ? PartyEmail::key($row->emails[0]) : null],
+            // A contact person often shares the company's address; like activeIds(), the match is about the company.
+            'email' => ['p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :value)'
+                .' AND NOT EXISTS (SELECT 1 FROM '.ContactLink::class.' l WHERE l.person = p)', null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail)],
             default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
         };
         if (null === $parameter) {
@@ -207,7 +216,7 @@ final readonly class PartyImportTarget implements ImportTarget
 
     public function create(array $values): WriteResult
     {
-        $row = $this->reader->read($values);
+        $row = $this->read($values);
         $party = $this->createParty->createFrom($this->reader->input($row));
         $added = $this->addChildren($party, $row);
         if ($party->vatId() instanceof VatId) {
@@ -216,7 +225,12 @@ final readonly class PartyImportTarget implements ImportTarget
         $persons = $added['persons'] ?? [];
 
         // A created party is archived by an undo, and so are the contact persons it brought.
-        return new WriteResult($this->id($party), [] === $persons ? RecordSnapshot::none() : new RecordSnapshot(['created' => true, 'added' => ['persons' => $persons]]));
+        $snapshot = ['created' => true, 'children' => $this->children([$this->id($party), ...$persons])];
+        if ([] !== $persons) {
+            $snapshot['added'] = ['persons' => $persons];
+        }
+
+        return new WriteResult($this->id($party), new RecordSnapshot($snapshot));
     }
 
     public function update(int $id, array $values, BlankCells $blankCells): WriteResult
@@ -227,7 +241,7 @@ final readonly class PartyImportTarget implements ImportTarget
         $before = $this->snapshot($party, $billing, $general);
         $identifiers = $this->identifiers($party);
 
-        $row = $this->reader->read($values);
+        $row = $this->read($values);
         $this->updateParty->update($party, $this->reader->merge($party, $billing?->address(), $general?->address() ?? '', $row, BlankCells::Clear === $blankCells));
         $added = $this->addChildren($party, $row);
         if (!$general instanceof PartyEmail && ($new = $this->details->generalEmail($party)) instanceof PartyEmail) {
@@ -237,7 +251,7 @@ final readonly class PartyImportTarget implements ImportTarget
             $this->recheck($party);
         }
 
-        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added]));
+        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added, 'children' => $this->children([$id, ...$added['persons'] ?? []])]));
     }
 
     public function restoreArchived(int $id): void
@@ -279,15 +293,77 @@ final readonly class PartyImportTarget implements ImportTarget
         }
     }
 
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool
+    /**
+     * The party, the persons the write created, the children they have now and
+     * the children they had right after the write: a child removed since then
+     * is found by its id.
+     */
+    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         $added = $this->added($before);
+        $noted = \is_array($before->data['children'] ?? null) ? $before->data['children'] : [];
         $known = [];
         foreach (self::CHILDREN as $key => $class) {
-            $known[$class] = $this->ids($added[$key] ?? []);
+            $known[$class] = [...$this->ids($added[$key] ?? []), ...$this->ids($noted[$key] ?? [])];
         }
 
-        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $known, $since, $exceptCorrelationId);
+        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $known, $since, $exceptCorrelationIds);
+    }
+
+    /**
+     * Reads a row, with the roles named in Czech or English turned into their keys first.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function read(array $values): ImportedParty
+    {
+        $roles = $values['roles'] ?? null;
+        if (\is_string($roles)) {
+            $names = $this->roleNames();
+            $words = preg_split('/[,;]/', $roles);
+            $values['roles'] = implode(',', array_map(static fn (string $word): string => $names[HeaderName::normalise($word)] ?? $word, false === $words ? [] : $words));
+        }
+
+        return $this->reader->read($values);
+    }
+
+    /**
+     * The roles by their key and their Czech and English names, compared as
+     * headers are: without case and diacritics.
+     *
+     * @return array<string, string> folded name => role key
+     */
+    private function roleNames(): array
+    {
+        $names = [];
+        foreach (PartyRole::cases() as $role) {
+            $names[HeaderName::normalise($role->value)] = $role->value;
+            foreach (self::ROLE_NAME_LOCALES as $locale) {
+                $names[HeaderName::normalise($this->translator->trans('party.role.'.$role->value, [], 'messages', $locale))] = $role->value;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * The ids of the children of the parties, by the keys of CHILDREN.
+     *
+     * @param list<int> $partyIds
+     *
+     * @return array<string, list<int>>
+     */
+    private function children(array $partyIds): array
+    {
+        $byClass = $this->changes->childrenOf($partyIds);
+        $children = [];
+        foreach (self::CHILDREN as $key => $class) {
+            if (isset($byClass[$class])) {
+                $children[$key] = $byClass[$class];
+            }
+        }
+
+        return $children;
     }
 
     /**
@@ -323,7 +399,7 @@ final readonly class PartyImportTarget implements ImportTarget
      */
     private function addChildren(Party $party, ImportedParty $row): array
     {
-        $emails = $this->emails($party, array_slice($row->emails, 1), $row->invoiceEmail);
+        $emails = $this->emails($party, $row->copyEmails, $row->invoiceEmail);
         $addresses = $this->deliveryAddress($party, $row->deliveryAddress);
         $accounts = $this->bankAccount($party, $row->iban, $row->bic);
         [$links, $persons] = $this->contactPerson($party, $row);
@@ -415,7 +491,7 @@ final readonly class PartyImportTarget implements ImportTarget
     private function contactPerson(Party $company, ImportedParty $row): array
     {
         $contact = $row->contact;
-        if (!$contact instanceof \App\Party\Application\ImportedContact || PartyKind::Person === $company->kind()) {
+        if (!$contact instanceof ImportedContact || PartyKind::Person === $company->kind()) {
             return [[], []];
         }
         $links = array_values(array_filter($this->details->contactLinks($company), static fn (ContactLink $link): bool => $link->company() === $company));
@@ -554,8 +630,9 @@ final readonly class PartyImportTarget implements ImportTarget
             'registration_number' => $registration->value ?? '',
             'registration_country' => $registration->countryCode ?? '',
             'vat_id' => $party->vatId()?->toString() ?? '',
-            'email' => implode(', ', [...$purpose(EmailPurpose::General), ...$purpose(EmailPurpose::Copy)]),
-            'copy_email' => '',
+            // Without a general e-mail the copies stay copies: the first address of "email" becomes the general one.
+            'email' => [] === $purpose(EmailPurpose::General) ? '' : implode(', ', [...$purpose(EmailPurpose::General), ...$purpose(EmailPurpose::Copy)]),
+            'copy_email' => [] === $purpose(EmailPurpose::General) ? implode(', ', $purpose(EmailPurpose::Copy)) : '',
             'invoice_email' => $purpose(EmailPurpose::Invoices)[0] ?? '',
             'phone' => $party->phone(),
             'mobile' => $party->mobile(),

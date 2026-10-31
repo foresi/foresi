@@ -4,7 +4,13 @@
         {% for item in this.views %}
             <div class="min-w-0 bg-white px-3.5 py-3">
                 <dt class="mb-[3px] text-xs text-muted">{{ item.label }}</dt>
-                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-lg font-semibold' : 'font-medium' }}" title="{{ item.value }}">{{ item.value }}</dd>
+                <dd class="m-0 truncate text-ink {{ item.big ? 'num text-lg font-semibold' : 'font-medium' }}" title="{{ item.value }}">
+                    {%- if item.href is not null -%}
+                        <a href="{{ item.href }}" rel="noopener noreferrer" class="underline decoration-line-strong underline-offset-2 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green">{{ item.value }}</a>
+                    {%- else -%}
+                        {{ item.value }}
+                    {%- endif -%}
+                </dd>
             </div>
         {% endfor %}
     </dl>

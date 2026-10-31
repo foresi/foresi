@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Audit\Domain\AuditExcluded;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -37,6 +38,8 @@ class PartyEmail implements TenantOwned, Audited
     private string $address;
 
     // The comparison form of the address, so a party is found by its e-mail in SQL, through an index.
+    // Derived from the address, so it is left out of the audit log.
+    #[AuditExcluded]
     #[ORM\Column(name: 'address_key', type: 'string', length: 254, options: ['default' => ''])]
     private string $addressKey;
 

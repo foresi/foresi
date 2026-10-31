@@ -17,11 +17,12 @@ final class FactsGrid
     private const int MAX_COLUMNS = 6;
 
     /**
-     * @var list<array<string, mixed>> each with a string label and value, optional bool big
+     * @var list<array<string, mixed>> each with a string label and value, optional bool big and an
+     *                                 optional href that turns the value into a link (checked like every href)
      */
     public array $items = [];
 
-    /** @var list<array{label: string, value: string, big: bool}> */
+    /** @var list<array{label: string, value: string, big: bool, href: string|null}> */
     private array $views = [];
 
     #[PostMount]
@@ -32,12 +33,27 @@ final class FactsGrid
                 'label' => Style::requireString($item, 'label', 'A fact'),
                 'value' => Style::requireString($item, 'value', 'A fact'),
                 'big' => true === ($item['big'] ?? false),
+                'href' => $this->href($item),
             ];
         }
     }
 
     /**
-     * @return list<array{label: string, value: string, big: bool}>
+     * @param array<string, mixed> $item
+     */
+    private function href(array $item): ?string
+    {
+        $href = $item['href'] ?? null;
+        if (null !== $href && !\is_string($href)) {
+            throw new \InvalidArgumentException('A fact link must be a string.');
+        }
+        Style::href($href);
+
+        return $href;
+    }
+
+    /**
+     * @return list<array{label: string, value: string, big: bool, href: string|null}>
      */
     public function views(): array
     {

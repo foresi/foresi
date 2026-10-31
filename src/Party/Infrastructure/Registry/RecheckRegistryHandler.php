@@ -34,8 +34,9 @@ final readonly class RecheckRegistryHandler
     public const int RETRY_DELAY_MS = 60_000;
     public const int HEADROOM = 30;
 
-    /** The registers a refresh asks; the keys of the outgoing call limiter. */
-    private const array REGISTERS = ['vies', 'adis'];
+    /** The keys of the outgoing call limiter of the registers a refresh asks: VIES always, ADIS for a Czech VAT id. */
+    private const string VIES = 'vies';
+    private const string ADIS = 'adis';
 
     public function __construct(
         private PartyQuery $parties,
@@ -51,10 +52,11 @@ final readonly class RecheckRegistryHandler
     public function __invoke(RecheckRegistry $message): void
     {
         $party = $this->parties->find($message->partyId);
-        if (!$party instanceof Party || !$party->vatId() instanceof VatId) {
+        $vatId = $party?->vatId();
+        if (!$party instanceof Party || !$vatId instanceof VatId) {
             return;
         }
-        if (!$this->hasBudget()) {
+        if (!$this->hasBudget('CZ' === $vatId->country() ? [self::VIES, self::ADIS] : [self::VIES])) {
             $this->bus->dispatch($message, [new DelayStamp(self::RETRY_DELAY_MS)]);
 
             return;
@@ -71,8 +73,11 @@ final readonly class RecheckRegistryHandler
         }
     }
 
-    private function hasBudget(): bool
+    /**
+     * @param list<string> $registers
+     */
+    private function hasBudget(array $registers): bool
     {
-        return array_all(self::REGISTERS, fn (string $register): bool => $this->registryOutgoingLimiter->create($register)->consume(0)->getRemainingTokens() > self::HEADROOM);
+        return array_all($registers, fn (string $register): bool => $this->registryOutgoingLimiter->create($register)->consume(0)->getRemainingTokens() > self::HEADROOM);
     }
 }

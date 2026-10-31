@@ -25,7 +25,7 @@ final readonly class ImportedParty
     /**
      * @param array<string, mixed>                                    $values       the normalised values by field key, null for an empty cell
      * @param array<string, array{string, array<string, int|string>}> $errors       field key => translation key and its parameters
-     * @param list<string>                                            $emails       the general e-mail first, then the copies
+     * @param list<string>                                            $copyEmails   the addresses to keep as copies, without the general one
      * @param list<PartyRole>                                         $roles        empty when the row names none
      * @param bool                                                    $billingGiven true when the row has a street, city or postal code
      */
@@ -36,7 +36,8 @@ final readonly class ImportedParty
         public string $displayName,
         public ?RegistrationNumber $registrationNumber,
         public ?VatId $vatId,
-        public array $emails,
+        public ?string $generalEmail,
+        public array $copyEmails,
         public ?string $invoiceEmail,
         public Address $billingAddress,
         public bool $billingGiven,

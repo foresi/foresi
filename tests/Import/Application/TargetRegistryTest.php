@@ -132,7 +132,7 @@ final class TargetRegistryTest extends TestCase
                 return [];
             }
 
-            public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool
+            public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
             {
                 return false;
             }

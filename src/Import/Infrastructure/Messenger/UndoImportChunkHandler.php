@@ -71,7 +71,7 @@ final readonly class UndoImportChunkHandler
                 ? array_map(static fn (ImportRow $row): int => (int) $row->id(), array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInUndo())))
                 : array_map(static fn (ImportMissingRecord $record): int => (int) $record->id(), array_values(array_filter($this->imports->lockMissingOfChunk($import, $message->chunk), static fn (ImportMissingRecord $record): bool => !$record->processedInUndo())));
 
-            $counts = $this->correlation->within('import-undo:'.$message->importId, function () use ($ids, $sourceChunk, $target, $since, $message): array {
+            $counts = $this->correlation->within($this->ownCorrelations($message->importId)[1], function () use ($ids, $sourceChunk, $target, $since, $message): array {
                 $counts = [RowOutcome::Reverted->value => 0, RowOutcome::ChangedAfterImport->value => 0];
                 foreach ($ids as $id) {
                     $outcome = null;
@@ -122,7 +122,7 @@ final readonly class UndoImportChunkHandler
             return null;
         }
         $before = new RecordSnapshot($row->before() ?? []);
-        if ($target->changedSince($recordId, $before, $since, 'import:'.$importId)) {
+        if ($target->changedSince($recordId, $before, $since, $this->ownCorrelations($importId))) {
             $row->decide(RowOutcome::ChangedAfterImport);
 
             return RowOutcome::ChangedAfterImport;
@@ -145,7 +145,7 @@ final readonly class UndoImportChunkHandler
 
             return null;
         }
-        if ($target->changedSince($record->recordId(), new RecordSnapshot($record->before() ?? []), $since, 'import:'.$importId)) {
+        if ($target->changedSince($record->recordId(), new RecordSnapshot($record->before() ?? []), $since, $this->ownCorrelations($importId))) {
             $record->undone(RowOutcome::ChangedAfterImport);
 
             return RowOutcome::ChangedAfterImport;
@@ -154,5 +154,15 @@ final readonly class UndoImportChunkHandler
         $record->undone(RowOutcome::Reverted);
 
         return RowOutcome::Reverted;
+    }
+
+    /**
+     * The correlations of the import and of its undo: neither is a change made after the import.
+     *
+     * @return array{string, string}
+     */
+    private function ownCorrelations(int $importId): array
+    {
+        return ['import:'.$importId, 'import-undo:'.$importId];
     }
 }

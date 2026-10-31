@@ -111,6 +111,18 @@ final class RecheckRegistryHandlerTest extends KernelTestCase
         self::assertSame(RecheckRegistryHandler::RETRY_DELAY_MS, $sent[0]->last(DelayStamp::class)?->getDelay());
     }
 
+    public function testAForeignVatIdNeedsOnlyTheBudgetOfVies(): void
+    {
+        $party = $this->party('DE123456789');
+        // The Czech register is busy, but a German VAT id is checked in VIES only.
+        $this->limiter()->create('adis')->consume(300);
+
+        $this->handle(new RecheckRegistry((int) $party->id()));
+
+        self::assertNotNull($this->find((int) $party->id())->viesCheck());
+        self::assertCount(0, $this->registry()->getSent());
+    }
+
     public function testOneCallMoreThanTheHeadroomIsEnough(): void
     {
         $party = $this->party('CZ12345687');

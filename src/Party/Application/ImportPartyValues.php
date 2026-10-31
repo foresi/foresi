@@ -96,7 +96,10 @@ final readonly class ImportPartyValues
             $errors['registration_number'] = ['import.error.company_identifier', []];
         }
 
-        $emails = [...$this->emails($values, 'email', $errors), ...$this->emails($values, 'copy_email', $errors)];
+        // The first address of "email" is the general one; the others and the copy column are copies.
+        $emails = $this->emails($values, 'email', $errors);
+        $generalEmail = $emails[0] ?? null;
+        $copies = array_values(array_diff(array_unique([...array_slice($emails, 1), ...$this->emails($values, 'copy_email', $errors)]), [$generalEmail]));
         $invoiceEmail = $this->emails($values, 'invoice_email', $errors)[0] ?? null;
 
         $billingGiven = $this->addressGiven($values, 'billing');
@@ -116,7 +119,8 @@ final readonly class ImportPartyValues
             $displayName,
             $registrationNumber,
             $vatId,
-            array_values(array_unique($emails)),
+            $generalEmail,
+            $copies,
             $invoiceEmail,
             $billing,
             $billingGiven,
@@ -138,7 +142,7 @@ final readonly class ImportPartyValues
             $row->displayName,
             $row->registrationNumber,
             $row->vatId,
-            $row->emails[0] ?? '',
+            $row->generalEmail ?? '',
             $row->text('phone'),
             [] === $row->roles ? [PartyRole::Customer] : $row->roles,
             $row->billingAddress,
@@ -181,7 +185,7 @@ final readonly class ImportPartyValues
             $row->given('display_name') ? $row->displayName : $party->displayName(),
             $registrationNumber,
             $vatId,
-            $row->emails[0] ?? $generalEmail,
+            $row->generalEmail ?? $generalEmail,
             $this->pickText($row, 'phone', $party->phone(), $clear),
             $this->pick($row, 'roles', $party->roles(), $row->roles, $clear) ?? [],
             $address,

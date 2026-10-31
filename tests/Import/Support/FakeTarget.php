@@ -163,9 +163,9 @@ final class FakeTarget implements ImportTarget
         }
     }
 
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool
+    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
-        return $this->trail->changedSince(self::class, (string) $id, $since, $exceptCorrelationId);
+        return $this->trail->changedSince(self::class, (string) $id, $since, ...$exceptCorrelationIds);
     }
 
     /**

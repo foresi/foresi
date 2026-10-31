@@ -22,22 +22,21 @@ final readonly class DoctrineAuditTrail implements AuditTrail
     {
     }
 
-    public function changedSince(string $entityClass, string $entityId, \DateTimeImmutable $since, string $exceptCorrelationId): bool
+    public function changedSince(string $entityClass, string $entityId, \DateTimeImmutable $since, string ...$exceptCorrelationIds): bool
     {
-        $count = $this->em->createQueryBuilder()
+        $query = $this->em->createQueryBuilder()
             ->select('COUNT(e.id)')
             ->from(AuditEntry::class, 'e')
             ->where('e.entityClass = :class')
             ->andWhere('e.entityId = :id')
             ->andWhere('e.occurredAt >= :since')
-            ->andWhere('(e.correlationId IS NULL OR e.correlationId <> :correlation)')
             ->setParameter('class', $entityClass)
             ->setParameter('id', $entityId)
-            ->setParameter('since', $since, 'datetime_immutable')
-            ->setParameter('correlation', $exceptCorrelationId)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('since', $since, 'datetime_immutable');
+        if ([] !== $exceptCorrelationIds) {
+            $query->andWhere('(e.correlationId IS NULL OR e.correlationId NOT IN (:correlations))')->setParameter('correlations', array_values($exceptCorrelationIds));
+        }
 
-        return (int) $count > 0;
+        return (int) $query->getQuery()->getSingleScalarResult() > 0;
     }
 }

@@ -339,10 +339,24 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', '+420 987 654 321');
         self::assertSelectorTextContains('main', 'https://www.example.com');
         self::assertSame(['Mobile', 'Website'], $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Mobile', 'Website'], true))->each(static fn ($node): string => $node->text()));
+        $link = $crawler->filter('main dl a[href="https://www.example.com"]');
+        self::assertCount(1, $link);
+        self::assertSame('noopener noreferrer', $link->attr('rel'));
+
+        // A bare domain links with https in front; anything else stays text.
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['website' => 'example.com']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('main dl a[href="https://example.com"]'));
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['website' => 'javascript:alert(1)']));
+        $crawler = $this->client->followRedirect();
+        self::assertCount(0, $crawler->filter('main dl a'));
+        self::assertSelectorTextContains('main dl', 'javascript:alert(1)');
 
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         self::assertSame('+420 987 654 321', $crawler->filter('#mobile')->attr('value'));
-        self::assertSame('https://www.example.com', $crawler->filter('#website')->attr('value'));
+        self::assertSame('javascript:alert(1)', $crawler->filter('#website')->attr('value'));
     }
 
     public function testTooLongMobileAndWebsiteAreFormErrors(): void
@@ -630,6 +644,21 @@ final class PartyControllerTest extends WebTestCase
 
         $second = $this->client->request('GET', '/contacts/'.$this->idOf('Second Company').'?tab=history');
         self::assertCount(2, $second->filter('[data-party-history] li'));
+    }
+
+    public function testTheHistoryOfAnEmailChangeNamesOnlyTheAddress(): void
+    {
+        $this->signIn();
+        $party = $this->party('Example Company', $this->tenant, email: 'info@example.com');
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $this->client->submit($crawler->filter('main form')->form(['email' => 'Changed@example.com']));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'?tab=history');
+
+        $entries = implode("\n", $crawler->filter('[data-party-history] li')->each(static fn (Crawler $li): string => trim($li->text())));
+        self::assertStringContainsString('Changed: e-mail (Address)', $entries);
+        self::assertStringNotContainsString('addressKey', $entries);
+        self::assertStringNotContainsString('address_key', $entries);
     }
 
     public function testListNeedsLogin(): void

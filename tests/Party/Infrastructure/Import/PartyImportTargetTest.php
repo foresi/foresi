@@ -126,6 +126,9 @@ final class PartyImportTargetTest extends KernelTestCase
         yield 'mobile' => [['mobile' => '+420 987 654 321'], static fn (Party $p): string => $p->mobile(), '+420 987 654 321'];
         yield 'website' => [['website' => 'https://www.example.com'], static fn (Party $p): string => $p->website(), 'https://www.example.com'];
         yield 'roles' => [['roles' => 'Supplier; partner,supplier'], static fn (Party $p): array => $p->roles(), [PartyRole::Supplier, PartyRole::Partner]];
+        yield 'roles by their Czech names' => [['roles' => 'zákazník; DODAVATEL, Úřad'], static fn (Party $p): array => $p->roles(), [PartyRole::Customer, PartyRole::Supplier, PartyRole::Authority]];
+        yield 'roles by their English names without diacritics' => [['roles' => 'Supplier , partner;authority'], static fn (Party $p): array => $p->roles(), [PartyRole::Supplier, PartyRole::Partner, PartyRole::Authority]];
+        yield 'roles named without diacritics' => [['roles' => 'Zakaznik, urad'], static fn (Party $p): array => $p->roles(), [PartyRole::Customer, PartyRole::Authority]];
         yield 'customer by default' => [[], static fn (Party $p): array => $p->roles(), [PartyRole::Customer]];
         yield 'billing address' => [['billing_country' => 'SK'], static fn (Party $p, PartyDetails $d): ?Address => $d->billingAddress($p)?->address(), new Address('Example Street 1', 'Example City', '100 00', 'SK')];
         yield 'empty billing address in the registration country' => [['billing_street' => null, 'billing_city' => null, 'billing_postal_code' => null, 'registration_country' => 'SK', 'registration_number' => '12345678'], static fn (Party $p, PartyDetails $d): ?Address => $d->billingAddress($p)?->address(), new Address('', '', '', 'SK')];
@@ -181,6 +184,7 @@ final class PartyImportTargetTest extends KernelTestCase
         yield 'bank code without an account number' => [['bank_code' => '0100'], ['bank_account_number' => 'import.error.invalid_bank_account']];
         yield 'invalid domestic account' => [['bank_account_number' => '12A', 'bank_code' => '0100'], ['bank_account_number' => 'import.error.invalid_bank_account']];
         yield 'unknown role' => [['roles' => 'customer, boss'], ['roles' => 'import.error.unknown_value']];
+        yield 'unknown Czech role' => [['roles' => 'zákazník, šéf'], ['roles' => 'import.error.unknown_value']];
         yield 'due days out of range' => [['due_days' => 366], ['due_days' => 'import.error.out_of_range']];
         yield 'negative due days' => [['due_days' => -1], ['due_days' => 'import.error.out_of_range']];
         yield 'too long name' => [['display_name' => str_repeat('a', 256)], ['display_name' => 'import.error.too_long']];
@@ -245,6 +249,17 @@ final class PartyImportTargetTest extends KernelTestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->target->match('phone', $this->values());
+    }
+
+    public function testMatchingByEmailLeavesOutContactPersonsWithTheSameAddress(): void
+    {
+        $values = $this->values(['email' => ['office@example.com'], 'contact_name' => 'Jana Example', 'contact_email' => 'office@example.com']);
+        $id = $this->create($values)->id;
+        self::assertSame(2, $this->rowCount("SELECT COUNT(*) FROM party_email WHERE address_key = 'office@example.com'"));
+
+        $exported = $this->normalise([...$this->target->export([$id])][0]);
+        self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $exported));
+        self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
     }
 
     public function testTheTargetOfOneTenantNeverMatchesTheRecordsOfAnother(): void
@@ -377,10 +392,13 @@ final class PartyImportTargetTest extends KernelTestCase
     public function testRevertOfACreatedPartyArchivesItAndTheContactPersonItBrought(): void
     {
         $plain = $this->create($this->values(['registration_number' => '12345695']));
-        self::assertTrue($plain->before->isNone());
+        self::assertSame(['created' => true, 'children' => ['addresses' => [$this->details()->billingAddress($this->find($plain->id))?->id()]]], $plain->before->data);
         $result = $this->create($this->values(['contact_name' => 'Jana Example']));
-        $person = $this->details()->contactLinks($this->find($result->id))[0]->person()->id();
-        self::assertSame(['created' => true, 'added' => ['persons' => [$person]]], $result->before->data);
+        $link = $this->details()->contactLinks($this->find($result->id))[0];
+        $person = $link->person()->id();
+        self::assertSame(['persons' => [$person]], $result->before->data['added'] ?? null);
+        self::assertIsArray($result->before->data['children'] ?? null);
+        self::assertSame([$link->id()], $result->before->data['children']['contactLinks'] ?? null);
 
         $this->target->revert($plain->id, $plain->before);
         $this->target->revert($result->id, $result->before);
@@ -464,19 +482,19 @@ final class PartyImportTargetTest extends KernelTestCase
         $result = $this->update($id, ['contact_name' => 'Jana Example', 'email' => ['info@example.com', 'added@example.com']]);
         $since = new \DateTimeImmutable('2026-10-01 10:00:00');
         $other = $this->create($this->values(['registration_number' => '12345695', 'display_name' => 'Other']))->id;
-        self::assertFalse($this->target->changedSince($id, $result->before, $since, self::CORRELATION));
+        self::assertFalse($this->target->changedSince($id, $result->before, $since, [self::CORRELATION]));
 
         self::mockTime('2026-10-01 11:00:00');
         $this->find($other)->changePhone('+420 000 000 000');
         $this->em->flush();
-        self::assertFalse($this->target->changedSince($id, $result->before, $since, self::CORRELATION), 'another party');
+        self::assertFalse($this->target->changedSince($id, $result->before, $since, [self::CORRELATION]), 'another party');
 
         $person = $this->details()->contactLinks($this->find($id))[0]->person();
         $person->changePhone('+420 111 111 111');
         $this->em->flush();
-        self::assertTrue($this->target->changedSince($id, $result->before, $since, self::CORRELATION), 'the contact person the import created');
-        self::assertFalse($this->target->changedSince($id, RecordSnapshot::none(), $since, self::CORRELATION), 'a person the record does not name');
-        self::assertFalse($this->target->changedSince($id, $result->before, new \DateTimeImmutable('2026-10-01 12:00:00'), self::CORRELATION), 'before since');
+        self::assertTrue($this->target->changedSince($id, $result->before, $since, [self::CORRELATION]), 'the contact person the import created');
+        self::assertFalse($this->target->changedSince($id, RecordSnapshot::none(), $since, [self::CORRELATION]), 'a person the record does not name');
+        self::assertFalse($this->target->changedSince($id, $result->before, new \DateTimeImmutable('2026-10-01 12:00:00'), [self::CORRELATION]), 'before since');
     }
 
     /**
@@ -518,13 +536,42 @@ final class PartyImportTargetTest extends KernelTestCase
     {
         $result = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com'], 'bank_account_iban' => 'CZ0303000000190000123457', 'contact_name' => 'Jana Example']));
         $since = new \DateTimeImmutable('2026-10-01 10:00:00');
-        self::assertFalse($this->target->changedSince($result->id, $result->before, $since, self::CORRELATION));
+        self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]));
 
         self::mockTime('2026-10-01 11:00:00');
         $change($this, $result->id);
         $this->em->flush();
 
-        self::assertTrue($this->target->changedSince($result->id, $result->before, $since, self::CORRELATION));
+        self::assertTrue($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]));
+    }
+
+    public function testTheUndoItselfIsNoChangeAfterTheImport(): void
+    {
+        $result = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com']]));
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+
+        self::mockTime('2026-10-01 11:00:00');
+        self::getContainer()->get(AuditCorrelation::class)->within('import-undo:1', function () use ($result): void {
+            $this->em->remove($this->details()->emails($this->find($result->id))[1]);
+            $this->em->flush();
+        });
+
+        self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION, 'import-undo:1']));
+        self::assertTrue($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]));
+    }
+
+    public function testRemovingAChildThePartyHadBeforeAnUpdateCounts(): void
+    {
+        $id = $this->create($this->values(['email' => ['info@example.com', 'old-copy@example.com']]))->id;
+        self::mockTime('2026-10-01 11:00:00');
+        $since = new \DateTimeImmutable('2026-10-01 11:00:00');
+        $result = self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \App\Import\Application\Target\WriteResult => $this->target->update($id, ['phone' => '+420 123 456 789'], BlankCells::Keep));
+
+        self::mockTime('2026-10-01 12:00:00');
+        $this->em->remove($this->details()->emails($this->find($id))[1]);
+        $this->em->flush();
+
+        self::assertTrue($this->target->changedSince($id, $result->before, $since, ['import:2']));
     }
 
     public function testARemovalOfAnotherPartysChildDoesNotCount(): void
@@ -536,7 +583,7 @@ final class PartyImportTargetTest extends KernelTestCase
         $this->em->remove($this->details()->emails($this->find($other))[1]);
         $this->em->flush();
 
-        self::assertFalse($this->target->changedSince($result->id, $result->before, new \DateTimeImmutable('2026-10-01 10:00:00'), self::CORRELATION));
+        self::assertFalse($this->target->changedSince($result->id, $result->before, new \DateTimeImmutable('2026-10-01 10:00:00'), [self::CORRELATION]));
     }
 
     public function testExportedContactsImportAgainWithoutAnyChange(): void
@@ -579,6 +626,19 @@ final class PartyImportTargetTest extends KernelTestCase
         self::getContainer()->get(AuditCorrelation::class)->within('import:3', fn (): \App\Import\Application\Target\WriteResult => $this->target->update($id, $values, BlankCells::Clear));
 
         self::assertSame(0, (int) $this->em->createQuery('SELECT COUNT(e.id) FROM '.AuditEntry::class." e WHERE e.correlationId IN ('import:2', 'import:3')")->getSingleScalarResult());
+    }
+
+    public function testCopiesOfAPartyWithoutAGeneralEmailStayCopiesThroughExportAndImport(): void
+    {
+        $id = $this->create($this->values(['copy_email' => ['copy@example.com', 'other@example.com']]))->id;
+        $this->em->clear();
+
+        $row = [...$this->target->export([$id])][0];
+        self::assertSame(['', 'copy@example.com, other@example.com'], [$row['email'], $row['copy_email']]);
+        self::getContainer()->get(AuditCorrelation::class)->within('import:2', fn (): \App\Import\Application\Target\WriteResult => $this->target->update($id, $this->normalise($row), BlankCells::Keep));
+
+        self::assertSame(0, $this->rowCount("SELECT COUNT(*) FROM audit_entry WHERE correlation_id = 'import:2'"));
+        self::assertSame([['copy@example.com', EmailPurpose::Copy], ['other@example.com', EmailPurpose::Copy]], self::emails($this->find($id), $this->details()));
     }
 
     /**

@@ -31,6 +31,7 @@ final class CzechBankAccountTest extends TestCase
         yield 'number only' => ['123456789', '0100', 'CZ1801000000000123456789'];
         yield 'prefix and number' => ['19-123457', '0300', 'CZ0303000000190000123457'];
         yield 'ten digits' => ['1000000005', '5500', 'CZ4255000000001000000005'];
+        yield 'bank code without its leading zero' => ['123456789', '100', 'CZ1801000000000123456789'];
         yield 'white space' => [' 123 456 789 ', ' 0100 ', 'CZ1801000000000123456789'];
         yield 'shortest number' => ['12', '0100', 'CZ6801000000000000000012'];
         yield 'longest prefix' => ['123456-12', '0100', 'CZ6601001234560000000012'];
@@ -53,7 +54,7 @@ final class CzechBankAccountTest extends TestCase
         yield 'seven-digit prefix' => ['1234567-123456', '0100'];
         yield 'empty prefix' => ['-123456', '0100'];
         yield 'zeros only' => ['0000000000', '0100'];
-        yield 'short bank code' => ['123456789', '100'];
+        yield 'empty bank code' => ['123456789', ''];
         yield 'long bank code' => ['123456789', '01000'];
         yield 'letters in the bank code' => ['123456789', '01A0'];
         yield 'trailing newline' => ["123456789\n-", '0100'];

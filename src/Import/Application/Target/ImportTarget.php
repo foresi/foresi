@@ -73,11 +73,13 @@ interface ImportTarget
 
     /**
      * Whether the record, or anything that belongs to it, changed at or after
-     * $since outside the given audit correlation. Undo leaves such a record as it is.
+     * $since outside the given audit correlations (the import's and its undo's).
+     * Undo leaves such a record as it is.
      *
-     * @param RecordSnapshot $before the snapshot the write returned, which may name what it added
+     * @param RecordSnapshot $before               the snapshot the write returned, which may name what it added
+     * @param list<string>   $exceptCorrelationIds
      */
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, string $exceptCorrelationId): bool;
+    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool;
 
     /**
      * @return iterable<int> ids of all non-archived records

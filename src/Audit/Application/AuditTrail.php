@@ -15,10 +15,10 @@ namespace App\Audit\Application;
 interface AuditTrail
 {
     /**
-     * Whether the entity has an entry newer than $since that does not belong
-     * to the given correlation.
+     * Whether the entity has an entry newer than $since that belongs to none
+     * of the given correlations.
      *
      * @param class-string $entityClass
      */
-    public function changedSince(string $entityClass, string $entityId, \DateTimeImmutable $since, string $exceptCorrelationId): bool;
+    public function changedSince(string $entityClass, string $entityId, \DateTimeImmutable $since, string ...$exceptCorrelationIds): bool;
 }

@@ -8,108 +8,61 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
-use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Query;
 
 /**
  * Whether parties changed after a point in time: the parties themselves and
  * everything that belongs to them (addresses, e-mails, bank accounts and
- * contact links are audited as entities of their own). Reads the audit log
- * through the tenant filter.
+ * contact links are audited as entities of their own). The audit log is read
+ * by entity id: the children a party has now and the ones a write noted
+ * (which may be gone by now). Reads the audit log through the tenant filter.
  */
 final readonly class DoctrinePartyChanges
 {
-    /** The children and the fields that point at their party. */
-    private const array CHILDREN = [
-        PartyAddress::class => ['party'],
-        PartyEmail::class => ['party'],
-        PartyBankAccount::class => ['party'],
-        ContactLink::class => ['company', 'person'],
-    ];
-
     public function __construct(private EntityManagerInterface $em)
     {
     }
 
     /**
      * @param list<int>                      $partyIds
-     * @param array<class-string, list<int>> $knownChildren children that may be gone by now, such as the ones an import added
+     * @param array<class-string, list<int>> $knownChildren        children a write noted, such as the ones it added
+     * @param list<string>                   $exceptCorrelationIds
      */
-    public function changedSince(array $partyIds, array $knownChildren, \DateTimeImmutable $since, string $exceptCorrelationId): bool
+    public function changedSince(array $partyIds, array $knownChildren, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
-        $children = $this->children($partyIds, $knownChildren);
-        $conditions = ['(e.entityClass = :partyClass AND e.entityId IN (:partyIds))'];
-        $parameters = ['partyClass' => Party::class, 'partyIds' => array_map(strval(...), $partyIds)];
-        $index = 0;
-        foreach ($children as $class => $ids) {
-            $conditions[] = \sprintf('(e.entityClass = :class%1$d AND e.entityId IN (:ids%1$d))', $index);
-            $parameters['class'.$index] = $class;
-            $parameters['ids'.$index] = array_map(strval(...), $ids);
-            ++$index;
+        $entities = [Party::class => $partyIds];
+        foreach ($this->childrenOf($partyIds) as $class => $ids) {
+            $entities[$class] = $ids;
         }
-        if ($this->count(implode(' OR ', $conditions), $parameters, $since, $exceptCorrelationId) > 0) {
-            return true;
+        foreach ($knownChildren as $class => $ids) {
+            $entities[$class] = [...$entities[$class] ?? [], ...$ids];
         }
 
-        return $this->removedChildSince($partyIds, $children, $since, $exceptCorrelationId);
-    }
-
-    /**
-     * The ids of the current children of the parties, and the known ones.
-     *
-     * @param list<int>                      $partyIds
-     * @param array<class-string, list<int>> $known
-     *
-     * @return array<class-string, non-empty-list<int>>
-     */
-    private function children(array $partyIds, array $known): array
-    {
-        $children = [];
-        foreach (array_keys(self::CHILDREN) as $class) {
-            $dql = match ($class) {
-                PartyAddress::class => 'SELECT c.id FROM '.PartyAddress::class.' c WHERE IDENTITY(c.party) IN (:parties)',
-                PartyEmail::class => 'SELECT c.id FROM '.PartyEmail::class.' c WHERE IDENTITY(c.party) IN (:parties)',
-                PartyBankAccount::class => 'SELECT c.id FROM '.PartyBankAccount::class.' c WHERE IDENTITY(c.party) IN (:parties)',
-                ContactLink::class => 'SELECT c.id FROM '.ContactLink::class.' c WHERE IDENTITY(c.company) IN (:parties) OR IDENTITY(c.person) IN (:parties)',
-            };
-            /** @var list<int|string> $ids */
-            $ids = $this->em->createQuery($dql)->setParameter('parties', $partyIds)->getSingleColumnResult();
-            $all = array_values(array_unique([...array_map(intval(...), $ids), ...$known[$class] ?? []]));
-            if ([] !== $all) {
-                $children[$class] = $all;
-            }
-        }
-
-        return $children;
-    }
-
-    /**
-     * A child that was removed by someone else and was not known: its removal
-     * entry names its party among the removed values.
-     *
-     * @param list<int>                      $partyIds
-     * @param array<class-string, list<int>> $children
-     */
-    private function removedChildSince(array $partyIds, array $children, \DateTimeImmutable $since, string $exceptCorrelationId): bool
-    {
-        /** @var list<AuditEntry> $removals */
-        $removals = $this->query('e.entityClass IN (:classes) AND e.action = :deleted', ['classes' => array_keys(self::CHILDREN), 'deleted' => AuditAction::Deleted], $since, $exceptCorrelationId, 'e')->getResult();
-        foreach ($removals as $removal) {
-            if (\in_array((int) $removal->entityId(), $children[$removal->entityClass()] ?? [], true)) {
+        // One query per entity class: each uses the index over tenant, class and id, which an OR of classes would not.
+        foreach ($entities as $class => $ids) {
+            if ([] === $ids) {
                 continue;
             }
-            foreach (self::CHILDREN[$removal->entityClass()] ?? [] as $field) {
-                $pair = $removal->changes()[$field] ?? [null, null];
-                if (\in_array($pair[0] ?? null, $partyIds, true)) {
-                    return true;
-                }
+            $dql = 'SELECT COUNT(e.id) FROM '.AuditEntry::class.' e WHERE e.entityClass = :class AND e.entityId IN (:ids) AND e.occurredAt >= :since';
+            if ([] !== $exceptCorrelationIds) {
+                $dql .= ' AND (e.correlationId IS NULL OR e.correlationId NOT IN (:correlations))';
+            }
+            $query = $this->em->createQuery($dql)
+                ->setParameter('class', $class)
+                ->setParameter('ids', array_values(array_unique(array_map(strval(...), $ids))))
+                ->setParameter('since', $since, 'datetime_immutable');
+            if ([] !== $exceptCorrelationIds) {
+                $query->setParameter('correlations', $exceptCorrelationIds);
+            }
+            if ((int) $query->getSingleScalarResult() > 0) {
+                return true;
             }
         }
 
@@ -117,30 +70,35 @@ final readonly class DoctrinePartyChanges
     }
 
     /**
-     * @param array<string, mixed> $parameters
-     */
-    private function count(string $where, array $parameters, \DateTimeImmutable $since, string $exceptCorrelationId): int
-    {
-        return (int) $this->query($where, $parameters, $since, $exceptCorrelationId, 'COUNT(e.id)')->getSingleScalarResult();
-    }
-
-    /**
-     * @param array<string, mixed> $parameters
+     * The ids of the addresses, e-mails, bank accounts and contact links (on
+     * either side) of the parties, in one query. The parties were found through
+     * the tenant filter; their children belong to the same tenant.
      *
-     * @return Query<mixed, mixed>
+     * @param list<int> $partyIds
+     *
+     * @return array<class-string, list<int>>
      */
-    private function query(string $where, array $parameters, \DateTimeImmutable $since, string $exceptCorrelationId, string $select): Query
+    public function childrenOf(array $partyIds): array
     {
-        $query = $this->em->createQuery(
-            'SELECT '.$select.' FROM '.AuditEntry::class.' e WHERE ('.$where.')'
-            .' AND e.occurredAt >= :since AND (e.correlationId IS NULL OR e.correlationId <> :correlation)',
-        )
-            ->setParameter('since', $since, 'datetime_immutable')
-            ->setParameter('correlation', $exceptCorrelationId);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
+        if ([] === $partyIds) {
+            return [];
+        }
+        $rows = $this->em->getConnection()->fetchAllNumeric(
+            "SELECT 'address', id FROM party_address WHERE party_id IN (:parties)"
+            ." UNION ALL SELECT 'email', id FROM party_email WHERE party_id IN (:parties)"
+            ." UNION ALL SELECT 'bank_account', id FROM party_bank_account WHERE party_id IN (:parties)"
+            ." UNION ALL SELECT 'link', id FROM contact_link WHERE company_id IN (:parties) OR person_id IN (:parties)",
+            ['parties' => $partyIds],
+            ['parties' => ArrayParameterType::INTEGER],
+        );
+        $classes = ['address' => PartyAddress::class, 'email' => PartyEmail::class, 'bank_account' => PartyBankAccount::class, 'link' => ContactLink::class];
+        $children = [];
+        foreach ($rows as [$kind, $id]) {
+            if (\is_string($kind) && isset($classes[$kind]) && is_numeric($id)) {
+                $children[$classes[$kind]][] = (int) $id;
+            }
         }
 
-        return $query;
+        return $children;
     }
 }

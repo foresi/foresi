@@ -168,6 +168,21 @@ final class AuditCorrelationTest extends KernelTestCase
         self::assertTrue($this->trail->changedSince(Party::class, $id, $since, 'import:1'));
         self::assertFalse($this->trail->changedSince(Party::class, $id, new \DateTimeImmutable('+1 day'), 'import:1'));
         self::assertFalse($this->trail->changedSince(Party::class, '999999', $since, 'import:1'));
+
+        // Several correlations can be left out at once; none at all counts every entry.
+        $other = $this->party('Example Supplies');
+        $this->correlation->within('import:1', function () use ($other): void {
+            $this->em->persist($other);
+            $this->em->flush();
+        });
+        $this->correlation->within('import-undo:1', function () use ($other): void {
+            $other->rename('Undone');
+            $this->em->flush();
+        });
+        $otherId = (string) $other->id();
+        self::assertFalse($this->trail->changedSince(Party::class, $otherId, $since, 'import:1', 'import-undo:1'));
+        self::assertTrue($this->trail->changedSince(Party::class, $otherId, $since, 'import:1'));
+        self::assertTrue($this->trail->changedSince(Party::class, $otherId, $since));
     }
 
     private function party(string $name): Party
