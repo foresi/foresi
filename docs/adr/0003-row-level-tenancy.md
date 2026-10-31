@@ -28,9 +28,12 @@ Chosen option: "row-level tenancy", because it keeps operations simple and lets 
 * Every tenant-owned entity implements `TenantOwned` and has a non-null, indexed `tenant_id` column.
 * A Doctrine filter adds the active tenant to every ORM and DQL query. It is enabled by default and fails closed: reading without an active tenant throws instead of returning everything.
 * `TenantContext` holds the active tenant. The tenant is stamped on new entities at persist time, and writing an entity of another tenant is rejected.
-* The active tenant is never guessed: a user with a single membership has it selected automatically, and a user with several memberships has no active tenant (so no tenant-owned data is reachable) until one is chosen. Switching is implemented as the `SwitchTenant` application service, which refuses tenants the user is not a member of. A tenant chooser in the user interface does not exist yet. Actions never run in more than one tenant at once.
+* The active tenant is never guessed: a user with a single membership has it selected automatically, and a user with several memberships has no active tenant (so no tenant-owned data is reachable) until one is chosen. Switching is implemented as the `SwitchTenant` application service, which refuses tenants the user is not a member of. The user interface has a tenant chooser (`/organisation/choose`), which calls `SwitchTenant`. Actions never run in more than one tenant at once.
 * Cross-tenant lookups (for example listing a user's memberships) go through `TenantFilterBypass`, which returns scalar values only and never entities.
 * Raw DBAL access is forbidden in `Application` and `Domain` (enforced by Deptrac), because it would bypass the filter.
+
+* Database-level row-level security (for example PostgreSQL policies) is not implemented. Isolation relies on the Doctrine filter, on the check at write time, and on references across tenants being refused. A second layer in the database is possible future work and would not work on SQLite.
+* A tenant can hold several firms (legal entities) that share its users and contacts; see ADR 10. Firms are not isolated from each other by the tenant filter.
 
 ### Consequences
 

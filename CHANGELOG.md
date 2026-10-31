@@ -6,14 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-01
+
+Breaking release: every record gets a new kind of identifier. Read the upgrade notes before updating.
+
+### Upgrading
+
+1. Back up the database and the `var/imports` directory first.
+2. Stop the workers and drain the Messenger queues (`bin/console messenger:stats` shows them empty). A message queued before the upgrade cannot be read afterwards; it is moved to the `failed` transport, not lost, but its work has to be started again.
+3. Run the migrations with `bin/console doctrine:migrations:migrate`. The identifier migration cannot be reverted and cannot be rehearsed with `--dry-run` or `--write-sql`; the application refuses both. Run it through `bin/console`, not through a standalone `doctrine-migrations` binary, which does not have that protection.
+4. Start the workers.
+
+Signed-in users stay signed in: a session from before the upgrade still loads and is refreshed from the database. The organisation chosen in it is no longer valid, so a user with several organisations chooses one again. Old URLs stop working (see below).
+
 ### Added
 
-- Several firms in one organisation. The owner lists, adds, edits and archives them under Settings, with the register lookup of the contact form. A registration number is unique among the active firms of an organisation.
+- Several firms in one organisation. The owner lists, adds, edits and archives them under Settings, with the register lookup of the contact form. A registration number is unique among the active firms of an organisation; an archived firm cannot be restored, and the number can be added again.
 - Per-firm contact settings. With two or more active firms, the contact form has a section per firm for the due period, currency, document language, payment method and reverse charge. A firm without settings for a contact falls back to the contact's own defaults.
+- Every audit entry records the aggregate root it belongs to, so the whole history of a contact is one query, including parts removed since. A contact link is recorded under the company only.
+- Architecture decision records 9 to 11 on identifiers, several firms in one organisation, and audit roots and retention. The retention position is subject to professional tax and legal review.
+- Cross-tenant references are refused when a record is written.
 
 ### Changed
 
-- **Breaking:** every entity is identified by a UUIDv7 instead of a whole number. A migration converts existing data and cannot be reversed, so back up the database first. Old contact and import URLs stop working, an `id` column in a file exported earlier no longer matches, and messages queued before the upgrade land in the failed transport.
+- **Breaking:** every entity is identified by a UUIDv7 instead of a whole number. A migration converts existing data and cannot be reversed, so back up the database first.
+- **Breaking:** old contact and import URLs stop working, because they contain the old numbers. Open the records again from the lists.
+- **Breaking:** a file exported earlier has an `id` column of whole numbers. A row with such a value is a row error on import; match by registration number, VAT ID or e-mail address instead. Files exported after the upgrade carry the new identifiers and can be imported again.
+- Messages that cannot be decoded go to the failed transport instead of being discarded.
 
 ## [0.3.1] - 2026-10-31
 
