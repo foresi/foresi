@@ -29,6 +29,7 @@ Chosen option: "a Doctrine listener", because it works the same on every support
 * On flush, the listener records creation, change and deletion as `AuditEntry` rows with the acting user, a timestamp and the changed values.
 * `AuditEntry` is tenant-owned and takes the tenant of the audited entity.
 * `AuditEntry` has no mutators, and the listener rejects any update or removal of a persisted entry at flush. Changes to audited collections are rejected rather than silently missed.
+* Every entry records its aggregate root (`root_class`, `root_id`), so one query returns the whole history of a document or contact, children removed since included. A child entity implements `AuditRooted` and names its root; an audited entity without it is its own root. A contact link concerns two parties and is rooted at the company, so a link removed later shows in the company's history only, not the person's: an accepted limit. Readers add the person's current links to the root query.
 * Values are normalised to plain scalars and arrays before they are stored.
 
 ### Consequences

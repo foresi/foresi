@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Audit\Domain\AuditRooted;
 use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
@@ -26,7 +27,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_party_address_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_address_party', columns: ['party_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_party_address_billing', columns: ['party_id', 'billing_flag'])]
-class PartyAddress implements TenantOwned, Audited
+class PartyAddress implements TenantOwned, Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -60,6 +61,11 @@ class PartyAddress implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
+    }
+
+    public function auditRoot(): object
+    {
+        return $this->party;
     }
 
     public function party(): Party

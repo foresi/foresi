@@ -97,24 +97,17 @@ final readonly class DoctrinePartyDetails implements PartyDetails
 
     public function history(Party $party): array
     {
-        $keys = [Party::class => [$party->id()]];
-        foreach ([...$this->addresses($party), ...$this->emails($party), ...$this->bankAccounts($party), ...$this->contactLinks($party)] as $child) {
-            $keys[$child::class][] = $child->id();
+        // One query by root; the person's side of a contact link is read by the links the person has now.
+        $dql = 'SELECT a FROM '.AuditEntry::class.' a WHERE (a.rootClass = :rootClass AND a.rootId = :rootId)';
+        $links = $this->em->createQuery('SELECT l.id FROM '.ContactLink::class.' l WHERE l.person = :party')->setParameter('party', $party)->getSingleColumnResult();
+        if ([] !== $links) {
+            $dql .= ' OR (a.entityClass = :linkClass AND a.entityId IN (:links))';
         }
-
-        $conditions = [];
-        $parameters = [];
-        $index = 0;
-        foreach ($keys as $class => $ids) {
-            $conditions[] = sprintf('(a.entityClass = :class%1$d AND a.entityId IN (:ids%1$d))', $index);
-            $parameters['class'.$index] = $class;
-            $parameters['ids'.$index] = $ids;
-            ++$index;
-        }
-
-        $query = $this->em->createQuery('SELECT a FROM '.AuditEntry::class.' a WHERE '.implode(' OR ', $conditions).' ORDER BY a.occurredAt DESC, a.id DESC')->setMaxResults(self::HISTORY_LIMIT);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
+        $query = $this->em->createQuery($dql.' ORDER BY a.occurredAt DESC, a.id DESC')->setMaxResults(self::HISTORY_LIMIT)
+            ->setParameter('rootClass', Party::class)
+            ->setParameter('rootId', $party->id());
+        if ([] !== $links) {
+            $query->setParameter('linkClass', ContactLink::class)->setParameter('links', $links);
         }
 
         $history = [];

@@ -14,6 +14,7 @@ use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditEntry;
 use App\Audit\Domain\AuditExcluded;
+use App\Audit\Domain\AuditRooted;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
 use App\Tenancy\Domain\TenantId;
@@ -118,17 +119,26 @@ final class AuditListener
      */
     private function entry(EntityManagerInterface $em, object $entity, AuditAction $action, array $changes): AuditEntry
     {
-        $identifier = $em->getClassMetadata($entity::class)->getIdentifierValues($entity);
+        $root = $entity instanceof AuditRooted ? $entity->auditRoot() : $entity;
 
         return new AuditEntry(
             $entity::class,
-            implode('-', array_map(static fn (mixed $part): string => \is_scalar($part) ? (string) $part : '', $identifier)),
+            $this->identifier($em, $entity),
             $action,
             $changes,
             $this->actor->userId(),
             $this->clock->now(),
             $this->correlation->current(),
+            $em->getClassMetadata($root::class)->getName(),
+            $this->identifier($em, $root),
         );
+    }
+
+    private function identifier(EntityManagerInterface $em, object $entity): string
+    {
+        $identifier = $em->getClassMetadata($entity::class)->getIdentifierValues($entity);
+
+        return implode('-', array_map(static fn (mixed $part): string => \is_scalar($part) ? (string) $part : '', $identifier));
     }
 
     /**

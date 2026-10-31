@@ -22,6 +22,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'audit_entry')]
 #[ORM\Index(name: 'idx_audit_entry_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_audit_entry_entity', columns: ['tenant_id', 'entity_class', 'entity_id'])]
+#[ORM\Index(name: 'idx_audit_entry_root', columns: ['tenant_id', 'root_class', 'root_id'])]
 #[ORM\Index(name: 'idx_audit_entry_correlation', columns: ['tenant_id', 'correlation_id'])]
 class AuditEntry implements TenantOwned
 {
@@ -37,6 +38,13 @@ class AuditEntry implements TenantOwned
 
     #[ORM\Column(name: 'entity_id', type: 'string', length: 64)]
     private string $entityId;
+
+    // The entity whose history this entry belongs to: the aggregate root, or the entity itself.
+    #[ORM\Column(name: 'root_class', type: 'string', length: 255, options: ['default' => ''])]
+    private string $rootClass;
+
+    #[ORM\Column(name: 'root_id', type: 'string', length: 64, options: ['default' => ''])]
+    private string $rootId;
 
     /** @var array<string, array<mixed>> */
     #[ORM\Column(type: 'json')]
@@ -57,6 +65,8 @@ class AuditEntry implements TenantOwned
         private \DateTimeImmutable $occurredAt,
         #[ORM\Column(name: 'correlation_id', type: 'string', length: 64, nullable: true)]
         private ?string $correlationId = null,
+        ?string $rootClass = null,
+        ?string $rootId = null,
     ) {
         $this->id = Id::generate();
         if ('' === $entityClass || '' === $entityId) {
@@ -67,8 +77,13 @@ class AuditEntry implements TenantOwned
                 throw new \DomainException('Each change is a field name with an [old, new] pair.');
             }
         }
+        if ('' === ($rootClass ?? $entityClass) || '' === ($rootId ?? $entityId)) {
+            throw new \DomainException('An audit entry needs the class and id of its root.');
+        }
         $this->entityClass = $entityClass;
         $this->entityId = $entityId;
+        $this->rootClass = $rootClass ?? $entityClass;
+        $this->rootId = $rootId ?? $entityId;
         $this->changes = $changes;
     }
 
@@ -85,6 +100,16 @@ class AuditEntry implements TenantOwned
     public function entityId(): string
     {
         return $this->entityId;
+    }
+
+    public function rootClass(): string
+    {
+        return $this->rootClass;
+    }
+
+    public function rootId(): string
+    {
+        return $this->rootId;
     }
 
     public function action(): AuditAction

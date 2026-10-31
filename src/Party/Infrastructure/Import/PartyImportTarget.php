@@ -243,7 +243,7 @@ final readonly class PartyImportTarget implements ImportTarget
         $persons = $added['persons'] ?? [];
 
         // A created party is archived by an undo, and so are the contact persons it brought.
-        $snapshot = ['created' => true, 'children' => $this->children([$party->id(), ...$persons])];
+        $snapshot = ['created' => true];
         if ([] !== $persons) {
             $snapshot['added'] = ['persons' => $persons];
         }
@@ -269,7 +269,7 @@ final readonly class PartyImportTarget implements ImportTarget
             $this->recheck($party);
         }
 
-        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added, 'children' => $this->children([$id, ...$added['persons'] ?? []])]));
+        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added]));
     }
 
     public function restoreArchived(string $id): void
@@ -312,20 +312,14 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * The party, the persons the write created, the children they have now and
-     * the children they had right after the write: a child removed since then
-     * is found by its id.
+     * The party and the persons the write created, with everything that belongs
+     * to them: a child removed since then is found by its party's history.
      */
     public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         $added = $this->added($before);
-        $noted = \is_array($before->data['children'] ?? null) ? $before->data['children'] : [];
-        $known = [];
-        foreach (self::CHILDREN as $key => $class) {
-            $known[$class] = [...$this->ids($added[$key] ?? []), ...$this->ids($noted[$key] ?? [])];
-        }
 
-        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $known, $since, $exceptCorrelationIds);
+        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $since, $exceptCorrelationIds);
     }
 
     /**
@@ -379,26 +373,6 @@ final readonly class PartyImportTarget implements ImportTarget
         }
 
         return $names;
-    }
-
-    /**
-     * The ids of the children of the parties, by the keys of CHILDREN.
-     *
-     * @param list<string> $partyIds
-     *
-     * @return array<string, list<string>>
-     */
-    private function children(array $partyIds): array
-    {
-        $byClass = $this->changes->childrenOf($partyIds);
-        $children = [];
-        foreach (self::CHILDREN as $key => $class) {
-            if (isset($byClass[$class])) {
-                $children[$key] = $byClass[$class];
-            }
-        }
-
-        return $children;
     }
 
     /**

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Audit\Domain\AuditRooted;
 use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
@@ -25,7 +26,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_contact_link_company', columns: ['company_id'])]
 #[ORM\Index(name: 'idx_contact_link_person', columns: ['person_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_contact_link_pair', columns: ['tenant_id', 'company_id', 'person_id'])]
-class ContactLink implements TenantOwned, Audited
+class ContactLink implements TenantOwned, Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -68,6 +69,11 @@ class ContactLink implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
+    }
+
+    public function auditRoot(): object
+    {
+        return $this->company;
     }
 
     public function company(): Party

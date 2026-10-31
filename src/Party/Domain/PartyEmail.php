@@ -10,6 +10,7 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
+use App\Audit\Domain\AuditRooted;
 use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
@@ -23,7 +24,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_party_email_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
 #[ORM\Index(name: 'idx_party_email_key', columns: ['tenant_id', 'address_key'])]
-class PartyEmail implements TenantOwned, Audited
+class PartyEmail implements TenantOwned, Audited, AuditRooted
 {
     private const int MAX_LENGTH = 254;
 
@@ -66,6 +67,11 @@ class PartyEmail implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
+    }
+
+    public function auditRoot(): object
+    {
+        return $this->party;
     }
 
     public function party(): Party

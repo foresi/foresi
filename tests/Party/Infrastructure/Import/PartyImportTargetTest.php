@@ -408,13 +408,11 @@ final class PartyImportTargetTest extends KernelTestCase
     public function testRevertOfACreatedPartyArchivesItAndTheContactPersonItBrought(): void
     {
         $plain = $this->create($this->values(['registration_number' => '12345695']));
-        self::assertSame(['created' => true, 'children' => ['addresses' => [$this->details()->billingAddress($this->find($plain->id))?->id()]]], $plain->before->data);
+        self::assertSame(['created' => true], $plain->before->data);
         $result = $this->create($this->values(['contact_name' => 'Jana Example']));
         $link = $this->details()->contactLinks($this->find($result->id))[0];
         $person = $link->person()->id();
         self::assertSame(['persons' => [$person]], $result->before->data['added'] ?? null);
-        self::assertIsArray($result->before->data['children'] ?? null);
-        self::assertSame([$link->id()], $result->before->data['children']['contactLinks'] ?? null);
 
         $this->target->revert($plain->id, $plain->before);
         $this->target->revert($result->id, $result->before);
