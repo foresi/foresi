@@ -116,8 +116,19 @@ catalogue:
     linked: Linked
 
 format:
+  date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 party:
+  header:
+    import: Import
+    export: Export
+  imported_by:
+    create: 'Contacts the import of {name} created.'
+    update: 'Contacts the import of {name} updated.'
+    restore: 'Contacts the import of {name} restored from the archive.'
+    archive: 'Contacts the import of {name} archived.'
+    changed_after_import: 'Contacts of the import of {name} that someone changed after the import.'
+    summary: Import summary
   title: Address book
   new: New contact
   edit: Edit
@@ -315,6 +326,249 @@ party:
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
 import:
+  number: '{value, number}'
+  new: New import
+  steps:
+    label: Import steps
+    upload: Upload
+    columns: Columns
+    check: Check
+    run: Import
+    summary: Summary
+  state:
+    uploaded: Uploaded
+    reading: Reading
+    mapping: Waiting for columns
+    checking: Checking
+    checked: Checked
+    queued: Queued
+    running: Importing
+    finished: Done
+    finished_with_errors: Done with errors
+    stopped: Stopped
+    failed: Not finished
+    cancelled: Cancelled
+    undoing: Undoing
+    undone: Undone
+  mode:
+    add_missing:
+      label: Add new only
+      text: Only new records are added. Records that already exist stay as they are.
+    update:
+      label: Update existing
+      text: Records that are found take the values of the file, and new ones are added.
+    full_replace:
+      label: Replace fully
+      text: The records will match the file. Found ones are updated and new ones are added.
+      warning: Records that are not in the file are archived.
+  history:
+    title: Imports
+    empty:
+      title: No imports yet
+      text: Once you upload your first file, you will see here how the import went.
+    column:
+      file: File
+      when: When
+      who: Who
+      target: Records
+      mode: Mode
+      created: New
+      updated: Updated
+      failed: Errors
+      state: State
+  upload:
+    title: New import
+    card: File to import
+    target: Kind of records
+    target_choose: Choose the kind of records
+    target_missing: Choose which records you want to import.
+    file: File
+    file_help: CSV or XLSX up to 50 MB and 200,000 rows. You match the columns to fields in the next step.
+    profile: Import profile
+    profile_none: No profile
+    profile_help: A profile uses the columns and options that worked in an earlier import.
+    submit: Upload file
+    missing: Choose the file you want to upload.
+    too_large: The file is larger than 50 MB. Split it into smaller parts.
+  cancel:
+    button: Cancel import
+    confirm: Do you really want to cancel the import? Nothing will be written.
+  file:
+    title: File
+    change: Change
+    change_help: The file is read again with the new settings and the columns are proposed again.
+    format: Format
+    encoding: Encoding
+    delimiter: Delimiter
+    sheet: Sheet
+    header_row: Header row
+    rows: Data rows
+    reread: Read again
+    keep: Keep
+  encoding:
+    utf-8: UTF-8
+    utf-8-bom: UTF-8 with BOM
+    windows-1250: Windows-1250
+    iso-8859-2: ISO-8859-2
+    windows-1252: Windows-1252
+  delimiter:
+    semicolon: Semicolon
+    comma: Comma
+    tab: Tab
+    pipe: Vertical bar
+    other: Other character
+  mapping:
+    title: Columns
+    intro: For each column, choose the field it is imported into. Leave the columns you do not need out of the import.
+    summary: '{mapped, number} of {total, number} imported'
+    do_not_import: Do not import
+    required_field: '{field} (required)'
+    missing: 'The check starts once you match a column to the required {count, plural, one {field} other {fields}}'
+    submit: Check
+    back_to_check: Back to the check
+  reason:
+    remembered: Remembered
+    preset: Known source
+    same_name: Same name
+    similar_name: Similar name
+  source_name:
+    idoklad_contacts: iDoklad
+  group:
+    party:
+      general: Contact
+      billing: Billing address
+      delivery: Delivery address
+      bank: Bank account
+      contact: Contact person
+  value:
+    party:
+      kind:
+        person: Person
+        sole_trader: Sole trader
+        company: Company
+      payment_method:
+        bank_transfer: Bank transfer
+        cash: Cash
+        card: Card
+  values:
+    title: Values
+    intro: We do not know these values of the file. Choose what they mean. Rows with a value left unassigned are not imported and appear among the errors.
+    rows: '{count, plural, one {# row} other {# rows}}'
+    unassigned: Not assigned
+    more: 'Showing the {shown, number} most frequent of {total, number} values.'
+  options:
+    title: Options
+    mode: What should happen to the records
+    match_key: How records are found
+    match_key_auto: Automatically
+    match_key_help: A record with the same value is updated or skipped. Without a key every row is added as new.
+    blank_cells: Empty cells
+    blank_cells_help: Applies to records that are updated.
+    scope: What may be archived
+    scope_help: Archived records can be restored at any time.
+    date_order: Date order
+    date_order_help: The dates of the file can be read in more than one way. Choose how they are written.
+    decimal: Decimal separator
+    decimal_help: The numbers of the file can be read in more than one way. Choose how they are written.
+    profile: Import profile
+    profile_kept: After a successful import, the columns and options are saved to this profile.
+    profile_name: Save as profile
+    profile_name_help: Optional. Under this name you repeat the import next time with the same columns and options.
+  blank_cells:
+    keep: Keep the value
+    clear: Clear the value
+  scope:
+    profile: Only records of earlier imports of this profile
+    all: All records
+  date_order:
+    day_month_year: Day first (31/12/2026)
+    month_day_year: Month first (12/31/2026)
+    year_month_day: Year first (2026-12-31)
+  decimal:
+    comma: Comma (1.234,50)
+    point: Point (1,234.50)
+  check:
+    unidentified: '{count, plural, one {# row has a match key} other {# rows have a match key}} we could not read. The records to archive are counted without {count, plural, one {it} other {them}}.'
+    intro: 'The check went through the whole file and wrote nothing. This is how the import in the mode {mode} will turn out.'
+    kpi:
+      create: To create
+      update: To update
+      skip: To skip
+      error: With errors
+      error_badge: Not imported
+    restored_note: '{count, plural, one {# of them restored from the archive} other {# of them restored from the archive}}'
+    preview: Rows preview
+    preview_more: 'Showing the first {count, number} rows.'
+    tab:
+      create: New
+      update: Updated
+      restore: Restored
+      skip: Skipped
+      error: With errors
+    row: 'Row {number, number}'
+    column_row: Row
+    download_errors: Download errors
+    archive:
+      title: '{count, plural, one {# record will be archived} other {# records will be archived}}'
+      text: These records are not in the file. Archived records are kept and can be restored.
+      confirm: 'To confirm, type {count}'
+    run: Start import
+    edit: Edit mapping
+  progress:
+    title: Progress
+    reading: Reading the file
+    checking: Checking the rows
+    queued: The import is queued
+    running: Importing the rows
+    undoing: Undoing the import
+    done: Done
+    rows: '{done, number} of {total, number} rows'
+    queued_text: Another import is writing into the same records right now. This one starts as soon as that one ends.
+    leave: You can go on with other work. When the import ends, we show you a notice.
+    finished: Done. Opening the next step.
+  summary:
+    outcome:
+      finished: The import is done.
+      finished_with_errors: '{count, plural, one {The import is done. # row could not be imported.} other {The import is done. # rows could not be imported.}}'
+      stopped: The import stopped because more than half of the rows had an error. Check how the columns are matched and upload the file again.
+      failed: The import could not be finished.
+      cancelled: The import is cancelled. Nothing was written.
+      undone: The import is undone.
+    failure_unreadable: The file could not be read. Save it as CSV in UTF-8 or as XLSX and upload it again.
+    kpi:
+      created: Created
+      updated: Updated
+      archived: Archived
+      failed: Errors
+      reverted: Undone
+      changed: Changed after the import
+    details: Details
+    target: Records
+    mode: Mode
+    actor: Imported by
+    started: Started
+    finished: Ended
+    skipped: Skipped
+    errors:
+      title: Rows with errors
+      text: '{count, plural, one {# row was not imported.} other {# rows were not imported.}} Download them with a description of the error, fix them and upload them again.'
+      download: Download errors
+    undo:
+      title: Undoing the import
+      text: Created records are archived, updated ones get their previous values back and archived ones are restored. Records someone changed in the meantime stay as they are.
+      deadline: 'The import can be undone until {date}.'
+      button: Undo import
+      confirm: Do you really want to undo the import?
+  notice:
+    finished: 'The import of {name} is done.'
+    finished_with_errors: 'The import of {name} ended with errors.'
+    stopped: 'The import of {name} stopped.'
+    failed: 'The import of {name} could not be finished.'
+    cancelled: 'The import of {name} is cancelled.'
+    undone: 'The import of {name} is undone.'
+    link: Show summary
+  flash:
+    cancelled: The import is cancelled.
   source:
     rejected:
       too_large: 'The file is larger than {limit} MB.'
@@ -355,14 +609,12 @@ import:
     unknown_profile: 'This import profile does not exist for this kind of record.'
     profile_required: 'Name the import profile, so a full replace knows which records earlier imports brought in.'
     not_checked: 'Run the check before you start the import.'
-    archive_not_confirmed: 'Type {count} to confirm that {count, plural, one {# record} other {# records}} will be archived.'
+    archive_not_confirmed: 'Type {count, number, ::group-off} to confirm that {count, plural, one {# record} other {# records}} will be archived.'
     undo_state: 'Only a finished or stopped import can be undone.'
     undo_expired: 'Undo was possible for 30 days after the import. That time has passed.'
     target_busy: 'Another import of these records is running right now. Undo this import once that one ends.'
     not_cancellable: 'This import can no longer be cancelled.'
     rows_purged: 'The rows of this import were deleted after 30 days.'
-  check:
-    unidentified: '{count, plural, one {# row has a match key} other {# rows have a match key}} we could not read. The records to archive are counted without {count, plural, one {it} other {them}}.'
   error_file:
     column: 'Error'
     in_column: 'Column {column}. {message}'

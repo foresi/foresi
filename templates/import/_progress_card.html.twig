@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div data-progress-active="{{ progress.active ? 'true' : 'false' }}" data-progress-state="{{ import.state.value }}">
+    <twig:Ui:Card :title="'import.progress.title'|trans" icon="clock-3" class="max-w-2xl">
+        <div class="grid gap-3">
+            <twig:Ui:ProgressBar :label="progress.label" :value="progress.value" :max="progress.max" :valueText="progress.valueText" />
+            {% if progress.phase == 'queued' %}
+                <p class="m-0 text-text">{{ 'import.progress.queued_text'|trans }}</p>
+            {% endif %}
+            <p class="m-0 text-[13px] text-muted">{{ (progress.active ? 'import.progress.leave' : 'import.progress.finished')|trans }}</p>
+        </div>
+    </twig:Ui:Card>
+</div>

@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'import/_flow.html.twig' %}
+
+{% block title %}{{ import.originalName }}{% endblock %}
+
+{% block actions %}
+    {% if progress.cancellable %}{% include 'import/_cancel.html.twig' %}{% endif %}
+{% endblock %}
+
+{% block screen %}
+    <turbo-frame id="import-progress" data-controller="import-progress" data-import-progress-url-value="{{ path('app_import_progress', {id: import.id}) }}" data-import-progress-done-value="{{ path('app_import_show', {id: import.id}) }}">
+        {% include 'import/_progress_card.html.twig' %}
+    </turbo-frame>
+{% endblock %}

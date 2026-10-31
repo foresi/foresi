@@ -117,4 +117,43 @@ interface Imports
      * @return list<int>
      */
     public function recordsInSource(Import $import, array $recordIds): array;
+
+    /**
+     * The imports of the active tenant, newest first.
+     *
+     * @return list<Import>
+     */
+    public function history(int $limit): array;
+
+    /**
+     * The user's imports that ended and whose summary the user has not opened yet, newest first.
+     *
+     * @return list<Import>
+     */
+    public function endedUnseen(int $actorUserId, int $limit): array;
+
+    /**
+     * The first staged rows in row order, for the samples of the mapping screen.
+     *
+     * @return list<ImportRow>
+     */
+    public function firstRows(Import $import, int $limit): array;
+
+    /**
+     * The first rows that ended with this outcome, in row order, for the preview of the check.
+     *
+     * @return list<ImportRow>
+     */
+    public function previewRows(Import $import, RowOutcome $outcome, int $limit): array;
+
+    /**
+     * The distinct cell texts of the given columns over the whole source, with
+     * the number of rows each occurs in; the most frequent first, at most
+     * $limit per column. Empty cells are left out.
+     *
+     * @param list<int> $columns
+     *
+     * @return array<int, array{values: array<array-key, int>, distinct: int}> by column; a numeric text is an int key
+     */
+    public function distinctValues(Import $import, array $columns, int $limit): array;
 }

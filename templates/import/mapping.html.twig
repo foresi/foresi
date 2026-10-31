@@ -1,0 +1,130 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'import/_flow.html.twig' %}
+
+{% set token = csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) %}
+{% set source = screen.source %}
+{% set options = screen.options %}
+
+{% block title %}{{ import.originalName }}{% endblock %}
+
+{% block actions %}
+    {% include 'import/_cancel.html.twig' %}
+{% endblock %}
+
+{% block screen %}
+    {% if error is defined %}
+        <twig:Ui:Alert tone="error">{{ error }}</twig:Ui:Alert>
+    {% endif %}
+
+    <twig:Ui:Card :title="'import.file.title'|trans" icon="inbox">
+        <twig:block name="actions">
+            {% if not source.edit and import.state.value == 'mapping' %}
+                <twig:Ui:Button size="sm" variant="ghost" icon="pencil" :href="path('app_import_show', {id: import.id, source: 'edit'})">{{ 'import.file.change'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        {% if source.edit %}
+            <form method="post" action="{{ path('app_import_source', {id: import.id}) }}" class="grid gap-4">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <p class="m-0 text-[13px] text-muted">{{ 'import.file.change_help'|trans }}</p>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    {% if source.csv %}
+                        <twig:Ui:Select name="encoding" id="encoding" :label="'import.file.encoding'|trans" :options="source.encodings" :value="source.settings.encoding.value|default('')" />
+                        <twig:Ui:Select name="delimiter" id="delimiter" :label="'import.file.delimiter'|trans" :options="source.delimiters" :value="source.settings.delimiter|default('')" />
+                    {% else %}
+                        <twig:Ui:TextInput name="sheet" id="sheet" :label="'import.file.sheet'|trans" :value="source.settings.sheet|default('')" maxlength="255" />
+                    {% endif %}
+                    <twig:Ui:TextInput type="number" name="header_row" id="header_row" :label="'import.file.header_row'|trans" :value="(source.settings.headerRow|default(1)) ~ ''" min="1" max="50" inputmode="numeric" />
+                </div>
+                <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:w-full">
+                    <twig:Ui:Button type="submit" icon="refresh-cw">{{ 'import.file.reread'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button variant="ghost" :href="path('app_import_show', {id: import.id})">{{ 'import.file.keep'|trans }}</twig:Ui:Button>
+                </div>
+            </form>
+        {% else %}
+            <twig:Ui:DescriptionList :items="source.items" />
+        {% endif %}
+    </twig:Ui:Card>
+
+    <form method="post" action="{{ path('app_import_mapping', {id: import.id}) }}" class="grid gap-4"
+          data-controller="import-mapping"
+          data-action="change->import-mapping#update"
+          data-import-mapping-required-value="{{ screen.required|json_encode }}"
+          data-import-mapping-one-value="{{ 'import.mapping.missing'|trans({count: 1}) }}"
+          data-import-mapping-other-value="{{ 'import.mapping.missing'|trans({count: 2}) }}">
+        <input type="hidden" name="_token" value="{{ token }}">
+
+        <twig:Ui:Card :title="'import.mapping.title'|trans" icon="columns-3">
+            <twig:block name="actions">
+                <span class="num text-[13px] text-muted">{{ 'import.mapping.summary'|trans({mapped: screen.mappedCount, total: screen.columns|length}) }}</span>
+            </twig:block>
+            <twig:Ui:Alert tone="warning" class="mb-3" data-import-mapping-target="missing" data-missing-alert :hidden="screen.missing is empty">
+                <span data-import-mapping-target="message">{{ 'import.mapping.missing'|trans({count: screen.missing|length}) }}</span>
+                <span data-import-mapping-target="fields">{{ screen.missing|join(', ') }}</span>.
+            </twig:Ui:Alert>
+            <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.mapping.intro'|trans }}</p>
+            <div class="divide-y divide-line">
+                {% for column in screen.columns %}
+                    <twig:Ui:MappingRow :id="column.id" :name="column.name" :label="column.label" :samples="column.samples" :options="screen.fieldOptions" :value="column.value" :badge="column.badge" />
+                {% endfor %}
+            </div>
+        </twig:Ui:Card>
+
+        {% if screen.values is not empty %}
+            <twig:Ui:Card :title="'import.values.title'|trans" icon="tag">
+                <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.values.intro'|trans }}</p>
+                <div class="grid gap-5">
+                    {% for section in screen.values %}
+                        <section aria-labelledby="values-{{ section.field }}">
+                            <h4 id="values-{{ section.field }}" class="mb-1 mt-0 text-[13px] font-semibold text-ink">{{ section.label }}</h4>
+                            {% if section.distinct > section.shown %}<p class="mb-1 mt-0 text-[13px] text-muted">{{ 'import.values.more'|trans({shown: section.shown, total: section.distinct}) }}</p>{% endif %}
+                            <div class="divide-y divide-line">
+                                {% for row in section.rows %}
+                                    <input type="hidden" name="{{ row.sourceName }}" value="{{ row.source }}">
+                                    <twig:Ui:MappingRow :id="row.id" :name="row.name" :label="row.label" :samples="row.samples" :options="section.options" :value="row.value" />
+                                {% endfor %}
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+            </twig:Ui:Card>
+        {% endif %}
+
+        <twig:Ui:Card :title="'import.options.title'|trans" icon="settings">
+            <div class="grid gap-4">
+                <twig:Ui:RadioCards name="mode" id="mode" :legend="'import.options.mode'|trans" :options="screen.modes" :value="options.mode.value" />
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <twig:Ui:Select name="match_key" id="match_key" :label="'import.options.match_key'|trans" :help="'import.options.match_key_help'|trans" :options="screen.matchKeys" :value="options.matchKey|default('')" />
+                    <div data-import-mapping-target="writeOnly">
+                        <twig:Ui:Select name="blank_cells" id="blank_cells" :label="'import.options.blank_cells'|trans" :help="'import.options.blank_cells_help'|trans" :options="screen.blankCells" :value="options.blankCells.value" />
+                    </div>
+                    <div data-import-mapping-target="replaceOnly">
+                        <twig:Ui:Select name="scope" id="scope" :label="'import.options.scope'|trans" :help="'import.options.scope_help'|trans" :options="screen.scopes" :value="options.scope.value|default('profile')" />
+                    </div>
+                    {% if screen.dateOrders is not empty %}
+                        <twig:Ui:Select name="date_order" id="date_order" :label="'import.options.date_order'|trans" :help="'import.options.date_order_help'|trans" :options="screen.dateOrders" :value="options.dateOrder.value" />
+                    {% else %}
+                        <input type="hidden" name="date_order" value="{{ options.dateOrder.value }}">
+                    {% endif %}
+                    {% if screen.decimals is not empty %}
+                        <twig:Ui:Select name="decimal_separator" id="decimal_separator" :label="'import.options.decimal'|trans" :help="'import.options.decimal_help'|trans" :options="screen.decimals" :value="options.decimalSeparator.value" />
+                    {% else %}
+                        <input type="hidden" name="decimal_separator" value="{{ options.decimalSeparator.value }}">
+                    {% endif %}
+                    {% if screen.profile %}
+                        <input type="hidden" name="profile_id" value="{{ screen.profileId }}">
+                        <twig:Ui:TextInput name="profile_label" id="profile_label" :label="'import.options.profile'|trans" :help="'import.options.profile_kept'|trans" :value="screen.profile" disabled />
+                    {% else %}
+                        <twig:Ui:TextInput name="profile_name" id="profile_name" :label="'import.options.profile_name'|trans" :help="'import.options.profile_name_help'|trans" :value="screen.profileName" maxlength="255" autocomplete="off" />
+                    {% endif %}
+                </div>
+            </div>
+        </twig:Ui:Card>
+
+        <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:w-full">
+            <twig:Ui:Button type="submit" variant="primary" icon="square-check-big" data-import-mapping-target="submit">{{ 'import.mapping.submit'|trans }}</twig:Ui:Button>
+            {% if editingMapping %}
+                <twig:Ui:Button :href="path('app_import_show', {id: import.id})">{{ 'import.mapping.back_to_check'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </div>
+    </form>
+{% endblock %}

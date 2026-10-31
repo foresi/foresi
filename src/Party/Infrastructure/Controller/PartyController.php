@@ -9,7 +9,10 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Import\Application\Imports;
+use App\Import\Domain\Import;
 use App\Party\Application\ArchiveParty;
+use App\Party\Application\ImportedBy;
 use App\Party\Application\LinkContactPerson;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyHistoryEntry;
@@ -53,6 +56,7 @@ final class PartyController extends AbstractController
     private const array VIEWS = ['all', 'customers', 'suppliers', 'archived'];
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
+    private const int MAX_EXPORT = 10000;
     private const int MAX_SEARCH = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
@@ -67,6 +71,7 @@ final class PartyController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly AuditActor $actor,
+        private readonly Imports $imports,
         #[Autowire(service: 'limiter.party_refresh_checks')]
         private readonly RateLimiterFactory $refreshLimiter,
     ) {
@@ -86,9 +91,11 @@ final class PartyController extends AbstractController
             default => null,
         };
 
-        $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)));
+        [$importedBy, $import] = $this->importedBy($request);
+        $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->parties->counts();
-        $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort];
+        $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
+            + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
 
         return $this->render('party/index.html.twig', [
             'counts' => $counts,
@@ -101,7 +108,9 @@ final class PartyController extends AbstractController
             'columns' => $this->columns($sort, $query),
             'rows' => $this->rows($page),
             'baseUrl' => $this->generateUrl('app_contacts', $query),
-            'filtered' => '' !== $text || 'all' !== $view,
+            'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
+            'importedBy' => $importedBy instanceof ImportedBy && $import instanceof Import ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $import->originalName()]), 'href' => $this->generateUrl('app_import_show', ['id' => $importedBy->importId])] : null,
+            'exportQuery' => ['view' => $view, 'q' => $text],
         ]);
     }
 
@@ -198,6 +207,16 @@ final class PartyController extends AbstractController
     {
         $this->checkToken($request);
         $ids = $this->selectedIds($request);
+        // The header action exports the whole view as it is filtered, not a selection.
+        if ('view' === $request->request->getString('scope')) {
+            $view = $request->request->getString('view', 'all');
+            $role = match ($view) {
+                'customers' => PartyRole::Customer,
+                'suppliers' => PartyRole::Supplier,
+                default => null,
+            };
+            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, self::MAX_EXPORT);
+        }
         if ([] === $ids) {
             return $this->redirectToRoute('app_contacts');
         }
@@ -277,6 +296,24 @@ final class PartyController extends AbstractController
         $this->addFlash('success', $message);
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
+    }
+
+    /**
+     * The import the list is narrowed to, when the link of an import summary opened it.
+     *
+     * @return array{?ImportedBy, ?Import}
+     */
+    private function importedBy(Request $request): array
+    {
+        $id = $request->query->getString('import');
+        $outcome = $request->query->getString('outcome', 'create');
+        if (!ctype_digit($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
+            return [null, null];
+        }
+        // An import of another tenant is not found, so its id narrows nothing.
+        $import = $this->imports->find((int) $id);
+
+        return $import instanceof Import ? [new ImportedBy((int) $id, $outcome), $import] : [null, null];
     }
 
     private function party(int $id): Party

@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'import/_flow.html.twig' %}
+
+{% block title %}{{ 'import.upload.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="history" :href="path('app_imports')">{{ 'import.history.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block screen %}
+    <form method="post" action="{{ path('app_import_upload') }}" enctype="multipart/form-data" class="grid gap-4">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
+        {% if target %}<input type="hidden" name="target" value="{{ target }}">{% endif %}
+
+        <twig:Ui:Card :title="'import.upload.card'|trans" icon="upload">
+            <div class="grid gap-4 sm:max-w-xl">
+                {% if not target %}
+                    <twig:Ui:Select name="target" id="target" :label="'import.upload.target'|trans" :options="targets" required />
+                {% endif %}
+                <twig:Ui:TextInput type="file" name="file" id="file" :label="'import.upload.file'|trans" :help="'import.upload.file_help'|trans" :error="error" accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="py-1 file:mr-3 file:h-[26px] file:cursor-pointer file:rounded-md file:border-0 file:bg-badge-gray file:px-2.5 file:text-[13px] file:font-medium file:text-ink" />
+                {% if profiles is not empty %}
+                    <twig:Ui:Select name="profile" id="profile" :label="'import.upload.profile'|trans" :help="'import.upload.profile_help'|trans" :options="profiles" :value="profileId" />
+                {% endif %}
+            </div>
+        </twig:Ui:Card>
+
+        <div class="flex flex-wrap items-center gap-2 max-sm:[&>*]:w-full">
+            <twig:Ui:Button type="submit" variant="primary" icon="upload">{{ 'import.upload.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </form>
+{% endblock %}

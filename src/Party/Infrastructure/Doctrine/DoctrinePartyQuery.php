@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
+use App\Import\Domain\ImportMissingRecord;
+use App\Import\Domain\ImportRow;
+use App\Party\Application\ImportedBy;
 use App\Party\Application\PartyCounts;
 use App\Party\Application\PartyPage;
 use App\Party\Application\PartyQuery;
@@ -43,9 +46,9 @@ final readonly class DoctrinePartyQuery implements PartyQuery
     {
     }
 
-    public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page): PartyPage
+    public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page, ?ImportedBy $import = null): PartyPage
     {
-        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived);
+        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
 
         $count = $this->em->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p WHERE '.$where);
         foreach ($parameters as $name => $value) {
@@ -73,6 +76,17 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         }
 
         return new PartyPage($this->rows($pageIds), $total, $page, $pages);
+    }
+
+    public function matchingIds(string $text, ?PartyRole $role, bool $archived, int $limit): array
+    {
+        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived);
+        $query = $this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY LOWER(p.displayName), p.id')->setMaxResults($limit);
+        foreach ($parameters as $name => $value) {
+            $query->setParameter($name, $value);
+        }
+
+        return array_values(array_filter($query->getSingleColumnResult(), \is_int(...)));
     }
 
     public function counts(): PartyCounts
@@ -121,12 +135,23 @@ final readonly class DoctrinePartyQuery implements PartyQuery
     }
 
     /**
-     * @return array{string, array<string, string>}
+     * @return array{string, array<string, int|string>}
      */
-    private function conditions(string $text, ?PartyRole $role, bool $archived): array
+    private function conditions(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array
     {
         $where = $archived ? 'p.archivedAt IS NOT NULL' : 'p.archivedAt IS NULL';
         $parameters = [];
+        if ($import instanceof ImportedBy) {
+            // The import's rows name the records they wrote; the records a full replace archived are kept apart.
+            $rows = 'p.id IN (SELECT r.recordId FROM '.ImportRow::class.' r WHERE IDENTITY(r.import) = :import AND r.outcome = :outcome)';
+            $missing = 'p.id IN (SELECT m.recordId FROM '.ImportMissingRecord::class.' m WHERE IDENTITY(m.import) = :import AND m.outcome = :outcome)';
+            $where = match ($import->outcome) {
+                'archive' => $missing,
+                'changed_after_import' => '('.$rows.' OR '.$missing.')',
+                default => $rows,
+            };
+            $parameters = ['import' => $import->importId, 'outcome' => $import->outcome];
+        }
         if ($role instanceof PartyRole) {
             $where .= ' AND '.$this->roleCondition($role->value);
         }

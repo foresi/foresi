@@ -15,6 +15,7 @@ use App\Import\Domain\ImportMissingRecord;
 use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Domain\RowOutcome;
+use App\Import\Domain\Text;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -259,6 +260,77 @@ final readonly class DoctrineImports implements Imports
             ->getSingleColumnResult();
 
         return array_values(array_unique(array_map(intval(...), [...$found, ...$ambiguous])));
+    }
+
+    public function history(int $limit): array
+    {
+        return $this->em->getRepository(Import::class)->findBy([], ['createdAt' => 'DESC', 'id' => 'DESC'], $limit);
+    }
+
+    public function endedUnseen(int $actorUserId, int $limit): array
+    {
+        $ended = array_values(array_filter(ImportState::cases(), static fn (ImportState $state): bool => $state->isEnd()));
+
+        /** @var list<Import> $imports */
+        $imports = $this->em->createQueryBuilder()
+            ->select('i')
+            ->from(Import::class, 'i')
+            ->where('i.actorUserId = :actor')
+            ->andWhere('i.state IN (:states)')
+            ->andWhere('i.seenAt IS NULL')
+            ->orderBy('i.finishedAt', 'DESC')
+            ->addOrderBy('i.id', 'DESC')
+            ->setParameter('actor', $actorUserId)
+            ->setParameter('states', array_map(static fn (ImportState $state): string => $state->value, $ended))
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+
+        return $imports;
+    }
+
+    public function firstRows(Import $import, int $limit): array
+    {
+        return $this->em->getRepository(ImportRow::class)->findBy(['import' => $import], ['rowNumber' => 'ASC'], $limit);
+    }
+
+    public function previewRows(Import $import, RowOutcome $outcome, int $limit): array
+    {
+        return $this->em->getRepository(ImportRow::class)->findBy(['import' => $import, 'outcome' => $outcome], ['rowNumber' => 'ASC'], $limit);
+    }
+
+    public function distinctValues(Import $import, array $columns, int $limit): array
+    {
+        $counts = array_fill_keys($columns, []);
+        if ([] === $columns) {
+            return [];
+        }
+        // Only the raw cells are read, row by row, so a large source never sits in memory as entities.
+        $result = $this->em->getConnection()->executeQuery(
+            'SELECT raw FROM import_row WHERE import_id = :import AND tenant_id = :tenant',
+            ['import' => $import->id(), 'tenant' => $import->tenantId()->toString()],
+        );
+        foreach ($result->iterateColumn() as $raw) {
+            $cells = json_decode(\is_string($raw) ? $raw : '[]', true);
+            if (!\is_array($cells)) {
+                continue;
+            }
+            foreach ($columns as $column) {
+                $cell = $cells[$column] ?? '';
+                $text = Text::clean(\is_string($cell) ? $cell : '');
+                if ('' !== $text) {
+                    $counts[$column][$text] = ($counts[$column][$text] ?? 0) + 1;
+                }
+            }
+        }
+
+        $values = [];
+        foreach ($counts as $column => $texts) {
+            uksort($texts, static fn (string $a, string $b): int => [$texts[$b], $a] <=> [$texts[$a], $b]);
+            $values[$column] = ['values' => \array_slice($texts, 0, $limit, true), 'distinct' => \count($texts)];
+        }
+
+        return $values;
     }
 
     /**

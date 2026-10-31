@@ -116,8 +116,19 @@ catalogue:
     linked: S odkazy
 
 format:
+  date: 'j. n. Y'
   datetime: 'j. n. Y H:i'
 party:
+  header:
+    import: Importovat
+    export: Exportovat
+  imported_by:
+    create: 'Kontakty, které vytvořil import souboru {name}.'
+    update: 'Kontakty, které aktualizoval import souboru {name}.'
+    restore: 'Kontakty, které obnovil z archivu import souboru {name}.'
+    archive: 'Kontakty, které archivoval import souboru {name}.'
+    changed_after_import: 'Kontakty z importu souboru {name}, které někdo po importu změnil.'
+    summary: Souhrn importu
   title: Adresář
   new: Nový kontakt
   edit: Upravit
@@ -315,6 +326,249 @@ party:
     save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
 import:
+  number: '{value, number}'
+  new: Nový import
+  steps:
+    label: Kroky importu
+    upload: Nahrání
+    columns: Sloupce
+    check: Kontrola
+    run: Import
+    summary: Souhrn
+  state:
+    uploaded: Nahráno
+    reading: Čte se
+    mapping: Čeká na sloupce
+    checking: Kontroluje se
+    checked: Zkontrolováno
+    queued: Ve frontě
+    running: Importuje se
+    finished: Hotovo
+    finished_with_errors: Hotovo s chybami
+    stopped: Zastaveno
+    failed: Nedokončeno
+    cancelled: Zrušeno
+    undoing: Vrací se
+    undone: Vráceno
+  mode:
+    add_missing:
+      label: Přidat jen nové
+      text: Přidají se jen nové záznamy. Záznamy, které už existují, zůstanou beze změny.
+    update:
+      label: Aktualizovat existující
+      text: Nalezené záznamy dostanou hodnoty ze souboru a nové se přidají.
+    full_replace:
+      label: Úplně nahradit
+      text: Záznamy budou odpovídat souboru. Nalezené se aktualizují a nové se přidají.
+      warning: Záznamy, které v souboru nejsou, se archivují.
+  history:
+    title: Importy
+    empty:
+      title: Zatím žádný import
+      text: Až nahrajete první soubor, uvidíte tu, jak import dopadl.
+    column:
+      file: Soubor
+      when: Kdy
+      who: Kdo
+      target: Záznamy
+      mode: Režim
+      created: Nové
+      updated: Aktualizované
+      failed: Chyby
+      state: Stav
+  upload:
+    title: Nový import
+    card: Soubor k importu
+    target: Druh záznamů
+    target_choose: Vyberte druh záznamů
+    target_missing: Vyberte, jaké záznamy chcete importovat.
+    file: Soubor
+    file_help: CSV nebo XLSX do 50 MB a 200 000 řádků. Sloupce přiřadíte k polím v dalším kroku.
+    profile: Importní profil
+    profile_none: Bez profilu
+    profile_help: Profil použije sloupce a volby, které se osvědčily při dřívějším importu.
+    submit: Nahrát soubor
+    missing: Vyberte soubor, který chcete nahrát.
+    too_large: Soubor je větší než 50 MB. Rozdělte ho na menší části.
+  cancel:
+    button: Zrušit import
+    confirm: Opravdu chcete import zrušit? Nic se nezapíše.
+  file:
+    title: Soubor
+    change: Změnit
+    change_help: Soubor se načte znovu s novým nastavením a sloupce se navrhnou znovu.
+    format: Formát
+    encoding: Kódování
+    delimiter: Oddělovač
+    sheet: List
+    header_row: Řádek se záhlavím
+    rows: Řádků s daty
+    reread: Načíst znovu
+    keep: Ponechat
+  encoding:
+    utf-8: UTF-8
+    utf-8-bom: UTF-8 s BOM
+    windows-1250: Windows-1250
+    iso-8859-2: ISO-8859-2
+    windows-1252: Windows-1252
+  delimiter:
+    semicolon: Středník
+    comma: Čárka
+    tab: Tabulátor
+    pipe: Svislá čára
+    other: Jiný znak
+  mapping:
+    title: Sloupce
+    intro: U každého sloupce vyberte pole, do kterého se má importovat. Sloupce, které nepotřebujete, nechte neimportované.
+    summary: 'Importuje se {mapped, number} z {total, number}'
+    do_not_import: Neimportovat
+    required_field: '{field} (povinné)'
+    missing: 'Kontrola začne, až přiřadíte sloupec {count, plural, one {k povinnému poli} other {k povinným polím}}'
+    submit: Zkontrolovat
+    back_to_check: Zpět na kontrolu
+  reason:
+    remembered: Zapamatováno
+    preset: Známý zdroj
+    same_name: Stejný název
+    similar_name: Podobný název
+  source_name:
+    idoklad_contacts: iDoklad
+  group:
+    party:
+      general: Kontakt
+      billing: Fakturační adresa
+      delivery: Dodací adresa
+      bank: Bankovní účet
+      contact: Kontaktní osoba
+  value:
+    party:
+      kind:
+        person: Osoba
+        sole_trader: Podnikatel
+        company: Firma
+      payment_method:
+        bank_transfer: Převodem
+        cash: Hotově
+        card: Kartou
+  values:
+    title: Hodnoty
+    intro: Tyto hodnoty ze souboru neznáme. Vyberte, co znamenají. Řádky s nepřiřazenou hodnotou se neimportují a najdete je mezi chybami.
+    rows: '{count, plural, one {# řádek} few {# řádky} other {# řádků}}'
+    unassigned: Nepřiřazeno
+    more: 'Zobrazujeme {shown, number} nejčastějších hodnot z {total, number}.'
+  options:
+    title: Volby
+    mode: Co se má stát se záznamy
+    match_key: Podle čeho se záznamy najdou
+    match_key_auto: Automaticky
+    match_key_help: Záznam se stejnou hodnotou se aktualizuje nebo přeskočí. Bez klíče se každý řádek přidá jako nový.
+    blank_cells: Prázdné buňky
+    blank_cells_help: Platí pro záznamy, které se aktualizují.
+    scope: Co se může archivovat
+    scope_help: Archivované záznamy jde kdykoli obnovit.
+    date_order: Pořadí v datu
+    date_order_help: Data v souboru jde přečíst více způsoby. Vyberte, jak jsou zapsaná.
+    decimal: Oddělovač desetinných míst
+    decimal_help: Čísla v souboru jde přečíst více způsoby. Vyberte, jak jsou zapsaná.
+    profile: Importní profil
+    profile_kept: Sloupce a volby se po úspěšném importu uloží do tohoto profilu.
+    profile_name: Uložit jako profil
+    profile_name_help: Nepovinné. Pod tímto názvem import příště zopakujete se stejnými sloupci a volbami.
+  blank_cells:
+    keep: Nechat hodnotu beze změny
+    clear: Smazat hodnotu
+  scope:
+    profile: Jen záznamy z dřívějších importů tohoto profilu
+    all: Všechny záznamy
+  date_order:
+    day_month_year: Nejdřív den (31. 12. 2026)
+    month_day_year: Nejdřív měsíc (12/31/2026)
+    year_month_day: Nejdřív rok (2026-12-31)
+  decimal:
+    comma: Čárka (1 234,50)
+    point: Tečka (1,234.50)
+  check:
+    unidentified: '{count, plural, one {# řádek má klíč, který} few {# řádky mají klíč, který} other {# řádků má klíč, který}} neumíme přečíst. Záznamy k archivaci počítáme bez {count, plural, one {něj} other {nich}}.'
+    intro: 'Kontrola prošla celý soubor a nic nezapsala. Takhle dopadne import v režimu {mode}.'
+    kpi:
+      create: Vytvoří se
+      update: Aktualizuje se
+      skip: Přeskočí se
+      error: S chybou
+      error_badge: Neimportuje se
+    restored_note: '{count, plural, one {z toho # obnovený z archivu} few {z toho # obnovené z archivu} other {z toho # obnovených z archivu}}'
+    preview: Náhled řádků
+    preview_more: 'Zobrazujeme prvních {count, number} řádků.'
+    tab:
+      create: Nové
+      update: Aktualizované
+      restore: Obnovené
+      skip: Přeskočené
+      error: S chybou
+    row: 'Řádek {number, number}'
+    column_row: Řádek
+    download_errors: Stáhnout chyby
+    archive:
+      title: '{count, plural, one {Archivuje se # záznam} few {Archivují se # záznamy} other {Archivuje se # záznamů}}'
+      text: Tyto záznamy v souboru nejsou. Archivované záznamy zůstanou zachované a jde je obnovit.
+      confirm: 'Pro potvrzení napište {count}'
+    run: Spustit import
+    edit: Upravit mapování
+  progress:
+    title: Průběh
+    reading: Čteme soubor
+    checking: Kontrolujeme řádky
+    queued: Import čeká ve frontě
+    running: Importujeme řádky
+    undoing: Vracíme import
+    done: Hotovo
+    rows: '{done, number} z {total, number} řádků'
+    queued_text: Do stejných záznamů teď importuje jiný import. Tento začne, jakmile ten skončí.
+    leave: Můžete pokračovat jinou prací. Až import skončí, ukážeme vám upozornění.
+    finished: Hotovo. Otevíráme další krok.
+  summary:
+    outcome:
+      finished: Import je hotový.
+      finished_with_errors: '{count, plural, one {Import je hotový. # řádek se nepodařilo importovat.} few {Import je hotový. # řádky se nepodařilo importovat.} other {Import je hotový. # řádků se nepodařilo importovat.}}'
+      stopped: Import se zastavil, protože víc než polovina řádků měla chybu. Zkontrolujte přiřazení sloupců a soubor nahrajte znovu.
+      failed: Import se nepodařilo dokončit.
+      cancelled: Import je zrušený. Nic se nezapsalo.
+      undone: Import je vrácený.
+    failure_unreadable: Soubor se nepodařilo přečíst. Uložte ho jako CSV v kódování UTF-8 nebo jako XLSX a nahrajte ho znovu.
+    kpi:
+      created: Vytvořeno
+      updated: Aktualizováno
+      archived: Archivováno
+      failed: Chyby
+      reverted: Vráceno
+      changed: Změněno po importu
+    details: Podrobnosti
+    target: Záznamy
+    mode: Režim
+    actor: Kdo importoval
+    started: Začátek
+    finished: Konec
+    skipped: Přeskočeno
+    errors:
+      title: Řádky s chybou
+      text: '{count, plural, one {# řádek se neimportoval.} few {# řádky se neimportovaly.} other {# řádků se neimportovalo.}} Stáhněte si je i s popisem chyby, opravte je a nahrajte znovu.'
+      download: Stáhnout chyby
+    undo:
+      title: Vrácení importu
+      text: Vytvořené záznamy se archivují, aktualizované dostanou původní hodnoty a archivované se obnoví. Záznamy, které někdo mezitím změnil, zůstanou beze změny.
+      deadline: 'Import jde vrátit do {date}.'
+      button: Vrátit import
+      confirm: Opravdu chcete import vrátit?
+  notice:
+    finished: 'Import souboru {name} je hotový.'
+    finished_with_errors: 'Import souboru {name} skončil s chybami.'
+    stopped: 'Import souboru {name} se zastavil.'
+    failed: 'Import souboru {name} se nepodařilo dokončit.'
+    cancelled: 'Import souboru {name} je zrušený.'
+    undone: 'Import souboru {name} je vrácený.'
+    link: Zobrazit souhrn
+  flash:
+    cancelled: Import je zrušený.
   source:
     rejected:
       too_large: 'Soubor je větší než {limit} MB.'
@@ -355,14 +609,12 @@ import:
     unknown_profile: 'Tento importní profil pro tento druh záznamů neexistuje.'
     profile_required: 'Pojmenujte importní profil, aby úplné nahrazení vědělo, které záznamy přinesly dřívější importy.'
     not_checked: 'Před spuštěním importu spusťte kontrolu.'
-    archive_not_confirmed: 'Napište {count} a potvrďte, že se {count, plural, one {archivuje # záznam} few {archivují # záznamy} other {archivuje # záznamů}}.'
+    archive_not_confirmed: 'Napište {count, number, ::group-off} a potvrďte, že se {count, plural, one {archivuje # záznam} few {archivují # záznamy} other {archivuje # záznamů}}.'
     undo_state: 'Vrátit jde jen dokončený nebo zastavený import.'
     undo_expired: 'Import šlo vrátit 30 dní po dokončení. Ta doba už uplynula.'
     target_busy: 'Právě běží jiný import těchto záznamů. Tento import vraťte, až ten druhý skončí.'
     not_cancellable: 'Tento import už nejde zrušit.'
     rows_purged: 'Řádky tohoto importu se po 30 dnech smazaly.'
-  check:
-    unidentified: '{count, plural, one {# řádek má klíč, který} few {# řádky mají klíč, který} other {# řádků má klíč, který}} neumíme přečíst. Záznamy k archivaci počítáme bez {count, plural, one {něj} other {nich}}.'
   error_file:
     column: 'Chyba'
     in_column: 'Sloupec {column}. {message}'

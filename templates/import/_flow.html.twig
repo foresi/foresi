@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The frame of every step of an import: the step indicator, the messages of the last action and the screen.
+    Variables: stepper ({steps, current}), crumbs; screens fill the block "screen".
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% block content %}
+    <div class="grid min-w-0 max-w-5xl gap-4 [&>*]:min-w-0">
+        <twig:Ui:Stepper :steps="stepper.steps" :current="stepper.current" :label="'import.steps.label'|trans" class="mb-1" />
+        {% for message in app.flashes('error') %}
+            <twig:Ui:Alert tone="error">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+        {% for message in app.flashes('success') %}
+            <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+        {% block screen %}{% endblock %}
+    </div>
+{% endblock %}

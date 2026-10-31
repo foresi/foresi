@@ -1,0 +1,48 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'import/_flow.html.twig' %}
+
+{% block title %}{{ import.originalName }}{% endblock %}
+
+{% block actions %}
+    {% if screen.listUrl %}<twig:Ui:Button icon="users" :href="screen.listUrl">{{ screen.listLabel }}</twig:Ui:Button>{% endif %}
+    <twig:Ui:Button icon="history" :href="path('app_imports')">{{ 'import.history.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block screen %}
+    <twig:Ui:Alert :tone="screen.tone" data-import-outcome>{{ screen.message }}</twig:Ui:Alert>
+
+    {% if screen.kpis is not empty %}
+        <twig:Ui:KpiStrip :items="screen.kpis" />
+    {% endif %}
+
+    {% set aside = screen.hasErrors or screen.undoable or screen.undoExpired %}
+    <div class="grid gap-4{{ aside ? ' lg:grid-cols-2 lg:items-start' : '' }}">
+        <twig:Ui:Card :title="'import.summary.details'|trans" icon="receipt-text">
+            <twig:Ui:DescriptionList :items="screen.details" />
+        </twig:Ui:Card>
+
+        {% if aside %}<div class="grid gap-4">
+            {% if screen.hasErrors %}
+                <twig:Ui:Card :title="'import.summary.errors.title'|trans" icon="triangle-alert">
+                    <p class="mb-3 mt-0 text-text">{{ 'import.summary.errors.text'|trans({count: import.failed}) }}</p>
+                    <twig:Ui:Button icon="download" :href="path('app_import_errors', {id: import.id})" data-turbo="false">{{ 'import.summary.errors.download'|trans }}</twig:Ui:Button>
+                </twig:Ui:Card>
+            {% endif %}
+
+            {% if screen.undoable %}
+                <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">
+                    <p class="mb-1 mt-0 text-text">{{ 'import.summary.undo.text'|trans }}</p>
+                    <p class="mb-3 mt-0 text-[13px] text-muted">{{ 'import.summary.undo.deadline'|trans({date: screen.undoDeadline}) }}</p>
+                    <form method="post" action="{{ path('app_import_undo', {id: import.id}) }}" data-turbo-confirm="{{ 'import.summary.undo.confirm'|trans }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
+                        <twig:Ui:Button type="submit" variant="danger" icon="archive-restore">{{ 'import.summary.undo.button'|trans }}</twig:Ui:Button>
+                    </form>
+                </twig:Ui:Card>
+            {% elseif screen.undoExpired %}
+                <twig:Ui:Card :title="'import.summary.undo.title'|trans" icon="archive-restore">
+                    <p class="m-0 text-muted">{{ 'import.refused.undo_expired'|trans }}</p>
+                </twig:Ui:Card>
+            {% endif %}
+        </div>{% endif %}
+    </div>
+{% endblock %}
