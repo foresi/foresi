@@ -21,7 +21,7 @@
         {% endif %}
         <div class="flex min-w-0 items-center gap-2.5">
             <h1 class="m-0 min-w-0 max-w-[60ch] truncate text-xl font-semibold tracking-tight text-ink" title="{{ title }}">{{ title }}</h1>
-            {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
+            {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone" class="shrink-0">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
         </div>
     </div>
     <div data-page-actions class="grid w-full grid-cols-2 gap-2 [&>:last-child:nth-child(odd)]:col-span-2 max-sm:[&_a]:h-10 max-sm:[&_a]:w-full max-sm:[&_button]:h-10 max-sm:[&_button]:w-full sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">{% block content %}{% endblock %}</div>
