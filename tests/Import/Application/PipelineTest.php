@@ -13,12 +13,14 @@ use App\Audit\Domain\AuditEntry;
 use App\Import\Application\CancelImport;
 use App\Import\Application\CheckImport;
 use App\Import\Application\ConfigureImport;
+use App\Import\Application\ImportErrorFile;
 use App\Import\Application\ImportRefused;
 use App\Import\Application\Imports;
 use App\Import\Application\Message\CheckImportChunk;
 use App\Import\Application\Message\ReadImportFile;
 use App\Import\Application\Message\RunImportChunk;
 use App\Import\Application\RunImport;
+use App\Import\Application\Source\SourceFormat;
 use App\Import\Application\StartImport;
 use App\Import\Application\Target\TargetRegistry;
 use App\Import\Application\UndoImport;
@@ -41,6 +43,8 @@ use App\Tests\Import\Support\FakeTarget;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use OpenSpout\Reader\CSV\Options as CsvReaderOptions;
+use OpenSpout\Reader\CSV\Reader as CsvReader;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Filesystem\Filesystem;
@@ -602,6 +606,35 @@ final class PipelineTest extends KernelTestCase
 
         $this->expectExceptionObject(new ImportRefused('import.refused.busy'));
         $this->container(UndoImport::class)->undo($done);
+    }
+
+    public function testTheErrorFileHoldsTheFailedRowsWithTheirMessages(): void
+    {
+        $id = $this->upload("Code;Name;Email\nC1;Name 1;\n=1+1;Name 2;broken\nC3;INVALID;\n");
+        $this->configure($id, ImportMode::Update);
+        $this->check($id);
+        $path = $this->dir.'/errors.csv';
+
+        $format = $this->container(ImportErrorFile::class)->write($id, 'en', $path);
+
+        self::assertSame(SourceFormat::Csv, $format);
+        self::assertStringStartsWith("\xEF\xBB\xBF", (string) file_get_contents($path));
+        $options = new CsvReaderOptions();
+        $options->FIELD_DELIMITER = ';';
+        $reader = new CsvReader($options);
+        $reader->open($path);
+        $rows = [];
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $rows[] = $row->toArray();
+            }
+        }
+        $reader->close();
+        self::assertSame([
+            ['Code', 'Name', 'Email', 'Error'],
+            ["'=1+1", 'Name 2', 'broken', '"broken" is not a valid e-mail address. (column Email)'],
+            ['C3', 'INVALID', '', '"INVALID" is not a value we know. Map it to one of the allowed values. (column Name)'],
+        ], $rows);
     }
 
     public function testCancellingACheckedImportWritesNothing(): void
