@@ -36,8 +36,9 @@ final readonly class StartImport
     }
 
     /**
-     * @param string   $tmpPath   the uploaded file; it is copied, the caller removes it
-     * @param int|null $profileId a profile of the target to rerun, with its mapping and options
+     * @param string   $tmpPath      the uploaded file; it is copied, the caller removes it
+     * @param string   $originalName as the client sent it; it is normalised (ImportFileName)
+     * @param int|null $profileId    a profile of the target to rerun, with its mapping and options
      *
      * @return int the id of the new import
      */
@@ -52,14 +53,22 @@ final readonly class StartImport
             }
         }
 
+        $originalName = ImportFileName::normalise($originalName);
         // The reader detects the format from the content; the name only gives a first guess.
         $format = 'xlsx' === strtolower(pathinfo($originalName, \PATHINFO_EXTENSION)) ? SourceFormat::Xlsx : SourceFormat::Csv;
         $fileKey = $this->files->store($this->tenants->current(), $tmpPath, $originalName);
-        $import = new Import($target->key(), $fileKey, $originalName, new SourceSettings($format)->toArray(), $actorUserId, \DateTimeImmutable::createFromInterface($this->clock->now()));
-        if ($profile instanceof ImportProfile) {
-            $import->useMapping($profile->mapping(), $profile->options(), $profile);
+        try {
+            $import = new Import($target->key(), $fileKey, $originalName, new SourceSettings($format)->toArray(), $actorUserId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+            if ($profile instanceof ImportProfile) {
+                $import->useMapping($profile->mapping(), $profile->options(), $profile);
+            }
+            $this->imports->add($import);
+        } catch (\Throwable $failure) {
+            // No import refers to the stored file, so the purge would never remove it.
+            $this->files->delete($fileKey);
+
+            throw $failure;
         }
-        $this->imports->add($import);
         $id = $import->id() ?? throw new \LogicException('A stored import has an id.');
         $this->jobs->dispatch(new ReadImportFile($id));
 

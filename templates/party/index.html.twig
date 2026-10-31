@@ -13,6 +13,10 @@
             <input type="hidden" name="scope" value="view">
             <input type="hidden" name="view" value="{{ exportQuery.view }}">
             <input type="hidden" name="q" value="{{ exportQuery.q }}">
+            {% if exportQuery.import is defined %}
+                <input type="hidden" name="import" value="{{ exportQuery.import }}">
+                <input type="hidden" name="outcome" value="{{ exportQuery.outcome }}">
+            {% endif %}
             <twig:Ui:Button type="submit" icon="download">{{ 'party.header.export'|trans }}</twig:Ui:Button>
         </form>
         <twig:Ui:Button variant="primary" icon="plus" :href="path('app_contact_new')">{{ 'party.new'|trans }}</twig:Ui:Button>

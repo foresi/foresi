@@ -18,8 +18,10 @@ export default class extends Controller {
     connect() {
         this.visibilityChanged = this.visibilityChanged.bind(this);
         this.loaded = this.loaded.bind(this);
+        this.missing = this.missing.bind(this);
         document.addEventListener('visibilitychange', this.visibilityChanged);
         this.element.addEventListener('turbo:frame-load', this.loaded);
+        this.element.addEventListener('turbo:frame-missing', this.missing);
         this.schedule();
     }
 
@@ -27,6 +29,14 @@ export default class extends Controller {
         clearTimeout(this.timer);
         document.removeEventListener('visibilitychange', this.visibilityChanged);
         this.element.removeEventListener('turbo:frame-load', this.loaded);
+        this.element.removeEventListener('turbo:frame-missing', this.missing);
+    }
+
+    // The answer was not the frame (the session ended and the sign-in page came back): show that page.
+    missing(event) {
+        clearTimeout(this.timer);
+        event.preventDefault();
+        event.detail.visit(event.detail.response);
     }
 
     busy() {

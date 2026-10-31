@@ -116,7 +116,7 @@ catalogue:
     linked: S odkazy
 
 format:
-  date: 'j. n. Y'
+  date: "j.\u00A0n.\u00A0Y"
   datetime: 'j. n. Y H:i'
 party:
   header:
@@ -389,6 +389,7 @@ import:
     profile_help: Profil použije sloupce a volby, které se osvědčily při dřívějším importu.
     submit: Nahrát soubor
     missing: Vyberte soubor, který chcete nahrát.
+    server_limit: 'Soubor je větší, než server dovolí přijmout ({limit}). Zmenšete ho, nebo požádejte správce serveru o vyšší limit.'
     too_large: Soubor je větší než 50 MB. Rozdělte ho na menší části.
   cancel:
     button: Zrušit import

@@ -30,6 +30,7 @@ use App\Import\Domain\ImportState;
 use App\Import\Domain\Mapping;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\NormalisationOptions;
+use App\Import\Domain\Preset\SourcePreset;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowError;
 use App\Import\Domain\RowOutcome;
@@ -503,7 +504,7 @@ final readonly class ImportScreens
         }
         if (MatchReason::Preset === $proposal->reason) {
             $preset = $this->presets->find($presetKey);
-            $label = $preset instanceof \App\Import\Domain\Preset\SourcePreset ? $this->trans('import.source_name.'.$preset->key()) : $this->trans('import.reason.preset');
+            $label = $preset instanceof SourcePreset ? $this->trans('import.source_name.'.$preset->key()) : $this->trans('import.reason.preset');
 
             return ['label' => $label, 'tone' => 'green'];
         }

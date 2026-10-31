@@ -35,6 +35,7 @@ use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,7 +92,7 @@ final class PartyController extends AbstractController
             default => null,
         };
 
-        [$importedBy, $import] = $this->importedBy($request);
+        [$importedBy, $import] = $this->importedBy($request->query);
         $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->parties->counts();
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
@@ -110,7 +111,7 @@ final class PartyController extends AbstractController
             'baseUrl' => $this->generateUrl('app_contacts', $query),
             'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
             'importedBy' => $importedBy instanceof ImportedBy && $import instanceof Import ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $import->originalName()]), 'href' => $this->generateUrl('app_import_show', ['id' => $importedBy->importId])] : null,
-            'exportQuery' => ['view' => $view, 'q' => $text],
+            'exportQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
         ]);
     }
 
@@ -215,7 +216,9 @@ final class PartyController extends AbstractController
                 'suppliers' => PartyRole::Supplier,
                 default => null,
             };
-            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, self::MAX_EXPORT);
+            // A list narrowed to an import exports exactly what it shows.
+            [$importedBy] = $this->importedBy($request->request);
+            $ids = $this->parties->matchingIds(trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH)), $role, 'archived' === $view, self::MAX_EXPORT, $importedBy);
         }
         if ([] === $ids) {
             return $this->redirectToRoute('app_contacts');
@@ -301,12 +304,14 @@ final class PartyController extends AbstractController
     /**
      * The import the list is narrowed to, when the link of an import summary opened it.
      *
+     * @param InputBag<string> $input the query of the list, or the form of its export
+     *
      * @return array{?ImportedBy, ?Import}
      */
-    private function importedBy(Request $request): array
+    private function importedBy(InputBag $input): array
     {
-        $id = $request->query->getString('import');
-        $outcome = $request->query->getString('outcome', 'create');
+        $id = $input->getString('import');
+        $outcome = $input->getString('outcome', 'create');
         if (!ctype_digit($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
             return [null, null];
         }

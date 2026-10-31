@@ -389,6 +389,7 @@ import:
     profile_help: A profile uses the columns and options that worked in an earlier import.
     submit: Upload file
     missing: Choose the file you want to upload.
+    server_limit: 'The file is larger than the server accepts ({limit}). Make it smaller, or ask the server administrator for a higher limit.'
     too_large: The file is larger than 50 MB. Split it into smaller parts.
   cancel:
     button: Cancel import

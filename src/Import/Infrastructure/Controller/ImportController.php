@@ -96,6 +96,12 @@ final class ImportController extends AbstractController
     #[Route('/imports', name: 'app_import_upload', methods: ['POST'])]
     public function store(Request $request): Response
     {
+        // A body over post_max_size reaches the controller empty: no token, no file, nothing to act on.
+        if (0 === $request->request->count() && 0 === $request->files->count() && $request->server->getInt('CONTENT_LENGTH') > 0) {
+            $this->requireTenant();
+
+            return $this->upload($this->chosenTarget($request->query->getString('target')), $this->serverLimit(), null, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
         $this->checkToken($request);
         $target = $this->chosenTarget($request->request->getString('target'));
         $file = $request->files->get('file');
@@ -106,9 +112,10 @@ final class ImportController extends AbstractController
         $profileId = ctype_digit($profile) ? (int) $profile : null;
 
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $error = $file instanceof UploadedFile && \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true) ? 'import.upload.too_large' : 'import.upload.missing';
+            // The server's own limit (upload_max_filesize) stopped the file, which may be lower than ours.
+            $error = $file instanceof UploadedFile && \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true) ? $this->serverLimit() : $this->translator->trans('import.upload.missing');
 
-            return $this->upload($target, $this->translator->trans($error), $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->upload($target, $error, $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ($file->getSize() > self::MAX_UPLOAD_BYTES) {
             return $this->upload($target, $this->translator->trans('import.upload.too_large'), $profileId, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -370,6 +377,28 @@ final class ImportController extends AbstractController
     }
 
     /** Null when none is named and there is more than one to choose from. */
+    /** The message for a file the server's PHP limits refused, naming the lower of them. */
+    private function serverLimit(): string
+    {
+        $limits = array_filter([(string) \ini_get('upload_max_filesize'), (string) \ini_get('post_max_size')], static fn (string $limit): bool => '' !== $limit && '0' !== $limit);
+        usort($limits, static fn (string $a, string $b): int => self::bytes($a) <=> self::bytes($b));
+
+        return $this->translator->trans('import.upload.server_limit', ['limit' => $limits[0] ?? '?']);
+    }
+
+    /** Bytes of a php.ini size such as "8M". */
+    private static function bytes(string $size): int
+    {
+        $number = (int) $size;
+
+        return match (strtoupper(substr(trim($size), -1))) {
+            'G' => $number * 1_073_741_824,
+            'M' => $number * 1_048_576,
+            'K' => $number * 1024,
+            default => $number,
+        };
+    }
+
     private function chosenTarget(string $key): ?ImportTarget
     {
         if ('' === $key) {

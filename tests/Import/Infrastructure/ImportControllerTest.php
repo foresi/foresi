@@ -29,6 +29,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\FileFormField;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -200,6 +201,10 @@ final class ImportControllerTest extends WebTestCase
         self::assertResponseRedirects('/imports/'.$id, 303);
         $this->worker->run();
         self::assertSame(1, $this->fresh($id)->archived());
+
+        // The summary's archive link lists the record the full replace archived, and nothing else.
+        $crawler = $this->client->request('GET', '/contacts?import='.$id.'&outcome=archive');
+        self::assertSame(['Example Old Customer'], $crawler->filter('main tbody tr td:nth-child(2)')->each(static fn (Crawler $cell): string => trim($cell->text())));
     }
 
     public function testRunningTwiceStartsTheImportOnce(): void
@@ -340,6 +345,11 @@ final class ImportControllerTest extends WebTestCase
         self::assertStringContainsString('The import is undone.', $crawler->filter('[data-import-outcome]')->text());
         $kpis = $crawler->filter('[data-kpi]')->each(static fn (Crawler $kpi): string => (string) preg_replace('/\s+/', ' ', trim($kpi->text())));
         self::assertSame(['Undone 3', 'Changed after the import 0'], $kpis);
+
+        // A second undo is refused and changes nothing.
+        $this->client->request('POST', '/imports/'.$id.'/undo', ['_token' => $this->token()]);
+        self::assertResponseRedirects('/imports/'.$id, 303);
+        self::assertSame(ImportState::Undone, $this->fresh($id)->state());
     }
 
     public function testCancellingEndsTheImportWithoutANotice(): void
@@ -401,10 +411,70 @@ final class ImportControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/imports/new?target=party');
         self::assertStringContainsString('Upload', $crawler->filter('[aria-current="step"]')->text());
 
-        $this->client->request('POST', '/imports', ['_token' => $crawler->filter('form[action="/imports"] input[name="_token"]')->attr('value'), 'target' => 'party']);
+        $this->client->request('POST', '/imports', ['_token' => $crawler->filter('form[action^="/imports"][enctype] input[name="_token"]')->attr('value'), 'target' => 'party']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#file-error', 'Choose the file you want to upload.');
+    }
+
+    public function testALongFileNameIsCutToTheColumnAndKeepsItsExtension(): void
+    {
+        $path = $this->dir.'/upload.csv';
+        file_put_contents($path, (string) file_get_contents(self::FIXTURE));
+        $name = str_repeat('Příliš žluťoučký kůň ', 15).'.csv';
+        self::assertGreaterThan(300, mb_strlen($name));
+
+        $this->client->request('POST', '/imports?target=party', ['_token' => $this->token(), 'target' => 'party'], ['file' => new UploadedFile($path, $name, 'text/csv', null, true)]);
+
+        self::assertResponseStatusCodeSame(303);
+        $id = (int) substr((string) $this->client->getResponse()->headers->get('Location'), \strlen('/imports/'));
+        $stored = $this->fresh($id)->originalName();
+        self::assertSame(255, mb_strlen($stored));
+        self::assertStringEndsWith('.csv', $stored);
+    }
+
+    public function testAFileTheServerLimitStoppedIsReportedAsTheServerLimit(): void
+    {
+        $token = $this->token();
+        $this->client->request('POST', '/imports?target=party', ['_token' => $token, 'target' => 'party'], ['file' => new UploadedFile(self::FIXTURE, 'big.csv', 'text/csv', \UPLOAD_ERR_INI_SIZE, true)]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#file-error', 'larger than the server accepts');
+        self::assertSelectorTextNotContains('#file-error', '50 MB');
+    }
+
+    public function testABodyOverThePostLimitIsReportedAsTheServerLimit(): void
+    {
+        // PHP drops a body over post_max_size: no fields, no files, only the length.
+        $this->client->request('POST', '/imports?target=party', [], [], ['CONTENT_LENGTH' => '104857600', 'CONTENT_TYPE' => 'multipart/form-data; boundary=x']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#file-error', 'larger than the server accepts');
+        self::assertSelectorExists('input[type="hidden"][name="target"][value="party"]');
+    }
+
+    public function testTheHeaderExportOfAListNarrowedToAnImportExportsExactlyThatList(): void
+    {
+        $this->party('Example Seeded Contact');
+        $id = $this->finished();
+
+        $crawler = $this->client->request('GET', '/contacts?import='.$id.'&outcome=create');
+        $this->client->submit($crawler->filter('[data-page-actions] form')->form());
+
+        $csv = $this->client->getInternalResponse()->getContent();
+        foreach (['Example Company s.r.o.', 'Example Trade a.s.', 'Jan Example'] as $name) {
+            self::assertStringContainsString($name, $csv);
+        }
+        self::assertStringNotContainsString('Example Seeded Contact', $csv);
+    }
+
+    public function testDownloadsAreNeverSniffed(): void
+    {
+        $id = $this->finished();
+
+        $this->client->request('GET', '/imports/'.$id.'/errors');
+
+        self::assertSame('nosniff', $this->client->getResponse()->headers->get('X-Content-Type-Options'));
     }
 
     public function testAnUnknownTargetIsNotFound(): void
@@ -508,7 +578,7 @@ final class ImportControllerTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', '/imports/new?target=party');
 
-        return (string) $crawler->filter('form[action="/imports"] input[name="_token"]')->attr('value');
+        return (string) $crawler->filter('form[action^="/imports"][enctype] input[name="_token"]')->attr('value');
     }
 
     private function row(Crawler $crawler, string $header): Crawler
