@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish, such as v0.4.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # The notes are the changelog section of this version, read as it was at the tag.
+      - name: Read the release notes
+        run: |
+          git show "$TAG:CHANGELOG.md" | awk -v version="${TAG#v}" '
+            index($0, "## [" version "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no section for $TAG."; exit 1; }
+
+      - name: Publish the release
+        run: gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md

@@ -37,3 +37,11 @@ Requirements are listed in the [README](README.md).
 ## Reporting security issues
 
 Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
+
+## Releases
+
+A maintainer releases from `main`:
+
+1. Move the `Unreleased` changes in [CHANGELOG.md](CHANGELOG.md) to a section for the new version, through a pull request.
+2. Create an annotated tag whose name and message are both the version, such as `git tag -a v1.2.3 -m v1.2.3`.
+3. Push the tag. The Release workflow publishes a GitHub release with that changelog section as its notes.
