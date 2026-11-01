@@ -15,7 +15,7 @@ namespace App\Party\Application;
 final readonly class DuplicateMatch
 {
     public function __construct(
-        public int $partyId,
+        public string $partyId,
         public string $displayName,
         public bool $archived,
         public bool $sameRegistrationNumber,

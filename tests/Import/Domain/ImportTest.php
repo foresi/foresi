@@ -22,6 +22,7 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowError;
 use App\Import\Domain\RowOutcome;
+use App\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -130,7 +131,7 @@ final class ImportTest extends TestCase
         self::assertSame('tenant/file', $import->fileKey());
         self::assertSame('contacts.csv', $import->originalName());
         self::assertSame(self::SETTINGS, $import->sourceSettings());
-        self::assertSame(7, $import->actorUserId());
+        self::assertSame('019a0000-0000-7000-8000-000000000007', $import->actorUserId());
         self::assertSame([], $import->headers());
         self::assertSame([], $import->mapping()->columns);
         self::assertNull($import->profile());
@@ -163,7 +164,7 @@ final class ImportTest extends TestCase
     public function testProgressIsTheLastStateChangeOrChunk(): void
     {
         $created = new \DateTimeImmutable('2026-01-01');
-        $import = new Import('party', 'key', 'contacts.csv', self::SETTINGS, 1, $created);
+        $import = new Import('party', 'key', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000001', $created);
         self::assertSame($created, $import->progressedAt());
 
         $at = new \DateTimeImmutable('2026-10-01 10:00:00');
@@ -453,7 +454,7 @@ final class ImportTest extends TestCase
         self::assertSame($options, $profile->options());
         self::assertSame('sig2', $profile->headerSignature());
         self::assertSame($later, $profile->updatedAt());
-        self::assertNull($profile->id());
+        self::assertTrue(Id::isValid($profile->id()));
     }
 
     public function testARowKeepsItsErrorsAndOutcome(): void
@@ -467,7 +468,7 @@ final class ImportTest extends TestCase
         self::assertFalse($row->processedInUndo());
 
         $row->decide(RowOutcome::Error, [new RowError('email', 'import.error.invalid_email', ['value' => 'x'])]);
-        $row->record(42, ['name' => 'Old name']);
+        $row->record('019a0000-0000-7000-8000-00000000002a', ['name' => 'Old name']);
         $row->markProcessed();
         $row->markUndone();
 
@@ -477,7 +478,7 @@ final class ImportTest extends TestCase
         self::assertSame(['Example Company', '12345687'], $row->raw());
         self::assertSame(RowOutcome::Error, $row->outcome());
         self::assertEquals([new RowError('email', 'import.error.invalid_email', ['value' => 'x'])], $row->errors());
-        self::assertSame(42, $row->recordId());
+        self::assertSame('019a0000-0000-7000-8000-00000000002a', $row->recordId());
         self::assertSame(['name' => 'Old name'], $row->before());
         self::assertTrue($row->processedInRun());
         self::assertTrue($row->processedInUndo());
@@ -491,7 +492,7 @@ final class ImportTest extends TestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, 7, new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 
     private function importIn(ImportState $state): Import

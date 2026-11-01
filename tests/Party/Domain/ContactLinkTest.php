@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Domain;
 
 use App\Party\Domain\ContactLink;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 
@@ -25,7 +26,7 @@ final class ContactLinkTest extends TestCase
         self::assertSame($person, $link->person());
         self::assertSame('Accountant', $link->position());
         self::assertTrue($link->isPrimary());
-        self::assertNull($link->id());
+        self::assertTrue(Id::isValid($link->id()));
     }
 
     public function testIsNotPrimaryByDefaultAndCanChange(): void

@@ -29,7 +29,7 @@ final readonly class CheckImport
     /**
      * @throws ImportRefused
      */
-    public function check(int $importId): void
+    public function check(string $importId): void
     {
         $chunks = $this->imports->transactional(function () use ($importId): int {
             $import = $this->imports->findLocked($importId) ?? throw ImportRefused::notFound();

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Audit\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -21,13 +22,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'audit_entry')]
 #[ORM\Index(name: 'idx_audit_entry_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_audit_entry_entity', columns: ['tenant_id', 'entity_class', 'entity_id'])]
+#[ORM\Index(name: 'idx_audit_entry_root', columns: ['tenant_id', 'root_class', 'root_id'])]
 #[ORM\Index(name: 'idx_audit_entry_correlation', columns: ['tenant_id', 'correlation_id'])]
 class AuditEntry implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -37,6 +38,13 @@ class AuditEntry implements TenantOwned
 
     #[ORM\Column(name: 'entity_id', type: 'string', length: 64)]
     private string $entityId;
+
+    // The entity whose history this entry belongs to: the aggregate root, or the entity itself.
+    #[ORM\Column(name: 'root_class', type: 'string', length: 255, options: ['default' => ''])]
+    private string $rootClass;
+
+    #[ORM\Column(name: 'root_id', type: 'string', length: 64, options: ['default' => ''])]
+    private string $rootId;
 
     /** @var array<string, array<mixed>> */
     #[ORM\Column(type: 'json')]
@@ -51,13 +59,16 @@ class AuditEntry implements TenantOwned
         #[ORM\Column(type: 'string', length: 16, enumType: AuditAction::class)]
         private AuditAction $action,
         array $changes,
-        #[ORM\Column(name: 'user_id', type: 'integer', nullable: true)]
-        private ?int $userId,
+        #[ORM\Column(name: 'user_id', type: 'guid', nullable: true)]
+        private ?string $userId,
         #[ORM\Column(name: 'occurred_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $occurredAt,
         #[ORM\Column(name: 'correlation_id', type: 'string', length: 64, nullable: true)]
         private ?string $correlationId = null,
+        ?string $rootClass = null,
+        ?string $rootId = null,
     ) {
+        $this->id = Id::generate();
         if ('' === $entityClass || '' === $entityId) {
             throw new \DomainException('An audit entry needs the class and id of the entity it describes.');
         }
@@ -66,12 +77,17 @@ class AuditEntry implements TenantOwned
                 throw new \DomainException('Each change is a field name with an [old, new] pair.');
             }
         }
+        if ('' === ($rootClass ?? $entityClass) || '' === ($rootId ?? $entityId)) {
+            throw new \DomainException('An audit entry needs the class and id of its root.');
+        }
         $this->entityClass = $entityClass;
         $this->entityId = $entityId;
+        $this->rootClass = $rootClass ?? $entityClass;
+        $this->rootId = $rootId ?? $entityId;
         $this->changes = $changes;
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
@@ -84,6 +100,16 @@ class AuditEntry implements TenantOwned
     public function entityId(): string
     {
         return $this->entityId;
+    }
+
+    public function rootClass(): string
+    {
+        return $this->rootClass;
+    }
+
+    public function rootId(): string
+    {
+        return $this->rootId;
     }
 
     public function action(): AuditAction
@@ -99,7 +125,7 @@ class AuditEntry implements TenantOwned
         return $this->changes;
     }
 
-    public function userId(): ?int
+    public function userId(): ?string
     {
         return $this->userId;
     }

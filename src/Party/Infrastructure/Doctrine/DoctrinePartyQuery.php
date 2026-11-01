@@ -70,7 +70,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         $pageIds = [];
         foreach ($ids->getSingleColumnResult() as $id) {
-            if (\is_int($id)) {
+            if (\is_string($id)) {
                 $pageIds[] = $id;
             }
         }
@@ -86,7 +86,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
             $query->setParameter($name, $value);
         }
 
-        return array_values(array_filter($query->getSingleColumnResult(), \is_int(...)));
+        return array_values(array_filter($query->getSingleColumnResult(), \is_string(...)));
     }
 
     public function counts(): PartyCounts
@@ -106,7 +106,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         return new PartyCounts((int) $values[0], (int) $values[1], (int) $values[2], (int) $values[3], (int) $values[4]);
     }
 
-    public function find(int $id): ?Party
+    public function find(string $id): ?Party
     {
         return $this->findMany([$id])[0] ?? null;
     }
@@ -165,7 +165,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
                 $conditions[] = 'p.registrationKey LIKE :key ESCAPE \'!\'';
                 $parameters['key'] = '%'.self::like($key).'%';
             }
-            $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
+            $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND e.legalEntity IS NULL AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
             $parameters['email'] = '%'.self::like(mb_strtolower($text)).'%';
             $where .= ' AND ('.implode(' OR ', $conditions).')';
         }
@@ -179,7 +179,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
     }
 
     /**
-     * @param list<int> $ids
+     * @param list<string> $ids
      *
      * @return list<PartyRow>
      */
@@ -191,9 +191,9 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         $emails = [];
         /** @var list<PartyEmail> $all */
-        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) ORDER BY e.id')->setParameter('ids', $ids)->getResult();
+        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('ids', $ids)->getResult();
         foreach ($all as $email) {
-            $partyId = $email->party()->id() ?? 0;
+            $partyId = $email->party()->id();
             if (!isset($emails[$partyId]) || (EmailPurpose::General === $email->purpose() && EmailPurpose::General !== $emails[$partyId]['purpose'])) {
                 $emails[$partyId] = ['address' => $email->address(), 'purpose' => $email->purpose()];
             }
@@ -201,7 +201,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         $byId = [];
         foreach ($this->findMany($ids) as $party) {
-            $id = $party->id() ?? 0;
+            $id = $party->id();
             $byId[$id] = new PartyRow(
                 $id,
                 $party->displayName(),

@@ -38,7 +38,7 @@ final readonly class DoctrineContactLinks implements ContactLinks
 
         // Parties that are not stored yet have no stored links.
         if (!$this->em->contains($link->company()) || !$this->em->contains($link->person())
-            || null === $uow->getSingleIdentifierValue($link->company()) || null === $uow->getSingleIdentifierValue($link->person())) {
+            || $uow->isScheduledForInsert($link->company()) || $uow->isScheduledForInsert($link->person())) {
             return false;
         }
 

@@ -39,7 +39,7 @@ final class PurgeImportsCommandTest extends KernelTestCase
     private string $base;
     private CommandTester $tester;
 
-    /** @var array<string, int> import ids by file key */
+    /** @var array<string, string> import ids by file key */
     private array $importIds = [];
 
     protected function setUp(): void
@@ -98,8 +98,8 @@ final class PurgeImportsCommandTest extends KernelTestCase
         $old = $this->finished($tenant, '2026-10-16 11:59:59', 1);
         $import = $this->imports->find($this->importIds[$old]);
         self::assertNotNull($import);
-        $this->em->persist(new ImportMissingRecord($import, 1, 42));
-        $this->em->persist(new ImportAmbiguousMatch($import, 43));
+        $this->em->persist(new ImportMissingRecord($import, 1, '019a0000-0000-7000-8000-00000000002a'));
+        $this->em->persist(new ImportAmbiguousMatch($import, '019a0000-0000-7000-8000-00000000002b'));
         $this->em->flush();
         $this->em->getConnection()->executeStatement('DELETE FROM import_row');
         $this->files->delete($old);
@@ -309,14 +309,14 @@ final class PurgeImportsCommandTest extends KernelTestCase
         $source = $this->base.'/upload.tmp';
         file_put_contents($source, "name\nExample Company\n");
         $key = $this->files->store($tenant, $source, 'contacts.csv');
-        $import = new Import('party', $key, 'contacts.csv', ['format' => 'csv'], 1, new \DateTimeImmutable($createdAt));
+        $import = new Import('party', $key, 'contacts.csv', ['format' => 'csv'], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable($createdAt));
         $this->imports->add($import);
         $staged = [];
         for ($number = 1; $number <= $rows; ++$number) {
             $staged[] = new ImportRow($import, $number, 0, ['Example Company']);
         }
         $this->imports->addRows($staged);
-        $this->importIds[$key] = (int) $import->id();
+        $this->importIds[$key] = $import->id();
 
         return ['import' => $import, 'key' => $key];
     }

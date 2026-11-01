@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity\Support;
 
+use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
@@ -33,7 +34,7 @@ final readonly class SignedInBrowser
      *
      * @return list<TenantId>
      */
-    public function seed(array $organisations, string $locale = 'en'): array
+    public function seed(array $organisations, string $locale = 'en', Role $role = Role::Owner): array
     {
         $em = $this->em;
         $user = new User(IdentityFixtures::EMAIL, password_hash(IdentityFixtures::PASSWORD, \PASSWORD_BCRYPT, ['cost' => 4]), 'Example Company', $locale);
@@ -42,7 +43,7 @@ final readonly class SignedInBrowser
         $ids = [];
         foreach ($organisations as $name) {
             $id = $this->fixtures->tenant($name);
-            $this->fixtures->join($user, $id);
+            $this->fixtures->join($user, $id, $role);
             $ids[] = $id;
         }
 

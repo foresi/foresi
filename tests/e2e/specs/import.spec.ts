@@ -78,7 +78,7 @@ test.describe('import of contacts', () => {
 
     const download = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Stáhnout chyby' }).click();
-    expect((await download).suggestedFilename()).toMatch(/^import-\d+-errors\.csv$/);
+    expect((await download).suggestedFilename()).toMatch(/^import-[0-9a-f-]{36}-errors\.csv$/);
 
     await page.getByRole('link', { name: 'Importy' }).first().click();
     await expect(page.locator('tbody tr').first()).toContainText('idoklad-contacts.csv');

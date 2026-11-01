@@ -62,7 +62,7 @@ final readonly class ImportHealthCommand
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $cutoff = $now->modify(\sprintf('-%d seconds', self::STALL_SECONDS));
 
-        /** @var list<array{id: int|string, tenant_id: string}> $stalled */
+        /** @var list<array{id: string, tenant_id: string}> $stalled */
         $stalled = $this->connection->fetchAllAssociative(
             'SELECT id, tenant_id FROM import WHERE state IN (?) AND COALESCE(progressed_at, started_at, created_at) < ? ORDER BY id',
             [array_map(static fn (ImportState $state): string => $state->value, self::WORKING), $cutoff],
@@ -76,7 +76,7 @@ final readonly class ImportHealthCommand
             foreach ($stalled as $row) {
                 try {
                     $this->tenants->switchTo(TenantId::fromString($row['tenant_id']));
-                    $failed += $this->fail((int) $row['id'], $now, $cutoff);
+                    $failed += $this->fail($row['id'], $now, $cutoff);
                 } catch (\Throwable $error) {
                     ++$errors;
                     $this->logger->error('Import health check could not fail import {import}: {class}', ['import' => $row['id'], 'class' => $error::class, 'exception' => $error]);
@@ -122,7 +122,7 @@ final readonly class ImportHealthCommand
     /**
      * @return int 1 when the import was failed, 0 when it moved on in the meantime
      */
-    private function fail(int $id, \DateTimeImmutable $now, \DateTimeImmutable $cutoff): int
+    private function fail(string $id, \DateTimeImmutable $now, \DateTimeImmutable $cutoff): int
     {
         return $this->imports->transactional(function () use ($id, $now, $cutoff): int {
             $import = $this->imports->findLocked($id);

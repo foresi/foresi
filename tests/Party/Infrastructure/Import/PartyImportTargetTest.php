@@ -253,8 +253,8 @@ final class PartyImportTargetTest extends KernelTestCase
 
     public function testTheMatchKeyValueIsTheFormTheMatchLooksFor(): void
     {
-        self::assertSame('7', $this->target->matchKeyValue('id', $this->values(['id' => 7])));
-        self::assertNull($this->target->matchKeyValue('id', $this->values(['id' => '7'])));
+        self::assertSame('019a0000-0000-7000-8000-000000000007', $this->target->matchKeyValue('id', $this->values(['id' => '019a0000-0000-7000-8000-000000000007'])));
+        self::assertNull($this->target->matchKeyValue('id', $this->values(['id' => null])));
         self::assertSame('CZ 00000019', $this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '0000019'])));
         self::assertSame('CZ 00000019', $this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '00000019'])));
         self::assertNull($this->target->matchKeyValue('registration_number', $this->values(['registration_number' => '1234567'])));
@@ -275,6 +275,16 @@ final class PartyImportTargetTest extends KernelTestCase
 
         $exported = $this->normalise([...$this->target->export([$id])][0]);
         self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $exported));
+        self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
+    }
+
+    public function testAContactWithTheSameAddressTwiceIsOneMatch(): void
+    {
+        $values = $this->values(['email' => ['office@example.com']]);
+        $id = $this->create($values)->id;
+        $this->em->persist(new PartyEmail($this->find($id), 'Office@example.com', EmailPurpose::Invoices));
+        $this->em->flush();
+
         self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
     }
 
@@ -408,20 +418,18 @@ final class PartyImportTargetTest extends KernelTestCase
     public function testRevertOfACreatedPartyArchivesItAndTheContactPersonItBrought(): void
     {
         $plain = $this->create($this->values(['registration_number' => '12345695']));
-        self::assertSame(['created' => true, 'children' => ['addresses' => [$this->details()->billingAddress($this->find($plain->id))?->id()]]], $plain->before->data);
+        self::assertSame(['created' => true], $plain->before->data);
         $result = $this->create($this->values(['contact_name' => 'Jana Example']));
         $link = $this->details()->contactLinks($this->find($result->id))[0];
         $person = $link->person()->id();
         self::assertSame(['persons' => [$person]], $result->before->data['added'] ?? null);
-        self::assertIsArray($result->before->data['children'] ?? null);
-        self::assertSame([$link->id()], $result->before->data['children']['contactLinks'] ?? null);
 
         $this->target->revert($plain->id, $plain->before);
         $this->target->revert($result->id, $result->before);
 
         self::assertTrue($this->find($plain->id)->isArchived());
         self::assertTrue($this->find($result->id)->isArchived());
-        self::assertTrue($this->find((int) $person)->isArchived());
+        self::assertTrue($this->find($person)->isArchived());
         self::assertSame(3, $this->rowCount('SELECT COUNT(*) FROM party'), 'archived, never deleted');
     }
 
@@ -514,38 +522,38 @@ final class PartyImportTargetTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{callable(self, int): void}>
+     * @return iterable<string, array{callable(self, string): void}>
      */
     public static function changesAfterTheImport(): iterable
     {
-        yield 'the party' => [static function (self $test, int $id): void {
+        yield 'the party' => [static function (self $test, string $id): void {
             $test->find($id)->changePhone('+420 000 000 000');
         }];
-        yield 'an e-mail' => [static function (self $test, int $id): void {
+        yield 'an e-mail' => [static function (self $test, string $id): void {
             $test->details()->emails($test->find($id))[1]->change('edited@example.com', EmailPurpose::Copy);
         }];
-        yield 'an address' => [static function (self $test, int $id): void {
+        yield 'an address' => [static function (self $test, string $id): void {
             $test->details()->billingAddress($test->find($id))?->relabel('Head office');
         }];
-        yield 'a bank account' => [static function (self $test, int $id): void {
+        yield 'a bank account' => [static function (self $test, string $id): void {
             $test->details()->bankAccounts($test->find($id))[0]->demote();
         }];
-        yield 'a contact link' => [static function (self $test, int $id): void {
+        yield 'a contact link' => [static function (self $test, string $id): void {
             $test->details()->contactLinks($test->find($id))[0]->changePosition('Director');
         }];
-        yield 'a removed e-mail' => [static function (self $test, int $id): void {
+        yield 'a removed e-mail' => [static function (self $test, string $id): void {
             $test->em->remove($test->details()->emails($test->find($id))[1]);
         }];
-        yield 'a removed link' => [static function (self $test, int $id): void {
+        yield 'a removed link' => [static function (self $test, string $id): void {
             $test->em->remove($test->details()->contactLinks($test->find($id))[0]);
         }];
-        yield 'a new e-mail' => [static function (self $test, int $id): void {
+        yield 'a new e-mail' => [static function (self $test, string $id): void {
             $test->em->persist(new PartyEmail($test->find($id), 'hand@example.com', EmailPurpose::Copy));
         }];
     }
 
     /**
-     * @param callable(self, int): void $change
+     * @param callable(self, string): void $change
      */
     #[DataProvider('changesAfterTheImport')]
     public function testAChangeToThePartyOrAnyChildAfterTheImportCounts(callable $change): void
@@ -574,6 +582,57 @@ final class PartyImportTargetTest extends KernelTestCase
 
         self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION, 'import-undo:1']));
         self::assertTrue($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]));
+    }
+
+    public function testAChildRemovedBeforeTheRootMigrationStillCountsForASnapshotThatNamesIt(): void
+    {
+        $result = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com']]));
+        $copy = $this->details()->emails($this->find($result->id))[1];
+        $copyId = $copy->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+
+        self::mockTime('2026-10-01 11:00:00');
+        $this->em->remove($copy);
+        $this->em->flush();
+        // As the migration leaves an entry of a child that was already gone: rooted at itself.
+        $this->em->getConnection()->executeStatement('UPDATE audit_entry SET root_class = entity_class, root_id = entity_id');
+
+        $old = new RecordSnapshot(['created' => true, 'children' => ['emails' => [$copyId]]]);
+        self::assertTrue($this->target->changedSince($result->id, $old, $since, [self::CORRELATION]));
+        self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]), 'a snapshot of this release has no ids to read');
+    }
+
+    public function testEveryKindOfChildASnapshotNamesIsRead(): void
+    {
+        $result = $this->create($this->values(['delivery_street' => 'Example Street 2', 'delivery_city' => 'Example City', 'delivery_postal_code' => '110 00', 'delivery_country' => 'CZ']));
+        $addresses = array_values(array_filter($this->details()->addresses($this->find($result->id)), static fn (PartyAddress $address): bool => AddressType::Delivery === $address->type()));
+        self::assertCount(1, $addresses);
+        $addressId = $addresses[0]->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+
+        self::mockTime('2026-10-01 11:00:00');
+        $this->em->remove($addresses[0]);
+        $this->em->flush();
+        $this->em->getConnection()->executeStatement('UPDATE audit_entry SET root_class = entity_class, root_id = entity_id');
+
+        // The e-mails come first and show nothing; the check goes on to the addresses.
+        $old = new RecordSnapshot(['created' => true, 'children' => ['emails' => ['019a0000-0000-7000-8000-000000000099'], 'addresses' => [$addressId]]]);
+        self::assertTrue($this->target->changedSince($result->id, $old, $since, [self::CORRELATION]));
+    }
+
+    public function testAChangeToAPersonsLinkCountsForThePersonToo(): void
+    {
+        $id = $this->create($this->values(['contact_name' => 'Jana Example']))->id;
+        $link = $this->details()->contactLinks($this->find($id))[0];
+        $person = $link->person()->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+        self::assertFalse($this->target->changedSince($person, RecordSnapshot::none(), $since, [self::CORRELATION]));
+
+        self::mockTime('2026-10-01 11:00:00');
+        $link->changePosition('Director');
+        $this->em->flush();
+
+        self::assertTrue($this->target->changedSince($person, RecordSnapshot::none(), $since, [self::CORRELATION]), 'the link is rooted at the company');
     }
 
     public function testRemovingAChildThePartyHadBeforeAnUpdateCounts(): void
@@ -668,7 +727,7 @@ final class PartyImportTargetTest extends KernelTestCase
     /**
      * @param array<string, mixed> $values
      */
-    private function update(int $id, array $values): \App\Import\Application\Target\WriteResult
+    private function update(string $id, array $values): \App\Import\Application\Target\WriteResult
     {
         return self::getContainer()->get(AuditCorrelation::class)->within(self::CORRELATION, fn (): \App\Import\Application\Target\WriteResult => $this->target->update($id, $values, BlankCells::Keep));
     }
@@ -736,7 +795,7 @@ final class PartyImportTargetTest extends KernelTestCase
      *
      * @return array<string, mixed>
      */
-    private function state(int $id): array
+    private function state(string $id): array
     {
         $this->em->clear();
         $party = $this->find($id);
@@ -749,7 +808,7 @@ final class PartyImportTargetTest extends KernelTestCase
             'addresses' => array_map(static fn (PartyAddress $a): array => [$a->id(), $a->type(), $a->address()], $details->addresses($party)),
             'emails' => array_map(static fn (PartyEmail $e): array => [$e->id(), $e->address(), $e->purpose()], $details->emails($party)),
             'accounts' => array_map(static fn (PartyBankAccount $b): array => [$b->id(), $b->iban()->toString(), $b->isPrimary()], $details->bankAccounts($party)),
-            'links' => array_map(static fn (ContactLink $l): ?int => $l->id(), $details->contactLinks($party)),
+            'links' => array_map(static fn (ContactLink $l): string => $l->id(), $details->contactLinks($party)),
         ];
     }
 
@@ -772,7 +831,7 @@ final class PartyImportTargetTest extends KernelTestCase
         return (int) $count;
     }
 
-    private function find(int $id): Party
+    private function find(string $id): Party
     {
         return self::getContainer()->get(PartyQuery::class)->find($id) ?? throw new \LogicException('No such party.');
     }

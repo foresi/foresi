@@ -30,7 +30,7 @@ final readonly class PartyImportPages implements TargetPages
         return 'party.title';
     }
 
-    public function listUrl(?int $importId = null, ?RowOutcome $outcome = null): ?string
+    public function listUrl(?string $importId = null, ?RowOutcome $outcome = null): ?string
     {
         if (null === $importId || !$outcome instanceof RowOutcome) {
             return $this->urls->generate('app_contacts');

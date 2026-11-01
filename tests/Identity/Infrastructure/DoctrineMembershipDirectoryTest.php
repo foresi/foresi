@@ -150,7 +150,7 @@ final class DoctrineMembershipDirectoryTest extends KernelTestCase
         [$user] = $this->userInTwoTenants();
 
         self::assertCount(2, $this->directory->organisationsOf($user->id()));
-        self::assertSame([], $this->directory->organisationsOf(987654));
+        self::assertSame([], $this->directory->organisationsOf('019a0000-0000-7000-8000-0000000f1206'));
     }
 
     public function testOrganisationsOfIsScalarOnlyAndRestoresTheFilter(): void

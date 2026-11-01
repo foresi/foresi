@@ -76,12 +76,12 @@ final readonly class RunImportChunkHandler
         $next = $this->imports->transactional(function () use ($message, $import, $target, $reader): string {
             // Rows an undo has already passed stay as they are: a chunk still in flight when the run stopped must not write behind the undo.
             $ids = array_map(
-                static fn (ImportRow $row): int => (int) $row->id(),
+                static fn (ImportRow $row): string => $row->id(),
                 array_values(array_filter($this->imports->lockRowsOfChunk($import, $message->chunk), static fn (ImportRow $row): bool => !$row->processedInRun() && !$row->processedInUndo())),
             );
             $counts = $this->correlation->within(
                 'import:'.$message->importId,
-                fn (): array => array_count_values(array_map(fn (int $id): string => $this->runRow($id, $import, $target, $reader)->value, $ids)),
+                fn (): array => array_count_values(array_map(fn (string $id): string => $this->runRow($id, $import, $target, $reader)->value, $ids)),
             );
 
             $import = $this->imports->findLocked($message->importId) ?? throw new \LogicException('The import is gone.');
@@ -111,7 +111,7 @@ final readonly class RunImportChunkHandler
         };
     }
 
-    private function runRow(int $id, Import $import, ImportTarget $target, RowReader $reader): RowOutcome
+    private function runRow(string $id, Import $import, ImportTarget $target, RowReader $reader): RowOutcome
     {
         $outcome = RowOutcome::Error;
         $failure = $this->savepoint->attempt(function () use ($id, $import, $target, $reader, &$outcome): void {
@@ -152,7 +152,7 @@ final readonly class RunImportChunkHandler
         $matches = [] === $evaluation->errors ? $reader->matches($evaluation) : [];
         [$outcome, $errors] = $reader->decide($evaluation, $matches);
         if (\count($matches) > 1) {
-            $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): int => $match->id, $matches));
+            $this->imports->addAmbiguousMatches($import, array_map(static fn ($match): string => $match->id, $matches));
         }
         $blankCells = $import->options()->blankCells;
         $result = match ($outcome) {
@@ -174,7 +174,7 @@ final readonly class RunImportChunkHandler
     /**
      * @param array<string, mixed> $values
      */
-    private function restore(ImportTarget $target, int $id, array $values, Import $import): WriteResult
+    private function restore(ImportTarget $target, string $id, array $values, Import $import): WriteResult
     {
         $target->restoreArchived($id);
 

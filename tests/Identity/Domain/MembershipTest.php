@@ -11,6 +11,7 @@ namespace App\Tests\Identity\Domain;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
 
 final class MembershipTest extends TestCase
@@ -23,7 +24,7 @@ final class MembershipTest extends TestCase
         self::assertSame($user, $membership->user());
         self::assertSame(Role::Client, $membership->role());
         self::assertNull($membership->party());
-        self::assertNull($membership->id());
+        self::assertTrue(Id::isValid($membership->id()));
     }
 
     public function testTenantIsStampedOnPersistOnly(): void

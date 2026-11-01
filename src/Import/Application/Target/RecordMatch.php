@@ -12,7 +12,7 @@ namespace App\Import\Application\Target;
 final readonly class RecordMatch
 {
     public function __construct(
-        public int $id,
+        public string $id,
         public bool $archived,
     ) {
     }

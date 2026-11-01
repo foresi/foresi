@@ -29,7 +29,7 @@ final readonly class UndoImport
     /**
      * @throws ImportRefused when the window has passed, the staged rows are purged, or another import holds the target
      */
-    public function undo(int $importId): void
+    public function undo(string $importId): void
     {
         $import = $this->imports->find($importId) ?? throw ImportRefused::notFound();
         $targetKey = $import->targetKey();

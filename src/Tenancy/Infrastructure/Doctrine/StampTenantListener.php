@@ -13,14 +13,26 @@ use App\Tenancy\Application\TenantMismatch;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityNotFoundException;
+use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\ToOneAssociationMapping;
 
 /**
  * Stamps the active tenant on new tenant-owned entities. Entities expose no
- * setter, so the value can only be written here, once, on insert.
+ * setter, so the value can only be written here, once, on insert. On flush it
+ * also refuses a single-valued association from a tenant-owned entity to an
+ * entity of another tenant. That runs on flush, not on persist, because by then
+ * every new entity of the unit of work has been stamped, whatever the order of
+ * persist calls. Targets that are not tenant-owned (a User, say) are skipped. An
+ * update checks only the associations it changes, so a proxy it leaves alone
+ * stays unloaded.
  */
 #[AsDoctrineListener(event: Events::prePersist)]
+#[AsDoctrineListener(event: Events::onFlush)]
 final readonly class StampTenantListener
 {
     private const string FIELD = 'tenantId';
@@ -52,5 +64,66 @@ final readonly class StampTenantListener
         }
 
         $metadata->setFieldValue($entity, self::FIELD, $tenant);
+    }
+
+    public function onFlush(OnFlushEventArgs $args): void
+    {
+        $em = $args->getObjectManager();
+        $uow = $em->getUnitOfWork();
+
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
+            if ($entity instanceof TenantOwned) {
+                $this->assertReferencesShareTenant($em, $entity, null);
+            }
+        }
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if ($entity instanceof TenantOwned) {
+                $this->assertReferencesShareTenant($em, $entity, array_keys($uow->getEntityChangeSet($entity)));
+            }
+        }
+    }
+
+    /**
+     * @param list<string>|null $changed the fields to check, null for all
+     */
+    private function assertReferencesShareTenant(EntityManagerInterface $em, TenantOwned $entity, ?array $changed): void
+    {
+        $metadata = $em->getClassMetadata($entity::class);
+        $own = $this->tenantOf($metadata, $entity);
+
+        foreach ($metadata->getAssociationMappings() as $mapping) {
+            if (!$mapping instanceof ToOneAssociationMapping || (null !== $changed && !\in_array($mapping->fieldName, $changed, true))) {
+                continue;
+            }
+
+            $target = $metadata->getFieldValue($entity, $mapping->fieldName);
+            if (!$target instanceof TenantOwned) {
+                continue;
+            }
+
+            try {
+                if ($em->getUnitOfWork()->isUninitializedObject($target)) {
+                    $em->getUnitOfWork()->initializeObject($target);
+                }
+                $theirs = $this->tenantOf($em->getClassMetadata($target::class), $target);
+            } catch (EntityNotFoundException) {
+                // An uninitialized proxy the tenant filter hides: it belongs elsewhere.
+                throw TenantMismatch::create();
+            }
+
+            if (!$own->equals($theirs)) {
+                throw TenantMismatch::create();
+            }
+        }
+    }
+
+    /**
+     * @param ClassMetadata<object> $metadata
+     */
+    private function tenantOf(ClassMetadata $metadata, TenantOwned $entity): TenantId
+    {
+        $tenant = $metadata->getFieldValue($entity, self::FIELD);
+
+        return $tenant instanceof TenantId ? $tenant : $this->context->current();
     }
 }

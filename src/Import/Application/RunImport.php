@@ -28,7 +28,7 @@ final readonly class RunImport
      *
      * @throws ImportRefused
      */
-    public function run(int $importId, ?int $archiveConfirmation = null): void
+    public function run(string $importId, ?int $archiveConfirmation = null): void
     {
         $import = $this->imports->find($importId) ?? throw ImportRefused::notFound();
         $targetKey = $import->targetKey();

@@ -8,8 +8,9 @@ declare(strict_types=1);
 
 /*
  * Seeds the end-to-end database (var/e2e.db): the tenant "Example Company" with
- * the user testing@example.com and 30 parties, plus a second, empty tenant for
- * the first-run screen. Run it after the migrations, in the e2e environment:
+ * the user testing@example.com and 30 parties, a second, empty tenant for the
+ * first-run screen, and a third with two firms and one contact for the firm
+ * scope. Run it after the migrations, in the e2e environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -26,9 +27,12 @@ use App\Party\Application\CreateParty;
 use App\Party\Application\PartyInput;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
+use App\Party\Domain\LegalEntity;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
+use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
+use App\Party\Domain\VatStatus;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
@@ -80,6 +84,7 @@ $tenantWithOwner = static function (string $tenantName, string $email, string $d
 
 $main = $tenantWithOwner('Example Company', 'testing@example.com', 'Testing Example');
 $tenantWithOwner('Example Empty Company', 'empty@example.com', 'Empty Example');
+$group = $tenantWithOwner('Example Group', 'group@example.com', 'Group Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
@@ -122,6 +127,14 @@ $context->switchTo($main);
 foreach ($inputs as $input) {
     $createParty->createFrom($input);
 }
+$context->reset();
+
+$context->switchTo($group);
+foreach (['Example Trading s.r.o.' => '12345695', 'Example International Services and Holding s.r.o.' => '12345687'] as $name => $number) {
+    $entityManager->persist(new LegalEntity($name, new RegistrationNumber('CZ', $number), null, $address(1), VatStatus::NotRegistered, '', []));
+}
+$entityManager->flush();
+$createParty->createFrom($party(PartyKind::Company, 'Example Partner s.r.o.', [PartyRole::Customer], 'partner@example.com', 1, '12345679'));
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

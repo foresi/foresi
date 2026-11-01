@@ -27,6 +27,8 @@ interface PartyDetails
     public function billingAddress(Party $party): ?PartyAddress;
 
     /**
+     * The shared e-mails. A firm's own invoicing e-mails are not among them.
+     *
      * @return list<PartyEmail>
      */
     public function emails(Party $party): array;

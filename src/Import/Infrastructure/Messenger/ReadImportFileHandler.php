@@ -174,7 +174,7 @@ final readonly class ReadImportFileHandler
         return array_values(array_unique(array_map(fn (string $locale): string => $this->translator->trans($labelKey, [], 'messages', $locale), self::LABEL_LOCALES)));
     }
 
-    private function fail(int $importId, string $reason): void
+    private function fail(string $importId, string $reason): void
     {
         $this->imports->transactional(function () use ($importId, $reason): void {
             $import = $this->imports->findLocked($importId);

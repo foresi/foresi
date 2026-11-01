@@ -31,7 +31,7 @@ final readonly class MissingRecordFinder
     }
 
     /**
-     * @return \Generator<int, int> record ids
+     * @return \Generator<int, string> record ids
      */
     public function find(Import $import, ImportTarget $target): \Generator
     {
@@ -40,7 +40,7 @@ final readonly class MissingRecordFinder
             'SELECT record_id FROM import_row WHERE import_id = ? AND record_id IS NOT NULL'
             .' UNION SELECT record_id FROM import_ambiguous_match WHERE import_id = ?',
             [$import->id(), $import->id()],
-            [ParameterType::INTEGER, ParameterType::INTEGER],
+            [ParameterType::STRING, ParameterType::STRING],
         ), true);
         $scope = null;
         if (ReplaceScope::Profile === $import->options()->scope) {
@@ -56,7 +56,7 @@ final readonly class MissingRecordFinder
     }
 
     /**
-     * @return list<int>
+     * @return list<string>
      */
     private function writtenBy(Import $import, ImportProfile $profile): array
     {
@@ -71,7 +71,7 @@ final readonly class MissingRecordFinder
                 [RowOutcome::Create->value, RowOutcome::Update->value, RowOutcome::Restore->value],
             ],
             [
-                ParameterType::STRING, ParameterType::INTEGER, ParameterType::STRING, ParameterType::INTEGER,
+                ParameterType::STRING, ParameterType::STRING, ParameterType::STRING, ParameterType::STRING,
                 ArrayParameterType::STRING, ParameterType::BOOLEAN, ParameterType::BOOLEAN, ArrayParameterType::STRING,
             ],
         );
@@ -81,7 +81,7 @@ final readonly class MissingRecordFinder
      * @param list<mixed>                            $params
      * @param list<ParameterType|ArrayParameterType> $types
      *
-     * @return list<int>
+     * @return list<string>
      */
     private function ids(string $sql, array $params, array $types): array
     {

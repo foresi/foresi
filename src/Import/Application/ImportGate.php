@@ -50,7 +50,7 @@ final readonly class ImportGate
     }
 
     /** Call inside decide(): whether another import holds the target. */
-    public function isBusy(string $targetKey, int $exceptImportId): bool
+    public function isBusy(string $targetKey, ?string $exceptImportId = null): bool
     {
         return $this->imports->isBusy($targetKey, $exceptImportId);
     }
@@ -67,7 +67,7 @@ final readonly class ImportGate
         }
         $import->countRows($import->total(), $import->chunks());
         $import->moveTo(ImportState::Running, \DateTimeImmutable::createFromInterface($this->clock->now()));
-        $id = $import->id() ?? throw new \LogicException('A queued import is stored.');
+        $id = $import->id();
 
         return array_map(static fn (int $chunk): RunImportChunk => new RunImportChunk($id, $chunk), range(0, $import->chunks() - 1));
     }
@@ -76,11 +76,11 @@ final readonly class ImportGate
     public function release(string $targetKey): void
     {
         $this->decide($targetKey, function () use ($targetKey): array {
-            if ($this->imports->isBusy($targetKey, 0)) {
+            if ($this->imports->isBusy($targetKey)) {
                 return [];
             }
             $next = $this->imports->oldestQueued($targetKey);
-            $next = $next instanceof Import ? $this->imports->findLocked((int) $next->id()) : null;
+            $next = $next instanceof Import ? $this->imports->findLocked($next->id()) : null;
 
             return $next instanceof Import && ImportState::Queued === $next->state() ? $this->start($next) : [];
         });

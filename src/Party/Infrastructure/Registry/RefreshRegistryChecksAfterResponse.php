@@ -37,7 +37,7 @@ final readonly class RefreshRegistryChecksAfterResponse
     ) {
     }
 
-    public static function schedule(Request $request, int $partyId): void
+    public static function schedule(Request $request, string $partyId): void
     {
         $request->attributes->set(self::ATTRIBUTE, $partyId);
     }
@@ -46,7 +46,7 @@ final readonly class RefreshRegistryChecksAfterResponse
     public function onTerminate(TerminateEvent $event): void
     {
         $id = $event->getRequest()->attributes->get(self::ATTRIBUTE);
-        if (!\is_int($id) || !$this->context->has() || !$this->em->isOpen()) {
+        if (!\is_string($id) || !$this->context->has() || !$this->em->isOpen()) {
             return;
         }
 

@@ -21,7 +21,7 @@ Foresi is at an early stage. Interfaces and data structures may change without n
 - PHP 8.4 or newer with the `ctype`, `iconv`, `intl` and `pdo_sqlite` extensions (`pdo_pgsql` for PostgreSQL)
 - `upload_max_filesize` and `post_max_size` of at least `50M` in php.ini, so imports can take files up to the 50 MB the application allows (a lower server limit is reported as such on the upload screen)
 - Composer 2
-- SQLite for development, or PostgreSQL 17 (both are covered by the tests)
+- SQLite 3.33 or newer for development, or PostgreSQL 17 (both are covered by the tests)
 
 ## Quick start
 

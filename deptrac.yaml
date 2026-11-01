@@ -103,8 +103,18 @@ deptrac:
           value: src/Ui/.*
     - name: VendorSymfony
       collectors:
+        - type: bool
+          must:
+            - type: classLike
+              value: ^Symfony\\
+          must_not:
+            - type: classLike
+              value: ^Symfony\\Component\\Uid\\
+    # symfony/uid is an internal detail of App\Shared\Domain\Id only.
+    - name: VendorUid
+      collectors:
         - type: classLike
-          value: ^Symfony\\
+          value: ^Symfony\\Component\\Uid\\
     - name: VendorBrick
       collectors:
         - type: classLike
@@ -138,12 +148,14 @@ deptrac:
       - VendorDoctrineOrmMapping
       # brick/money is an internal detail of App\Shared\Domain\Money only.
       - VendorBrick
+      - VendorUid
     SharedApplication:
       - SharedDomain
     SharedInfrastructure:
       - SharedDomain
       - SharedApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -159,6 +171,7 @@ deptrac:
       - TenancyDomain
       - TenancyApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -186,6 +199,7 @@ deptrac:
       - PartyDomain
       - PartyApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -223,6 +237,7 @@ deptrac:
       - TenancyDomain
       - ImportApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -255,6 +270,7 @@ deptrac:
       - IdentityDomain
       - IdentityApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -284,6 +300,7 @@ deptrac:
       - TenancyDomain
       - AuditApplication
       - VendorSymfony
+      - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
@@ -303,5 +320,6 @@ deptrac:
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony
+      - VendorUid
       - SharedDomain
       - SharedApplication

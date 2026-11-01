@@ -29,9 +29,11 @@ nav:
     money: Peníze
     contacts: Kontakty
     extensions: Rozšíření
+    settings: Nastavení
   item:
     dashboard: Přehled
     contacts: Adresář
+    firms: Firmy
 ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
@@ -257,6 +259,11 @@ party:
     viesResult: VIES
     invoicingDefaults: Výchozí údaje pro doklady
     invoicingDueDays: Splatnost
+    legalEntity: Firma
+    invoicingCurrency: Měna
+    invoicingLanguage: Jazyk dokladů
+    invoicingPaymentMethod: Způsob úhrady
+    invoicingReverseCharge: Přenesená daňová povinnost
   lookup:
     label: Najít v rejstříku
     help: IČO nebo alespoň tři písmena názvu
@@ -293,6 +300,32 @@ party:
     currency: Měna
     language: Jazyk dokladů
     reverse_charge: Přenesená daňová povinnost
+  scope:
+    all_firms: Všechny firmy
+    own: vlastní
+    applies_to: Platí pro
+    set: Nastavit pro tuto firmu
+    reset: Vrátit na společné
+    reset_confirm: 'Vlastní hodnoty této firmy se po uložení smažou. Pokračovat?'
+    emails: Fakturační e-maily
+    archive: Stav archivace
+    invoice_emails: E-maily pro faktury
+    copy_emails: Kopie faktur
+    emails_help: Jedna adresa na řádek.
+    archived_all: Archivováno pro všechny firmy
+    archived_firm: Archivováno pro tuto firmu
+    archived_help: Archivace pro všechny firmy má přednost.
+  firm_settings:
+    due_days: Splatnost ve dnech
+    due_days_help: Platí pro nové doklady.
+    currency: Měna
+    language: Jazyk dokladů
+    payment_method: Způsob úhrady
+    reverse_charge: Přenesená daňová povinnost
+  payment_method:
+    bank_transfer: Převodem
+    cash: Hotově
+    card: Kartou
   history:
     empty: Zatím tu není žádná změna.
     entry: '{action}: {subject} ({fields})'
@@ -306,6 +339,7 @@ party:
       email: e-mail
       bank_account: bankovní účet
       contact: kontaktní osoba
+      firm_settings: nastavení pro firmu
   flash:
     created: Kontakt je uložen.
     updated: Změny jsou uloženy.
@@ -327,6 +361,56 @@ party:
     company_identifier: Firma potřebuje IČO nebo DIČ.
     save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
+    due_days: Zadejte celý počet dní od 0 do 365.
+    choice: Vyberte jednu z možností.
+firm:
+  title: Firmy
+  new: Nová firma
+  edit: Upravit firmu
+  views: Pohledy na firmy
+  empty:
+    title: Zatím tu nejsou žádné firmy
+    text: Přidejte firmu, za kterou vaše organizace vystavuje doklady.
+  empty_view:
+    title: Nic tu není
+    text: V tomto pohledu není žádná firma.
+  view:
+    active: Aktivní
+    archived: Archivované
+  summary: '{total, plural, one {# firma} few {# firmy} other {# firem}}'
+  column:
+    name: Název
+    registration: IČO
+    vat: DIČ
+    vat_status: Vztah k DPH
+  card:
+    tax: DPH
+    seat: Sídlo
+    documents: Údaje na dokladech
+  field:
+    name: Název
+    vatStatus: Vztah k DPH
+    registerEntry: Zápis v rejstříku
+    registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
+    bankAccounts: Bankovní účty
+    bankAccounts_help: 'IBAN, každý na samostatný řádek'
+  vat_status:
+    registered: Plátce DPH
+    not_registered: Neplátce DPH
+    identified_person: Identifikovaná osoba
+  confirm:
+    archive: Archivovat tuto firmu? Obnovit ji nelze.
+  flash:
+    created: Firma je uložená.
+    updated: Změny jsou uložené.
+    archived: Firma je archivovaná.
+  error:
+    registration_taken: Toto IČO už má jiná firma.
+    vat_status: Vyberte vztah k DPH.
+    vat_id_required: Zadejte DIČ této firmy.
+    iban: 'Zkontrolujte IBAN: {iban}'
+    save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
+    last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
 import:
   number: '{value, number}'
   new: Nový import
@@ -596,6 +680,7 @@ import:
     invalid_date: '„{value}“ není datum ve zvoleném pořadí.'
     invalid_decimal: '„{value}“ není číslo.'
     invalid_integer: '„{value}“ není celé číslo.'
+    invalid_id: '„{value}“ není platný identifikátor.'
     unknown_value: '„{value}“ je hodnota, kterou neznáme. Přiřaďte ji k jedné z povolených hodnot.'
     required: 'Tato hodnota je povinná.'
     ambiguous_match: '„{value}“ odpovídá {count, number} existujícím záznamům. Vyberte klíč, který určuje jeden záznam.'

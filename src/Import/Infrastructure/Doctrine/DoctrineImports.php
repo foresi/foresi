@@ -47,12 +47,12 @@ final readonly class DoctrineImports implements Imports
         $this->em->flush();
     }
 
-    public function find(int $id): ?Import
+    public function find(string $id): ?Import
     {
         return $this->em->find(Import::class, $id);
     }
 
-    public function findLocked(int $id): ?Import
+    public function findLocked(string $id): ?Import
     {
         $import = $this->em->find(Import::class, $id);
         if (!$import instanceof Import) {
@@ -105,7 +105,7 @@ final readonly class DoctrineImports implements Imports
         }
     }
 
-    public function findFresh(int $id): ?Import
+    public function findFresh(string $id): ?Import
     {
         $import = $this->em->find(Import::class, $id);
         if ($import instanceof Import) {
@@ -179,21 +179,20 @@ final readonly class DoctrineImports implements Imports
         return $counts;
     }
 
-    public function isBusy(string $targetKey, int $exceptImportId): bool
+    public function isBusy(string $targetKey, ?string $exceptImportId = null): bool
     {
-        $count = $this->em->createQueryBuilder()
+        $query = $this->em->createQueryBuilder()
             ->select('COUNT(i.id)')
             ->from(Import::class, 'i')
             ->where('i.targetKey = :target')
             ->andWhere('i.state IN (:states)')
-            ->andWhere('i.id <> :except')
             ->setParameter('target', $targetKey)
-            ->setParameter('states', [ImportState::Running->value, ImportState::Undoing->value])
-            ->setParameter('except', $exceptImportId)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('states', [ImportState::Running->value, ImportState::Undoing->value]);
+        if (null !== $exceptImportId) {
+            $query->andWhere('i.id <> :except')->setParameter('except', $exceptImportId);
+        }
 
-        return (int) $count > 0;
+        return (int) $query->getQuery()->getSingleScalarResult() > 0;
     }
 
     public function oldestQueued(string $targetKey): ?Import
@@ -216,18 +215,18 @@ final readonly class DoctrineImports implements Imports
     public function addAmbiguousMatches(Import $import, array $recordIds): void
     {
         // The import the caller holds may be detached by now (RowSavepoint detaches after every row).
-        $managed = $this->em->getReference(Import::class, $import->id() ?? throw new \LogicException('The import is not stored.')) ?? throw new \LogicException('The import is gone.');
+        $managed = $this->em->getReference(Import::class, $import->id()) ?? throw new \LogicException('The import is gone.');
         foreach (array_unique($recordIds) as $recordId) {
             $this->em->persist(new ImportAmbiguousMatch($managed, $recordId));
         }
     }
 
-    public function findRow(int $id): ?ImportRow
+    public function findRow(string $id): ?ImportRow
     {
         return $this->em->find(ImportRow::class, $id);
     }
 
-    public function findMissingRecord(int $id): ?ImportMissingRecord
+    public function findMissingRecord(string $id): ?ImportMissingRecord
     {
         return $this->em->find(ImportMissingRecord::class, $id);
     }
@@ -237,7 +236,7 @@ final readonly class DoctrineImports implements Imports
         if ([] === $recordIds) {
             return [];
         }
-        /** @var list<int|string> $found */
+        /** @var list<string> $found */
         $found = $this->em->createQueryBuilder()
             ->select('DISTINCT r.recordId')
             ->from(ImportRow::class, 'r')
@@ -248,7 +247,7 @@ final readonly class DoctrineImports implements Imports
             ->getQuery()
             ->getSingleColumnResult();
 
-        /** @var list<int|string> $ambiguous */
+        /** @var list<string> $ambiguous */
         $ambiguous = $this->em->createQueryBuilder()
             ->select('DISTINCT m.recordId')
             ->from(ImportAmbiguousMatch::class, 'm')
@@ -259,7 +258,7 @@ final readonly class DoctrineImports implements Imports
             ->getQuery()
             ->getSingleColumnResult();
 
-        return array_values(array_unique(array_map(intval(...), [...$found, ...$ambiguous])));
+        return array_values(array_unique([...$found, ...$ambiguous]));
     }
 
     public function history(int $limit): array
@@ -267,7 +266,7 @@ final readonly class DoctrineImports implements Imports
         return $this->em->getRepository(Import::class)->findBy([], ['createdAt' => 'DESC', 'id' => 'DESC'], $limit);
     }
 
-    public function endedUnseen(int $actorUserId, int $limit): array
+    public function endedUnseen(string $actorUserId, int $limit): array
     {
         $ended = array_values(array_filter(ImportState::cases(), static fn (ImportState $state): bool => $state->isEnd()));
 

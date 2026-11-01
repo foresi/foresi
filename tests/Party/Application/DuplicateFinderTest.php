@@ -148,7 +148,7 @@ final class DuplicateFinderTest extends KernelTestCase
         $this->save($edited);
         $this->save($other);
         $id = $this->em->getUnitOfWork()->getSingleIdentifierValue($edited);
-        self::assertIsInt($id);
+        self::assertIsString($id);
 
         $matches = $this->finder->find(new RegistrationNumber('CZ', '12345687'), null, true, $id);
 

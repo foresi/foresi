@@ -14,7 +14,7 @@ namespace App\Party\Application;
 final readonly class PartyHistoryEntry
 {
     /**
-     * @param string       $subject party, address, email, bank_account or contact
+     * @param string       $subject party, address, email, bank_account, contact or firm_settings
      * @param string       $action  created, updated or deleted
      * @param list<string> $fields  names of the fields that changed
      */

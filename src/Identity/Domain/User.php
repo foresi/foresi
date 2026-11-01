@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Identity\Domain;
 
+use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -21,9 +22,8 @@ class User
     public const array LOCALES = ['cs', 'en'];
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(type: 'string', length: 255, unique: true)]
     private string $email;
@@ -41,6 +41,7 @@ class User
         string $displayName,
         string $locale = 'en',
     ) {
+        $this->id = Id::generate();
         $email = strtolower(trim($email));
         if (false === filter_var($email, \FILTER_VALIDATE_EMAIL)) {
             throw new \InvalidArgumentException('A user needs a valid e-mail address.');
@@ -65,9 +66,9 @@ class User
         $this->locale = $locale;
     }
 
-    public function id(): int
+    public function id(): string
     {
-        return $this->id ?? throw new \LogicException('The user has not been persisted yet.');
+        return $this->id;
     }
 
     public function email(): string

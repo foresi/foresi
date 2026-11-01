@@ -14,7 +14,7 @@ interface ProfileRepository
 {
     public function add(ImportProfile $profile): void;
 
-    public function find(int $id): ?ImportProfile;
+    public function find(string $id): ?ImportProfile;
 
     /** The most recently updated profile remembered for these headers. */
     public function findByHeaders(string $targetKey, string $headerSignature): ?ImportProfile;

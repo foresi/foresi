@@ -32,7 +32,7 @@ export default class extends Controller {
     }
 
     items() {
-        return Array.from(this.menuTarget.querySelectorAll('[role="menuitem"]'));
+        return Array.from(this.menuTarget.querySelectorAll('[role^="menuitem"]'));
     }
 
     isOpen() {

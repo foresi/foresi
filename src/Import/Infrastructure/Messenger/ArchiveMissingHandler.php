@@ -62,8 +62,8 @@ final readonly class ArchiveMissingHandler
 
         $next = $this->imports->transactional(function () use ($message, $import, $target): string {
             $records = array_values(array_filter($this->imports->lockMissingOfChunk($import, $message->chunk), static fn (ImportMissingRecord $record): bool => !$record->processedInRun()));
-            $inSource = $this->imports->recordsInSource($import, array_map(static fn (ImportMissingRecord $record): int => $record->recordId(), $records));
-            $ids = array_map(static fn (ImportMissingRecord $record): int => (int) $record->id(), $records);
+            $inSource = $this->imports->recordsInSource($import, array_map(static fn (ImportMissingRecord $record): string => $record->recordId(), $records));
+            $ids = array_map(static fn (ImportMissingRecord $record): string => $record->id(), $records);
 
             [$archived, $failed] = $this->correlation->within('import:'.$message->importId, function () use ($ids, $inSource, $target, $import): array {
                 $archived = 0;

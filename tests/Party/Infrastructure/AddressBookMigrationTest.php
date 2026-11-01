@@ -27,6 +27,8 @@ use PHPUnit\Framework\TestCase;
 final class AddressBookMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261029000004';
+    // The last version of the integer ids: the next one cannot go back.
+    private const string AFTER = 'DoctrineMigrations\Version20261031000004';
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
 
     private Connection $connection;
@@ -49,7 +51,7 @@ final class AddressBookMigrationTest extends TestCase
         $this->legacyParty('Both', true, true, 'Both Street 3');
         $this->legacyParty('Contact', false, false, 'Contact Street 4');
 
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         self::assertSame(
             ['Customer' => '["customer"]', 'Supplier' => '["supplier"]', 'Both' => '["customer","supplier"]', 'Contact' => '[]'],
@@ -72,7 +74,7 @@ final class AddressBookMigrationTest extends TestCase
         $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $partyId, 'iban' => 'DE89370400440532013000', 'label' => '', 'is_primary' => 1]);
         $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $partyId, 'iban' => 'GB82WEST12345698765432', 'label' => '', 'is_primary' => 0]);
 
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         self::assertSame(['With email' => '12345687'], $this->connection->fetchAllKeyValue('SELECT display_name, registration_key FROM party WHERE registration_key IS NOT NULL'));
         self::assertSame([['invoices@example.com', 'general']], $this->connection->fetchAllNumeric('SELECT address, purpose FROM party_email'));
@@ -97,7 +99,7 @@ final class AddressBookMigrationTest extends TestCase
             $this->connection->insert('party_bank_account', ['tenant_id' => self::TENANT, 'party_id' => $padded, 'iban' => $iban, 'label' => '', 'is_primary' => $primary]);
         }
 
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         self::assertSame([['invoices@example.com']], $this->connection->fetchAllNumeric('SELECT address FROM party_email'));
         self::assertSame('STRASSESS', $this->connection->fetchOne("SELECT registration_key FROM party WHERE display_name = 'Padded'"));
@@ -110,7 +112,7 @@ final class AddressBookMigrationTest extends TestCase
     {
         $this->legacyParty('Customer', true, false, 'Customer Street 1');
 
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         $row = $this->connection->fetchAssociative('SELECT * FROM party');
         self::assertIsArray($row);
@@ -129,7 +131,7 @@ final class AddressBookMigrationTest extends TestCase
     {
         $this->legacyParty('With email', true, false, 'Street 1', ' Invoices@Example.COM ');
 
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         self::assertSame([['Invoices@Example.COM', 'invoices@example.com']], $this->connection->fetchAllNumeric('SELECT address, address_key FROM party_email'));
         self::assertSame([['', '']], $this->connection->fetchAllNumeric('SELECT mobile, website FROM party'));
@@ -144,7 +146,7 @@ final class AddressBookMigrationTest extends TestCase
     {
         $this->legacyParty('Both', true, true, 'Both Street 3');
         $this->legacyParty('Supplier', false, true, 'Supplier Street 2');
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         $this->migrateTo(self::BEFORE);
 
@@ -176,7 +178,7 @@ final class AddressBookMigrationTest extends TestCase
         ]);
     }
 
-    private function migrateTo(?string $version): void
+    private function migrateTo(string $version): void
     {
         // A fresh factory per run: executed migration instances are frozen.
         $migrations = DependencyFactory::fromConnection(
@@ -187,7 +189,7 @@ final class AddressBookMigrationTest extends TestCase
         );
         $migrations->getMetadataStorage()->ensureInitialized();
         $plan = $migrations->getMigrationPlanCalculator()->getPlanUntilVersion(
-            null === $version ? $migrations->getVersionAliasResolver()->resolveVersionAlias('latest') : new Version($version),
+            new Version($version),
         );
         $migrations->getMigrator()->migrate($plan, new MigratorConfiguration());
     }

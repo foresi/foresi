@@ -10,26 +10,30 @@ namespace App\Party\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
+use App\Audit\Domain\AuditRooted;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * An e-mail address of a party and what it is used for.
+ * An e-mail address of a party and what it is used for. One that names a firm
+ * is that firm's own invoicing address; without a firm it is shared.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'party_email')]
 #[ORM\Index(name: 'idx_party_email_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_party_email_party', columns: ['party_id'])]
 #[ORM\Index(name: 'idx_party_email_key', columns: ['tenant_id', 'address_key'])]
-class PartyEmail implements TenantOwned, Audited
+#[ORM\Index(name: 'idx_party_email_firm', columns: ['legal_entity_id'])]
+class PartyEmail implements TenantOwned, Audited, AuditRooted
 {
     private const int MAX_LENGTH = 254;
+    private const string PATTERN = '/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/';
 
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId;
@@ -50,7 +54,12 @@ class PartyEmail implements TenantOwned, Audited
         string $address,
         #[ORM\Column(type: 'string', length: 16, enumType: EmailPurpose::class)]
         private EmailPurpose $purpose,
+        #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
+        #[ORM\JoinColumn(name: 'legal_entity_id', nullable: true, onDelete: 'RESTRICT')]
+        private readonly ?LegalEntity $legalEntity = null,
     ) {
+        $this->refuseGeneralForAFirm($purpose);
+        $this->id = Id::generate();
         $this->tenantId = $party->stampedTenantId();
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
@@ -62,9 +71,21 @@ class PartyEmail implements TenantOwned, Audited
         return mb_strtolower(trim($address));
     }
 
-    public function id(): ?int
+    public static function isValid(string $address): bool
+    {
+        $address = trim($address);
+
+        return \strlen($address) <= self::MAX_LENGTH && 1 === preg_match(self::PATTERN, $address);
+    }
+
+    public function id(): string
     {
         return $this->id;
+    }
+
+    public function auditRoot(): object
+    {
+        return $this->party;
     }
 
     public function party(): Party
@@ -77,6 +98,14 @@ class PartyEmail implements TenantOwned, Audited
         return $this->address;
     }
 
+    /**
+     * The firm this address is the own invoicing address of; null when it is shared.
+     */
+    public function legalEntity(): ?LegalEntity
+    {
+        return $this->legalEntity;
+    }
+
     public function purpose(): EmailPurpose
     {
         return $this->purpose;
@@ -84,6 +113,7 @@ class PartyEmail implements TenantOwned, Audited
 
     public function change(string $address, EmailPurpose $purpose): void
     {
+        $this->refuseGeneralForAFirm($purpose);
         $this->address = $this->validate($address);
         $this->addressKey = self::key($this->address);
         $this->purpose = $purpose;
@@ -96,11 +126,17 @@ class PartyEmail implements TenantOwned, Audited
 
     private function validate(string $address): string
     {
-        $address = trim($address);
-        if (\strlen($address) > self::MAX_LENGTH || 1 !== preg_match('/^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/', $address)) {
+        if (!self::isValid($address)) {
             throw new \DomainException('The e-mail address is not valid.');
         }
 
-        return $address;
+        return trim($address);
+    }
+
+    private function refuseGeneralForAFirm(EmailPurpose $purpose): void
+    {
+        if ($this->legalEntity instanceof LegalEntity && EmailPurpose::General === $purpose) {
+            throw new \DomainException('A firm has invoicing e-mails only; the general e-mail is shared.');
+        }
     }
 }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Domain;
 
 use App\Identity\Domain\User;
+use App\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -76,10 +77,8 @@ final class UserTest extends TestCase
         new User($email, $hash, $name, $locale);
     }
 
-    public function testIdIsUnavailableBeforePersisting(): void
+    public function testAUserHasItsIdFromTheStart(): void
     {
-        $this->expectException(\LogicException::class);
-
-        new User('testing@example.com', 'hash', 'Example Company')->id();
+        self::assertTrue(Id::isValid(new User('testing@example.com', 'hash', 'Example Company')->id()));
     }
 }

@@ -11,6 +11,7 @@ namespace App\Tests\Party\Domain;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\PartyAddress;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\TestCase;
 
@@ -25,7 +26,7 @@ final class PartyAddressTest extends TestCase
         self::assertSame(AddressType::Delivery, $address->type());
         self::assertSame('Example City', $address->address()->city);
         self::assertSame('Warehouse', $address->label());
-        self::assertNull($address->id());
+        self::assertTrue(Id::isValid($address->id()));
     }
 
     public function testRelocatesAndRelabels(): void

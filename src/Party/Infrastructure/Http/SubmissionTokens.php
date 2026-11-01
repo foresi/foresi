@@ -20,6 +20,7 @@ final readonly class SubmissionTokens
 {
     private const string KEY = 'party_submission_tokens';
     private const int KEEP = 30;
+    private const string UNUSED = '';
 
     public function __construct(private RequestStack $requests)
     {
@@ -29,7 +30,7 @@ final readonly class SubmissionTokens
     {
         $tokens = $this->tokens();
         $token = bin2hex(random_bytes(16));
-        $tokens[$token] = 0;
+        $tokens[$token] = self::UNUSED;
         $this->store(\array_slice($tokens, -self::KEEP, null, true));
 
         return $token;
@@ -43,14 +44,14 @@ final readonly class SubmissionTokens
     /**
      * The id of the record the token created, if it created one already.
      */
-    public function createdId(string $token): ?int
+    public function createdId(string $token): ?string
     {
-        $id = $this->tokens()[$token] ?? 0;
+        $id = $this->tokens()[$token] ?? self::UNUSED;
 
-        return $id > 0 ? $id : null;
+        return self::UNUSED === $id ? null : $id;
     }
 
-    public function complete(string $token, int $id): void
+    public function complete(string $token, string $id): void
     {
         $tokens = $this->tokens();
         if (\array_key_exists($token, $tokens)) {
@@ -60,7 +61,10 @@ final readonly class SubmissionTokens
     }
 
     /**
-     * @return array<string, int>
+     * A session from before ids were UUIDs may hold whole numbers: an unused
+     * token (0) stays usable, and an old id leads nowhere any more, so it is dropped.
+     *
+     * @return array<string, string>
      */
     private function tokens(): array
     {
@@ -68,8 +72,8 @@ final readonly class SubmissionTokens
         $tokens = [];
         if (\is_array($stored)) {
             foreach ($stored as $token => $id) {
-                if (\is_string($token) && \is_int($id)) {
-                    $tokens[$token] = $id;
+                if (\is_string($token) && (\is_string($id) || 0 === $id)) {
+                    $tokens[$token] = 0 === $id ? self::UNUSED : $id;
                 }
             }
         }
@@ -78,7 +82,7 @@ final readonly class SubmissionTokens
     }
 
     /**
-     * @param array<string, int> $tokens
+     * @param array<string, string> $tokens
      */
     private function store(array $tokens): void
     {

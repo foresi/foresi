@@ -29,6 +29,7 @@ Chosen option: "a Doctrine listener", because it works the same on every support
 * On flush, the listener records creation, change and deletion as `AuditEntry` rows with the acting user, a timestamp and the changed values.
 * `AuditEntry` is tenant-owned and takes the tenant of the audited entity.
 * `AuditEntry` has no mutators, and the listener rejects any update or removal of a persisted entry at flush. Changes to audited collections are rejected rather than silently missed.
+* Every entry records its aggregate root (`root_class`, `root_id`), so one query returns the whole history of a document or contact, children removed since included. A child entity implements `AuditRooted` and names its root; an audited entity without it is its own root. All entries are created while the unit of work is flushed (in `onFlush`), so the root is known and the entry is stored in the same transaction as the change. The rules on relations and roots, including the limit for contact links, are in [ADR 11](0011-audit-roots-and-retention.md).
 * Values are normalised to plain scalars and arrays before they are stored.
 
 ### Consequences
@@ -37,4 +38,4 @@ Chosen option: "a Doctrine listener", because it works the same on every support
 * Good: entries are append-only as far as the application is concerned.
 * Bad: changes made outside the ORM (raw SQL, manual database edits) are not recorded. Protecting the database itself, for example with restricted privileges, is an operational matter.
 * Bad: the log grows without bound until an archiving policy exists.
-* Bad: audited values can contain personal data, and rows are append-only, so a person's data cannot be erased from the log through the application. An erasure or pseudonymisation strategy is an open question and must be settled before the system is used to process personal data of data subjects who can ask for erasure.
+* Bad: audited values can contain personal data, and rows are append-only, so a person's data cannot be erased from the log through the application. The position on retention and pseudonymisation is in [ADR 11](0011-audit-roots-and-retention.md); it is subject to professional review and has no application feature yet. It must be settled before the system is used to process personal data of data subjects who can ask for erasure.

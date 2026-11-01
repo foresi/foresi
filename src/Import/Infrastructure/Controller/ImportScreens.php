@@ -177,7 +177,7 @@ final readonly class ImportScreens
             $names[$actor] ??= $this->users->findById($actor)?->displayName() ?? '';
 
             return [
-                'id' => (string) $import->id(),
+                'id' => $import->id(),
                 'href' => $this->urls->generate('app_import_show', ['id' => $import->id()]),
                 'label' => $import->originalName(),
                 'cells' => [
@@ -416,7 +416,7 @@ final readonly class ImportScreens
     {
         $state = $import->state();
         $pages = $this->pages->find($import->targetKey());
-        $id = (int) $import->id();
+        $id = $import->id();
         $rowsKept = null !== $import->fileKey();
         $link = static fn (RowOutcome $outcome, int $count): array => $rowsKept && $count > 0 && null !== ($href = $pages?->listUrl($id, $outcome)) ? ['href' => $href] : [];
 

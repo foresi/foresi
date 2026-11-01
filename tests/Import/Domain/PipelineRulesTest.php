@@ -25,6 +25,7 @@ use App\Import\Domain\Mapping;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\ReplaceScope;
 use App\Import\Domain\RowOutcome;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -211,11 +212,11 @@ final class PipelineRulesTest extends TestCase
     public function testAnAmbiguousMatchNamesItsRecord(): void
     {
         $import = $this->newImport();
-        $match = new ImportAmbiguousMatch($import, 9);
+        $match = new ImportAmbiguousMatch($import, '019a0000-0000-7000-8000-000000000009');
 
-        self::assertNull($match->id());
+        self::assertTrue(Id::isValid($match->id()));
         self::assertSame($import, $match->import());
-        self::assertSame(9, $match->recordId());
+        self::assertSame('019a0000-0000-7000-8000-000000000009', $match->recordId());
         $tenant = TenantId::generate();
         new \ReflectionProperty(ImportAmbiguousMatch::class, 'tenantId')->setValue($match, $tenant);
         self::assertSame($tenant, $match->tenantId());
@@ -224,7 +225,7 @@ final class PipelineRulesTest extends TestCase
     public function testAnAmbiguousMatchNeedsItsTenantStamped(): void
     {
         $this->expectException(\LogicException::class);
-        new ImportAmbiguousMatch($this->newImport(), 9)->tenantId();
+        new ImportAmbiguousMatch($this->newImport(), '019a0000-0000-7000-8000-000000000009')->tenantId();
     }
 
     public function testUndoCountsAddUp(): void
@@ -343,7 +344,7 @@ final class PipelineRulesTest extends TestCase
 
     public function testAPurgedImportCannotBeUndone(): void
     {
-        $import = new Import('party', null, 'contacts.csv', self::SETTINGS, 7, new \DateTimeImmutable('2026-10-01'));
+        $import = new Import('party', null, 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
         foreach ([ImportState::Reading, ImportState::Mapping, ImportState::Checking, ImportState::Checked, ImportState::Queued, ImportState::Running] as $step) {
             $import->moveTo($step);
         }
@@ -447,12 +448,12 @@ final class PipelineRulesTest extends TestCase
     public function testAMissingRecordIsArchivedKeptAndUndone(): void
     {
         $import = $this->newImport();
-        $record = new ImportMissingRecord($import, 4, 17);
+        $record = new ImportMissingRecord($import, 4, '019a0000-0000-7000-8000-000000000011');
 
-        self::assertNull($record->id());
+        self::assertTrue(Id::isValid($record->id()));
         self::assertSame($import, $record->import());
         self::assertSame(4, $record->chunk());
-        self::assertSame(17, $record->recordId());
+        self::assertSame('019a0000-0000-7000-8000-000000000011', $record->recordId());
         self::assertSame(RowOutcome::Archive, $record->outcome());
         self::assertNull($record->before());
         self::assertFalse($record->processedInRun());
@@ -473,7 +474,7 @@ final class PipelineRulesTest extends TestCase
 
     public function testAMissingRecordTheRunFoundIsKept(): void
     {
-        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        $record = new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003');
 
         $record->kept();
         self::assertSame(RowOutcome::Skip, $record->outcome());
@@ -487,7 +488,7 @@ final class PipelineRulesTest extends TestCase
 
     public function testAMissingRecordTheTargetRefusedFailsWithItsMessage(): void
     {
-        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        $record = new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003');
         self::assertNull($record->errorKey());
         $record->archived(['name' => 'Old']);
         self::assertNull($record->errorKey());
@@ -502,7 +503,7 @@ final class PipelineRulesTest extends TestCase
 
     public function testAnUndoOnlyRevertsOrKeepsAChangedRecord(): void
     {
-        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        $record = new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003');
 
         try {
             $record->undone(RowOutcome::Create);
@@ -515,7 +516,7 @@ final class PipelineRulesTest extends TestCase
 
     public function testAMissingRecordKeepsTheStampedTenant(): void
     {
-        $record = new ImportMissingRecord($this->newImport(), 1, 3);
+        $record = new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003');
         $tenant = TenantId::generate();
         new \ReflectionProperty(ImportMissingRecord::class, 'tenantId')->setValue($record, $tenant);
 
@@ -525,7 +526,7 @@ final class PipelineRulesTest extends TestCase
     public function testAMissingRecordNeedsItsTenantStamped(): void
     {
         $this->expectException(\LogicException::class);
-        new ImportMissingRecord($this->newImport(), 1, 3)->tenantId();
+        new ImportMissingRecord($this->newImport(), 1, '019a0000-0000-7000-8000-000000000003')->tenantId();
     }
 
     public function testANamedProfileRemembersNothingUntilARunSucceeds(): void
@@ -551,7 +552,7 @@ final class PipelineRulesTest extends TestCase
 
     private function newImport(): Import
     {
-        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, 7, new \DateTimeImmutable('2026-10-01'));
+        return new Import('party', 'tenant/file', 'contacts.csv', self::SETTINGS, '019a0000-0000-7000-8000-000000000007', new \DateTimeImmutable('2026-10-01'));
     }
 
     private function ran(ImportState $state, \DateTimeImmutable $at): Import

@@ -26,12 +26,13 @@ Full replace makes the address book match the file. It can archive many records,
 
 ### Matching
 
-Existing records are found by a key you choose. For contacts the keys are the Foresi ID, the registration number, the VAT ID and the e-mail address. The default is the first key that is present in the mapping.
+Existing records are found by a key you choose. For contacts the keys are the Foresi ID (a UUID, as the export writes it), the registration number, the VAT ID and the e-mail address. The default is the first key that is present in the mapping.
 
 - Archived records take part in matching. Add missing only skips an archived match. Update and full replace restore it and update it, and report it as "restored".
 - A key that matches several existing records is an error on that row ("ambiguous").
 - A key repeated in the file: the first row wins, later rows are errors ("duplicate in file"). Keys are compared the way the target matches them, so `0000019` and `00000019` are one registration number, and `one@example.com` and `ONE@example.com, cc@example.com` are one e-mail address (the first address of a list counts).
 - Empty cells leave existing values as they are, unless you choose to clear them.
+- A file exported before identifiers became UUIDs has an `id` column of whole numbers. A row with such a value is a row error, because it names no record. Either do not map that column or delete it from the file and match by another key, such as the registration number or the e-mail address.
 - Registry checks (ARES, VIES, the unreliable VAT payer register) never run inside the import. New and changed records that have a VAT ID are checked later in the background, respecting the rate limits.
 
 ### Undo
@@ -136,3 +137,9 @@ Set `upload_max_filesize` and `post_max_size` to at least `50M` in `php.ini`, an
 ## Upgrading
 
 Run the database migrations (`bin/console doctrine:migrations:migrate`) and start a worker before using the import. Import tables are new; no existing table loses data.
+
+### Upgrading to 0.4.0
+
+Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps in the changelog](../CHANGELOG.md#upgrading).
+
+Links to imports (`/imports/<number>`) and to contacts that were saved or sent before the upgrade stop working; open them again from the lists.

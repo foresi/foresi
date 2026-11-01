@@ -26,7 +26,7 @@ final readonly class ImportErrorFile
      *
      * @throws ImportRefused when the staged rows are already purged
      */
-    public function write(int $importId, string $locale, string $path): SourceFormat
+    public function write(string $importId, string $locale, string $path): SourceFormat
     {
         $import = $this->imports->find($importId) ?? throw ImportRefused::notFound();
         if (null === $import->fileKey()) {

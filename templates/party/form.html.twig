@@ -70,12 +70,24 @@
             </div>
         </twig:Ui:Card>
 
-        <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
-            <div class="grid gap-3">
-                <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" />
+        {% if firmPanels is empty %}
+            <twig:Ui:Card :title="'party.card.roles'|trans" icon="tag">
+                <div class="grid gap-3">
+                    <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="roleValues" :error="errors.roles|default(null)" />
+                    <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
+                </div>
+            </twig:Ui:Card>
+        {% else %}
+            {{ include('party/_firm_panel.html.twig', {panel: firmPanels.roles, title: 'party.field.roles'|trans, icon: 'tag'}) }}
+            <twig:Ui:Card :title="'party.card.note'|trans" icon="pencil">
                 <twig:Ui:Textarea name="privateNote" id="privateNote" :label="'party.field.privateNote'|trans" :help="'party.field.privateNote_help'|trans" :value="values.privateNote" :rows="3" />
-            </div>
-        </twig:Ui:Card>
+            </twig:Ui:Card>
+            {{ include('party/_firm_panel.html.twig', {panel: firmPanels.invoicing, title: 'party.card.defaults'|trans, icon: 'receipt-text'}) }}
+            {{ include('party/_firm_panel.html.twig', {panel: firmPanels.emails, title: 'party.scope.emails'|trans, icon: 'send'}) }}
+            {% if firmPanels.archive is defined %}
+                {{ include('party/_firm_panel.html.twig', {panel: firmPanels.archive, title: 'party.scope.archive'|trans, icon: 'archive'}) }}
+            {% endif %}
+        {% endif %}
 
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>

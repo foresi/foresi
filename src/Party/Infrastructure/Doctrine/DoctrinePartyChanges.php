@@ -11,18 +11,17 @@ namespace App\Party\Infrastructure\Doctrine;
 use App\Audit\Domain\AuditEntry;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\Party;
-use App\Party\Domain\PartyAddress;
-use App\Party\Domain\PartyBankAccount;
-use App\Party\Domain\PartyEmail;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Whether parties changed after a point in time: the parties themselves and
- * everything that belongs to them (addresses, e-mails, bank accounts and
- * contact links are audited as entities of their own). The audit log is read
- * by entity id: the children a party has now and the ones a write noted
- * (which may be gone by now). Reads the audit log through the tenant filter.
+ * everything that belongs to them. Entries of addresses, e-mails, bank accounts
+ * and contact links carry their party as root, so one query by root finds a
+ * change to a child that is gone now too. A contact link concerns two parties
+ * and is rooted at the company; the person's side is read by the links the
+ * person has now, so a link removed since shows in the company's history only.
+ * Reads the audit log through the tenant filter.
  */
 final readonly class DoctrinePartyChanges
 {
@@ -31,74 +30,79 @@ final readonly class DoctrinePartyChanges
     }
 
     /**
-     * @param list<int>                      $partyIds
-     * @param array<class-string, list<int>> $knownChildren        children a write noted, such as the ones it added
-     * @param list<string>                   $exceptCorrelationIds
+     * @param list<string>                      $partyIds
+     * @param array<class-string, list<string>> $legacyChildren       children by entity id, for snapshots written before entries carried a root
+     * @param list<string>                      $exceptCorrelationIds
      */
-    public function changedSince(array $partyIds, array $knownChildren, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    public function changedSince(array $partyIds, array $legacyChildren, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
-        $entities = [Party::class => $partyIds];
-        foreach ($this->childrenOf($partyIds) as $class => $ids) {
-            $entities[$class] = $ids;
-        }
-        foreach ($knownChildren as $class => $ids) {
-            $entities[$class] = [...$entities[$class] ?? [], ...$ids];
+        if ([] === $partyIds) {
+            return false;
         }
 
-        // One query per entity class: each uses the index over tenant, class and id, which an OR of classes would not.
-        foreach ($entities as $class => $ids) {
-            if ([] === $ids) {
-                continue;
-            }
-            $dql = 'SELECT COUNT(e.id) FROM '.AuditEntry::class.' e WHERE e.entityClass = :class AND e.entityId IN (:ids) AND e.occurredAt >= :since';
-            if ([] !== $exceptCorrelationIds) {
-                $dql .= ' AND (e.correlationId IS NULL OR e.correlationId NOT IN (:correlations))';
-            }
-            $query = $this->em->createQuery($dql)
-                ->setParameter('class', $class)
-                ->setParameter('ids', array_values(array_unique(array_map(strval(...), $ids))))
-                ->setParameter('since', $since, 'datetime_immutable');
-            if ([] !== $exceptCorrelationIds) {
-                $query->setParameter('correlations', $exceptCorrelationIds);
-            }
-            if ((int) $query->getSingleScalarResult() > 0) {
-                return true;
-            }
+        if ($this->hasEntry('rootClass', 'rootId', Party::class, $partyIds, $since, $exceptCorrelationIds)) {
+            return true;
+        }
+        if ($this->hasEntry('entityClass', 'entityId', ContactLink::class, $this->linksOfPersons($partyIds), $since, $exceptCorrelationIds)) {
+            return true;
         }
 
-        return false;
+        // Only serves snapshots written before this release: entries made earlier of a child
+        // removed before the root migration are rooted at the child itself, and the ids the
+        // snapshot noted are the only link to the party.
+        return array_any($legacyChildren, fn (array $ids, string $class): bool => $this->hasEntry('entityClass', 'entityId', $class, $ids, $since, $exceptCorrelationIds));
     }
 
     /**
-     * The ids of the addresses, e-mails, bank accounts and contact links (on
-     * either side) of the parties, in one query. The parties were found through
-     * the tenant filter; their children belong to the same tenant.
+     * One query per class: each uses the index over tenant, class and id, which an
+     * OR of classes would not. SQLite would read the tenant's whole log for it, once per record.
      *
-     * @param list<int> $partyIds
-     *
-     * @return array<class-string, list<int>>
+     * @param 'entityClass'|'rootClass' $classField
+     * @param 'entityId'|'rootId'       $idField
+     * @param list<string>              $ids
+     * @param list<string>              $exceptCorrelationIds
      */
-    public function childrenOf(array $partyIds): array
+    private function hasEntry(string $classField, string $idField, string $class, array $ids, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    {
+        if ([] === $ids) {
+            return false;
+        }
+        $dql = sprintf('SELECT COUNT(e.id) FROM %s e WHERE e.%s = :class AND e.%s IN (:ids) AND e.occurredAt >= :since', AuditEntry::class, $classField, $idField);
+        if ([] !== $exceptCorrelationIds) {
+            $dql .= ' AND (e.correlationId IS NULL OR e.correlationId NOT IN (:correlations))';
+        }
+        $query = $this->em->createQuery($dql)
+            ->setParameter('class', $class)
+            ->setParameter('ids', array_values(array_unique($ids)))
+            ->setParameter('since', $since, 'datetime_immutable');
+        if ([] !== $exceptCorrelationIds) {
+            $query->setParameter('correlations', $exceptCorrelationIds);
+        }
+
+        return (int) $query->getSingleScalarResult() > 0;
+    }
+
+    /**
+     * The ids of the contact links the parties have now as the person. The
+     * parties were found through the tenant filter; their links belong to the
+     * same tenant.
+     *
+     * @param list<string> $partyIds
+     *
+     * @return list<string>
+     */
+    public function linksOfPersons(array $partyIds): array
     {
         if ([] === $partyIds) {
             return [];
         }
-        $rows = $this->em->getConnection()->fetchAllNumeric(
-            "SELECT 'address', id FROM party_address WHERE party_id IN (:parties)"
-            ." UNION ALL SELECT 'email', id FROM party_email WHERE party_id IN (:parties)"
-            ." UNION ALL SELECT 'bank_account', id FROM party_bank_account WHERE party_id IN (:parties)"
-            ." UNION ALL SELECT 'link', id FROM contact_link WHERE company_id IN (:parties) OR person_id IN (:parties)",
+        /** @var list<string> $ids */
+        $ids = $this->em->getConnection()->fetchFirstColumn(
+            'SELECT id FROM contact_link WHERE person_id IN (:parties)',
             ['parties' => $partyIds],
-            ['parties' => ArrayParameterType::INTEGER],
+            ['parties' => ArrayParameterType::STRING],
         );
-        $classes = ['address' => PartyAddress::class, 'email' => PartyEmail::class, 'bank_account' => PartyBankAccount::class, 'link' => ContactLink::class];
-        $children = [];
-        foreach ($rows as [$kind, $id]) {
-            if (\is_string($kind) && isset($classes[$kind]) && is_numeric($id)) {
-                $children[$classes[$kind]][] = (int) $id;
-            }
-        }
 
-        return $children;
+        return $ids;
     }
 }

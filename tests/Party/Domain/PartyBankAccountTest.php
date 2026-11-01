@@ -10,6 +10,7 @@ namespace App\Tests\Party\Domain;
 
 use App\Party\Domain\Iban;
 use App\Party\Domain\PartyBankAccount;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +29,7 @@ final class PartyBankAccountTest extends TestCase
         self::assertSame('COBADEFF', $account->bic());
         self::assertSame('Main', $account->label());
         self::assertTrue($account->isPrimary());
-        self::assertNull($account->id());
+        self::assertTrue(Id::isValid($account->id()));
     }
 
     public function testDefaultsToASecondaryAccountWithoutBic(): void

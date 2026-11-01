@@ -29,9 +29,11 @@ nav:
     money: Money
     contacts: Contacts
     extensions: Extensions
+    settings: Settings
   item:
     dashboard: Dashboard
     contacts: Address book
+    firms: Firms
 ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
@@ -257,6 +259,11 @@ party:
     viesResult: VIES
     invoicingDefaults: Document defaults
     invoicingDueDays: Due period
+    legalEntity: Firm
+    invoicingCurrency: Currency
+    invoicingLanguage: Document language
+    invoicingPaymentMethod: Payment method
+    invoicingReverseCharge: Reverse charge
   lookup:
     label: Find in a register
     help: Registration number or at least three letters of a name
@@ -293,6 +300,32 @@ party:
     currency: Currency
     language: Document language
     reverse_charge: Reverse charge
+  scope:
+    all_firms: All firms
+    own: own
+    applies_to: Applies to
+    set: Set for this firm
+    reset: Back to shared
+    reset_confirm: "This firm's own values will be deleted when you save. Continue?"
+    emails: Invoicing e-mails
+    archive: Archive state
+    invoice_emails: E-mails for invoices
+    copy_emails: Invoice copies
+    emails_help: One address per line.
+    archived_all: Archived for all firms
+    archived_firm: Archived for this firm
+    archived_help: Archiving for all firms takes precedence.
+  firm_settings:
+    due_days: Due period in days
+    due_days_help: Applies to new documents.
+    currency: Currency
+    language: Document language
+    payment_method: Payment method
+    reverse_charge: Reverse charge
+  payment_method:
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
   history:
     empty: There is no change yet.
     entry: '{action}: {subject} ({fields})'
@@ -306,6 +339,7 @@ party:
       email: e-mail
       bank_account: bank account
       contact: contact person
+      firm_settings: firm settings
   flash:
     created: The contact is saved.
     updated: The changes are saved.
@@ -327,6 +361,56 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
+    due_days: Enter a whole number of days from 0 to 365.
+    choice: Choose one of the options.
+firm:
+  title: Firms
+  new: New firm
+  edit: Edit firm
+  views: Firm views
+  empty:
+    title: No firms yet
+    text: Add the firm your organisation issues documents from.
+  empty_view:
+    title: Nothing here
+    text: There is no firm in this view.
+  view:
+    active: Active
+    archived: Archived
+  summary: '{total, plural, one {# firm} other {# firms}}'
+  column:
+    name: Name
+    registration: Reg. no.
+    vat: VAT ID
+    vat_status: VAT status
+  card:
+    tax: VAT
+    seat: Registered office
+    documents: On documents
+  field:
+    name: Name
+    vatStatus: VAT status
+    registerEntry: Register entry
+    registerEntry_help: The register and file number, as printed on documents
+    bankAccounts: Bank accounts
+    bankAccounts_help: 'IBAN, one per line'
+  vat_status:
+    registered: VAT payer
+    not_registered: Non-payer
+    identified_person: Identified person
+  confirm:
+    archive: Archive this firm? It cannot be restored.
+  flash:
+    created: The firm is saved.
+    updated: The changes are saved.
+    archived: The firm is archived.
+  error:
+    registration_taken: Another firm already has this registration number.
+    vat_status: Choose the VAT status.
+    vat_id_required: Enter the VAT ID of this firm.
+    iban: 'Check the IBAN: {iban}'
+    save_failed: The firm could not be saved. Check the details and try again.
+    last_active: The last active firm cannot be archived. Add another firm first.
 import:
   number: '{value, number}'
   new: New import
@@ -596,6 +680,7 @@ import:
     invalid_date: '"{value}" is not a date in the chosen order.'
     invalid_decimal: '"{value}" is not a number.'
     invalid_integer: '"{value}" is not a whole number.'
+    invalid_id: '"{value}" is not a valid identifier.'
     unknown_value: '"{value}" is not a value we know. Map it to one of the allowed values.'
     required: 'This value is required.'
     ambiguous_match: '"{value}" matches {count, number} existing records. Choose a match key that names one record.'

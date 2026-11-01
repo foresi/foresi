@@ -32,6 +32,7 @@ use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
 use App\Party\Infrastructure\Http\WebsiteLink;
+use App\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -45,6 +46,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -99,7 +101,7 @@ final class PartyController extends AbstractController
         $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
         $counts = $this->parties->counts();
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
-            + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
+            + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
 
         return $this->render('party/index.html.twig', [
             'counts' => $counts,
@@ -114,12 +116,12 @@ final class PartyController extends AbstractController
             'baseUrl' => $this->generateUrl('app_contacts', $query),
             'filtered' => '' !== $text || 'all' !== $view || $importedBy instanceof ImportedBy,
             'importedBy' => $importedBy instanceof ImportedBy && $import instanceof Import ? ['text' => $this->translator->trans('party.imported_by.'.$importedBy->outcome, ['name' => $import->originalName()]), 'href' => $this->generateUrl('app_import_show', ['id' => $importedBy->importId])] : null,
-            'exportQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => (string) $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
+            'exportQuery' => ['view' => $view, 'q' => $text] + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []),
         ]);
     }
 
-    #[Route('/contacts/{id}', name: 'app_contact_show', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function show(int $id, Request $request): Response
+    #[Route('/contacts/{id}', name: 'app_contact_show', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function show(string $id, Request $request): Response
     {
         $tab = $request->query->getString('tab', 'overview');
 
@@ -129,7 +131,7 @@ final class PartyController extends AbstractController
     /**
      * @param array<string, mixed> $extra what the contacts tab shows after a refused link
      */
-    private function detail(Party $party, int $id, string $tab, string $locale, array $extra = [], int $status = Response::HTTP_OK): Response
+    private function detail(Party $party, string $id, string $tab, string $locale, array $extra = [], int $status = Response::HTTP_OK): Response
     {
         $vies = $party->viesCheck();
         $reliability = $party->unreliablePayerCheck();
@@ -165,8 +167,8 @@ final class PartyController extends AbstractController
         }, new Response(status: $status));
     }
 
-    #[Route('/contacts/{id}/archive', name: 'app_contact_archive', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function archive(int $id, Request $request): RedirectResponse
+    #[Route('/contacts/{id}/archive', name: 'app_contact_archive', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function archive(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $this->archiveParty->archive([$this->party($id)]);
@@ -175,8 +177,8 @@ final class PartyController extends AbstractController
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
     }
 
-    #[Route('/contacts/{id}/restore', name: 'app_contact_restore', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function restore(int $id, Request $request): RedirectResponse
+    #[Route('/contacts/{id}/restore', name: 'app_contact_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $this->archiveParty->restore([$this->party($id)]);
@@ -239,7 +241,7 @@ final class PartyController extends AbstractController
                 }
                 throw new NotFoundHttpException();
             }
-            $ids = array_values(array_filter(array_map(static fn (Party $party): ?int => $party->id(), $found), \is_int(...)));
+            $ids = array_map(static fn (Party $party): string => $party->id(), $found);
         }
         if ([] === $ids) {
             return $this->redirectToRoute('app_contacts');
@@ -255,8 +257,8 @@ final class PartyController extends AbstractController
         return $response;
     }
 
-    #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function link(int $id, Request $request): Response
+    #[Route('/contacts/{id}/link', name: 'app_contact_link', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function link(string $id, Request $request): Response
     {
         $this->checkToken($request);
         $company = $this->party($id);
@@ -264,7 +266,7 @@ final class PartyController extends AbstractController
         $position = trim($request->request->getString('position'));
         $primary = $request->request->getBoolean('primary');
         // A person the select never offered (another tenant's, or none at all) is not found, as everywhere.
-        $person = '' === $personId ? null : ($this->parties->find((int) $personId) ?? throw new NotFoundHttpException());
+        $person = '' === $personId ? null : $this->party($personId);
 
         $errors = [];
         if (!$person instanceof Party || PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
@@ -294,8 +296,8 @@ final class PartyController extends AbstractController
         return $this->redirectToRoute('app_contact_show', ['id' => $id, 'tab' => 'contacts']);
     }
 
-    #[Route('/contacts/{id}/registry-checks', name: 'app_contact_refresh_checks', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function refreshChecks(int $id, Request $request): RedirectResponse
+    #[Route('/contacts/{id}/registry-checks', name: 'app_contact_refresh_checks', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function refreshChecks(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $party = $this->party($id);
@@ -332,18 +334,18 @@ final class PartyController extends AbstractController
     {
         $id = $input->getString('import');
         $outcome = $input->getString('outcome', 'create');
-        if (!ctype_digit($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
+        if (!Id::isValid($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
             return [null, null];
         }
         // An import of another tenant is not found, so its id narrows nothing.
-        $import = $this->imports->find((int) $id);
+        $import = $this->imports->find($id);
 
-        return $import instanceof Import ? [new ImportedBy((int) $id, $outcome), $import] : [null, null];
+        return $import instanceof Import ? [new ImportedBy($id, $outcome), $import] : [null, null];
     }
 
-    private function party(int $id): Party
+    private function party(string $id): Party
     {
-        return $this->parties->find($id) ?? throw new NotFoundHttpException();
+        return Id::isValid($id) ? ($this->parties->find($id) ?? throw new NotFoundHttpException()) : throw new NotFoundHttpException();
     }
 
     private function checkToken(Request $request): void
@@ -354,14 +356,14 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * @return list<int>
+     * @return list<string>
      */
     private function selectedIds(Request $request): array
     {
         $ids = [];
         foreach ($request->request->all('ids') as $id) {
-            if (\is_string($id) && ctype_digit($id)) {
-                $ids[(int) $id] = (int) $id;
+            if (\is_string($id) && Id::isValid($id)) {
+                $ids[$id] = $id;
             }
         }
 
@@ -427,7 +429,7 @@ final class PartyController extends AbstractController
             };
 
             return [
-                'id' => (string) $row->id,
+                'id' => $row->id,
                 'label' => $row->displayName,
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
                 'cells' => [
@@ -452,7 +454,7 @@ final class PartyController extends AbstractController
         foreach (self::TABS as $tab) {
             $tabs[] = [
                 'label' => $this->translator->trans('party.tab.'.$tab),
-                'href' => $this->generateUrl('app_contact_show', ['id' => $this->id($party), 'tab' => 'overview' === $tab ? null : $tab]),
+                'href' => $this->generateUrl('app_contact_show', ['id' => $party->id(), 'tab' => 'overview' === $tab ? null : $tab]),
                 'active' => $tab === $active,
             ];
         }
@@ -534,8 +536,8 @@ final class PartyController extends AbstractController
         foreach ($this->details->contactLinks($party) as $link) {
             $other = $linked ? $link->company() : $link->person();
             $rows[] = [
-                'id' => (string) $link->id(),
-                'href' => $this->generateUrl('app_contact_show', ['id' => $this->id($other)]),
+                'id' => $link->id(),
+                'href' => $this->generateUrl('app_contact_show', ['id' => $other->id()]),
                 'cells' => [
                     'name' => $other->displayName(),
                     'position' => $link->position(),
@@ -547,7 +549,7 @@ final class PartyController extends AbstractController
         $candidates = [];
         if (PartyKind::Person !== $party->kind()) {
             foreach ($this->parties->contactPersonCandidates($party) as $person) {
-                $candidates[(string) $this->id($person)] = $person->displayName();
+                $candidates[$person->id()] = $person->displayName();
             }
         }
 
@@ -562,7 +564,7 @@ final class PartyController extends AbstractController
     private function addressRows(array $addresses): array
     {
         return array_map(fn (PartyAddress $address): array => [
-            'id' => (string) $address->id(),
+            'id' => $address->id(),
             'cells' => [
                 'type' => $this->translator->trans('party.address_type.'.$address->type()->value),
                 'label' => $address->label(),
@@ -579,7 +581,7 @@ final class PartyController extends AbstractController
     private function accountRows(array $accounts): array
     {
         return array_map(fn (PartyBankAccount $account): array => [
-            'id' => (string) $account->id(),
+            'id' => $account->id(),
             'cells' => [
                 'iban' => $account->iban()->toString(),
                 'bic' => $account->bic(),
@@ -622,10 +624,5 @@ final class PartyController extends AbstractController
                 ]),
             ];
         }, $this->details->history($party));
-    }
-
-    private function id(Party $party): int
-    {
-        return $party->id() ?? throw new \LogicException('The party is not stored.');
     }
 }

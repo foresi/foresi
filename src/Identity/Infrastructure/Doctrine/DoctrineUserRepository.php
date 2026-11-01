@@ -23,7 +23,7 @@ final readonly class DoctrineUserRepository implements UserRepository
         return $this->entityManager->getRepository(User::class)->findOneBy(['email' => strtolower(trim($email))]);
     }
 
-    public function findById(int $id): ?User
+    public function findById(string $id): ?User
     {
         return $this->entityManager->find(User::class, $id);
     }

@@ -34,16 +34,16 @@ interface PartyQuery
     /**
      * The ids of the parties the same search lists, on every page, in name order.
      *
-     * @return list<int>
+     * @return list<string>
      */
     public function matchingIds(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array;
 
     public function counts(): PartyCounts;
 
-    public function find(int $id): ?Party;
+    public function find(string $id): ?Party;
 
     /**
-     * @param list<int> $ids
+     * @param list<string> $ids
      *
      * @return list<Party> those of the ids that belong to the active tenant
      */

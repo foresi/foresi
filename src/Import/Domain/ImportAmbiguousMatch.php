@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,9 +25,8 @@ use Doctrine\ORM\Mapping as ORM;
 class ImportAmbiguousMatch implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -35,12 +35,13 @@ class ImportAmbiguousMatch implements TenantOwned
         #[ORM\ManyToOne(targetEntity: Import::class)]
         #[ORM\JoinColumn(name: 'import_id', nullable: false, onDelete: 'CASCADE')]
         private readonly Import $import,
-        #[ORM\Column(name: 'record_id', type: 'integer')]
-        private readonly int $recordId,
+        #[ORM\Column(name: 'record_id', type: 'guid')]
+        private readonly string $recordId,
     ) {
+        $this->id = Id::generate();
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
@@ -55,7 +56,7 @@ class ImportAmbiguousMatch implements TenantOwned
         return $this->import;
     }
 
-    public function recordId(): int
+    public function recordId(): string
     {
         return $this->recordId;
     }

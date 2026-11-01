@@ -26,6 +26,7 @@ use App\Import\Application\Target\TargetRegistry;
 use App\Import\Application\UndoImport;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,6 +39,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -106,7 +108,7 @@ final class ImportController extends AbstractController
         $target = $this->chosenTarget($request->request->getString('target'));
         $file = $request->files->get('file');
         $profile = $request->request->getString('profile');
-        $profileId = ctype_digit($profile) ? (int) $profile : null;
+        $profileId = Id::isValid($profile) ? $profile : null;
 
         // Every problem of the form at once, each at its field.
         $fileError = null;
@@ -135,8 +137,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}', name: 'app_import_show', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function show(int $id, Request $request): Response
+    #[Route('/imports/{id}', name: 'app_import_show', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function show(string $id, Request $request): Response
     {
         $import = $this->import($id);
         $state = $import->state();
@@ -161,8 +163,8 @@ final class ImportController extends AbstractController
         return $this->screen('import/summary.html.twig', $import, $this->screens->summary($import, $request->getLocale()));
     }
 
-    #[Route('/imports/{id}/progress', name: 'app_import_progress', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function progress(int $id): Response
+    #[Route('/imports/{id}/progress', name: 'app_import_progress', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function progress(string $id): Response
     {
         $import = $this->import($id);
         $response = $this->render('import/_progress.html.twig', ['import' => $import, 'progress' => $this->screens->progress($import)]);
@@ -171,8 +173,8 @@ final class ImportController extends AbstractController
         return $response;
     }
 
-    #[Route('/imports/{id}/mapping', name: 'app_import_mapping', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function mapping(int $id, Request $request): Response
+    #[Route('/imports/{id}/mapping', name: 'app_import_mapping', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function mapping(string $id, Request $request): Response
     {
         $this->checkToken($request);
         $import = $this->import($id);
@@ -202,8 +204,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}/source', name: 'app_import_source', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function source(int $id, Request $request): RedirectResponse
+    #[Route('/imports/{id}/source', name: 'app_import_source', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function source(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $import = $this->import($id);
@@ -229,8 +231,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}/check', name: 'app_import_check', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function check(int $id, Request $request): RedirectResponse
+    #[Route('/imports/{id}/check', name: 'app_import_check', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function check(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $this->import($id);
@@ -244,8 +246,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}/run', name: 'app_import_run', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function run(int $id, Request $request): Response
+    #[Route('/imports/{id}/run', name: 'app_import_run', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function run(string $id, Request $request): Response
     {
         $this->checkToken($request);
         $import = $this->import($id);
@@ -266,8 +268,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}/cancel', name: 'app_import_cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function cancel(int $id, Request $request): RedirectResponse
+    #[Route('/imports/{id}/cancel', name: 'app_import_cancel', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function cancel(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $this->import($id);
@@ -291,8 +293,8 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    #[Route('/imports/{id}/undo', name: 'app_import_undo', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function undo(int $id, Request $request): RedirectResponse
+    #[Route('/imports/{id}/undo', name: 'app_import_undo', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function undo(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
         $this->import($id);
@@ -310,8 +312,8 @@ final class ImportController extends AbstractController
      * The rows that failed, in the format of the uploaded file. The file name
      * carries the import's number only, never the name of the uploaded file.
      */
-    #[Route('/imports/{id}/errors', name: 'app_import_errors', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function errors(int $id, Request $request): Response
+    #[Route('/imports/{id}/errors', name: 'app_import_errors', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function errors(string $id, Request $request): Response
     {
         $this->import($id);
         $path = tempnam(sys_get_temp_dir(), 'foresi-import-errors-');
@@ -335,7 +337,7 @@ final class ImportController extends AbstractController
         $response = new BinaryFileResponse($path);
         $response->deleteFileAfterSend();
         $response->headers->set('Content-Type', SourceFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, \sprintf('import-%d-errors.%s', $id, $format->value)));
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, \sprintf('import-%s-errors.%s', $id, $format->value)));
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
@@ -366,12 +368,12 @@ final class ImportController extends AbstractController
      * @param ImportTarget|null     $target null lets the user choose among all targets
      * @param array<string, string> $errors field (target, file, profile) => message
      */
-    private function upload(?ImportTarget $target, array $errors = [], ?int $profileId = null, int $status = Response::HTTP_OK): Response
+    private function upload(?ImportTarget $target, array $errors = [], ?string $profileId = null, int $status = Response::HTTP_OK): Response
     {
         $profiles = [];
         foreach ($target instanceof ImportTarget ? $this->profiles->forTarget($target->key()) : [] as $profile) {
             $profiles[''] ??= $this->translator->trans('import.upload.profile_none');
-            $profiles[(string) $profile->id()] = $profile->name();
+            $profiles[$profile->id()] = $profile->name();
         }
         $targets = [];
         foreach ($target instanceof ImportTarget ? [] : $this->targets->all() as $candidate) {
@@ -382,7 +384,7 @@ final class ImportController extends AbstractController
             'target' => $target?->key(),
             'targets' => $targets,
             'profiles' => $profiles,
-            'profileId' => null === $profileId ? '' : (string) $profileId,
+            'profileId' => $profileId ?? '',
             'errors' => $errors,
             'stepper' => ['steps' => $this->screens->steps(), 'current' => 0],
             'crumbs' => $target instanceof ImportTarget ? $this->screens->crumbs($target->key()) : [['label' => $this->translator->trans('import.history.title'), 'href' => $this->generateUrl('app_imports')], ['label' => $this->translator->trans('import.upload.title')]],
@@ -435,7 +437,7 @@ final class ImportController extends AbstractController
         return 1 === \count($all) ? $all[0] : null;
     }
 
-    private function import(int $id): Import
+    private function import(string $id): Import
     {
         $this->requireTenant();
 
@@ -450,7 +452,7 @@ final class ImportController extends AbstractController
         }
     }
 
-    private function userId(): int
+    private function userId(): string
     {
         return $this->actor->userId() ?? throw new AccessDeniedHttpException();
     }
@@ -476,7 +478,7 @@ final class ImportController extends AbstractController
         return $this->translator->trans($refused->reason, $parameters);
     }
 
-    private function refused(int $id, ImportRefused $refused): RedirectResponse
+    private function refused(string $id, ImportRefused $refused): RedirectResponse
     {
         if ('import.refused.not_found' === $refused->reason) {
             throw new NotFoundHttpException();
@@ -486,7 +488,7 @@ final class ImportController extends AbstractController
         return $this->toImport($id);
     }
 
-    private function toImport(int $id): RedirectResponse
+    private function toImport(string $id): RedirectResponse
     {
         return $this->redirectToRoute('app_import_show', ['id' => $id], Response::HTTP_SEE_OTHER);
     }

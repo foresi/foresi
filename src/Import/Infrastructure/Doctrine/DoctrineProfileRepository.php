@@ -24,7 +24,7 @@ final readonly class DoctrineProfileRepository implements ProfileRepository
         $this->em->flush();
     }
 
-    public function find(int $id): ?ImportProfile
+    public function find(string $id): ?ImportProfile
     {
         return $this->em->find(ImportProfile::class, $id);
     }

@@ -38,7 +38,7 @@ final readonly class DoctrinePartyAddresses implements PartyAddresses
         }
 
         // A party that is not stored yet has no stored addresses.
-        if (!$this->em->contains($party) || null === $this->em->getUnitOfWork()->getSingleIdentifierValue($party)) {
+        if (!$this->em->contains($party) || $this->em->getUnitOfWork()->isScheduledForInsert($party)) {
             return false;
         }
 

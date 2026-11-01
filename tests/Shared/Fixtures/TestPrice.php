@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Shared\Fixtures;
 
+use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use App\Shared\Domain\MoneyEmbeddable;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,19 +21,19 @@ use Doctrine\ORM\Mapping as ORM;
 class TestPrice
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Embedded(class: MoneyEmbeddable::class, columnPrefix: false)]
     private MoneyEmbeddable $price;
 
     public function __construct(Money $price)
     {
+        $this->id = Id::generate();
         $this->price = MoneyEmbeddable::fromMoney($price);
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

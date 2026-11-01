@@ -18,6 +18,7 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
+use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -33,6 +34,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         PartyEmail::class => 'email',
         PartyBankAccount::class => 'bank_account',
         ContactLink::class => 'contact',
+        PartyFirmSettings::class => 'firm_settings',
     ];
 
     public function __construct(private EntityManagerInterface $em)
@@ -62,7 +64,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
     public function emails(Party $party): array
     {
         /** @var list<PartyEmail> $emails */
-        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party ORDER BY e.id')->setParameter('party', $party)->getResult();
+        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('party', $party)->getResult();
 
         return $emails;
     }
@@ -97,33 +99,54 @@ final readonly class DoctrinePartyDetails implements PartyDetails
 
     public function history(Party $party): array
     {
-        $keys = [Party::class => [(string) $party->id()]];
-        foreach ([...$this->addresses($party), ...$this->emails($party), ...$this->bankAccounts($party), ...$this->contactLinks($party)] as $child) {
-            $keys[$child::class][] = (string) $child->id();
+        $entries = $this->auditEntries('a.rootClass = :class AND a.rootId IN (:ids)', Party::class, [$party->id()]);
+        // The person's side of a contact link is read by the links the person has now.
+        /** @var list<string> $links */
+        $links = $this->em->createQuery('SELECT l.id FROM '.ContactLink::class.' l WHERE l.person = :party')->setParameter('party', $party)->getSingleColumnResult();
+        if ([] !== $links) {
+            $entries = $this->merged($entries, $this->auditEntries('a.entityClass = :class AND a.entityId IN (:ids)', ContactLink::class, $links));
         }
 
-        $conditions = [];
-        $parameters = [];
-        $index = 0;
-        foreach ($keys as $class => $ids) {
-            $conditions[] = sprintf('(a.entityClass = :class%1$d AND a.entityId IN (:ids%1$d))', $index);
-            $parameters['class'.$index] = $class;
-            $parameters['ids'.$index] = $ids;
-            ++$index;
-        }
+        return array_map(
+            static fn (AuditEntry $entry): PartyHistoryEntry => new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes())),
+            $entries,
+        );
+    }
 
-        $query = $this->em->createQuery('SELECT a FROM '.AuditEntry::class.' a WHERE '.implode(' OR ', $conditions).' ORDER BY a.occurredAt DESC, a.id DESC')->setMaxResults(self::HISTORY_LIMIT);
-        foreach ($parameters as $name => $value) {
-            $query->setParameter($name, $value);
-        }
-
-        $history = [];
+    /**
+     * @param list<string> $ids
+     *
+     * @return list<AuditEntry>
+     */
+    private function auditEntries(string $condition, string $class, array $ids): array
+    {
         /** @var list<AuditEntry> $entries */
-        $entries = $query->getResult();
-        foreach ($entries as $entry) {
-            $history[] = new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes()));
-        }
+        $entries = $this->em->createQuery('SELECT a FROM '.AuditEntry::class.' a WHERE '.$condition.' ORDER BY a.occurredAt DESC, a.id DESC')
+            ->setMaxResults(self::HISTORY_LIMIT)
+            ->setParameter('class', $class)
+            ->setParameter('ids', $ids)
+            ->getResult();
 
-        return $history;
+        return $entries;
+    }
+
+    /**
+     * Two queries instead of an OR, so each one can use its own index. An entry
+     * both found counts once.
+     *
+     * @param list<AuditEntry> $first
+     * @param list<AuditEntry> $second
+     *
+     * @return list<AuditEntry>
+     */
+    private function merged(array $first, array $second): array
+    {
+        $byId = [];
+        foreach ([...$first, ...$second] as $entry) {
+            $byId[$entry->id()] = $entry;
+        }
+        usort($byId, static fn (AuditEntry $a, AuditEntry $b): int => [$b->occurredAt(), $b->id()] <=> [$a->occurredAt(), $a->id()]);
+
+        return \array_slice($byId, 0, self::HISTORY_LIMIT);
     }
 }

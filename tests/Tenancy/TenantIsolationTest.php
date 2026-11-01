@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\NoActiveTenant;
 use App\Tenancy\Application\TenantAlreadySet;
 use App\Tenancy\Application\TenantContext;
@@ -292,8 +293,8 @@ final class TenantIsolationTest extends KernelTestCase
 
     /**
      * Tenant A: note a1 with attachment a-att. Tenant B: note b1 with b-att,
-     * plus an attachment of tenant B pointing at A's note (cross-tenant FK,
-     * possible until foreign keys are validated per relation).
+     * plus an attachment of tenant B pointing at A's note (a cross-tenant FK,
+     * which only raw SQL can still produce).
      *
      * @return array{TenantId, TenantId}
      */
@@ -313,8 +314,15 @@ final class TenantIsolationTest extends KernelTestCase
         $noteB = new TestNote('b1');
         $this->em->persist($noteB);
         $this->em->persist(new TestAttachment($noteB, 'b-att'));
-        $this->em->persist(new TestAttachment($this->em->getReference(TestNote::class, $noteAId) ?? throw new \LogicException('Note A is missing.'), 'b-on-a'));
         $this->em->flush();
+
+        // Written by SQL: the entity layer refuses such a reference (TenantReferenceTest).
+        $this->em->getConnection()->insert('test_attachment', [
+            'id' => Id::generate(),
+            'tenant_id' => $b->toString(),
+            'note_id' => $noteAId,
+            'label' => 'b-on-a',
+        ]);
 
         return [$a, $b];
     }

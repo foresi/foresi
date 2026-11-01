@@ -113,7 +113,7 @@ final readonly class PartyImportTarget implements ImportTarget
         $field = $this->field(...);
 
         return [
-            $field('id', FieldType::Integer, ['id']),
+            $field('id', FieldType::Uuid, ['id']),
             $field('display_name', FieldType::Text, ['nazev', 'nazev firmy', 'firma', 'obchodni jmeno', 'name', 'company', 'company name'], required: true),
             $field('kind', FieldType::Choice, ['druh', 'typ', 'kind', 'type'], choices: array_map(static fn (PartyKind $kind): string => $kind->value, PartyKind::cases()), choiceNames: $this->kindNames()),
             $field('registration_number', FieldType::Identifier, ['ic', 'ico', 'registration number', 'company id']),
@@ -198,7 +198,7 @@ final readonly class PartyImportTarget implements ImportTarget
         $row = $this->read($values);
 
         return match ($matchKey) {
-            'id' => \is_int($values['id'] ?? null) ? (string) $values['id'] : null,
+            'id' => \is_string($values['id'] ?? null) ? $values['id'] : null,
             'registration_number' => $row->registrationNumber instanceof RegistrationNumber ? $row->registrationNumber->countryCode.' '.$row->registrationNumber->normalised() : null,
             'vat_id' => $row->vatId?->toString(),
             'email' => null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail),
@@ -209,24 +209,26 @@ final readonly class PartyImportTarget implements ImportTarget
     public function match(string $matchKey, array $values): array
     {
         $row = $this->read($values);
-        [$where, $parameter] = match ($matchKey) {
-            'id' => ['p.id = :value', \is_int($values['id'] ?? null) ? $values['id'] : null],
-            'registration_number' => ['p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
-            'vat_id' => ['p.vatId = :value', $row->vatId?->toString()],
+        $party = 'p.id, p.archivedAt FROM '.Party::class.' p';
+        [$dql, $parameter] = match ($matchKey) {
+            'id' => ['SELECT '.$party.' WHERE p.id = :value', \is_string($values['id'] ?? null) ? $values['id'] : null],
+            'registration_number' => ['SELECT '.$party.' WHERE p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
+            'vat_id' => ['SELECT '.$party.' WHERE p.vatId = :value', $row->vatId?->toString()],
             // A contact person often shares the company's address; like activeIds(), the match is about the company.
-            'email' => ['p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :value)'
+            // A join, so the search starts at the e-mail's index: SQLite would walk the tenant's parties for an IN of a text key, once per row.
+            'email' => ['SELECT DISTINCT '.$party.' JOIN '.PartyEmail::class.' e WITH e.party = p WHERE e.addressKey = :value AND e.legalEntity IS NULL'
                 .' AND NOT EXISTS (SELECT 1 FROM '.ContactLink::class.' l WHERE l.person = p)', null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail)],
             default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
         };
         if (null === $parameter) {
             return [];
         }
-        $query = $this->em->createQuery('SELECT p.id, p.archivedAt FROM '.Party::class.' p WHERE '.$where.' ORDER BY p.id')->setParameter('value', $parameter);
+        $query = $this->em->createQuery($dql.' ORDER BY p.id')->setParameter('value', $parameter);
         if ('registration_number' === $matchKey) {
             $query->setParameter('country', $row->registrationNumber?->countryCode);
         }
 
-        /** @var list<array{id: int, archivedAt: \DateTimeImmutable|null}> $found */
+        /** @var list<array{id: string, archivedAt: \DateTimeImmutable|null}> $found */
         $found = $query->getArrayResult();
 
         return array_map(static fn (array $party): RecordMatch => new RecordMatch($party['id'], null !== $party['archivedAt']), $found);
@@ -243,15 +245,15 @@ final readonly class PartyImportTarget implements ImportTarget
         $persons = $added['persons'] ?? [];
 
         // A created party is archived by an undo, and so are the contact persons it brought.
-        $snapshot = ['created' => true, 'children' => $this->children([$this->id($party), ...$persons])];
+        $snapshot = ['created' => true];
         if ([] !== $persons) {
             $snapshot['added'] = ['persons' => $persons];
         }
 
-        return new WriteResult($this->id($party), new RecordSnapshot($snapshot));
+        return new WriteResult($party->id(), new RecordSnapshot($snapshot));
     }
 
-    public function update(int $id, array $values, BlankCells $blankCells): WriteResult
+    public function update(string $id, array $values, BlankCells $blankCells): WriteResult
     {
         $party = $this->party($id);
         $billing = $this->details->billingAddress($party);
@@ -263,28 +265,28 @@ final readonly class PartyImportTarget implements ImportTarget
         $this->updateParty->update($party, $this->reader->merge($party, $billing?->address(), $general?->address() ?? '', $row, BlankCells::Clear === $blankCells));
         $added = $this->addChildren($party, $row);
         if (!$general instanceof PartyEmail && ($new = $this->details->generalEmail($party)) instanceof PartyEmail) {
-            $added['emails'][] = $this->childId($new);
+            $added['emails'][] = $new->id();
         }
         if ($party->vatId() instanceof VatId && $this->identifiers($party) !== $identifiers) {
             $this->recheck($party);
         }
 
-        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added, 'children' => $this->children([$id, ...$added['persons'] ?? []])]));
+        return new WriteResult($id, new RecordSnapshot($before + ['added' => $added]));
     }
 
-    public function restoreArchived(int $id): void
+    public function restoreArchived(string $id): void
     {
         $this->archiveParty->restore([$this->party($id)]);
     }
 
-    public function archive(int $id): RecordSnapshot
+    public function archive(string $id): RecordSnapshot
     {
         $this->archiveParty->archive([$this->party($id)]);
 
         return new RecordSnapshot(['archived' => false]);
     }
 
-    public function revert(int $id, RecordSnapshot $before): void
+    public function revert(string $id, RecordSnapshot $before): void
     {
         $party = $this->party($id);
         $data = $before->data;
@@ -312,20 +314,22 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * The party, the persons the write created, the children they have now and
-     * the children they had right after the write: a child removed since then
-     * is found by its id.
+     * The party and the persons the write created, with everything that belongs
+     * to them: a child removed since then is found by its party's history. A
+     * snapshot written before entries carried a root also names the children by
+     * id; those ids are read too, for the entries that predate the root.
      */
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         $added = $this->added($before);
+
         $noted = \is_array($before->data['children'] ?? null) ? $before->data['children'] : [];
-        $known = [];
+        $legacy = [];
         foreach (self::CHILDREN as $key => $class) {
-            $known[$class] = [...$this->ids($added[$key] ?? []), ...$this->ids($noted[$key] ?? [])];
+            $legacy[$class] = [...$this->ids($added[$key] ?? []), ...$this->ids($noted[$key] ?? [])];
         }
 
-        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $known, $since, $exceptCorrelationIds);
+        return $this->changes->changedSince([$id, ...$this->ids($added['persons'] ?? [])], $legacy, $since, $exceptCorrelationIds);
     }
 
     /**
@@ -382,39 +386,17 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * The ids of the children of the parties, by the keys of CHILDREN.
-     *
-     * @param list<int> $partyIds
-     *
-     * @return array<string, list<int>>
-     */
-    private function children(array $partyIds): array
-    {
-        $byClass = $this->changes->childrenOf($partyIds);
-        $children = [];
-        foreach (self::CHILDREN as $key => $class) {
-            if (isset($byClass[$class])) {
-                $children[$key] = $byClass[$class];
-            }
-        }
-
-        return $children;
-    }
-
-    /**
      * Contact persons of a company stand with their company: a full replace never archives them on its own.
      */
     public function activeIds(): iterable
     {
-        /** @var list<int|string> $ids */
+        /** @var list<string> $ids */
         $ids = $this->em->createQuery(
             'SELECT p.id FROM '.Party::class.' p WHERE p.archivedAt IS NULL'
             .' AND NOT EXISTS (SELECT 1 FROM '.ContactLink::class.' l WHERE l.person = p) ORDER BY p.id',
         )->getSingleColumnResult();
 
-        foreach ($ids as $id) {
-            yield (int) $id;
-        }
+        return $ids;
     }
 
     public function export(array $ids): iterable
@@ -432,7 +414,7 @@ final readonly class PartyImportTarget implements ImportTarget
      * there is none) and the contact person, found among the company's persons
      * by e-mail or name, or created.
      *
-     * @return array<string, list<int>> the ids of what was added, by kind
+     * @return array<string, list<string>> the ids of what was added, by kind
      */
     private function addChildren(Party $party, ImportedParty $row): array
     {
@@ -440,14 +422,14 @@ final readonly class PartyImportTarget implements ImportTarget
         $addresses = $this->deliveryAddress($party, $row->deliveryAddress);
         $accounts = $this->bankAccount($party, $row->iban, $row->bic);
         [$links, $persons] = $this->contactPerson($party, $row);
-        // Bank accounts and contact persons are stored by their services; e-mails and addresses need their ids.
+        // Bank accounts and contact persons are stored by their services; e-mails and addresses are stored here.
         if ([] !== $emails || [] !== $addresses) {
             $this->em->flush();
         }
 
         return array_filter([
-            'emails' => array_map($this->childId(...), $emails),
-            'addresses' => array_map($this->childId(...), $addresses),
+            'emails' => array_map(static fn (PartyEmail $email): string => $email->id(), $emails),
+            'addresses' => array_map(static fn (PartyAddress $address): string => $address->id(), $addresses),
             'bankAccounts' => $accounts,
             'contactLinks' => $links,
             'persons' => $persons,
@@ -502,7 +484,7 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * @return list<int>
+     * @return list<string>
      */
     private function bankAccount(Party $party, ?Iban $iban, ?string $bic): array
     {
@@ -519,11 +501,11 @@ final readonly class PartyImportTarget implements ImportTarget
         $account = new PartyBankAccount($party, $iban, $bic, '', !$primary);
         $this->bankAccounts->add($account);
 
-        return [$this->childId($account)];
+        return [$account->id()];
     }
 
     /**
-     * @return array{list<int>, list<int>} the ids of the new link and of the new person
+     * @return array{list<string>, list<string>} the ids of the new link and of the new person
      */
     private function contactPerson(Party $company, ImportedParty $row): array
     {
@@ -554,7 +536,7 @@ final readonly class PartyImportTarget implements ImportTarget
         ));
         $link = $this->linkContactPerson->link($company, $person, $contact->position, !array_any($links, static fn (ContactLink $link): bool => $link->isPrimary()));
 
-        return [[$this->childId($link)], [$this->id($person)]];
+        return [[$link->id()], [$person->id()]];
     }
 
     /**
@@ -627,7 +609,7 @@ final readonly class PartyImportTarget implements ImportTarget
         }
 
         $general = $data['generalEmail'] ?? null;
-        if (\is_array($general) && \is_int($general['id'] ?? null) && \is_string($general['address'] ?? null)) {
+        if (\is_array($general) && \is_string($general['id'] ?? null) && \is_string($general['address'] ?? null)) {
             $email = $this->em->find(PartyEmail::class, $general['id']);
             $email?->change($general['address'], EmailPurpose::General);
         }
@@ -661,7 +643,7 @@ final readonly class PartyImportTarget implements ImportTarget
         $defaults = $party->invoicingDefaults();
 
         return [
-            'id' => (string) $this->id($party),
+            'id' => $party->id(),
             'display_name' => $party->displayName(),
             'kind' => $this->translator->trans('party.kind.'.$party->kind()->value),
             'registration_number' => $registration->value ?? '',
@@ -711,22 +693,12 @@ final readonly class PartyImportTarget implements ImportTarget
 
     private function recheck(Party $party): void
     {
-        $this->bus->dispatch(new RecheckRegistry($this->id($party), $this->correlation->current()));
+        $this->bus->dispatch(new RecheckRegistry($party->id(), $this->correlation->current()));
     }
 
-    private function party(int $id): Party
+    private function party(string $id): Party
     {
-        return $this->parties->find($id) ?? throw new \DomainException(\sprintf('There is no contact %d.', $id));
-    }
-
-    private function id(Party $party): int
-    {
-        return $party->id() ?? throw new \LogicException('The party is not stored.');
-    }
-
-    private function childId(PartyEmail|PartyAddress|PartyBankAccount|ContactLink $child): int
-    {
-        return $child->id() ?? throw new \LogicException('The child is not stored.');
+        return $this->parties->find($id) ?? throw new \DomainException(\sprintf('There is no contact %s.', $id));
     }
 
     /**
@@ -742,10 +714,10 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * @return list<int>
+     * @return list<string>
      */
     private function ids(mixed $ids): array
     {
-        return \is_array($ids) ? array_values(array_filter($ids, \is_int(...))) : [];
+        return \is_array($ids) ? array_values(array_filter($ids, \is_string(...))) : [];
     }
 }

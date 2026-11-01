@@ -10,6 +10,7 @@ namespace App\Tests\Audit\Fixtures;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,9 +24,8 @@ use Doctrine\ORM\Mapping as ORM;
 class AuditedSecret implements TenantOwned, Audited
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -37,6 +37,7 @@ class AuditedSecret implements TenantOwned, Audited
         #[AuditExcluded]
         private string $secret,
     ) {
+        $this->id = Id::generate();
     }
 
     public function changeSecret(string $secret): void
@@ -49,7 +50,7 @@ class AuditedSecret implements TenantOwned, Audited
         $this->label = $label;
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }

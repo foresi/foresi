@@ -28,11 +28,11 @@ final class ExportRecordsTest extends TestCase
         $writer = new CollectingWriter();
 
         new ExportRecords(new TargetRegistry([$target]), $writer)->write('thing', (static function (): \Generator {
-            yield from range(1, 1201);
+            yield from array_map(strval(...), range(1, 1201));
         })(), SourceFormat::Xlsx, 'php://output');
 
         self::assertSame([ExportRecords::BATCH, ExportRecords::BATCH, 201], array_map(count(...), $target->batches));
-        self::assertSame(range(1, 1201), array_merge(...$target->batches));
+        self::assertSame(array_map(strval(...), range(1, 1201)), array_merge(...$target->batches));
         self::assertEquals($target->fields(), $writer->fields);
         self::assertCount(1201, $writer->rows);
         self::assertSame(['name' => 'Thing 1201'], $writer->rows[1200]);
@@ -56,7 +56,7 @@ final class ExportRecordsTest extends TestCase
         $target = new RecordingTarget();
         $writer = new CollectingWriter();
 
-        new ExportRecords(new TargetRegistry([$target]), $writer)->write('thing', range(1, ExportRecords::BATCH), SourceFormat::Csv, 'php://output');
+        new ExportRecords(new TargetRegistry([$target]), $writer)->write('thing', array_map(strval(...), range(1, ExportRecords::BATCH)), SourceFormat::Csv, 'php://output');
 
         self::assertCount(1, $target->batches);
         self::assertCount(ExportRecords::BATCH, $writer->rows);
@@ -92,7 +92,7 @@ final class CollectingWriter implements ExportWriter
 
 final class RecordingTarget implements ImportTarget
 {
-    /** @var list<list<int>> */
+    /** @var list<list<string>> */
     public array $batches = [];
 
     public function key(): string
@@ -140,28 +140,28 @@ final class RecordingTarget implements ImportTarget
 
     public function create(array $values): WriteResult
     {
-        return new WriteResult(1, RecordSnapshot::none());
+        return new WriteResult('019a0000-0000-7000-8000-000000000001', RecordSnapshot::none());
     }
 
-    public function update(int $id, array $values, BlankCells $blankCells): WriteResult
+    public function update(string $id, array $values, BlankCells $blankCells): WriteResult
     {
         return new WriteResult($id, RecordSnapshot::none());
     }
 
-    public function restoreArchived(int $id): void
+    public function restoreArchived(string $id): void
     {
     }
 
-    public function archive(int $id): RecordSnapshot
+    public function archive(string $id): RecordSnapshot
     {
         return RecordSnapshot::none();
     }
 
-    public function revert(int $id, RecordSnapshot $before): void
+    public function revert(string $id, RecordSnapshot $before): void
     {
     }
 
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
     {
         return false;
     }

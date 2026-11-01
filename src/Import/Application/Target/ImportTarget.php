@@ -68,18 +68,18 @@ interface ImportTarget
      *
      * @return WriteResult carries the snapshot from before the change
      */
-    public function update(int $id, array $values, BlankCells $blankCells): WriteResult;
+    public function update(string $id, array $values, BlankCells $blankCells): WriteResult;
 
-    public function restoreArchived(int $id): void;
+    public function restoreArchived(string $id): void;
 
-    public function archive(int $id): RecordSnapshot;
+    public function archive(string $id): RecordSnapshot;
 
     /**
      * Puts the record back as the snapshot describes it. A record the import
      * created is archived; its before-state is RecordSnapshot::none(), or what
      * the target noted to undo along with it.
      */
-    public function revert(int $id, RecordSnapshot $before): void;
+    public function revert(string $id, RecordSnapshot $before): void;
 
     /**
      * Whether the record, or anything that belongs to it, changed at or after
@@ -89,10 +89,10 @@ interface ImportTarget
      * @param RecordSnapshot $before               the snapshot the write returned, which may name what it added
      * @param list<string>   $exceptCorrelationIds
      */
-    public function changedSince(int $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool;
+    public function changedSince(string $id, RecordSnapshot $before, \DateTimeImmutable $since, array $exceptCorrelationIds): bool;
 
     /**
-     * @return iterable<int> ids of all non-archived records
+     * @return iterable<string> ids of all non-archived records
      */
     public function activeIds(): iterable;
 
@@ -101,7 +101,7 @@ interface ImportTarget
      * once the batch is yielded. Values are text in the user's locale, in the
      * form the import reads back.
      *
-     * @param list<int> $ids
+     * @param list<string> $ids
      *
      * @return iterable<array<string, string>> export rows by field key
      */

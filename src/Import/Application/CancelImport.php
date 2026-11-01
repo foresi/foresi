@@ -27,7 +27,7 @@ final readonly class CancelImport
     /**
      * @throws ImportRefused
      */
-    public function cancel(int $importId): void
+    public function cancel(string $importId): void
     {
         $this->imports->transactional(function () use ($importId): void {
             $import = $this->imports->findLocked($importId) ?? throw ImportRefused::notFound();

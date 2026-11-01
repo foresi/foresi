@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Domain;
 
+use App\Shared\Domain\Id;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -26,9 +27,8 @@ use Doctrine\ORM\Mapping as ORM;
 class ImportRow implements TenantOwned
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+    #[ORM\Column(type: 'guid')]
+    private string $id;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -40,8 +40,8 @@ class ImportRow implements TenantOwned
     #[ORM\Column(type: 'json')]
     private array $errors = [];
 
-    #[ORM\Column(name: 'record_id', type: 'integer', nullable: true)]
-    private ?int $recordId = null;
+    #[ORM\Column(name: 'record_id', type: 'guid', nullable: true)]
+    private ?string $recordId = null;
 
     /** @var array<string, mixed>|null the record before the import changed it */
     #[ORM\Column(type: 'json', nullable: true)]
@@ -71,12 +71,13 @@ class ImportRow implements TenantOwned
         #[ORM\Column(type: 'json')]
         private readonly array $raw,
     ) {
+        $this->id = Id::generate();
         if ($rowNumber < 1) {
             throw new \InvalidArgumentException('A row number starts at 1.');
         }
     }
 
-    public function id(): ?int
+    public function id(): string
     {
         return $this->id;
     }
@@ -125,7 +126,7 @@ class ImportRow implements TenantOwned
         );
     }
 
-    public function recordId(): ?int
+    public function recordId(): ?string
     {
         return $this->recordId;
     }
@@ -185,7 +186,7 @@ class ImportRow implements TenantOwned
     /**
      * @param array<string, mixed>|null $before the record as it was, as plain data
      */
-    public function record(?int $recordId, ?array $before): void
+    public function record(?string $recordId, ?array $before): void
     {
         $this->recordId = $recordId;
         $this->before = $before;
