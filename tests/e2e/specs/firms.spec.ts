@@ -142,7 +142,7 @@ test.describe.serial('an owner manages firms', () => {
     });
   });
 
-  // Fixme until Martin approves the screens: without a baseline the assertion can only fail.
+  // Fixme until the screens are approved: without a baseline the assertion can only fail.
   // Drop the fixme and generate the baselines with --update-snapshots after the approval.
   test.fixme('the list looks as approved @visual', async ({ page }) => {
     await page.goto('/settings/firms');
