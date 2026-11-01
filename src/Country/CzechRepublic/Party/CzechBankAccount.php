@@ -20,6 +20,22 @@ use App\Party\Domain\InvalidIban;
  */
 final class CzechBankAccount implements DomesticBankAccount
 {
+    /**
+     * The domestic account in a Czech IBAN: "19-123457" and "0300". Nothing for any other IBAN.
+     *
+     * @return array{number: string, bankCode: string}|null
+     */
+    public static function partsOf(string $iban): ?array
+    {
+        if (1 !== preg_match('/^CZ\d{2}(\d{4})(\d{6})(\d{10})\z/', $iban, $parts)) {
+            return null;
+        }
+        $prefix = ltrim($parts[2], '0');
+        $number = ltrim($parts[3], '0');
+
+        return ['number' => ('' === $prefix ? '' : $prefix.'-').$number, 'bankCode' => $parts[1]];
+    }
+
     public function supports(string $countryCode): bool
     {
         return 'CZ' === $countryCode;

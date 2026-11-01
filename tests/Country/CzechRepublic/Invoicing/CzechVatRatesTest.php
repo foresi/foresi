@@ -11,6 +11,7 @@ namespace App\Tests\Country\CzechRepublic\Invoicing;
 use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
 use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
 use App\Country\CzechRepublic\Invoicing\CzechVatRates;
+use App\Country\CzechRepublic\Invoicing\IsdocWriter;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\SupplyCode;
 use App\Invoicing\Application\UnsupportedCountry;
@@ -48,7 +49,7 @@ final class CzechVatRatesTest extends TestCase
 
     public function testTheCountryAnswersForCzechia(): void
     {
-        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes());
+        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
 
         self::assertTrue($country->supports('CZ'));
         self::assertFalse($country->supports('SK'));
@@ -62,7 +63,7 @@ final class CzechVatRatesTest extends TestCase
 
     public function testTheRegistryFindsTheCountryAndRefusesAnother(): void
     {
-        $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes());
+        $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
         $countries = new InvoicingCountries([$czech]);
 
         self::assertSame($czech, $countries->for('CZ'));
@@ -104,17 +105,12 @@ final class CzechVatRatesTest extends TestCase
         }
     }
 
-    public function testThePaymentCodeAndTheElectronicFileAreFilledByLaterSteps(): void
+    public function testThePaymentCodeIsFilledByALaterStep(): void
     {
-        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes());
+        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
         $document = new \ReflectionClass(\App\Invoicing\Application\IssuedDocument::class)->newInstanceWithoutConstructor();
 
-        try {
-            $country->paymentCode($document);
-            self::fail('Expected a LogicException.');
-        } catch (\LogicException) {
-        }
         $this->expectException(\LogicException::class);
-        $country->electronicFile($document);
+        $country->paymentCode($document);
     }
 }

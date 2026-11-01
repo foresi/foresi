@@ -9,6 +9,8 @@
 parameters:
     # The product name shown on every page; the only place it is defined.
     app.product_name: Foresi
+    # The released version, named as the issuing system in electronic documents. A release sets it.
+    app.version: 0.4.0
     # Uploaded import sources; never below public/, tenant directories inside.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
     # Logos and stamps; never below public/. From the kernel, not from the environment
@@ -56,6 +58,10 @@ services:
     App\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
+
+    App\Country\CzechRepublic\Invoicing\IsdocWriter:
+        arguments:
+            $issuingSystem: '%app.product_name% %app.version%'
 
     App\Party\Infrastructure\Http\FilesystemFirmImages:
         arguments:

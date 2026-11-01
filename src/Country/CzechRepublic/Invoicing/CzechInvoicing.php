@@ -21,7 +21,7 @@ use App\Shared\Domain\Currency;
  */
 final readonly class CzechInvoicing implements InvoicingCountry
 {
-    public function __construct(private CzechVatRates $rates, private CzechSupplyCodes $supplyCodes)
+    public function __construct(private CzechVatRates $rates, private CzechSupplyCodes $supplyCodes, private IsdocWriter $isdoc)
     {
     }
 
@@ -63,11 +63,8 @@ final readonly class CzechInvoicing implements InvoicingCountry
         throw new \LogicException('The Czech payment code is not built yet.');
     }
 
-    /**
-     * Filled by the ISDOC step.
-     */
-    public function electronicFile(IssuedDocument $document): ?ElectronicFile
+    public function electronicFile(IssuedDocument $document): ElectronicFile
     {
-        throw new \LogicException('The Czech electronic file is not built yet.');
+        return new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml');
     }
 }

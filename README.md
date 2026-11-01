@@ -29,6 +29,7 @@ Foresi is at an early stage. Interfaces and data structures may change without n
 ```bash
 composer install
 bin/console about
+composer isdoc:schema   # the ISDOC schema for the tests, fetched and checked by SHA-256, never committed
 composer qa
 ```
 

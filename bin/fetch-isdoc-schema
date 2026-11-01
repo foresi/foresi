@@ -1,0 +1,62 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Downloads the ISDOC 6.0.2 schema into var/isdoc-schema/, for the tests. The package
+ * states no licence, so it is never committed. Its SHA-256 is pinned here: another
+ * file is refused and nothing is unpacked.
+ *
+ * Usage: bin/fetch-isdoc-schema
+ */
+
+const URL = 'https://isdoc.cz/dist/isdoc-schema-6.0.2-20220323.zip';
+const SHA256 = '028e248a39f23e18d2ecdfa41b6d36ef62488221ee48a4b729e47cc09898cfda';
+const ENTRY = 'xsd/isdoc-invoice-6.0.2.xsd';
+
+$target = dirname(__DIR__).'/var/isdoc-schema';
+$archive = $target.'/isdoc-schema.zip';
+
+if (!is_dir($target) && !mkdir($target, 0o755, true) && !is_dir($target)) {
+    fwrite(\STDERR, "The directory $target cannot be created.\n");
+    exit(1);
+}
+
+if (!is_file($archive) || SHA256 !== hash_file('sha256', $archive)) {
+    $context = stream_context_create(['http' => ['timeout' => 60, 'follow_location' => 1]]);
+    $bytes = @file_get_contents(URL, false, $context);
+    if (false === $bytes) {
+        fwrite(\STDERR, 'The schema cannot be downloaded from '.URL."\n");
+        exit(1);
+    }
+    $actual = hash('sha256', $bytes);
+    if (SHA256 !== $actual) {
+        fwrite(\STDERR, "Refused: the file has SHA-256 $actual, expected ".SHA256."\n");
+        exit(1);
+    }
+    file_put_contents($archive, $bytes);
+}
+
+$zip = new ZipArchive();
+if (true !== $zip->open($archive)) {
+    fwrite(\STDERR, "The archive cannot be opened.\n");
+    exit(1);
+}
+$schemas = [];
+for ($index = 0; $index < $zip->numFiles; ++$index) {
+    $name = (string) $zip->getNameIndex($index);
+    if (1 === preg_match('~^xsd/[a-z0-9.-]+\.xsd$~D', $name)) {
+        $schemas[] = $name;
+    }
+}
+$zip->extractTo($target, $schemas);
+$zip->close();
+
+if (!is_file($target.'/'.ENTRY)) {
+    fwrite(\STDERR, 'The archive holds no '.ENTRY."\n");
+    exit(1);
+}
+
+echo 'ISDOC schema ready in '.$target."/xsd\n";
