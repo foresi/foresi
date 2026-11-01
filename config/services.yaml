@@ -191,6 +191,17 @@ when@test:
             alias: App\Import\Infrastructure\LocalImportFiles
             public: true
 
+        # Public for the tests and the worker of the parallel counter test, which use the ports directly.
+        App\Invoicing\Application\NumberCounter:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter
+            public: true
+        App\Invoicing\Application\SeriesCatalog:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog
+            public: true
+        App\Party\Application\TransactionalWork:
+            alias: App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork
+            public: true
+
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~
         App\Tests\Ui\Support\ShellProbeController: ~

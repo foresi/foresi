@@ -12,6 +12,8 @@ use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesCounter;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -48,7 +50,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class] as $class) {
             yield $class => [$class];
         }
     }

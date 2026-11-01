@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- SQLite 3.35 or newer is required, for the atomic counter of number series.
 - The firm sections of the contact form are replaced by a scope per panel. With two or more active firms, the panels for roles, document defaults, invoicing e-mails and archive state have a dropdown: all firms, or one firm. A firm can use the shared values or have its own, for example a supplier for one firm and a customer for the other. Everything is saved with the form. A contact archived for all firms stays archived for every firm. The address book list stays on the shared values.
 - All firms now edits the document defaults, invoicing e-mails and archive state a contact shares, which the form did not offer before.
 
