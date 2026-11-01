@@ -1,11 +1,10 @@
 {
     // SPDX-License-Identifier: AGPL-3.0-only
     //
-    // This is the fast run used on pull requests. With the default timeout of 10 seconds Infection
-    // skips every mutant whose covering tests take longer than that, which is most of them for code
-    // that many integration tests touch, so the score covers only part of the mutants. The weekly
-    // run (.github/workflows/mutation.yml, infection.full.json5) skips none. Keep the two files in
-    // step: they differ only in "timeout" and the log path.
+    // The timeout is raised from the default of 10 seconds on purpose. With the default, Infection
+    // skips every mutant whose covering tests take longer than that (most of them for code that many
+    // integration tests touch) and leaves them out of the score. At 120 seconds none is skipped, so
+    // the run is slow but the score counts every mutant.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"],
@@ -14,6 +13,7 @@
     "phpUnit": {
         "configDir": "."
     },
+    "timeout": 120,
     "logs": {
         "text": "var/infection/infection.log"
     },
