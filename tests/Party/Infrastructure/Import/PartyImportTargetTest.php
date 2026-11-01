@@ -278,6 +278,16 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
     }
 
+    public function testAContactWithTheSameAddressTwiceIsOneMatch(): void
+    {
+        $values = $this->values(['email' => ['office@example.com']]);
+        $id = $this->create($values)->id;
+        $this->em->persist(new PartyEmail($this->find($id), 'Office@example.com', EmailPurpose::Invoices));
+        $this->em->flush();
+
+        self::assertEquals([new RecordMatch($id, false)], $this->target->match('email', $values));
+    }
+
     public function testTheTargetOfOneTenantNeverMatchesTheRecordsOfAnother(): void
     {
         $id = $this->create($this->values(['vat_id' => 'CZ12345687', 'email' => ['info@example.com']]))->id;

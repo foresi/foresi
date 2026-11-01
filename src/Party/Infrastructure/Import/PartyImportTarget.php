@@ -209,19 +209,21 @@ final readonly class PartyImportTarget implements ImportTarget
     public function match(string $matchKey, array $values): array
     {
         $row = $this->read($values);
-        [$where, $parameter] = match ($matchKey) {
-            'id' => ['p.id = :value', \is_string($values['id'] ?? null) ? $values['id'] : null],
-            'registration_number' => ['p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
-            'vat_id' => ['p.vatId = :value', $row->vatId?->toString()],
+        $party = 'p.id, p.archivedAt FROM '.Party::class.' p';
+        [$dql, $parameter] = match ($matchKey) {
+            'id' => ['SELECT '.$party.' WHERE p.id = :value', \is_string($values['id'] ?? null) ? $values['id'] : null],
+            'registration_number' => ['SELECT '.$party.' WHERE p.registrationCountry = :country AND p.registrationKey = :value', $row->registrationNumber?->normalised()],
+            'vat_id' => ['SELECT '.$party.' WHERE p.vatId = :value', $row->vatId?->toString()],
             // A contact person often shares the company's address; like activeIds(), the match is about the company.
-            'email' => ['p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :value)'
+            // A join, so the search starts at the e-mail's index: SQLite would walk the tenant's parties for an IN of a text key, once per row.
+            'email' => ['SELECT DISTINCT '.$party.' JOIN '.PartyEmail::class.' e WITH e.party = p WHERE e.addressKey = :value'
                 .' AND NOT EXISTS (SELECT 1 FROM '.ContactLink::class.' l WHERE l.person = p)', null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail)],
             default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
         };
         if (null === $parameter) {
             return [];
         }
-        $query = $this->em->createQuery('SELECT p.id, p.archivedAt FROM '.Party::class.' p WHERE '.$where.' ORDER BY p.id')->setParameter('value', $parameter);
+        $query = $this->em->createQuery($dql.' ORDER BY p.id')->setParameter('value', $parameter);
         if ('registration_number' === $matchKey) {
             $query->setParameter('country', $row->registrationNumber?->countryCode);
         }
