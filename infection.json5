@@ -1,20 +1,21 @@
 {
     // SPDX-License-Identifier: AGPL-3.0-only
     //
-    // This is the fast run used on pull requests. With the default timeout of 10 seconds Infection
-    // skips every mutant whose covering tests take longer than that, which is most of them for code
-    // that many integration tests touch, so the score covers only part of the mutants. The weekly
-    // run (.github/workflows/mutation.yml, infection.full.json5) skips none. Keep the two files in
-    // step: they differ only in "timeout" and the log path.
+    // The timeout is raised from the default of 10 seconds on purpose. With the default, Infection
+    // skips every mutant whose covering tests take longer than that (most of them for code that many
+    // integration tests touch) and leaves them out of the score. At 120 seconds none is skipped, so
+    // the run is slow but the score counts every mutant.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"],
-        // Of the Application layers only Invoicing is mutated: its tests pin the behaviour.
-        "excludes": ["Kernel.php", "Controller", "Infrastructure", "Audit/Application", "Identity/Application", "Import/Application", "Party/Application", "Tenancy/Application"]
+        "excludes": ["Kernel.php", "Controller", "Infrastructure"]
     },
     "phpUnit": {
         "configDir": "."
     },
+    "timeout": 120,
+    // Not the shared system temp directory: two runs at once (two checkouts) would overwrite each other's coverage files.
+    "tmpDir": "var/infection",
     "logs": {
         "text": "var/infection/infection.log"
     },
@@ -44,6 +45,11 @@
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
             "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize"
         ]},
+        // Equivalent mutants in the party import: a new party starts from the standard defaults, so clearing them changes
+        // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII.
+        "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input"]},
+        "AssignCoalesce": {"ignore": ["App\\Party\\Application\\ImportPartyValues::address"]},
+        "MBString": {"ignore": ["App\\Party\\Application\\ImportPartyValues::roles"]},
         // Equivalent mutant: a seat that is not an array has no city, so it ends as no seat either way.
         "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat"]},
         // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again with the same outcome.
