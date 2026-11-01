@@ -35,6 +35,8 @@ nav:
     contacts: Address book
     firms: Firms
 ui:
+  combobox:
+    found: 'Found: {count}'
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Check this
@@ -501,6 +503,9 @@ invoice:
   firm_apply: Use this firm
   rate: '{rate}%'
   errors_title: The invoice cannot be saved yet
+  cut_off: The form was too large to arrive whole, so nothing was saved.
+  cut_off_retry: Open the form again
+  line_limit: 'An invoice has at most 100 lines.'
   errors_close: Close the list
   leave: Leave the form? What you changed will be lost.
   currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
@@ -525,6 +530,7 @@ invoice:
     placeholder: Name, registration number or e-mail
     empty: No customer found for this firm.
     add: Add
+    picked: 'Customer {name} is filled in with their defaults. Check the form and save.'
     candidates: Matching customers
     edit_here: Edit on this document
     edit_contact: Edit the contact
@@ -620,6 +626,7 @@ invoice:
     vat: VAT
     rounding: Rounding
     payable: Total
+    stale: These totals are out of date. Check the lines.
   supply_code:
     '1': Gold
     1a: Gold, brokering of investment gold
@@ -642,6 +649,10 @@ invoice:
     '20': Supply of gas through networks to a trader
     '21': Defined electronic communications services
   problem:
+    country_invalid: Choose a country from the list.
+    email_invalid: Enter a valid e-mail address.
+    constant_symbol_invalid: The constant symbol has digits only.
+    too_many_lines: 'An invoice has at most 100 lines.'
     amount_out_of_range: An amount is too large to count.
     bank_account_foreign: Choose a bank account of the firm.
     changed_meanwhile: Someone saved this invoice meanwhile, so yours was not saved.

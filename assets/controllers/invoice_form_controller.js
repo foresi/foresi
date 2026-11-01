@@ -17,7 +17,7 @@ const MAX_SYMBOL_DIGITS = 10;
 export default class extends Controller {
     static targets = [
         'line', 'lines', 'lineTemplate', 'totals', 'summaries', 'net', 'vat', 'rounding', 'roundingRow', 'payable',
-        'number', 'numberPeek', 'numberBox', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
+        'stale', 'addLine', 'lineLimit', 'dueDateSet', 'numberPeek', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
         'errors', 'paymentMethod', 'bankRow', 'language', 'customerBox', 'summary', 'contactLink', 'notice', 'noticeText', 'noScript',
     ];
 
@@ -25,6 +25,7 @@ export default class extends Controller {
         recountUrl: String, numberUrl: String, contactUrl: String, firm: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
         leave: String, registrationLabel: String, vatLabel: String, unsaved: Boolean,
+        maxLines: Number, newLineVat: String, dueDateSet: Boolean,
     };
 
     connect() {
@@ -33,10 +34,17 @@ export default class extends Controller {
         this.leaving = false;
         this.noScriptTargets.forEach((element) => { element.hidden = true; });
         this.taxPointFollows = this.taxPointDateTarget.value === this.issueDateTarget.value;
-        this.dueDateFollows = true;
+        this.dueDateFollows = !this.dueDateSetValue;
         this.symbolFollows = this.hasVariableSymbolTarget && this.variableSymbolTarget.value === this.symbolOf(this.numberPeekTarget.value);
         this.originalSeries = this.hasSeriesTarget ? this.seriesTarget.value : '';
         this.originalNumber = this.numberPeekTarget.value;
+        if (this.dirty) {
+            this.guardBack();
+        }
+        if (this.hasErrorsTarget) {
+            // After the form-errors controller has placed the first invalid field.
+            requestAnimationFrame(() => requestAnimationFrame(() => this.clearOfErrors(document.activeElement)));
+        }
     }
 
     disconnect() {
@@ -48,6 +56,7 @@ export default class extends Controller {
 
     changed() {
         this.dirty = true;
+        this.guardBack();
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.recount(), RECOUNT_DELAY);
     }
@@ -62,13 +71,14 @@ export default class extends Controller {
                 headers: { Accept: 'application/json' },
                 signal: this.request.signal,
             });
-            // A row that cannot be counted yet keeps the last figures; the save names the mistake.
+            // A row that cannot be counted yet keeps the last figures, marked as old; the save names the mistake.
+            this.staleTarget.hidden = response.ok;
             if (response.ok) {
                 this.show(await response.json());
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
-                throw error;
+                this.staleTarget.hidden = false;
             }
         }
     }
@@ -124,6 +134,7 @@ export default class extends Controller {
 
     dueDateTyped() {
         this.dueDateFollows = false;
+        this.dueDateSetTarget.value = '1';
     }
 
     daysAfter(date, days) {
@@ -155,22 +166,35 @@ export default class extends Controller {
         }
     }
 
+    // The pencil sits in the page header, outside this element.
+    get numberField() {
+        return document.getElementById('number');
+    }
+
+    outsideInput(event) {
+        if (event.target === this.numberField) {
+            this.numberTyped();
+            this.changed();
+        }
+    }
+
     // A number typed by hand stays; only the preview moves under it.
     showNumber(number) {
-        const typed = this.hasNumberTarget && this.numberTarget.value !== this.numberPeekTarget.value && this.numberTarget.value !== '';
+        const field = this.numberField;
+        const typed = field !== null && field.value !== this.numberPeekTarget.value && field.value !== '';
         this.numberPeekTarget.value = number;
         if (typed) {
             return;
         }
-        if (this.hasNumberTarget) {
-            this.numberTarget.value = number;
+        if (field !== null) {
+            field.value = number;
         }
         this.showTitle(number);
         this.followSymbol(number);
     }
 
     numberTyped() {
-        const number = this.numberTarget.value.trim() || this.numberPeekTarget.value;
+        const number = this.numberField.value.trim() || this.numberPeekTarget.value;
         this.showTitle(number);
         this.followSymbol(number);
     }
@@ -217,6 +241,7 @@ export default class extends Controller {
         this.field('customer[email]').value = customer.email ?? '';
         this.field('customer[phone]').value = '';
         this.field('customer[web]').value = '';
+        this.field('customer[registerEntry]').value = '';
         this.customerBoxTarget.classList.remove('hidden');
         this.summaryTarget.textContent = this.summaryOf(customer);
         this.contactLinkTarget.href = this.contactUrlValue.replace(/[0-9a-f-]{36}/, customer.id);
@@ -229,6 +254,7 @@ export default class extends Controller {
         this.paymentChanged();
         this.languageTarget.value = customer.language;
         if (this.payerValue) {
+            this.newLineVatValue = customer.reverseCharge ? 'reverse_charge' : 'base';
             this.vatCells().forEach((cell) => {
                 if (customer.reverseCharge) {
                     cell.value = 'reverse_charge';
@@ -279,7 +305,7 @@ export default class extends Controller {
         return Array.from(this.element.querySelectorAll('select[data-cell="vat"]'));
     }
 
-    // The code belongs to a customer of the issuer's country; another country has none.
+    // The code belongs to a customer of the issuer's country; a hidden code must not stay behind.
     showSupplyCodes() {
         const vatId = this.field('customer[vatId]').value.trim().toUpperCase();
         const domestic = vatId === '' || vatId.startsWith(this.issuerCountryValue);
@@ -287,13 +313,28 @@ export default class extends Controller {
             const box = row.querySelector('[data-supply-code]');
             if (box !== null) {
                 box.hidden = !(domestic && row.querySelector('select[data-cell="vat"]').value === 'reverse_charge');
+                if (box.hidden) {
+                    box.querySelector('select').value = '';
+                }
             }
         });
     }
 
-    addLine() {
+    newRow() {
         const row = this.lineTemplateTarget.content.firstElementChild.cloneNode(true);
+        const vat = row.querySelector('select[data-cell="vat"]');
+        if (vat !== null) {
+            vat.value = this.newLineVatValue;
+        }
         this.linesTarget.append(row);
+        return row;
+    }
+
+    addLine() {
+        if (this.lineTargets.length >= this.maxLinesValue) {
+            return;
+        }
+        const row = this.newRow();
         this.renumber();
         row.querySelector('input[data-cell="text"]').focus();
         this.changed();
@@ -301,12 +342,15 @@ export default class extends Controller {
 
     removeLine(event) {
         const row = event.currentTarget.closest('tr');
+        const index = this.lineTargets.indexOf(row);
         if (this.lineTargets.length === 1) {
-            this.linesTarget.append(this.lineTemplateTarget.content.firstElementChild.cloneNode(true));
+            this.newRow();
         }
         row.remove();
         this.renumber();
-        this.lineTargets[0].querySelector('input[data-cell="text"]').focus();
+        // The row that took its place, or the new last one.
+        const next = this.lineTargets[Math.min(index, this.lineTargets.length - 1)];
+        next.querySelector('input[data-cell="text"]').focus();
         this.changed();
     }
 
@@ -334,26 +378,46 @@ export default class extends Controller {
         this.changed();
     }
 
+    // Dragging: a row can be dragged only from its grip, and only while the button is down.
+
     armDrag(event) {
-        const row = event.currentTarget.closest('tr');
-        row.draggable = true;
-        row.addEventListener('dragstart', () => { this.dragged = row; }, { once: true });
-        row.addEventListener('dragend', () => {
-            row.draggable = false;
-            this.dragged = null;
-            this.linesTarget.removeEventListener('dragover', this.dragOver);
-            this.renumber();
-            this.changed();
-        }, { once: true });
-        this.dragOver = (over) => {
-            over.preventDefault();
-            const target = over.target.closest('tr');
-            if (target !== null && target !== this.dragged && target.parentElement === this.linesTarget) {
-                const below = over.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2;
-                target[below ? 'after' : 'before'](this.dragged);
-            }
-        };
-        this.linesTarget.addEventListener('dragover', this.dragOver);
+        event.currentTarget.closest('tr').draggable = true;
+    }
+
+    disarmDrag() {
+        if (this.dragged === undefined || this.dragged === null) {
+            this.lineTargets.forEach((row) => { row.draggable = false; });
+        }
+    }
+
+    dragStart(event) {
+        this.dragged = event.target.closest('tr');
+    }
+
+    dragOver(event) {
+        if (!this.dragged) {
+            return;
+        }
+        event.preventDefault();
+        const target = event.target.closest('tr');
+        if (target !== null && target !== this.dragged) {
+            const below = event.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2;
+            target[below ? 'after' : 'before'](this.dragged);
+        }
+    }
+
+    dragDrop() {
+        // The row is in place already; dragend tidies up.
+    }
+
+    dragEnd() {
+        if (!this.dragged) {
+            return;
+        }
+        this.dragged.draggable = false;
+        this.dragged = null;
+        this.renumber();
+        this.changed();
     }
 
     // Names, ids and buttons follow the order on screen.
@@ -371,10 +435,40 @@ export default class extends Controller {
             });
         });
         this.showSupplyCodes();
+        const full = this.lineTargets.length >= this.maxLinesValue;
+        this.addLineTarget.disabled = full;
+        this.lineLimitTarget.hidden = !full;
     }
+
+    // Errors
 
     closeErrors() {
         this.errorsTarget.remove();
+        (this.element.querySelector('[aria-invalid="true"]') ?? document.getElementById('invoice-save')).focus();
+    }
+
+    goToField(event) {
+        const field = document.getElementById(event.currentTarget.hash.slice(1));
+        if (field === null) {
+            return;
+        }
+        for (let box = field.closest('details'); box !== null; box = box.parentElement.closest('details')) {
+            box.open = true;
+        }
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ block: 'center', inline: 'nearest' });
+        this.clearOfErrors(field);
+    }
+
+    // The list floats over the form, so a field it names must end up above it.
+    clearOfErrors(field) {
+        if (!this.hasErrorsTarget || !(field instanceof HTMLElement)) {
+            return;
+        }
+        const overlap = field.getBoundingClientRect().bottom + 8 - this.errorsTarget.getBoundingClientRect().top;
+        if (overlap > 0) {
+            window.scrollBy({ top: overlap, behavior: 'instant' });
+        }
     }
 
     // Enter
@@ -386,7 +480,7 @@ export default class extends Controller {
         }
         event.preventDefault();
         const row = field.closest('tr');
-        if (row !== null && field.dataset.cell === 'discount' && row === this.lineTargets[this.lineTargets.length - 1]) {
+        if (row !== null && field.dataset.cell === 'discount' && row === this.lineTargets.at(-1)) {
             this.addLine();
         }
     }
@@ -404,6 +498,32 @@ export default class extends Controller {
             event.preventDefault();
             event.returnValue = '';
         }
+    }
+
+    // Back leaves a page without beforeunload when Turbo restores it, so a changed form
+    // stands on an extra history entry: the same page, marked. Leaving that entry asks;
+    // this runs before Turbo, which then sees nothing of a Back that stayed.
+    guardBack() {
+        if (this.guarded || history.state?.invoiceFormGuard) {
+            this.guarded = true;
+            return;
+        }
+        history.pushState({ ...history.state, invoiceFormGuard: true }, '', window.location.href);
+        this.guarded = true;
+    }
+
+    popped(event) {
+        if (!this.guarded || event.state?.invoiceFormGuard) {
+            return;
+        }
+        event.stopImmediatePropagation();
+        if (this.dirty && !this.leaving && !window.confirm(this.leaveValue)) {
+            history.pushState({ ...history.state, invoiceFormGuard: true }, '', window.location.href);
+            return;
+        }
+        this.guarded = false;
+        this.dirty = false;
+        history.back();
     }
 
     beforeVisit(event) {

@@ -1,6 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# The figures come from the server, here and in every recount; the browser only puts them in place. #}
 <div class="ml-auto grid w-full max-w-md gap-1.5" aria-live="polite" data-invoice-form-target="totals">
+    <p class="m-0 text-small font-medium text-badge-amber-text" hidden data-invoice-form-target="stale">{{ 'invoice.total.stale'|trans }}</p>
     <div class="grid gap-1 text-small text-muted{% if figures.summaries is empty %} hidden{% endif %}" data-invoice-form-target="summaries">
         {% for summary in figures.summaries %}
             <div class="flex justify-between gap-4"><span>{{ summary.label }}</span><span class="num">{{ summary.base }}{% if summary.vat %} · {{ summary.vat }}{% endif %}</span></div>

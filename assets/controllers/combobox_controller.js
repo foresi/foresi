@@ -14,7 +14,7 @@ const DELAY = 200;
  */
 export default class extends Controller {
     static targets = ['value', 'input', 'list', 'status'];
-    static values = { url: String, empty: String, minLength: { type: Number, default: 3 } };
+    static values = { url: String, empty: String, found: String, minLength: { type: Number, default: 3 } };
 
     disconnect() {
         clearTimeout(this.timer);
@@ -22,21 +22,27 @@ export default class extends Controller {
     }
 
     search() {
-        clearTimeout(this.timer);
+        this.cancel();
         if (this.valueTarget.value !== '') {
             this.valueTarget.value = '';
             this.dispatch('clear');
         }
         const query = this.inputTarget.value.trim();
         if (query.length < this.minLengthValue && !/^\d+$/.test(query.replace(/\s+/g, ''))) {
+            this.results = [];
             this.close();
             return;
         }
         this.timer = setTimeout(() => this.fetch(query), DELAY);
     }
 
-    async fetch(query) {
+    // An answer to an older text must not open the list over a newer one.
+    cancel() {
+        clearTimeout(this.timer);
         this.request?.abort();
+    }
+
+    async fetch(query) {
         this.request = new AbortController();
         const url = new URL(this.urlValue, window.location.origin);
         url.searchParams.set('q', query.slice(0, 100));
@@ -59,7 +65,7 @@ export default class extends Controller {
         this.results = results;
         this.active = -1;
         this.listTarget.replaceChildren(...results.map((result, index) => this.option(result, index)));
-        this.statusTarget.textContent = results.length === 0 ? this.emptyValue : '';
+        this.statusTarget.textContent = results.length === 0 ? this.emptyValue : this.foundValue.replace('__COUNT__', results.length);
         this.setOpen(results.length > 0);
     }
 
@@ -87,6 +93,11 @@ export default class extends Controller {
 
     navigate(event) {
         const count = this.listTarget.children.length;
+        if (this.listTarget.hidden && event.key === 'ArrowDown' && count > 0) {
+            this.setOpen(true);
+            this.activate(0, event);
+            return;
+        }
         if (this.listTarget.hidden || count === 0) {
             return;
         }
@@ -122,6 +133,7 @@ export default class extends Controller {
     }
 
     pick(result) {
+        this.cancel();
         this.valueTarget.value = result.id;
         this.inputTarget.value = result.label;
         this.close();
@@ -134,6 +146,9 @@ export default class extends Controller {
 
     setOpen(open) {
         this.listTarget.hidden = !open;
+        if (open) {
+            this.active = -1;
+        }
         this.inputTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
         if (!open) {
             this.inputTarget.removeAttribute('aria-activedescendant');

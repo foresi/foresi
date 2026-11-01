@@ -137,8 +137,15 @@ final class InvoiceController extends AbstractController
     {
         $this->denyUnlessStaff();
         $this->checkToken($request);
+        if (!$this->reader->isComplete($request)) {
+            return $this->json(['errors' => ['form']], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
         $invoiceId = $request->request->getString('invoiceId');
-        $context = '' === $invoiceId ? $this->newContext($this->firm($request->request->getString('firmId'))) : $this->storedContext($this->invoice($invoiceId));
+        try {
+            $context = '' === $invoiceId ? $this->newContext($this->firm($request->request->getString('firmId'))) : $this->storedContext($this->invoice($invoiceId));
+        } catch (UnsupportedCountry) {
+            return $this->json(['errors' => ['firm']], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $lines = $this->reader->lines($request, $context->currency);
         $errors = $lines->errors;
@@ -172,6 +179,9 @@ final class InvoiceController extends AbstractController
     private function submitNew(Request $request): Response
     {
         $this->checkToken($request);
+        if (!$this->reader->isComplete($request)) {
+            return $this->cutOff($this->generateUrl('app_invoice_new'));
+        }
         $token = $request->request->getString('_submission');
         $saved = $this->tokens->isIssued($token) ? $this->tokens->createdId($token) : null;
         if (null !== $saved) {
@@ -191,6 +201,9 @@ final class InvoiceController extends AbstractController
     private function submitEdit(Invoice $invoice, Request $request): Response
     {
         $this->checkToken($request);
+        if (!$this->reader->isComplete($request)) {
+            return $this->cutOff($this->generateUrl('app_invoice_edit', ['id' => $invoice->id()]));
+        }
         $token = $request->request->getString('_submission');
         if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
             return $this->alreadySaved($invoice->id());
@@ -200,12 +213,29 @@ final class InvoiceController extends AbstractController
         return $this->submit($request, $this->storedContext($invoice), $token);
     }
 
+    /**
+     * The end of the form never arrived, so nothing of it can be trusted to be whole.
+     */
+    private function cutOff(string $retry): Response
+    {
+        return $this->render('invoicing/form.html.twig', ['blocked' => 'cut_off', 'retry' => $retry], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
     private function submit(Request $request, InvoiceFormContext $context, string $token): Response
     {
-        $action = $request->request->getString('_action', 'save');
-        $candidates = $this->resolveCustomer($request, $context->firm, $action);
+        // Only a button issues a document: a request without one changes nothing.
+        $action = $request->request->getString('_action', 'refresh');
+        $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->withFormFields($submission->values, $context);
+
+        if (1 === \count($matches)) {
+            // A typed name is a pick, never a save: the defaults of the customer come first.
+            $this->addFlash('warning', $this->translator->trans('invoice.customer.picked', ['name' => $matches[0]->name]));
+
+            return $this->reshaped('pick:'.$matches[0]->id, $values, $submission, $context, $token);
+        }
+        $candidates = array_map(static fn (CustomerOption $option): array => ['id' => $option->id, 'name' => $option->name, 'hint' => $option->registrationNumber ?? ''], $matches);
 
         if (!\in_array($action, self::SAVING, true)) {
             return $this->reshaped($action, $values, $submission, $context, $token);
@@ -232,7 +262,7 @@ final class InvoiceController extends AbstractController
         }
 
         $this->tokens->complete($token, $saved->id());
-        $this->flashSaved($saved, $submission, null === $invoiceId);
+        $this->flashSaved($saved, $submission);
 
         return $this->redirectToSaved($saved->id());
     }
@@ -260,14 +290,14 @@ final class InvoiceController extends AbstractController
         if (str_starts_with($action, 'pick:')) {
             $party = $this->pickable(substr($action, 5));
             if ($party instanceof Party) {
-                $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate);
+                $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
             }
         } elseif ('refresh' === $action) {
             if (!$context->invoice instanceof Invoice && $values['firmId'] !== $values['firmShown']) {
                 $values = $this->values->forFirm($values, $context->firm);
             }
         } else {
-            $values = $this->values->withRowAction($values, $action, $context->regime);
+            $values = $this->values->withRowAction($values, $action, $context->regime, $this->newLinesAreReverseCharge($context, $values));
         }
 
         return $this->form($context, $values, [], [], $token, $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -279,25 +309,35 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * Without a pick, a name that fits one customer is that customer; several are
-     * offered. Runs before the reader, which takes the id from the request.
+     * The customers a name typed without a pick stands for.
      *
-     * @return list<array{id: string, name: string, hint: string}>
+     * @return list<CustomerOption>
      */
-    private function resolveCustomer(Request $request, LegalEntity $firm, string $action): array
+    private function typedCustomers(Request $request, LegalEntity $firm, string $action): array
     {
         $query = trim($request->request->getString('customerQuery'));
         if (!\in_array($action, self::SAVING, true) || '' !== $request->request->getString('customerId') || '' === $query) {
             return [];
         }
-        $options = $this->picker->search($query, $firm);
-        if (1 === \count($options)) {
-            $request->request->set('customerId', $options[0]->id);
 
-            return [];
-        }
+        return $this->picker->search($query, $firm);
+    }
 
-        return array_map(static fn (CustomerOption $option): array => ['id' => $option->id, 'name' => $option->name, 'hint' => $option->registrationNumber ?? ''], $options);
+    /**
+     * New lines follow the customer on the form, as the lines there did on the pick.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function newLinesAreReverseCharge(InvoiceFormContext $context, array $values): bool
+    {
+        $party = \is_string($values['customerId']) ? $this->pickable($values['customerId']) : null;
+
+        return $context->isPayer() && $party instanceof Party && $this->picker->option($party, $context->firm)->defaults->reverseCharge;
+    }
+
+    private function issuerCountry(InvoiceFormContext $context): string
+    {
+        return $context->invoice?->issuer()->address->countryCode ?? $context->firm->address()->countryCode;
     }
 
     /**
@@ -307,7 +347,7 @@ final class InvoiceController extends AbstractController
      */
     private function withFormFields(array $values, InvoiceFormContext $context): array
     {
-        $values['lines'] = [] === $values['lines'] ? [$this->values->emptyLine($context->regime)] : $values['lines'];
+        $values['lines'] = [] === $values['lines'] ? [$this->values->emptyLine($context->regime, false)] : $values['lines'];
         $party = \is_string($values['customerId']) ? $this->pickable($values['customerId']) : null;
         $customer = $values['customer'];
         if (!$party instanceof Party || !\is_array($customer) || '' !== $customer['name']) {
@@ -317,10 +357,10 @@ final class InvoiceController extends AbstractController
         return $this->values->withCustomerShown($values, $this->picker->option($party, $context->firm));
     }
 
-    private function flashSaved(Invoice $saved, InvoiceSubmission $submission, bool $isNew): void
+    private function flashSaved(Invoice $saved, InvoiceSubmission $submission): void
     {
         $preview = $submission->values['numberPeek'];
-        if ($isNew && null === $submission->input->typedNumber && $saved->number() !== $preview) {
+        if (null === $submission->input->typedNumber && $saved->number() !== $preview) {
             $this->addFlash('warning', $this->translator->trans('invoice.flash.renumbered', ['number' => $saved->number(), 'preview' => $preview]));
 
             return;
@@ -380,7 +420,7 @@ final class InvoiceController extends AbstractController
             return \sprintf('lines-%s-%s', $parts[1], self::LINE_CELLS[$parts[2]] ?? $parts[2]);
         }
 
-        return $field;
+        return implode('-', $parts);
     }
 
     private function fieldLabel(string $field): string
@@ -426,7 +466,7 @@ final class InvoiceController extends AbstractController
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
             'payer' => $context->isPayer(),
-            'issuerCountry' => $invoice?->issuer()->address->countryCode ?? $firm->address()->countryCode,
+            'issuerCountry' => $this->issuerCountry($context),
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
             'currency' => $context->currency->value,
             'dueDays' => $this->dueDays($values),
@@ -439,7 +479,8 @@ final class InvoiceController extends AbstractController
             'countries' => $this->countryOptions(),
             'figures' => $this->shownFigures($context, $values, $taxPoint),
             'currencyNotice' => $this->currencyNotice($context, $values),
-            'emptyLine' => $this->values->emptyLine($context->regime),
+            'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
+            'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
     }
 

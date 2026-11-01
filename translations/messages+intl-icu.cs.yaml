@@ -35,6 +35,8 @@ nav:
     contacts: Adresář
     firms: Firmy
 ui:
+  combobox:
+    found: 'Nalezeno: {count}'
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Ověřte
@@ -501,6 +503,9 @@ invoice:
   firm_apply: Použít tuto firmu
   rate: '{rate} %'
   errors_title: Fakturu zatím nelze uložit
+  cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.
+  cut_off_retry: Otevřít formulář znovu
+  line_limit: 'Faktura má nejvýše 100 řádků.'
   errors_close: Zavřít seznam
   leave: Opustit formulář? Změny se ztratí.
   currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
@@ -525,6 +530,7 @@ invoice:
     placeholder: Název, IČO nebo e-mail
     empty: Pro tuto firmu jsme odběratele nenašli.
     add: Přidat
+    picked: 'Doplnili jsme odběratele {name} s jeho výchozími údaji. Zkontrolujte formulář a uložte.'
     candidates: Nalezení odběratelé
     edit_here: Upravit jen na tomto dokladu
     edit_contact: Upravit kontakt
@@ -620,6 +626,7 @@ invoice:
     vat: DPH
     rounding: Zaokrouhlení
     payable: Celkem
+    stale: Součty nejsou aktuální. Zkontrolujte řádky.
   supply_code:
     '1': Zlato
     1a: Zlato, zprostředkování dodání investičního zlata
@@ -642,6 +649,10 @@ invoice:
     '20': Dodání plynu soustavami nebo sítěmi obchodníkovi
     '21': Poskytnutí vymezených služeb elektronických komunikací
   problem:
+    country_invalid: Vyberte zemi ze seznamu.
+    email_invalid: Zadejte platnou e-mailovou adresu.
+    constant_symbol_invalid: Konstantní symbol obsahuje jen číslice.
+    too_many_lines: 'Faktura má nejvýše 100 řádků.'
     amount_out_of_range: Částka je příliš velká.
     bank_account_foreign: Vyberte bankovní účet firmy.
     changed_meanwhile: Někdo tuto fakturu mezitím uložil, takže vaše změny se neuložily.

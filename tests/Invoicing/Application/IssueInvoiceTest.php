@@ -756,7 +756,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testLimitsOfTheDocumentFieldsAreInclusive(): void
     {
         $line = new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 32), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-        $invoice = $this->issue->issue($this->input([$line], ['orderNumber' => str_repeat('č', 64), 'constantSymbol' => str_repeat('č', 10), 'typedNumber' => str_repeat('1', 80)]));
+        $invoice = $this->issue->issue($this->input([$line], ['orderNumber' => str_repeat('č', 64), 'constantSymbol' => str_repeat('1', 10), 'typedNumber' => str_repeat('1', 80)]));
 
         self::assertSame(str_repeat('1', 80), $invoice->number());
         self::assertSame(['invoice.problem.too_long'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 33), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]))));
@@ -1013,6 +1013,16 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->issue->issue($this->input());
 
         self::assertSame('20260001', $this->issue->issue($this->input())->variableSymbol());
+    }
+
+    public function testAConstantSymbolHasDigitsOnly(): void
+    {
+        $this->assertRefusedFor('invoice.problem.constant_symbol_invalid', fn (): Invoice => $this->issue->issue($this->input(overrides: ['constantSymbol' => '03a8'])));
+    }
+
+    public function testAnEmptyConstantSymbolIsFine(): void
+    {
+        self::assertSame('', $this->issue->issue($this->input(overrides: ['constantSymbol' => '']))->constantSymbol());
     }
 
     public function testAPayerHasNoLineOutsideVat(): void

@@ -20,6 +20,7 @@ use App\Invoicing\Domain\VatRateKind;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Countries;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,6 +36,9 @@ final readonly class InvoiceFormReader
 {
     public const int MAX_TEXT = 2000;
 
+    /** With eight fields a line this stays well under the 1000 of PHP's max_input_vars. */
+    public const int MAX_LINES = 100;
+
     /** A valid id of nothing: the rules answer it as unknown on either database. */
     public const string NO_ID = '00000000-0000-7000-8000-000000000000';
 
@@ -48,7 +52,7 @@ final readonly class InvoiceFormReader
     private const string PRICE = '/^-?\d{1,13}(?:\.\d{1,2})?$/D';
     private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
     private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
-    private const string DATE = '/^\d{4}-\d{2}-\d{2}$/D';
+    private const string DATE = '/^20\d{2}-\d{2}-\d{2}$/D';
     private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount'];
     private const array CUSTOMER_FIELDS = ['name', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode', 'email', 'phone', 'web', 'registerEntry'];
 
@@ -59,15 +63,20 @@ final readonly class InvoiceFormReader
         $lines = $this->linesOf($rows, $currency);
         $customer = $this->customer($post);
         $values = $this->values($post, $rows, $customer);
-        if ('' === $values['description'] && [] !== $rows) {
-            $values['description'] = $rows[0]['text'];
-        }
+        // Only the document takes it: on the form an empty description keeps following the first line.
+        $description = '' === $values['description'] && [] !== $rows ? $rows[0]['text'] : $values['description'];
 
         $errors = $lines->errors;
-        foreach (['textBefore', 'textAfter', 'description'] as $field) {
-            if (mb_strlen($values[$field]) > self::MAX_TEXT) {
+        foreach (['textBefore' => $values['textBefore'], 'textAfter' => $values['textAfter'], 'description' => $description] as $field => $text) {
+            if (mb_strlen($text) > self::MAX_TEXT) {
                 $errors[$field] = 'invoice.problem.too_long';
             }
+        }
+        if (\count($rows) > self::MAX_LINES) {
+            $errors['lines'] = 'invoice.problem.too_many_lines';
+        }
+        if ('1' === $values['customerEdit']) {
+            $this->checkCopy($customer, $errors);
         }
         $issueDate = $this->date($values['issueDate'], 'issueDate', $errors);
         if ('' === $values['issueDate']) {
@@ -100,7 +109,7 @@ final readonly class InvoiceFormReader
             $values['variableSymbol'],
             $values['constantSymbol'],
             $values['orderNumber'],
-            $values['description'],
+            $description,
             $values['textBefore'],
             $values['textAfter'],
             $language ?? DocumentLanguage::Czech,
@@ -110,6 +119,15 @@ final readonly class InvoiceFormReader
         $version = $this->text($post, 'version');
 
         return new InvoiceSubmission($values, $errors, $input, ctype_digit($version) ? (int) $version : 0);
+    }
+
+    /**
+     * PHP drops what lies past max_input_vars without a word, so the form ends with a
+     * field of its own: without it, the end of the form did not arrive.
+     */
+    public function isComplete(Request $request): bool
+    {
+        return '1' === $request->request->getString('_complete');
     }
 
     /**
@@ -145,7 +163,7 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, firmShown: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{firmId: string, firmShown: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
@@ -153,7 +171,7 @@ final readonly class InvoiceFormReader
 
         return [
             'firmId' => $field('firmId'), 'firmShown' => $field('firmShown'), 'seriesId' => $field('seriesId'), 'number' => $field('number'), 'numberPeek' => $field('numberPeek'),
-            'customerId' => $field('customerId'), 'customerQuery' => $field('customerQuery'), 'customerEdit' => $field('customerEdit'),
+            'customerId' => $field('customerId'), 'customerQuery' => $field('customerQuery'), 'customerEdit' => $field('customerEdit'), 'dueDateSet' => $field('dueDateSet'),
             'issueDate' => $field('issueDate'), 'taxPointDate' => $field('taxPointDate'), 'dueDate' => $field('dueDate'), 'paymentMethod' => $field('paymentMethod'), 'bankAccount' => $field('bankAccount'),
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),
             'textBefore' => $field('textBefore'), 'textAfter' => $field('textAfter'), 'language' => $field('language'), 'customer' => $customer, 'lines' => $rows,
@@ -306,6 +324,20 @@ final readonly class InvoiceFormReader
     private function decimal(string $typed): string
     {
         return str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], $typed);
+    }
+
+    /**
+     * @param array<string, string> $customer
+     * @param array<string, string> $errors
+     */
+    private function checkCopy(array $customer, array &$errors): void
+    {
+        if ('' !== $customer['countryCode'] && !Countries::supports($customer['countryCode'])) {
+            $errors['customer.countryCode'] = 'invoice.problem.country_invalid';
+        }
+        if ('' !== $customer['email'] && false === filter_var($customer['email'], \FILTER_VALIDATE_EMAIL)) {
+            $errors['customer.email'] = 'invoice.problem.email_invalid';
+        }
     }
 
     private function seriesId(string $id): ?string

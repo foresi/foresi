@@ -10,10 +10,10 @@
 {% block actions %}
     {% if not blocked|default(null) and not delivered %}
         {% set numberError = errorFields.number|default(null) %}
-        <details class="relative" data-invoice-form-target="numberBox"{% if numberError %} open{% endif %}>
+        <details class="relative"{% if numberError %} open{% endif %}>
             <summary class="inline-flex size-control cursor-pointer list-none items-center justify-center rounded-control border border-control-line bg-white text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }} [&::-webkit-details-marker]:hidden" title="{{ 'invoice.number.edit'|trans }}" aria-label="{{ 'invoice.number.edit'|trans }}">{{ ux_icon('lucide:pencil', {class: 'size-4', 'aria-hidden': 'true'}) }}</summary>
             <div class="absolute right-0 z-30 mt-1 w-72 max-w-[calc(100vw-32px)] rounded-panel border border-container bg-white p-3 shadow-floating">
-                <twig:Ui:TextInput name="number" id="number" form="invoice-form" :label="'invoice.number.label'|trans" :help="'invoice.number.help'|trans" :value="values.number" :error="numberError" maxlength="80" autocomplete="off" data-invoice-form-target="number" data-action="input->invoice-form#numberTyped" />
+                <twig:Ui:TextInput name="number" id="number" form="invoice-form" :label="'invoice.number.label'|trans" :help="'invoice.number.help'|trans" :value="values.number" :error="numberError" maxlength="80" autocomplete="off" />
             </div>
         </details>
     {% endif %}
@@ -24,6 +24,11 @@
         <twig:Ui:EmptyState icon="building-2" :title="'invoice.blocked.no_firm_title'|trans" :text="'invoice.blocked.no_firm_text'|trans">
             <twig:Ui:Button :href="path('app_firm_new')" variant="primary" icon="plus">{{ 'invoice.blocked.add_firm'|trans }}</twig:Ui:Button>
         </twig:Ui:EmptyState>
+    {% elseif blocked|default(null) == 'cut_off' %}
+        <twig:Ui:Alert tone="error" role="alert" data-cut-off>
+            <span>{{ 'invoice.cut_off'|trans }}</span>
+            <a href="{{ retry }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.cut_off_retry'|trans }}</a>
+        </twig:Ui:Alert>
     {% elseif blocked|default(null) == 'country' %}
         <twig:Ui:Alert tone="error">{{ 'invoice.problem.firm_country_unsupported'|trans }}</twig:Ui:Alert>
     {% else %}
@@ -44,11 +49,14 @@
 
         <form method="post" id="invoice-form" action="{{ editing ? path('app_invoice_edit', {id: invoice.id}) : path('app_invoice_new') }}" class="grid gap-4" novalidate
             data-controller="invoice-form"
-            data-action="combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload turbo:before-visit@document->invoice-form#beforeVisit"
+            data-action="combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload turbo:before-visit@document->invoice-form#beforeVisit popstate@window->invoice-form#popped:capture mouseup@window->invoice-form#disarmDrag"
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
             data-invoice-form-contact-url-value="{{ path('app_contact_edit', {id: '00000000-0000-7000-8000-000000000000'}) }}"
             data-invoice-form-firm-value="{{ firm.id }}"
+            data-invoice-form-max-lines-value="{{ maxLines }}"
+            data-invoice-form-new-line-vat-value="{{ emptyLine.vat }}"
+            data-invoice-form-due-date-set-value="{{ values.dueDateSet == '1' ? 'true' : 'false' }}"
             data-invoice-form-unsaved-value="{{ app.request.method == 'POST' ? 'true' : 'false' }}"
             data-invoice-form-editing-value="{{ editing ? 'true' : 'false' }}"
             data-invoice-form-payer-value="{{ payer ? 'true' : 'false' }}"
@@ -67,6 +75,7 @@
             <input type="hidden" name="version" value="{{ version }}">
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
             <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
+            <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">
             <input type="hidden" name="numberPeek" value="{{ values.numberPeek }}" data-invoice-form-target="numberPeek">
 
             <twig:Ui:Card :title="'invoice.card.issuer'|trans" icon="building-2">
@@ -101,7 +110,7 @@
                     <div class="grid gap-3">
                         <div class="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                             <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers', {firm: firm.id})" :emptyText="'invoice.customer.empty'|trans" :error="errorFields.customer|default(null)" :required="true" />
-                            <twig:Ui:Button :href="path('app_contact_new')" icon="plus" class="sm:mt-6" target="_blank" rel="noopener">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="sm:mt-6" target="_blank" rel="noopener">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
                         </div>
                         {% if candidates is not empty %}
                             <ul class="m-0 grid list-none gap-1 p-0" data-customer-candidates aria-label="{{ 'invoice.customer.candidates'|trans }}">
@@ -118,7 +127,7 @@
                             </p>
                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
                                 <twig:Ui:Checkbox name="customerEdit" id="customerEdit" :label="'invoice.customer.edit_here'|trans" value="1" :checked="values.customerEdit == '1'" />
-                                <a href="{{ values.customerId ? path('app_contact_edit', {id: values.customerId}) : '#' }}" target="_blank" rel="noopener" class="text-small font-medium text-text underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
+                                <a href="{{ values.customerId ? path('app_contact_edit', {id: values.customerId}) : '#' }}" id="customer-contact" target="_blank" rel="noopener" class="text-small font-medium text-text underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
                             </div>
                             <div class="hidden gap-3 sm:grid-cols-2 group-has-[#customerEdit:checked]:grid">
                                 <div class="sm:col-span-2"><twig:Ui:TextInput name="customer[name]" id="customer-name" :label="'invoice.field.customerName'|trans" :value="values.customer.name" maxlength="255" /></div>
@@ -131,8 +140,8 @@
                                 <div class="sm:col-span-2"><twig:Ui:TextInput name="customer[street]" id="customer-street" :label="'invoice.field.street'|trans" :value="values.customer.street" maxlength="255" /></div>
                                 <twig:Ui:TextInput name="customer[city]" id="customer-city" :label="'invoice.field.city'|trans" :value="values.customer.city" maxlength="128" />
                                 <twig:Ui:TextInput name="customer[postalCode]" id="customer-postalCode" :label="'invoice.field.postalCode'|trans" :value="values.customer.postalCode" maxlength="32" />
-                                <twig:Ui:Select name="customer[countryCode]" id="customer-countryCode" :label="'invoice.field.countryCode'|trans" :options="{'': '—'}|merge(countries)" :value="values.customer.countryCode" />
-                                <twig:Ui:TextInput name="customer[email]" id="customer-email" type="email" :label="'invoice.field.email'|trans" :value="values.customer.email" maxlength="254" />
+                                <twig:Ui:Select name="customer[countryCode]" id="customer-countryCode" :label="'invoice.field.countryCode'|trans" :options="{'': '—'}|merge(countries)" :value="values.customer.countryCode" :error="errorFields['customer-countryCode']|default(null)" />
+                                <twig:Ui:TextInput name="customer[email]" id="customer-email" type="email" :label="'invoice.field.email'|trans" :value="values.customer.email" :error="errorFields['customer-email']|default(null)" maxlength="254" />
                                 <input type="hidden" name="customer[phone]" value="{{ values.customer.phone }}">
                                 <input type="hidden" name="customer[web]" value="{{ values.customer.web }}">
                                 <input type="hidden" name="customer[registerEntry]" value="{{ values.customer.registerEntry }}">
@@ -144,7 +153,7 @@
                         <twig:Ui:TextInput name="orderNumber" id="orderNumber" :label="'invoice.field.orderNumber'|trans" :value="values.orderNumber" :error="errorFields.orderNumber|default(null)" maxlength="64" />
                         <twig:Ui:TextInput name="description" id="description" :label="'invoice.field.description'|trans" :help="'invoice.field.description_help'|trans" :value="values.description" :error="errorFields.description|default(null)" />
                         <details class="rounded-control border border-divider px-3 py-2"{% if errorFields.variableSymbol is defined or errorFields.constantSymbol is defined or errorFields.textBefore is defined or errorFields.textAfter is defined or errorFields.language is defined %} open{% endif %}>
-                            <summary class="cursor-pointer text-small font-medium text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.more'|trans }}</summary>
+                            <summary id="invoice-details" class="cursor-pointer text-small font-medium text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.more'|trans }}</summary>
                             <div class="mt-3 grid gap-3 sm:grid-cols-2">
                                 <twig:Ui:TextInput name="variableSymbol" id="variableSymbol" :label="'invoice.field.variableSymbol'|trans" :help="'invoice.field.variableSymbol_help'|trans" :value="values.variableSymbol" :error="errorFields.variableSymbol|default(null)" inputmode="numeric" data-invoice-form-target="variableSymbol" data-action="input->invoice-form#symbolTyped" />
                                 <twig:Ui:TextInput name="constantSymbol" id="constantSymbol" :label="'invoice.field.constantSymbol'|trans" :value="values.constantSymbol" :error="errorFields.constantSymbol|default(null)" inputmode="numeric" />
@@ -197,7 +206,7 @@
                             <th scope="col" class="w-32 p-1"><span class="sr-only">{{ 'invoice.line.actions'|trans }}</span></th>
                         </tr>
                     </thead>
-                    <tbody class="block xl:table-row-group" data-invoice-form-target="lines">
+                    <tbody class="block xl:table-row-group" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
                         {% for line in values.lines %}
                             {{ include('invoicing/_line.html.twig', {index: loop.index0, line: line, total: figures.lines[loop.index0].total|default('')}) }}
                         {% endfor %}
@@ -205,7 +214,10 @@
                 </table>
                 <template data-invoice-form-target="lineTemplate">{{ include('invoicing/_line.html.twig', {index: '__INDEX__', line: emptyLine, total: ''}) }}</template>
                 <div class="mt-3 grid items-start gap-4 sm:grid-cols-[auto_minmax(0,1fr)]">
-                    <div><twig:Ui:Button type="submit" name="_action" value="add_line" icon="plus" data-action="invoice-form#addLine:prevent">{{ 'invoice.line.add'|trans }}</twig:Ui:Button></div>
+                    <div class="grid justify-items-start gap-1.5">
+                        <twig:Ui:Button type="submit" id="invoice-new-line" name="_action" value="add_line" icon="plus" :disabled="values.lines|length >= maxLines" data-invoice-form-target="addLine" data-action="invoice-form#addLine:prevent">{{ 'invoice.line.add'|trans }}</twig:Ui:Button>
+                        <p class="m-0 text-caption text-muted"{% if values.lines|length < maxLines %} hidden{% endif %} data-invoice-form-target="lineLimit">{{ 'invoice.line_limit'|trans }}</p>
+                    </div>
                     {{ include('invoicing/_totals.html.twig') }}
                 </div>
             </twig:Ui:Card>
@@ -218,14 +230,14 @@
                     </div>
                     <ul class="m-0 grid list-none gap-0.5 p-0 font-normal">
                         {% for error in errors %}
-                            <li>{% if error.id not in ['form', 'firm', 'document', 'lines'] %}<a href="#{{ error.id }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>{% else %}{{ error.field }}{% endif %}: {{ error.message }}</li>
+                            <li>{% if error.id not in ['form', 'firm', 'document', 'lines'] %}<a href="#{{ error.id }}" data-action="invoice-form#goToField:prevent" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>{% else %}{{ error.field }}{% endif %}: {{ error.message }}</li>
                         {% endfor %}
                     </ul>
                 </twig:Ui:Alert>
             {% endif %}
 
             <twig:Ui:ActionBar>
-                <twig:Ui:Button :href="path('app_dashboard')">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :href="path('app_dashboard')" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
                 <div class="relative" data-controller="dropdown">
                     <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
                     <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
@@ -234,6 +246,8 @@
                 </div>
                 <twig:Ui:Button type="submit" id="invoice-save" name="_action" value="save" variant="primary">{{ 'invoice.save'|trans }}</twig:Ui:Button>
             </twig:Ui:ActionBar>
+            {# Last on purpose: PHP cuts a form at max_input_vars, and without this field the server knows. #}
+            <input type="hidden" name="_complete" value="1">
         </form>
     {% endif %}
 {% endblock %}

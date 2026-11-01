@@ -58,6 +58,7 @@ final readonly class InvoiceFormValues
             'customerId' => '',
             'customerQuery' => '',
             'customerEdit' => '',
+            'dueDateSet' => '',
             'customer' => $this->emptyCustomer(),
             'orderNumber' => '',
             'description' => '',
@@ -89,6 +90,7 @@ final readonly class InvoiceFormValues
             'customerId' => $invoice->customerParty()->id(),
             'customerQuery' => $invoice->customer()->name,
             'customerEdit' => '',
+            'dueDateSet' => '',
             'customer' => $this->customerOf($invoice->customer()),
             'orderNumber' => $invoice->orderNumber(),
             'description' => $invoice->description(),
@@ -109,9 +111,9 @@ final readonly class InvoiceFormValues
     /**
      * @return array<string, string>
      */
-    public function emptyLine(VatRegime $regime): array
+    public function emptyLine(VatRegime $regime, bool $reverseCharge): array
     {
-        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => VatRegime::Payer === $regime ? InvoiceFormReader::VAT_BASE : InvoiceFormReader::VAT_NONE, 'supplyCode' => '', 'discount' => ''];
+        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => $this->newLineVat($regime, $reverseCharge), 'supplyCode' => '', 'discount' => ''];
     }
 
     /**
@@ -121,14 +123,14 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, mixed>
      */
-    public function withRowAction(array $values, string $action, VatRegime $regime): array
+    public function withRowAction(array $values, string $action, VatRegime $regime, bool $reverseCharge): array
     {
         /** @var list<array<string, string>> $rows */
         $rows = $values['lines'];
         [$name, $argument] = [...explode(':', $action, 2), ''];
         $index = (int) $argument;
-        if ('add_line' === $name) {
-            $rows[] = $this->emptyLine($regime);
+        if ('add_line' === $name && \count($rows) < InvoiceFormReader::MAX_LINES) {
+            $rows[] = $this->emptyLine($regime, $reverseCharge);
         } elseif ('remove_line' === $name) {
             array_splice($rows, $index, 1);
         } elseif ('move_up' === $name && $index > 0) {
@@ -136,7 +138,7 @@ final readonly class InvoiceFormValues
         } elseif ('move_down' === $name && $index < \count($rows) - 1) {
             [$rows[$index + 1], $rows[$index]] = [$rows[$index], $rows[$index + 1]];
         }
-        $values['lines'] = [] === $rows ? [$this->emptyLine($regime)] : $rows;
+        $values['lines'] = [] === $rows ? [$this->emptyLine($regime, $reverseCharge)] : $rows;
 
         return $values;
     }
@@ -170,24 +172,25 @@ final readonly class InvoiceFormValues
     }
 
     /**
-     * A customer was chosen: the same defaults the browser applies to the form.
+     * A customer was chosen: the same defaults the browser applies to the form. The
+     * regime is that of the document, which on an edit may differ from the firm's now.
      *
      * @param array<string, mixed> $values
      *
      * @return array<string, mixed>
      */
-    public function withCustomer(array $values, Party $party, LegalEntity $firm, \DateTimeImmutable $issueDate): array
+    public function withCustomer(array $values, Party $party, LegalEntity $firm, \DateTimeImmutable $issueDate, VatRegime $regime, string $issuerCountry): array
     {
         $option = $this->picker->option($party, $firm);
-        $draft = $this->defaults->withCustomer($this->defaults->for($firm)->onIssueDate($issueDate), $option);
+        $defaults = $option->defaults;
         /** @var list<array<string, string>> $rows */
         $rows = $values['lines'];
 
         return array_merge($this->withCustomerShown($values, $option), [
-            'dueDate' => $draft->dueDate->format('Y-m-d'),
-            'paymentMethod' => $draft->paymentMethod->value,
-            'language' => $draft->language->value,
-            'lines' => VatRegime::Payer === $draft->regime ? array_map(static fn (array $row): array => self::rowAfterPick($row, $option), $rows) : $rows,
+            'dueDate' => '1' === $values['dueDateSet'] ? $values['dueDate'] : $issueDate->modify(\sprintf('+%d days', $defaults->dueDays))->format('Y-m-d'),
+            'paymentMethod' => $defaults->paymentMethod->value,
+            'language' => $defaults->language->value,
+            'lines' => VatRegime::Payer === $regime ? array_map(static fn (array $row): array => self::rowAfterPick($row, $option, $issuerCountry), $rows) : $rows,
         ]);
     }
 
@@ -239,13 +242,29 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, string>
      */
-    private static function rowAfterPick(array $row, CustomerOption $option): array
+    private static function rowAfterPick(array $row, CustomerOption $option, string $issuerCountry): array
     {
         if ($option->defaults->reverseCharge) {
-            return array_merge($row, ['vat' => InvoiceFormReader::VAT_REVERSE_CHARGE]);
+            $row['vat'] = InvoiceFormReader::VAT_REVERSE_CHARGE;
+        } elseif (InvoiceFormReader::VAT_REVERSE_CHARGE === $row['vat']) {
+            $row['vat'] = InvoiceFormReader::VAT_BASE;
+        }
+        // A code exists only for reverse charge between parties of one country.
+        $foreign = null !== $option->vatId && !str_starts_with(strtoupper($option->vatId), $issuerCountry);
+        if (InvoiceFormReader::VAT_REVERSE_CHARGE !== $row['vat'] || $foreign) {
+            $row['supplyCode'] = '';
         }
 
-        return InvoiceFormReader::VAT_REVERSE_CHARGE === $row['vat'] ? array_merge($row, ['vat' => InvoiceFormReader::VAT_BASE, 'supplyCode' => '']) : $row;
+        return $row;
+    }
+
+    private function newLineVat(VatRegime $regime, bool $reverseCharge): string
+    {
+        if (VatRegime::Payer !== $regime) {
+            return InvoiceFormReader::VAT_NONE;
+        }
+
+        return $reverseCharge ? InvoiceFormReader::VAT_REVERSE_CHARGE : InvoiceFormReader::VAT_BASE;
     }
 
     /**

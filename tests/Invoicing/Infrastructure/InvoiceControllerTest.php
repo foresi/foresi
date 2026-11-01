@@ -19,6 +19,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TotalRounding;
+use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\DocumentLanguage;
@@ -48,7 +49,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, dueDateSet: string, ...}
  * @phpstan-type Figures array{lines: list<array{total: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
@@ -744,13 +745,275 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertCount(1, $this->currentValues()['lines']);
     }
 
-    public function testACustomerNameWithoutAPickFindsTheOnlyMatch(): void
+    public function testATypedNameActsAsAPickAndNeverIssues(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            $this->em()->flush();
+        });
+
+        $this->save($this->filled(['customerId' => '', 'customerQuery' => 'Example Cust']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        $values = $this->currentValues();
+        self::assertSame($this->customer->id(), $values['customerId']);
+        self::assertSame('2026-12-01', $values['dueDate']);
+        self::assertSame('cash', $values['paymentMethod']);
+        self::assertSame('reverse_charge', $values['lines'][0]['vat']);
+        self::assertSelectorTextContains('main', 'Example Customer a.s.');
+    }
+
+    public function testARequestWithoutAButtonIssuesNothing(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        unset($values['_action']);
+
+        $this->client->request('POST', '/invoices/new', $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testAFormCutOffIsRefusedWholeAndAButtonOfItDoesNothing(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        unset($values['_complete']);
+
+        foreach (['save', 'save_pdf', 'add_line'] as $action) {
+            $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => $action]));
+            self::assertResponseStatusCodeSame(422);
+            self::assertSelectorExists('[data-cut-off]');
+            self::assertSelectorNotExists('form#invoice-form');
+        }
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testAnEditCutOffChangesNothing(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $values = $this->openEdit($invoice);
+        $values['description'] = 'Lost';
+        unset($values['_complete']);
+
+        $this->saveEdit($invoice, $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-cut-off] a[href="/invoices/'.$invoice->id().'/edit"]');
+        self::assertSame('Consulting', $this->stored($invoice)->description());
+    }
+
+    public function testRecountOfACutOffFormAnswers422(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        unset($values['_complete']);
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testMoreThanTheLimitOfLinesIsRefused(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'] = array_fill(0, InvoiceFormReader::MAX_LINES + 1, $this->lineValues([]));
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', 'at most 100 lines');
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testTheLimitItselfSaves(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'] = array_fill(0, InvoiceFormReader::MAX_LINES, $this->lineValues([]));
+
+        $this->save($values);
+
+        self::assertCount(InvoiceFormReader::MAX_LINES, $this->linesOf($this->onlyInvoice()));
+    }
+
+    public function testTheNewLineButtonStopsAtTheLimit(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['_action' => 'add_line']);
+        $values['lines'] = array_fill(0, InvoiceFormReader::MAX_LINES, $this->lineValues([]));
+
+        $this->save($values);
+
+        self::assertCount(InvoiceFormReader::MAX_LINES, $this->currentValues()['lines']);
+        self::assertSelectorExists('button[value="add_line"][disabled]');
+    }
+
+    public function testANewLineOfAReverseChargeCustomerTakesTheTreatment(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            $this->em()->flush();
+        });
+
+        $this->save($this->filled(['_action' => 'add_line']));
+
+        self::assertSame('reverse_charge', $this->currentValues()['lines'][1]['vat']);
+        self::assertSelectorExists('template option[value="reverse_charge"][selected]');
+    }
+
+    public function testAPickOfAForeignCustomerDropsTheSupplyCode(): void
+    {
+        $this->signedIn();
+        $foreign = $this->scoped(function (): Party {
+            $party = new Party(PartyKind::Company, 'Example German GmbH', null, VatId::fromString('DE123456789'), '');
+            $party->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+            $this->em()->persist($party);
+            $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Strasse 1', 'Berlin', '10115', 'DE')));
+            $this->em()->flush();
+
+            return $party;
+        });
+        $values = $this->filled();
+        $values['lines'][0] = array_merge($values['lines'][0], ['vat' => 'reverse_charge', 'supplyCode' => '4']);
+
+        $this->save(array_merge($values, ['_action' => 'pick:'.$foreign->id()]));
+
+        self::assertSame('', $this->currentValues()['lines'][0]['supplyCode']);
+        self::assertSame('reverse_charge', $this->currentValues()['lines'][0]['vat']);
+    }
+
+    public function testAPickOnAnEditKeepsTheRegimeOfTheDocument(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry(), $firm->bankAccounts());
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            $this->em()->flush();
+        });
+        $values = $this->openEdit($invoice);
+
+        $this->saveEdit($invoice, array_merge($values, ['_action' => 'pick:'.$this->customer->id()]));
+
+        self::assertSame('reverse_charge', $this->currentValues()['lines'][0]['vat']);
+    }
+
+    public function testRecountOfAFirmOfAnUnsupportedCountryAnswers422(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $foreign = $this->scoped(function (): LegalEntity {
+            $firm = new LegalEntity('Example Slovak s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register', []);
+            $this->em()->persist($firm);
+            $this->em()->flush();
+
+            return $firm;
+        });
+        $values['firmId'] = $foreign->id();
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function forgedCopies(): iterable
+    {
+        yield 'a country that does not exist' => [['countryCode' => 'ZZ'], 'invoice.problem.country_invalid'];
+        yield 'a non-email address' => [['email' => 'not-an-email'], 'invoice.problem.email_invalid'];
+    }
+
+    /**
+     * @param array<string, string> $customer
+     */
+    #[DataProvider('forgedCopies')]
+    public function testACopyOfTheCustomerIsChecked(array $customer, string $key): void
     {
         $this->signedIn();
 
-        $this->save($this->filled(['customerId' => '', 'customerQuery' => 'Example Customer']));
+        $this->save($this->filled(['customerEdit' => '1', 'customer' => array_merge(self::CUSTOMER, $customer)]));
 
-        self::assertSame($this->customer->id(), $this->onlyInvoice()->customerParty()->id());
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text($key));
+        self::assertSelectorExists('[aria-invalid="true"]');
+    }
+
+    public function testConstantSymbolAcceptsDigitsOnly(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['constantSymbol' => '03a8']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.constant_symbol_invalid'));
+    }
+
+    public function testADateOutsideTheCenturyIsRefused(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['issueDate' => '0001-01-01', 'taxPointDate' => '0001-01-01', 'dueDate' => '0001-01-02']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testAHandSetDueDateIsRememberedThroughARefusedSave(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['dueDate' => '2026-12-24', 'dueDateSet' => '1', 'customerId' => '', 'customerQuery' => '']);
+
+        $this->save($values);
+
+        self::assertSame('1', $this->currentValues()['dueDateSet']);
+        self::assertSelectorExists('form[data-invoice-form-due-date-set-value="true"]');
+    }
+
+    public function testAPickKeepsAHandSetDueDate(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(['dueDate' => '2026-12-24', 'dueDateSet' => '1']), ['_action' => 'pick:'.$this->customer->id()]));
+
+        self::assertSame('2026-12-24', $this->currentValues()['dueDate']);
+    }
+
+    public function testAnEmptyDescriptionStaysEmptyOnARefusedForm(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['description' => '', 'customerId' => '', 'customerQuery' => '']));
+
+        self::assertSame('', $this->currentValues()['description']);
+    }
+
+    public function testAKeptTokenOutlivesAnyNumberOfNewForms(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $this->save($values);
+        $first = (string) $this->client->getResponse()->headers->get('Location');
+        for ($form = 0; $form < 35; ++$form) {
+            $this->client->request('GET', '/invoices/new');
+        }
+
+        $this->save($values);
+
+        self::assertResponseRedirects($first);
+        self::assertCount(1, $this->invoices());
     }
 
     public function testSeveralMatchesOfferAChoiceWithoutJavaScript(): void
@@ -969,7 +1232,7 @@ final class InvoiceControllerTest extends WebTestCase
      */
     private function save(array $values): void
     {
-        $this->client->request('POST', '/invoices/new', $values);
+        $this->client->request('POST', '/invoices/new', array_merge(['_action' => 'save'], $values));
     }
 
     /**
@@ -977,7 +1240,7 @@ final class InvoiceControllerTest extends WebTestCase
      */
     private function saveEdit(Invoice $invoice, array $values): void
     {
-        $this->client->request('POST', '/invoices/'.$invoice->id().'/edit', $values);
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/edit', array_merge(['_action' => 'save'], $values));
     }
 
     private function issued(): Invoice

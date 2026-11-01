@@ -118,6 +118,8 @@ final readonly class IssueRules
         }
         if (mb_strlen($input->constantSymbol) > Invoice::MAX_CONSTANT_SYMBOL_LENGTH) {
             $problems[] = new IssueProblem('constantSymbol', 'invoice.problem.too_long');
+        } elseif ('' !== $input->constantSymbol && !ctype_digit($input->constantSymbol)) {
+            $problems[] = new IssueProblem('constantSymbol', 'invoice.problem.constant_symbol_invalid');
         }
         if (PaymentMethod::BankTransfer === $input->paymentMethod && !$this->accountAllowed($input->bankAccount, $firm, $existing)) {
             $problems[] = new IssueProblem('bankAccount', 'invoice.problem.bank_account_foreign');

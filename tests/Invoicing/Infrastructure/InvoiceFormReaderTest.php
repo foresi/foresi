@@ -182,7 +182,7 @@ final class InvoiceFormReaderTest extends TestCase
         $submission = $this->read(['description' => '  ', 'lines' => [['text' => 'First'], ['text' => 'Second']]]);
 
         self::assertSame('First', $submission->input->description);
-        self::assertSame('First', $submission->values['description']);
+        self::assertSame('', $submission->values['description']);
     }
 
     /**
@@ -260,6 +260,12 @@ final class InvoiceFormReaderTest extends TestCase
         self::assertNull($this->read(['bankAccount' => ''])->input->bankAccount);
     }
 
+    public function testADateOutsideThisCenturyIsRefused(): void
+    {
+        self::assertSame('invoice.problem.date_invalid', $this->read(['dueDate' => '0001-01-01'])->errors['dueDate']);
+        self::assertSame('invoice.problem.date_invalid', $this->read(['dueDate' => '2100-01-01'])->errors['dueDate']);
+    }
+
     public function testADateMustExist(): void
     {
         $submission = $this->read(['dueDate' => '2026-02-31', 'taxPointDate' => 'tomorrow']);
@@ -333,6 +339,14 @@ final class InvoiceFormReaderTest extends TestCase
     public function testALineThatIsNoListIsLeftOut(): void
     {
         self::assertSame(['Real'], array_column($this->rowsOf($this->post(['lines' => ['text', ['text' => 'Real', 'vat' => 'base', 'priceType' => 'without_vat']]])), 'text'));
+    }
+
+    public function testTheFormIsCompleteOnlyWithItsLastField(): void
+    {
+        $reader = new InvoiceFormReader();
+
+        self::assertTrue($reader->isComplete(Request::create('/', 'POST', ['_complete' => '1'])));
+        self::assertFalse($reader->isComplete(Request::create('/', 'POST', [])));
     }
 
     public function testAMissingVersionIsNone(): void
