@@ -545,6 +545,7 @@ invoice:
     stamp_alt: 'Razítko a podpis: {name}'
     qr_label: QR Platba+F
     qr_alt: 'QR Platba+F faktury {number}'
+    page: 'Faktura {number}, strana {page} z {pages}'
     note:
       reverse_charge: 'Přenesení daňové povinnosti: daň odvede zákazník.{code, select, none {} other { Kód předmětu plnění: {code}.}}'
       exempt: Plnění je osvobozeno od daně.

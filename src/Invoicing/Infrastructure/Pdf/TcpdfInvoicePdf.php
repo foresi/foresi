@@ -43,16 +43,9 @@ use Twig\Environment;
 final readonly class TcpdfInvoicePdf implements InvoicePdf
 {
     public const float QR_SIZE_MM = 32.0;
-    private const string TEMPLATE = 'invoicing/pdf/invoice.html.twig';
-    private const float QR_X = 162.0;
-    /** The top margin, then the label above the code. */
-    private const float QR_Y = 21.0;
     private const string QR_BAND_HEIGHT = '40mm';
-    private const array LOGO_BOX = [60.0, 20.0];
-    private const array STAMP_BOX = [55.0, 28.0];
-    /** Shares of the page; the text column takes what the others leave. */
-    private const array PAYER_COLUMNS = ['quantity' => 7, 'unit' => 5, 'price' => 11, 'discount' => 6, 'rate' => 6, 'base' => 11, 'vat' => 10, 'total' => 11];
-    private const array PLAIN_COLUMNS = ['quantity' => 9, 'unit' => 6, 'price' => 14, 'discount' => 7, 'total' => 14];
+
+    private InvoiceTheme $theme;
 
     public function __construct(
         private Environment $twig,
@@ -63,7 +56,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
         private AmountText $amounts,
+        string $theme = InvoiceTheme::CLASSIC,
     ) {
+        $this->theme = InvoiceTheme::named($theme);
     }
 
     public function render(IssuedDocument $document): RenderedPdf
@@ -74,15 +69,19 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
 
         return $this->locales->runWithLocale($document->language->value, function () use ($document, $country, $file, $payload): RenderedPdf {
             $view = $this->view($document, $country, null !== $payload);
-            $template = $this->twig->load(self::TEMPLATE);
+            $template = $this->twig->load($this->theme->template);
+            $number = $document->number;
 
             $bytes = $this->engine->document(
-                $this->trans('invoice.pdf.document_title', ['number' => $document->number]),
+                $this->trans('invoice.pdf.document_title', ['number' => $number]),
                 $document->language->value,
                 $template->renderBlock('body', ['doc' => $view]),
                 $file instanceof \App\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
-                null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
-                $template->renderBlock('head', ['doc' => $view]),
+                null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $number]), $this->theme->qr[0], $this->theme->qr[1], self::QR_SIZE_MM, $this->theme->qrAnchor),
+                trim($template->renderBlock('head', ['doc' => $view])),
+                $template->hasBlock('foot') ? trim($template->renderBlock('foot', ['doc' => $view])) : '',
+                $this->theme->layout,
+                fn (int $page, int $pages): string => $this->trans('invoice.pdf.page', ['number' => $number, 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
             return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \App\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
@@ -96,6 +95,13 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     {
         $payer = VatRegime::Payer === $document->regime;
         $hasDiscount = array_any($document->lines, static fn (InvoiceLine $line): bool => 0 < $line->discount()->basisPoints());
+        $lines = array_map($this->line(...), $document->lines);
+        $rounding = $document->rounding->isZero() ? null : [
+            'quantity' => $this->amounts->quantity('1.0000'),
+            'amount' => $this->amount($document->rounding),
+            'zero' => $this->amount(Money::ofMinor(0, $document->currency)),
+        ];
+        $columns = $this->columns($payer, $hasDiscount, $lines, $rounding);
 
         return [
             'payer' => $payer,
@@ -119,21 +125,18 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'hasQr' => $hasQr,
             'qrBandHeight' => self::QR_BAND_HEIGHT,
             'hasDiscount' => $hasDiscount,
-            'columns' => $this->columns($payer, $hasDiscount),
-            'lines' => array_map($this->line(...), $document->lines),
-            'rounding' => $document->rounding->isZero() ? null : [
-                'quantity' => $this->amounts->quantity('1.0000'),
-                'amount' => $this->amount($document->rounding),
-                'zero' => $this->amount(Money::ofMinor(0, $document->currency)),
-            ],
+            'columns' => $columns['widths'],
+            'tableFont' => $columns['font'].'pt',
+            'lines' => $lines,
+            'rounding' => $rounding,
             'notes' => $this->notes($document, $country),
             'recap' => array_map($this->recapRow(...), $document->summaries),
             'net' => $this->amount($document->net),
             'vat' => $this->hasCharge($document) ? $this->amount($document->vat) : '',
             'gross' => $this->amount($document->gross),
             'payable' => $this->money($document->payable),
-            'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
-            'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
+            'logo' => $this->image($document->issuer->logo, $this->theme->logoBox, $document->issuer->name),
+            'stamp' => $this->image($document->issuer->stamp, $this->theme->stampBox, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
         ];
     }
 
@@ -159,18 +162,45 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     }
 
     /**
-     * @return array<string, string>
+     * @param list<array<string, string>>|array<never, never> $lines
+     * @param array<string, string>|null                      $rounding
+     *
+     * @return array{font: float, widths: array<string, string>}
      */
-    private function columns(bool $payer, bool $hasDiscount): array
+    private function columns(bool $payer, bool $hasDiscount, array $lines, ?array $rounding): array
     {
-        $columns = $payer ? self::PAYER_COLUMNS : self::PLAIN_COLUMNS;
+        $columns = $payer ? $this->theme->payerColumns : $this->theme->plainColumns;
         if (!$hasDiscount) {
             unset($columns['discount']);
         }
-        $widths = array_map(static fn (int $share): string => $share.'%', $columns);
-        $widths['text'] = (100 - array_sum($columns)).'%';
 
-        return $widths;
+        if (null === $this->theme->tableFontPt) {
+            $widths = array_map(static fn (int $share): string => $share.'%', $columns);
+            $widths['text'] = (100 - array_sum($columns)).'%';
+
+            return ['font' => 8.0, 'widths' => $widths];
+        }
+
+        $heads = [
+            'quantity' => 'invoice.pdf.quantity', 'unit' => 'invoice.pdf.unit', 'price' => $payer ? 'invoice.pdf.unit_price' : 'invoice.pdf.unit_price_plain',
+            'discount' => 'invoice.pdf.discount', 'rate' => 'invoice.pdf.rate', 'base' => 'invoice.pdf.base', 'vat' => 'invoice.pdf.vat', 'total' => 'invoice.pdf.total',
+        ];
+        $values = [];
+        foreach (array_keys($columns) as $column) {
+            // A head may wrap between its words, so only its longest word counts.
+            $values[$column] = [...explode(' ', $this->trans($heads[$column])), ...array_column($lines, $column)];
+        }
+        if (null !== $rounding) {
+            foreach (['price', 'base', 'total'] as $column) {
+                $values[$column][] = $rounding['amount'];
+            }
+            $values['quantity'][] = $rounding['quantity'];
+            if ($payer) {
+                $values['vat'][] = $rounding['zero'];
+            }
+        }
+
+        return InvoiceColumns::fit($columns, $values, $this->theme->tableWidthMm(), $this->theme->cellPaddingMm, $this->theme->tableFontPt);
     }
 
     /**
@@ -297,7 +327,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
 
     private function percent(Percent $percent): string
     {
-        return $this->amounts->trimmed($percent->decimal()).' %';
+        return $this->amounts->trimmed($percent->decimal())."\u{a0}%";
     }
 
     private function date(\DateTimeImmutable $date): string

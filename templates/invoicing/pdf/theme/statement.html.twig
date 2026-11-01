@@ -1,0 +1,125 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Statement: type alone carries the page. The amount and the date open it, the way to pay closes it. #}
+{% block head %}
+    {% import 'invoicing/pdf/theme/_tables.html.twig' as t %}
+    {% set s = {
+        label: 'font-family:intertnum;font-size:7.5pt;color:#5e625c;margin:0;',
+        name: 'font-family:intertnum;font-weight:bold;font-size:10pt;color:#1e2320;margin:0;',
+        text: 'font-family:intertnum;font-size:8.5pt;color:#1e2320;margin:0;line-height:1.35;',
+        small: 'font-family:intertnum;font-size:7.5pt;color:#5e625c;margin:0;',
+    } %}
+    <table cellpadding="0">
+        <tr>
+            <td width="55%">
+                {% if doc.logo %}<img src="{{ doc.logo.path }}" alt="{{ doc.logo.alt }}" width="{{ doc.logo.width }}" height="{{ doc.logo.height }}">
+                {% else %}<p style="font-family:interdisplay;font-size:16pt;color:#2f4a3a;margin:0;">{{ doc.issuer.name }}</p>{% endif %}
+            </td>
+            <td width="45%" align="right">
+                <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
+                <p style="font-family:intertnum;font-weight:bold;font-size:11pt;color:#1e2320;margin:0;">{{ doc.number }}</p>
+            </td>
+        </tr>
+    </table>
+    <table cellpadding="0"><tr><td height="14mm"></td></tr></table>
+    {% set big = doc.payable|length > 17 ? '20pt' : (doc.payable|length > 13 ? '26pt' : '32pt') %}
+    <table cellpadding="0">
+        <tr>
+            <td width="66%" style="white-space:nowrap;">
+                <p style="font-family:intertnum;font-size:9pt;color:#5e625c;margin:0;">{{ 'invoice.pdf.payable'|trans }}</p>
+                <p style="font-family:interdisplay;font-size:{{ big }};color:#2f4a3a;margin:0;">{{ doc.payable }}</p>
+            </td>
+            <td width="34%" align="right">
+                <p style="font-family:intertnum;font-size:9pt;color:#5e625c;margin:0;">{{ 'invoice.pdf.due_date'|trans }}</p>
+                <p style="font-family:interdisplay;font-size:20pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.dueDate }}</p>
+            </td>
+        </tr>
+    </table>
+    <table cellpadding="0"><tr><td height="10mm"></td></tr></table>
+    <table cellpadding="0">
+        <tr>
+            <td width="38%">{{ t.party(doc.issuer, 'invoice.pdf.supplier'|trans, doc, s, true) }}</td>
+            <td width="34%">{{ t.party(doc.customer, 'invoice.pdf.customer'|trans, doc, s, false) }}</td>
+            <td width="28%">
+                <p style="{{ s.label }}">{{ 'invoice.pdf.issue_date'|trans }}</p>
+                <p style="{{ s.text }}">{{ doc.issueDate }}</p>
+                <p style="{{ s.label }}">{{ doc.taxPointLabel }}</p>
+                <p style="{{ s.text }}">{{ doc.taxPointDate }}</p>
+                {% if doc.orderNumber %}
+                    <p style="{{ s.label }}">{{ 'invoice.pdf.order_number'|trans }}</p>
+                    <p style="{{ s.text }}">{{ doc.orderNumber }}</p>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+    <table cellpadding="0"><tr><td height="8mm"></td></tr></table>
+{% endblock %}
+
+{% block body %}
+    {% import 'invoicing/pdf/theme/_tables.html.twig' as t %}
+    {% set s = {
+        text: 'font-family:intertnum;font-size:8.5pt;color:#1e2320;margin:0;line-height:1.35;',
+        strong: 'font-family:intertnum;font-weight:bold;font-size:9.5pt;color:#1e2320;margin:0;',
+        note: 'font-family:intertnum;font-weight:bold;font-size:8.5pt;color:#1e2320;margin:0;',
+    } %}
+    {% if doc.description or doc.textBefore %}
+        {{ t.description(doc, s) }}
+        <table cellpadding="0"><tr><td height="4mm"></td></tr></table>
+    {% endif %}
+    {{ t.items(doc, {
+        padding: '4',
+        table: 'font-family:intertnum;font-size:' ~ doc.tableFont ~ ';color:#1e2320;',
+        th: 'font-weight:normal;color:#5e625c;border-bottom:1pt solid #2f4a3a;',
+        td: 'border-bottom:0.25pt solid #d9d6cc;',
+        last: 'border-bottom:1pt solid #2f4a3a;',
+    }) }}
+    <table cellpadding="0"><tr><td height="5mm"></td></tr></table>
+    {% if doc.textAfter or doc.notes %}
+        {{ t.notes(doc, s) }}
+        <table cellpadding="0"><tr><td height="4mm"></td></tr></table>
+    {% endif %}
+    <table cellpadding="0" nobr="true">
+        <tr>
+            <td width="36%">
+                <p style="font-family:intertnum;font-size:7.5pt;color:#5e625c;margin:0;">{{ 'invoice.pdf.stamp'|trans }}</p>
+                {% if doc.stamp %}<img src="{{ doc.stamp.path }}" alt="{{ doc.stamp.alt }}" width="{{ doc.stamp.width }}" height="{{ doc.stamp.height }}">{% endif %}
+            </td>
+            <td width="64%">
+                {{ t.recap(doc, {
+                    padding: '3',
+                    table: 'font-family:intertnum;font-size:' ~ doc.tableFont ~ ';color:#1e2320;',
+                    th: 'font-weight:normal;color:#5e625c;',
+                    td: '',
+                    sum: 'font-weight:bold;border-top:0.5pt solid #1e2320;',
+                }) }}
+                <p style="font-family:intertnum;font-weight:bold;font-size:11pt;text-align:right;color:#2f4a3a;margin:6pt 0 0 0;">{{ 'invoice.pdf.payable'|trans }}: {{ doc.payable }}</p>
+            </td>
+        </tr>
+    </table>
+{% endblock %}
+
+{% block foot %}
+    {% set label = 'font-family:intertnum;font-size:7.5pt;color:#5e625c;margin:0;' %}
+    {% set value = 'font-family:intertnum;font-size:8.5pt;color:#1e2320;margin:0;white-space:nowrap;' %}
+    {% set strong = 'font-family:intertnum;font-weight:bold;font-size:11pt;color:#1e2320;margin:0;white-space:nowrap;' %}
+    <table cellpadding="11">
+        <tr>
+            <td width="{{ doc.hasQr ? '44%' : '56%' }}" height="36mm" style="background-color:#f4f2ec;">
+                {% if doc.account %}<p style="{{ label }}">{{ 'invoice.pdf.bank_account'|trans }}</p><p style="{{ strong }}">{{ doc.account }}</p>{% endif %}
+                {% if doc.iban %}<p style="{{ value }}">IBAN: {{ doc.iban }}</p>{% endif %}
+                <p style="{{ label }}margin-top:6pt;">{{ 'invoice.pdf.payable'|trans }}</p>
+                <p style="{{ strong }}">{{ doc.payable }}</p>
+                <p style="{{ label }}margin-top:6pt;">{{ 'invoice.pdf.payment_method'|trans }}: {{ doc.paymentMethod }}</p>
+            </td>
+            <td width="{{ doc.hasQr ? '32%' : '44%' }}" style="background-color:#f4f2ec;">
+                {% if doc.variableSymbol %}<p style="{{ label }}">{{ 'invoice.pdf.variable_symbol'|trans }}</p><p style="{{ strong }}">{{ doc.variableSymbol }}</p>{% endif %}
+                {% if doc.constantSymbol %}<p style="{{ label }}">{{ 'invoice.pdf.constant_symbol'|trans }}: {{ doc.constantSymbol }}</p>{% endif %}
+                <p style="{{ label }}margin-top:6pt;">{{ 'invoice.pdf.due_date'|trans }}</p>
+                <p style="{{ strong }}">{{ doc.dueDate }}</p>
+            </td>
+            {% if doc.hasQr %}
+                <td width="3.4%"></td>
+                <td width="20.6%"><p style="{{ label }}">{{ 'invoice.pdf.qr_label'|trans }}</p></td>
+            {% endif %}
+        </tr>
+    </table>
+{% endblock %}

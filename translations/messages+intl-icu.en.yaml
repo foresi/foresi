@@ -545,6 +545,7 @@ invoice:
     stamp_alt: 'Stamp and signature: {name}'
     qr_label: QR Platba+F
     qr_alt: 'QR Platba+F of invoice {number}'
+    page: 'Invoice {number}, page {page} of {pages}'
     note:
       reverse_charge: 'Reverse charge. The customer accounts for the tax (daň odvede zákazník).{code, select, none {} other { Supply code: {code}.}}'
       exempt: The supply is exempt from VAT.

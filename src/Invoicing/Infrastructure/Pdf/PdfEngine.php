@@ -24,7 +24,8 @@ final readonly class PdfEngine
 {
     private const string FONT = 'inter';
     private const float FONT_SIZE = 9.0;
-    private const float MARGIN_MM = 15.0;
+    private const float PAGE_NUMBER_SIZE = 7.0;
+    private const float PAGE_NUMBER_HEIGHT_MM = 3.5;
     private const float PAGE_WIDTH_MM = 210.0;
     private const float PAGE_HEIGHT_MM = 297.0;
     private const string CREATOR = 'Foresi';
@@ -46,8 +47,10 @@ final readonly class PdfEngine
     }
 
     /**
-     * @param string $language BCP 47 tag of the document, for example "cs"
-     * @param string $htmlHead what comes before the body: the QR code keeps its place below it, however tall it grows
+     * @param string                    $language   BCP 47 tag of the document, for example "cs"
+     * @param string                    $htmlHead   what comes before the body: the QR code keeps its place below it, however tall it grows
+     * @param string                    $htmlFoot   what comes after the body, whole on one page
+     * @param \Closure(int, int):string $pageNumber the text of a page number, from the page and the count of pages
      *
      * @return string the PDF bytes
      */
@@ -58,6 +61,9 @@ final readonly class PdfEngine
         ?EmbeddedFile $file,
         ?QrFigure $qr = null,
         string $htmlHead = '',
+        string $htmlFoot = '',
+        PdfLayout $layout = new PdfLayout(),
+        ?\Closure $pageNumber = null,
     ): string {
         $logos = $this->existingLogoDirectories();
         $pdf = new Tcpdf(
@@ -81,25 +87,45 @@ final readonly class PdfEngine
 
         $regular = $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/inter.json');
         $pdf->font->insert($pdf->pon, self::FONT, 'B', self::FONT_SIZE, ifile: $this->fontDirectory.'/interb.json');
+        foreach ($layout->faces as $face) {
+            $pdf->font->insert($pdf->pon, $face->family, $face->style, self::FONT_SIZE, ifile: $this->fontDirectory.'/'.$face->file);
+        }
         // Back to the regular face as the current font.
         $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/inter.json');
 
         // Every page keeps these: a table that breaks continues inside them.
-        $margin = self::MARGIN_MM;
-        $pdf->addPage(['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => $margin]]);
+        $margin = $layout->marginMm;
+        $width = self::PAGE_WIDTH_MM - 2 * $margin;
+        $page = ['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => $margin]];
+        $pdf->addPage($page);
         $pdf->page->addContent($regular['out']);
 
-        $page = $pdf->page->getPageID();
-        $bodyTop = self::MARGIN_MM;
+        $first = $pdf->page->getPageID();
+        $bodyTop = $margin;
         if ('' !== $htmlHead) {
-            $pdf->addHTMLCell(html: $htmlHead, posx: self::MARGIN_MM, posy: self::MARGIN_MM, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
+            $pdf->addHTMLCell(html: $htmlHead, posx: $margin, posy: $margin, width: $width);
             $bodyTop = $pdf->getLastHTMLCellEnd()['y'];
         }
 
-        $pdf->addHTMLCell(html: $htmlBody, posx: self::MARGIN_MM, posy: $bodyTop, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
+        $pdf->addHTMLCell(html: $htmlBody, posx: $margin, posy: $bodyTop, width: $width);
+
+        $footPage = $first;
+        $footTop = 0.0;
+        if ('' !== $htmlFoot) {
+            $footTop = $this->footTop($pdf, $layout, $page, $regular['out']);
+            $footPage = $pdf->page->getPageID();
+            $pdf->addHTMLCell(html: $htmlFoot, posx: $margin, posy: $footTop, width: $width);
+        }
 
         if ($qr instanceof QrFigure) {
-            $this->drawQr($pdf, $qr, $page, $bodyTop - self::MARGIN_MM);
+            match ($qr->anchor) {
+                QrAnchor::Body => $this->drawQr($pdf, $qr, $first, $bodyTop - $margin),
+                QrAnchor::Foot => $this->drawQr($pdf, $qr, $footPage, $footTop),
+            };
+        }
+
+        if (null !== $layout->pageFace && $pageNumber instanceof \Closure) {
+            $this->numberPages($pdf, $layout->pageFace, $margin, $first, $pdf->page->getPageID(), $pageNumber);
         }
 
         if ($file instanceof EmbeddedFile) {
@@ -112,6 +138,53 @@ final readonly class PdfEngine
         }
 
         return $pdf->getOutPDFString();
+    }
+
+    /**
+     * Where the block after the body starts; a block that does not fit opens a page.
+     *
+     * @param array<string, mixed> $page the definition of a page
+     */
+    private function footTop(Tcpdf $pdf, PdfLayout $layout, array $page, string $font): float
+    {
+        $end = $pdf->getLastHTMLCellEnd()['y'];
+        $bottom = self::PAGE_HEIGHT_MM - $layout->marginMm;
+        $standing = $bottom - $layout->footHeightMm;
+        $top = $layout->footAtBottom ? $standing : $end + $layout->footGapMm;
+        if ($top >= $end && $top <= $standing) {
+            return $top;
+        }
+
+        $pdf->addPage($page);
+        $pdf->page->addContent($font);
+
+        return $layout->footAtBottom ? $standing : $layout->marginMm;
+    }
+
+    /**
+     * A page number is page furniture, so it stays out of the structure of the document.
+     *
+     * @param \Closure(int, int):string $text
+     */
+    private function numberPages(Tcpdf $pdf, string $face, float $margin, int $first, int $last, \Closure $text): void
+    {
+        $count = $last - $first + 1;
+        $font = $pdf->font->insert($pdf->pon, $face, '', self::PAGE_NUMBER_SIZE);
+        for ($pid = $first; $pid <= $last; ++$pid) {
+            $pdf->addArtifactContent(
+                $font['out'].$pdf->getTextCell(
+                    $text($pid - $first + 1, $count),
+                    $margin,
+                    self::PAGE_HEIGHT_MM - $margin + 2.0,
+                    self::PAGE_WIDTH_MM - 2 * $margin,
+                    self::PAGE_NUMBER_HEIGHT_MM,
+                    halign: 'R',
+                ),
+                $pid,
+                'Pagination',
+                'Footer',
+            );
+        }
     }
 
     /**
@@ -134,7 +207,7 @@ final readonly class PdfEngine
     }
 
     /**
-     * @param float $shift how far a head pushed the body down, in millimetres
+     * @param float $shift how far the place the figure is measured from lies down the page, in millimetres
      */
     private function drawQr(Tcpdf $pdf, QrFigure $qr, int $pid, float $shift): void
     {
