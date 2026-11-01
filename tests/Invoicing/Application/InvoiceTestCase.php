@@ -92,11 +92,11 @@ abstract class InvoiceTestCase extends KernelTestCase
         $this->em->flush();
     }
 
-    protected function firm(VatStatus $status = VatStatus::Registered, ?string $vatId = 'CZ12345695', string $register = 'Example register, entry C 1'): LegalEntity
+    protected function firm(VatStatus $status = VatStatus::Registered, ?string $vatId = 'CZ12345695', string $register = 'Example register, entry C 1', string $registrationNumber = '12345695'): LegalEntity
     {
         $firm = new LegalEntity(
             'Example Firm s.r.o.',
-            new RegistrationNumber('CZ', '12345695'),
+            new RegistrationNumber('CZ', $registrationNumber),
             null === $vatId ? null : VatId::fromString($vatId),
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             $status,

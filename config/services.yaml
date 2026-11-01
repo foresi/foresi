@@ -223,6 +223,9 @@ when@test:
             public: true
         App\Invoicing\Application\IssueInvoice: { public: true }
         App\Invoicing\Application\EditInvoice: { public: true }
+        App\Party\Application\ContactSettingsForFirm: { public: true }
+        App\Invoicing\Application\NewInvoiceDefaults: { public: true }
+        App\Invoicing\Application\CustomerPicker: { public: true }
         App\Invoicing\Application\TrashInvoice: { public: true }
         App\Invoicing\Application\MarkDelivered: { public: true }
         App\Invoicing\Application\IssuedDocumentFactory: { public: true }

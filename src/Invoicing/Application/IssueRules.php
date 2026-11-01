@@ -214,6 +214,9 @@ final readonly class IssueRules
         if ($isNew && $this->contacts->isArchivedFor($party, $firm)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_archived');
         }
+        if ($isNew && !$this->contacts->hasCustomerRole($party, $firm)) {
+            $problems[] = new IssueProblem('customer', 'invoice.problem.customer_role');
+        }
         $copy = $this->copies->for($input, $party, $firm, $existing);
         if (!$copy instanceof DocumentParty || !$this->isComplete($copy)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_address_incomplete');
