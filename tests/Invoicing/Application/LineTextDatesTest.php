@@ -56,7 +56,9 @@ final class LineTextDatesTest extends TestCase
         yield 'a year beyond the pattern' => ['10/2100', 'cs'];
         yield 'a year of five digits' => ['10/20265', 'cs'];
         yield 'an order code' => ['Kód A-2026-104', 'cs'];
-        yield 'a month inside a word' => ['Sprejgraf', 'en'];
+        yield 'a word starting with a month' => ['Mayor of the town', 'en'];
+        yield 'a word holding a month' => ['Remarching band', 'en'];
+        yield 'a month with a letter after it in Czech' => ['Listopadový servis', 'cs'];
         yield 'a Czech month in English text' => ['říjen', 'en'];
         yield 'a decimal with a comma' => ['1,10.2026x', 'cs'];
     }

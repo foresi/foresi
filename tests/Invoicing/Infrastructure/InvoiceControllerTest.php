@@ -349,6 +349,96 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('[data-cell="vat"]');
     }
 
+    public function testACopyDropsTheCodeOfAContactTurnedForeign(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled(['lines' => [$this->lineValues(['vat' => 'reverse_charge', 'supplyCode' => '4'])]]));
+        $source = $this->onlyInvoice();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
+            $party->changeIdentifiers($party->registrationNumber(), VatId::fromString('DE123456789'));
+            $this->em()->flush();
+        });
+
+        $values = $this->openCopy($source);
+
+        self::assertSame('reverse_charge', $values['lines'][0]['vat']);
+        self::assertSame('', $values['lines'][0]['supplyCode']);
+    }
+
+    public function testACopyOfAFirmInACountryWithoutRulesSaysSo(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), new Address('Street 1', 'City', '100 00', 'DE'), $firm->vatStatus(), $firm->registerEntry(), $firm->bankAccounts());
+            $this->em()->flush();
+        });
+
+        $this->client->request('GET', '/invoices/'.$source->id().'/copy');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('form#invoice-form');
+        self::assertSelectorTextContains('main', $this->text('invoice.problem.firm_country_unsupported'));
+    }
+
+    public function testCopyNoticesSurviveARefusedSave(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->secondFirm(VatStatus::Registered);
+        $this->archiveFirm();
+        $values = $this->openCopy($source);
+        self::assertSelectorExists('[data-copy-notice]');
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-copy-notice]', 'This firm is archived');
+    }
+
+    public function testACustomerNoticeLeavesOnceAnotherCustomerIsChosen(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($party, $firm, true);
+            $this->em()->flush();
+        });
+        $values = $this->openCopy($source);
+
+        $this->save($values);
+        self::assertSelectorTextContains('[data-copy-notice]', 'Choose another customer');
+
+        $other = $this->scoped(function (): Party {
+            $party = new Party(PartyKind::Company, 'Other Customer a.s.', new RegistrationNumber('CZ', '12345679'), null, '');
+            $this->em()->persist($party);
+            $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Other Street 2', 'Other City', '200 00', 'CZ')));
+            $this->em()->flush();
+
+            return $party;
+        });
+        $this->save(array_merge($this->currentValues(), ['customerId' => $other->id(), 'customerQuery' => 'Other Customer a.s.', 'orderNumber' => str_repeat('x', 65)]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorNotExists('[data-copy-notice]');
+    }
+
+    public function testAForgedCopyFieldShowsNothing(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerId' => '', 'customerQuery' => '']);
+
+        foreach (['not-an-id', $this->foreignInvoice()->id()] as $copyOf) {
+            $this->save(array_merge($values, ['copyOf' => $copyOf]));
+            self::assertResponseStatusCodeSame(422);
+            self::assertSelectorNotExists('[data-copy-notice]');
+        }
+    }
+
     public function testACopyOfAnotherTenantsInvoiceIs404(): void
     {
         $this->signedIn();

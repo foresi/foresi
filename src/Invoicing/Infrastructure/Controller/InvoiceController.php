@@ -154,7 +154,7 @@ final class InvoiceController extends AbstractController
             return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
-        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK, notices: $draft->notices);
+        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     #[Route('/invoices/recount', name: 'app_invoice_recount', methods: ['POST'])]
@@ -468,9 +468,8 @@ final class InvoiceController extends AbstractController
      * @param array<string, mixed>                                    $values
      * @param list<array{id: string, field: string, message: string}> $errors
      * @param list<array{id: string, name: string, hint: string}>     $candidates
-     * @param list<string>                                            $notices    translation keys
      */
-    private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false, array $notices = []): Response
+    private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false): Response
     {
         $firm = $context->firm;
         $invoice = $context->invoice;
@@ -493,7 +492,7 @@ final class InvoiceController extends AbstractController
             'token' => $token,
             'version' => $version,
             'stale' => $stale,
-            'copyNotices' => $notices,
+            'copyNotices' => $this->copyNotices($values, $context),
             'copyOf' => $values['copyOf'] ?? '',
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
@@ -515,6 +514,34 @@ final class InvoiceController extends AbstractController
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
+    }
+
+    /**
+     * What the copy of a document must say, for as long as it holds: through a refused
+     * save, until the form has another firm or customer.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return list<string> translation keys
+     */
+    private function copyNotices(array $values, InvoiceFormContext $context): array
+    {
+        $id = $values['copyOf'] ?? '';
+        if (!\is_string($id) || !Uuid::isValid($id)) {
+            return [];
+        }
+        try {
+            $source = $this->store->get($id);
+            $notices = $this->copies->valuesFrom($source)->notices;
+        } catch (UnknownInvoice|UnsupportedCountry) {
+            return [];
+        }
+        $sameFirm = $source->firm()->id() === $context->firm->id();
+
+        return array_values(array_filter($notices, static fn (string $notice): bool => match ($notice) {
+            'invoice.copy.customer_archived' => $sameFirm && '' === $values['customerId'],
+            default => $sameFirm,
+        }));
     }
 
     /**
