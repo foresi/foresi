@@ -1,5 +1,11 @@
 {
     // SPDX-License-Identifier: AGPL-3.0-only
+    //
+    // This is the fast run used on pull requests. With the default timeout of 10 seconds Infection
+    // skips every mutant whose covering tests take longer than that, which is most of them for code
+    // that many integration tests touch, so the score covers only part of the mutants. The weekly
+    // run (.github/workflows/mutation.yml, infection.full.json5) skips none. Keep the two files in
+    // step: they differ only in "timeout" and the log path.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"],
@@ -30,8 +36,7 @@
         ]},
         // Equivalent mutant: a seat that is not an array has no city, so it ends as no seat either way.
         "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat"]},
-        // Equivalent mutant: both columns are always set together.
-        // Equivalent mutant: a repeated id is looked up and stored again with the same outcome.
+        // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again with the same outcome.
         "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany"]},
         // Equivalent mutants: ids hold letters and digits only, so the XML escape flags change nothing, and the
         // parser flags only back up the checks above them (no DTD is let through, errors are collected internally).
