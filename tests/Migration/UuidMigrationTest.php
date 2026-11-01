@@ -118,6 +118,53 @@ final class UuidMigrationTest extends TestCase
         self::assertSame(self::TENANT, $this->text('SELECT tenant_id FROM party_address'));
     }
 
+    public function testBatchesLoseNothingAndKeepTheOrder(): void
+    {
+        $migration = $this->migrations()->getMigrationRepository()->getMigration(new Version('DoctrineMigrations\Version20261101000001'))->getMigration();
+        $batch = new \ReflectionClassConstant($migration, 'BATCH')->getValue();
+        self::assertIsInt($batch);
+        $rows = $batch + 1;
+        $seededAudit = $this->rows('SELECT COUNT(*) FROM audit_entry');
+        $snapshot = json_encode(['added' => ['emails' => [self::EMAIL]], 'children' => ['emails' => [self::EMAIL, self::DELETED_EMAIL]]], \JSON_THROW_ON_ERROR);
+        $changes = ['party' => [null, self::COMPANY]];
+
+        $this->db->beginTransaction();
+        // The row without a snapshot sits before the others: the rewrite must step over it.
+        $this->bulkImportRow(2, null);
+        for ($i = 0; $i < $rows; ++$i) {
+            $this->audit(\sprintf('Bulk %05d', $i), PartyEmail::class, self::EMAIL, 'updated', $changes, self::USER);
+            $this->bulkImportRow($i + 3, $snapshot);
+        }
+        $this->db->commit();
+
+        $this->migrateTo(null);
+
+        self::assertSame($seededAudit + $rows, $this->rows('SELECT COUNT(*) FROM audit_entry'));
+        self::assertSame($rows + 2, $this->rows('SELECT COUNT(*) FROM import_row'));
+
+        self::assertSame(
+            array_map(static fn (int $i): string => \sprintf('Bulk %05d', $i), range(0, $rows - 1)),
+            $this->db->fetchFirstColumn("SELECT correlation_id FROM audit_entry WHERE correlation_id LIKE 'Bulk %' ORDER BY id"),
+        );
+        self::assertSame(range(1, $rows + 2), $this->db->fetchFirstColumn('SELECT row_number FROM import_row ORDER BY id'));
+
+        $emailId = $this->text('SELECT id FROM party_email');
+        $partyId = $this->text("SELECT id FROM party WHERE display_name = 'Example Company s.r.o.'");
+        $deletedEmailId = $this->text('SELECT entity_id FROM audit_entry WHERE correlation_id = ?', ['Deleted e-mail']);
+        self::assertSame([$emailId], $this->distinct("SELECT entity_id FROM audit_entry WHERE correlation_id LIKE 'Bulk %'"));
+        self::assertSame([$this->text('SELECT id FROM app_user')], $this->distinct("SELECT user_id FROM audit_entry WHERE correlation_id LIKE 'Bulk %'"));
+        $bulkChanges = $this->distinct("SELECT changes FROM audit_entry WHERE correlation_id LIKE 'Bulk %'");
+        self::assertCount(1, $bulkChanges);
+        self::assertSame(['party' => [null, $partyId]], json_decode($bulkChanges[0], true));
+
+        $before = $this->db->quoteSingleIdentifier('before');
+        self::assertSame($rows, $this->rows(\sprintf('SELECT COUNT(*) FROM import_row WHERE %s IS NOT NULL AND row_number > 2', $before)));
+        $snapshots = $this->distinct(\sprintf('SELECT %s FROM import_row WHERE %1$s IS NOT NULL AND row_number > 2', $before));
+        self::assertCount(1, $snapshots);
+        self::assertSame(['added' => ['emails' => [$emailId]], 'children' => ['emails' => [$emailId, $deletedEmailId]]], json_decode($snapshots[0], true));
+        self::assertNull($this->db->fetchOne(\sprintf('SELECT %s FROM import_row WHERE row_number = 2', $before)));
+    }
+
     public function testEveryIdIsAUuidV7(): void
     {
         $this->migrateTo(null);
@@ -396,6 +443,13 @@ final class UuidMigrationTest extends TestCase
         $this->audit('Unknown class', 'App\Old\Thing', 1, 'created', ['value' => [null, 1]], null);
     }
 
+    private function bulkImportRow(int $id, ?string $snapshot): void
+    {
+        $this->tenantRow('import_row', [
+            'id' => $id, 'import_id' => self::IMPORT, 'outcome' => 'update', 'errors' => '[]', 'record_id' => self::COMPANY, 'row_number' => $id, 'chunk' => 0, 'raw' => '[]', 'processed_in_run' => true, 'processed_in_undo' => false, 'before' => $snapshot,
+        ]);
+    }
+
     private function party(int $id, string $name, string $kind): void
     {
         $this->tenantRow('party', [
@@ -463,6 +517,20 @@ final class UuidMigrationTest extends TestCase
         self::assertIsString($value, $sql);
 
         return $value;
+    }
+
+    /**
+     * @return list<string> the values of a text column, each once
+     */
+    private function distinct(string $sql): array
+    {
+        $values = [];
+        foreach ($this->db->fetchFirstColumn($sql) as $value) {
+            self::assertIsString($value, $sql);
+            $values[$value] = true;
+        }
+
+        return array_keys($values);
     }
 
     /**
