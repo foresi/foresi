@@ -59,13 +59,22 @@ final class QrPlatbaTest extends TestCase
         self::assertStringNotContainsString('TB0', (string) $code);
     }
 
-    public function testAStarInTheNumberIsEncoded(): void
+    public function testANumberTheInvoicePartCannotHoldGivesNoCode(): void
     {
-        $code = $this->qr(number: 'FA*1');
+        // SID has no way to carry these, and ID is mandatory there.
+        self::assertNull($this->qr(number: 'FA*1'));
+        self::assertNull($this->qr(number: '100%'));
+        self::assertNull($this->qr(number: str_repeat('1', 41)));
+        self::assertNotNull($this->qr(number: str_repeat('1', 40)));
+    }
 
-        self::assertStringContainsString('*MSG:FA%2A1*', (string) $code);
-        // Twice in the part that is encoded as a whole.
-        self::assertStringContainsString('%2AID:FA%252A1%2ADD:', (string) $code);
+    public function testAStarOrPercentInAnotherValueLeavesItsKeyOut(): void
+    {
+        $code = (string) $this->qr(order: 'PO*1');
+
+        self::assertStringNotContainsString('%2AON:', $code);
+        self::assertStringNotContainsString('%252A', $code);
+        self::assertStringNotContainsString('ON:', (string) $this->qr(order: '50%'));
     }
 
     public function testConstantSymbolGoesToXKs(): void
@@ -162,16 +171,6 @@ final class QrPlatbaTest extends TestCase
     public function testAnOverLongCustomerNumberLeavesItsKeyOut(): void
     {
         self::assertStringNotContainsString('INR:', (string) $this->qr(customerNumber: '123456789'));
-    }
-
-    public function testAnOverLongNumberLeavesItsKeysOutNotCut(): void
-    {
-        $number = str_repeat('1', 61);
-        $code = (string) $this->qr(number: $number);
-
-        self::assertStringNotContainsString('MSG:', $code);
-        self::assertStringNotContainsString('%2AID:', $code);
-        self::assertStringContainsString('*X-INV:SID%2A1.0%2ADD:', $code);
     }
 
     /**

@@ -11,8 +11,6 @@ parameters:
     app.product_name: Foresi
     # The released version, named as the issuing system in electronic documents. A release sets it.
     app.version: 0.4.0
-    # The look of the invoice PDF: classic, statement, panel or slip.
-    env(INVOICE_PDF_THEME): classic
     # Uploaded import sources; never below public/, tenant directories inside.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
     # Logos and stamps; never below public/. From the kernel, not from the environment
@@ -68,10 +66,6 @@ services:
     App\Invoicing\Infrastructure\Pdf\PdfEngine:
         arguments:
             $logoDirectories: ['%app.firm_image_dir%']
-
-    App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf:
-        arguments:
-            $theme: '%env(INVOICE_PDF_THEME)%'
 
     App\Party\Infrastructure\Http\FilesystemFirmImages:
         arguments:

@@ -417,6 +417,19 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testAPdfOfAnUnsupportedCountrySaysSo(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+        $this->scoped(fn (): int => (int) $this->em()->getConnection()->executeStatement("UPDATE invoice SET issuer_address_country_code = 'XX' WHERE id = :id", ['id' => $invoice->id()]));
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/pdf');
+
+        self::assertResponseRedirects('/invoices');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('[role="alert"]', $invoice->number());
+    }
+
     public function testAnotherTenantsPdfIs404(): void
     {
         $this->signedIn();

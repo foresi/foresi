@@ -4,8 +4,6 @@ All faces are Inter 4.1 by The Inter Project Authors, under the SIL Open Font Li
 
 | Family | Style | Files | Source |
 | --- | --- | --- | --- |
-| `inter` | regular | `inter.*` | `Inter-Regular.ttf`, unchanged |
-| `inter` | bold | `interb.*` | `Inter-Bold.ttf`, unchanged |
 | `intertnum` | regular | `intertnum.*` | `Inter-Regular.ttf`, modified |
 | `intertnum` | bold | `intertnumb.*` | `Inter-SemiBold.ttf`, modified |
 | `interdisplay` | regular | `interdisplay.*` | `InterDisplay-SemiBold.ttf`, unchanged |

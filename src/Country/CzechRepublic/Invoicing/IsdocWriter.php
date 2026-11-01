@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Country\CzechRepublic\Invoicing;
 
 use App\Country\CzechRepublic\Party\CzechBankAccount;
+use App\Country\CzechRepublic\Party\CzechBanks;
 use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\InvoiceLine;
@@ -76,7 +77,10 @@ final readonly class IsdocWriter
         $this->party($this->add($root, 'AccountingSupplierParty'), $document->issuer);
         $this->party($this->add($root, 'AccountingCustomerParty'), $document->customer);
         if ('' !== $document->orderNumber) {
-            $this->add($this->add($this->add($root, 'OrderReferences'), 'OrderReference'), 'SalesOrderID', $document->orderNumber);
+            // SalesOrderID is required and is the supplier's own identifier: the customer's order number is the external one.
+            $reference = $this->add($this->add($root, 'OrderReferences'), 'OrderReference');
+            $this->add($reference, 'SalesOrderID', $document->number);
+            $this->add($reference, 'ExternalOrderID', $document->orderNumber);
         }
 
         $lines = $this->add($root, 'InvoiceLines');
@@ -264,10 +268,9 @@ final readonly class IsdocWriter
         $this->add($details, 'PaymentDueDate', $document->dueDate->format('Y-m-d'));
         $this->add($details, 'ID', $account['number'] ?? '');
         $this->add($details, 'BankCode', $account['bankCode'] ?? '');
-        // The firm keeps only the IBAN: the name of the bank and the BIC stay empty, which the schema allows.
-        $this->add($details, 'Name', '');
+        $this->add($details, 'Name', CzechBanks::nameOf($account['bankCode'] ?? ''));
         $this->add($details, 'IBAN', $iban);
-        $this->add($details, 'BIC', '');
+        $this->add($details, 'BIC', CzechBanks::bicOf($account['bankCode'] ?? ''));
         if ('' !== $document->variableSymbol) {
             $this->add($details, 'VariableSymbol', $document->variableSymbol);
         }

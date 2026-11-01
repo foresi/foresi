@@ -44,6 +44,11 @@ interface InvoicingCountry
     public function supplyCodes(\DateTimeImmutable $on): array;
 
     /**
+     * Whether a document number can be used here, whatever else issues it.
+     */
+    public function acceptsNumber(string $number): bool;
+
+    /**
      * The account as people of the country write it, if the IBAN is a domestic one.
      */
     public function domesticAccount(string $iban): ?string;

@@ -1,5 +1,4 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The tables every theme prints, so a theme styles them and can never drop a column or a row. #}
 {#
     s holds the inline styles: th and td for the head and the cells, and row and last
     for the rows. A row carries its rule on each cell: tc-lib-pdf ignores it on tr.
@@ -28,7 +27,7 @@
                 <tr nobr="true">
                     <td width="{{ widths.text }}" style="{{ cell }}">{{ line.text|nl2br }}</td>
                     <td width="{{ widths.quantity }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.quantity }}</td>
-                    <td width="{{ widths.unit }}" style="{{ cell }}white-space:nowrap;">{{ line.unit|replace({' ': '\u00a0'}) }}</td>
+                    <td width="{{ widths.unit }}" style="{{ cell }}">{{ line.unit }}</td>
                     <td width="{{ widths.price }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.price }}</td>
                     {% if doc.hasDiscount %}<td width="{{ widths.discount }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.discount }}</td>{% endif %}
                     {% if doc.payer %}
@@ -63,26 +62,27 @@
 #}
 {% macro recap(doc, s) %}
     {% if doc.payer %}
+        {% set recap = doc.recapColumns %}
         <table cellpadding="{{ s.padding }}" style="{{ s.table }}">
             <tr>
-                <th width="28%" align="left" style="{{ s.th }}">{{ 'invoice.pdf.recap_rate'|trans }}</th>
-                <th width="24%" align="right" style="{{ s.th }}">{{ 'invoice.pdf.base'|trans }}</th>
-                <th width="24%" align="right" style="{{ s.th }}">{{ 'invoice.pdf.vat'|trans }}</th>
-                <th width="24%" align="right" style="{{ s.th }}">{{ 'invoice.pdf.total'|trans }}</th>
+                <th width="{{ recap.label }}" align="left" style="{{ s.th }}">{{ 'invoice.pdf.recap_rate'|trans }}</th>
+                <th width="{{ recap.base }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.base'|trans }}</th>
+                <th width="{{ recap.vat }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.vat'|trans }}</th>
+                <th width="{{ recap.total }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.total'|trans }}</th>
             </tr>
             {% for row in doc.recap %}
                 <tr>
-                    <td width="28%" style="{{ s.td }}">{{ row.label }}</td>
-                    <td width="24%" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.base }}</td>
-                    <td width="24%" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.vat }}</td>
-                    <td width="24%" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.total }}</td>
+                    <td width="{{ recap.label }}" style="{{ s.td }}">{{ row.label }}</td>
+                    <td width="{{ recap.base }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.base }}</td>
+                    <td width="{{ recap.vat }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.vat }}</td>
+                    <td width="{{ recap.total }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.total }}</td>
                 </tr>
             {% endfor %}
             <tr>
-                <td width="28%" style="{{ s.sum }}">{{ 'invoice.pdf.recap_total'|trans }}</td>
-                <td width="24%" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.net }}</td>
-                <td width="24%" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.vat }}</td>
-                <td width="24%" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.gross }}</td>
+                <td width="{{ recap.label }}" style="{{ s.sum }}">{{ 'invoice.pdf.recap_total'|trans }}</td>
+                <td width="{{ recap.base }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.net }}</td>
+                <td width="{{ recap.vat }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.vat }}</td>
+                <td width="{{ recap.total }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.gross }}</td>
             </tr>
         </table>
     {% endif %}

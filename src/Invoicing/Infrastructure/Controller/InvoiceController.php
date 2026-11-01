@@ -170,9 +170,16 @@ final class InvoiceController extends AbstractController
     {
         $this->denyUnlessStaff();
         try {
-            $rendered = $this->pdf->render($this->documents->of($id));
+            $document = $this->documents->of($id);
         } catch (UnknownInvoice) {
             throw new NotFoundHttpException();
+        }
+        try {
+            $rendered = $this->pdf->render($document);
+        } catch (UnsupportedCountry) {
+            $this->addFlash('error', $this->translator->trans('invoice.pdf.unsupported_country', ['number' => $document->number]));
+
+            return $this->redirectToRoute('app_invoices');
         }
 
         return new Response($rendered->bytes, Response::HTTP_OK, [
@@ -450,7 +457,7 @@ final class InvoiceController extends AbstractController
             $messages[$this->inputId($field)] ??= $this->message($field, $key);
         }
         foreach ($problems as $problem) {
-            $messages[$this->inputId($problem->field)] ??= $this->message($problem->field, $problem->key);
+            $messages[$this->inputId($problem->field)] ??= $this->message($problem->field, $problem->key, $problem->parameters);
         }
 
         // In the order of the form: the lines come after the document.
@@ -460,11 +467,13 @@ final class InvoiceController extends AbstractController
     }
 
     /**
+     * @param array<string, string> $parameters
+     *
      * @return array{id: string, field: string, message: string}
      */
-    private function message(string $field, string $key): array
+    private function message(string $field, string $key, array $parameters = []): array
     {
-        return ['id' => $this->inputId($field), 'field' => $this->fieldLabel($field), 'message' => $this->translator->trans($key)];
+        return ['id' => $this->inputId($field), 'field' => $this->fieldLabel($field), 'message' => $this->translator->trans($key, $parameters)];
     }
 
     private function inputId(string $field): string

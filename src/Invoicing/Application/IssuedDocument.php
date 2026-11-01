@@ -58,6 +58,7 @@ final readonly class IssuedDocument
         public Money $gross,
         public Money $rounding,
         public Money $payable,
+        public bool $trashed = false,
     ) {
     }
 }

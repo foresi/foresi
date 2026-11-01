@@ -26,6 +26,7 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatId;
+use App\Party\Domain\VatStatus;
 
 /**
  * What a document must be to be saved, on every path. It reads and never writes,
@@ -46,6 +47,7 @@ final readonly class IssueRules
         private CustomerCopies $copies,
         private LinePricing $pricing,
         private FirmInvoicingSettings $settings,
+        private PrintableText $printable,
     ) {
     }
 
@@ -67,6 +69,7 @@ final readonly class IssueRules
         if (!$country instanceof InvoicingCountry) {
             return [...$problems, new IssueProblem('firm', 'invoice.problem.firm_country_unsupported')];
         }
+        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy)];
         $regime = $existing?->vatRegime() ?? VatRegime::of($firm->vatStatus());
         $problems = [...$problems, ...$this->lines($input, $regime, $country, $copy, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode)];
 
@@ -84,6 +87,9 @@ final readonly class IssueRules
         $problems = [];
         if ($firm->isArchived()) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_archived');
+        }
+        if (VatStatus::IdentifiedPerson === $firm->vatStatus()) {
+            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_identified_person');
         }
         if ($firm->vatStatus()->requiresVatId() && !$firm->vatId() instanceof VatId) {
             $problems[] = new IssueProblem('firm', 'invoice.problem.firm_vat_id_missing');
@@ -189,8 +195,12 @@ final readonly class IssueRules
     private function typedNumber(string $number, Series $series, \DateTimeImmutable $issueDate, LegalEntity $firm, ?Invoice $existing): array
     {
         $key = NumberKey::of($number);
-        if ('' === $key || mb_strlen($number) > Invoice::MAX_NUMBER_LENGTH) {
+        if ('' === $key || mb_strlen($number) > Invoice::MAX_NUMBER_LENGTH || \strlen($key) > Invoice::MAX_NUMBER_LENGTH) {
             return [new IssueProblem('number', 'invoice.problem.number_invalid')];
+        }
+        $country = $this->country($firm, $existing);
+        if ($country instanceof InvoicingCountry && !$country->acceptsNumber($number)) {
+            return [new IssueProblem('number', 'invoice.problem.number_not_accepted')];
         }
         if ($series->format()->exceedsCounter($number, $issueDate)) {
             return [new IssueProblem('number', 'invoice.problem.number_out_of_range')];
@@ -226,6 +236,71 @@ final readonly class IssueRules
             $problems[] = new IssueProblem('customer', 'invoice.problem.too_long');
         } elseif ($input->customerOnDocument instanceof DocumentParty && null !== $copy->vatId && !$this->vatIdOf($copy) instanceof VatId) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_vat_id_invalid');
+        }
+
+        return $problems;
+    }
+
+    /**
+     * Everything of the document that prints and a person typed. The firm counts only
+     * on a new document: an issued one holds its copy for good.
+     *
+     * @return list<IssueProblem>
+     */
+    private function printing(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?DocumentParty $customer): array
+    {
+        $texts = [
+            'number' => $input->typedNumber ?? '',
+            'orderNumber' => $input->orderNumber,
+            'description' => $input->description,
+            'textBefore' => $input->textBefore,
+            'textAfter' => $input->textAfter,
+        ];
+        foreach ($input->lines as $index => $line) {
+            $texts['lines.'.$index.'.text'] = $line->text;
+            $texts['lines.'.$index.'.unit'] = $line->unit;
+        }
+
+        $problems = [];
+        foreach ($texts as $field => $text) {
+            $characters = $this->printable->unprintable($text);
+            if ([] !== $characters) {
+                $problems[] = new IssueProblem($field, 'invoice.problem.unprintable', ['characters' => implode(', ', $characters)]);
+            }
+        }
+        if ($customer instanceof DocumentParty) {
+            $problems = [...$problems, ...$this->printingOf('customer', $customer)];
+        }
+        if (!$existing instanceof Invoice) {
+            $problems = [...$problems, ...$this->printingOf('firm', DocumentParty::ofIssuer($firm, $this->settings->for($firm)))];
+        }
+
+        return $problems;
+    }
+
+    /**
+     * @return list<IssueProblem>
+     */
+    private function printingOf(string $field, DocumentParty $party): array
+    {
+        $parts = [
+            'name' => $party->name,
+            'street' => $party->address->street,
+            'city' => $party->address->city,
+            'postal_code' => $party->address->postalCode,
+            'registration_number' => $party->registrationNumber ?? '',
+            'vat_id' => $party->vatId ?? '',
+            'register_entry' => $party->registerEntry,
+            'email' => $party->email ?? '',
+            'phone' => $party->phone,
+            'web' => $party->web,
+        ];
+        $problems = [];
+        foreach ($parts as $part => $text) {
+            $characters = $this->printable->unprintable($text);
+            if ([] !== $characters) {
+                $problems[] = new IssueProblem($field, 'invoice.problem.unprintable_part', ['part' => $part, 'characters' => implode(', ', $characters)]);
+            }
         }
 
         return $problems;

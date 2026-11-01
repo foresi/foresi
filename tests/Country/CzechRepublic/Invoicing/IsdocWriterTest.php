@@ -268,7 +268,8 @@ final class IsdocWriterTest extends InvoiceTestCase
         $with = $this->path(new IsdocWriter()->write($this->scenario('orderNumber')));
         $without = $this->path(new IsdocWriter()->write($this->scenario('noOrderNumber')));
 
-        self::assertSame('PO-77', $this->text($with, '/i:Invoice/i:OrderReferences/i:OrderReference/i:SalesOrderID'));
+        self::assertSame('PO-77', $this->text($with, '/i:Invoice/i:OrderReferences/i:OrderReference/i:ExternalOrderID'));
+        self::assertSame($this->text($with, '/i:Invoice/i:ID'), $this->text($with, '/i:Invoice/i:OrderReferences/i:OrderReference/i:SalesOrderID'));
         self::assertSame(0, $this->nodes($without, '/i:Invoice/i:OrderReferences'));
     }
 
@@ -282,6 +283,8 @@ final class IsdocWriterTest extends InvoiceTestCase
         self::assertSame('2026-11-15', $this->text($path, $payment.'i:Details/i:PaymentDueDate'));
         self::assertSame('19-2000145399', $this->text($path, $payment.'i:Details/i:ID'));
         self::assertSame('0800', $this->text($path, $payment.'i:Details/i:BankCode'));
+        self::assertSame('Česká spořitelna, a.s.', $this->text($path, $payment.'i:Details/i:Name'));
+        self::assertSame('GIBACZPX', $this->text($path, $payment.'i:Details/i:BIC'));
         self::assertSame(self::IBAN, $this->text($path, $payment.'i:Details/i:IBAN'));
         self::assertSame('20260001', $this->text($path, $payment.'i:Details/i:VariableSymbol'));
         self::assertSame('0308', $this->text($path, $payment.'i:Details/i:ConstantSymbol'));
@@ -309,7 +312,10 @@ final class IsdocWriterTest extends InvoiceTestCase
 
     public function testAControlCharacterDoesNotBreakTheFile(): void
     {
-        $document = $this->issued([$this->line(text: "Work\x01 done")]);
+        $document = $this->issued([$this->line()]);
+        // A document issued before the rule that refuses such text.
+        $this->em->getConnection()->executeStatement('UPDATE invoice_line SET text = :text', ['text' => "Work\x01 done"]);
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($document->id);
 
         $path = $this->path(new IsdocWriter()->write($document));
 

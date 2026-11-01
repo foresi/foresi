@@ -67,6 +67,7 @@ final readonly class IssuedDocumentFactory
             $invoice->gross(),
             $invoice->totalRounding(),
             $invoice->payable(),
+            $invoice->isTrashed(),
         );
     }
 }
