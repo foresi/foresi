@@ -357,7 +357,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn(Role::Client);
         $invoice = $this->issue('2026-11-01', '2026-12-01');
 
-        foreach ([['GET', '/invoices'], ['GET', '/invoices/'.$invoice->id().'/history'], ['GET', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/restore'], ['POST', '/invoices/'.$invoice->id().'/delivered']] as [$method, $url]) {
+        foreach ([['GET', '/invoices'], ['GET', '/invoices/'.$invoice->id().'/history'], ['GET', '/invoices/'.$invoice->id().'/copy'], ['GET', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/restore'], ['POST', '/invoices/'.$invoice->id().'/delivered']] as [$method, $url]) {
             $this->client->request($method, $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
@@ -560,6 +560,19 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertFalse($this->stored($invoice)->isTrashed());
     }
 
+    public function testRestoringWhatIsNotInTheTrashClaimsNothing(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/restore', ['_token' => $this->token()]);
+
+        self::assertResponseRedirects('/invoices');
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'This invoice is not in the trash.');
+        self::assertStringNotContainsString('is back in the list', $crawler->filter('main')->text());
+    }
+
     public function testMarkingDeliveredRemovesDeleteAndCannotHappenInTheTrash(): void
     {
         $this->signedIn();
@@ -609,14 +622,11 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->saveThroughTheForm();
         $invoice = $this->onlyInvoice();
-        $this->later();
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
         $form = $crawler->filter('#invoice-save')->form();
         $this->client->submit($form, ['description' => 'Changed', 'lines[0][price]' => '2000,00', '_action' => 'save']);
         self::assertResponseRedirects();
-        $this->later();
         $this->client->request('POST', '/invoices/'.$invoice->id().'/trash', ['_token' => $this->token(), 'reason' => 'Wrong customer']);
-        $this->later();
         $this->client->request('POST', '/invoices/'.$invoice->id().'/restore', ['_token' => $this->token()]);
 
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
@@ -638,7 +648,6 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->saveThroughTheForm();
         $invoice = $this->onlyInvoice();
-        $this->later();
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
         $values = $this->formValues($crawler);
         $values['lines'][0]['text'] = 'Other';
@@ -646,7 +655,6 @@ final class InvoiceListControllerTest extends WebTestCase
         $values['lines'][1] = ['text' => 'Second'] + $values['lines'][0];
         $this->client->request('POST', '/invoices/'.$invoice->id().'/edit', $values);
         self::assertResponseRedirects();
-        $this->later();
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
         $values = $this->formValues($crawler);
         unset($values['lines'][1]);
@@ -656,6 +664,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
 
         $text = implode(' | ', $crawler->filter('main [data-invoice-history] li')->each(static fn (Crawler $item): string => $item->text()));
+        self::assertStringContainsString('Line 1: Work → Other', $text);
         self::assertStringContainsString('Line 2 (Second) added', $text);
         self::assertStringContainsString('Line 2 (Second) removed', $text);
     }
@@ -665,7 +674,6 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->saveThroughTheForm();
         $invoice = $this->onlyInvoice();
-        $this->later();
         $this->client->request('POST', '/invoices/'.$invoice->id().'/delivered', ['_token' => $this->token()]);
 
         $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
@@ -761,14 +769,6 @@ final class InvoiceListControllerTest extends WebTestCase
         $values = $crawler->filter('#invoice-save')->form()->getPhpValues();
 
         return ['_action' => 'save'] + $values;
-    }
-
-    /**
-     * A step of the history is what one person did within one second.
-     */
-    private function later(): void
-    {
-        Clock::get()->sleep(5);
     }
 
     private function onlyInvoice(): Invoice

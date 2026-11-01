@@ -563,6 +563,7 @@ invoice:
     summary: '{total, plural, one {# invoice} other {# invoices}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
+    not_in_trash: This invoice is not in the trash.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
     delivered_confirm: 'Mark invoice {number} as delivered? It can no longer be deleted then.'
@@ -619,6 +620,7 @@ invoice:
     line_added: 'Line {number} ({text}) added'
     line_removed: 'Line {number} ({text}) removed'
     line_changed: 'Line {number} ({text}): {fields}'
+    line_text: 'Line {number}: {text}'
     field:
       number: Number
       series: Series

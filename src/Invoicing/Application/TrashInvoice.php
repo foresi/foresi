@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
@@ -31,8 +32,9 @@ final readonly class TrashInvoice
     /**
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
-     * @throws \DomainException once delivered, without a reason, or when it is in the trash already
-     * @throws UnknownInvoice   also for an invoice of another tenant
+     * @throws InvalidDeletionReason without a reason, or with one past Invoice::MAX_REASON_LENGTH
+     * @throws \DomainException      once delivered, or when it is in the trash already
+     * @throws UnknownInvoice        also for an invoice of another tenant
      */
     public function trash(string $id, string $reason): Invoice
     {

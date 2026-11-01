@@ -17,9 +17,11 @@ use App\Invoicing\Domain\InvoiceLine;
 
 /**
  * The audit log of an invoice as steps a person recognises. One save writes an entry
- * for the document and one for each line it touched; those belong together when the
- * same person wrote them within one second. A line is named by its place and its text
- * at that moment, which the log itself holds, so a removed line keeps its name.
+ * for the document and one for each line it touched, under one correlation. Saves
+ * rewrite lines by position, so a line of the log is a position, not a thing that
+ * moved: a step says what each position held before and after, from the old values
+ * of the log. Removing the first of two lines is the first position taking the text
+ * of the second, and the second position going. The text removed stays visible.
  */
 final readonly class InvoiceHistory
 {
@@ -61,8 +63,8 @@ final readonly class InvoiceHistory
         $groups = [];
         $previous = null;
         foreach ($entries as $entry) {
-            $key = $entry->userId().'@'.$entry->occurredAt()->format('U');
-            if ($key === $previous) {
+            $key = $entry->correlationId();
+            if (null !== $key && $key === $previous) {
                 $groups[array_key_last($groups)][] = $entry;
             } else {
                 $groups[] = [$entry];
@@ -94,6 +96,7 @@ final readonly class InvoiceHistory
             $reason = isset($changes['deletedReason'][1]) && \is_string($changes['deletedReason'][1]) ? $changes['deletedReason'][1] : $reason;
             $fields = [...$fields, ...$this->fields($changes, self::QUIET_INVOICE_FIELDS)];
         }
+        usort($shown, static fn (InvoiceHistoryLine $one, InvoiceHistoryLine $other): int => $one->number <=> $other->number);
         $userId = $group[0]->userId();
         $created = InvoiceHistoryEntry::CREATED === $event;
 
@@ -102,7 +105,7 @@ final readonly class InvoiceHistory
             null === $userId ? null : ($names[$userId] ?? null),
             $event,
             $created ? [] : array_values(array_unique($fields)),
-            $created ? [] : array_values(array_filter($shown, static fn (InvoiceHistoryLine $line): bool => InvoiceHistoryLine::CHANGED !== $line->change || [] !== $line->fields)),
+            $created ? [] : array_values(array_filter($shown, static fn (InvoiceHistoryLine $line): bool => InvoiceHistoryLine::CHANGED !== $line->change || [] !== $line->fields || null !== $line->previousText)),
             $reason,
         );
     }
@@ -134,6 +137,7 @@ final readonly class InvoiceHistory
         $place = \is_int($position) ? $position : $place;
         $text = \is_string($newText) ? $newText : $text;
         $lines[$id] = [$place, $text];
+        $previous = AuditAction::Updated === $entry->action() ? ($changes['text'][0] ?? null) : null;
 
         return new InvoiceHistoryLine(
             $place + 1,
@@ -143,7 +147,8 @@ final readonly class InvoiceHistory
                 AuditAction::Deleted => InvoiceHistoryLine::REMOVED,
                 default => InvoiceHistoryLine::CHANGED,
             },
-            $this->fields($changes, self::QUIET_LINE_FIELDS),
+            array_values(array_diff($this->fields($changes, self::QUIET_LINE_FIELDS), ['text'])),
+            \is_string($previous) ? $previous : null,
         );
     }
 

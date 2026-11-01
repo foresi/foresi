@@ -22,6 +22,7 @@ use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,8 +48,6 @@ final class InvoiceListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
-    private const int MAX_REASON = 500;
-    private const int MAX_LINE_TEXT = 40;
     private const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
 
     public function __construct(
@@ -109,18 +108,13 @@ final class InvoiceListController extends AbstractController
         }
 
         $this->checkToken($request);
-        $reason = trim($request->request->getString('reason'));
-        $problem = match (true) {
-            '' === $reason => 'invoice.list.reason_missing',
-            mb_strlen($reason) > self::MAX_REASON => 'invoice.problem.too_long',
-            default => null,
-        };
-        if (null !== $problem) {
-            return $this->trashForm($invoice, $reason, $this->translator->trans($problem), $return, Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
+        $reason = $request->request->getString('reason');
         try {
             $saved = $this->trash->trash($id, $reason);
+        } catch (InvalidDeletionReason $refused) {
+            $problem = $refused->isMissing() ? 'invoice.list.reason_missing' : 'invoice.problem.too_long';
+
+            return $this->trashForm($this->invoice($id), $reason, $this->translator->trans($problem), $return, Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\DomainException) {
             return $this->refused($this->invoice($id), $return);
         }
@@ -133,9 +127,13 @@ final class InvoiceListController extends AbstractController
     public function restore(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
-        $this->invoice($id);
+        $invoice = $this->invoice($id);
         $this->checkToken($request);
-        $this->addFlash('success', $this->translator->trans('invoice.flash.restored', ['number' => $this->trash->restore($id)->number()]));
+        if (!$invoice->isTrashed()) {
+            $this->addFlash('warning', $this->translator->trans('invoice.list.not_in_trash'));
+        } else {
+            $this->addFlash('success', $this->translator->trans('invoice.flash.restored', ['number' => $this->trash->restore($id)->number()]));
+        }
 
         return $this->toList($request->request->getString('return'));
     }
@@ -187,7 +185,7 @@ final class InvoiceListController extends AbstractController
             'return' => $return,
             'cancel' => $this->listUrl($return),
             'payable' => $this->amounts->money($invoice->payable()),
-            'maxReason' => self::MAX_REASON,
+            'maxReason' => Invoice::MAX_REASON_LENGTH,
         ], new Response(status: $status));
     }
 
@@ -417,9 +415,13 @@ final class InvoiceListController extends AbstractController
 
     private function lineChange(InvoiceHistoryLine $line): string
     {
-        $parameters = ['number' => $line->number, 'text' => mb_strimwidth($line->text, 0, self::MAX_LINE_TEXT, '…')];
+        $text = null === $line->previousText ? $line->text : $line->previousText.' → '.$line->text;
+        $parameters = ['number' => $line->number, 'text' => $text];
         if (InvoiceHistoryLine::CHANGED !== $line->change) {
             return $this->translator->trans('invoice.history.line_'.$line->change, $parameters);
+        }
+        if ([] === $line->fields) {
+            return $this->translator->trans('invoice.history.line_text', $parameters);
         }
 
         return $this->translator->trans('invoice.history.line_changed', $parameters + ['fields' => implode(', ', array_map($this->fieldLabel(...), $line->fields))]);

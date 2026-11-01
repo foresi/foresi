@@ -46,6 +46,7 @@ class Invoice implements TenantOwned, Audited
     public const int MAX_NUMBER_LENGTH = 80;
     public const int MAX_ORDER_NUMBER_LENGTH = 64;
     public const int MAX_CONSTANT_SYMBOL_LENGTH = 10;
+    public const int MAX_REASON_LENGTH = 500;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -242,7 +243,8 @@ class Invoice implements TenantOwned, Audited
     }
 
     /**
-     * @throws \DomainException once delivered, without a reason, or when it is in the trash already
+     * @throws InvalidDeletionReason without a usable reason
+     * @throws \DomainException      once delivered, or when it is in the trash already
      */
     public function trash(\DateTimeImmutable $at, ?string $userId, string $reason): void
     {
@@ -252,7 +254,10 @@ class Invoice implements TenantOwned, Audited
         }
         $reason = trim($reason);
         if ('' === $reason) {
-            throw new \DomainException('Deleting a document needs a reason.');
+            throw InvalidDeletionReason::missing();
+        }
+        if (mb_strlen($reason) > self::MAX_REASON_LENGTH) {
+            throw InvalidDeletionReason::tooLong();
         }
         $this->deletedAt = $at;
         $this->deletedBy = $userId;

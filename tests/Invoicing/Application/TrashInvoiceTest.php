@@ -12,6 +12,8 @@ use App\Audit\Application\AuditActor;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentTotals;
+use App\Invoicing\Domain\InvalidDeletionReason;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\LineAmounts;
 use App\Invoicing\Domain\LineValues;
 use App\Party\Application\TransactionalWork;
@@ -134,6 +136,35 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $trash->trash($invoice->id(), 'Wrong customer');
 
         self::assertSame('01963c5e-0000-7000-8000-00000000000a', $this->reloaded($invoice)->deletedBy());
+    }
+
+    public function testAReasonHasALimitInTheDocumentItself(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $this->trash->trash($invoice->id(), str_repeat('ř', Invoice::MAX_REASON_LENGTH));
+        self::assertTrue($this->reloaded($invoice)->isTrashed());
+
+        $other = $this->issue->issue($this->input());
+        try {
+            $this->trash->trash($other->id(), str_repeat('x', Invoice::MAX_REASON_LENGTH + 1));
+            self::fail('A reason too long is refused.');
+        } catch (InvalidDeletionReason $refused) {
+            self::assertFalse($refused->isMissing());
+        }
+        self::assertFalse($this->reloaded($other)->isTrashed());
+    }
+
+    public function testABlankReasonSaysItIsMissing(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        try {
+            $this->trash->trash($invoice->id(), '  ');
+            self::fail('A blank reason is refused.');
+        } catch (InvalidDeletionReason $refused) {
+            self::assertTrue($refused->isMissing());
+        }
     }
 
     public function testAnInvoiceRestoresInAnArchivedFirm(): void

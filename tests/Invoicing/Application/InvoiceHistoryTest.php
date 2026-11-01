@@ -65,11 +65,67 @@ final class InvoiceHistoryTest extends InvoiceTestCase
         self::assertSame([InvoiceHistoryEntry::CREATED, InvoiceHistoryEntry::CHANGED, InvoiceHistoryEntry::CHANGED], array_map(static fn (InvoiceHistoryEntry $entry): string => $entry->event, $history));
         self::assertSame(['orderNumber', 'description', 'payableMinor'], $history[1]->fields);
         self::assertSame([
-            [2, 'Second', InvoiceHistoryLine::ADDED],
-            [1, 'Better work', InvoiceHistoryLine::CHANGED],
-        ], array_map(static fn (InvoiceHistoryLine $line): array => [$line->number, $line->text, $line->change], $history[1]->lines));
-        self::assertSame(['text', 'priceMinor'], $history[1]->lines[1]->fields);
+            [1, 'Better work', 'Work', InvoiceHistoryLine::CHANGED],
+            [2, 'Second', null, InvoiceHistoryLine::ADDED],
+        ], array_map(static fn (InvoiceHistoryLine $line): array => [$line->number, $line->text, $line->previousText, $line->change], $history[1]->lines));
+        self::assertSame(['priceMinor'], $history[1]->lines[0]->fields);
         self::assertSame([[2, 'Second', InvoiceHistoryLine::REMOVED]], array_map(static fn (InvoiceHistoryLine $line): array => [$line->number, $line->text, $line->change], $history[2]->lines));
+    }
+
+    public function testRemovingTheFirstLineShowsWhatEachPositionHeld(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line(text: 'Second'), $this->line(text: 'Line2')]));
+        $this->edited($invoice, $this->input([$this->line(text: 'Line2')]));
+
+        $lines = $this->lastStep($invoice)->lines;
+
+        self::assertSame([
+            [1, 'Line2', 'Second', InvoiceHistoryLine::CHANGED],
+            [2, 'Line2', null, InvoiceHistoryLine::REMOVED],
+        ], $this->shown($lines));
+    }
+
+    public function testAReorderShowsOldAndNewTextOfEachPosition(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line(text: 'A'), $this->line(text: 'B')]));
+        $this->edited($invoice, $this->input([$this->line(text: 'B'), $this->line(text: 'A')]));
+
+        self::assertSame([
+            [1, 'B', 'A', InvoiceHistoryLine::CHANGED],
+            [2, 'A', 'B', InvoiceHistoryLine::CHANGED],
+        ], $this->shown($this->lastStep($invoice)->lines));
+    }
+
+    public function testAnInsertAtTheTopShowsTheShiftAndTheNewLast(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line(text: 'A')]));
+        $this->edited($invoice, $this->input([$this->line(text: 'New'), $this->line(text: 'A')]));
+
+        self::assertSame([
+            [1, 'New', 'A', InvoiceHistoryLine::CHANGED],
+            [2, 'A', null, InvoiceHistoryLine::ADDED],
+        ], $this->shown($this->lastStep($invoice)->lines));
+    }
+
+    public function testTwoSavesInOneMomentStayTwoSteps(): void
+    {
+        Clock::set(new MockClock('2026-11-01 12:00:00', 'UTC'));
+        $invoice = $this->issue->issue($this->input());
+        $this->edited($invoice, $this->input(overrides: ['description' => 'One']));
+        $this->edited($invoice, $this->input(overrides: ['description' => 'Two']));
+
+        self::assertCount(3, self::getContainer()->get(InvoiceHistory::class)->of($this->reloaded($invoice)));
+    }
+
+    public function testOneSaveOfDocumentAndLinesIsOneStepWhateverTheClockDoes(): void
+    {
+        $history = $this->historyOf([
+            $this->entry(Invoice::class, AuditAction::Updated, ['description' => ['a', 'b']], at: '2026-11-01 12:00:00', correlation: 'save-1'),
+            $this->entry(InvoiceLine::class, AuditAction::Updated, ['discount' => ['0', '1']], at: '2026-11-01 12:00:09', correlation: 'save-1'),
+        ]);
+
+        self::assertCount(1, $history);
+        self::assertCount(1, $history[0]->lines);
     }
 
     public function testTrashRestoreAndDeliveryAreSteps(): void
@@ -95,8 +151,8 @@ final class InvoiceHistoryTest extends InvoiceTestCase
     public function testACopiedPartyIsOneFieldAndDerivedFieldsStayQuiet(): void
     {
         $history = $this->historyOf([
-            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['A', 'B'], 'customer.address.city' => ['C', 'D'], 'customerParty' => ['x', 'y'], 'numberKey' => ['1', '2'], 'number' => ['1', '2'], 'netMinor' => [1, 2], 'vatMinor' => [1, 2], 'roundingMinor' => [1, 2]]),
-            $this->entry(InvoiceLine::class, AuditAction::Updated, ['invoice' => ['a', 'b'], 'position' => [0, 0], 'rate' => ['1', '2'], 'unitNetMinor' => [1, 2], 'netMinor' => [1, 2], 'vatMinor' => [1, 2], 'grossMinor' => [1, 2]]),
+            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['A', 'B'], 'customer.address.city' => ['C', 'D'], 'customerParty' => ['x', 'y'], 'numberKey' => ['1', '2'], 'number' => ['1', '2'], 'netMinor' => [1, 2], 'vatMinor' => [1, 2], 'roundingMinor' => [1, 2]], correlation: 'same'),
+            $this->entry(InvoiceLine::class, AuditAction::Updated, ['invoice' => ['a', 'b'], 'position' => [0, 0], 'rate' => ['1', '2'], 'unitNetMinor' => [1, 2], 'netMinor' => [1, 2], 'vatMinor' => [1, 2], 'grossMinor' => [1, 2]], correlation: 'same'),
         ]);
 
         self::assertCount(1, $history);
@@ -104,19 +160,19 @@ final class InvoiceHistoryTest extends InvoiceTestCase
         self::assertSame([], $history[0]->lines, 'A line with only derived changes is no change to show.');
     }
 
-    public function testStepsAreKeptApartByPersonAndSecondAndOnlyThisDocumentsEntitiesCount(): void
+    public function testStepsFollowTheSaveAndOnlyThisDocumentsEntitiesCount(): void
     {
-        $at = '2026-11-01 12:00:00.100000';
         $history = $this->historyOf([
-            $this->entry(Invoice::class, AuditAction::Updated, ['description' => ['a', 'b']], at: $at),
-            $this->entry(Invoice::class, AuditAction::Updated, ['orderNumber' => ['a', 'b']], at: '2026-11-01 12:00:00.900000'),
-            $this->entry(Invoice::class, AuditAction::Updated, ['textAfter' => ['a', 'b']], at: '2026-11-01 12:00:00.950000', user: null),
-            $this->entry(Invoice::class, AuditAction::Updated, ['textBefore' => ['a', 'b']], at: '2026-11-01 12:00:01.000000', user: null),
-            $this->entry(AbandonedNumber::class, AuditAction::Created, ['number' => [null, '1']], at: '2026-11-01 12:00:01.000000', user: null),
+            $this->entry(Invoice::class, AuditAction::Updated, ['description' => ['a', 'b']], correlation: 'one'),
+            $this->entry(Invoice::class, AuditAction::Updated, ['orderNumber' => ['a', 'b']], correlation: 'one'),
+            $this->entry(Invoice::class, AuditAction::Updated, ['textAfter' => ['a', 'b']], user: null, correlation: 'two'),
+            $this->entry(Invoice::class, AuditAction::Updated, ['textBefore' => ['a', 'b']], user: null),
+            $this->entry(Invoice::class, AuditAction::Updated, ['language' => ['a', 'b']], user: null),
+            $this->entry(AbandonedNumber::class, AuditAction::Created, ['number' => [null, '1']], user: null),
         ]);
 
-        self::assertSame([['description', 'orderNumber'], ['textAfter'], ['textBefore']], array_map(static fn (InvoiceHistoryEntry $entry): array => $entry->fields, $history));
-        self::assertSame(['Example User', null, null], array_map(static fn (InvoiceHistoryEntry $entry): ?string => $entry->userName, $history));
+        self::assertSame([['description', 'orderNumber'], ['textAfter'], ['textBefore'], ['language']], array_map(static fn (InvoiceHistoryEntry $entry): array => $entry->fields, $history));
+        self::assertSame(['Example User', null, null, null], array_map(static fn (InvoiceHistoryEntry $entry): ?string => $entry->userName, $history));
     }
 
     public function testAPersonWhoLeftHasNoName(): void
@@ -132,12 +188,12 @@ final class InvoiceHistoryTest extends InvoiceTestCase
             $this->entry(InvoiceLine::class, AuditAction::Created, ['position' => [null, 2], 'text' => [null, 'Third']], at: '2026-11-01 12:00:00'),
             $this->entry(InvoiceLine::class, AuditAction::Updated, ['discount' => ['0', '10']], at: '2026-11-01 12:01:00'),
             $this->entry(InvoiceLine::class, AuditAction::Updated, ['text' => ['Third', 'Renamed']], at: '2026-11-01 12:02:00'),
-            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['a', 'b'], 'customer.email' => ['c', 'd']], at: '2026-11-01 12:03:00'),
-            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['b', 'c']], at: '2026-11-01 12:03:00'),
+            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['a', 'b'], 'customer.email' => ['c', 'd']], at: '2026-11-01 12:03:00', correlation: 'same'),
+            $this->entry(Invoice::class, AuditAction::Updated, ['customer.name' => ['b', 'c']], at: '2026-11-01 12:03:00', correlation: 'same'),
         ]);
 
         self::assertSame([3, 'Third', ['discount']], [$history[1]->lines[0]->number, $history[1]->lines[0]->text, $history[1]->lines[0]->fields]);
-        self::assertSame([3, 'Renamed', ['text']], [$history[2]->lines[0]->number, $history[2]->lines[0]->text, $history[2]->lines[0]->fields]);
+        self::assertSame([3, 'Renamed', 'Third', []], [$history[2]->lines[0]->number, $history[2]->lines[0]->text, $history[2]->lines[0]->previousText, $history[2]->lines[0]->fields]);
         self::assertSame(['customer'], $history[3]->fields);
     }
 
@@ -151,6 +207,26 @@ final class InvoiceHistoryTest extends InvoiceTestCase
         self::assertSame([InvoiceHistoryEntry::TRASHED, InvoiceHistoryEntry::RESTORED], [$history[0]->event, $history[1]->event]);
         self::assertSame(['Why', null], [$history[0]->reason, $history[1]->reason]);
         self::assertSame([[], []], [$history[0]->fields, $history[1]->fields]);
+    }
+
+    private function lastStep(Invoice $invoice): InvoiceHistoryEntry
+    {
+        $history = self::getContainer()->get(InvoiceHistory::class)->of($this->reloaded($invoice));
+
+        $last = end($history);
+        self::assertInstanceOf(InvoiceHistoryEntry::class, $last);
+
+        return $last;
+    }
+
+    /**
+     * @param list<InvoiceHistoryLine> $lines
+     *
+     * @return list<array{int, string, string|null, string}>
+     */
+    private function shown(array $lines): array
+    {
+        return array_map(static fn (InvoiceHistoryLine $line): array => [$line->number, $line->text, $line->previousText, $line->change], $lines);
     }
 
     /**
@@ -207,8 +283,8 @@ final class InvoiceHistoryTest extends InvoiceTestCase
      * @param class-string                $class
      * @param array<string, array<mixed>> $changes
      */
-    private function entry(string $class, AuditAction $action, array $changes, string $at = '2026-11-01 12:00:00', ?string $user = self::USER): AuditEntry
+    private function entry(string $class, AuditAction $action, array $changes, string $at = '2026-11-01 12:00:00', ?string $user = self::USER, ?string $correlation = null): AuditEntry
     {
-        return new AuditEntry($class, self::LINE, $action, $changes, $user, new \DateTimeImmutable($at, new \DateTimeZone('UTC')));
+        return new AuditEntry($class, self::LINE, $action, $changes, $user, new \DateTimeImmutable($at, new \DateTimeZone('UTC')), $correlation);
     }
 }

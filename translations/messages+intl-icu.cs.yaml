@@ -563,6 +563,7 @@ invoice:
     summary: '{total, plural, one {# faktura} few {# faktury} other {# faktur}}'
     reason_missing: Napište, proč fakturu mažete.
     delete_delivered: Doručený doklad nelze smazat.
+    not_in_trash: Tato faktura v koši není.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
     delivered_confirm: 'Označit fakturu {number} jako doručenou? Pak už ji nepůjde smazat.'
@@ -619,6 +620,7 @@ invoice:
     line_added: 'Položka {number} ({text}) přidána'
     line_removed: 'Položka {number} ({text}) odebrána'
     line_changed: 'Položka {number} ({text}): {fields}'
+    line_text: 'Položka {number}: {text}'
     field:
       number: Číslo
       series: Řada
