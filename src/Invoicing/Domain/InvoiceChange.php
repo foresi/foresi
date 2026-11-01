@@ -34,4 +34,24 @@ final readonly class InvoiceChange
         public DocumentLanguage $language,
     ) {
     }
+
+    public function withVariableSymbol(string $variableSymbol): self
+    {
+        return new self(
+            $this->customerParty,
+            $this->customer,
+            $this->issueDate,
+            $this->taxPointDate,
+            $this->dueDate,
+            $this->paymentMethod,
+            $this->bankAccount,
+            $variableSymbol,
+            $this->constantSymbol,
+            $this->orderNumber,
+            $this->description,
+            $this->textBefore,
+            $this->textAfter,
+            $this->language,
+        );
+    }
 }

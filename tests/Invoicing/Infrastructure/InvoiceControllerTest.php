@@ -1,0 +1,1120 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Tests\Invoicing\Infrastructure;
+
+use App\Identity\Domain\Role;
+use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\FirmInvoicing;
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TotalRounding;
+use App\Party\Domain\Address;
+use App\Party\Domain\AddressType;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\EmailPurpose;
+use App\Party\Domain\InvoicingDefaults;
+use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
+use App\Party\Domain\PartyAddress;
+use App\Party\Domain\PartyEmail;
+use App\Party\Domain\PartyKind;
+use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
+use App\Party\Domain\RegistrationNumber;
+use App\Party\Domain\VatId;
+use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
+use App\Tenancy\Application\TenantContext;
+use App\Tenancy\Domain\TenantId;
+use App\Tests\Identity\Support\SignedInBrowser;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Clock\NativeClock;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, ...}
+ * @phpstan-type Figures array{lines: list<array{total: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
+ */
+final class InvoiceControllerTest extends WebTestCase
+{
+    private const string IBAN = 'CZ6508000000192000145399';
+    private const string OTHER_IBAN = 'CZ5508000000001234567899';
+    private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
+
+    private KernelBrowser $client;
+    private SignedInBrowser $browser;
+    private TenantContext $context;
+    private TenantId $tenant;
+    private LegalEntity $firm;
+    private Series $series;
+    private Party $customer;
+
+    protected function setUp(): void
+    {
+        $this->client = self::createClient();
+        $this->client->disableReboot();
+        $this->context = self::getContainer()->get(TenantContext::class);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        Clock::set(new MockClock('2026-11-01 12:00:00', 'UTC'));
+    }
+
+    protected function tearDown(): void
+    {
+        Clock::set(new NativeClock());
+        parent::tearDown();
+    }
+
+    public function testTheNewFormOpensWithTheDefaults(): void
+    {
+        $this->signedIn();
+
+        $values = $this->openNew();
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', '20260001');
+        self::assertSelectorExists('main [data-action-bar]');
+        self::assertSame('2026-11-01', $values['issueDate']);
+        self::assertSame('2026-11-01', $values['taxPointDate']);
+        self::assertSame('2026-11-15', $values['dueDate']);
+        self::assertSame('20260001', $values['variableSymbol']);
+        self::assertSame($this->series->id(), $values['seriesId']);
+        self::assertCount(1, $values['lines']);
+        self::assertSame('1', $values['lines'][0]['quantity']);
+    }
+
+    public function testNoFirmSaysWhatToDo(): void
+    {
+        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Add a firm');
+        self::assertSelectorNotExists('form#invoice-form');
+    }
+
+    public function testAFirmOfAnUnsupportedCountrySaysSo(): void
+    {
+        $this->signedIn(address: new Address('Example Street 1', 'Example City', '100 00', 'SK'));
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', $this->text('invoice.problem.firm_country_unsupported'));
+        self::assertSelectorNotExists('form#invoice-form');
+    }
+
+    public function testSaveIssuesAndNamesTheRealNumber(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled());
+
+        $invoice = $this->onlyInvoice();
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+        self::assertSame('20260001', $invoice->number());
+        self::assertSame('20260001', $invoice->variableSymbol());
+        self::assertSame(121000, $invoice->payable()->minor());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Invoice 20260001 is saved.');
+    }
+
+    public function testTheNumberOnTheFormIsOnlyAPreview(): void
+    {
+        $this->signedIn();
+        $slower = $this->filled();
+        $this->save($this->filled());
+
+        $this->save($slower);
+
+        $late = $this->invoices()[1];
+        self::assertSame('20260002', $late->number());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Invoice saved as 20260002: 20260001 was taken meanwhile.');
+    }
+
+    public function testAVariableSymbolFollowsTheRealNumber(): void
+    {
+        $this->signedIn();
+        $slower = $this->filled();
+        $this->save($this->filled());
+
+        $this->save($slower);
+
+        self::assertSame('20260002', $this->invoices()[1]->variableSymbol());
+    }
+
+    public function testAVariableSymbolTypedByHandStays(): void
+    {
+        $this->signedIn();
+        $slower = $this->filled(['variableSymbol' => '777']);
+        $this->save($this->filled());
+
+        $this->save($slower);
+
+        self::assertSame('777', $this->invoices()[1]->variableSymbol());
+    }
+
+    public function testATypedNumberIsUsedAndTheSymbolFollowsItWithoutJavaScript(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['number' => 'X2026-5']));
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame('X2026-5', $invoice->number());
+        self::assertSame('20265', $invoice->variableSymbol());
+    }
+
+    public function testADoubleSubmitMakesOneInvoice(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+
+        $this->save($values);
+        $first = (string) $this->client->getResponse()->headers->get('Location');
+        $this->save($values);
+
+        self::assertResponseRedirects($first);
+        self::assertCount(1, $this->invoices());
+        self::assertSame('20260002', $this->openNew()['variableSymbol']);
+    }
+
+    public function testBackAndSaveAgainMakesNoSecondInvoice(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $this->save($values);
+        $this->client->followRedirect();
+
+        $this->save(array_merge($values, ['description' => 'Changed after Back']));
+
+        self::assertCount(1, $this->invoices());
+        self::assertResponseRedirects();
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'This form was saved already.');
+    }
+
+    public function testADoubleSubmitOfAnEditLandsOnTheSavedInvoice(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $values = $this->openEdit($invoice);
+        $values['description'] = 'Changed';
+
+        $this->saveEdit($invoice, $values);
+        $first = (string) $this->client->getResponse()->headers->get('Location');
+        $this->saveEdit($invoice, $values);
+
+        self::assertResponseRedirects($first);
+        self::assertSame(2, $this->stored($invoice)->version());
+    }
+
+    public function testAnExpiredFormKeepsWhatWasTyped(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['_submission'] = 'unknown';
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        self::assertSame('Consulting', $this->currentValues()['description']);
+    }
+
+    public function testARefusedSaveConsumesNoNumber(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $refused = $values;
+        $refused['lines'][0]['text'] = '';
+        $refused['lines'][0]['price'] = '100';
+
+        $this->save($refused);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#lines-0-text[aria-invalid="true"]');
+        self::assertSame([], $this->invoices());
+
+        $this->save($values);
+        self::assertSame('20260001', $this->onlyInvoice()->number());
+    }
+
+    public function testAllErrorsAreListedOnSubmit(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerId' => '', 'customerQuery' => '', 'dueDate' => '']);
+        $values['lines'][0]['price'] = 'abc';
+        $values['lines'][0]['text'] = '';
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        $list = $this->client->getCrawler()->filter('[data-error-summary]');
+        self::assertCount(1, $list);
+        self::assertStringContainsString($this->text('invoice.problem.customer_unknown'), $list->text());
+        self::assertStringContainsString($this->text('invoice.problem.due_date_missing'), $list->text());
+        self::assertStringContainsString($this->text('invoice.problem.price_invalid'), $list->text());
+        self::assertStringContainsString($this->text('invoice.problem.line_text_missing'), $list->text());
+        self::assertStringContainsString('Line 1', $list->text());
+        self::assertSelectorExists('#customer[aria-invalid="true"]');
+        self::assertSelectorExists('#dueDate[aria-invalid="true"]');
+        self::assertSelectorExists('#lines-0-price[aria-invalid="true"]');
+        self::assertSelectorExists('#lines-0-text[aria-invalid="true"]');
+        self::assertSelectorExists('[data-error-summary] a[href="#lines-0-price"]');
+        self::assertStringStartsWith('Error:', $this->client->getCrawler()->filter('title')->text());
+    }
+
+    public function testRecountUsesTheServerCalculator(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $values['lines'] = [
+            $this->lineValues(['price' => '333,33', 'quantity' => '3', 'vat' => 'base']),
+            $this->lineValues(['price' => '100,00', 'priceType' => 'with_vat', 'vat' => 'reduced']),
+        ];
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseIsSuccessful();
+        $data = $this->json();
+        self::assertStringStartsWith('{"lines":', (string) $this->client->getResponse()->getContent());
+        self::assertSame(['1,209.99 CZK', '100.00 CZK'], array_map($this->nbsp(...), array_column($data['lines'], 'total')));
+        self::assertSame('1,089.28 CZK', $this->nbsp($data['net']));
+        self::assertSame('220.71 CZK', $this->nbsp((string) $data['vat']));
+        self::assertSame('0.01 CZK', $this->nbsp((string) $data['rounding']));
+        self::assertSame('1,310.00 CZK', $this->nbsp($data['payable']));
+        self::assertCount(2, $data['summaries']);
+        self::assertSame('21%', $data['summaries'][0]['label']);
+        self::assertSame('999.99 CZK', $this->nbsp($data['summaries'][0]['base']));
+    }
+
+    public function testRecountAndTheSavedDocumentNeverDiverge(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'] = [
+            $this->lineValues(['price' => '333,33', 'quantity' => '3', 'discount' => '7,5', 'vat' => 'base']),
+            $this->lineValues(['price' => '19,99', 'quantity' => '1,25', 'priceType' => 'with_vat', 'vat' => 'reduced']),
+            $this->lineValues(['price' => '10,10', 'priceType' => 'base_only', 'vat' => 'base']),
+        ];
+
+        $this->client->request('POST', '/invoices/recount', $values);
+        $recount = $this->json();
+        $this->save($values);
+
+        $invoice = $this->onlyInvoice();
+        $this->openEdit($invoice);
+        self::assertResponseIsSuccessful();
+        self::assertSame($this->nbsp($recount['payable']), $this->nbsp($this->client->getCrawler()->filter('[data-total="payable"]')->text()));
+        self::assertSame($this->nbsp((string) $recount['rounding']), $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
+    }
+
+    public function testRecountHidesARoundingOfZero(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $values['lines'] = [$this->lineValues(['price' => '100,00', 'vat' => 'base'])];
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertNull($this->json()['rounding']);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>}>
+     */
+    public static function nonsense(): iterable
+    {
+        yield 'a word for a price' => [['price' => 'abc']];
+        yield 'a word for a quantity' => [['quantity' => 'many']];
+        yield 'too big to count' => [['price' => '9999999999999', 'quantity' => '999999999']];
+    }
+
+    /**
+     * @param array<string, string> $line
+     */
+    #[DataProvider('nonsense')]
+    public function testRecountOfNonsenseAnswers422(array $line): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $values['lines'] = [$this->lineValues($line)];
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testRecountOfABadDateAnswers422(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $values['taxPointDate'] = 'x';
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testRecountWithoutATokenIsRefused(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew();
+        $values['_token'] = 'wrong';
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testRecountOfAForeignFirmIs404(): void
+    {
+        $this->signedIn();
+        $foreign = $this->foreignFirm();
+        $values = $this->openNew();
+        $values['firmId'] = $foreign->id();
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testRecountOfAnEditUsesTheStoredRegime(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $values = $this->openEdit($invoice);
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry(), $firm->bankAccounts());
+            $this->em()->flush();
+        });
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertSame('1,210.00 CZK', $this->nbsp($this->json()['payable']));
+    }
+
+    public function testNextNumberIsAPreviewOfTheSeriesOnThatDate(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/next-number', ['series' => $this->series->id(), 'date' => '2027-03-01']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('{"number":"20270001","variableSymbol":"20270001"}', $this->client->getResponse()->getContent());
+    }
+
+    public function testNextNumberOfAFirmWithoutASeriesUsesTheDefault(): void
+    {
+        $this->signedIn(series: false);
+
+        $this->client->request('GET', '/invoices/next-number', ['firm' => $this->firm->id(), 'date' => '2026-11-01']);
+
+        self::assertStringContainsString('"number":"20260001"', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testNextNumberOfAForeignSeriesIs404AndABadDate422(): void
+    {
+        $this->signedIn();
+        $foreign = $this->foreignFirm();
+
+        $this->client->request('GET', '/invoices/next-number', ['firm' => $foreign->id(), 'date' => '2026-11-01']);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->client->request('GET', '/invoices/next-number', ['series' => '00000000-0000-7000-8000-000000000000', 'date' => '2026-11-01']);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->client->request('GET', '/invoices/next-number', ['series' => $this->series->id(), 'date' => 'x']);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testForgedFirmSeriesOrCustomerIs404OrAFormError(): void
+    {
+        $this->signedIn();
+        $foreign = $this->foreignFirm();
+        $values = $this->filled();
+
+        $this->save(array_merge($values, ['firmId' => $foreign->id()]));
+        self::assertResponseStatusCodeSame(404);
+
+        $this->save(array_merge($this->filled(), ['seriesId' => '00000000-0000-7000-8000-000000000000']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.series_unknown'));
+
+        $this->save(array_merge($this->filled(), ['customerId' => '00000000-0000-7000-8000-000000000000']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_unknown'));
+
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testASupplierCannotBeForgedIn(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $this->em()->getRepository(Party::class)->find($this->customer->id())?->assignRoles([PartyRole::Supplier]);
+            $this->em()->flush();
+        });
+
+        $this->save($this->filled());
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_role'));
+    }
+
+    public function testAForeignInvoiceIs404(): void
+    {
+        $this->signedIn();
+        $this->client->request('GET', '/invoices/00000000-0000-7000-8000-000000000000/edit');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAWrongCsrfTokenIsRefused(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(), ['_token' => 'wrong']));
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testASubcontractorGets403(): void
+    {
+        $this->signedIn(Role::Subcontractor);
+        $id = '019a0000-0000-7000-8000-000000000001';
+
+        foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers?firm='.$this->firm->id()]] as [$method, $url]) {
+            $this->client->request($method, $url);
+            self::assertResponseStatusCodeSame(403, $method.' '.$url);
+        }
+    }
+
+    public function testAMemberWorksWithInvoices(): void
+    {
+        $this->signedIn(Role::Member);
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testEditShowsSnapshotAndNotCurrentContact(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->rename('Renamed Later a.s.');
+            $this->em()->flush();
+        });
+
+        $values = $this->openEdit($invoice);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Example Customer a.s.', $values['customerQuery']);
+        self::assertSelectorTextContains('[data-customer-summary]', 'Customer Street 2');
+        self::assertStringNotContainsString('Renamed Later', (string) $this->client->getResponse()->getContent());
+        self::assertSelectorTextContains('h1', '20260001');
+    }
+
+    public function testEditKeepsTheFirmAsTextAndSavesAChange(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+
+        $values = $this->openEdit($invoice);
+        self::assertSelectorNotExists('select[name="firmId"]');
+        self::assertSelectorTextContains('[data-firm-text]', 'Example Firm s.r.o.');
+
+        $values['description'] = 'Changed';
+        $values['lines'][0]['price'] = '2000,00';
+        $this->saveEdit($invoice, $values);
+
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+        $stored = $this->stored($invoice);
+        self::assertSame('Changed', $stored->description());
+        self::assertSame(242000, $stored->payable()->minor());
+        self::assertSame('20260001', $stored->number());
+    }
+
+    public function testAStaleSaveAsksToReload(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $stale = $this->openEdit($invoice);
+        $newer = $this->openEdit($invoice);
+        $newer['description'] = 'First save';
+        $this->saveEdit($invoice, $newer);
+
+        $stale['description'] = 'Second save';
+        $this->saveEdit($invoice, $stale);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSelectorTextContains('[data-reload-prompt]', $this->text('invoice.problem.changed_meanwhile'));
+        self::assertSelectorExists('[data-reload-prompt] a[href="/invoices/'.$invoice->id().'/edit"]');
+        self::assertSame('First save', $this->stored($invoice)->description());
+    }
+
+    public function testChangingTheSeriesOnAnEditRenumbers(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $other = $this->scoped(function (): Series {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $series = new Series($firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+            $this->em()->persist($series);
+            $this->em()->flush();
+
+            return $series;
+        });
+        $values = $this->openEdit($invoice);
+        $values['seriesId'] = $other->id();
+
+        $this->saveEdit($invoice, $values);
+
+        $stored = $this->stored($invoice);
+        self::assertSame('S2026001', $stored->number());
+        self::assertSame('2026001', $stored->variableSymbol());
+    }
+
+    public function testSeriesAndNumberAreReadOnlyOnceDelivered(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->scoped(fn () => self::getContainer()->get(MarkDelivered::class)->mark($invoice->id()));
+
+        $values = $this->openEdit($invoice);
+
+        self::assertSelectorNotExists('[name="number"]:not([type="hidden"])');
+        self::assertSelectorNotExists('select[name="seriesId"]');
+        $values['description'] = 'Still editable';
+        $this->saveEdit($invoice, $values);
+
+        self::assertResponseRedirects();
+        self::assertSame('Still editable', $this->stored($invoice)->description());
+        self::assertSame('20260001', $this->stored($invoice)->number());
+    }
+
+    public function testATrashedInvoiceSaysWhyItCannotBeSaved(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->scoped(fn () => self::getContainer()->get(TrashInvoice::class)->trash($invoice->id(), 'Mistake'));
+
+        $values = $this->openEdit($invoice);
+        self::assertSelectorTextContains('main', $this->text('invoice.problem.trashed'));
+
+        $this->saveEdit($invoice, $values);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testEditingTheCustomerOnTheDocumentLeavesTheContact(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerEdit' => '1', 'customer' => self::CUSTOMER]);
+        $values['customer']['name'] = 'Only On This Document a.s.';
+
+        $this->save($values);
+
+        self::assertSame('Only On This Document a.s.', $this->onlyInvoice()->customer()->name);
+        $this->scoped(fn () => self::assertSame('Example Customer a.s.', $this->em()->getRepository(Party::class)->find($this->customer->id())?->displayName()));
+    }
+
+    public function testABadVatIdOnTheDocumentIsTranslated(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerEdit' => '1', 'customer' => self::CUSTOMER]);
+        $values['customer']['vatId'] = '12';
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_vat_id_invalid'));
+    }
+
+    public function testReverseChargeOfADomesticCustomerAsksForTheCode(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'][0]['vat'] = 'reverse_charge';
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#lines-0-supplyCode[aria-invalid="true"]');
+
+        $values = $this->currentValues();
+        $values['lines'][0]['supplyCode'] = '4';
+        $this->save($values);
+
+        self::assertSame('4', $this->linesOf($this->onlyInvoice())[0]['code']);
+    }
+
+    public function testASupplyCodeShowsItsMeaning(): void
+    {
+        $this->signedIn();
+        $this->openNew();
+
+        self::assertStringContainsString('4 – Construction and assembly work', $this->client->getCrawler()->filter('#lines-0-supplyCode')->text());
+    }
+
+    public function testANonPayerFormHasNoVat(): void
+    {
+        $this->signedIn(status: VatStatus::NotRegistered);
+
+        $values = $this->openNew();
+
+        $main = $this->client->getCrawler()->filter('main');
+        self::assertSelectorNotExists('[name="lines[0][priceType]"]:not([type="hidden"])');
+        self::assertSelectorNotExists('select[name="lines[0][vat]"]');
+        self::assertSelectorNotExists('[data-total="vat"]');
+        self::assertStringNotContainsString('VAT', $main->text());
+
+        $values = array_merge($values, ['customerId' => $this->customer->id(), 'customerQuery' => 'Example Customer a.s.', 'description' => 'Work']);
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000']);
+        $this->save($values);
+
+        $invoice = $this->onlyInvoice();
+        self::assertTrue($invoice->vat()->isZero());
+        self::assertSame(100000, $invoice->payable()->minor());
+    }
+
+    public function testAForgedVatCellOfAPayerIsRefused(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'][0]['vat'] = 'none';
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+    }
+
+    public function testTheNewLineButtonWorksWithoutJavaScript(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['_action' => 'add_line']);
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        self::assertSelectorNotExists('[data-error-summary]');
+        self::assertCount(2, $this->currentValues()['lines']);
+    }
+
+    public function testRowsMoveAndGoWithoutJavaScript(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        $values['lines'] = [$this->lineValues(['text' => 'First']), $this->lineValues(['text' => 'Second'])];
+
+        $this->save(array_merge($values, ['_action' => 'move_up:1']));
+        self::assertSame(['Second', 'First'], array_column($this->currentValues()['lines'], 'text'));
+
+        $this->save(array_merge($this->currentValues(), ['_action' => 'move_down:0']));
+        self::assertSame(['First', 'Second'], array_column($this->currentValues()['lines'], 'text'));
+
+        $this->save(array_merge($this->currentValues(), ['_action' => 'remove_line:0']));
+        self::assertSame(['Second'], array_column($this->currentValues()['lines'], 'text'));
+
+        $this->save(array_merge($this->currentValues(), ['_action' => 'remove_line:0']));
+        self::assertCount(1, $this->currentValues()['lines']);
+    }
+
+    public function testACustomerNameWithoutAPickFindsTheOnlyMatch(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['customerId' => '', 'customerQuery' => 'Example Customer']));
+
+        self::assertSame($this->customer->id(), $this->onlyInvoice()->customerParty()->id());
+    }
+
+    public function testSeveralMatchesOfferAChoiceWithoutJavaScript(): void
+    {
+        $this->signedIn();
+        $second = $this->scoped(function (): Party {
+            $party = new Party(PartyKind::Person, 'Example Customer Two a.s.', null, null, '');
+            $this->em()->persist($party);
+            $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Second Street', 'Customer City', '200 00', 'CZ')));
+            $party->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            $this->em()->flush();
+
+            return $party;
+        });
+
+        $this->save($this->filled(['customerId' => '', 'customerQuery' => 'Example Customer']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        self::assertSelectorTextContains('[data-customer-candidates]', 'Example Customer Two a.s.');
+
+        $this->save(array_merge($this->currentValues(), ['_action' => 'pick:'.$second->id()]));
+
+        $values = $this->currentValues();
+        self::assertSame($second->id(), $values['customerId']);
+        self::assertSame('2026-12-01', $values['dueDate']);
+        self::assertSame('cash', $values['paymentMethod']);
+        self::assertSame('en', $values['language']);
+        self::assertSame('reverse_charge', $values['lines'][0]['vat']);
+    }
+
+    public function testChangingTheFirmReopensItsValues(): void
+    {
+        $this->signedIn();
+        $second = $this->secondFirm(VatStatus::NotRegistered);
+        $values = $this->filled();
+        $values['firmId'] = $second->id();
+
+        $this->save(array_merge($values, ['_action' => 'refresh']));
+
+        $reopened = $this->currentValues();
+        self::assertSame($second->id(), $reopened['firmId']);
+        self::assertSame(self::OTHER_IBAN, $reopened['bankAccount']);
+        self::assertSame('none', $reopened['lines'][0]['vat']);
+        self::assertSame('Work', $reopened['lines'][0]['text']);
+        self::assertSame($this->customer->id(), $reopened['customerId']);
+    }
+
+    public function testACustomerWhoDoesNotFitTheNewFirmIsDropped(): void
+    {
+        $this->signedIn();
+        $second = $this->secondFirm(VatStatus::Registered);
+        $this->scoped(function () use ($second): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($second->id()) ?? throw new \LogicException('Firm.');
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Party.');
+            $settings = new \App\Party\Domain\PartyFirmSettings($party, $firm);
+            $settings->changeRoles([PartyRole::Supplier]);
+            $this->em()->persist($settings);
+            $this->em()->flush();
+        });
+        $values = $this->filled();
+        $values['firmId'] = $second->id();
+
+        $this->save(array_merge($values, ['_action' => 'refresh']));
+
+        self::assertSame('', $this->currentValues()['customerId']);
+    }
+
+    public function testTwoFirmsShowTheIssuerAndTheLastUsedOneOpens(): void
+    {
+        $this->signedIn();
+        $second = $this->secondFirm(VatStatus::NotRegistered);
+
+        $this->openNew(['firm' => $second->id()]);
+        self::assertSame($second->id(), $this->client->getCrawler()->filter('select[name="firmId"] option[selected]')->attr('value'));
+
+        $this->client->request('GET', '/invoices/new', ['firm' => $this->foreignFirm()->id()]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testOneFirmIsPlainText(): void
+    {
+        $this->signedIn();
+        $this->openNew();
+
+        self::assertSelectorNotExists('select[name="firmId"]');
+        self::assertSelectorTextContains('[data-firm-text]', 'Example Firm s.r.o.');
+    }
+
+    public function testAForeignCurrencyContactShowsANotice(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+            $this->em()->flush();
+        });
+        $values = $this->filled();
+
+        $this->save(array_merge($values, ['_action' => 'pick:'.$this->customer->id()]));
+
+        self::assertSelectorTextContains('[data-currency-notice]', 'EUR');
+    }
+
+    public function testRoundingIsATotalRow(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $settings = FirmInvoicing::standard($firm);
+            $settings->change(TotalRounding::WholeUnit, '', '', '', '', '', '');
+            self::getContainer()->get(FirmInvoicingSettings::class)->save($settings);
+            $this->em()->flush();
+        });
+        $values = $this->filled();
+        $values['lines'][0]['price'] = '100,10';
+        $this->save($values);
+        $this->client->followRedirect();
+
+        self::assertSame('-0.12 CZK', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
+    }
+
+    public function testATextLikeMarkupStaysText(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['description' => '<img src="http://example.com/x">']);
+        $values['lines'][0]['text'] = '<img src="http://example.com/x">';
+
+        $this->save($values);
+        $this->client->followRedirect();
+
+        self::assertSelectorNotExists('main img');
+    }
+
+    public function testEveryProblemHasItsMessageInBothLanguages(): void
+    {
+        $found = [];
+        preg_match_all('/invoice\.problem\.[a-z_]+/', implode(' ', array_map(file_get_contents(...), array_filter((array) glob(\dirname(__DIR__, 3).'/src/Invoicing/*/*.php'), is_string(...)))).implode(' ', array_map(file_get_contents(...), array_filter((array) glob(\dirname(__DIR__, 3).'/src/Invoicing/*/*/*.php'), is_string(...)))), $found);
+        $keys = array_unique($found[0]);
+        self::assertGreaterThan(30, \count($keys));
+
+        $translator = self::getContainer()->get('translator');
+        foreach (['cs', 'en'] as $locale) {
+            foreach ($keys as $key) {
+                self::assertNotSame($key, $translator->trans($key, locale: $locale), $locale.' '.$key);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, string> $query
+     *
+     * @return Form
+     */
+    private function openNew(array $query = []): array
+    {
+        $this->client->request('GET', '/invoices/new', $query);
+
+        return $this->currentValues();
+    }
+
+    /**
+     * @return Form
+     */
+    private function openEdit(Invoice $invoice): array
+    {
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
+
+        return $this->currentValues();
+    }
+
+    /**
+     * What the browser would send from the form on screen.
+     *
+     * @return Form
+     */
+    private function currentValues(): array
+    {
+        /** @var Form $values */
+        $values = $this->client->getCrawler()->filter('form#invoice-form')->form()->getPhpValues();
+
+        return $values;
+    }
+
+    /**
+     * @param array<string, mixed> $changes
+     *
+     * @return Form
+     */
+    private function filled(array $changes = []): array
+    {
+        $values = $this->openNew();
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['description'] = 'Consulting';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+
+        /** @var Form $filled */
+        $filled = array_merge($values, $changes);
+
+        return $filled;
+    }
+
+    /**
+     * @param array<string, string> $changes
+     *
+     * @return array<string, string>
+     */
+    private function lineValues(array $changes): array
+    {
+        return array_merge(['text' => 'Work', 'price' => '100,00', 'quantity' => '1', 'unit' => 'h', 'priceType' => 'without_vat', 'vat' => 'base', 'supplyCode' => '', 'discount' => ''], $changes);
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     */
+    private function save(array $values): void
+    {
+        $this->client->request('POST', '/invoices/new', $values);
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     */
+    private function saveEdit(Invoice $invoice, array $values): void
+    {
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/edit', $values);
+    }
+
+    private function issued(): Invoice
+    {
+        $this->save($this->filled());
+
+        return $this->onlyInvoice();
+    }
+
+    private function onlyInvoice(): Invoice
+    {
+        $invoices = $this->invoices();
+        self::assertCount(1, $invoices);
+
+        return $invoices[0];
+    }
+
+    /**
+     * @return list<Invoice> in the order of their numbers
+     */
+    private function invoices(): array
+    {
+        return $this->scoped(function (): array {
+            $this->em()->clear();
+
+            return $this->em()->createQuery('SELECT i FROM '.Invoice::class.' i ORDER BY i.numberKey')->getResult();
+        });
+    }
+
+    private function stored(Invoice $invoice): Invoice
+    {
+        return $this->scoped(function () use ($invoice): Invoice {
+            $this->em()->clear();
+
+            return self::getContainer()->get(InvoiceStore::class)->get($invoice->id());
+        });
+    }
+
+    /**
+     * @return list<array{code: ?string}>
+     */
+    private function linesOf(Invoice $invoice): array
+    {
+        return $this->scoped(function () use ($invoice): array {
+            $store = self::getContainer()->get(InvoiceStore::class);
+
+            return array_map(static fn ($line): array => ['code' => $line->supplyCode()], $store->lines($store->get($invoice->id())));
+        });
+    }
+
+    /**
+     * Runs outside a request, which has no tenant of its own.
+     *
+     * @template T
+     *
+     * @param callable(): T $work
+     *
+     * @return T
+     */
+    private function scoped(callable $work): mixed
+    {
+        $this->context->switchTo($this->tenant);
+        try {
+            return $work();
+        } finally {
+            $this->context->reset();
+        }
+    }
+
+    private function signedIn(Role $role = Role::Owner, VatStatus $status = VatStatus::Registered, bool $series = true, ?Address $address = null): void
+    {
+        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
+        $this->context->switchTo($this->tenant);
+        $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345695') : null;
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 1', [self::IBAN]);
+        $this->em()->persist($this->firm);
+        if ($series) {
+            $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            $this->series->markDefault();
+            $this->em()->persist($this->series);
+        }
+        $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '+420 000 000 000');
+        $this->em()->persist($this->customer);
+        $this->em()->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        $this->em()->persist(new PartyEmail($this->customer, 'billing@example.com', EmailPurpose::Invoices));
+        $this->em()->flush();
+        $this->context->reset();
+        $this->browser->signIn();
+    }
+
+    private function secondFirm(VatStatus $status): LegalEntity
+    {
+        return $this->scoped(function () use ($status): LegalEntity {
+            $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345687') : null;
+            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), $vatId, new Address('Example Street 2', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 2', [self::OTHER_IBAN]);
+            $this->em()->persist($firm);
+            $this->em()->flush();
+
+            return $firm;
+        });
+    }
+
+    private function foreignFirm(): LegalEntity
+    {
+        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
+        $this->context->switchTo($tenant);
+        $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+        $this->em()->persist($firm);
+        $this->em()->flush();
+        $this->context->reset();
+
+        return $firm;
+    }
+
+    /**
+     * @return Figures
+     */
+    private function json(): array
+    {
+        /** @var Figures $data */
+        $data = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+        return $data;
+    }
+
+    private function nbsp(string $text): string
+    {
+        return str_replace(["\u{a0}", "\u{202f}"], ' ', $text);
+    }
+
+    private function text(string $key): string
+    {
+        return self::getContainer()->get(TranslatorInterface::class)->trans($key, locale: 'en');
+    }
+
+    private function em(): EntityManagerInterface
+    {
+        return $this->browser->em();
+    }
+}

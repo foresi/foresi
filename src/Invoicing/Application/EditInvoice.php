@@ -12,6 +12,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceChange;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\VariableSymbol;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 
@@ -83,7 +84,7 @@ final readonly class EditInvoice
 
     private function save(Invoice $invoice, InvoiceInput $input, InvoiceChange $change): void
     {
-        $invoice->change($change);
+        $invoice->change($input->variableSymbolFollowsNumber ? $change->withVariableSymbol(VariableSymbol::fromNumber($invoice->number())) : $change);
         $country = $this->countries->for($invoice->issuer()->address->countryCode);
         $regime = $invoice->vatRegime();
         $lines = $this->pricing->priced($input->lines, $regime, $country, $change->taxPointDate);

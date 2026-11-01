@@ -655,6 +655,24 @@ final class EditInvoiceTest extends InvoiceTestCase
         return $series;
     }
 
+    public function testASymbolFollowingTheNumberTakesTheNewOne(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $this->edited($invoice, $this->input(overrides: ['typedNumber' => 'A2026-9', 'variableSymbolFollowsNumber' => true]));
+
+        self::assertSame('20269', $this->reloaded($invoice)->variableSymbol());
+    }
+
+    public function testASymbolThatDoesNotFollowStaysAfterARenumbering(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $this->edited($invoice, $this->input(overrides: ['typedNumber' => 'A2026-9']));
+
+        self::assertSame('20260001', $this->reloaded($invoice)->variableSymbol());
+    }
+
     /**
      * @return list<AuditEntry> the whole history of the invoice, oldest first
      */

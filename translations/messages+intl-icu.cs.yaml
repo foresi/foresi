@@ -489,6 +489,203 @@ series:
     next_number: Zadejte celé číslo od 1 do 2147483647.
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
+invoice:
+  new: Nová faktura
+  title: 'Faktura {number}'
+  reload: Načíst fakturu znovu
+  cancel: Zrušit
+  save: Uložit
+  save_pdf: PDF a uložit
+  more_actions: Další akce
+  more: Další údaje
+  firm_apply: Použít tuto firmu
+  rate: '{rate} %'
+  errors_title: Fakturu zatím nelze uložit
+  errors_close: Zavřít seznam
+  leave: Opustit formulář? Změny se ztratí.
+  currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
+  blocked:
+    no_firm_title: Faktury potřebují firmu
+    no_firm_text: Firma je vystavitelem každé faktury.
+    add_firm: Přidat firmu
+  flash:
+    saved: 'Faktura {number} je uložená.'
+    renumbered: 'Faktura je uložená pod číslem {number}: {preview} mezitím získal jiný doklad.'
+    already_saved: Tento formulář už byl uložen.
+  card:
+    issuer: Vystavitel
+    customer: Odběratel
+    payment: Data a platba
+    lines: Položky
+  number:
+    edit: Změnit číslo
+    label: Číslo faktury
+    help: Uložení dá další volné číslo, pokud ho nezměníte.
+  customer:
+    placeholder: Název, IČO nebo e-mail
+    empty: Pro tuto firmu jsme odběratele nenašli.
+    add: Přidat
+    candidates: Nalezení odběratelé
+    edit_here: Upravit jen na tomto dokladu
+    edit_contact: Upravit kontakt
+  field:
+    firm: Firma
+    series: Číselná řada
+    customer: Odběratel
+    customerName: Název na dokladu
+    registrationNumber: IČO
+    vatId: DIČ
+    street: Ulice
+    city: Město
+    postalCode: PSČ
+    countryCode: Země
+    email: E-mail
+    orderNumber: Číslo objednávky
+    description: Popis
+    description_help: Když ho nevyplníte, převezme text první položky.
+    variableSymbol: Variabilní symbol
+    variableSymbol_help: Sleduje číslo, dokud ho nezměníte.
+    constantSymbol: Konstantní symbol
+    language: Jazyk dokladu
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum zdanitelného plnění
+    supplyDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    bankAccount_none: Firma nemá bankovní účet.
+    currency: Měna
+  field_label:
+    form: Formulář
+    firm: Firma
+    document: Doklad
+    series: Číselná řada
+    number: Číslo
+    customer: Odběratel
+    orderNumber: Číslo objednávky
+    description: Popis
+    variableSymbol: Variabilní symbol
+    constantSymbol: Konstantní symbol
+    language: Jazyk
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    lines: Položky
+  line:
+    label: 'Řádek {number}'
+    text: Položka
+    price: Cena
+    quantity: Množství
+    unit: Jednotka
+    priceType: Typ ceny
+    vat: DPH
+    rate: DPH
+    treatment: DPH
+    supplyCode: Kód plnění
+    supplyCode_choose: Vyberte kód
+    discount: Sleva %
+    total: Celkem
+    actions: Akce
+    add: Nový řádek
+    drag: Přetažením změníte pořadí
+    up: Posunout řádek nahoru
+    down: Posunout řádek dolů
+    remove: Odebrat řádek
+  price_type:
+    with_vat: S DPH
+    without_vat: Bez DPH
+    base_only: Pouze základ
+  vat:
+    base: Základní sazba
+    reduced: Snížená sazba
+    standard: Běžné plnění
+    reverse_charge: Přenesená daň
+    exempt: Osvobozeno
+    not_applicable: Mimo DPH
+  payment:
+    bank_transfer: Převodem
+    cash: Hotově
+    card: Kartou
+  language:
+    cs: Čeština
+    en: Angličtina
+  total:
+    net: Bez DPH
+    vat: DPH
+    rounding: Zaokrouhlení
+    payable: Celkem
+  supply_code:
+    '1': Zlato
+    1a: Zlato, zprostředkování dodání investičního zlata
+    '3': Dodání nemovité věci
+    3a: Dodání nemovité věci v nuceném prodeji
+    '4': Stavební a montážní práce
+    4a: Stavební a montážní práce, poskytnutí pracovníků
+    '5': Zboží uvedené v příloze č. 5
+    '6': Dodání zboží poskytnutého původně jako záruka
+    '7': Dodání zboží po postoupení výhrady vlastnictví
+    '11': Povolenky na emise skleníkových plynů
+    '12': Obiloviny a technické plodiny
+    '13': Kovy
+    '14': Mobilní telefony
+    '15': Integrované obvody
+    '16': Přenosná zařízení pro automatizované zpracování dat
+    '17': Videoherní konzole
+    '18': Dodání certifikátů elektřiny
+    '19': Dodání elektřiny soustavami nebo sítěmi obchodníkovi
+    '20': Dodání plynu soustavami nebo sítěmi obchodníkovi
+    '21': Poskytnutí vymezených služeb elektronických komunikací
+  problem:
+    amount_out_of_range: Částka je příliš velká.
+    bank_account_foreign: Vyberte bankovní účet firmy.
+    changed_meanwhile: Někdo tuto fakturu mezitím uložil, takže vaše změny se neuložily.
+    currency_not_home: Cena musí být v měně firmy.
+    customer_address_incomplete: Odběratel potřebuje úplnou fakturační adresu.
+    customer_archived: Tento kontakt je pro firmu archivovaný.
+    customer_role: Tento kontakt není odběratelem firmy.
+    customer_unknown: Vyberte odběratele.
+    customer_vat_id_invalid: DIČ odběratele není platné.
+    date_invalid: Toto datum neexistuje.
+    discount_invalid: Zadejte slevu od 0 do 100, nejvýše na dvě desetinná místa.
+    due_date_missing: Zadejte datum splatnosti.
+    firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
+    firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
+    firm_locked: Firmu vystaveného dokladu nelze změnit.
+    firm_register_entry_missing: Doplňte zápis v rejstříku v nastavení firmy.
+    firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
+    issue_date_missing: Zadejte datum vystavení.
+    language_invalid: Vyberte jazyk dokladu.
+    line_rate_missing: Řádek potřebuje sazbu DPH platnou k datu plnění.
+    line_text_missing: Zadejte text položky.
+    no_lines: Přidejte alespoň jeden řádek.
+    number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
+    number_locked: Řadu a číslo nelze po doručení dokladu změnit.
+    number_out_of_range: Toto číslo je mimo rozsah řady.
+    number_taken: Toto číslo už bylo v této firmě použito.
+    numbers_exhausted: V této řadě už nezbývají čísla.
+    payable_negative: Celková částka nesmí být záporná.
+    payment_method_invalid: Vyberte způsob platby.
+    price_invalid: Zadejte cenu nejvýše na dvě desetinná místa.
+    price_type_invalid: Vyberte typ ceny.
+    quantity_invalid: Zadejte množství nejvýše na čtyři desetinná místa.
+    reverse_charge_customer_vat_id: Přenesená daň vyžaduje odběratele s DIČ.
+    reverse_charge_payer: Přenesená daň vyžaduje vystavitele, který je plátcem DPH.
+    series_archived: Tato řada je archivovaná.
+    series_of_another_firm: Tato řada patří jiné firmě.
+    series_unknown: Vyberte číselnou řadu.
+    supply_code_invalid: Vyberte kód plnění.
+    supply_code_not_allowed: Odběratel z jiné země kód plnění nemá.
+    tax_point_missing: Zadejte datum.
+    too_long: Text je příliš dlouhý.
+    trashed: Tato faktura je v koši. Pro změny ji obnovte.
+    variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
+    vat_invalid: Vyberte DPH řádku.
 import:
   number: '{value, number}'
   new: Nový import

@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Combobox name="cat-combobox" id="cat-combobox" textName="cat-combobox-text" label="Customer" help="Name, registration number or e-mail" placeholder="Start typing" url="/_catalogue/none" emptyText="Nothing found" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'filled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Combobox name="cat-combobox-filled" id="cat-combobox-filled" textName="cat-combobox-filled-text" label="Customer" value="1" text="Example Customer a.s." url="/_catalogue/none" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Combobox name="cat-combobox-error" id="cat-combobox-error" textName="cat-combobox-error-text" label="Customer" error="Choose a customer." :required="true" url="/_catalogue/none" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'disabled'} %}{% block sample %}
+<div class="w-72"><twig:Ui:Combobox name="cat-combobox-disabled" id="cat-combobox-disabled" textName="cat-combobox-disabled-text" label="Customer" :disabled="true" url="/_catalogue/none" /></div>
+{% endblock %}{% endembed %}
+</div>

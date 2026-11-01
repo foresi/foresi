@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The invoice form: save issues the document, with live totals from the server, a customer picker per firm, reverse charge with its supply code, and a form without VAT for a non-payer firm.
 - Number series per firm under the new Invoicing screen of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers.
 - Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.
 - A logo and an image with stamp and signature on the firm form. PNG or JPEG in RGB, up to 1 MB and 3000 x 3000 pixels. Both stay outside the web root in `var/share/prod/firm-images`, so include that directory in backups.

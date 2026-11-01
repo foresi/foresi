@@ -1,0 +1,60 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# One row of the lines table, a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. #}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% macro classes(invalid) %}w-full rounded-control border bg-white px-2.5 text-ink {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}{% endmacro %}
+{% macro input(index, cell, label, value, errorFields, extra, numeric) %}
+    {% set id = 'lines-' ~ index ~ '-' ~ cell %}
+    {% set error = errorFields[id]|default(null) %}
+    <label for="{{ id }}" class="mb-1 block text-small font-medium text-ink xl:sr-only">{{ label }}</label>
+    <input type="text" id="{{ id }}" name="lines[{{ index }}][{{ cell }}]" value="{{ value }}" data-cell="{{ cell }}" autocomplete="off"{% if numeric %} inputmode="decimal"{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-error"{% endif %} class="h-control {{ _self.classes(error is not null) }}{% if numeric %} num text-right{% endif %}" {{ extra|raw }}>
+    {% if error %}<span id="{{ id }}-error" class="sr-only">{{ error }}</span>{% endif %}
+{% endmacro %}
+{% macro select(index, cell, label, value, options, errorFields, action) %}
+    {% set id = 'lines-' ~ index ~ '-' ~ cell %}
+    {% set error = errorFields[id]|default(null) %}
+    <label for="{{ id }}" class="mb-1 block text-small font-medium text-ink xl:sr-only">{{ label }}</label>
+    <div class="relative">
+        <select id="{{ id }}" name="lines[{{ index }}][{{ cell }}]" data-cell="{{ cell }}"{% if action %} data-action="{{ action }}"{% endif %}{% if error %} aria-invalid="true" aria-describedby="{{ id }}-error"{% endif %} class="h-control appearance-none pr-7 {{ _self.classes(error is not null) }}">
+            {% for optionValue, optionLabel in options %}
+                <option value="{{ optionValue }}"{% if optionValue ~ '' == value %} selected{% endif %}>{{ optionLabel }}</option>
+            {% endfor %}
+        </select>
+        {{ ux_icon('lucide:chevron-down', {class: 'pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-muted', 'aria-hidden': 'true'}) }}
+    </div>
+    {% if error %}<span id="{{ id }}-error" class="sr-only">{{ error }}</span>{% endif %}
+{% endmacro %}
+{% set cell = 'block align-top xl:table-cell xl:p-1' %}
+<tr data-invoice-form-target="line" class="relative grid grid-cols-2 gap-2 rounded-panel border border-container p-3 xl:table-row xl:border-0 xl:p-0 max-xl:mb-3">
+    <td class="col-span-2 {{ cell }}">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, '', false) }}</td>
+    <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, '', true) }}</td>
+    <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, '', true) }}</td>
+    <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>
+    {% if payer %}
+        <td class="{{ cell }}">{{ _self.select(index, 'priceType', 'invoice.line.priceType'|trans, line.priceType, priceTypes, errorFields, null) }}</td>
+        <td class="{{ cell }}">
+            {{ _self.select(index, 'vat', 'invoice.line.vat'|trans, line.vat, vatOptions, errorFields, 'change->invoice-form#vatChanged') }}
+            <div class="mt-1"{% if not (line.vat == 'reverse_charge' and domestic) %} hidden{% endif %} data-supply-code>
+                {{ _self.select(index, 'supplyCode', 'invoice.line.supplyCode'|trans, line.supplyCode, supplyCodes, errorFields, null) }}
+            </div>
+        </td>
+    {% else %}
+        <td class="hidden">
+            <input type="hidden" name="lines[{{ index }}][priceType]" value="{{ line.priceType }}">
+            <input type="hidden" name="lines[{{ index }}][vat]" value="{{ line.vat }}">
+            <input type="hidden" name="lines[{{ index }}][supplyCode]" value="">
+        </td>
+    {% endif %}
+    <td class="{{ cell }}">{{ _self.input(index, 'discount', 'invoice.line.discount'|trans, line.discount, errorFields, '', true) }}</td>
+    <td class="col-span-2 flex items-center justify-between gap-2 xl:table-cell xl:p-1 xl:text-right xl:align-middle">
+        <span class="text-small font-medium text-ink xl:hidden">{{ 'invoice.line.total'|trans }}</span>
+        <output class="num whitespace-nowrap font-medium text-ink" data-line-total>{{ total }}</output>
+    </td>
+    <td class="col-span-2 xl:table-cell xl:p-1 xl:align-middle">
+        <div class="flex items-center justify-end gap-1">
+            <span class="hidden cursor-grab text-muted xl:inline" data-action="mousedown->invoice-form#armDrag" title="{{ 'invoice.line.drag'|trans }}">{{ ux_icon('lucide:grip-vertical', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+            <twig:Ui:IconButton icon="arrow-up" :label="'invoice.line.up'|trans" variant="ghost" size="sm" type="submit" name="_action" value="move_up:{{ index }}" data-action="invoice-form#moveUp:prevent keydown.up->invoice-form#moveUp:prevent keydown.down->invoice-form#moveDown:prevent" />
+            <twig:Ui:IconButton icon="arrow-down" :label="'invoice.line.down'|trans" variant="ghost" size="sm" type="submit" name="_action" value="move_down:{{ index }}" data-action="invoice-form#moveDown:prevent keydown.up->invoice-form#moveUp:prevent keydown.down->invoice-form#moveDown:prevent" />
+            <twig:Ui:IconButton icon="trash-2" :label="'invoice.line.remove'|trans" variant="ghost" size="sm" type="submit" name="_action" value="remove_line:{{ index }}" data-action="invoice-form#removeLine:prevent" />
+        </div>
+    </td>
+</tr>

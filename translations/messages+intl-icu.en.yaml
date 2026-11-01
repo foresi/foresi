@@ -489,6 +489,203 @@ series:
     next_number: Enter a whole number from 1 to 2147483647.
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
+invoice:
+  new: New invoice
+  title: 'Invoice {number}'
+  reload: Reload the invoice
+  cancel: Cancel
+  save: Save
+  save_pdf: PDF and save
+  more_actions: More actions
+  more: More details
+  firm_apply: Use this firm
+  rate: '{rate}%'
+  errors_title: The invoice cannot be saved yet
+  errors_close: Close the list
+  leave: Leave the form? What you changed will be lost.
+  currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
+  blocked:
+    no_firm_title: Invoices need a firm
+    no_firm_text: The firm is the issuer of every invoice.
+    add_firm: Add a firm
+  flash:
+    saved: 'Invoice {number} is saved.'
+    renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
+    already_saved: This form was saved already.
+  card:
+    issuer: Issuer
+    customer: Customer
+    payment: Dates and payment
+    lines: Lines
+  number:
+    edit: Change the number
+    label: Invoice number
+    help: Save gives the next free number unless you change it.
+  customer:
+    placeholder: Name, registration number or e-mail
+    empty: No customer found for this firm.
+    add: Add
+    candidates: Matching customers
+    edit_here: Edit on this document
+    edit_contact: Edit the contact
+  field:
+    firm: Firm
+    series: Series
+    customer: Customer
+    customerName: Name on the document
+    registrationNumber: Reg. no.
+    vatId: VAT ID
+    street: Street
+    city: City
+    postalCode: Postal code
+    countryCode: Country
+    email: E-mail
+    orderNumber: Order number
+    description: Description
+    description_help: Left empty, it takes the text of the first line.
+    variableSymbol: Variable symbol
+    variableSymbol_help: Follows the number until you change it.
+    constantSymbol: Constant symbol
+    language: Document language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Tax point
+    supplyDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    bankAccount_none: The firm has no bank account.
+    currency: Currency
+  field_label:
+    form: Form
+    firm: Firm
+    document: Document
+    series: Series
+    number: Number
+    customer: Customer
+    orderNumber: Order number
+    description: Description
+    variableSymbol: Variable symbol
+    constantSymbol: Constant symbol
+    language: Language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    lines: Lines
+  line:
+    label: 'Line {number}'
+    text: Item
+    price: Price
+    quantity: Quantity
+    unit: Unit
+    priceType: Price type
+    vat: VAT
+    rate: VAT
+    treatment: VAT
+    supplyCode: Supply code
+    supplyCode_choose: Choose a code
+    discount: Discount %
+    total: Total
+    actions: Actions
+    add: New line
+    drag: Drag to reorder
+    up: Move the line up
+    down: Move the line down
+    remove: Remove the line
+  price_type:
+    with_vat: With VAT
+    without_vat: Without VAT
+    base_only: Base only
+  vat:
+    base: Base rate
+    reduced: Reduced rate
+    standard: Standard
+    reverse_charge: Reverse charge
+    exempt: Exempt
+    not_applicable: Outside VAT
+  payment:
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
+  language:
+    cs: Czech
+    en: English
+  total:
+    net: Without VAT
+    vat: VAT
+    rounding: Rounding
+    payable: Total
+  supply_code:
+    '1': Gold
+    1a: Gold, brokering of investment gold
+    '3': Supply of immovable property
+    3a: Supply of immovable property in a forced sale
+    '4': Construction and assembly work
+    4a: Construction and assembly work, provision of workers
+    '5': Goods listed in Annex 5
+    '6': Supply of goods originally given as security
+    '7': Supply of goods after assignment of retention of title
+    '11': Greenhouse gas emission allowances
+    '12': Cereals and industrial crops
+    '13': Metals
+    '14': Mobile phones
+    '15': Integrated circuits
+    '16': Portable data processing devices
+    '17': Video game consoles
+    '18': Supply of electricity certificates
+    '19': Supply of electricity through networks to a trader
+    '20': Supply of gas through networks to a trader
+    '21': Defined electronic communications services
+  problem:
+    amount_out_of_range: An amount is too large to count.
+    bank_account_foreign: Choose a bank account of the firm.
+    changed_meanwhile: Someone saved this invoice meanwhile, so yours was not saved.
+    currency_not_home: The price must be in the currency of the firm.
+    customer_address_incomplete: The customer needs a complete billing address.
+    customer_archived: This contact is archived for the firm.
+    customer_role: This contact is not a customer of the firm.
+    customer_unknown: Choose a customer.
+    customer_vat_id_invalid: The VAT ID of the customer is not valid.
+    date_invalid: This date does not exist.
+    discount_invalid: Enter a discount from 0 to 100, with up to two decimals.
+    due_date_missing: Enter the due date.
+    firm_archived: This firm is archived, so it issues no new documents.
+    firm_country_unsupported: Invoices are not available for the country of this firm yet.
+    firm_locked: The firm of an issued document cannot change.
+    firm_register_entry_missing: Add the register entry in the settings of the firm.
+    firm_vat_id_missing: Add the VAT ID in the settings of the firm.
+    issue_date_missing: Enter the issue date.
+    language_invalid: Choose a document language.
+    line_rate_missing: This line needs a VAT rate valid on the tax point.
+    line_text_missing: Enter the text of the item.
+    no_lines: Add at least one line.
+    number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
+    number_locked: Series and number cannot change once the document is delivered.
+    number_out_of_range: This number is beyond what the series can count.
+    number_taken: This number has been used in this firm already.
+    numbers_exhausted: This series has no numbers left.
+    payable_negative: The total must not be negative.
+    payment_method_invalid: Choose a payment method.
+    price_invalid: Enter a price with up to two decimals.
+    price_type_invalid: Choose a price type.
+    quantity_invalid: Enter a quantity with up to four decimals.
+    reverse_charge_customer_vat_id: Reverse charge needs a customer with a VAT ID.
+    reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
+    series_archived: This series is archived.
+    series_of_another_firm: This series belongs to another firm.
+    series_unknown: Choose a series.
+    supply_code_invalid: Choose the supply code.
+    supply_code_not_allowed: A customer from another country has no supply code.
+    tax_point_missing: Enter the date.
+    too_long: This text is too long.
+    trashed: This invoice is in the trash. Restore it to change it.
+    variable_symbol_invalid: The variable symbol has 1 to 10 digits.
+    vat_invalid: Choose the VAT of the line.
 import:
   number: '{value, number}'
   new: New import

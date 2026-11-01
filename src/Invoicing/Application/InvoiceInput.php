@@ -29,7 +29,9 @@ final readonly class InvoiceInput
     public array $lines;
 
     /**
-     * @param array<LineInput> $lines keys are discarded
+     * @param array<LineInput> $lines                       keys are discarded
+     * @param bool             $variableSymbolFollowsNumber the symbol was not typed: the save derives it from
+     *                                                      the number it really gives, which a form only previews
      */
     public function __construct(
         public string $firmId,
@@ -50,6 +52,7 @@ final readonly class InvoiceInput
         public string $textAfter,
         public DocumentLanguage $language,
         array $lines,
+        public bool $variableSymbolFollowsNumber = false,
     ) {
         $this->lines = array_values($lines);
     }

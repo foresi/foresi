@@ -293,6 +293,8 @@ final readonly class IssueRules
             }
             if (TaxTreatment::ReverseCharge === $line->treatment) {
                 $problems = [...$problems, ...$this->reverseCharge($line, $field, $regime, $country, $customer, $issuerCountry, $input->taxPointDate)];
+            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment) {
+                $problems[] = new IssueProblem($field.'.vat', 'invoice.problem.vat_invalid');
             } elseif (VatRegime::Payer === $regime && $line->treatment->hasRate() && !$this->hasRate($line, $country, $input->taxPointDate)) {
                 $problems[] = new IssueProblem($field.'.rate', 'invoice.problem.line_rate_missing');
             }

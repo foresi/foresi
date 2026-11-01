@@ -15,6 +15,7 @@ use App\Invoicing\Domain\InvoiceChange;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\TotalRounding;
+use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
@@ -80,6 +81,9 @@ final readonly class IssueInvoice
             $this->catalog->store($series);
         }
         $number = $this->numbers->allocate($series, $firm, $input->issueDate, $input->typedNumber, null);
+        if ($input->variableSymbolFollowsNumber) {
+            $content = $content->withVariableSymbol(VariableSymbol::fromNumber($number));
+        }
         $country = $this->countries->for($firm->address()->countryCode);
         $home = $country->homeCurrency();
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());

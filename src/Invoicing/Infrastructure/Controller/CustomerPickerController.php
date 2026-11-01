@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * The customers a firm can invoice, for the combobox of the invoice form. A firm of
@@ -42,8 +43,9 @@ final class CustomerPickerController extends AbstractController
             throw new AccessDeniedHttpException('Only staff work with invoices.');
         }
 
+        $id = $request->query->getString('firm');
         try {
-            $firm = $this->firms->get($request->query->getString('firm'));
+            $firm = Uuid::isValid($id) ? $this->firms->get($id) : throw new NotFoundHttpException();
         } catch (UnknownLegalEntity) {
             throw new NotFoundHttpException();
         }
@@ -52,6 +54,8 @@ final class CustomerPickerController extends AbstractController
 
         return $this->json(['results' => array_map(static fn (CustomerOption $option): array => [
             'id' => $option->id,
+            'label' => $option->name,
+            'hint' => $option->registrationNumber ?? '',
             'name' => $option->name,
             'registrationNumber' => $option->registrationNumber,
             'vatId' => $option->vatId,

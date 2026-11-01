@@ -38,7 +38,7 @@
         // Equivalent mutant: the separator only keeps the keys apart, in either order.
         "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries"]},
         // Unreachable guards: IssueRules refuses these cases before the throw.
-        "Throw_": {"ignore": ["App\\Invoicing\\Application\\IssueInvoice::issue::64", "App\\Invoicing\\Application\\IssueInvoice::issue::66", "App\\Invoicing\\Application\\EditInvoice::edit::62", "App\\Invoicing\\Application\\EditInvoice::edit::63"]},
+        "Throw_": {"ignore": ["App\\Invoicing\\Application\\IssueInvoice::issue::65", "App\\Invoicing\\Application\\IssueInvoice::issue::67", "App\\Invoicing\\Application\\EditInvoice::edit::63", "App\\Invoicing\\Application\\EditInvoice::edit::64"]},
         // Equivalent mutants: preg_replace() without the u flag always returns a string.
         "CastString": {"ignore": [
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",

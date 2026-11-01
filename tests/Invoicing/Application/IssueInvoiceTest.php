@@ -998,6 +998,28 @@ final class IssueInvoiceTest extends InvoiceTestCase
         return $firm;
     }
 
+    public function testASymbolFollowingTheNumberTakesTheRealOne(): void
+    {
+        $this->issue->issue($this->input());
+
+        $invoice = $this->issue->issue($this->input(overrides: ['variableSymbol' => '20260001', 'variableSymbolFollowsNumber' => true]));
+
+        self::assertSame('20260002', $invoice->number());
+        self::assertSame('20260002', $invoice->variableSymbol());
+    }
+
+    public function testASymbolThatDoesNotFollowStays(): void
+    {
+        $this->issue->issue($this->input());
+
+        self::assertSame('20260001', $this->issue->issue($this->input())->variableSymbol());
+    }
+
+    public function testAPayerHasNoLineOutsideVat(): void
+    {
+        $this->assertRefusedFor('invoice.problem.vat_invalid', fn (): Invoice => $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::NotApplicable, kind: null)])));
+    }
+
     /**
      * @return list<string>
      */
