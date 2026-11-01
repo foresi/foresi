@@ -20,6 +20,7 @@ final class NavigationRegistryTest extends TestCase
     {
         $registry = $this->registry(
             new NavigationItem('extensions', 'e', 'plug', 'r_e'),
+            new NavigationItem('work', 'w', 'check', 'r_w'),
             new NavigationItem('contacts', 'c', 'users', 'r_c'),
             new NavigationItem('money', 'm', 'landmark', 'r_m'),
             new NavigationItem('sales', 's', 'target', 'r_s'),
@@ -27,7 +28,7 @@ final class NavigationRegistryTest extends TestCase
             new NavigationItem('settings', 'x', 'settings', 'r_x'),
         );
 
-        self::assertSame(['main', 'sales', 'money', 'contacts', 'extensions', 'settings'], array_map(static fn (array $g): string => $g['key'], $registry->groups(null, true)));
+        self::assertSame(['main', 'sales', 'money', 'contacts', 'work', 'extensions', 'settings'], array_map(static fn (array $g): string => $g['key'], $registry->groups(null, true)));
     }
 
     public function testEmptyGroupsAreLeftOut(): void
@@ -67,6 +68,16 @@ final class NavigationRegistryTest extends TestCase
 
         self::assertFalse($groups[0]['items'][0]->current);
         self::assertTrue($groups[0]['items'][1]->current);
+    }
+
+    public function testTheItemStaysCurrentOnTheRoutesOfItsPrefixes(): void
+    {
+        $item = new NavigationItem('main', 'a', 'plus', 'app_things', routePrefixes: ['app_thing_', 'app_other']);
+
+        self::assertTrue($this->registry($item)->groups('app_thing_edit', true)[0]['items'][0]->current);
+        self::assertTrue($this->registry($item)->groups('app_other', true)[0]['items'][0]->current);
+        self::assertFalse($this->registry($item)->groups('app_thingy', true)[0]['items'][0]->current);
+        self::assertFalse($this->registry($item)->groups(null, true)[0]['items'][0]->current);
     }
 
     public function testNothingIsCurrentWithoutARoute(): void

@@ -85,6 +85,43 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firms');
     }
 
+    public function testTheSettingsGroupHoldsFirmsAndTheImportHistory(): void
+    {
+        $this->signIn();
+
+        $crawler = $this->client->request('GET', '/');
+
+        $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
+        self::assertSame(['/settings/firms Firms', '/imports Import and export'], $links);
+    }
+
+    public function testTheFirmPageHasTabsForDetailsAndInvoicingAndKeepsFirmsMarkedInTheSidebar(): void
+    {
+        $this->signIn();
+        $id = $this->firm('Example Firm', $this->tenant, '12345695')->id();
+
+        $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/edit');
+
+        self::assertSame(['Details', 'Invoicing'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
+        self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
+        self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
+
+        $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/invoicing');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Invoicing', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
+        self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
+    }
+
+    public function testANewFirmHasNoTabs(): void
+    {
+        $this->signIn();
+
+        $this->client->request('GET', '/settings/firms/new');
+
+        self::assertSelectorNotExists('main nav[aria-label="Firm sections"]');
+    }
+
     public function testTheSidebarHidesFirmsFromOtherRoles(): void
     {
         $this->browser->seed(['Tenant A'], role: Role::Member);

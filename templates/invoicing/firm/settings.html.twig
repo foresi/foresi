@@ -11,6 +11,8 @@
         <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
     {% endfor %}
 
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'invoicing'} only %}</div>
+
     <div class="grid max-w-4xl grid-cols-1 gap-4">
         <section class="grid grid-cols-1 gap-3">
             <div class="flex items-center justify-between gap-2">

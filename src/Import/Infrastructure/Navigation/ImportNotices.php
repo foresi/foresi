@@ -18,8 +18,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Tells the user on every page that an import of theirs ended, until they open
- * its summary. The import has no sidebar item: it starts from the pages of the
- * modules it fills, and its history is linked from there.
+ * its summary. A new import starts from the pages of the modules it fills, and
+ * its history is under Settings.
  */
 final readonly class ImportNotices implements ShellNoticeProvider
 {

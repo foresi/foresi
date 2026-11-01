@@ -25,9 +25,10 @@ auth:
 nav:
   group:
     main: Hlavní
-    sales: Obchod
-    money: Peníze
-    contacts: Kontakty
+    sales: Prodej
+    money: Finance
+    contacts: Adresář
+    work: Práce
     extensions: Rozšíření
     settings: Nastavení
   item:
@@ -35,6 +36,7 @@ nav:
     contacts: Adresář
     invoices: Faktury
     firms: Firmy
+    import: Import a export
 ui:
   combobox:
     found: 'Nalezeno: {count}'
@@ -373,6 +375,10 @@ firm:
   new: Nová firma
   edit: Upravit firmu
   views: Pohledy na firmy
+  sections: Části firmy
+  tab:
+    details: Údaje
+    invoicing: Fakturace
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Přidejte firmu, za kterou vaše organizace vystavuje doklady.

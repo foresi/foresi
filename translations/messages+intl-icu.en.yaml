@@ -28,6 +28,7 @@ nav:
     sales: Sales
     money: Money
     contacts: Contacts
+    work: Work
     extensions: Extensions
     settings: Settings
   item:
@@ -35,6 +36,7 @@ nav:
     contacts: Address book
     invoices: Invoices
     firms: Firms
+    import: Import and export
 ui:
   combobox:
     found: 'Found: {count}'
@@ -373,6 +375,10 @@ firm:
   new: New firm
   edit: Edit firm
   views: Firm views
+  sections: Firm sections
+  tab:
+    details: Details
+    invoicing: Invoicing
   empty:
     title: No firms yet
     text: Add the firm your organisation issues documents from.

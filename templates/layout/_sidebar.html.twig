@@ -44,7 +44,7 @@
 <nav aria-label="{{ 'shell.sidebar_label'|trans }}" class="flex-1">
     {% for group in groups|filter(g => g.key != 'settings') %}
         <section data-nav-group="{{ group.key }}" aria-labelledby="nav-group-{{ group.key }}">
-            <h2 id="nav-group-{{ group.key }}" class="mx-2.5 mb-1.5 mt-4 text-caption font-semibold uppercase tracking-wide text-muted">{{ group.labelKey|trans }}</h2>
+            <h2 id="nav-group-{{ group.key }}" class="{{ 'main' == group.key ? 'sr-only' : 'mx-2.5 mb-1.5 mt-4 text-caption font-semibold uppercase tracking-wide text-muted' }}">{{ group.labelKey|trans }}</h2>
             <ul class="m-0 grid list-none gap-0.5 p-0">
                 {% for entry in group.items %}<li>{{ _self.item(entry, focus) }}</li>{% endfor %}
             </ul>

@@ -24,7 +24,7 @@ final readonly class InvoicingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('sales', 'nav.item.invoices', 'receipt-text', 'app_invoices', weight: 10, commandLabelKey: 'invoice.new', commandRoute: 'app_invoice_new');
+            yield new NavigationItem('sales', 'nav.item.invoices', 'receipt-text', 'app_invoices', weight: 10, commandLabelKey: 'invoice.new', commandRoute: 'app_invoice_new', routePrefixes: ['app_invoice']);
         }
     }
 }

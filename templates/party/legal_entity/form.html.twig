@@ -11,9 +11,6 @@
 {% block title %}{{ editing ? 'firm.edit'|trans : 'firm.new'|trans }}{% endblock %}
 
 {% block actions %}
-    {% if editing %}
-        <twig:Ui:Button icon="receipt-text" :href="path('app_firm_invoicing', {id: firm.id})">{{ 'firm.invoicing.title'|trans }}</twig:Ui:Button>
-    {% endif %}
     {% if editing and not firm.archived %}
         <form method="post" action="{{ path('app_firm_archive', {id: firm.id}) }}" data-turbo-confirm="{{ 'firm.confirm.archive'|trans }}">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::ACTION_TOKEN')) }}">
@@ -23,6 +20,7 @@
 {% endblock %}
 
 {% block content %}
+    {% if editing %}<div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'details'} only %}</div>{% endif %}
     <form method="post" action="{{ action }}" enctype="multipart/form-data" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::FORM_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
