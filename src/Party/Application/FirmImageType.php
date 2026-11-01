@@ -26,6 +26,8 @@ final class FirmImageType
 
     private const array EXTENSIONS = [\IMAGETYPE_PNG => 'png', \IMAGETYPE_JPEG => 'jpg'];
     private const array JPEG_CHANNELS = [1, 3];
+    /** GD decodes a cut-off JPEG without complaint, so its end marker has to be there. */
+    private const string JPEG_END = "\xFF\xD9";
 
     /**
      * The extension of a usable image, or null.
@@ -51,6 +53,10 @@ final class FirmImageType
             return self::COLOR;
         }
 
+        if ('jpg' === $header['extension'] && !str_ends_with($bytes, self::JPEG_END)) {
+            return self::TYPE;
+        }
+
         return self::decodes($bytes) ? null : self::TYPE;
     }
 
@@ -73,14 +79,6 @@ final class FirmImageType
 
     private static function decodes(string $bytes): bool
     {
-        // By default GD turns a damaged JPEG into a partly grey picture.
-        $tolerant = ini_set('gd.jpeg_ignore_warning', '0');
-        try {
-            return false !== @imagecreatefromstring($bytes);
-        } finally {
-            if (false !== $tolerant) {
-                ini_set('gd.jpeg_ignore_warning', $tolerant);
-            }
-        }
+        return false !== @imagecreatefromstring($bytes);
     }
 }

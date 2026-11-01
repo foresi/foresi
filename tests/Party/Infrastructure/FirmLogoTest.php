@@ -165,11 +165,31 @@ final class FirmLogoTest extends WebTestCase
         self::assertSelectorTextContains('#logo-error', 'PNG or JPEG');
     }
 
-    public function testACutOffJpegIsRefused(): void
+    /**
+     * @return iterable<string, array{float}>
+     */
+    public static function cuts(): iterable
     {
-        $jpeg = $this->jpeg(64, 64);
+        yield 'at half' => [0.5];
+        yield 'at four fifths' => [0.8];
+    }
 
-        self::assertSame('type', FirmImageType::problem(substr($jpeg, 0, (int) (\strlen($jpeg) * 0.8))));
+    #[DataProvider('cuts')]
+    public function testACutOffJpegIsRefused(float $kept): void
+    {
+        $jpeg = $this->noisyJpeg();
+
+        self::assertSame('type', FirmImageType::problem(substr($jpeg, 0, (int) (\strlen($jpeg) * $kept))));
+    }
+
+    public function testAWholeNoisyJpegPasses(): void
+    {
+        self::assertNull(FirmImageType::problem($this->noisyJpeg()));
+    }
+
+    public function testAJpegWithBytesAfterItsEndIsRefused(): void
+    {
+        self::assertSame('type', FirmImageType::problem($this->noisyJpeg()."\0\0"));
     }
 
     public function testACutOffPngIsRefused(): void
@@ -188,15 +208,6 @@ final class FirmLogoTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#stamp-error', 'RGB');
         self::assertSame([], $this->storedFiles());
-    }
-
-    public function testTheDecoderLeavesItsSettingAsItFoundIt(): void
-    {
-        $before = \ini_get('gd.jpeg_ignore_warning');
-
-        FirmImageType::problem($this->jpeg());
-
-        self::assertSame($before, \ini_get('gd.jpeg_ignore_warning'));
     }
 
     public function testAStampIsCheckedLikeALogo(): void
@@ -395,6 +406,26 @@ final class FirmLogoTest extends WebTestCase
     private function jpeg(int $width = 2, int $height = 2): string
     {
         return $this->drawn(imagejpeg(...), $width, $height);
+    }
+
+    /**
+     * A flat image is too small and too regular to show damage: noise fills the
+     * whole file with scan data. Seeded, so every run gets the same image.
+     */
+    private function noisyJpeg(): string
+    {
+        mt_srand(4);
+        $image = imagecreatetruecolor(400, 400);
+        self::assertInstanceOf(\GdImage::class, $image);
+        foreach (range(0, 399) as $x) {
+            foreach (range(0, 399) as $y) {
+                imagesetpixel($image, $x, $y, mt_rand(0, 0xFFFFFF));
+            }
+        }
+        ob_start();
+        imagejpeg($image);
+
+        return (string) ob_get_clean();
     }
 
     /**
