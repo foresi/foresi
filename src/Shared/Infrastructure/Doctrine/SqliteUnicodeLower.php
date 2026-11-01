@@ -33,8 +33,10 @@ final class SqliteUnicodeLower implements Middleware
                 $native = $connection->getNativeConnection();
                 $lower = static fn (?string $value): ?string => null === $value ? null : mb_strtolower($value);
 
-                if ($native instanceof \PDO && 'sqlite' === $native->getAttribute(\PDO::ATTR_DRIVER_NAME)) {
-                    $native->sqliteCreateFunction('lower', $lower, 1);
+                // DBAL opens PDO connections with PDO::connect() on PHP 8.4 and later,
+                // which returns the driver subclass; PDO::sqliteCreateFunction() is deprecated.
+                if ($native instanceof \Pdo\Sqlite) {
+                    $native->createFunction('lower', $lower, 1);
                 } elseif ($native instanceof \SQLite3) {
                     $native->createFunction('lower', $lower, 1);
                 }

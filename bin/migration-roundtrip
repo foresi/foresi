@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Migration round trip: every reversible migration is applied, reverted and
+# applied again on the database named by DATABASE_URL, which is emptied first.
+#
+# A migration that cannot be reverted by design is listed in IRREVERSIBLE and
+# acts as a floor: the migrations after it go back down to it, the ones before
+# it are tested separately on a fresh database. Anything not listed there must
+# have a working down(). A listed migration must still throw
+# IrreversibleMigration, so the list cannot go stale.
+#
+# The tables are empty, so this proves the schema steps in both directions,
+# not the data conversions; those have their own tests in tests/Migration.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+IRREVERSIBLE=(
+    # Moves every key to a UUIDv7 and cannot give the old integer keys back.
+    Version20261101000001
+)
+
+console() { php bin/console --no-interaction --quiet "$@"; }
+qualified() { printf 'DoctrineMigrations\\%s' "$1"; }
+
+is_irreversible() {
+    local candidate
+    for candidate in "${IRREVERSIBLE[@]}"; do
+        [[ "$candidate" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+versions=()
+for file in migrations/Version*.php; do
+    versions+=("$(basename "$file" .php)")
+done
+# Version names sort by date, and the glob already expands in that order.
+
+for listed in "${IRREVERSIBLE[@]}"; do
+    grep -q 'IrreversibleMigration' "migrations/$listed.php" || {
+        echo "$listed is listed as irreversible but does not throw IrreversibleMigration." >&2
+        exit 1
+    }
+done
+for name in "${versions[@]}"; do
+    if ! is_irreversible "$name" && grep -q 'IrreversibleMigration' "migrations/$name.php"; then
+        echo "$name is irreversible: add it to IRREVERSIBLE in $0." >&2
+        exit 1
+    fi
+done
+
+reset_database() { console doctrine:schema:drop --full-database --force; }
+migrate() { echo "  migrate to $1"; console doctrine:migrations:migrate "$1"; }
+
+# A segment holds the versions between two floors. Going down stops at the
+# floor (or at the first migration), going up ends at the last version of the
+# segment.
+floor=first
+segment_end=""
+run_segment() {
+    [[ -n "$segment_end" ]] || return 0
+    echo "Segment up to $segment_end, down to $floor"
+    reset_database
+    migrate "$(qualified "$segment_end")"
+    # What the mapping still lacks at this version; a round trip must not change it.
+    before=$(php bin/console --no-interaction doctrine:schema:update --dump-sql)
+    if [[ "$floor" == first ]]; then migrate first; else migrate "$(qualified "$floor")"; fi
+    migrate "$(qualified "$segment_end")"
+    after=$(php bin/console --no-interaction doctrine:schema:update --dump-sql)
+    if [[ "$before" != "$after" ]]; then
+        echo "The schema differs after the round trip up to $segment_end." >&2
+        diff <(echo "$before") <(echo "$after") >&2 || true
+        exit 1
+    fi
+    if [[ "$segment_end" == "${versions[${#versions[@]} - 1]}" ]]; then
+        console doctrine:schema:validate
+    fi
+}
+
+for name in "${versions[@]}"; do
+    if is_irreversible "$name"; then
+        run_segment
+        floor="$name"
+        segment_end=""
+    else
+        segment_end="$name"
+    fi
+done
+run_segment
+
+echo "Round trip done: ${#versions[@]} migrations, ${#IRREVERSIBLE[@]} irreversible by design."

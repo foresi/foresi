@@ -1,9 +1,15 @@
 {
     // SPDX-License-Identifier: AGPL-3.0-only
+    //
+    // This is the fast run used on pull requests. With the default timeout of 10 seconds Infection
+    // skips every mutant whose covering tests take longer than that, which is most of them for code
+    // that many integration tests touch, so the score covers only part of the mutants. The weekly
+    // run (.github/workflows/mutation.yml, infection.full.json5) skips none. Keep the two files in
+    // step: they differ only in "timeout" and the log path.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"],
-        "excludes": ["Kernel.php", "Controller", "Infrastructure", "Application", "Country"]
+        "excludes": ["Kernel.php", "Controller", "Infrastructure", "Application"]
     },
     "phpUnit": {
         "configDir": "."
@@ -17,10 +23,28 @@
         "@default": true,
         // Column lengths in mapping attributes are verified by doctrine:schema:validate.
         "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*"],
-        // Equivalent mutant: a numeric string added to an int yields the same value.
-        "CastInt": {"ignore": ["App\\Tenancy\\Domain\\TenantId::generate"]},
-        // Equivalent mutant: both columns are always set together.
-        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check"]},
+        // Equivalent mutants: a numeric string added to an int yields the same value.
+        "CastInt": {"ignore": [
+            "App\\Tenancy\\Domain\\TenantId::generate",
+            "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
+            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate"
+        ]},
+        // Equivalent mutants: preg_replace() without the u flag always returns a string.
+        "CastString": {"ignore": [
+            "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
+            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize"
+        ]},
+        // Equivalent mutant: a seat that is not an array has no city, so it ends as no seat either way.
+        "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat"]},
+        // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again with the same outcome.
+        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany"]},
+        // Equivalent mutants: ids hold letters and digits only, so the XML escape flags change nothing, and the
+        // parser flags only back up the checks above them (no DTD is let through, errors are collected internally).
+        "BitwiseOr": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::envelope", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse"]},
+        // Equivalent mutants: a blank answer fails as invalid XML instead, a blank VAT id is rejected by VatId, with the same result.
+        "UnwrapTrim": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse", "App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::vatId"]},
+        // Equivalent mutant: the batch is only walked with foreach.
+        "UnwrapArrayValues": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany"]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
         "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]}
     }

@@ -5,8 +5,13 @@ on:
     branches: [main]
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
+
+# A new push to a pull request replaces the run still going for it. Runs on
+# main are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # SQLite leg. The test environment uses an in-memory database (.env.test),
@@ -15,11 +20,15 @@ jobs:
   quality:
     name: Quality gate (sqlite)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
@@ -32,7 +41,7 @@ jobs:
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ hashFiles('composer.lock') }}
@@ -45,6 +54,11 @@ jobs:
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
+
+      # Every reversible migration goes down and up again; see the script for
+      # the migrations that are irreversible by design.
+      - name: Migration round trip
+        run: bin/migration-roundtrip
 
       - name: Quality gate
         run: composer qa
@@ -79,6 +93,8 @@ jobs:
   postgres:
     name: Tests (postgres)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:17
@@ -96,10 +112,12 @@ jobs:
     env:
       DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app?serverVersion=17&charset=utf8
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
@@ -112,7 +130,7 @@ jobs:
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ hashFiles('composer.lock') }}
@@ -126,10 +144,52 @@ jobs:
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
 
+      # Every reversible migration goes down and up again; see the script for
+      # the migrations that are irreversible by design.
+      - name: Migration round trip
+        run: bin/migration-roundtrip
+
       # The tests build their own schema with the schema tool, which cannot
       # drop the foreign keys the migrations named, so start from an empty database.
       - name: Reset the database
         run: bin/console doctrine:schema:drop --full-database --force
+
+      - name: Tests
+        run: composer phpunit
+
+  # The next PHP release. composer.json allows it (>=8.4), so the test suite
+  # runs on it too, on the in-memory SQLite database of the test environment.
+  php85:
+    name: Tests (php 8.5, sqlite)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, intl, pdo_sqlite
+          tools: composer:v2
+          # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
+          ini-values: upload_max_filesize=64M, post_max_size=64M
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Tests
         run: composer phpunit
