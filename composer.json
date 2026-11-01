@@ -87,6 +87,11 @@
         "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
         "cs:fix": "php-cs-fixer fix --ansi",
         "rector": "rector process --dry-run --ansi",
+        "lint": [
+            "@php bin/console lint:twig templates",
+            "@php bin/console lint:yaml config translations --parse-tags",
+            "@php bin/console lint:container"
+        ],
         "phpstan": [
             "@php bin/console cache:warmup --env=dev --quiet",
             "phpstan analyse --memory-limit=1G --ansi"
@@ -97,6 +102,7 @@
         "qa": [
             "@cs:check",
             "@rector",
+            "@lint",
             "@phpstan",
             "@deptrac",
             "@phpunit"
