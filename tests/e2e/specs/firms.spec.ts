@@ -17,6 +17,13 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+async function createFirmFromRegister(page: Page): Promise<void> {
+  await page.goto('/settings/firms/new');
+  await page.locator('#lookup').fill('12345687');
+  await page.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
+  await expect(page.locator('#name')).toHaveValue('Example Company s.r.o.');
+}
+
 async function fillSeat(page: Page): Promise<void> {
   await page.locator('#street').fill('Example Street 1');
   await page.locator('#city').fill('Example City');
@@ -45,11 +52,7 @@ test.describe.serial('an owner manages firms', () => {
   });
 
   test('creates a firm from the register', async ({ page }) => {
-    await page.goto('/settings/firms/new');
-    await page.locator('#lookup').fill('12345687');
-    await page.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
-
-    await expect(page.locator('#name')).toHaveValue('Example Company s.r.o.');
+    await createFirmFromRegister(page);
     await expect(page.locator('#registrationNumber')).toHaveValue('12345687');
     await expect(page.locator('#vatId')).toHaveValue('CZ12345687');
     await page.locator('#registerEntry').fill('Spisová značka C 1234');
@@ -143,8 +146,15 @@ test.describe.serial('an owner manages firms', () => {
   });
 
   test('the list looks as approved @visual', async ({ page }) => {
+    // Baselines are generated with only the @visual tests, so the steps above may not have run.
     await page.goto('/settings/firms');
-    await expect(page).toHaveScreenshot('list.png');
+    if ((await page.locator('tbody tr').count()) === 0) {
+      await createFirmFromRegister(page);
+      await page.getByRole('button', { name: 'Uložit' }).click();
+      await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
+      await page.goto('/settings/firms');
+    }
+    await expect(page.locator('table')).toHaveScreenshot('list.png');
   });
 
   test('the form looks as approved @visual', async ({ page }) => {
