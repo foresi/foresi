@@ -10,7 +10,7 @@ This page says what the invoices of this release do and do not do. It is a state
 - Tax treatments per line: standard rate, reverse charge (with its supply code), exempt and not applicable. VAT is not rounded to whole crowns; the total can be rounded to a whole crown, as a setting of the firm.
 - Currency: Czech crowns only. Prices in another currency are refused.
 - Numbers: series per firm with date tokens and a counter that never repeats a number. A deleted invoice goes to the trash and keeps its number. See ADR 13.
-- Output: a PDF/A-3a with the ISDOC file attached, a QR Platba+F code, and the logo and stamp of the firm. See ADR 12.
+- Output: a PDF/A-3a with the ISDOC file embedded, a QR Platba+F code, and the logo and stamp of the firm. See ADR 12.
 
 ## ISDOC statement
 
@@ -18,9 +18,12 @@ Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own wri
 
 ## Limits of this release
 
-- The layout of the PDF is one fixed layout and not final.
+- The PDF has one layout, the panel; there is no choice of layout.
 - Text outside the bundled font (Inter) is refused: for example Chinese or Arabic names and texts cannot be issued.
-- An invoice has at most 100 lines.
+- An invoice has at most 100 lines, and no amount has more than twelve digits before the decimal point.
+- A number has at most 40 characters and no `*` or `%`, or its QR code could not be made. A series whose numbers could be longer cannot be saved.
+- The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
+- A document in the trash prints with a mark, without the QR code and without the ISDOC file.
 - Sending by e-mail, payments, reminders, recurring invoices and foreign tax regimes are not included.
 - The rounding rules, the reverse charge and the numbering are implemented as described in the ADRs; whether they are right for your situation is for your adviser to confirm.
 

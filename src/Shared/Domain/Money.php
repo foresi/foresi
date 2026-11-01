@@ -99,12 +99,17 @@ final readonly class Money
     }
 
     /**
-     * Rounds to a whole unit of the currency (a whole crown), HALF_UP: a tie goes away from zero.
+     * Rounds to a whole major unit of the currency, HALF_UP: a tie goes away from zero.
+     *
+     * @throws \OverflowException when the result does not fit
      */
     public function roundedToWholeUnit(): self
     {
         $unit = 10 ** $this->currency->minorUnits();
         $minor = $this->minor();
+        if (abs($minor) > \PHP_INT_MAX - $unit) {
+            throw new \OverflowException('Amount exceeds the supported range.');
+        }
         $units = intdiv(abs($minor) + intdiv($unit, 2), $unit);
 
         return self::ofMinor(($minor < 0 ? -1 : 1) * $units * $unit, $this->currency);

@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Application;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueProblem;
@@ -343,6 +344,34 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['typedNumber' => 'FA中1'])));
 
         self::assertContains('number', array_map(static fn (array $problem): string => $problem[0], $problems));
+    }
+
+    public function testAGeneratedNumberThatTheCountryCannotCarryIsRefusedAndTakesNoNumber(): void
+    {
+        $series = new Series($this->firm, 'Long', SeriesFormat::fromString(str_repeat('A', 37).'{NNNN}'), DocumentKind::Invoice);
+        $this->em->persist($series);
+        $this->em->flush();
+
+        $this->assertRefusedFor('invoice.problem.number_not_accepted', fn (): Invoice => $this->issue->issue($this->input(overrides: ['seriesId' => $series->id()])));
+    }
+
+    public function testADocumentHasAtMostAHundredLines(): void
+    {
+        $this->issue->issue($this->input(array_fill(0, Invoice::MAX_LINES, $this->line('1.00'))));
+
+        $this->assertRefusedFor('invoice.problem.too_many_lines', fn (): Invoice => $this->issue->issue($this->input(array_fill(0, Invoice::MAX_LINES + 1, $this->line('1.00')))));
+    }
+
+    public function testThePayableStopsAtWhatTheDocumentCanPrint(): void
+    {
+        $this->issue->issue($this->input([$this->line('826446280000.00')]));
+
+        $this->assertRefusedFor('invoice.problem.amount_out_of_range', fn (): Invoice => $this->issue->issue($this->input([$this->line('999999999999.99')])));
+    }
+
+    public function testAnAmountNearTheLimitOfTheColumnIsRefusedNotAnError(): void
+    {
+        $this->assertRefusedFor('invoice.problem.amount_out_of_range', fn (): Invoice => $this->issue->issue($this->input([$this->line('92233720368547758.07', treatment: TaxTreatment::Exempt, kind: null)])));
     }
 
     public function testAnIdentifiedPersonCannotIssueYet(): void
@@ -701,10 +730,10 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(IssueRules::class),
             $container->get(\App\Invoicing\Application\CustomerCopies::class),
             $container->get(\App\Invoicing\Application\LinePricing::class),
-            $container->get(\App\Invoicing\Application\InvoicingCountries::class),
+            $container->get(InvoicingCountries::class),
             $container->get(FirmInvoicingSettings::class),
             $failing,
-            new NumberAllocator($this->counter, $failing),
+            new NumberAllocator($this->counter, $failing, self::getContainer()->get(InvoicingCountries::class)),
             $container->get(\App\Party\Application\TransactionalWork::class),
             $container->get(\App\Invoicing\Application\ConflictRetry::class),
             $container->get(\App\Audit\Application\AuditActor::class),

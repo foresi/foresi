@@ -81,6 +81,14 @@ final readonly class SeriesFormat
     }
 
     /**
+     * The longest number this series can give, whatever the date and the counter.
+     */
+    public function longestNumber(): string
+    {
+        return $this->render(new \DateTimeImmutable('2000-12-31'), self::MAX_SEQUENCE);
+    }
+
+    /**
      * The sequence of a number of this series on that date. Numbers are the same
      * when their NumberKey is, so case and punctuation do not matter. Null when the
      * number does not have this form, or holds a sequence the counter cannot.

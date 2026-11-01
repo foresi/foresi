@@ -27,6 +27,7 @@ use App\Invoicing\Application\LineTextDates;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
+use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
@@ -178,6 +179,10 @@ final class InvoiceController extends AbstractController
             $rendered = $this->pdf->render($document);
         } catch (UnsupportedCountry) {
             $this->addFlash('error', $this->translator->trans('invoice.pdf.unsupported_country', ['number' => $document->number]));
+
+            return $this->redirectToRoute('app_invoices');
+        } catch (UndrawableDocument) {
+            $this->addFlash('error', $this->translator->trans('invoice.pdf.undrawable', ['number' => $document->number]));
 
             return $this->redirectToRoute('app_invoices');
         }

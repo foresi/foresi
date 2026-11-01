@@ -22,7 +22,6 @@ final class PercentTest extends TestCase
         self::assertSame('21.00', $percent->decimal());
         self::assertSame('0.21', $percent->factorOf());
         self::assertSame('1.21', $percent->inclusiveFactor());
-        self::assertSame('0.79', $percent->remainingFactor());
     }
 
     public function testReadsTwoDecimals(): void
@@ -33,7 +32,6 @@ final class PercentTest extends TestCase
         self::assertSame('12.50', $percent->decimal());
         self::assertSame('0.125', $percent->factorOf());
         self::assertSame('1.125', $percent->inclusiveFactor());
-        self::assertSame('0.875', $percent->remainingFactor());
         self::assertSame('0.0575', Percent::fromString('5.75')->factorOf());
     }
 
@@ -42,8 +40,6 @@ final class PercentTest extends TestCase
         self::assertSame('0', Percent::fromString('0')->factorOf());
         self::assertSame('0.00', Percent::fromString('0.00')->decimal());
         self::assertSame('1', Percent::fromString('100')->factorOf());
-        self::assertSame('0', Percent::fromString('100')->remainingFactor());
-        self::assertSame('1', Percent::fromString('0')->remainingFactor());
         self::assertSame('2', Percent::fromString('100')->inclusiveFactor());
     }
 

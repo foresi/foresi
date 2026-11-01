@@ -65,14 +65,6 @@ final readonly class Percent
         return $this->factor(10000 + $this->basisPoints);
     }
 
-    /**
-     * What is left after taking this percentage off: 10 is "0.9".
-     */
-    public function remainingFactor(): string
-    {
-        return $this->factor(10000 - $this->basisPoints);
-    }
-
     public function equals(self $other): bool
     {
         return $this->basisPoints === $other->basisPoints;

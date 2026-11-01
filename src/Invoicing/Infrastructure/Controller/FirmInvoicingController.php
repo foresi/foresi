@@ -10,9 +10,11 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Application\UnknownSeries;
+use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\InvalidSeriesFormat;
@@ -57,6 +59,7 @@ final class FirmInvoicingController extends AbstractController
         private readonly OwnerCheck $owner,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly InvoicingCountries $countries,
     ) {
     }
 
@@ -189,6 +192,18 @@ final class FirmInvoicingController extends AbstractController
     }
 
     /**
+     * Whether the country of the firm takes the longest number the format can give.
+     */
+    private function carries(LegalEntity $firm, SeriesFormat $format): bool
+    {
+        try {
+            return $this->countries->for($firm->address()->countryCode)->acceptsNumber($format->longestNumber());
+        } catch (UnsupportedCountry) {
+            return true;
+        }
+    }
+
+    /**
      * The format to store, or null with the error set. A locked format stays, and
      * a browser does not send its disabled field at all.
      *
@@ -211,6 +226,12 @@ final class FirmInvoicingController extends AbstractController
             $format = SeriesFormat::fromString($values['format']);
         } catch (InvalidSeriesFormat) {
             $errors['format'] = ['series.error.format'];
+
+            return null;
+        }
+
+        if (!$this->carries($firm, $format)) {
+            $errors['format'] = ['series.error.format_too_long'];
 
             return null;
         }

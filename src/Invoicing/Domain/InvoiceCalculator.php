@@ -14,10 +14,10 @@ use App\Shared\Domain\Money;
 /**
  * Prices a line and adds a document up, in exact money.
  *
- * VAT is not rounded to crowns (since 1 April 2019): from a net price it is the net times the
- * rate, rounded to the haler; from a gross price the net is the gross divided by 1 plus the rate,
- * rounded to the haler, and the VAT is what is left (VAT Act §37). The rounding of the total
- * (§36(5)) is a CZK-only amount of its own, outside every base and VAT.
+ * VAT is rounded to the minor unit only: from a net price it is the net times the rate; from a
+ * gross price the net is the gross divided by 1 plus the rate, and the VAT is what is left. The
+ * rounding of the total is an amount of its own, outside every base and VAT, where the country
+ * of the document has one.
  */
 final readonly class InvoiceCalculator
 {
@@ -53,10 +53,11 @@ final readonly class InvoiceCalculator
 
     /**
      * @param list<LineValues> $lines
+     * @param bool             $homeRounds whether the country rounds a total in its home currency
      *
      * @throws \App\Shared\Domain\CurrencyMismatch when the lines are priced in more than one currency
      */
-    public function totals(array $lines, VatRegime $regime, TotalRounding $rounding, Currency $home): DocumentTotals
+    public function totals(array $lines, VatRegime $regime, TotalRounding $rounding, Currency $home, bool $homeRounds): DocumentTotals
     {
         $currency = [] === $lines ? $home : $lines[0]->price->currency();
         $zero = Money::ofMinor(0, $currency);
@@ -77,8 +78,8 @@ final readonly class InvoiceCalculator
             $gross = $gross->plus($summary->gross);
         }
 
-        // Only a crown amount in the home currency is rounded to a whole crown.
-        $roundsToWhole = TotalRounding::WholeUnit === $rounding && Currency::CZK === $currency && $home === $currency;
+        // A total is rounded only where the country does so, and only in its home currency.
+        $roundsToWhole = TotalRounding::WholeUnit === $rounding && $homeRounds && $home === $currency;
         $difference = $roundsToWhole ? $gross->roundedToWholeUnit()->minus($gross) : $zero;
 
         return new DocumentTotals($summaries, $net, $vat, $gross, $difference, $gross->plus($difference));

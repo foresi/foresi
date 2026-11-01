@@ -11,7 +11,7 @@ Planned as 0.5.0: the first release with invoices.
 ### Upgrading
 
 - Run `bin/console doctrine:migrations:migrate`. The new tables hold series, number counters, invoices, their lines and the numbers an edit gave up.
-- Install the `zip` PHP extension (`ext-zip`), which the bulk download needs, and run `composer install` to get the new PDF library, `tecnickcom/tc-lib-pdf` (LGPL-3.0-or-later). The PDF fonts (Inter, SIL Open Font License) are part of the repository.
+- Install the PHP extensions `gd` (the QR code and images), `dom` (the ISDOC file) and `zip` (the bulk download), which are now required, and run `composer install` to get the new PDF library, `tecnickcom/tc-lib-pdf` (LGPL-3.0-or-later). The PDF fonts (Inter, SIL Open Font License) are part of the repository.
 - Images of a firm are kept in the `firm-images` directory of the application's share directory (`var/share/<env>/firm-images`), set by the new parameter `app.firm_image_dir`. They are outside the web root and outside the database, so include the directory in backups.
 - SQLite must be 3.35 or newer.
 - The tests of the PDF and of the ISDOC file use veraPDF, Poppler and the ISDOC schema when they are installed (see CONTRIBUTING.md); CI requires them.
@@ -20,8 +20,8 @@ Planned as 0.5.0: the first release with invoices.
 
 - Invoices. An invoice is issued by one firm to one customer, with lines, VAT per rate, the reverse charge with its supply code, a form without VAT for a firm that is not a VAT payer, and a total rounded to a whole crown if the firm chooses so. The amounts are calculated when the invoice is saved and stored; the screen, the PDF and the ISDOC file all show what is stored. See [docs/adr/0014-invoice-amounts-rounding-and-concurrent-edits.md](docs/adr/0014-invoice-amounts-rounding-and-concurrent-edits.md). The tax rules are subject to professional tax and legal review.
 - Two people editing the same invoice cannot overwrite each other: a save from a form opened before another save is refused with a message, and every change takes a lock on the invoice, on SQLite and on PostgreSQL.
-- PDF of an invoice, conforming to PDF/A-3a, with the ISDOC 6.0.2 file attached, a QR Platba+F code and the firm's logo, stamp and signature. Every invoice is drawn with one fixed layout. The layout is not final and a choice of layouts is not part of this release. See [docs/adr/0012-invoice-pdf-and-isdoc.md](docs/adr/0012-invoice-pdf-and-isdoc.md).
-- A download of the PDFs of a period for the accountant, each with its ISDOC file, in one ZIP. If a document cannot be drawn there is no ZIP, and the form names the document.
+- PDF of an invoice, conforming to PDF/A-3a, with the ISDOC 6.0.2 file attached, a QR Platba+F code and the firm's logo, stamp and signature. Every invoice is drawn with one layout, the panel. See [docs/adr/0012-invoice-pdf-and-isdoc.md](docs/adr/0012-invoice-pdf-and-isdoc.md).
+- A download of the PDFs of a period for the accountant, each with its ISDOC file embedded, in one ZIP. If a document cannot be drawn there is no ZIP, and the form names the document.
 - [docs/invoicing.md](docs/invoicing.md): what the invoices support in this release, the ISDOC producer statement and the limits.
 
 - The invoice list with the tabs All, Overdue and Trash, search, a firm filter and row actions. A deletion asks for a reason, the trash shows who deleted a document, when and why, and each invoice has a history of who changed what, its lines included.

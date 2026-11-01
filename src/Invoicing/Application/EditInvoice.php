@@ -105,6 +105,6 @@ final readonly class EditInvoice
                 $this->store->removeLine($line);
             }
         }
-        $invoice->assignTotals($this->pricing->totals($lines, $regime, $invoice->rounding(), $invoice->currency()));
+        $invoice->assignTotals($this->pricing->totals($lines, $regime, $invoice->rounding(), $country));
     }
 }

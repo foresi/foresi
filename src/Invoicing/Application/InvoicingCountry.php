@@ -24,6 +24,11 @@ interface InvoicingCountry
 
     public function homeCurrency(): Currency;
 
+    /**
+     * Whether a total in the home currency may be rounded to a whole unit.
+     */
+    public function roundsTotalsToWholeUnits(): bool;
+
     public function timezone(): \DateTimeZone;
 
     /**

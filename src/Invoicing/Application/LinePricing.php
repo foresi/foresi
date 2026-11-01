@@ -17,7 +17,6 @@ use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
-use App\Shared\Domain\Currency;
 
 /**
  * Turns typed lines into figures, the one way every path does it, the recount of
@@ -77,9 +76,9 @@ final readonly class LinePricing
      *
      * @throws \OverflowException when an amount does not fit
      */
-    public function totals(array $lines, VatRegime $regime, TotalRounding $rounding, Currency $home): DocumentTotals
+    public function totals(array $lines, VatRegime $regime, TotalRounding $rounding, InvoicingCountry $country): DocumentTotals
     {
-        return $this->calculator->totals(array_map(static fn (PricedLine $line): LineValues => $line->values, $lines), $regime, $rounding, $home);
+        return $this->calculator->totals(array_map(static fn (PricedLine $line): LineValues => $line->values, $lines), $regime, $rounding, $country->homeCurrency(), $country->roundsTotalsToWholeUnits());
     }
 
     private function rate(LineInput $line, InvoicingCountry $country, \DateTimeImmutable $taxPoint): ?Percent

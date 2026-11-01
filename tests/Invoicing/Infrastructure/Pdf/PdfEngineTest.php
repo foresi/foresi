@@ -12,6 +12,8 @@ use App\Invoicing\Infrastructure\Pdf\EmbeddedFile;
 use App\Invoicing\Infrastructure\Pdf\PdfEngine;
 use App\Invoicing\Infrastructure\Pdf\QrFigure;
 use App\Tests\Support\VeraPdf;
+use Com\Tecnick\Pdf\PdfConformance;
+use Com\Tecnick\Pdf\Tcpdf;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,6 +55,25 @@ final class PdfEngineTest extends TestCase
 
         self::assertStringStartsWith('%PDF-', $pdf);
         VeraPdf::assertConforms($pdf, '3a');
+    }
+
+    /**
+     * The negative control of the check every other test leans on: a document valid
+     * for the lower level of PDF/A, without the tags of level a, must fail.
+     */
+    public function testTheConformanceCheckTellsTheLevelsApart(): void
+    {
+        $directory = realpath(__DIR__.'/../../../../resources/pdf-fonts');
+        self::assertIsString($directory);
+        $library = \dirname((string) new \ReflectionClass(Tcpdf::class)->getFileName()).'/include';
+        $pdf = new Tcpdf(unit: 'mm', isunicode: true, subsetfont: true, compress: true, mode: PdfConformance::Pdfa3b, fileOptions: ['allowedHosts' => [], 'allowedPaths' => [$directory, $library]]);
+        $font = $pdf->font->insert($pdf->pon, 'intertnum', '', 9.0, ifile: $directory.'/intertnum.json');
+        $pdf->addPage();
+        $pdf->page->addContent($font['out'].$pdf->getTextCell('Untagged', 15, 15, 100));
+        $untagged = $pdf->getOutPDFString();
+
+        VeraPdf::assertConforms($untagged, '3b');
+        VeraPdf::assertRefuses($untagged, '3a');
     }
 
     public function testTheEmbeddedFileIsListedAsTheStandardRequires(): void

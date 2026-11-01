@@ -14,6 +14,7 @@ use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RenderedPdf;
+use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -451,6 +452,48 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertMatchesRegularExpression('/\d 999 999,\d\d CZK|10 000 000,00 CZK/', $this->textOf($document));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function longIdentifiers(): iterable
+    {
+        yield 'digits' => [str_repeat('1234567890', 4), str_repeat('9', 20)];
+        yield 'letters' => ['FA-'.str_repeat('Š', 20), str_repeat('OBJ-', 8)];
+    }
+
+    #[DataProvider('longIdentifiers')]
+    public function testANumberAndAnOrderNumberStepDownNotWrap(string $number, string $order): void
+    {
+        $text = $this->textOf($this->issued([$this->line()], ['typedNumber' => $number, 'orderNumber' => $order]));
+
+        self::assertStringContainsString($number, $text);
+        self::assertStringContainsString($order, $text);
+    }
+
+    public function testACashDocumentStepsDownToo(): void
+    {
+        $number = str_repeat('1234567890', 4);
+
+        self::assertStringContainsString($number, $this->textOf($this->issued([$this->line()], ['typedNumber' => $number, 'paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null])));
+    }
+
+    public function testATableThatCannotFitFailsLoudly(): void
+    {
+        $document = $this->issued([new LineInput('Work', Quantity::fromString('1'), str_repeat('m', 32), Money::of('123456789012.34', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
+
+        $this->expectException(UndrawableDocument::class);
+        $this->render($document);
+    }
+
+    public function testTheFiguresOfTheFontAreTabular(): void
+    {
+        foreach (['intertnum', 'intertnumb'] as $face) {
+            /** @var array{cw: array<int, int>} $font */
+            $font = json_decode((string) file_get_contents(self::getContainer()->getParameter('kernel.project_dir').'/resources/pdf-fonts/'.$face.'.json'), true, flags: \JSON_THROW_ON_ERROR);
+            self::assertCount(1, array_unique(array_map(static fn (int $digit): int => $font['cw'][48 + $digit], range(0, 9))));
+        }
+    }
+
     public function testAPageFooterNamesTheNumberAndThePage(): void
     {
         $lines = [];
@@ -477,6 +520,10 @@ final class InvoicePdfTest extends InvoiceTestCase
         $rendered = $this->render($this->of($id));
 
         self::assertStringContainsString('V KOŠI', PdfTools::text($rendered->bytes));
+        self::assertStringNotContainsString('/EmbeddedFiles', $rendered->bytes);
+        self::assertStringNotContainsString('QR Platba+F', PdfTools::text($rendered->bytes));
+        self::assertStringNotContainsString('/Figure', $rendered->bytes);
+        self::assertStringEndsNotWith('-isdoc.pdf', $rendered->fileName);
         VeraPdf::assertConforms($rendered->bytes, '3a');
     }
 
@@ -519,19 +566,6 @@ final class InvoicePdfTest extends InvoiceTestCase
         }
         self::assertSame(1, PdfTools::pages($rendered->bytes));
         VeraPdf::assertConforms($rendered->bytes, '3a');
-    }
-
-    public function testTheCodeStaysOnItsPlateBelowATrashedMark(): void
-    {
-        $id = $this->issue->issue($this->input())->id();
-        $this->trash->trash($id, 'Wrong customer');
-        $page = imagecreatefromstring(PdfTools::firstPagePng($this->render($this->of($id))->bytes));
-        self::assertNotFalse($page);
-
-        // The mark moves the whole body down by its height, the plate and the code with it.
-        $shifted = imagecrop($page, ['x' => 0, 'y' => 60, 'width' => imagesx($page), 'height' => imagesy($page) - 60]);
-        self::assertNotFalse($shifted);
-        self::assertGreaterThan(300, $this->qrBox($shifted)[2]);
     }
 
     public function testTheQrIsAtLeast30mm(): void

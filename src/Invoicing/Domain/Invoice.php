@@ -44,6 +44,9 @@ class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
     public const int MAX_NUMBER_LENGTH = 80;
+    public const int MAX_LINES = 100;
+    /** Twelve digits before the decimal point, which is what a printed document has room for. */
+    public const int MAX_AMOUNT_MINOR = 99_999_999_999_999;
     public const int MAX_ORDER_NUMBER_LENGTH = 64;
     public const int MAX_CONSTANT_SYMBOL_LENGTH = 10;
     public const int MAX_REASON_LENGTH = 500;

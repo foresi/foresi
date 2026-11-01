@@ -22,6 +22,25 @@ final class VeraPdf
 {
     public static function assertConforms(string $pdf, string $flavour): void
     {
+        [$exit, $output] = self::run($pdf, $flavour);
+
+        Assert::assertSame(0, $exit, "veraPDF rejected the document as PDF/A-$flavour:\n".$output);
+        Assert::assertStringStartsWith('PASS', $output);
+    }
+
+    public static function assertRefuses(string $pdf, string $flavour): void
+    {
+        [$exit, $output] = self::run($pdf, $flavour);
+
+        Assert::assertNotSame(0, $exit, "veraPDF accepted the document as PDF/A-$flavour.");
+        Assert::assertStringStartsWith('FAIL', $output);
+    }
+
+    /**
+     * @return array{int, string}
+     */
+    private static function run(string $pdf, string $flavour): array
+    {
         $binary = self::binary();
         if (null === $binary) {
             if ('1' === getenv('REQUIRE_VERAPDF')) {
@@ -52,8 +71,7 @@ final class VeraPdf
             @unlink($base);
         }
 
-        Assert::assertSame(0, $exit, "veraPDF rejected the document as PDF/A-$flavour:\n".$output);
-        Assert::assertStringStartsWith('PASS', $output);
+        return [$exit, $output];
     }
 
     private static function binary(): ?string

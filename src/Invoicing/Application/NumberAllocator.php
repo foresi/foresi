@@ -25,7 +25,7 @@ final readonly class NumberAllocator
     /** How many numbers a hand-typed or imported number may stand in the way of. */
     private const int ATTEMPTS = 50;
 
-    public function __construct(private NumberCounter $counter, private InvoiceStore $store)
+    public function __construct(private NumberCounter $counter, private InvoiceStore $store, private InvoicingCountries $countries)
     {
     }
 
@@ -49,12 +49,25 @@ final readonly class NumberAllocator
     {
         for ($attempt = 0; $attempt < self::ATTEMPTS; ++$attempt) {
             $number = $this->counter->next($series, $issueDate);
+            // A series may be older than the rule, or stored by something else than the form.
+            if (!$this->accepted($number, $firm)) {
+                throw new IssueRefused([new IssueProblem('number', 'invoice.problem.number_not_accepted')]);
+            }
             if (!$this->store->numberTaken($firm, NumberKey::of($number), null)) {
                 return $number;
             }
         }
 
         throw new IssueRefused([new IssueProblem('number', 'invoice.problem.numbers_exhausted')]);
+    }
+
+    private function accepted(string $number, LegalEntity $firm): bool
+    {
+        try {
+            return $this->countries->for($firm->address()->countryCode)->acceptsNumber($number);
+        } catch (UnsupportedCountry) {
+            return true;
+        }
     }
 
     private function typed(Series $series, LegalEntity $firm, \DateTimeImmutable $issueDate, string $number, ?Invoice $except): string

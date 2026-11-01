@@ -93,7 +93,7 @@ final readonly class IssueInvoice
         foreach ($lines as $position => $line) {
             $this->store->addLine(new InvoiceLine($invoice, $position, $line->input->text, $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts));
         }
-        $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $home));
+        $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $country));
 
         return $invoice;
     }

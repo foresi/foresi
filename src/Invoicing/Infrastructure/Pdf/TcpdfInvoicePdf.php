@@ -13,6 +13,7 @@ use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\RenderedPdf;
+use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\NumberKey;
@@ -55,11 +56,19 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     private const array RECAP_COLUMNS = ['base' => 21.9, 'vat' => 21.9, 'total' => 23.0];
     /** The items table shrinks its type before a value would break. */
     private const array TABLE_SIZES = [8.0, 7.5, 7.0, 6.5, 6.0];
+    private const float SMALLEST_TABLE_SIZE = 6.0;
+    private const float LAST_RESORT_SHARE = 0.6;
     private const float TABLE_WIDTH_MM = 180.0;
     private const float RECAP_WIDTH_MM = 115.2;
     private const float CELL_PADDING_MM = 3.0;
     private const float LEAST_TEXT_MM = 40.0;
     private const float LEAST_LABEL_MM = 36.0;
+    /** The document and order numbers shrink to one line. */
+    private const array NUMBER_SIZES = [20.0, 17.0, 14.0, 12.0, 10.0, 8.5, 7.5, 6.5];
+    private const array ORDER_SIZES = [8.5, 7.5, 6.5, 5.5];
+    private const float NUMBER_WIDTH_QR_MM = 96.0;
+    private const float NUMBER_WIDTH_MM = 88.0;
+    private const float ORDER_WIDTH_MM = 58.0;
 
     public function __construct(
         private Environment $twig,
@@ -77,8 +86,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     public function render(IssuedDocument $document): RenderedPdf
     {
         $country = $this->countries->for($document->issuer->address->countryCode);
-        $file = $country->electronicFile($document);
-        $payload = $country->paymentCode($document);
+        // A document in the trash is no longer one to pay or to import.
+        $file = $document->trashed ? null : $country->electronicFile($document);
+        $payload = $document->trashed ? null : $country->paymentCode($document);
 
         return $this->locales->runWithLocale($document->language->value, function () use ($document, $country, $file, $payload): RenderedPdf {
             $view = $this->view($document, $country, null !== $payload);
@@ -115,12 +125,15 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         $recap = array_map($this->recapRow(...), $document->summaries);
         $totals = ['base' => $this->amount($document->net), 'vat' => $this->hasCharge($document) ? $this->amount($document->vat) : '', 'total' => $this->amount($document->gross)];
         [$columns, $size] = $this->columns($payer, $hasDiscount, $lines, $rounding);
-        [$recapColumns] = $this->fitted(self::RECAP_COLUMNS, [...$recap, $totals], 'label', self::RECAP_WIDTH_MM, self::LEAST_LABEL_MM, $size);
+        [$recapColumns, $recapSize] = $payer ? $this->fitted(self::RECAP_COLUMNS, [...$recap, $totals], 'label', self::RECAP_WIDTH_MM, self::LEAST_LABEL_MM, $size) : [[], $size];
 
         return [
             'trashed' => $document->trashed,
             'columns' => $columns,
             'tableSize' => $size,
+            'recapSize' => $recapSize,
+            'numberSize' => $this->stepped($document->number, $hasQr ? self::NUMBER_WIDTH_QR_MM : self::NUMBER_WIDTH_MM, self::NUMBER_SIZES),
+            'orderSize' => $this->stepped($document->orderNumber, self::ORDER_WIDTH_MM, self::ORDER_SIZES),
             'recapColumns' => $recapColumns,
             'payer' => $payer,
             'title' => $this->trans($payer ? 'invoice.pdf.title_tax' : 'invoice.pdf.title'),
@@ -198,34 +211,54 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     /**
      * Gives every column room for its longest value, and the free column the rest,
      * at the largest type that leaves the free column usable. A value then has no
-     * reason to break: only the free column wraps, and a unit at its spaces.
+     * reason to break: only the free column wraps, and a unit at its spaces. Sizes
+     * start at the given one.
      *
      * @param array<string, float>        $least
      * @param list<array<string, string>> $rows
      *
      * @return array{array<string, string>, float}
+     *
+     * @throws UndrawableDocument when no size leaves the free column usable
      */
     private function fitted(array $least, array $rows, string $free, float $width, float $leastFree, ?float $size = null): array
     {
-        $sizes = null === $size ? self::TABLE_SIZES : [$size];
-        $widths = $least;
-        $last = end($sizes);
-        foreach ($sizes as $candidate) {
-            $last = $candidate;
+        foreach (self::TABLE_SIZES as $candidate) {
+            if (null !== $size && $candidate > $size) {
+                continue;
+            }
             $widths = $least;
             foreach (array_keys($least) as $column) {
                 foreach ($rows as $row) {
                     $widths[$column] = max($widths[$column], $this->font->longestWord($row[$column] ?? '', $candidate) + self::CELL_PADDING_MM);
                 }
             }
-            if ($width - array_sum($widths) >= $leastFree) {
-                break;
+            // The smallest type may narrow the free column further: it is the last step before refusing.
+            if ($width - array_sum($widths) >= $leastFree * (self::SMALLEST_TABLE_SIZE === $candidate ? self::LAST_RESORT_SHARE : 1.0)) {
+                $columns = array_map(static fn (float $mm): string => \sprintf('%.2F%%', 100 * $mm / $width), $widths);
+                $columns[$free] = \sprintf('%.2F%%', 100 * ($width - array_sum($widths)) / $width);
+
+                return [$columns, $candidate];
             }
         }
-        $columns = array_map(static fn (float $mm): string => \sprintf('%.2F%%', 100 * $mm / $width), $widths);
-        $columns[$free] = \sprintf('%.2F%%', 100 * ($width - array_sum($widths)) / $width);
 
-        return [$columns, $last];
+        throw new UndrawableDocument('The values of the document do not fit its table.');
+    }
+
+    /**
+     * The largest size that keeps a text on one line, or the smallest there is.
+     *
+     * @param non-empty-list<float> $sizes from the largest
+     */
+    private function stepped(string $text, float $width, array $sizes): float
+    {
+        foreach ($sizes as $size) {
+            if ($this->font->width($text, $size) <= $width) {
+                return $size;
+            }
+        }
+
+        return $sizes[array_key_last($sizes)];
     }
 
     /**

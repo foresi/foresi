@@ -29,7 +29,7 @@
                 {% else %}<p style="font-family:interdisplay;font-size:16pt;color:#2f4a3a;margin:0;">{{ doc.issuer.name }}</p>{% endif %}
                 <table cellpadding="0"><tr><td height="9mm"></td></tr></table>
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
-                <p style="font-family:interdisplay;font-size:20pt;color:#1e2320;margin:0;">{{ doc.number }}</p>
+                <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
                 <table cellpadding="0"><tr><td height="9mm"></td></tr></table>
                 {{ t.party(doc.customer, 'invoice.pdf.customer'|trans, doc, s, false) }}
                 <table cellpadding="0"><tr><td height="6mm"></td></tr></table>
@@ -80,7 +80,7 @@
             </td>
             <td width="50%" align="right">
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
-                <p style="font-family:interdisplay;font-size:20pt;color:#1e2320;margin:0;">{{ doc.number }}</p>
+                <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
             </td>
         </tr>
     </table>
@@ -118,7 +118,7 @@
         <tr>
             <td width="33%"><span style="{{ s.label }}">{{ 'invoice.pdf.issue_date'|trans }}</span><br><span style="{{ s.text }}">{{ doc.issueDate }}</span></td>
             <td width="34%"><span style="{{ s.label }}">{{ doc.taxPointLabel }}</span><br><span style="{{ s.text }}">{{ doc.taxPointDate }}</span></td>
-            <td width="33%">{% if doc.orderNumber %}<span style="{{ s.label }}">{{ 'invoice.pdf.order_number'|trans }}</span><br><span style="{{ s.text }}">{{ doc.orderNumber }}</span>{% endif %}</td>
+            <td width="33%">{% if doc.orderNumber %}<span style="{{ s.label }}">{{ 'invoice.pdf.order_number'|trans }}</span><br><span style="{{ s.text }}font-size:{{ doc.orderSize }}pt;">{{ doc.orderNumber }}</span>{% endif %}</td>
         </tr>
     </table>
     <table cellpadding="0"><tr><td height="5mm"></td></tr></table>
@@ -147,7 +147,7 @@
             <td width="64%">
                 {{ t.recap(doc, {
                     padding: '3',
-                    table: 'font-family:intertnum;font-size:' ~ doc.tableSize ~ 'pt;color:#1e2320;',
+                    table: 'font-family:intertnum;font-size:' ~ doc.recapSize ~ 'pt;color:#1e2320;',
                     th: 'font-weight:normal;color:#5e625c;',
                     td: '',
                     sum: 'font-weight:bold;background-color:#f4f2ec;',

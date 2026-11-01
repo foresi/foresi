@@ -495,6 +495,7 @@ series:
   error:
     format: "Use only letters, digits, . _ / - and the tokens '{YYYY} {YY} {MM} {DD}' with one '{NNNN}'."
     format_locked: This series has numbers, so its format cannot change.
+    format_too_long: 'Numbers of this series would be longer than a document can carry: 40 characters at most.'
     format_taken: 'Numbers would clash with the series {name}.'
     name_taken: Another series of this firm has this name.
     next_number: Enter a whole number from 1 to 2147483647.
@@ -514,6 +515,7 @@ invoice:
     backwards: The end of the period cannot come before its start.
     too_long: 'A period has at most {days} days.'
   pdf:
+    undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
     footer: '{title} · Page {page}/{pages}'
     unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
     trashed: IN THE TRASH – NOT A VALID DOCUMENT

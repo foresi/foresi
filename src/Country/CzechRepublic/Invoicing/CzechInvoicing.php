@@ -36,6 +36,14 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return Currency::CZK;
     }
 
+    /**
+     * VAT Act §36(5): a total in crowns may be rounded to a whole crown, outside the base and the tax.
+     */
+    public function roundsTotalsToWholeUnits(): bool
+    {
+        return true;
+    }
+
     public function timezone(): \DateTimeZone
     {
         return new \DateTimeZone('Europe/Prague');

@@ -310,7 +310,7 @@ final class InvoiceCalculatorTest extends TestCase
      */
     private function totals(array $lines, VatRegime $regime = VatRegime::Payer, TotalRounding $rounding = TotalRounding::WholeUnit): DocumentTotals
     {
-        return $this->calculator()->totals($lines, $regime, $rounding, Currency::CZK);
+        return $this->calculator()->totals($lines, $regime, $rounding, Currency::CZK, true);
     }
 
     private function line(string $price, string $quantity, string $type, string $rate, string $discount = '0'): LineValues
@@ -349,7 +349,7 @@ final class InvoiceCalculatorTest extends TestCase
             $line(TaxTreatment::ReverseCharge, null),
             $line(TaxTreatment::Standard, '12'),
             $line(TaxTreatment::Standard, '21'),
-        ], VatRegime::Payer, TotalRounding::None, Currency::CZK);
+        ], VatRegime::Payer, TotalRounding::None, Currency::CZK, true);
 
         self::assertSame(
             [['standard', '21.00'], ['standard', '12.00'], ['reverse_charge', null], ['exempt', null], ['not_applicable', null]],

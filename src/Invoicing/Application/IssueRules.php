@@ -27,6 +27,7 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Money;
 
 /**
  * What a document must be to be saved, on every path. It reads and never writes,
@@ -356,6 +357,9 @@ final readonly class IssueRules
         if ([] === $input->lines) {
             return [new IssueProblem('lines', 'invoice.problem.no_lines')];
         }
+        if (\count($input->lines) > Invoice::MAX_LINES) {
+            return [new IssueProblem('lines', 'invoice.problem.too_many_lines')];
+        }
         $problems = [];
         foreach ($input->lines as $index => $line) {
             $field = 'lines.'.$index;
@@ -450,8 +454,17 @@ final readonly class IssueRules
         }
         try {
             $lines = $this->pricing->priced($input->lines, $regime, $country, $input->taxPointDate);
-            $totals = $this->pricing->totals($lines, $regime, $rounding, $country->homeCurrency());
+            $totals = $this->pricing->totals($lines, $regime, $rounding, $country);
         } catch (\OverflowException) {
+            return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
+        }
+        $amounts = [$totals->net, $totals->gross, $totals->payable];
+        foreach ($lines as $line) {
+            $amounts[] = $line->amounts->unitNet;
+            $amounts[] = $line->amounts->net;
+            $amounts[] = $line->amounts->gross;
+        }
+        if (array_any($amounts, static fn (Money $amount): bool => abs($amount->minor()) > Invoice::MAX_AMOUNT_MINOR)) {
             return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
         }
 

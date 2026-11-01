@@ -57,7 +57,12 @@ final class PdfFont implements PrintableText
         return $widest;
     }
 
-    private function width(string $word, float $size): float
+    /**
+     * @param float $size in points
+     *
+     * @return float millimetres
+     */
+    public function width(string $word, float $size): float
     {
         $widths = $this->widths();
         $sum = 0;

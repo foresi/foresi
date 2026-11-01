@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Form;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Domain\DocumentParty;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -37,7 +38,7 @@ final readonly class InvoiceFormReader
     public const int MAX_TEXT = 2000;
 
     /** With eight fields a line this stays well under the 1000 of PHP's max_input_vars. */
-    public const int MAX_LINES = 100;
+    public const int MAX_LINES = Invoice::MAX_LINES;
 
     /** A valid id of nothing: the rules answer it as unknown on either database. */
     public const string NO_ID = '00000000-0000-7000-8000-000000000000';
@@ -71,9 +72,6 @@ final readonly class InvoiceFormReader
             if (mb_strlen($text) > self::MAX_TEXT) {
                 $errors[$field] = 'invoice.problem.too_long';
             }
-        }
-        if (\count($rows) > self::MAX_LINES) {
-            $errors['lines'] = 'invoice.problem.too_many_lines';
         }
         if ('1' === $values['customerEdit']) {
             $this->checkCopy($customer, $errors);

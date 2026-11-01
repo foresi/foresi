@@ -495,6 +495,7 @@ series:
   error:
     format: "Použijte jen písmena, číslice, . _ / - a značky '{YYYY} {YY} {MM} {DD}' s jednou '{NNNN}'."
     format_locked: Řada už má čísla, formát proto nejde změnit.
+    format_too_long: 'Čísla této řady by byla delší, než doklad unese: nejvýše 40 znaků.'
     format_taken: 'Čísla by se střetla s řadou {name}.'
     name_taken: Tento název už má jiná řada této firmy.
     next_number: Zadejte celé číslo od 1 do 2147483647.
@@ -514,6 +515,7 @@ invoice:
     backwards: Konec období nesmí být před jeho začátkem.
     too_long: 'Období může mít nejvýše {days} dní.'
   pdf:
+    undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
     footer: '{title} · Strana {page}/{pages}'
     unsupported_country: 'Fakturu {number} nelze vytisknout: pravidla země vystavitele tato instalace nezná.'
     trashed: V KOŠI – DOKLAD NEPLATÍ

@@ -36,7 +36,7 @@ final readonly class InvoiceFigures
     public function of(array $lines, InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array
     {
         $priced = $this->pricing->priced($lines, $context->regime, $context->country, $taxPoint);
-        $totals = $this->pricing->totals($priced, $context->regime, $context->rounding, $context->currency);
+        $totals = $this->pricing->totals($priced, $context->regime, $context->rounding, $context->country);
 
         return [
             'lines' => array_map(fn (PricedLine $line): array => ['total' => $this->amounts->money($line->amounts->gross)], $priced),
