@@ -1,0 +1,155 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Rendered into PDF by tc-lib-pdf, which reads a small part of HTML: tables for layout, attributes for size. #}
+{% macro party(party, label, doc) %}
+    <p style="font-size:7pt;color:#6b6c66;margin:0;">{{ label }}</p>
+    <p style="font-size:10pt;font-weight:bold;margin:0;">{{ party.name }}</p>
+    <p style="margin:0;">{{ party.street }}<br>{{ party.postalCode }} {{ party.city }}<br>{{ party.country }}</p>
+    {% if party.registrationNumber %}<p style="margin:0;">{{ 'invoice.pdf.registration_number'|trans }}: {{ party.registrationNumber }}</p>{% endif %}
+    {% if party.vatId %}<p style="margin:0;">{{ 'invoice.pdf.vat_id'|trans }}: {{ party.vatId }}</p>{% endif %}
+{% endmacro %}
+
+{% block head %}
+    <table cellpadding="0">
+        <tr>
+            <td width="50%">
+                {{ _self.party(doc.issuer, 'invoice.pdf.supplier'|trans, doc) }}
+                {% if doc.issuer.registerEntry %}<p style="font-size:7pt;margin:0;">{{ doc.issuer.registerEntry }}</p>{% endif %}
+                {% if doc.issuer.email %}<p style="margin:0;">{{ doc.issuer.email }}</p>{% endif %}
+                {% if doc.issuer.phone %}<p style="margin:0;">{{ doc.issuer.phone }}</p>{% endif %}
+                {% if doc.issuer.web %}<p style="margin:0;">{{ doc.issuer.web }}</p>{% endif %}
+                {% if doc.logo %}<br><img src="{{ doc.logo.path }}" alt="{{ doc.logo.alt }}" width="{{ doc.logo.width }}" height="{{ doc.logo.height }}">{% endif %}
+            </td>
+            <td width="50%">
+                <h1 style="font-size:13pt;font-weight:bold;margin:0;">{{ doc.title }}</h1>
+                <p style="font-size:11pt;font-weight:bold;margin:0;">{{ doc.number }}</p>
+                <br>
+                {{ _self.party(doc.customer, 'invoice.pdf.customer'|trans, doc) }}
+            </td>
+        </tr>
+    </table>
+    <br>
+    <table cellpadding="0">
+        <tr>
+            <td>{{ 'invoice.pdf.issue_date'|trans }}: <b>{{ doc.issueDate }}</b></td>
+            <td>{{ doc.taxPointLabel }}: <b>{{ doc.taxPointDate }}</b></td>
+            <td>{{ 'invoice.pdf.due_date'|trans }}: <b>{{ doc.dueDate }}</b></td>
+        </tr>
+    </table>
+    <br>
+{% endblock %}
+
+{% block body %}
+    <table cellpadding="4" style="background-color:#faf9f6;">
+        <tr>
+            <td width="{{ doc.hasQr ? '38%' : '44%' }}">
+                {% if doc.account %}<p style="font-size:7pt;color:#6b6c66;margin:0;">{{ 'invoice.pdf.bank_account'|trans }}</p><p style="margin:0;"><b>{{ doc.account }}</b></p>{% endif %}
+                {% if doc.iban %}<p style="margin:0;">IBAN: {{ doc.iban }}</p>{% endif %}
+                <p style="margin:0;">{{ 'invoice.pdf.payment_method'|trans }}: {{ doc.paymentMethod }}</p>
+            </td>
+            <td width="{{ doc.hasQr ? '24%' : '30%' }}">
+                {% if doc.variableSymbol %}<p style="margin:0;">{{ 'invoice.pdf.variable_symbol'|trans }}: <b>{{ doc.variableSymbol }}</b></p>{% endif %}
+                {% if doc.constantSymbol %}<p style="margin:0;">{{ 'invoice.pdf.constant_symbol'|trans }}: {{ doc.constantSymbol }}</p>{% endif %}
+                {% if doc.orderNumber %}<p style="margin:0;">{{ 'invoice.pdf.order_number'|trans }}: {{ doc.orderNumber }}</p>{% endif %}
+            </td>
+            <td width="{{ doc.hasQr ? '18%' : '26%' }}" align="right">
+                <p style="font-size:7pt;color:#6b6c66;margin:0;">{{ 'invoice.pdf.payable'|trans }}</p>
+                <p style="font-size:11pt;font-weight:bold;margin:0;">{{ doc.payable }}</p>
+            </td>
+            {% if doc.hasQr %}<td width="20%" align="right" height="{{ doc.qrBandHeight }}"><p style="margin:0;font-size:7pt;">{{ 'invoice.pdf.qr_label'|trans }}</p></td>{% endif %}
+        </tr>
+    </table>
+    <br>
+    {% if doc.description %}<p style="margin:0;font-weight:bold;">{{ doc.description|nl2br }}</p>{% endif %}
+    {% if doc.textBefore %}<p style="margin:0;">{{ doc.textBefore|nl2br }}</p>{% endif %}
+    <br>
+    {% set widths = doc.columns %}
+    <table cellpadding="3">
+        <thead>
+            <tr style="font-weight:bold;background-color:#faf9f6;">
+                <th width="{{ widths.text }}" align="left">{{ 'invoice.pdf.item'|trans }}</th>
+                <th width="{{ widths.quantity }}" align="right">{{ 'invoice.pdf.quantity'|trans }}</th>
+                <th width="{{ widths.unit }}" align="left">{{ 'invoice.pdf.unit'|trans }}</th>
+                <th width="{{ widths.price }}" align="right">{{ doc.payer ? 'invoice.pdf.unit_price'|trans : 'invoice.pdf.unit_price_plain'|trans }}</th>
+                {% if doc.hasDiscount %}<th width="{{ widths.discount }}" align="right">{{ 'invoice.pdf.discount'|trans }}</th>{% endif %}
+                {% if doc.payer %}
+                    <th width="{{ widths.rate }}" align="right">{{ 'invoice.pdf.rate'|trans }}</th>
+                    <th width="{{ widths.base }}" align="right">{{ 'invoice.pdf.base'|trans }}</th>
+                    <th width="{{ widths.vat }}" align="right">{{ 'invoice.pdf.vat'|trans }}</th>
+                {% endif %}
+                <th width="{{ widths.total }}" align="right">{{ 'invoice.pdf.total'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines %}
+                <tr>
+                    <td width="{{ widths.text }}">{{ line.text|nl2br }}</td>
+                    <td width="{{ widths.quantity }}" align="right">{{ line.quantity }}</td>
+                    <td width="{{ widths.unit }}">{{ line.unit }}</td>
+                    <td width="{{ widths.price }}" align="right">{{ line.price }}</td>
+                    {% if doc.hasDiscount %}<td width="{{ widths.discount }}" align="right">{{ line.discount }}</td>{% endif %}
+                    {% if doc.payer %}
+                        <td width="{{ widths.rate }}" align="right">{{ line.rate }}</td>
+                        <td width="{{ widths.base }}" align="right">{{ line.base }}</td>
+                        <td width="{{ widths.vat }}" align="right">{{ line.vat }}</td>
+                    {% endif %}
+                    <td width="{{ widths.total }}" align="right">{{ line.total }}</td>
+                </tr>
+            {% endfor %}
+            {% if doc.rounding %}
+                <tr>
+                    <td width="{{ widths.text }}">{{ 'invoice.pdf.rounding'|trans }}</td>
+                    <td width="{{ widths.quantity }}" align="right">{{ doc.rounding.quantity }}</td>
+                    <td width="{{ widths.unit }}"></td>
+                    <td width="{{ widths.price }}" align="right">{{ doc.rounding.amount }}</td>
+                    {% if doc.hasDiscount %}<td width="{{ widths.discount }}"></td>{% endif %}
+                    {% if doc.payer %}
+                        <td width="{{ widths.rate }}" align="right">0</td>
+                        <td width="{{ widths.base }}" align="right">{{ doc.rounding.amount }}</td>
+                        <td width="{{ widths.vat }}" align="right">{{ doc.rounding.zero }}</td>
+                    {% endif %}
+                    <td width="{{ widths.total }}" align="right">{{ doc.rounding.amount }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    <br>
+    {% if doc.textAfter %}<p style="margin:0;">{{ doc.textAfter|nl2br }}</p><br>{% endif %}
+    {% for note in doc.notes %}<p style="margin:0;font-weight:bold;">{{ note }}</p>{% endfor %}
+    {% if doc.notes %}<br>{% endif %}
+    <table cellpadding="0" nobr="true">
+        <tr>
+            <td width="36%">
+                <p style="margin:0;">{{ 'invoice.pdf.stamp'|trans }}</p>
+                {% if doc.stamp %}<img src="{{ doc.stamp.path }}" alt="{{ doc.stamp.alt }}" width="{{ doc.stamp.width }}" height="{{ doc.stamp.height }}">{% endif %}
+            </td>
+            <td width="64%">
+                {% if doc.payer %}
+                    <table cellpadding="3">
+                        <tr style="font-weight:bold;background-color:#faf9f6;">
+                            <th width="42%" align="left">{{ 'invoice.pdf.recap_rate'|trans }}</th>
+                            <th width="19%" align="right">{{ 'invoice.pdf.base'|trans }}</th>
+                            <th width="19%" align="right">{{ 'invoice.pdf.vat'|trans }}</th>
+                            <th width="20%" align="right">{{ 'invoice.pdf.total'|trans }}</th>
+                        </tr>
+                        {% for row in doc.recap %}
+                            <tr>
+                                <td width="42%">{{ row.label }}</td>
+                                <td width="19%" align="right">{{ row.base }}</td>
+                                <td width="19%" align="right">{{ row.vat }}</td>
+                                <td width="20%" align="right">{{ row.total }}</td>
+                            </tr>
+                        {% endfor %}
+                        <tr style="font-weight:bold;">
+                            <td width="42%">{{ 'invoice.pdf.recap_total'|trans }}</td>
+                            <td width="19%" align="right">{{ doc.net }}</td>
+                            <td width="19%" align="right">{{ doc.vat }}</td>
+                            <td width="20%" align="right">{{ doc.gross }}</td>
+                        </tr>
+                    </table>
+                {% endif %}
+                <br>
+                <p style="font-size:11pt;font-weight:bold;text-align:right;margin:0;">{{ 'invoice.pdf.payable'|trans }}: {{ doc.payable }}</p>
+            </td>
+        </tr>
+    </table>
+{% endblock %}

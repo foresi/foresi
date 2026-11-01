@@ -384,9 +384,57 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame('false', $row->filter('a[aria-label="Edit"]')->attr('data-turbo'));
         self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
+        self::assertSame('false', $row->filter('a[aria-label="PDF"]')->attr('data-turbo'));
+        self::assertSame('/invoices/'.$invoice->id().'/pdf', $row->filter('a[aria-label="PDF"]')->attr('href'));
         self::assertSame(['Copy', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
+    }
+
+    public function testThePdfOpensInTheBrowser(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/pdf');
+
+        self::assertResponseIsSuccessful();
+        $response = $this->client->getResponse();
+        self::assertSame('application/pdf', $response->headers->get('Content-Type'));
+        self::assertSame('inline; filename='.$invoice->number().'-isdoc.pdf', $response->headers->get('Content-Disposition'));
+        self::assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+        self::assertStringStartsWith('%PDF-', (string) $response->getContent());
+    }
+
+    public function testATrashedDocumentKeepsItsPdf(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+        $this->trashed($invoice, 'Wrong customer');
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/pdf');
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAnotherTenantsPdfIs404(): void
+    {
+        $this->signedIn();
+        $other = $this->foreignInvoice();
+
+        $this->client->request('GET', '/invoices/'.$other->id().'/pdf');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testASubcontractorGetsNoPdf(): void
+    {
+        $this->signedIn(Role::Client);
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/pdf');
+
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testTrashAsksForAReason(): void

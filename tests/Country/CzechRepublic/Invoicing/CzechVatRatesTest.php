@@ -12,6 +12,7 @@ use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
 use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
 use App\Country\CzechRepublic\Invoicing\CzechVatRates;
 use App\Country\CzechRepublic\Invoicing\IsdocWriter;
+use App\Country\CzechRepublic\Invoicing\QrPlatba;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\SupplyCode;
 use App\Invoicing\Application\UnsupportedCountry;
@@ -49,21 +50,22 @@ final class CzechVatRatesTest extends TestCase
 
     public function testTheCountryAnswersForCzechia(): void
     {
-        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
+        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter(), new QrPlatba(new CzechVatRates()));
 
         self::assertTrue($country->supports('CZ'));
         self::assertFalse($country->supports('SK'));
         self::assertSame(Currency::CZK, $country->homeCurrency());
         self::assertSame('Europe/Prague', $country->timezone()->getName());
         self::assertSame('21.00', $country->rate(VatRateKind::Base, new \DateTimeImmutable('2026-10-31'))->decimal());
-        self::assertSame('invoice.note.reverse_charge', $country->noteKey(TaxTreatment::ReverseCharge));
+        self::assertSame('invoice.pdf.note.reverse_charge', $country->noteKey(TaxTreatment::ReverseCharge));
+        self::assertSame('invoice.pdf.note.exempt', $country->noteKey(TaxTreatment::Exempt));
         self::assertNull($country->noteKey(TaxTreatment::Standard));
         self::assertNotSame([], $country->supplyCodes(new \DateTimeImmutable('2026-10-31')));
     }
 
     public function testTheRegistryFindsTheCountryAndRefusesAnother(): void
     {
-        $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
+        $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter(), new QrPlatba(new CzechVatRates()));
         $countries = new InvoicingCountries([$czech]);
 
         self::assertSame($czech, $countries->for('CZ'));
@@ -103,14 +105,5 @@ final class CzechVatRatesTest extends TestCase
         foreach (new CzechSupplyCodes()->on(new \DateTimeImmutable('2026-10-31')) as $code) {
             self::assertSame('invoice.supply_code.'.$code->code, $code->labelKey);
         }
-    }
-
-    public function testThePaymentCodeIsFilledByALaterStep(): void
-    {
-        $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), new IsdocWriter());
-        $document = new \ReflectionClass(\App\Invoicing\Application\IssuedDocument::class)->newInstanceWithoutConstructor();
-
-        $this->expectException(\LogicException::class);
-        $country->paymentCode($document);
     }
 }

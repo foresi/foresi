@@ -15,8 +15,10 @@ use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRefused;
@@ -52,6 +54,7 @@ use App\Shared\Domain\Countries;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -101,6 +104,8 @@ final class InvoiceController extends AbstractController
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly IssuedDocumentFactory $documents,
+        private readonly InvoicePdf $pdf,
     ) {
     }
 
@@ -155,6 +160,26 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK, notices: $draft->notices);
+    }
+
+    /**
+     * The document as a file. It is opened in the browser, which never guesses its type.
+     */
+    #[Route('/invoices/{id}/pdf', name: 'app_invoice_pdf', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function pdf(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        try {
+            $rendered = $this->pdf->render($this->documents->of($id));
+        } catch (UnknownInvoice) {
+            throw new NotFoundHttpException();
+        }
+
+        return new Response($rendered->bytes, Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $rendered->fileName),
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     #[Route('/invoices/recount', name: 'app_invoice_recount', methods: ['POST'])]
@@ -291,7 +316,7 @@ final class InvoiceController extends AbstractController
         $this->tokens->complete($token, $saved->id());
         $this->flashSaved($saved, $submission, $ownNumber);
 
-        return $this->redirectToRoute('app_invoices');
+        return 'save_pdf' === $action ? $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]) : $this->redirectToRoute('app_invoices');
     }
 
     /**

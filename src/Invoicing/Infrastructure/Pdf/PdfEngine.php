@@ -17,7 +17,8 @@ use Com\Tecnick\Pdf\Tcpdf;
  * machine-readable file. The only class that talks to tc-lib-pdf.
  *
  * The engine reads local files from two directories only, the bundled fonts and
- * the logos, and never from the network.
+ * the logos, and never from the network. The logo directories are resolved on each
+ * document, because the first image of an installation creates them.
  */
 final readonly class PdfEngine
 {
@@ -30,34 +31,23 @@ final readonly class PdfEngine
 
     private string $fontDirectory;
 
-    /** @var list<string> */
-    private array $logoDirectories;
-
     /**
      * @param list<string> $logoDirectories
      */
     public function __construct(
         string $fontDirectory = __DIR__.'/../../../../resources/pdf-fonts',
-        array $logoDirectories = [],
+        private array $logoDirectories = [],
     ) {
         $font = realpath($fontDirectory);
         if (false === $font) {
             throw new \InvalidArgumentException('The PDF font directory does not exist.');
         }
         $this->fontDirectory = $font;
-
-        $logos = [];
-        foreach ($logoDirectories as $directory) {
-            $path = realpath($directory);
-            if (false !== $path) {
-                $logos[] = $path;
-            }
-        }
-        $this->logoDirectories = $logos;
     }
 
     /**
      * @param string $language BCP 47 tag of the document, for example "cs"
+     * @param string $htmlHead what comes before the body: the QR code keeps its place below it, however tall it grows
      *
      * @return string the PDF bytes
      */
@@ -67,7 +57,9 @@ final readonly class PdfEngine
         string $htmlBody,
         ?EmbeddedFile $file,
         ?QrFigure $qr = null,
+        string $htmlHead = '',
     ): string {
+        $logos = $this->existingLogoDirectories();
         $pdf = new Tcpdf(
             unit: 'mm',
             isunicode: true,
@@ -76,8 +68,8 @@ final readonly class PdfEngine
             mode: PdfConformance::Pdfa3a,
             fileOptions: [
                 'allowedHosts' => [],
-                'allowedPaths' => [$this->fontDirectory, $this->colourProfileDirectory(), ...$this->logoDirectories],
-                'markupAllowedPaths' => $this->logoDirectories,
+                'allowedPaths' => [$this->fontDirectory, $this->colourProfileDirectory(), ...$logos],
+                'markupAllowedPaths' => $logos,
             ],
         );
 
@@ -92,18 +84,22 @@ final readonly class PdfEngine
         // Back to the regular face as the current font.
         $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/inter.json');
 
-        $pdf->addPage();
+        // Every page keeps these: a table that breaks continues inside them.
+        $margin = self::MARGIN_MM;
+        $pdf->addPage(['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => $margin]]);
         $pdf->page->addContent($regular['out']);
 
-        $pdf->addHTMLCell(
-            html: $htmlBody,
-            posx: self::MARGIN_MM,
-            posy: self::MARGIN_MM,
-            width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM,
-        );
+        $page = $pdf->page->getPageID();
+        $bodyTop = self::MARGIN_MM;
+        if ('' !== $htmlHead) {
+            $pdf->addHTMLCell(html: $htmlHead, posx: self::MARGIN_MM, posy: self::MARGIN_MM, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
+            $bodyTop = $pdf->getLastHTMLCellEnd()['y'];
+        }
+
+        $pdf->addHTMLCell(html: $htmlBody, posx: self::MARGIN_MM, posy: $bodyTop, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
 
         if ($qr instanceof QrFigure) {
-            $this->drawQr($pdf, $qr, $pdf->page->getPageID());
+            $this->drawQr($pdf, $qr, $page, $bodyTop - self::MARGIN_MM);
         }
 
         if ($file instanceof EmbeddedFile) {
@@ -119,6 +115,14 @@ final readonly class PdfEngine
     }
 
     /**
+     * @return list<string>
+     */
+    private function existingLogoDirectories(): array
+    {
+        return array_values(array_filter(array_map(realpath(...), $this->logoDirectories), \is_string(...)));
+    }
+
+    /**
      * The library reads its bundled sRGB profile, which PDF/A requires, from here.
      */
     private function colourProfileDirectory(): string
@@ -129,14 +133,19 @@ final readonly class PdfEngine
         return dirname($file).'/include';
     }
 
-    private function drawQr(Tcpdf $pdf, QrFigure $qr, int $pid): void
+    /**
+     * @param float $shift how far a head pushed the body down, in millimetres
+     */
+    private function drawQr(Tcpdf $pdf, QrFigure $qr, int $pid, float $shift): void
     {
+        $top = $qr->y + $shift;
+
         // Error correction level M; the size is a whole number of millimetres.
         $drawing = $pdf->getBarcode(
             'QRCODE,M',
             $qr->payload,
             $qr->x,
-            $qr->y,
+            $top,
             (int) round($qr->sizeMm),
             (int) round($qr->sizeMm),
         );
@@ -149,9 +158,9 @@ final readonly class PdfEngine
             $qr->alt,
             [
                 $pdf->toPoints($qr->x),
-                $pageHeight - $pdf->toPoints($qr->y + $qr->sizeMm),
+                $pageHeight - $pdf->toPoints($top + $qr->sizeMm),
                 $pdf->toPoints($qr->x + $qr->sizeMm),
-                $pageHeight - $pdf->toPoints($qr->y),
+                $pageHeight - $pdf->toPoints($top),
             ],
         );
     }

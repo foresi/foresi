@@ -63,6 +63,10 @@ services:
         arguments:
             $issuingSystem: '%app.product_name% %app.version%'
 
+    App\Invoicing\Infrastructure\Pdf\PdfEngine:
+        arguments:
+            $logoDirectories: ['%app.firm_image_dir%']
+
     App\Party\Infrastructure\Http\FilesystemFirmImages:
         arguments:
             $root: '%app.firm_image_dir%'

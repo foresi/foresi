@@ -495,6 +495,48 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  pdf:
+    document_title: 'Invoice {number}'
+    title_tax: Invoice - tax document
+    title: Invoice
+    supplier: Supplier
+    customer: Customer
+    registration_number: Reg. No.
+    vat_id: VAT ID
+    issue_date: Issue date
+    tax_point: Tax point date
+    supply_date: Date of supply
+    due_date: Due date
+    date_format: 'j M Y'
+    bank_account: Bank account
+    payment_method: Payment method
+    variable_symbol: Variable symbol
+    constant_symbol: Constant symbol
+    order_number: Order number
+    payable: Total to pay
+    item: Description
+    quantity: Qty
+    unit: Unit
+    unit_price: Unit price excl. VAT
+    unit_price_plain: Unit price
+    discount: Discount
+    rate: VAT %
+    base: Base
+    vat: VAT
+    total: Total
+    rounding: Rounding
+    recap_rate: VAT rate
+    recap_total: Total
+    recap:
+      reverse_charge: Reverse charge
+      exempt: Exempt
+    stamp: Stamp and signature
+    stamp_alt: 'Stamp and signature: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F of invoice {number}'
+    note:
+      reverse_charge: 'Reverse charge. The customer accounts for the tax (daň odvede zákazník).{code, select, none {} other { Supply code: {code}.}}'
+      exempt: The supply is exempt from VAT.
   copy:
     firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
     series_archived: The series of the original is archived, so this copy uses the default series.
@@ -533,6 +575,7 @@ invoice:
       overdue: Overdue
     action:
       edit: Edit
+      pdf: PDF
       copy: Copy
       delivered: Mark as delivered
       history: History

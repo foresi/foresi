@@ -82,6 +82,10 @@ jobs:
           echo "${RUNNER_TEMP}/verapdf" >> "$GITHUB_PATH"
           "${RUNNER_TEMP}/verapdf/verapdf" --version
 
+      # The invoice PDF tests read the file with Poppler, as a person's tools would.
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -109,6 +113,7 @@ jobs:
         env:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
+          REQUIRE_POPPLER: '1'
         run: composer qa
 
       - name: Mutation testing
@@ -217,6 +222,10 @@ jobs:
           echo "${RUNNER_TEMP}/verapdf" >> "$GITHUB_PATH"
           "${RUNNER_TEMP}/verapdf/verapdf" --version
 
+      # The invoice PDF tests read the file with Poppler, as a person's tools would.
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -249,6 +258,7 @@ jobs:
         env:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
+          REQUIRE_POPPLER: '1'
         run: composer phpunit
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite

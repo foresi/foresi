@@ -1038,6 +1038,19 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame([], $this->invoices());
     }
 
+    public function testPdfAndSaveSavesThenOpensThePdf(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(), ['_action' => 'save_pdf']));
+
+        $invoices = $this->invoices();
+        self::assertCount(1, $invoices);
+        self::assertResponseRedirects('/invoices/'.$invoices[0]->id().'/pdf');
+        $this->client->followRedirect();
+        self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+    }
+
     public function testAFormCutOffIsRefusedWholeAndAButtonOfItDoesNothing(): void
     {
         $this->signedIn();

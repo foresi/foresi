@@ -43,6 +43,11 @@ interface InvoicingCountry
      */
     public function supplyCodes(\DateTimeImmutable $on): array;
 
+    /**
+     * The account as people of the country write it, if the IBAN is a domestic one.
+     */
+    public function domesticAccount(string $iban): ?string;
+
     public function paymentCode(IssuedDocument $document): ?string;
 
     public function electronicFile(IssuedDocument $document): ?ElectronicFile;

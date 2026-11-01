@@ -125,6 +125,7 @@
         }
     },
     "require-dev": {
+        "chillerlan/php-qrcode": "^6",
         "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "infection/infection": "^0.35.8",

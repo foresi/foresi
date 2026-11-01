@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Country\CzechRepublic\Invoicing;
 
+use App\Country\CzechRepublic\Party\CzechBankAccount;
 use App\Invoicing\Application\ElectronicFile;
 use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\IssuedDocument;
@@ -21,7 +22,7 @@ use App\Shared\Domain\Currency;
  */
 final readonly class CzechInvoicing implements InvoicingCountry
 {
-    public function __construct(private CzechVatRates $rates, private CzechSupplyCodes $supplyCodes, private IsdocWriter $isdoc)
+    public function __construct(private CzechVatRates $rates, private CzechSupplyCodes $supplyCodes, private IsdocWriter $isdoc, private QrPlatba $qr)
     {
     }
 
@@ -47,7 +48,11 @@ final readonly class CzechInvoicing implements InvoicingCountry
 
     public function noteKey(TaxTreatment $treatment): ?string
     {
-        return TaxTreatment::ReverseCharge === $treatment ? 'invoice.note.reverse_charge' : null;
+        return match ($treatment) {
+            TaxTreatment::ReverseCharge => 'invoice.pdf.note.reverse_charge',
+            TaxTreatment::Exempt => 'invoice.pdf.note.exempt',
+            default => null,
+        };
     }
 
     public function supplyCodes(\DateTimeImmutable $on): array
@@ -55,12 +60,16 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return $this->supplyCodes->on($on);
     }
 
-    /**
-     * Filled by the QR payment step.
-     */
+    public function domesticAccount(string $iban): ?string
+    {
+        $parts = CzechBankAccount::partsOf($iban);
+
+        return null === $parts ? null : $parts['number'].'/'.$parts['bankCode'];
+    }
+
     public function paymentCode(IssuedDocument $document): ?string
     {
-        throw new \LogicException('The Czech payment code is not built yet.');
+        return $this->qr->for($document);
     }
 
     public function electronicFile(IssuedDocument $document): ElectronicFile

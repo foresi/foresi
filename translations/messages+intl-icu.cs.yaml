@@ -495,6 +495,48 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  pdf:
+    document_title: 'Faktura {number}'
+    title_tax: Faktura - daňový doklad
+    title: Faktura
+    supplier: Dodavatel
+    customer: Odběratel
+    registration_number: IČO
+    vat_id: DIČ
+    issue_date: Datum vystavení
+    tax_point: Datum zdanitelného plnění
+    supply_date: Datum uskutečnění
+    due_date: Datum splatnosti
+    date_format: 'j. n. Y'
+    bank_account: Bankovní účet
+    payment_method: Způsob platby
+    variable_symbol: Variabilní symbol
+    constant_symbol: Konstantní symbol
+    order_number: Číslo objednávky
+    payable: Celkem k úhradě
+    item: Označení dodávky
+    quantity: Počet
+    unit: m. j.
+    unit_price: Cena za m. j. bez DPH
+    unit_price_plain: Cena za m. j.
+    discount: Sleva
+    rate: DPH %
+    base: Základ
+    vat: DPH
+    total: Celkem
+    rounding: Zaokrouhlení
+    recap_rate: Sazba DPH
+    recap_total: Celkem
+    recap:
+      reverse_charge: Přenesení daňové povinnosti
+      exempt: Osvobozeno
+    stamp: Razítko a podpis
+    stamp_alt: 'Razítko a podpis: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F faktury {number}'
+    note:
+      reverse_charge: 'Přenesení daňové povinnosti: daň odvede zákazník.{code, select, none {} other { Kód předmětu plnění: {code}.}}'
+      exempt: Plnění je osvobozeno od daně.
   copy:
     firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
     series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
@@ -533,6 +575,7 @@ invoice:
       overdue: Po splatnosti
     action:
       edit: Upravit
+      pdf: PDF
       copy: Kopírovat
       delivered: Označit jako doručené
       history: Historie
