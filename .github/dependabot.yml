@@ -10,6 +10,15 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore
+  # The end-to-end test tooling (Playwright, axe).
+  - package-ecosystem: npm
+    directory: /tests/e2e
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
   - package-ecosystem: github-actions
     directory: /
     schedule:
