@@ -39,7 +39,8 @@
         "symfony/ux-twig-component": "^3.6",
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
-        "symfonycasts/tailwind-bundle": "^1.0"
+        "symfonycasts/tailwind-bundle": "^1.0",
+        "tecnickcom/tc-lib-pdf": "^8.82"
     },
     "config": {
         "allow-plugins": {

@@ -18,6 +18,12 @@ vendor/bin/phpunit
 
 Requirements are listed in the [README](README.md).
 
+### PDF conformance check (veraPDF)
+
+The tests of the invoice PDF validate it against PDF/A-3a with [veraPDF](https://verapdf.org) (Java 11 or newer). Install it with the official installer, or with `brew install verapdf`, and make sure `verapdf` is on your `PATH`; `VERAPDF_BIN` can point at the binary instead. Without it, these checks are skipped locally with a message. CI sets `REQUIRE_VERAPDF=1`, which turns a missing binary into a failure.
+
+The bundled PDF fonts (Inter, SIL Open Font License) are committed under `resources/pdf-fonts/`. `bin/build-pdf-fonts` regenerates them from the Inter TTF release; you only need it to change the fonts.
+
 ## Rules for code
 
 - PHP 8.4 and Symfony 7.4 LTS. Every PHP file starts with `declare(strict_types=1);` and starts with the block header comment `/* SPDX-License-Identifier: AGPL-3.0-only */`, laid out over three lines as `composer cs:fix` writes it (the fixer enforces it).

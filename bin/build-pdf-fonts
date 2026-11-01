@@ -1,0 +1,61 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Converts the Inter TTF files into the font definitions tc-lib-pdf reads, and
+ * writes them to resources/pdf-fonts/. The output is committed, so a running
+ * installation never needs this script.
+ *
+ * Source: Inter 4.1, SIL Open Font License 1.1 (resources/pdf-fonts/OFL.txt).
+ *   https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
+ *   SHA-256 9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e
+ * The release holds the static files extras/ttf/Inter-Regular.ttf and
+ * extras/ttf/Inter-Bold.ttf. The woff2 files under assets/fonts cannot be used.
+ *
+ * Usage: bin/build-pdf-fonts <directory holding Inter-Regular.ttf and Inter-Bold.ttf>
+ */
+
+use Com\Tecnick\File\File;
+use Com\Tecnick\Pdf\Font\FontPaths;
+use Com\Tecnick\Pdf\Font\Import;
+
+require dirname(__DIR__).'/vendor/autoload.php';
+
+$source = $argv[1] ?? '';
+if ('' === $source || !is_dir($source)) {
+    fwrite(\STDERR, "Usage: bin/build-pdf-fonts <directory holding Inter-Regular.ttf and Inter-Bold.ttf>\n");
+    exit(2);
+}
+$source = realpath($source);
+
+$output = dirname(__DIR__).'/resources/pdf-fonts';
+if (!is_dir($output) && !mkdir($output, 0o755, true) && !is_dir($output)) {
+    fwrite(\STDERR, "Cannot create $output\n");
+    exit(1);
+}
+$output = realpath($output);
+
+foreach (['Inter-Regular.ttf', 'Inter-Bold.ttf'] as $file) {
+    $path = $source.'/'.$file;
+    if (!is_file($path)) {
+        fwrite(\STDERR, "Missing $path\n");
+        exit(1);
+    }
+
+    // The converter refuses a font that is already imported; start clean.
+    foreach (glob($output.'/'.('Inter-Bold.ttf' === $file ? 'interb' : 'inter').'.*') ?: [] as $old) {
+        unlink($old);
+    }
+
+    // Full Unicode cmap (platform 3, encoding 10) so every glyph of the font is reachable.
+    $helper = new File(allowedPaths: array_values(array_unique([
+        ...FontPaths::buildAllowedPaths(),
+        $source,
+        $output,
+    ])));
+    $import = new Import($path, $output.'/', 'TrueTypeUnicode', '', 32, 3, 10, false, $helper);
+    fwrite(\STDOUT, sprintf("%s -> %s (sha256 %s)\n", $file, $import->getFontName(), hash_file('sha256', $path)));
+}

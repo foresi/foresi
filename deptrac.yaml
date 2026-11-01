@@ -92,6 +92,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Audit/Infrastructure/.*
+    - name: InvoicingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Invoicing/Infrastructure/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -124,6 +128,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^OpenSpout\\
+    # PDF rendering; only the Invoicing module's infrastructure may use it.
+    - name: VendorTecnick
+      collectors:
+        - type: classLike
+          value: ^Com\\Tecnick\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -309,6 +318,8 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - IdentityApplication
+    InvoicingInfrastructure:
+      - VendorTecnick
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers.
