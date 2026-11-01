@@ -85,6 +85,11 @@ final readonly class ContactSettingsForFirm
         return $this->settings->find($party, $firm)?->archivedAt() instanceof \DateTimeImmutable;
     }
 
+    public function hasOverride(Party $party, LegalEntity $firm): bool
+    {
+        return $this->settings->find($party, $firm) instanceof PartyFirmSettings || $this->hasOwnEmails($party, $firm);
+    }
+
     /**
      * The shared invoicing e-mails; the general e-mail is not one of them.
      *

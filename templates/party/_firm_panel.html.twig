@@ -36,7 +36,7 @@
         {% set idPrefix = 'scope-' ~ panel.key ~ '-' ~ scope.id ~ '-' %}
         <div data-firm-scope-target="pane" data-scope="{{ scope.id }}"{% if scope.id != panel.active %} hidden{% endif %}>
             {% if not scope.shared %}
-                <input type="hidden" name="{{ prefix }}[own][{{ panel.key }}]" value="{{ scope.own ? '1' : '' }}" data-firm-scope-role="own">
+                <input type="hidden" name="{{ prefix }}[own][{{ panel.key }}]" value="{{ scope.ownState }}" data-firm-scope-role="own">
             {% endif %}
             <fieldset class="m-0 min-w-0 border-0 p-0" aria-label="{{ scope.name }}" data-firm-scope-role="fields"{% if not scope.shared and not scope.own %} disabled{% endif %}>
                 {% if panel.key == 'roles' %}
@@ -60,6 +60,7 @@
                     </div>
                 {% else %}
                     <input type="hidden" name="{{ prefix }}[archived]" value="">
+                    {% if scope.shared %}<input type="hidden" name="{{ prefix }}[archivedBefore]" value="{{ scope.values.archivedBefore }}">{% endif %}
                     <twig:Ui:Checkbox :name="prefix ~ '[archived]'" :id="idPrefix ~ 'archived'" :label="(scope.shared ? 'party.scope.archived_all' : 'party.scope.archived_firm')|trans" :help="scope.shared ? null : 'party.scope.archived_help'|trans" :checked="scope.values.archived == '1'" />
                 {% endif %}
             </fieldset>

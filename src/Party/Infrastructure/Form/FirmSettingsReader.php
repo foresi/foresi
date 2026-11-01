@@ -21,9 +21,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Reads the scoped panels of the contact form. Only the firms it is given are
- * read; anything posted for another firm is ignored. A firm's panel counts only
- * when the form says whose values it holds, in firms[id][own][panel]: "1" for
- * the firm's own, empty for shared.
+ * read; anything posted for another firm is ignored. firms[id][own][panel] says
+ * what to do with a firm's panel: "1" stores the firm's own values, "0" is a
+ * confirmed back to shared. Anything else leaves the panel alone, so a form
+ * that showed shared values cannot delete an override set after it was rendered.
  *
  * @phpstan-import-type Values from FirmSettingsSubmission
  */
@@ -78,8 +79,14 @@ final readonly class FirmSettingsReader
                 $parsed->emails[$scope] = $emails;
             }
         }
-        if (\array_key_exists('archived', $row)) {
-            $parsed->archived[$scope] = $this->archived($scope, $row, $parsed);
+        if (\array_key_exists('archived', $row) && \is_string($row['archivedBefore'] ?? null)) {
+            // Only a change the owner made: a form as rendered must not undo what happened since.
+            $before = $row['archivedBefore'];
+            $parsed->values[$scope]['archivedBefore'] = $before;
+            $archived = $this->archived($scope, $row, $parsed);
+            if ($archived !== ('1' === $before)) {
+                $parsed->archived[$scope] = $archived;
+            }
         }
     }
 
@@ -90,30 +97,41 @@ final readonly class FirmSettingsReader
     {
         /** @var array<mixed> $own */
         $own = $row['own'];
-        $is = static fn (string $panel): bool => '1' === ($own[$panel] ?? null);
-        foreach (['roles', 'invoicing', 'emails', 'archive'] as $panel) {
-            if (\array_key_exists($panel, $own)) {
-                $parsed->own[$id][$panel] = $is($panel);
+        $sent = array_intersect_key($own, array_flip(['roles', 'invoicing', 'emails', 'archive']));
+        foreach ($sent as $panel => $state) {
+            if (!\in_array($state, ['0', '1'], true)) {
+                continue;
             }
+            $setting = '1' === $state;
+            $parsed->own[$id][$panel] = $setting;
+            match ($panel) {
+                'roles' => $parsed->roles[$id] = $setting ? $this->roles($id, $row, $parsed) : null,
+                'invoicing' => $this->firmDefaults($id, $row, $setting, $parsed),
+                'emails' => $this->firmEmails($id, $row, $setting, $parsed),
+                default => $parsed->archived[$id] = $setting && $this->archived($id, $row, $parsed),
+            };
         }
+    }
 
-        if (\array_key_exists('roles', $own)) {
-            $parsed->roles[$id] = $is('roles') ? $this->roles($id, $row, $parsed) : null;
+    /**
+     * @param array<mixed> $row
+     */
+    private function firmDefaults(string $id, array $row, bool $setting, FirmSettingsParsed $parsed): void
+    {
+        $defaults = $setting ? $this->defaults($id, $row, $parsed) : null;
+        if ($defaults instanceof InvoicingDefaults || !$setting) {
+            $parsed->defaults[$id] = $defaults;
         }
-        if (\array_key_exists('invoicing', $own)) {
-            $defaults = $is('invoicing') ? $this->defaults($id, $row, $parsed) : null;
-            if ($defaults instanceof InvoicingDefaults || !$is('invoicing')) {
-                $parsed->defaults[$id] = $defaults;
-            }
-        }
-        if (\array_key_exists('emails', $own)) {
-            $emails = $is('emails') ? $this->emails($id, $row, $parsed) : null;
-            if (null !== $emails || !$is('emails')) {
-                $parsed->emails[$id] = $emails;
-            }
-        }
-        if (\array_key_exists('archive', $own)) {
-            $parsed->archived[$id] = $is('archive') && $this->archived($id, $row, $parsed);
+    }
+
+    /**
+     * @param array<mixed> $row
+     */
+    private function firmEmails(string $id, array $row, bool $setting, FirmSettingsParsed $parsed): void
+    {
+        $emails = $setting ? $this->emails($id, $row, $parsed) : null;
+        if (null !== $emails || !$setting) {
+            $parsed->emails[$id] = $emails;
         }
     }
 

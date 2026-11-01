@@ -61,7 +61,9 @@ export default class extends Controller {
     }
 
     markOwn(pane, own) {
-        this.part(pane, 'own').value = own ? '1' : '';
+        const state = this.part(pane, 'own');
+        // "0" deletes on save, so it is sent only for values that were stored; empty leaves them alone.
+        state.value = own ? '1' : (state.defaultValue === '' ? '' : '0');
         this.part(pane, 'fields').disabled = !own;
         this.part(pane, 'set').hidden = own;
         this.part(pane, 'reset').hidden = !own;

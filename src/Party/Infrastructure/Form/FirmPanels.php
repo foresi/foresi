@@ -24,7 +24,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * @phpstan-import-type Values from FirmSettingsSubmission
  *
- * @phpstan-type Scope array{id: string, name: string, shared: bool, own: bool, values: Values, errors: array<string, string>}
+ * @phpstan-type Scope array{id: string, name: string, shared: bool, own: bool, ownState: string, values: Values, errors: array<string, string>}
  * @phpstan-type Panel array{key: string, active: string, scopes: list<Scope>}
  */
 final readonly class FirmPanels
@@ -34,7 +34,7 @@ final readonly class FirmPanels
     }
 
     /**
-     * @param array<string, LegalEntity> $firms       the active firms by id, at least two
+     * @param array<string, LegalEntity> $firms       the firms offered, by id
      * @param list<string>               $sharedRoles the roles as the form shows them
      *
      * @return array<string, Panel> by panel
@@ -50,16 +50,20 @@ final readonly class FirmPanels
                 'name' => $this->translator->trans('party.scope.all_firms'),
                 'shared' => true,
                 'own' => false,
+                'ownState' => '',
                 'values' => $shared,
                 'errors' => $this->errors(FirmSettingsSubmission::SHARED, $panel, $submission),
             ]];
             foreach ($firms as $id => $firm) {
-                $own = $submission?->own[$id][$panel] ?? $this->hasOwn($party, $firm, $panel);
+                $sent = $submission?->own[$id][$panel] ?? null;
+                $own = $sent ?? $this->hasOwn($party, $firm, $panel);
                 $scopes[] = [
                     'id' => $id,
                     'name' => $firm->name(),
                     'shared' => false,
                     'own' => $own,
+                    // Empty leaves the panel alone; a confirmed back to shared stays "0" through a failed save.
+                    'ownState' => $own ? '1' : (false === $sent ? '0' : ''),
                     'values' => $own ? ($submission?->values[$id] ?? []) + $this->storedValues($party, $firm, $panel) + $shared : $shared,
                     'errors' => $this->errors($id, $panel, $submission),
                 ];
@@ -130,7 +134,7 @@ final readonly class FirmPanels
         $stored = ['roles' => $sharedRoles]
             + $this->defaultsValues($party?->invoicingDefaults() ?? InvoicingDefaults::standard())
             + $this->emailValues($party instanceof Party ? $this->settings->sharedEmails($party) : [])
-            + ['archived' => true === $party?->isArchived() ? '1' : ''];
+            + ['archived' => true === $party?->isArchived() ? '1' : '', 'archivedBefore' => true === $party?->isArchived() ? '1' : ''];
 
         return ($submission?->values[FirmSettingsSubmission::SHARED] ?? []) + $stored;
     }

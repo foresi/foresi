@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Application;
 
 use App\Audit\Domain\AuditEntry;
+use App\Party\Application\ArchiveParty;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
 use App\Party\Application\LegalEntities;
@@ -410,7 +411,7 @@ final class ContactSettingsForFirmTest extends WebTestCase
         });
         $this->browser->signIn();
 
-        $this->post($party, [$firm->id() => ['own' => ['roles' => '', 'emails' => '']]]);
+        $this->post($party, [$firm->id() => ['own' => ['roles' => '0', 'emails' => '0']]]);
 
         self::assertResponseRedirects('/contacts/'.$party->id());
         self::assertSame(0, $this->rows(PartyFirmSettings::class));
@@ -436,6 +437,108 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertSame([PartyRole::Supplier], $this->settings()->rolesFor($stored, $this->firms()->get($firm->id())));
     }
 
+    public function testAStaleFormLeavesAnOverrideItNeverShowedAlone(): void
+    {
+        $party = $this->party();
+        $firm = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $values = $crawler->filter('main form')->form()->getPhpValues();
+        self::assertSelectorExists(\sprintf('input[name="firms[%s][own][roles]"][value=""]', $firm->id()));
+
+        $this->context->switchTo($this->tenant);
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        $this->transaction()->run(fn () => $this->settings()->changeRoles($stored, $this->firms()->get($firm->id()), [PartyRole::Supplier]));
+        $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        self::assertSame([PartyRole::Supplier], $this->settings()->rolesFor($stored, $this->firms()->get($firm->id())));
+    }
+
+    public function testAFailedSaveKeepsAConfirmedBackToShared(): void
+    {
+        $party = $this->party();
+        $firm = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->transaction()->run(fn () => $this->settings()->changeRoles($party, $firm, [PartyRole::Supplier]));
+        $this->browser->signIn();
+
+        $this->post($party, [$firm->id() => ['own' => ['roles' => '0']]], ['displayName' => '']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists(\sprintf('input[name="firms[%s][own][roles]"][value="0"]', $firm->id()));
+    }
+
+    public function testWithOneActiveFirmLeftItsOverridesCanBeSeenAndRemoved(): void
+    {
+        $party = $this->party();
+        $untouched = self::getContainer()->get(CreateParty::class)->create(PartyKind::Company, 'Untouched Company', null, VatId::fromString('CZ12345687'), '', '', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+        $firm = $this->firm('Example Firm', '12345695');
+        $other = $this->firm('Other Firm', '12345687');
+        $this->transaction()->run(fn () => $this->settings()->changeRoles($party, $firm, [PartyRole::Supplier]));
+        $this->transaction()->run(static fn () => $other->archive(new \DateTimeImmutable('2026-10-31 12:00:00')));
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertCount(4, $crawler->filter('[data-firm-panel]'));
+        self::assertCount(2, $crawler->filter('[data-firm-panel="roles"] [role="menuitemradio"]'));
+        self::assertNull($crawler->filter(\sprintf('[data-firm-panel="roles"] [role="menuitemradio"][data-scope="%s"] [data-firm-scope-target="marker"]', $firm->id()))->attr('hidden'));
+
+        $crawler = $this->client->request('GET', '/contacts/'.$untouched->id().'/edit');
+        self::assertCount(0, $crawler->filter('[data-firm-panel]'));
+
+        $this->post($party, [$firm->id() => ['own' => ['roles' => '0']]]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        self::assertSame(0, $this->rows(PartyFirmSettings::class));
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertCount(0, $crawler->filter('[data-firm-panel]'));
+    }
+
+    public function testAStaleFormDoesNotRestoreAContactArchivedMeanwhile(): void
+    {
+        $party = $this->party();
+        $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $values = $crawler->filter('main form')->form()->getPhpValues();
+        // A browser sends the hidden field behind the unticked checkbox; the crawler drops it.
+        $values = array_replace_recursive($values, ['firms' => ['shared' => ['archived' => '']]]);
+
+        $this->context->switchTo($this->tenant);
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        self::getContainer()->get(ArchiveParty::class)->archive([$stored]);
+        $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $this->reload();
+        self::assertTrue(($this->em()->find(Party::class, $party->id()) ?? self::fail())->isArchived());
+    }
+
+    public function testAStaleFormDoesNotArchiveAContactRestoredMeanwhile(): void
+    {
+        $party = $this->party();
+        $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        self::getContainer()->get(ArchiveParty::class)->archive([$party]);
+        $this->browser->signIn();
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        $values = $crawler->filter('main form')->form()->getPhpValues();
+        self::assertSelectorExists('input[type="checkbox"][name="firms[shared][archived]"][checked]');
+
+        $this->context->switchTo($this->tenant);
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        self::getContainer()->get(ArchiveParty::class)->restore([$stored]);
+        $this->client->request('POST', '/contacts/'.$party->id().'/edit', $values);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $this->reload();
+        self::assertFalse(($this->em()->find(Party::class, $party->id()) ?? self::fail())->isArchived());
+    }
+
     public function testAnEmptyListOfEmailsIsNoOverride(): void
     {
         $party = $this->party();
@@ -459,7 +562,7 @@ final class ContactSettingsForFirmTest extends WebTestCase
         $this->post($party, ['shared' => [
             'dueDays' => '30', 'currency' => 'EUR', 'language' => 'en', 'paymentMethod' => 'card', 'reverseCharge' => '1',
             'invoiceEmails' => 'invoices@example.com', 'copyEmails' => '',
-            'archived' => '1',
+            'archived' => '1', 'archivedBefore' => '',
         ]]);
 
         self::assertResponseRedirects('/contacts/'.$party->id());
@@ -470,7 +573,7 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertTrue($stored->isArchived());
         self::assertTrue($this->settings()->isArchivedFor($stored, $this->firms()->get($firm->id())));
 
-        $this->post($stored, ['shared' => ['archived' => '']]);
+        $this->post($stored, ['shared' => ['archived' => '', 'archivedBefore' => '1']]);
         $this->reload();
         self::assertFalse(($this->em()->find(Party::class, $party->id()) ?? self::fail())->isArchived());
     }

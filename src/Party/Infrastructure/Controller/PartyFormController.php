@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Party\Application\ArchiveParty;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
 use App\Party\Application\DuplicateFinder;
@@ -38,7 +39,6 @@ use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use App\Party\Infrastructure\Registry\RegistryLookup;
 use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
-use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -82,7 +82,7 @@ final class PartyFormController extends AbstractController
         private readonly FirmSettingsReader $firmReader,
         private readonly FirmPanels $firmPanels,
         private readonly TransactionalWork $transaction,
-        private readonly ClockInterface $clock,
+        private readonly ArchiveParty $archiveParty,
     ) {
     }
 
@@ -149,7 +149,7 @@ final class PartyFormController extends AbstractController
 
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
-        $firms = $this->scopeFirms();
+        $firms = $this->scopeFirms($party);
         $firmSubmission = $this->firmReader->read($request, array_values($firms));
         $input = $submission->input;
         if (!$submission->valid() || !$input instanceof PartyInput || !$firmSubmission->valid()) {
@@ -205,9 +205,9 @@ final class PartyFormController extends AbstractController
             $this->firmSettings->changeSharedEmails($party, $emails);
         }
         if (true === ($submission->archived[$shared] ?? null)) {
-            $party->archive(\DateTimeImmutable::createFromInterface($this->clock->now()));
+            $this->archiveParty->archive([$party]);
         } elseif (false === ($submission->archived[$shared] ?? null)) {
-            $party->restore();
+            $this->archiveParty->restore([$party]);
         }
 
         foreach ($firms as $id => $firm) {
@@ -261,14 +261,17 @@ final class PartyFormController extends AbstractController
     }
 
     /**
-     * The active firms the panels offer, by id: none unless there are at least two.
+     * The active firms the panels offer, by id: at least two, or the only one
+     * left when this contact holds overrides for it, so they stay visible and
+     * can be removed. Otherwise none.
      *
      * @return array<string, LegalEntity>
      */
-    private function scopeFirms(): array
+    private function scopeFirms(?Party $party): array
     {
         $active = array_filter($this->firms->all(), static fn (LegalEntity $firm): bool => !$firm->isArchived());
-        if (\count($active) < 2) {
+        $only = 1 === \count($active) ? reset($active) : null;
+        if (\count($active) < 2 && (!$only instanceof LegalEntity || !$party instanceof Party || !$this->firmSettings->hasOverride($party, $only))) {
             return [];
         }
 
@@ -287,7 +290,7 @@ final class PartyFormController extends AbstractController
      */
     private function panels(?Party $party, array $values, ?FirmSettingsSubmission $submission): array
     {
-        $firms = $this->scopeFirms();
+        $firms = $this->scopeFirms($party);
         if ([] === $firms) {
             return [];
         }

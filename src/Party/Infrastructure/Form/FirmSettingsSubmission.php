@@ -31,7 +31,7 @@ final readonly class FirmSettingsSubmission
      * @param array<string, list<PartyRole>|null>      $roles    firm id => roles
      * @param array<string, InvoicingDefaults|null>    $defaults scope => settings; never null for SHARED
      * @param array<string, list<InvoicingEmail>|null> $emails   scope => addresses; never null for SHARED
-     * @param array<string, bool>                      $archived scope => archived
+     * @param array<string, bool>                      $archived scope => archived; for SHARED only a change against the rendered state
      */
     public function __construct(
         public array $values,
