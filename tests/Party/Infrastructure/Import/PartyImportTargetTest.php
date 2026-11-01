@@ -592,6 +592,39 @@ final class PartyImportTargetTest extends KernelTestCase
         self::assertFalse($this->target->changedSince($result->id, $result->before, $since, [self::CORRELATION]), 'a snapshot of this release has no ids to read');
     }
 
+    public function testEveryKindOfChildASnapshotNamesIsRead(): void
+    {
+        $result = $this->create($this->values(['delivery_street' => 'Example Street 2', 'delivery_city' => 'Example City', 'delivery_postal_code' => '110 00', 'delivery_country' => 'CZ']));
+        $addresses = array_values(array_filter($this->details()->addresses($this->find($result->id)), static fn (PartyAddress $address): bool => AddressType::Delivery === $address->type()));
+        self::assertCount(1, $addresses);
+        $addressId = $addresses[0]->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+
+        self::mockTime('2026-10-01 11:00:00');
+        $this->em->remove($addresses[0]);
+        $this->em->flush();
+        $this->em->getConnection()->executeStatement('UPDATE audit_entry SET root_class = entity_class, root_id = entity_id');
+
+        // The e-mails come first and show nothing; the check goes on to the addresses.
+        $old = new RecordSnapshot(['created' => true, 'children' => ['emails' => ['019a0000-0000-7000-8000-000000000099'], 'addresses' => [$addressId]]]);
+        self::assertTrue($this->target->changedSince($result->id, $old, $since, [self::CORRELATION]));
+    }
+
+    public function testAChangeToAPersonsLinkCountsForThePersonToo(): void
+    {
+        $id = $this->create($this->values(['contact_name' => 'Jana Example']))->id;
+        $link = $this->details()->contactLinks($this->find($id))[0];
+        $person = $link->person()->id();
+        $since = new \DateTimeImmutable('2026-10-01 10:00:00');
+        self::assertFalse($this->target->changedSince($person, RecordSnapshot::none(), $since, [self::CORRELATION]));
+
+        self::mockTime('2026-10-01 11:00:00');
+        $link->changePosition('Director');
+        $this->em->flush();
+
+        self::assertTrue($this->target->changedSince($person, RecordSnapshot::none(), $since, [self::CORRELATION]), 'the link is rooted at the company');
+    }
+
     public function testRemovingAChildThePartyHadBeforeAnUpdateCounts(): void
     {
         $id = $this->create($this->values(['email' => ['info@example.com', 'old-copy@example.com']]))->id;

@@ -40,37 +40,41 @@ final readonly class DoctrinePartyChanges
             return false;
         }
 
-        $conditions = ['(e.rootClass = :rootClass AND e.rootId IN (:roots))'];
-        $links = $this->linksOfPersons($partyIds);
-        if ([] !== $links) {
-            $conditions[] = '(e.entityClass = :linkClass AND e.entityId IN (:links))';
+        if ($this->hasEntry('rootClass', 'rootId', Party::class, $partyIds, $since, $exceptCorrelationIds)) {
+            return true;
         }
+        if ($this->hasEntry('entityClass', 'entityId', ContactLink::class, $this->linksOfPersons($partyIds), $since, $exceptCorrelationIds)) {
+            return true;
+        }
+
         // Only serves snapshots written before this release: entries made earlier of a child
         // removed before the root migration are rooted at the child itself, and the ids the
         // snapshot noted are the only link to the party.
-        $legacy = [];
-        foreach ($legacyChildren as $class => $ids) {
-            if ([] !== $ids) {
-                $index = \count($legacy);
-                $conditions[] = sprintf('(e.entityClass = :legacyClass%1$d AND e.entityId IN (:legacyIds%1$d))', $index);
-                $legacy['legacyClass'.$index] = $class;
-                $legacy['legacyIds'.$index] = array_values(array_unique($ids));
-            }
+        return array_any($legacyChildren, fn (array $ids, string $class): bool => $this->hasEntry('entityClass', 'entityId', $class, $ids, $since, $exceptCorrelationIds));
+    }
+
+    /**
+     * One query per class: each uses the index over tenant, class and id, which an
+     * OR of classes would not. SQLite would read the tenant's whole log for it, once per record.
+     *
+     * @param 'entityClass'|'rootClass' $classField
+     * @param 'entityId'|'rootId'       $idField
+     * @param list<string>              $ids
+     * @param list<string>              $exceptCorrelationIds
+     */
+    private function hasEntry(string $classField, string $idField, string $class, array $ids, \DateTimeImmutable $since, array $exceptCorrelationIds): bool
+    {
+        if ([] === $ids) {
+            return false;
         }
-        $dql = 'SELECT COUNT(e.id) FROM '.AuditEntry::class.' e WHERE ('.implode(' OR ', $conditions).') AND e.occurredAt >= :since';
+        $dql = sprintf('SELECT COUNT(e.id) FROM %s e WHERE e.%s = :class AND e.%s IN (:ids) AND e.occurredAt >= :since', AuditEntry::class, $classField, $idField);
         if ([] !== $exceptCorrelationIds) {
             $dql .= ' AND (e.correlationId IS NULL OR e.correlationId NOT IN (:correlations))';
         }
         $query = $this->em->createQuery($dql)
-            ->setParameter('rootClass', Party::class)
-            ->setParameter('roots', array_values(array_unique($partyIds)))
+            ->setParameter('class', $class)
+            ->setParameter('ids', array_values(array_unique($ids)))
             ->setParameter('since', $since, 'datetime_immutable');
-        if ([] !== $links) {
-            $query->setParameter('linkClass', ContactLink::class)->setParameter('links', $links);
-        }
-        foreach ($legacy as $name => $value) {
-            $query->setParameter($name, $value);
-        }
         if ([] !== $exceptCorrelationIds) {
             $query->setParameter('correlations', $exceptCorrelationIds);
         }
