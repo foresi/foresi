@@ -15,10 +15,12 @@ use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
@@ -58,7 +60,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
     {
         $invoice = $this->reloaded($this->issue->issue($this->input([$this->line('10.40'), $this->line('10.00', kind: \App\Invoicing\Domain\VatRateKind::Reduced)])));
 
-        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice);
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
 
         self::assertSame('20260001', $document->number);
         self::assertCount(2, $document->lines);
@@ -78,10 +80,81 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         // As a document issued under older rules would be stored.
         $this->em->getConnection()->update('invoice_line', ['vat_minor' => 2000, 'gross_minor' => 12000], ['invoice_id' => $invoice->id()]);
 
-        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($this->reloaded($invoice));
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
 
         self::assertSame(2000, $document->summaries[0]->vat->minor());
         self::assertSame(12000, $document->summaries[0]->gross->minor());
+    }
+
+    public function testALockRefusesPendingChangesAndLeavesThemPending(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        $customer = $this->customer();
+
+        foreach ([fn (): Invoice => $this->store->lock($id), fn (): \App\Invoicing\Application\StoredInvoice => $this->store->snapshot($id)] as $read) {
+            try {
+                $read();
+                self::fail('Expected a refusal.');
+            } catch (\LogicException $refused) {
+                self::assertSame('Store pending changes before working on an invoice.', $refused->getMessage());
+            }
+        }
+        $this->em->flush();
+        $this->em->clear();
+
+        self::assertInstanceOf(Party::class, $this->em->find(Party::class, $customer->id()));
+    }
+
+    public function testALockSeesChangedAndRemovedPendingEntitiesToo(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        $this->customer->rename('Renamed');
+
+        try {
+            $this->store->lock($id);
+            self::fail('Expected a refusal of an update.');
+        } catch (\LogicException) {
+            $this->em->flush();
+        }
+
+        $this->store->lines($this->store->lock($id));
+        foreach ($this->store->lines($this->store->get($id)) as $line) {
+            $this->store->removeLine($line);
+        }
+        $this->expectException(\LogicException::class);
+        $this->store->lock($id);
+    }
+
+    public function testASnapshotIgnoresWhatTheSessionRemembers(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->em->getConnection()->update('invoice', ['net_minor' => 7], ['id' => $invoice->id()]);
+
+        $stored = $this->store->snapshot($invoice->id());
+
+        self::assertSame(7, $stored->invoice->net()->minor());
+        self::assertCount(1, $stored->lines);
+    }
+
+    public function testASnapshotOfAnUnknownInvoiceFails(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        $this->em->clear();
+        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
+
+        $this->expectException(UnknownInvoice::class);
+        $this->store->snapshot($id);
+    }
+
+    public function testASnapshotKeepsTheOrderOfTheLines(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('1.00', text: 'One'), $this->line('2.00', text: 'Two'), $this->line('3.00', text: 'Three')]));
+        // Rows stored out of order come back in the order of the document.
+        $this->em->getConnection()->update('invoice_line', ['position' => 9], ['invoice_id' => $invoice->id(), 'position' => 0]);
+
+        $lines = $this->store->snapshot($invoice->id())->lines;
+
+        self::assertSame(['Two', 'Three', 'One'], array_map(static fn (InvoiceLine $line): string => $line->text(), $lines));
     }
 
     public function testAnInvoiceOfAnotherTenantDoesNotExist(): void
@@ -165,7 +238,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $first = $this->issue->issue($this->input(overrides: ['issueDate' => new \DateTimeImmutable('2026-11-01')]));
         $second = $this->issue->issue($this->input(overrides: ['issueDate' => new \DateTimeImmutable('2026-11-02')]));
         $trashed = $this->issue->issue($this->input(overrides: ['issueDate' => new \DateTimeImmutable('2026-11-03')]));
-        $this->trash->trash($trashed, 'Wrong customer');
+        $this->trash->trash($trashed->id(), 'Wrong customer');
         $other = $this->secondFirm();
         $foreign = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => null]));
 

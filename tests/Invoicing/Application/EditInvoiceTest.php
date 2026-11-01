@@ -12,6 +12,7 @@ use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\UnknownInvoice;
@@ -276,7 +277,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $other = $this->secondSeries('B{NNN}');
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
 
         $this->assertRefusedFor('invoice.problem.number_locked', fn () => $this->edited($invoice, $this->input(overrides: ['typedNumber' => '20260050'])));
         $this->assertRefusedFor('invoice.problem.number_locked', fn () => $this->edited($invoice, $this->input(overrides: ['typedNumber' => '2026-0001'])));
@@ -292,10 +293,52 @@ final class EditInvoiceTest extends InvoiceTestCase
         self::assertSame('20260001', $this->reloaded($invoice)->number());
     }
 
+    public function testAnEditReturnsTheInvoiceAsSaved(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+
+        $saved = $this->edit->edit($id, $this->input([$this->line('9900.00')]), 1);
+
+        self::assertSame(990000, $saved->net()->minor());
+        self::assertSame(2, $saved->version());
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($id);
+        self::assertSame(990000, $document->net->minor());
+        self::assertSame(990000, $document->lines[0]->net()->minor());
+    }
+
+    public function testPendingChangesStopAnEditInsteadOfVanishing(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        $this->em->clear();
+        $this->store->get($id);
+        $this->customer();
+
+        $this->expectExceptionMessageIsOrContains('Store pending changes before working on an invoice.');
+        $this->edit->edit($id, $this->input(), 1);
+    }
+
+    public function testLinesAreMatchedByPositionNotByTheirPlaceInTheList(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('100.00', text: 'One'), $this->line('200.00', text: 'Two'), $this->line('300.00', text: 'Three')]));
+        $connection = $this->em->getConnection();
+        $connection->delete('invoice_line', ['invoice_id' => $invoice->id(), 'position' => 1]);
+
+        $this->edited($invoice, $this->input([$this->line('100.00', text: 'One'), $this->line('250.00', text: 'New two'), $this->line('350.00', text: 'New three')]));
+        $lines = $this->store->lines($this->reloaded($invoice));
+
+        self::assertSame([0, 1, 2], array_map(static fn (InvoiceLine $line): int => $line->position(), $lines));
+        self::assertSame(['One', 'New two', 'New three'], array_map(static fn (InvoiceLine $line): string => $line->text(), $lines));
+
+        $connection->delete('invoice_line', ['invoice_id' => $invoice->id(), 'position' => 1]);
+        $this->edited($invoice, $this->input([$this->line('100.00', text: 'One'), $this->line('250.00', text: 'Two again')]));
+
+        self::assertSame(['One', 'Two again'], array_map(static fn (InvoiceLine $line): string => $line->text(), $this->store->lines($this->reloaded($invoice))));
+    }
+
     public function testATrashedInvoiceCannotBeEdited(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
 
         $this->assertRefusedFor('invoice.problem.trashed', fn () => $this->edited($invoice, $this->input(overrides: ['description' => 'x'])));
     }
@@ -350,11 +393,11 @@ final class EditInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input());
         self::assertSame(1, $invoice->version());
 
-        $this->edit->edit($invoice, $this->input(overrides: ['description' => 'First']), 1);
+        $this->edit->edit($invoice->id(), $this->input(overrides: ['description' => 'First']), 1);
         self::assertSame(2, $this->reloaded($invoice)->version());
 
         try {
-            $this->edit->edit($invoice, $this->input(overrides: ['description' => 'Second']), 1);
+            $this->edit->edit($invoice->id(), $this->input(overrides: ['description' => 'Second']), 1);
             self::fail('Expected a refusal.');
         } catch (IssueRefused $refused) {
             self::assertEquals([new IssueProblem('version', 'invoice.problem.changed_meanwhile')], $refused->problems);
@@ -367,20 +410,20 @@ final class EditInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
 
-        $this->assertRefusedFor('invoice.problem.changed_meanwhile', fn () => $this->edit->edit($invoice, $this->input(), 2));
+        $this->assertRefusedFor('invoice.problem.changed_meanwhile', fn (): Invoice => $this->edit->edit($invoice->id(), $this->input(), 2));
     }
 
     public function testEveryKindOfSaveMovesTheVersion(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
         $trashed = $this->reloaded($invoice)->version();
-        $this->trash->restore($invoice);
+        $this->trash->restore($invoice->id());
         $restored = $this->reloaded($invoice)->version();
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
         $delivered = $this->reloaded($invoice)->version();
-        $this->delivered->mark($invoice);
-        $this->trash->restore($invoice);
+        $this->delivered->mark($invoice->id());
+        $this->trash->restore($invoice->id());
 
         self::assertSame([2, 3, 4, 4], [$trashed, $restored, $delivered, $this->reloaded($invoice)->version()]);
     }
@@ -437,10 +480,10 @@ final class EditInvoiceTest extends InvoiceTestCase
         $own = $tenants->current();
         $tenants->switchTo(TenantId::generate());
         $tries = [
-            fn () => $this->edit->edit($invoice, $input, 1),
-            fn () => $this->trash->trash($invoice, 'Foreign'),
-            fn () => $this->trash->restore($invoice),
-            fn () => $this->delivered->mark($invoice),
+            fn (): Invoice => $this->edit->edit($invoice->id(), $input, 1),
+            fn (): Invoice => $this->trash->trash($invoice->id(), 'Foreign'),
+            fn (): Invoice => $this->trash->restore($invoice->id()),
+            fn (): Invoice => $this->delivered->mark($invoice->id()),
         ];
         foreach ($tries as $try) {
             try {
@@ -525,7 +568,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testATypedNumberWithSpacesAroundItIsTheSameNumber(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
 
         $this->edited($invoice, $this->input(overrides: ['typedNumber' => ' 20260001 ', 'description' => 'Changed']));
 

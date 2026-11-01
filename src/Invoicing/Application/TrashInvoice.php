@@ -29,23 +29,33 @@ final readonly class TrashInvoice
     }
 
     /**
-     * Only the id of the invoice given here counts. A refusal detaches what was loaded.
+     * @return Invoice the invoice as saved; anything loaded before is detached
      *
      * @throws \DomainException once delivered, without a reason, or when it is in the trash already
+     * @throws UnknownInvoice   also for an invoice of another tenant
      */
-    public function trash(Invoice $invoice, string $reason): void
+    public function trash(string $id, string $reason): Invoice
     {
-        $id = $invoice->id();
-        $this->retry->run(fn () => $this->work->run(function () use ($id, $reason): void {
-            $this->store->lock($id)->trash(\DateTimeImmutable::createFromInterface($this->clock->now()), $this->actor->userId(), $reason);
+        return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id, $reason): Invoice {
+            $invoice = $this->store->lock($id);
+            $invoice->trash(\DateTimeImmutable::createFromInterface($this->clock->now()), $this->actor->userId(), $reason);
+
+            return $invoice;
         }));
     }
 
-    public function restore(Invoice $invoice): void
+    /**
+     * @return Invoice the invoice as saved; anything loaded before is detached
+     *
+     * @throws UnknownInvoice also for an invoice of another tenant
+     */
+    public function restore(string $id): Invoice
     {
-        $id = $invoice->id();
-        $this->retry->run(fn () => $this->work->run(function () use ($id): void {
-            $this->store->lock($id)->restore();
+        return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id): Invoice {
+            $invoice = $this->store->lock($id);
+            $invoice->restore();
+
+            return $invoice;
         }));
     }
 }

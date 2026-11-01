@@ -18,6 +18,7 @@ use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\IssueRules;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\NumberAllocator;
+use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
@@ -145,7 +146,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
         $invoice = $this->reloaded($invoice);
         $lines = $this->store->lines($invoice);
-        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice);
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id());
 
         self::assertSame(VatRegime::NonPayer, $invoice->vatRegime());
         self::assertSame(12100, $invoice->net()->minor());
@@ -449,7 +450,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testANumberInTheTrashStaysTaken(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
 
         $this->assertRefusedFor('invoice.problem.number_taken', fn (): Invoice => $this->issue->issue($this->input(overrides: ['typedNumber' => '20260001'])));
     }
@@ -538,6 +539,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
             public function lock(string $id): Invoice
             {
                 return $this->store->lock($id);
+            }
+
+            public function snapshot(string $id): StoredInvoice
+            {
+                return $this->store->snapshot($id);
             }
 
             public function add(Invoice $invoice): void

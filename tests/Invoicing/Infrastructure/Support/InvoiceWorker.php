@@ -11,12 +11,14 @@ namespace App\Tests\Invoicing\Infrastructure\Support;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
@@ -54,6 +56,8 @@ abstract class InvoiceWorker extends KernelTestCase
 {
     private const string IBAN = 'CZ6508000000192000145399';
     private const float SLOT = 0.25;
+    private const int HOLD = 1_200_000;
+    private const string MOMENT = '2026-11-03 10:00:00';
 
     /**
      * Rebuilds the schema and issues the invoices, each with the same lines.
@@ -84,58 +88,117 @@ abstract class InvoiceWorker extends KernelTestCase
         $ids = ['tenant' => $tenant->toString(), 'firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'invoices' => []];
         $issue = $container->get(IssueInvoice::class);
         for ($i = 0; $i < $invoices; ++$i) {
-            $ids['invoices'][] = $issue->issue(self::input($ids, self::lines($lines, 'seed')))->id();
+            $ids['invoices'][] = $issue->issue(self::input($ids, self::lines($lines, 'seed', '100.00')))->id();
         }
 
         return $ids;
     }
 
     /**
-     * @return array{results: list<string>, began: float, ended: float} one result per invoice, or per issue
+     * @return array{results: list<string>, began: list<float>, ended: list<float>} per time slot
      */
     public static function perform(string $json, string $job, float $startAt): array
     {
         $ids = self::ids($json);
-        self::bootKernel(['debug' => false]);
+        self::enter($ids);
         $container = self::getContainer();
-        $container->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
-        $store = $container->get(InvoiceStore::class);
         $edit = $container->get(EditInvoice::class);
         $trash = $container->get(TrashInvoice::class);
         $delivered = $container->get(MarkDelivered::class);
         $issue = $container->get(IssueInvoice::class);
 
         $results = [];
-        $began = 0.0;
+        $began = [];
+        $ended = [];
         foreach ($ids['invoices'] as $slot => $id) {
             usleep(max(0, (int) (($startAt + $slot * self::SLOT - microtime(true)) * 1_000_000)));
-            if (0 === $slot) {
-                $began = microtime(true);
-            }
+            $began[] = microtime(true);
             try {
                 $action = match ($job) {
-                    'issue' => static fn (): string => $issue->issue(self::input($ids, self::lines(1, 'x')))->number(),
-                    'edit-two' => static fn () => $edit->edit($store->get($id), self::input($ids, self::lines(2, 'two')), 1),
-                    'edit-three' => static fn () => $edit->edit($store->get($id), self::input($ids, self::lines(3, 'three')), 1),
-                    'edit-one' => static fn () => $edit->edit($store->get($id), self::input($ids, self::lines(1, 'one')), 1),
-                    'trash' => static fn () => $trash->trash($store->get($id), 'Wrong customer'),
-                    'deliver' => static fn () => $delivered->mark($store->get($id)),
-                    'renumber' => static fn () => $edit->edit($store->get($id), self::input($ids, self::lines(1, 'seed'), 'R-'.$slot), 1),
+                    'issue' => static fn (): Invoice => $issue->issue(self::input($ids, self::lines(1, 'x', '100.00'))),
+                    'edit-two' => static fn (): Invoice => $edit->edit($id, self::input($ids, self::lines(2, 'two', '100.00')), 1),
+                    'edit-three' => static fn (): Invoice => $edit->edit($id, self::input($ids, self::lines(3, 'three', '200.00')), 1),
+                    'edit-one' => static fn (): Invoice => $edit->edit($id, self::input($ids, self::lines(1, 'one', '100.00')), 1),
+                    'trash' => static fn (): Invoice => $trash->trash($id, 'Wrong customer'),
+                    'deliver' => static fn (): Invoice => $delivered->mark($id),
+                    'renumber' => static fn (): Invoice => $edit->edit($id, self::input($ids, self::lines(1, 'seed', '100.00'), 'R-'.$slot), 1),
                     default => throw new \InvalidArgumentException('Unknown job.'),
                 };
-                $number = $action();
-                $results[] = \is_string($number) ? $number : 'done';
+                $invoice = $action();
+                $results[] = 'issue' === $job ? $invoice->number() : 'done';
             } catch (IssueRefused $refused) {
                 $results[] = 'refused:'.$refused->problems[0]->key;
             } catch (\DomainException) {
                 $results[] = 'refused';
             }
+            $ended[] = microtime(true);
         }
 
         return [
             'results' => $results,
             'began' => $began,
-            'ended' => microtime(true),
+            'ended' => $ended,
+        ];
+    }
+
+    /**
+     * Takes the row of the first invoice at the given moment, changes it without
+     * moving the version, keeps it for a while, and commits. A service that respects
+     * the row waits, then sees the change.
+     */
+    public static function hold(string $json, string $change, float $startAt): void
+    {
+        $ids = self::ids($json);
+        self::enter($ids);
+        $connection = self::getContainer()->get('doctrine.dbal.default_connection');
+        usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
+        $connection->beginTransaction();
+        $connection->update('invoice', match ($change) {
+            'delivered' => ['delivered_at' => self::MOMENT],
+            'trashed' => ['deleted_at' => self::MOMENT, 'deleted_reason' => 'Held'],
+            default => throw new \InvalidArgumentException('Unknown change.'),
+        }, ['id' => $ids['invoices'][0]]);
+        usleep(self::HOLD);
+        $connection->commit();
+    }
+
+    /**
+     * Keeps editing the first invoice, with three lines and one in turn.
+     */
+    public static function churn(string $json, float $startAt, int $saves): void
+    {
+        $ids = self::ids($json);
+        self::enter($ids);
+        $edit = self::getContainer()->get(EditInvoice::class);
+        usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
+        for ($save = 0; $save < $saves; ++$save) {
+            $edit->edit($ids['invoices'][0], self::input($ids, self::lines(0 === $save % 2 ? 3 : 1, 'churn', '100.00')), $save + 1);
+        }
+    }
+
+    /**
+     * Keeps reading the first invoice while it changes.
+     *
+     * @return array{reads: int, torn: int} how many reads, and how many showed a header and lines that disagree
+     */
+    public static function read(string $json, float $startAt, float $seconds): array
+    {
+        $ids = self::ids($json);
+        self::enter($ids);
+        $documents = self::getContainer()->get(IssuedDocumentFactory::class);
+        usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
+        $reads = 0;
+        $torn = 0;
+        while (microtime(true) < $startAt + $seconds) {
+            $document = $documents->of($ids['invoices'][0]);
+            ++$reads;
+            $lines = array_sum(array_map(static fn (InvoiceLine $line): int => $line->net()->minor(), $document->lines));
+            $torn += $lines === $document->net->minor() ? 0 : 1;
+        }
+
+        return [
+            'reads' => $reads,
+            'torn' => $torn,
         ];
     }
 
@@ -145,10 +208,8 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function inspect(string $json): array
     {
         $ids = self::ids($json);
-        self::bootKernel(['debug' => false]);
-        $container = self::getContainer();
-        $container->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
-        $store = $container->get(InvoiceStore::class);
+        self::enter($ids);
+        $store = self::getContainer()->get(InvoiceStore::class);
         $found = [];
         foreach ($ids['invoices'] as $id) {
             $invoice = $store->get($id);
@@ -169,6 +230,15 @@ abstract class InvoiceWorker extends KernelTestCase
     }
 
     /**
+     * @param Ids $ids
+     */
+    private static function enter(array $ids): void
+    {
+        self::bootKernel(['debug' => false]);
+        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
+    }
+
+    /**
      * @return Ids
      */
     private static function ids(string $json): array
@@ -182,11 +252,11 @@ abstract class InvoiceWorker extends KernelTestCase
     /**
      * @return list<LineInput>
      */
-    private static function lines(int $count, string $text): array
+    private static function lines(int $count, string $text, string $price): array
     {
         $lines = [];
         for ($i = 0; $i < $count; ++$i) {
-            $lines[] = new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $lines[] = new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
         }
 
         return $lines;

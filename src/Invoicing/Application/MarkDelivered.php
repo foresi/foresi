@@ -27,15 +27,18 @@ final readonly class MarkDelivered
     }
 
     /**
-     * Only the id of the invoice given here counts. A refusal detaches what was loaded.
+     * @return Invoice the invoice as saved; anything loaded before is detached
      *
      * @throws \DomainException for an invoice in the trash
+     * @throws UnknownInvoice   also for an invoice of another tenant
      */
-    public function mark(Invoice $invoice): void
+    public function mark(string $id): Invoice
     {
-        $id = $invoice->id();
-        $this->retry->run(fn () => $this->work->run(function () use ($id): void {
-            $this->store->lock($id)->markDelivered(\DateTimeImmutable::createFromInterface($this->clock->now()));
+        return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id): Invoice {
+            $invoice = $this->store->lock($id);
+            $invoice->markDelivered(\DateTimeImmutable::createFromInterface($this->clock->now()));
+
+            return $invoice;
         }));
     }
 }

@@ -25,6 +25,7 @@ final class InvoiceRaceTest extends KernelTestCase
 {
     private const string WORKER = 'tests/Invoicing/Infrastructure/Support/race.php';
     private const int ROUNDS = 8;
+    private const float START_DELAY = 3.0;
 
     private ?string $sqliteFile = null;
 
@@ -78,27 +79,35 @@ final class InvoiceRaceTest extends KernelTestCase
         [$two, $three] = $this->race($url, $ids, ['edit-two', 'edit-three']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
-            self::assertSame($invoice['lineNet'], $invoice['headerNet'], 'the header and the lines agree');
-            self::assertSame(range(0, \count($invoice['positions']) - 1), $invoice['positions']);
-            self::assertSame(2, $invoice['version']);
-            $outcome = [$two[$round], $three[$round]];
-            sort($outcome);
-            self::assertSame(['done', 'refused:invoice.problem.changed_meanwhile'], $outcome);
+            $this->assertOneWon($two[$round], $three[$round], $invoice);
             self::assertSame('done' === $two[$round] ? ['two', 'two'] : ['three', 'three', 'three'], $invoice['texts']);
         }
     }
 
     #[DataProvider('databases')]
-    public function testADoubleClickedSaveStoresOneLineSet(string $kind): void
+    public function testAShrinkAndARewriteOfOneFormNeverMix(string $kind): void
     {
         [$url, $ids] = $this->seeded($kind, self::ROUNDS, 3);
 
-        $this->race($url, $ids, ['edit-one', 'edit-one']);
+        [$shrink, $rewrite] = $this->race($url, $ids, ['edit-one', 'edit-three']);
 
-        foreach ($this->stored($url, $ids) as $invoice) {
+        foreach ($this->stored($url, $ids) as $round => $invoice) {
+            $this->assertOneWon($shrink[$round], $rewrite[$round], $invoice);
+            self::assertSame('done' === $shrink[$round] ? ['one'] : ['three', 'three', 'three'], $invoice['texts']);
+        }
+    }
+
+    #[DataProvider('databases')]
+    public function testADoubleClickedSaveCountsOnce(string $kind): void
+    {
+        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 3);
+
+        [$first, $second] = $this->race($url, $ids, ['edit-one', 'edit-one']);
+
+        foreach ($this->stored($url, $ids) as $round => $invoice) {
+            $this->assertOneWon($first[$round], $second[$round], $invoice);
             self::assertSame(['one'], $invoice['texts']);
             self::assertSame(10000, $invoice['headerNet']);
-            self::assertSame(10000, $invoice['lineNet']);
         }
     }
 
@@ -112,6 +121,7 @@ final class InvoiceRaceTest extends KernelTestCase
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertNotSame($invoice['trashed'], $invoice['delivered'], 'one of them wins');
             self::assertSame($invoice['trashed'] ? ['done', 'refused'] : ['refused', 'done'], [$trash[$round], $deliver[$round]]);
+            self::assertSame(2, $invoice['version'], 'only the winner saved');
         }
     }
 
@@ -125,7 +135,13 @@ final class InvoiceRaceTest extends KernelTestCase
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertSame('done', $trash[$round]);
             self::assertTrue($invoice['trashed']);
-            self::assertSame('done' === $edit[$round] ? ['two', 'two'] : ['seed'], $invoice['texts'], 'an edit either came first or changed nothing');
+            if ('done' === $edit[$round]) {
+                self::assertSame(['two', 'two'], $invoice['texts']);
+                self::assertSame(3, $invoice['version'], 'the edit came first, and the trash after it saw that');
+            } else {
+                self::assertSame(['seed'], $invoice['texts'], 'a refused edit changed nothing');
+                self::assertSame(2, $invoice['version']);
+            }
         }
     }
 
@@ -139,8 +155,72 @@ final class InvoiceRaceTest extends KernelTestCase
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertSame('done', $deliver[$round]);
             self::assertTrue($invoice['delivered']);
-            self::assertSame('done' === $renumber[$round], str_starts_with($invoice['number'], 'R-'), 'a renumber either came first or changed nothing');
+            if ('done' === $renumber[$round]) {
+                self::assertStringStartsWith('R-', $invoice['number']);
+                self::assertSame(4, $invoice['version'], 'the renumber came first, and the delivery after it saw that');
+            } else {
+                self::assertStringStartsNotWith('R-', $invoice['number'], 'a refused renumber changed nothing');
+                self::assertSame(2, $invoice['version']);
+            }
         }
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, string}>
+     */
+    public static function heldRows(): iterable
+    {
+        foreach (self::databases() as $name => [$kind]) {
+            yield $name.', renumber waits for a delivery' => [$kind, 'delivered', 'renumber', 'refused:invoice.problem.number_locked'];
+            yield $name.', edit waits for the trash' => [$kind, 'trashed', 'edit-two', 'refused:invoice.problem.trashed'];
+            yield $name.', trash waits for a delivery' => [$kind, 'delivered', 'trash', 'refused'];
+        }
+    }
+
+    #[DataProvider('heldRows')]
+    public function testAServiceWaitsForAHeldRowAndSeesItsChange(string $kind, string $change, string $job, string $refusal): void
+    {
+        [$url, $ids] = $this->seeded($kind, 1, 1);
+        $startAt = microtime(true) + self::START_DELAY;
+        $holder = $this->process($url, ['hold', $ids, $change, \sprintf('%.6F', $startAt)]);
+        $service = $this->process($url, ['run', $ids, $job, \sprintf('%.6F', $startAt + 0.4)]);
+        $holder->start();
+        $service->start();
+        $holder->wait();
+        $service->wait();
+
+        self::assertTrue($holder->isSuccessful(), $holder->getErrorOutput().$holder->getOutput());
+        self::assertTrue($service->isSuccessful(), $service->getErrorOutput().$service->getOutput());
+        /** @var array{results: list<string>, began: list<float>, ended: list<float>} $outcome */
+        $outcome = json_decode($service->getOutput(), true, 8, \JSON_THROW_ON_ERROR);
+        self::assertSame($refusal, $outcome['results'][0]);
+        self::assertGreaterThan(0.4, $outcome['ended'][0] - $outcome['began'][0], 'it waited for the row');
+        $invoice = $this->stored($url, $ids)[0];
+        self::assertSame(['seed'], $invoice['texts']);
+        self::assertSame(1, $invoice['version']);
+        self::assertStringStartsNotWith('R-', $invoice['number']);
+        self::assertSame('delivered' === $change, $invoice['delivered']);
+        self::assertSame('trashed' === $change, $invoice['trashed']);
+    }
+
+    #[DataProvider('databases')]
+    public function testADocumentNeverShowsHalfASave(string $kind): void
+    {
+        [$url, $ids] = $this->seeded($kind, 1, 1);
+        $startAt = microtime(true) + self::START_DELAY;
+        $editor = $this->process($url, ['churn', $ids, \sprintf('%.6F', $startAt), '30']);
+        $reader = $this->process($url, ['read', $ids, \sprintf('%.6F', $startAt), '2']);
+        $editor->start();
+        $reader->start();
+        $editor->wait();
+        $reader->wait();
+
+        self::assertTrue($editor->isSuccessful(), $editor->getErrorOutput().$editor->getOutput());
+        self::assertTrue($reader->isSuccessful(), $reader->getErrorOutput().$reader->getOutput());
+        /** @var array{reads: int, torn: int} $seen */
+        $seen = json_decode($reader->getOutput(), true, 8, \JSON_THROW_ON_ERROR);
+        self::assertGreaterThan(10, $seen['reads']);
+        self::assertSame(0, $seen['torn'], 'a read saw a header and lines of different saves');
     }
 
     private static function suiteUrl(): string
@@ -167,7 +247,8 @@ final class InvoiceRaceTest extends KernelTestCase
     }
 
     /**
-     * Starts one process per job, and proves they ran at the same time.
+     * Starts one process per job, and proves they met: in most time slots all of them
+     * were at work on that invoice at once. Scheduling may spoil a slot, so not in all.
      *
      * @param list<string> $jobs
      *
@@ -175,26 +256,52 @@ final class InvoiceRaceTest extends KernelTestCase
      */
     private function race(string $url, string $ids, array $jobs): array
     {
-        $startAt = \sprintf('%.6F', microtime(true) + 3.0);
+        $startAt = \sprintf('%.6F', microtime(true) + self::START_DELAY);
         $processes = array_map(fn (string $job): Process => $this->process($url, ['run', $ids, $job, $startAt]), $jobs);
         foreach ($processes as $process) {
             $process->start();
         }
         $results = [];
-        $lastBegan = 0.0;
-        $firstEnded = \PHP_FLOAT_MAX;
+        $began = [];
+        $ended = [];
         foreach ($processes as $process) {
             $process->wait();
             self::assertTrue($process->isSuccessful(), $process->getErrorOutput().$process->getOutput());
-            /** @var array{results: list<string>, began: float, ended: float} $outcome */
+            /** @var array{results: list<string>, began: list<float>, ended: list<float>} $outcome */
             $outcome = json_decode($process->getOutput(), true, 8, \JSON_THROW_ON_ERROR);
             $results[] = $outcome['results'];
-            $lastBegan = max($lastBegan, $outcome['began']);
-            $firstEnded = min($firstEnded, $outcome['ended']);
+            $began[] = $outcome['began'];
+            $ended[] = $outcome['ended'];
         }
-        self::assertLessThan($firstEnded, $lastBegan, 'the processes did not overlap');
+        $met = 0;
+        foreach (array_keys($results[0]) as $slot) {
+            $lastBegan = 0.0;
+            $firstEnded = \PHP_FLOAT_MAX;
+            foreach (array_keys($results) as $process) {
+                $lastBegan = max($lastBegan, $began[$process][$slot]);
+                $firstEnded = min($firstEnded, $ended[$process][$slot]);
+            }
+            $met += $lastBegan < $firstEnded ? 1 : 0;
+        }
+        self::assertGreaterThanOrEqual((int) ceil(\count($results[0]) / 2), $met, 'the processes did not meet on the invoices');
 
         return $results;
+    }
+
+    /**
+     * One save went through, the other was told the form is stale, and the document
+     * holds exactly the winner.
+     *
+     * @param Stored $invoice
+     */
+    private function assertOneWon(string $first, string $second, array $invoice): void
+    {
+        $outcome = [$first, $second];
+        sort($outcome);
+        self::assertSame(['done', 'refused:invoice.problem.changed_meanwhile'], $outcome);
+        self::assertSame(2, $invoice['version'], 'one save, one version');
+        self::assertSame($invoice['lineNet'], $invoice['headerNet'], 'the header and the lines agree');
+        self::assertSame(range(0, \count($invoice['positions']) - 1), $invoice['positions']);
     }
 
     /**

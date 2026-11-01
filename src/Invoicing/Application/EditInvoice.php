@@ -39,18 +39,17 @@ final readonly class EditInvoice
     }
 
     /**
-     * Only the id of the invoice given here counts: the save works on the row as it
-     * stands under the lock. A refusal or failure detaches what was loaded.
-     *
      * @param int $version the version of the invoice when the form was opened
      *
-     * @throws IssueRefused when a rule refuses, or when someone saved since the form
-     *                      was opened (field "version"); nothing changes
+     * @return Invoice the invoice as saved; anything loaded before is detached
+     *
+     * @throws IssueRefused   when a rule refuses, or when someone saved since the form
+     *                        was opened (field "version"); nothing changes
+     * @throws UnknownInvoice also for an invoice of another tenant
      */
-    public function edit(Invoice $invoice, InvoiceInput $input, int $version): void
+    public function edit(string $id, InvoiceInput $input, int $version): Invoice
     {
-        $id = $invoice->id();
-        $this->retry->run(fn () => $this->work->run(function () use ($id, $input, $version): void {
+        return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id, $input, $version): Invoice {
             $invoice = $this->store->lock($id);
             if ($invoice->version() !== $version) {
                 throw new IssueRefused([new IssueProblem('version', 'invoice.problem.changed_meanwhile')]);
@@ -65,6 +64,8 @@ final readonly class EditInvoice
             $series = null === $input->seriesId ? $invoice->series() : $this->catalog->get($input->seriesId);
             $this->renumber($invoice, $input, $series);
             $this->save($invoice, $input, $input->change($party, $customer));
+
+            return $invoice;
         }));
     }
 
@@ -86,7 +87,10 @@ final readonly class EditInvoice
         $country = $this->countries->for($invoice->issuer()->address->countryCode);
         $regime = $invoice->vatRegime();
         $lines = $this->pricing->priced($input->lines, $regime, $country, $change->taxPointDate);
-        $stored = $this->store->lines($invoice);
+        $stored = [];
+        foreach ($this->store->lines($invoice) as $line) {
+            $stored[$line->position()] = $line;
+        }
         foreach ($lines as $position => $line) {
             $typed = $line->input;
             if (isset($stored[$position])) {
@@ -95,8 +99,10 @@ final readonly class EditInvoice
                 $this->store->addLine(new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts));
             }
         }
-        foreach (\array_slice($stored, \count($lines)) as $line) {
-            $this->store->removeLine($line);
+        foreach ($stored as $position => $line) {
+            if ($position >= \count($lines)) {
+                $this->store->removeLine($line);
+            }
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $invoice->rounding(), $invoice->currency()));
     }

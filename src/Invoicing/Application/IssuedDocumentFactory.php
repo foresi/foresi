@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\LineAmounts;
@@ -16,9 +15,9 @@ use App\Invoicing\Domain\SummaryLine;
 use App\Shared\Domain\Money;
 
 /**
- * Builds the view of an invoice from what is stored: its rate summaries add up the
- * stored amounts of the lines and nothing is priced again, so a document issued
- * under older rules keeps its figures.
+ * Builds the view of an invoice from what is stored, header and lines from one
+ * read: its rate summaries add up the stored amounts of the lines and nothing is
+ * priced again, so a document issued under older rules keeps its figures.
  */
 final readonly class IssuedDocumentFactory
 {
@@ -26,9 +25,14 @@ final readonly class IssuedDocumentFactory
     {
     }
 
-    public function of(Invoice $invoice): IssuedDocument
+    /**
+     * @throws UnknownInvoice also for an invoice of another tenant
+     */
+    public function of(string $id): IssuedDocument
     {
-        $lines = $this->store->lines($invoice);
+        $stored = $this->store->snapshot($id);
+        $invoice = $stored->invoice;
+        $lines = $stored->lines;
         $summaries = $this->calculator->summaries(
             array_map(static fn (InvoiceLine $line): SummaryLine => new SummaryLine($line->treatment(), $line->rate(), new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross())), $lines),
             Money::ofMinor(0, $invoice->currency()),

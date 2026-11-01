@@ -12,6 +12,7 @@ use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\Invoice;
@@ -45,6 +46,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
 
     public function lock(string $id): Invoice
     {
+        $this->refusePendingChanges();
         $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
         if (1 !== $locked) {
             throw new UnknownInvoice();
@@ -53,6 +55,23 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $this->em->clear();
 
         return $this->get($id);
+    }
+
+    public function snapshot(string $id): StoredInvoice
+    {
+        $this->refusePendingChanges();
+        // A loaded invoice would win over what this statement reads.
+        $this->em->clear();
+        /** @var list<Invoice|InvoiceLine|null> $rows */
+        $rows = $this->em->createQuery('SELECT i, l FROM '.Invoice::class.' i LEFT JOIN '.InvoiceLine::class.' l WITH l.invoice = i WHERE i.id = :id ORDER BY l.position')
+            ->setParameter('id', $id)
+            ->getResult();
+        $invoice = $rows[0] ?? null;
+        if (!$invoice instanceof Invoice) {
+            throw new UnknownInvoice();
+        }
+
+        return new StoredInvoice($invoice, array_values(array_filter($rows, static fn (Invoice|InvoiceLine|null $row): bool => $row instanceof InvoiceLine)));
     }
 
     public function add(Invoice $invoice): void
@@ -133,6 +152,18 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             ->getOneOrNullResult();
 
         return $firm instanceof LegalEntity ? $firm : null;
+    }
+
+    /**
+     * Starting a session over would drop these without a word.
+     */
+    private function refusePendingChanges(): void
+    {
+        $work = $this->em->getUnitOfWork();
+        $work->computeChangeSets();
+        if ([] !== $work->getScheduledEntityInsertions() || [] !== $work->getScheduledEntityUpdates() || [] !== $work->getScheduledEntityDeletions()) {
+            throw new \LogicException('Store pending changes before working on an invoice.');
+        }
     }
 
     private function row(Invoice $invoice): InvoiceRow

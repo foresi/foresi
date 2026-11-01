@@ -30,7 +30,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         self::mockTime('2026-11-03 10:00:00');
         $invoice = $this->issue->issue($this->input());
 
-        $this->trash->trash($invoice, '  Wrong customer ');
+        $this->trash->trash($invoice->id(), '  Wrong customer ');
         $invoice = $this->reloaded($invoice);
 
         self::assertTrue($invoice->isTrashed());
@@ -52,10 +52,10 @@ final class TrashInvoiceTest extends InvoiceTestCase
     public function testADeliveredInvoiceCannotBeTrashed(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
 
         $this->expectException(\DomainException::class);
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
     }
 
     public function testTrashNeedsAReasonAndRestoreKeepsTheNumber(): void
@@ -63,14 +63,14 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input());
 
         try {
-            $this->trash->trash($invoice, '   ');
+            $this->trash->trash($invoice->id(), '   ');
             self::fail('Expected a refusal.');
         } catch (\DomainException) {
             self::assertFalse($invoice->isTrashed());
         }
 
-        $this->trash->trash($invoice, 'Wrong customer');
-        $this->trash->restore($this->reloaded($invoice));
+        $this->trash->trash($invoice->id(), 'Wrong customer');
+        $this->trash->restore($invoice->id());
         $invoice = $this->reloaded($invoice);
 
         self::assertFalse($invoice->isTrashed());
@@ -80,31 +80,40 @@ final class TrashInvoiceTest extends InvoiceTestCase
         self::assertSame('20260001', $invoice->number());
     }
 
+    public function testEveryServiceReturnsTheInvoiceAsSaved(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+
+        self::assertTrue($this->trash->trash($id, 'Wrong customer')->isTrashed());
+        self::assertFalse($this->trash->restore($id)->isTrashed());
+        self::assertTrue($this->delivered->mark($id)->isDelivered());
+    }
+
     public function testAnInvoiceIsTrashedOnce(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'First reason');
+        $this->trash->trash($invoice->id(), 'First reason');
 
         $this->expectException(\DomainException::class);
-        $this->trash->trash($invoice, 'Second reason');
+        $this->trash->trash($invoice->id(), 'Second reason');
     }
 
     public function testATrashedInvoiceCannotBeDelivered(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
 
         $this->expectException(\DomainException::class);
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
     }
 
     public function testDeliveryIsRecordedOnce(): void
     {
         self::mockTime('2026-11-03 10:00:00');
         $invoice = $this->issue->issue($this->input());
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
         self::mockTime('2026-11-20 10:00:00');
-        $this->delivered->mark($invoice);
+        $this->delivered->mark($invoice->id());
 
         self::assertTrue($this->reloaded($invoice)->isDelivered());
         self::assertSame('2026-11-03', $this->reloaded($invoice)->deliveredAt()?->format('Y-m-d'));
@@ -122,7 +131,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         };
         $trash = new TrashInvoice($this->store, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'));
 
-        $trash->trash($invoice, 'Wrong customer');
+        $trash->trash($invoice->id(), 'Wrong customer');
 
         self::assertSame('01963c5e-0000-7000-8000-00000000000a', $this->reloaded($invoice)->deletedBy());
     }
@@ -130,13 +139,13 @@ final class TrashInvoiceTest extends InvoiceTestCase
     public function testAnInvoiceRestoresInAnArchivedFirm(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->trash->trash($invoice, 'Wrong customer');
+        $this->trash->trash($invoice->id(), 'Wrong customer');
         $firm = $this->em->getRepository(LegalEntity::class)->find($this->firm->id());
         self::assertInstanceOf(LegalEntity::class, $firm);
         $firm->archive(new \DateTimeImmutable('2026-11-04'));
         $this->em->flush();
 
-        $this->trash->restore($invoice);
+        $this->trash->restore($invoice->id());
 
         self::assertFalse($this->reloaded($invoice)->isTrashed());
     }
@@ -145,7 +154,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
 
-        $this->trash->restore($invoice);
+        $this->trash->restore($invoice->id());
 
         self::assertSame(1, $this->reloaded($invoice)->version());
     }

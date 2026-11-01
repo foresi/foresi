@@ -171,7 +171,7 @@ abstract class InvoiceTestCase extends KernelTestCase
     protected function edited(Invoice $invoice, InvoiceInput $input): void
     {
         $this->em->clear();
-        $this->edit->edit($invoice, $input, $this->store->get($invoice->id())->version());
+        $this->edit->edit($invoice->id(), $input, $this->store->get($invoice->id())->version());
     }
 
     protected function reloaded(Invoice $invoice): Invoice

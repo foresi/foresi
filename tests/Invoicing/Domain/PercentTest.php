@@ -87,4 +87,9 @@ final class PercentTest extends TestCase
         self::assertSame('1', $hundred->factorOf());
         self::assertSame('2', $hundred->inclusiveFactor());
     }
+
+    public function testAFactorKeepsItsWholePartAtEveryValue(): void
+    {
+        self::assertSame('0.9999', Percent::fromString('99.99')->factorOf());
+    }
 }
