@@ -46,6 +46,11 @@ jobs:
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
 
+      # Every reversible migration goes down and up again; see the script for
+      # the migrations that are irreversible by design.
+      - name: Migration round trip
+        run: bin/migration-roundtrip
+
       - name: Quality gate
         run: composer qa
 
@@ -125,6 +130,11 @@ jobs:
         run: |
           bin/console doctrine:migrations:migrate --no-interaction
           bin/console doctrine:schema:validate
+
+      # Every reversible migration goes down and up again; see the script for
+      # the migrations that are irreversible by design.
+      - name: Migration round trip
+        run: bin/migration-roundtrip
 
       # The tests build their own schema with the schema tool, which cannot
       # drop the foreign keys the migrations named, so start from an empty database.
