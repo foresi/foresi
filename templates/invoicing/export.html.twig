@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: path('app_invoices')}, {label: 'invoice.export.title'|trans}] %}
+
+{% block title %}{{ 'invoice.export.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:Ui:Card :title="'invoice.export.title'|trans" icon="download" class="max-w-2xl">
+        <form method="post" action="{{ path('app_invoice_export') }}" class="grid gap-4" novalidate data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceExportController::TOKEN')) }}">
+            <p class="m-0 text-muted">{{ 'invoice.export.intro'|trans }}</p>
+            {% if notice %}<twig:Ui:Alert tone="warning" role="status">{{ notice }}</twig:Ui:Alert>{% endif %}
+            <twig:Ui:Select name="firm" id="export-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" :required="true" />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <twig:Ui:TextInput name="from" id="export-from" type="date" :label="'invoice.export.from'|trans" :value="from" :error="errors.from|default(null)" :required="true" />
+                <twig:Ui:TextInput name="to" id="export-to" type="date" :label="'invoice.export.to'|trans" :value="to" :error="errors.to|default(null)" :required="true" />
+            </div>
+            <div class="flex flex-wrap justify-end gap-2">
+                <twig:Ui:Button :href="path('app_invoices')">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary" icon="download">{{ 'invoice.export.submit'|trans }}</twig:Ui:Button>
+            </div>
+        </form>
+    </twig:Ui:Card>
+{% endblock %}

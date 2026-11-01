@@ -176,6 +176,18 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays), $invoices), $total, $tabCounts, $page, $pages, $firms);
     }
 
+    public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.deletedAt IS NULL AND i.taxPointDate >= :from AND i.taxPointDate <= :to ORDER BY i.numberKey, i.id')
+            ->setParameter('firm', $firm->id())
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getSingleColumnResult();
+
+        return $ids;
+    }
+
     public function lastFirmOf(string $userId): ?LegalEntity
     {
         $firm = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f, '.Invoice::class.' i WHERE i.firm = f AND i.createdBy = :user AND f.archivedAt IS NULL ORDER BY i.createdAt DESC, i.id DESC')

@@ -495,6 +495,17 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  export:
+    title: Documents for the accountant
+    link: For the accountant
+    intro: Downloads a ZIP of the invoice PDFs with their ISDOC for a period, by tax point date. Documents in the trash stay out. Nothing is sent anywhere.
+    from: From
+    to: To
+    submit: Download ZIP
+    empty: No invoices of this firm in this period.
+    date_invalid: Enter a valid date.
+    backwards: The end of the period cannot come before its start.
+    too_long: 'A period has at most {days} days.'
   pdf:
     document_title: 'Invoice {number}'
     title_tax: Invoice - tax document

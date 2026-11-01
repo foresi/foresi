@@ -7,6 +7,7 @@
 
 {% block actions %}
     {% if not firstRun %}
+        <twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>
         <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
     {% endif %}
 {% endblock %}

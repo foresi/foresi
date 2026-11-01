@@ -579,6 +579,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->page($filter);
             }
 
+            public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+            {
+                return $this->store->idsForPeriod($firm, $from, $to);
+            }
+
             public function lastFirmOf(string $userId): ?LegalEntity
             {
                 return null;

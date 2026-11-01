@@ -76,6 +76,15 @@ interface InvoiceStore
     public function page(InvoiceFilter $filter): InvoicePage;
 
     /**
+     * The invoices of a firm whose tax point falls in a period, both days included,
+     * in the order of their numbers. The trash stays out. The tax point, because it
+     * decides the VAT period.
+     *
+     * @return list<string> ids
+     */
+    public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
+    /**
      * The active firm the user issued in last.
      */
     public function lastFirmOf(string $userId): ?LegalEntity;
