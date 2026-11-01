@@ -128,6 +128,45 @@ final class AuditRootTest extends KernelTestCase
         self::assertSame(['contact:created', 'party:created'], $personSubjects);
     }
 
+    public function testTheHistoryOfAPersonIsNewestFirstAndLimited(): void
+    {
+        [$person, $link] = $this->linkedPerson();
+        $start = new \DateTimeImmutable('2030-01-01 12:00:00');
+        // Two sources, every moment twice, more than the limit in each.
+        for ($i = 0; $i < 120; ++$i) {
+            $at = $start->modify('+'.$i.' minutes');
+            $this->em->persist(new AuditEntry(Party::class, $person->id(), AuditAction::Updated, [], null, $at));
+            $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, [], null, $at, null, Party::class, 'the-company'));
+        }
+        $this->em->flush();
+        $this->em->clear();
+
+        $history = self::getContainer()->get(PartyDetails::class)->history($this->stored($person));
+
+        self::assertCount(100, $history);
+        $expected = [];
+        for ($i = 119; $i >= 70; --$i) {
+            $at = $start->modify('+'.$i.' minutes')->format('Y-m-d H:i');
+            // The link's entry was made second, so on the same moment its id sorts first.
+            $expected[] = $at.' contact';
+            $expected[] = $at.' party';
+        }
+        self::assertSame($expected, array_map(static fn (PartyHistoryEntry $e): string => $e->occurredAt->format('Y-m-d H:i').' '.$e->subject, $history));
+    }
+
+    public function testAnEntryFoundBothWaysIsInTheHistoryOnce(): void
+    {
+        [$person, $link] = $this->linkedPerson();
+        $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, ['position' => ['a', 'b']], null, new \DateTimeImmutable('2030-01-01 12:00:00'), null, Party::class, $person->id()));
+        $this->em->flush();
+        $this->em->clear();
+
+        $history = self::getContainer()->get(PartyDetails::class)->history($this->stored($person));
+
+        self::assertCount(1, array_filter($history, static fn (PartyHistoryEntry $e): bool => 'updated' === $e->action));
+        self::assertSame('updated', $history[0]->action);
+    }
+
     public function testAnEntityWithoutARootIsItsOwnRoot(): void
     {
         $secret = new AuditedSecret('first', 'hunter2');
@@ -154,6 +193,27 @@ final class AuditRootTest extends KernelTestCase
         $entry = $this->entryFor(Membership::class, $membership->id());
         self::assertSame(Membership::class, $entry->rootClass());
         self::assertSame($membership->id(), $entry->rootId());
+    }
+
+    /**
+     * @return array{Party, ContactLink}
+     */
+    private function linkedPerson(): array
+    {
+        $company = $this->company('Example Company');
+        $person = new Party(PartyKind::Person, 'Example Person', null, null, '', [PartyRole::Customer]);
+        $link = new ContactLink($company, $person, 'Director');
+        foreach ([$company, $person, $link] as $entity) {
+            $this->em->persist($entity);
+        }
+        $this->em->flush();
+
+        return [$person, $link];
+    }
+
+    private function stored(Party $party): Party
+    {
+        return $this->em->find(Party::class, $party->id()) ?? throw new \LogicException('The party is missing.');
     }
 
     private function company(string $name): Party

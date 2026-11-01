@@ -99,26 +99,54 @@ final readonly class DoctrinePartyDetails implements PartyDetails
 
     public function history(Party $party): array
     {
-        // One query by root; the person's side of a contact link is read by the links the person has now.
-        $dql = 'SELECT a FROM '.AuditEntry::class.' a WHERE (a.rootClass = :rootClass AND a.rootId = :rootId)';
+        $entries = $this->auditEntries('a.rootClass = :class AND a.rootId IN (:ids)', Party::class, [$party->id()]);
+        // The person's side of a contact link is read by the links the person has now.
+        /** @var list<string> $links */
         $links = $this->em->createQuery('SELECT l.id FROM '.ContactLink::class.' l WHERE l.person = :party')->setParameter('party', $party)->getSingleColumnResult();
         if ([] !== $links) {
-            $dql .= ' OR (a.entityClass = :linkClass AND a.entityId IN (:links))';
-        }
-        $query = $this->em->createQuery($dql.' ORDER BY a.occurredAt DESC, a.id DESC')->setMaxResults(self::HISTORY_LIMIT)
-            ->setParameter('rootClass', Party::class)
-            ->setParameter('rootId', $party->id());
-        if ([] !== $links) {
-            $query->setParameter('linkClass', ContactLink::class)->setParameter('links', $links);
+            $entries = $this->merged($entries, $this->auditEntries('a.entityClass = :class AND a.entityId IN (:ids)', ContactLink::class, $links));
         }
 
-        $history = [];
+        return array_map(
+            static fn (AuditEntry $entry): PartyHistoryEntry => new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes())),
+            $entries,
+        );
+    }
+
+    /**
+     * @param list<string> $ids
+     *
+     * @return list<AuditEntry>
+     */
+    private function auditEntries(string $condition, string $class, array $ids): array
+    {
         /** @var list<AuditEntry> $entries */
-        $entries = $query->getResult();
-        foreach ($entries as $entry) {
-            $history[] = new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes()));
-        }
+        $entries = $this->em->createQuery('SELECT a FROM '.AuditEntry::class.' a WHERE '.$condition.' ORDER BY a.occurredAt DESC, a.id DESC')
+            ->setMaxResults(self::HISTORY_LIMIT)
+            ->setParameter('class', $class)
+            ->setParameter('ids', $ids)
+            ->getResult();
 
-        return $history;
+        return $entries;
+    }
+
+    /**
+     * Two queries instead of an OR, so each one can use its own index. An entry
+     * both found counts once.
+     *
+     * @param list<AuditEntry> $first
+     * @param list<AuditEntry> $second
+     *
+     * @return list<AuditEntry>
+     */
+    private function merged(array $first, array $second): array
+    {
+        $byId = [];
+        foreach ([...$first, ...$second] as $entry) {
+            $byId[$entry->id()] = $entry;
+        }
+        usort($byId, static fn (AuditEntry $a, AuditEntry $b): int => [$b->occurredAt(), $b->id()] <=> [$a->occurredAt(), $a->id()]);
+
+        return \array_slice($byId, 0, self::HISTORY_LIMIT);
     }
 }

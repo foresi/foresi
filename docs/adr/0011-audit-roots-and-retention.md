@@ -37,7 +37,7 @@ Chosen option: "record the aggregate root on every entry", because it needs no j
 A contact link joins two parties: a company and a person. It has one root, and that is the company. The consequences are accepted:
 
 * A link that was removed appears in the history of the company only, not in the history of the person.
-* A reader of a person's history adds the person's current links to the query. Links removed earlier are not found that way.
+* A reader of a person's history also reads the entries of the person's current links, in a second query, and merges the two. Links removed earlier are not found that way.
 * The same limit affects undo of an import. After a link has been removed, undo of the person's row does not report it, because nothing under the person's root records it.
 
 A link remains in the history of the company, where the audit of the relationship is complete. If a feature needs the removal under the person as well, a second entry or a second root has to be designed; this is not done now.
