@@ -78,4 +78,13 @@ final class PercentTest extends TestCase
         self::assertTrue(Percent::fromString('21')->equals(Percent::fromString('21.00')));
         self::assertFalse(Percent::fromString('21')->equals(Percent::fromString('12')));
     }
+
+    public function testAWholeHundredKeepsAllItsValues(): void
+    {
+        $hundred = Percent::fromString('100');
+
+        self::assertSame('100.00', $hundred->decimal());
+        self::assertSame('1', $hundred->factorOf());
+        self::assertSame('2', $hundred->inclusiveFactor());
+    }
 }

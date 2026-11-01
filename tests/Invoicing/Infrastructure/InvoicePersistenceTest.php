@@ -72,6 +72,18 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertSame($invoice->id(), $document->id);
     }
 
+    public function testTheIssuedDocumentAddsUpTheStoredAmountsAndPricesNothing(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('100.00')]));
+        // As a document issued under older rules would be stored.
+        $this->em->getConnection()->update('invoice_line', ['vat_minor' => 2000, 'gross_minor' => 12000], ['invoice_id' => $invoice->id()]);
+
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($this->reloaded($invoice));
+
+        self::assertSame(2000, $document->summaries[0]->vat->minor());
+        self::assertSame(12000, $document->summaries[0]->gross->minor());
+    }
+
     public function testAnInvoiceOfAnotherTenantDoesNotExist(): void
     {
         $id = $this->issue->issue($this->input())->id();
@@ -126,8 +138,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertFalse($this->store->numberTaken($this->firm, '20260002', null));
         self::assertFalse($this->store->numberTaken($this->secondFirm(), '20260001', null));
 
-        $this->edit->edit($invoice, $this->input(overrides: ['typedNumber' => '20260002']));
-        $this->em->flush();
+        $this->edited($invoice, $this->input(overrides: ['typedNumber' => '20260002']));
 
         self::assertTrue($this->store->numberTaken($this->firm, '20260001', null));
         self::assertTrue($this->store->numberTaken($this->firm, '20260001', $invoice), 'even its own invoice does not take it back');

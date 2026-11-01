@@ -25,8 +25,11 @@ use App\Party\Domain\PaymentMethod;
  */
 final readonly class InvoiceInput
 {
+    /** @var list<LineInput> */
+    public array $lines;
+
     /**
-     * @param list<LineInput> $lines
+     * @param array<LineInput> $lines keys are discarded
      */
     public function __construct(
         public string $firmId,
@@ -46,8 +49,9 @@ final readonly class InvoiceInput
         public string $textBefore,
         public string $textAfter,
         public DocumentLanguage $language,
-        public array $lines,
+        array $lines,
     ) {
+        $this->lines = array_values($lines);
     }
 
     /**

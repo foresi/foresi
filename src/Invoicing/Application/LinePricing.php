@@ -32,23 +32,23 @@ final readonly class LinePricing
     }
 
     /**
-     * What is left of a line under a regime: a non-payer's line has no VAT at all,
-     * and a value that does not belong to the treatment does not stay.
+     * What is left of a line under a regime: a non-payer's line has no VAT at all, and
+     * a value that does not belong to the treatment does not stay. A price without a
+     * rate is the amount, so how it was meant no longer matters.
      */
-    public function normalised(LineInput $line, VatRegime $regime): LineInput
+    private function normalised(LineInput $line, VatRegime $regime): LineInput
     {
-        $nonPayer = VatRegime::NonPayer === $regime;
-        $treatment = $nonPayer ? TaxTreatment::NotApplicable : $line->treatment;
+        $treatment = VatRegime::NonPayer === $regime ? TaxTreatment::NotApplicable : $line->treatment;
 
         return new LineInput(
             trim($line->text),
             $line->quantity,
             $line->unit,
             $line->price,
-            $nonPayer ? PriceType::WithoutVat : $line->priceType,
+            $treatment->hasRate() ? $line->priceType : PriceType::WithoutVat,
             $treatment,
             $treatment->hasRate() ? $line->rateKind : null,
-            TaxTreatment::ReverseCharge === $treatment ? $line->supplyCode : null,
+            TaxTreatment::ReverseCharge === $treatment && '' !== $line->supplyCode ? $line->supplyCode : null,
             $line->discount,
         );
     }

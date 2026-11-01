@@ -11,11 +11,14 @@ namespace App\Invoicing\Application;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
-use App\Invoicing\Domain\LineValues;
+use App\Invoicing\Domain\LineAmounts;
+use App\Invoicing\Domain\SummaryLine;
+use App\Shared\Domain\Money;
 
 /**
- * Builds the view of an invoice. The stored lines hold the figures the document
- * was saved with, so adding them up again gives its rate summaries.
+ * Builds the view of an invoice from what is stored: its rate summaries add up the
+ * stored amounts of the lines and nothing is priced again, so a document issued
+ * under older rules keeps its figures.
  */
 final readonly class IssuedDocumentFactory
 {
@@ -26,7 +29,10 @@ final readonly class IssuedDocumentFactory
     public function of(Invoice $invoice): IssuedDocument
     {
         $lines = $this->store->lines($invoice);
-        $totals = $this->calculator->totals(array_map(static fn (InvoiceLine $line): LineValues => $line->values(), $lines), $invoice->vatRegime(), $invoice->rounding(), $invoice->currency());
+        $summaries = $this->calculator->summaries(
+            array_map(static fn (InvoiceLine $line): SummaryLine => new SummaryLine($line->treatment(), $line->rate(), new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross())), $lines),
+            Money::ofMinor(0, $invoice->currency()),
+        );
 
         return new IssuedDocument(
             $invoice->id(),
@@ -51,7 +57,7 @@ final readonly class IssuedDocumentFactory
             $invoice->textAfter(),
             $invoice->language(),
             $lines,
-            $totals->summaries,
+            $summaries,
             $invoice->net(),
             $invoice->vat(),
             $invoice->gross(),

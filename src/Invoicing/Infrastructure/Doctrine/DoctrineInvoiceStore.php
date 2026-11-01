@@ -17,11 +17,21 @@ use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Party\Domain\LegalEntity;
+use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * The lock is one write that changes nothing, the same on SQLite and PostgreSQL:
+ * SELECT FOR UPDATE does not exist on SQLite, where a transaction that reads first
+ * fails when it starts to write. The write takes the row, or the database, until
+ * the transaction ends. A statement of its own, because it names the tenant itself:
+ * the tenant filter covers only queries of the ORM.
+ */
 final readonly class DoctrineInvoiceStore implements InvoiceStore
 {
-    public function __construct(private EntityManagerInterface $em)
+    private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
+
+    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
     {
     }
 
@@ -31,6 +41,18 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $invoice instanceof Invoice ? $invoice : throw new UnknownInvoice();
+    }
+
+    public function lock(string $id): Invoice
+    {
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        if (1 !== $locked) {
+            throw new UnknownInvoice();
+        }
+        // What this process remembers may be older than the lock, the firm and the contact too.
+        $this->em->clear();
+
+        return $this->get($id);
     }
 
     public function add(Invoice $invoice): void

@@ -21,11 +21,17 @@ use Doctrine\ORM\Mapping as ORM;
  * invoice. The rate is the value on the tax point, so a later rate change leaves
  * the line alone; the kind tells which rate it was. Quantity is held as whole
  * ten-thousandths, percentages as their two-decimal text.
+ *
+ * A line keeps its position for good: reordering a document rewrites the content
+ * of the lines in place, and only the last lines come and go. So the unique index
+ * on the position never sees two rows at one position, in any order of statements,
+ * and needs no deferred check, which SQLite and PostgreSQL would not share.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice_line')]
 #[ORM\Index(name: 'idx_invoice_line_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_line_invoice', columns: ['invoice_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_line_position', columns: ['invoice_id', 'position'])]
 class InvoiceLine implements TenantOwned, Audited, AuditRooted
 {
     public const int MAX_UNIT_LENGTH = 32;
@@ -36,9 +42,6 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
-
-    #[ORM\Column(type: 'integer')]
-    private int $position;
 
     #[ORM\Column(type: 'text')]
     private string $text;
@@ -86,7 +89,8 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
         #[ORM\ManyToOne(targetEntity: Invoice::class)]
         #[ORM\JoinColumn(name: 'invoice_id', nullable: false, onDelete: 'RESTRICT')]
         private readonly Invoice $invoice,
-        int $position,
+        #[ORM\Column(type: 'integer')]
+        private readonly int $position,
         string $text,
         string $unit,
         ?VatRateKind $rateKind,
@@ -95,15 +99,19 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
         LineAmounts $amounts,
     ) {
         $this->id = Id::generate();
-        $this->revise($position, $text, $unit, $rateKind, $supplyCode, $values, $amounts);
+        $this->revise($text, $unit, $rateKind, $supplyCode, $values, $amounts);
     }
 
     /**
      * Only a real difference reaches the audit log, so a line saved unchanged leaves no entry.
+     *
+     * @throws \DomainException for a line of an invoice in the trash
      */
-    public function revise(int $position, string $text, string $unit, ?VatRateKind $rateKind, ?string $supplyCode, LineValues $values, LineAmounts $amounts): void
+    public function revise(string $text, string $unit, ?VatRateKind $rateKind, ?string $supplyCode, LineValues $values, LineAmounts $amounts): void
     {
-        $this->position = $position;
+        if ($this->invoice->isTrashed()) {
+            throw new \DomainException('A document in the trash takes no change until it is restored.');
+        }
         $this->text = $text;
         $this->quantity = $values->quantity->tenThousandths();
         $this->unit = $unit;
@@ -208,14 +216,6 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
     public function gross(): Money
     {
         return $this->money($this->grossMinor);
-    }
-
-    /**
-     * The figures the line was calculated from.
-     */
-    public function values(): LineValues
-    {
-        return new LineValues($this->price(), $this->quantity(), $this->priceType, $this->treatment, $this->rate(), $this->discount());
     }
 
     public function tenantId(): TenantId

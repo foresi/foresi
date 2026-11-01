@@ -26,6 +26,17 @@ interface InvoiceStore
      */
     public function get(string $id): Invoice;
 
+    /**
+     * Takes the row of the invoice for this transaction and gives it as stored now.
+     * Every change of a stored invoice starts with this, before anything else is
+     * read, so it sees what the save before it left and the next one waits. It starts
+     * the session over, so whatever was loaded before is detached and nothing unsaved
+     * may be pending. Call it inside TransactionalWork.
+     *
+     * @throws UnknownInvoice also for an invoice of another tenant
+     */
+    public function lock(string $id): Invoice;
+
     public function add(Invoice $invoice): void;
 
     /**

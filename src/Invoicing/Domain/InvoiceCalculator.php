@@ -21,6 +21,10 @@ use App\Shared\Domain\Money;
  */
 final readonly class InvoiceCalculator
 {
+    private const array PRINT_ORDER = [TaxTreatment::Standard, TaxTreatment::ReverseCharge, TaxTreatment::Exempt, TaxTreatment::NotApplicable];
+    /** Ten-thousandths times ten-thousandths. */
+    private const int FACTOR_UNIT = 100_000_000;
+
     public function line(LineValues $values): LineAmounts
     {
         // One rounding for price, quantity and discount together: the factor is exact.
@@ -56,32 +60,14 @@ final readonly class InvoiceCalculator
     {
         $currency = [] === $lines ? $home : $lines[0]->price->currency();
         $zero = Money::ofMinor(0, $currency);
-
-        /** @var array<string, array{treatment: TaxTreatment, rate: ?Percent, base: Money, vat: Money, gross: Money}> $groups */
-        $groups = [];
+        $priced = [];
         foreach ($lines as $values) {
             if (VatRegime::NonPayer === $regime) {
                 $values = new LineValues($values->price, $values->quantity, $values->priceType, $values->treatment, null, $values->discount);
             }
-            $amounts = $this->line($values);
-            $rate = $values->treatment->hasRate() ? $values->rate : null;
-            $key = $values->treatment->value.'|'.($rate instanceof Percent ? $rate->basisPoints() : '-');
-            $group = $groups[$key] ?? ['treatment' => $values->treatment, 'rate' => $rate, 'base' => $zero, 'vat' => $zero, 'gross' => $zero];
-            $groups[$key] = [
-                'treatment' => $values->treatment,
-                'rate' => $rate,
-                'base' => $group['base']->plus($amounts->net),
-                'vat' => $group['vat']->plus($amounts->vat),
-                'gross' => $group['gross']->plus($amounts->gross),
-            ];
+            $priced[] = new SummaryLine($values->treatment, $values->rate, $this->line($values));
         }
-
-        $summaries = array_map(
-            static fn (array $group): RateSummary => new RateSummary($group['treatment'], $group['rate'], $group['base'], $group['vat'], $group['gross']),
-            array_values($groups),
-        );
-        usort($summaries, static fn (RateSummary $a, RateSummary $b): int => [self::order($a->treatment), -($a->rate?->basisPoints() ?? 0)] <=> [self::order($b->treatment), -($b->rate?->basisPoints() ?? 0)]);
-
+        $summaries = $this->summaries($priced, $zero);
         $net = $zero;
         $vat = $zero;
         $gross = $zero;
@@ -99,6 +85,41 @@ final readonly class InvoiceCalculator
     }
 
     /**
+     * Adds up lines that already have their amounts, per treatment and rate, in the
+     * order a document prints them. It calculates nothing else, so an issued document
+     * can show what is stored.
+     *
+     * @param list<SummaryLine> $lines
+     *
+     * @return list<RateSummary>
+     */
+    public function summaries(array $lines, Money $zero): array
+    {
+        /** @var array<string, array{treatment: TaxTreatment, rate: ?Percent, base: Money, vat: Money, gross: Money}> $groups */
+        $groups = [];
+        foreach ($lines as $line) {
+            $rate = $line->treatment->hasRate() ? $line->rate : null;
+            $key = $line->treatment->value.'|'.($rate instanceof Percent ? $rate->basisPoints() : '-');
+            $sums = $groups[$key] ?? ['base' => $zero, 'vat' => $zero, 'gross' => $zero];
+            $groups[$key] = [
+                'treatment' => $line->treatment,
+                'rate' => $rate,
+                'base' => $sums['base']->plus($line->amounts->net),
+                'vat' => $sums['vat']->plus($line->amounts->vat),
+                'gross' => $sums['gross']->plus($line->amounts->gross),
+            ];
+        }
+        $summaries = array_map(
+            static fn (array $group): RateSummary => new RateSummary($group['treatment'], $group['rate'], $group['base'], $group['vat'], $group['gross']),
+            $groups,
+        );
+        // The treatment in print order, then the higher rate first: $a and $b swap for that column.
+        usort($summaries, static fn (RateSummary $a, RateSummary $b): int => [self::order($a->treatment), $b->rate?->basisPoints()] <=> [self::order($b->treatment), $a->rate?->basisPoints()]);
+
+        return $summaries;
+    }
+
+    /**
      * quantity x (1 - discount) as an exact decimal.
      */
     private function factor(Quantity $quantity, Percent $discount): string
@@ -106,24 +127,18 @@ final readonly class InvoiceCalculator
         // Ten-thousandths times ten-thousandths: eight decimals, and the quantity bound keeps it in 64 bits.
         $product = $quantity->tenThousandths() * (10000 - $discount->basisPoints());
 
-        return $this->decimal($product, 8);
+        return $this->decimal($product);
     }
 
-    private static function order(TaxTreatment $treatment): int
+    private static function order(TaxTreatment $treatment): int|false
     {
-        return match ($treatment) {
-            TaxTreatment::Standard => 0,
-            TaxTreatment::ReverseCharge => 1,
-            TaxTreatment::Exempt => 2,
-            TaxTreatment::NotApplicable => 3,
-        };
+        return array_search($treatment, self::PRINT_ORDER, true);
     }
 
-    private function decimal(int $scaled, int $scale): string
+    private function decimal(int $scaled): string
     {
         $absolute = abs($scaled);
-        $text = str_pad((string) $absolute, $scale + 1, '0', \STR_PAD_LEFT);
 
-        return ($scaled < 0 ? '-' : '').substr($text, 0, -$scale).'.'.substr($text, -$scale);
+        return \sprintf('%s%d.%08d', $scaled < 0 ? '-' : '', intdiv($absolute, self::FACTOR_UNIT), $absolute % self::FACTOR_UNIT);
     }
 }

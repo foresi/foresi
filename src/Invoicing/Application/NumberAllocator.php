@@ -15,8 +15,9 @@ use App\Party\Domain\LegalEntity;
 
 /**
  * Gives a document its number inside the transaction that stores it. The period
- * is the one of the issue date, never of the moment of saving. Everything here
- * writes before it reads, as NumberCounter asks, and a failure here must end the
+ * is the one of the issue date, never of the moment of saving. The counter comes
+ * before any read here, as NumberCounter asks; on an edit the lock of the invoice
+ * came before it and holds the write already. A failure here must end the
  * transaction, which returns what was taken.
  */
 final readonly class NumberAllocator

@@ -338,4 +338,33 @@ final class InvoiceCalculatorTest extends TestCase
     {
         return Money::of($decimal, Currency::CZK)->minor();
     }
+
+    public function testSummariesFollowThePrintOrderAndTheHigherRateFirst(): void
+    {
+        $line = static fn (TaxTreatment $treatment, ?string $rate): LineValues => new LineValues(Money::of('100', Currency::CZK), Quantity::fromString('1'), PriceType::WithoutVat, $treatment, null === $rate ? null : Percent::fromString($rate), Percent::fromString('0'));
+
+        $totals = new InvoiceCalculator()->totals([
+            $line(TaxTreatment::NotApplicable, null),
+            $line(TaxTreatment::Exempt, null),
+            $line(TaxTreatment::ReverseCharge, null),
+            $line(TaxTreatment::Standard, '12'),
+            $line(TaxTreatment::Standard, '21'),
+        ], VatRegime::Payer, TotalRounding::None, Currency::CZK);
+
+        self::assertSame(
+            [['standard', '21.00'], ['standard', '12.00'], ['reverse_charge', null], ['exempt', null], ['not_applicable', null]],
+            array_map(static fn (RateSummary $summary): array => [$summary->treatment->value, $summary->rate?->decimal()], $totals->summaries),
+        );
+    }
+
+    public function testTheSmallestAndNegativeQuantitiesAreExact(): void
+    {
+        $line = static fn (string $quantity): LineValues => new LineValues(Money::of('1000000', Currency::CZK), Quantity::fromString($quantity), PriceType::BaseOnly, TaxTreatment::Exempt, null, Percent::fromString('0'));
+        $calculator = new InvoiceCalculator();
+
+        self::assertSame(10000, $calculator->line($line('0.0001'))->net->minor());
+        self::assertSame(-200000000, $calculator->line($line('-2'))->net->minor());
+        self::assertSame(1234500000000, $calculator->line($line('12345'))->net->minor());
+        self::assertSame(0, $calculator->line($line('0'))->net->minor());
+    }
 }

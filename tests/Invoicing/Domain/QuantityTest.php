@@ -61,4 +61,17 @@ final class QuantityTest extends TestCase
     {
         self::assertSame('999999999.9999', Quantity::fromString('999999999.9999')->toDecimal());
     }
+
+    public function testTheBoundIsInclusive(): void
+    {
+        self::assertSame(9_999_999_999_999, Quantity::ofTenThousandths(9_999_999_999_999)->tenThousandths());
+
+        $this->expectException(\InvalidArgumentException::class);
+        Quantity::ofTenThousandths(10_000_000_000_000);
+    }
+
+    public function testZeroHasNoSign(): void
+    {
+        self::assertSame('0.0000', Quantity::fromString('0')->toDecimal());
+    }
 }

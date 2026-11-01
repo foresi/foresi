@@ -18,16 +18,24 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class MarkDelivered
 {
-    public function __construct(private TransactionalWork $work, private ClockInterface $clock)
-    {
+    public function __construct(
+        private InvoiceStore $store,
+        private TransactionalWork $work,
+        private ConflictRetry $retry,
+        private ClockInterface $clock,
+    ) {
     }
 
     /**
+     * Only the id of the invoice given here counts. A refusal detaches what was loaded.
+     *
      * @throws \DomainException for an invoice in the trash
      */
     public function mark(Invoice $invoice): void
     {
-        $invoice->markDelivered(\DateTimeImmutable::createFromInterface($this->clock->now()));
-        $this->work->run(static fn (): null => null);
+        $id = $invoice->id();
+        $this->retry->run(fn () => $this->work->run(function () use ($id): void {
+            $this->store->lock($id)->markDelivered(\DateTimeImmutable::createFromInterface($this->clock->now()));
+        }));
     }
 }

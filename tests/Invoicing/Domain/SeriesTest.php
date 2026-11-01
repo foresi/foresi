@@ -115,4 +115,13 @@ final class SeriesTest extends TestCase
     {
         return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
     }
+
+    public function testASeriesMayStartAtOne(): void
+    {
+        $series = new Series(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []), 'Standard', SeriesFormat::fromString('{NNN}'), DocumentKind::Invoice);
+
+        $series->startAt(1, 'all');
+
+        self::assertSame(1, $series->startFor('all'));
+    }
 }

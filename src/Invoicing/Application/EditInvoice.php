@@ -19,7 +19,8 @@ use App\Party\Application\TransactionalWork;
  * Saving an issued invoice. Firm, regime, rounding and the copy of the issuer stay
  * as they were at issue; the rest is recalculated from the input. Series and number
  * change only when the input asks for it, and only until delivery. Lines change in
- * place by position, so a line saved unchanged writes no audit entry.
+ * place by position, so a line saved unchanged writes no audit entry. The whole save
+ * runs under the lock of the invoice, rules included, so what it checks stays true.
  */
 final readonly class EditInvoice
 {
@@ -38,15 +39,22 @@ final readonly class EditInvoice
     }
 
     /**
-     * A failure detaches the invoice given here; load it again to go on.
+     * Only the id of the invoice given here counts: the save works on the row as it
+     * stands under the lock. A refusal or failure detaches what was loaded.
      *
-     * @throws IssueRefused when a rule refuses; nothing changes
+     * @param int $version the version of the invoice when the form was opened
+     *
+     * @throws IssueRefused when a rule refuses, or when someone saved since the form
+     *                      was opened (field "version"); nothing changes
      */
-    public function edit(Invoice $invoice, InvoiceInput $input): void
+    public function edit(Invoice $invoice, InvoiceInput $input, int $version): void
     {
         $id = $invoice->id();
-        $this->retry->run(function () use ($id, $input): void {
-            $invoice = $this->store->get($id);
+        $this->retry->run(fn () => $this->work->run(function () use ($id, $input, $version): void {
+            $invoice = $this->store->lock($id);
+            if ($invoice->version() !== $version) {
+                throw new IssueRefused([new IssueProblem('version', 'invoice.problem.changed_meanwhile')]);
+            }
             $firm = $invoice->firm();
             $problems = $this->rules->check($input, $firm, $invoice);
             if ([] !== $problems) {
@@ -55,13 +63,9 @@ final readonly class EditInvoice
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
             $customer = $this->copies->for($input, $party, $firm, $invoice) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $series = null === $input->seriesId ? $invoice->series() : $this->catalog->get($input->seriesId);
-            $change = $input->change($party, $customer);
-
-            $this->work->run(function () use ($invoice, $input, $series, $change): void {
-                $this->renumber($invoice, $input, $series);
-                $this->save($invoice, $input, $change);
-            });
-        });
+            $this->renumber($invoice, $input, $series);
+            $this->save($invoice, $input, $input->change($party, $customer));
+        }));
     }
 
     private function renumber(Invoice $invoice, InvoiceInput $input, Series $series): void
@@ -86,7 +90,7 @@ final readonly class EditInvoice
         foreach ($lines as $position => $line) {
             $typed = $line->input;
             if (isset($stored[$position])) {
-                $stored[$position]->revise($position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts);
+                $stored[$position]->revise($typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts);
             } else {
                 $this->store->addLine(new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts));
             }

@@ -32,6 +32,7 @@ final class Version20261102000002 extends AbstractMigration
         $invoice->addColumn('legal_entity_id', Types::GUID);
         $invoice->addColumn('series_id', Types::GUID);
         $invoice->addColumn('customer_id', Types::GUID);
+        $invoice->addColumn('version', Types::INTEGER);
         $invoice->addColumn('kind', Types::STRING, ['length' => 32]);
         $invoice->addColumn('number', Types::STRING, ['length' => 80]);
         $invoice->addColumn('number_key', Types::STRING, ['length' => 80]);
@@ -95,6 +96,7 @@ final class Version20261102000002 extends AbstractMigration
         $line->setPrimaryKey(['id']);
         $line->addIndex(['tenant_id'], 'idx_invoice_line_tenant');
         $line->addIndex(['invoice_id'], 'idx_invoice_line_invoice');
+        $line->addUniqueIndex(['invoice_id', 'position'], 'uniq_invoice_line_position');
         $line->addForeignKeyConstraint('invoice', ['invoice_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_invoice_line_invoice');
 
         $abandoned = $schema->createTable('abandoned_number');

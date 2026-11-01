@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
+use App\Audit\Domain\AuditExcluded;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -52,6 +53,12 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
+
+    // Goes up with every save, so a form can tell it was opened before the last one. A technical
+    // value, so left out of the audit log: a save that changes nothing leaves no entry.
+    #[AuditExcluded]
+    #[ORM\Column(type: 'integer')]
+    private int $version = 1;
 
     #[ORM\Column(type: 'string', length: 32, enumType: DocumentKind::class)]
     private DocumentKind $kind;
@@ -173,10 +180,15 @@ class Invoice implements TenantOwned, Audited
         $this->taxPointDate = $this->keepDay($this->taxPointDate, $change->taxPointDate);
         $this->dueDate = $this->keepDay($this->dueDate, $change->dueDate);
         $this->applyContent($change);
+        ++$this->version;
     }
 
+    /**
+     * @throws \DomainException for an invoice in the trash
+     */
     public function assignTotals(DocumentTotals $totals): void
     {
+        $this->refuseTrashed();
         $this->netMinor = $totals->net->minor();
         $this->vatMinor = $totals->vat->minor();
         $this->roundingMinor = $totals->rounding->minor();
@@ -210,6 +222,7 @@ class Invoice implements TenantOwned, Audited
         $this->series = $series;
         $this->number = $number;
         $this->numberKey = $key;
+        ++$this->version;
 
         return $abandoned;
     }
@@ -222,7 +235,10 @@ class Invoice implements TenantOwned, Audited
     public function markDelivered(\DateTimeImmutable $at): void
     {
         $this->refuseTrashed();
-        $this->deliveredAt ??= $at;
+        if (!$this->isDelivered()) {
+            $this->deliveredAt = $at;
+            ++$this->version;
+        }
     }
 
     /**
@@ -241,6 +257,7 @@ class Invoice implements TenantOwned, Audited
         $this->deletedAt = $at;
         $this->deletedBy = $userId;
         $this->deletedReason = $reason;
+        ++$this->version;
     }
 
     /**
@@ -248,9 +265,13 @@ class Invoice implements TenantOwned, Audited
      */
     public function restore(): void
     {
+        if (!$this->isTrashed()) {
+            return;
+        }
         $this->deletedAt = null;
         $this->deletedBy = null;
         $this->deletedReason = null;
+        ++$this->version;
     }
 
     public function isTrashed(): bool
@@ -266,6 +287,11 @@ class Invoice implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
     }
 
     public function firm(): LegalEntity

@@ -31,6 +31,7 @@ final readonly class DocumentParty
     public const int MAX_STREET = 255;
     public const int MAX_CITY = 128;
     public const int MAX_POSTAL_CODE = 32;
+    public const int MAX_IMAGE_NAME = 72;
 
     public function __construct(
         #[ORM\Column(type: 'string', length: self::MAX_NAME)]
@@ -49,9 +50,9 @@ final readonly class DocumentParty
         public string $phone,
         #[ORM\Column(type: 'string', length: self::MAX_WEB)]
         public string $web,
-        #[ORM\Column(type: 'string', length: 72, nullable: true)]
+        #[ORM\Column(type: 'string', length: self::MAX_IMAGE_NAME, nullable: true)]
         public ?string $logo,
-        #[ORM\Column(type: 'string', length: 72, nullable: true)]
+        #[ORM\Column(type: 'string', length: self::MAX_IMAGE_NAME, nullable: true)]
         public ?string $stamp,
     ) {
     }

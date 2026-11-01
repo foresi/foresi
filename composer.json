@@ -100,8 +100,8 @@
         ],
         "deptrac": "deptrac analyse --no-progress --ansi",
         "phpunit": "phpunit",
-        "infection": "@php -d memory_limit=2G vendor/bin/infection --threads=max --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress",
-        "infection:full": "@php -d memory_limit=2G vendor/bin/infection --configuration=infection.full.json5 --threads=max --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress",
+        "infection": "@php -d memory_limit=2G vendor/bin/infection --threads=max --initial-tests-php-options='-d memory_limit=2G' --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress",
+        "infection:full": "@php -d memory_limit=2G vendor/bin/infection --configuration=infection.full.json5 --threads=max --initial-tests-php-options='-d memory_limit=2G' --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress",
         "qa": [
             "@cs:check",
             "@rector",

@@ -127,8 +127,8 @@ abstract class InvoiceTestCase extends KernelTestCase
     }
 
     /**
-     * @param list<LineInput>|null $lines
-     * @param array<string, mixed> $overrides named arguments of InvoiceInput
+     * @param array<LineInput>|null $lines
+     * @param array<string, mixed>  $overrides named arguments of InvoiceInput
      */
     protected function input(?array $lines = null, array $overrides = []): InvoiceInput
     {
@@ -163,6 +163,15 @@ abstract class InvoiceTestCase extends KernelTestCase
         string $text = 'Work',
     ): LineInput {
         return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), $type, $treatment, $kind, $supplyCode, Percent::fromString('0'));
+    }
+
+    /**
+     * An edit from a form opened just now.
+     */
+    protected function edited(Invoice $invoice, InvoiceInput $input): void
+    {
+        $this->em->clear();
+        $this->edit->edit($invoice, $input, $this->store->get($invoice->id())->version());
     }
 
     protected function reloaded(Invoice $invoice): Invoice

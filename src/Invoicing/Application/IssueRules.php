@@ -162,7 +162,7 @@ final readonly class IssueRules
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
-        if ($series->isArchived() && $series !== $existing?->series()) {
+        if ($series->isArchived() && $series->id() !== $existing?->series()->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_archived')];
         }
 
@@ -219,6 +219,8 @@ final readonly class IssueRules
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_address_incomplete');
         } elseif (!$this->fits($copy)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.too_long');
+        } elseif ($input->customerOnDocument instanceof DocumentParty && null !== $copy->vatId && !$this->vatIdOf($copy) instanceof VatId) {
+            $problems[] = new IssueProblem('customer', 'invoice.problem.customer_vat_id_invalid');
         }
 
         return $problems;
@@ -245,6 +247,8 @@ final readonly class IssueRules
             [$copy->address->city, DocumentParty::MAX_CITY],
             [$copy->address->postalCode, DocumentParty::MAX_POSTAL_CODE],
             [$copy->address->countryCode, 2],
+            [$copy->logo, DocumentParty::MAX_IMAGE_NAME],
+            [$copy->stamp, DocumentParty::MAX_IMAGE_NAME],
         ];
         foreach ($limits as [$value, $limit]) {
             if (mb_strlen($value ?? '') > $limit) {
