@@ -18,7 +18,7 @@ Breaking release: every record gets a new kind of identifier. Read the upgrade n
 ### Upgrading
 
 1. Finish or cancel imports that are in progress, because their queued work cannot be read after the upgrade. Then stop the web server and cron (`app:import:health`, `app:import:purge`).
-2. Let the workers drain the `async` and `registry` queues, until `bin/console messenger:stats` shows those two empty. The `failed` queue may hold messages. A message left in the other two cannot be read afterwards; it is moved to `failed`, not lost, but its work has to be started again.
+2. Let the workers drain the `async` and `registry` queues, until `bin/console messenger:stats` shows those two empty. The `failed` queue may hold messages. A message left in `async` or `registry` cannot be read afterwards; it is moved to `failed`, not lost, but its work has to be started again.
 3. Stop the workers.
 4. Back up the database and the `var/imports` directory.
 5. Deploy the code and clear the cache (`bin/console cache:clear`).

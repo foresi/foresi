@@ -142,14 +142,12 @@ test.describe.serial('an owner manages firms', () => {
     });
   });
 
-  // Fixme until the screens are approved: without a baseline the assertion can only fail.
-  // Drop the fixme and generate the baselines with --update-snapshots after the approval.
-  test.fixme('the list looks as approved @visual', async ({ page }) => {
+  test('the list looks as approved @visual', async ({ page }) => {
     await page.goto('/settings/firms');
     await expect(page).toHaveScreenshot('list.png');
   });
 
-  test.fixme('the form looks as approved @visual', async ({ page }) => {
+  test('the form looks as approved @visual', async ({ page }) => {
     await page.goto('/settings/firms/new');
     await expect(page).toHaveScreenshot('form.png');
   });
