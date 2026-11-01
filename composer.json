@@ -29,7 +29,7 @@
         "symfony/http-client": "7.4.*",
         "symfony/lock": "^7.4.22",
         "symfony/messenger": "^7.4.22",
-        "symfony/rate-limiter": "7.4.*",
+        "symfony/rate-limiter": "8.1.*",
         "symfony/runtime": "7.4.*",
         "symfony/security-bundle": "7.4.*",
         "symfony/stimulus-bundle": "^3.6",
