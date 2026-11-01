@@ -12,19 +12,20 @@ const MAX_SYMBOL_DIGITS = 10;
  * server, which uses the calculator of the save. Rows are added, removed and
  * reordered here, with the names renumbered, so the server reads them in the order
  * on screen. Enter in a field never issues a document; in the last cell of a row it
- * adds a line.
+ * adds a line. The page is a plain document without Turbo, so the browser's own
+ * beforeunload prompt guards a changed form.
  */
 export default class extends Controller {
     static targets = [
         'line', 'lines', 'lineTemplate', 'totals', 'summaries', 'net', 'vat', 'rounding', 'roundingRow', 'payable',
-        'stale', 'addLine', 'lineLimit', 'dueDateSet', 'numberPeek', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
+        'stale', 'addLine', 'lineLimit', 'dueDateSet', 'originalSeries', 'originalNumber', 'numberPeek', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
         'errors', 'paymentMethod', 'bankRow', 'language', 'customerBox', 'summary', 'contactLink', 'notice', 'noticeText', 'noScript',
     ];
 
     static values = {
         recountUrl: String, numberUrl: String, contactUrl: String, firm: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
-        leave: String, registrationLabel: String, vatLabel: String, unsaved: Boolean,
+        registrationLabel: String, vatLabel: String, unsaved: Boolean,
         maxLines: Number, newLineVat: String, dueDateSet: Boolean,
     };
 
@@ -36,11 +37,7 @@ export default class extends Controller {
         this.taxPointFollows = this.taxPointDateTarget.value === this.issueDateTarget.value;
         this.dueDateFollows = !this.dueDateSetValue;
         this.symbolFollows = this.hasVariableSymbolTarget && this.variableSymbolTarget.value === this.symbolOf(this.numberPeekTarget.value);
-        this.originalSeries = this.hasSeriesTarget ? this.seriesTarget.value : '';
-        this.originalNumber = this.numberPeekTarget.value;
-        if (this.dirty) {
-            this.guardBack();
-        }
+        this.showSupplyCodes();
         if (this.hasErrorsTarget) {
             // After the form-errors controller has placed the first invalid field.
             requestAnimationFrame(() => requestAnimationFrame(() => this.clearOfErrors(document.activeElement)));
@@ -56,7 +53,6 @@ export default class extends Controller {
 
     changed() {
         this.dirty = true;
-        this.guardBack();
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.recount(), RECOUNT_DELAY);
     }
@@ -123,7 +119,8 @@ export default class extends Controller {
         if (this.dueDateFollows) {
             this.dueDateTarget.value = this.daysAfter(issued, this.dueDaysValue);
         }
-        if (!this.editingValue) {
+        // A stored document keeps its number on a new date, unless it is moving to another series.
+        if (!this.editingValue || this.seriesMoved()) {
             this.refreshNumber();
         }
     }
@@ -145,11 +142,15 @@ export default class extends Controller {
     // Number and variable symbol
 
     seriesChanged() {
-        if (this.editingValue && this.seriesTarget.value === this.originalSeries) {
-            this.showNumber(this.originalNumber);
+        if (this.editingValue && !this.seriesMoved()) {
+            this.showNumber(this.originalNumberTarget.value);
             return;
         }
         this.refreshNumber();
+    }
+
+    seriesMoved() {
+        return this.hasSeriesTarget && this.seriesTarget.value !== this.originalSeriesTarget.value;
     }
 
     async refreshNumber() {
@@ -225,7 +226,6 @@ export default class extends Controller {
     // Customer and payment
 
     firmChanged() {
-        this.leaving = true;
         this.element.requestSubmit(this.element.querySelector('button[name="_action"][value="refresh"]'));
     }
 
@@ -271,6 +271,9 @@ export default class extends Controller {
     }
 
     customerCleared() {
+        if (this.payerValue) {
+            this.newLineVatValue = 'base';
+        }
         this.customerBoxTarget.classList.add('hidden');
         this.noticeTarget.hidden = true;
     }
@@ -487,9 +490,13 @@ export default class extends Controller {
 
     // Leaving
 
-    submitted() {
+    // Set once: a second click goes nowhere, and a submit lifts the guard for good.
+    submitted(event) {
+        if (this.leaving) {
+            event.preventDefault();
+            return;
+        }
         this.leaving = true;
-        this.dirty = false;
         clearTimeout(this.timer);
     }
 
@@ -500,35 +507,10 @@ export default class extends Controller {
         }
     }
 
-    // Back leaves a page without beforeunload when Turbo restores it, so a changed form
-    // stands on an extra history entry: the same page, marked. Leaving that entry asks;
-    // this runs before Turbo, which then sees nothing of a Back that stayed.
-    guardBack() {
-        if (this.guarded || history.state?.invoiceFormGuard) {
-            this.guarded = true;
-            return;
-        }
-        history.pushState({ ...history.state, invoiceFormGuard: true }, '', window.location.href);
-        this.guarded = true;
-    }
-
-    popped(event) {
-        if (!this.guarded || event.state?.invoiceFormGuard) {
-            return;
-        }
-        event.stopImmediatePropagation();
-        if (this.dirty && !this.leaving && !window.confirm(this.leaveValue)) {
-            history.pushState({ ...history.state, invoiceFormGuard: true }, '', window.location.href);
-            return;
-        }
-        this.guarded = false;
-        this.dirty = false;
-        history.back();
-    }
-
-    beforeVisit(event) {
-        if (this.dirty && !this.leaving && !window.confirm(this.leaveValue)) {
-            event.preventDefault();
+    // Back to a page the browser kept: the form is live again.
+    shown(event) {
+        if (event.persisted) {
+            this.leaving = false;
         }
     }
 }

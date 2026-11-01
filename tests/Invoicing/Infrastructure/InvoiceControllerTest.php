@@ -1000,6 +1000,96 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('', $this->currentValues()['description']);
     }
 
+    public function testTheInvoicePagesLeaveTurbo(): void
+    {
+        $this->signedIn();
+        $this->openNew();
+
+        self::assertSelectorExists('meta[name="turbo-cache-control"][content="no-cache"]');
+        self::assertSelectorExists('meta[name="turbo-visit-control"][content="reload"]');
+        self::assertSelectorExists('body[data-turbo="false"]');
+        self::assertSelectorExists('form#invoice-form[data-turbo="false"]');
+    }
+
+    public function testASeriesThatMovedWithoutScriptSaysOnlyThatTheNumberChanged(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $second = $this->secondSeries();
+        $values = $this->openEdit($invoice);
+
+        $this->saveEdit($invoice, array_merge($values, ['seriesId' => $second->id()]));
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('main', 'Invoice saved as S2026001. The number changed.');
+    }
+
+    public function testAHiddenCodeDoesNotSurviveARerender(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerEdit' => '1', 'customer' => array_merge(self::CUSTOMER, ['vatId' => 'DE123456789'])]);
+        $values['lines'][0] = array_merge($values['lines'][0], ['vat' => 'reverse_charge', 'supplyCode' => '4']);
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        $values = $this->currentValues();
+        self::assertSame('', $values['lines'][0]['supplyCode']);
+
+        $this->save($values);
+        self::assertResponseRedirects();
+        self::assertCount(1, $this->invoices());
+    }
+
+    public function testAFirmChangeUsesTheDateOfTheFormAndClearsWhatWasTyped(): void
+    {
+        $this->signedIn();
+        $second = $this->secondFirm(VatStatus::Registered);
+        $values = $this->filled(['issueDate' => '2027-02-10', 'number' => 'X-1', 'variableSymbol' => '777', 'firmId' => $second->id()]);
+
+        $this->save(array_merge($values, ['_action' => 'refresh']));
+
+        $reopened = $this->currentValues();
+        self::assertSame('20270001', $reopened['number'] ?? null);
+        self::assertSame('20270001', $reopened['numberPeek'] ?? null);
+        self::assertSame('20270001', $reopened['variableSymbol']);
+        self::assertSelectorTextContains('main', 'The firm changed');
+    }
+
+    public function testAPayerFirmAlignsTheLinesOfAReverseChargeCustomer(): void
+    {
+        $this->signedIn(status: VatStatus::NotRegistered);
+        $second = $this->secondFirm(VatStatus::Registered);
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
+            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            $this->em()->flush();
+        });
+        $values = $this->filled(['firmId' => $second->id()]);
+
+        $this->save(array_merge($values, ['_action' => 'refresh']));
+
+        self::assertSame('reverse_charge', $this->currentValues()['lines'][0]['vat']);
+    }
+
+    public function testAPickChecksTheContactIsACustomerOfTheFirm(): void
+    {
+        $this->signedIn();
+        $supplier = $this->scoped(function (): Party {
+            $party = new Party(PartyKind::Person, 'Example Vendor', null, null, '');
+            $party->assignRoles([PartyRole::Supplier]);
+            $this->em()->persist($party);
+            $this->em()->flush();
+
+            return $party;
+        });
+
+        $this->save(array_merge($this->filled(), ['_action' => 'pick:'.$supplier->id()]));
+
+        self::assertSame($this->customer->id(), $this->currentValues()['customerId']);
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_role'));
+    }
+
     public function testAKeptTokenOutlivesAnyNumberOfNewForms(): void
     {
         $this->signedIn();
@@ -1329,6 +1419,18 @@ final class InvoiceControllerTest extends WebTestCase
         $this->em()->flush();
         $this->context->reset();
         $this->browser->signIn();
+    }
+
+    private function secondSeries(): Series
+    {
+        return $this->scoped(function (): Series {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $series = new Series($firm, 'Second', SeriesFormat::fromString('S{YYYY}{NNN}'), DocumentKind::Invoice);
+            $this->em()->persist($series);
+            $this->em()->flush();
+
+            return $series;
+        });
     }
 
     private function secondFirm(VatStatus $status): LegalEntity

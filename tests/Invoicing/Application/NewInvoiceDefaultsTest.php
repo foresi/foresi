@@ -68,6 +68,15 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertNull($draft->currencyNotice);
     }
 
+    public function testAGivenDateIsTheDayOfTheDraft(): void
+    {
+        $draft = $this->defaults->for($this->firm, new \DateTimeImmutable('2027-02-10'));
+
+        self::assertSame('2027-02-10', $draft->issueDate->format('Y-m-d'));
+        self::assertSame('2027-02-24', $draft->dueDate->format('Y-m-d'));
+        self::assertSame('20270001', $draft->number);
+    }
+
     public function testTodayFollowsPragueNotUtc(): void
     {
         Clock::set(new MockClock('2026-12-31 23:30:00', 'UTC'));

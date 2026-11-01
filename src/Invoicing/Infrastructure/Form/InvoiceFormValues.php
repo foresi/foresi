@@ -144,29 +144,59 @@ final readonly class InvoiceFormValues
     }
 
     /**
-     * The firm changed on a new document: what belongs to the firm follows it, what
-     * was typed stays. A customer the new firm cannot invoice goes.
+     * The firm changed on a new document. Series, number and variable symbol start
+     * over from the new firm on the date of the form, a number or symbol typed by hand
+     * included; so do its account, symbol and texts. What was typed about the supply
+     * stays. A customer the new firm cannot invoice goes; one it can takes the VAT of
+     * the lines, by what the customer is to this firm.
      *
      * @param array<string, mixed> $values
      *
      * @return array<string, mixed>
      */
-    public function forFirm(array $values, LegalEntity $firm): array
+    public function forFirm(array $values, LegalEntity $firm, \DateTimeImmutable $issueDate): array
     {
-        $draft = $this->defaults->for($firm);
+        $draft = $this->defaults->for($firm, $issueDate);
         $own = $this->ofDraft($draft);
         foreach (['firmId', 'firmShown', 'seriesId', 'number', 'numberPeek', 'bankAccount', 'variableSymbol', 'constantSymbol', 'textBefore', 'textAfter'] as $field) {
             $values[$field] = $own[$field];
         }
+        /** @var list<array<string, string>> $typed */
+        $typed = $values['lines'];
+        $rows = array_map(static fn (array $row): array => self::rowFor($row, $draft->regime), $typed);
+        $values['lines'] = $rows;
+        $party = $this->partyOf($values);
+        if (!$party instanceof Party) {
+            return $values;
+        }
+        if (!$this->contacts->isCustomerOf($party, $firm)) {
+            return array_merge($values, ['customerId' => '', 'customerQuery' => '', 'customer' => $this->emptyCustomer()]);
+        }
+        if (VatRegime::Payer === $draft->regime) {
+            $option = $this->picker->option($party, $firm);
+            $issuerCountry = $firm->address()->countryCode;
+            $values['lines'] = array_map(static fn (array $row): array => self::rowAfterPick($row, $option, $issuerCountry), $rows);
+        }
+
+        return $values;
+    }
+
+    /**
+     * A code the row must not hold: it belongs to reverse charge between parties of one
+     * country, and the form hides it otherwise.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, mixed>
+     */
+    public function withoutHiddenCodes(array $values, string $issuerCountry): array
+    {
+        /** @var array<string, string> $customer */
+        $customer = $values['customer'];
+        $foreign = self::isForeign('' === $customer['vatId'] ? null : $customer['vatId'], $issuerCountry);
         /** @var list<array<string, string>> $rows */
         $rows = $values['lines'];
-        $values['lines'] = array_map(static fn (array $row): array => self::rowFor($row, $draft->regime), $rows);
-        $party = $this->partyOf($values);
-        if ($party instanceof Party && !$this->contacts->isCustomerOf($party, $firm)) {
-            $values['customerId'] = '';
-            $values['customerQuery'] = '';
-            $values['customer'] = $this->emptyCustomer();
-        }
+        $values['lines'] = array_map(static fn (array $row): array => InvoiceFormReader::VAT_REVERSE_CHARGE !== $row['vat'] || $foreign ? array_merge($row, ['supplyCode' => '']) : $row, $rows);
 
         return $values;
     }
@@ -249,13 +279,16 @@ final readonly class InvoiceFormValues
         } elseif (InvoiceFormReader::VAT_REVERSE_CHARGE === $row['vat']) {
             $row['vat'] = InvoiceFormReader::VAT_BASE;
         }
-        // A code exists only for reverse charge between parties of one country.
-        $foreign = null !== $option->vatId && !str_starts_with(strtoupper($option->vatId), $issuerCountry);
-        if (InvoiceFormReader::VAT_REVERSE_CHARGE !== $row['vat'] || $foreign) {
+        if (InvoiceFormReader::VAT_REVERSE_CHARGE !== $row['vat'] || self::isForeign($option->vatId, $issuerCountry)) {
             $row['supplyCode'] = '';
         }
 
         return $row;
+    }
+
+    private static function isForeign(?string $vatId, string $issuerCountry): bool
+    {
+        return null !== $vatId && !str_starts_with(strtoupper($vatId), $issuerCountry);
     }
 
     private function newLineVat(VatRegime $regime, bool $reverseCharge): string

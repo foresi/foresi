@@ -27,6 +27,7 @@ use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
@@ -37,6 +38,7 @@ use App\Invoicing\Infrastructure\Form\InvoiceFormContext;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\UnknownLegalEntity;
@@ -81,6 +83,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoicingCountries $countries,
         private readonly PartyQuery $parties,
         private readonly CustomerPicker $picker,
+        private readonly ContactSettingsForFirm $contacts,
         private readonly NewInvoiceDefaults $defaults,
         private readonly IssueInvoice $issue,
         private readonly EditInvoice $edit,
@@ -227,7 +230,7 @@ final class InvoiceController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
-        $values = $this->withFormFields($submission->values, $context);
+        $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
 
         if (1 === \count($matches)) {
             // A typed name is a pick, never a save: the defaults of the customer come first.
@@ -254,6 +257,7 @@ final class InvoiceController extends AbstractController
         }
 
         $invoiceId = $context->invoice?->id();
+        $ownNumber = $context->invoice?->number();
         $firmId = $context->firm->id();
         try {
             $saved = null === $invoiceId ? $this->issue->issue($submission->input) : $this->edit->edit($invoiceId, $submission->input, $submission->version);
@@ -262,7 +266,7 @@ final class InvoiceController extends AbstractController
         }
 
         $this->tokens->complete($token, $saved->id());
-        $this->flashSaved($saved, $submission);
+        $this->flashSaved($saved, $submission, $ownNumber);
 
         return $this->redirectToSaved($saved->id());
     }
@@ -287,20 +291,24 @@ final class InvoiceController extends AbstractController
      */
     private function reshaped(string $action, array $values, InvoiceSubmission $submission, InvoiceFormContext $context, string $token): Response
     {
+        $errors = [];
         if (str_starts_with($action, 'pick:')) {
             $party = $this->pickable(substr($action, 5));
-            if ($party instanceof Party) {
+            if ($party instanceof Party && !$this->contacts->isCustomerOf($party, $context->firm)) {
+                $errors = [$this->message('customer', 'invoice.problem.customer_role')];
+            } elseif ($party instanceof Party) {
                 $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
             }
         } elseif ('refresh' === $action) {
             if (!$context->invoice instanceof Invoice && $values['firmId'] !== $values['firmShown']) {
-                $values = $this->values->forFirm($values, $context->firm);
+                $values = $this->values->forFirm($values, $context->firm, $submission->input->issueDate);
+                $this->addFlash('warning', $this->translator->trans('invoice.firm_changed'));
             }
         } else {
             $values = $this->values->withRowAction($values, $action, $context->regime, $this->newLinesAreReverseCharge($context, $values));
         }
 
-        return $this->form($context, $values, [], [], $token, $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
+        return $this->form($context, $values, $errors, [], $token, $submission->version, Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     private function pickable(string $id): ?Party
@@ -357,11 +365,17 @@ final class InvoiceController extends AbstractController
         return $this->values->withCustomerShown($values, $this->picker->option($party, $context->firm));
     }
 
-    private function flashSaved(Invoice $saved, InvoiceSubmission $submission): void
+    private function flashSaved(Invoice $saved, InvoiceSubmission $submission, ?string $ownNumber): void
     {
         $preview = $submission->values['numberPeek'];
+        \assert(\is_string($preview));
         if (null === $submission->input->typedNumber && $saved->number() !== $preview) {
-            $this->addFlash('warning', $this->translator->trans('invoice.flash.renumbered', ['number' => $saved->number(), 'preview' => $preview]));
+            // A preview another document took is a race. Otherwise it was of something else: the number the document
+            // gave up, or a series changed without JavaScript.
+            $raced = $preview !== $ownNumber && $this->store->numberTaken($saved->firm(), NumberKey::of($preview), $saved);
+            $this->addFlash('warning', $raced
+                ? $this->translator->trans('invoice.flash.renumbered', ['number' => $saved->number(), 'preview' => $preview])
+                : $this->translator->trans('invoice.flash.number_changed', ['number' => $saved->number()]));
 
             return;
         }

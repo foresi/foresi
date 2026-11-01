@@ -507,7 +507,7 @@ invoice:
   cut_off_retry: Open the form again
   line_limit: 'An invoice has at most 100 lines.'
   errors_close: Close the list
-  leave: Leave the form? What you changed will be lost.
+  firm_changed: The firm changed, so series, number and variable symbol start over.
   currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
   blocked:
     no_firm_title: Invoices need a firm
@@ -516,6 +516,7 @@ invoice:
   flash:
     saved: 'Invoice {number} is saved.'
     renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
+    number_changed: 'Invoice saved as {number}. The number changed.'
     already_saved: This form was saved already.
   card:
     issuer: Issuer

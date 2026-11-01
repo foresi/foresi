@@ -34,12 +34,58 @@ async function tabThrough(page: Page, ids: string[]): Promise<void> {
   }
 }
 
-// What a saved document holds, read back from its edit form.
-async function expectSaved(page: Page, number: string, symbol: string): Promise<void> {
+// What a saved document holds, read back from its edit form, against what the form showed and what the flash says.
+async function expectSaved(page: Page, number: string, symbol: string, flash: RegExp | string = `Faktura ${number} je uložená.`): Promise<void> {
   await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+  await expect(page.locator('[role=status]').filter({ hasText: flash })).toBeVisible();
   await expect(page.locator('#number')).toHaveValue(number);
   await expect(page.locator('#variableSymbol')).toHaveValue(symbol);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(number);
+}
+
+// Shown before the save; each number path compares this with what was stored.
+async function expectShown(page: Page, number: string, symbol: string): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(number);
+  await expect(page.locator('#number')).toHaveValue(number);
+  await expect(page.locator('#variableSymbol')).toHaveValue(symbol);
+}
+
+async function issueOne(page: Page): Promise<string> {
+  await openPayerForm(page);
+  await pickCustomer(page, 'Example Domestic a.s.');
+  await fillLine(page);
+  await save(page);
+  await expect(page).toHaveURL(/\/edit$/);
+  return page.url();
+}
+
+async function nextOfSecond(page: Page): Promise<string> {
+  const id = await page.locator('#series option', { hasText: 'Second' }).getAttribute('value');
+  const answer = await page.request.get(`/invoices/next-number?series=${id}&date=${await page.locator('#issueDate').inputValue()}`);
+  return ((await answer.json()) as { number: string }).number;
+}
+
+async function setIssueDate(page: Page, date: string): Promise<void> {
+  await page.locator('#issueDate').fill(date);
+  await page.locator('#issueDate').dispatchEvent('change');
+}
+
+// Types as a person does: Chrome asks before unload only after a real gesture.
+async function type(page: Page, id: string, text: string): Promise<void> {
+  await page.locator(id).click();
+  await page.keyboard.type(text);
+}
+
+// A real Back against the browser's own prompt; the outcome is read once navigation has settled.
+async function backAnswering(page: Page, leave: boolean): Promise<void> {
+  const asked = new Promise<string>((resolve) => {
+    page.once('dialog', (dialog) => { resolve(dialog.type()); void (leave ? dialog.accept() : dialog.dismiss()); });
+  });
+  const going = page.goBack({ timeout: 3000 }).catch(() => null);
+  expect(await asked).toBe('beforeunload');
+  await going;
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(400);
 }
 
 async function fillLine(page: Page, text = 'Práce', price = '500'): Promise<void> {
@@ -128,9 +174,8 @@ test.describe.serial('an invoice', () => {
 
   test('saves the number of the year of the issue date', async ({ page }) => {
     await openPayerForm(page);
-    await page.locator('#issueDate').fill('2027-02-10');
-    await page.locator('#issueDate').dispatchEvent('change');
-    await expect(page.locator('#number')).toHaveValue('20270001');
+    await setIssueDate(page, '2027-02-10');
+    await expectShown(page, '20270001', '20270001');
     await pickCustomer(page, 'Example Domestic a.s.');
     await fillLine(page);
     await save(page);
@@ -147,6 +192,78 @@ test.describe.serial('an invoice', () => {
     await fillLine(page);
     await save(page);
     await expectSaved(page, 'X2026-777', '2026777');
+  });
+
+  test('saves the default path as shown', async ({ page }) => {
+    await openPayerForm(page);
+    const number = await page.locator('#number').inputValue();
+    await expectShown(page, number, number);
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await fillLine(page);
+    await save(page);
+    await expectSaved(page, number, number);
+  });
+
+  test('saves after a firm change on the date of the form, with a typed number gone', async ({ page }) => {
+    await openPayerForm(page);
+    await setIssueDate(page, '2029-03-01');
+    await expect(page.locator('#number')).toHaveValue('20290001');
+    await page.getByLabel('Změnit číslo').click();
+    await page.locator('#number').fill('X-TYPED-1');
+    await page.locator('select[name=firmId]').selectOption({ label: 'Example Small Trader' });
+    await expect(page.getByText('Firma se změnila')).toBeVisible();
+    await expectShown(page, '20290001', '20290001');
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await fillLine(page);
+    await save(page);
+    await expectSaved(page, '20290001', '20290001');
+  });
+
+  test('saves an edit moved to another series', async ({ page }) => {
+    await page.goto(await issueOne(page));
+    const moved = await nextOfSecond(page);
+    await page.locator('#series').selectOption({ label: 'Second' });
+    await expectShown(page, moved, moved.replace(/\D/g, ''));
+    await save(page);
+    await expectSaved(page, moved, moved.replace(/\D/g, ''));
+  });
+
+  test('moves an edit there and back across a re-render and keeps the number', async ({ page }) => {
+    await page.goto(await issueOne(page));
+    const original = await page.locator('#number').inputValue();
+    const series = await page.locator('#series option:checked').textContent();
+    await page.locator('#series').selectOption({ label: 'Second' });
+    await expect(page.locator('#number')).not.toHaveValue(original);
+    await page.locator('#lines-0-price').fill('abc');
+    await save(page);
+    await expect(page.locator('[data-error-summary]')).toBeVisible();
+
+    await page.locator('#series').selectOption({ label: series ?? '' });
+    await expectShown(page, original, original);
+    await page.locator('#lines-0-price').fill('500');
+    await save(page);
+    await expectSaved(page, original, original);
+  });
+
+  test('moves an edit to another series and year together', async ({ page }) => {
+    await page.goto(await issueOne(page));
+    await page.locator('#series').selectOption({ label: 'Second' });
+    await expect(page.locator('#number')).toHaveValue(/^B26/);
+    await setIssueDate(page, '2031-01-15');
+    await page.locator('#taxPointDate').fill('2031-01-15');
+    await expectShown(page, 'B31001', '31001');
+    await save(page);
+    await expectSaved(page, 'B31001', '31001');
+  });
+
+  test('keeps the number of an edit when only the year changes', async ({ page }) => {
+    await page.goto(await issueOne(page));
+    const number = await page.locator('#number').inputValue();
+    await setIssueDate(page, '2031-02-15');
+    await page.waitForTimeout(300);
+    await expectShown(page, number, number);
+    await save(page);
+    await expectSaved(page, number, number);
   });
 
   test('keeps a typed number through a series change', async ({ page }) => {
@@ -174,8 +291,7 @@ test.describe.serial('an invoice', () => {
 
     await save(page);
     const next = String(Number(preview) + 1);
-    await expectSaved(page, next, next);
-    await expect(page.getByText(`${preview} mezitím získal jiný doklad`)).toBeVisible();
+    await expectSaved(page, next, next, `${preview} mezitím získal jiný doklad`);
   });
 
   test('counts on the server and adds a line from the last cell', async ({ page }) => {
@@ -299,6 +415,26 @@ test.describe.serial('an invoice', () => {
     await expect(page).toHaveURL(/\/edit$/);
   });
 
+  test('drops the code when a foreign VAT ID is typed on the document, and saves', async ({ page }) => {
+    await openPayerForm(page);
+    await pickCustomer(page, 'Example Builder a.s.');
+    await fillLine(page, 'Stavba', '100');
+    await page.locator('#lines-0-supplyCode').selectOption('4');
+    await page.locator('#customerEdit').check();
+    await page.locator('#customer-vatId').fill('DE123456789');
+    await expect(page.locator('#lines-0-supplyCode')).toBeHidden();
+    await save(page);
+    await expect(page).toHaveURL(/\/edit$/);
+  });
+
+  test('forgets the treatment of a cleared customer for new lines', async ({ page }) => {
+    await openPayerForm(page);
+    await pickCustomer(page, 'Example Builder a.s.');
+    await page.locator('#customer').fill('');
+    await page.locator('#invoice-new-line').click();
+    await expect(page.locator('#lines-1-vat')).toHaveValue('base');
+  });
+
   test('takes a typed name as a pick and leaves the save to the user', async ({ page }) => {
     await openPayerForm(page);
     await page.locator('#customer').fill('Example Bui');
@@ -406,35 +542,119 @@ test.describe.serial('an invoice', () => {
     await page.locator('#lines-0-price').fill('500');
     await page.getByRole('button', { name: 'Uložit', exact: true }).dblclick();
     await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+    await expect(page.getByText('Tento formulář už byl uložen.')).toHaveCount(0);
     await page.goto('/invoices/new');
     expect(Number(await page.locator('#variableSymbol').inputValue())).toBe(Number(before) + 1);
   });
 
-  test('asks before leaving a changed form', async ({ page }) => {
+  test('asks before a link leaves a changed form, and after a refused save', async ({ page }) => {
     await openPayerForm(page);
-    await page.locator('#description').fill('Rozepsáno');
+    await type(page, '#description', 'Rozepsáno');
     let asked = '';
     page.once('dialog', (dialog) => { asked = dialog.type(); void dialog.dismiss(); });
-    await page.getByRole('link', { name: 'Zrušit' }).click();
-    await expect.poll(() => asked).not.toBe('');
-    await expect(page).toHaveURL(/\/invoices\/new$/);
-  });
-
-  test('asks on a real Back, and stays with what was typed', async ({ page }) => {
-    await page.goto('/contacts');
-    await page.goto('/invoices/new');
-    await page.locator('#description').fill('Rozepsáno');
-    await expect.poll(() => page.evaluate(() => history.state?.invoiceFormGuard)).toBe(true);
-
-    const dismissed = new Promise<string>((resolve) => { page.once('dialog', (dialog) => { resolve(dialog.message()); void dialog.dismiss(); }); });
-    await page.goBack();
-    expect(await dismissed).toContain('Opustit formulář');
+    await page.locator('#invoice-cancel').click();
+    await expect.poll(() => asked).toBe('beforeunload');
+    await page.waitForTimeout(300);
     await expect(page).toHaveURL(/\/invoices\/new$/);
     await expect(page.locator('#description')).toHaveValue('Rozepsáno');
 
-    page.once('dialog', (dialog) => { void dialog.accept(); });
+    await save(page);
+    await expect(page.locator('[data-error-summary]')).toBeVisible();
+    asked = '';
+    page.once('dialog', (dialog) => { asked = dialog.type(); void dialog.dismiss(); });
+    await page.locator('#invoice-cancel').click();
+    await expect.poll(() => asked).toBe('beforeunload');
+  });
+
+  test('asks on a real Back from a new form: Stay keeps it, Leave and Forward work', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.goto('/invoices/new');
+    await type(page, '#description', 'Rozepsáno');
+
+    await backAnswering(page, false);
+    await expect(page).toHaveURL(/\/invoices\/new$/);
+    await expect(page.locator('#description')).toHaveValue('Rozepsáno');
+
+    await backAnswering(page, true);
+    await expect(page).toHaveURL(/\/contacts$/);
+
+    await page.goForward();
+    await expect(page).toHaveURL(/\/invoices\/new$/);
+    await expect(page.locator('form#invoice-form')).toBeVisible();
+    page.on('dialog', (dialog) => void dialog.accept());
     await page.goBack();
     await expect(page).toHaveURL(/\/contacts$/);
+  });
+
+  test('arrives by Turbo as a full page and still asks on Back', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.evaluate(() => { (window as unknown as { Turbo: { visit(url: string): void } }).Turbo.visit('/invoices/new'); });
+    await expect(page.locator('form#invoice-form')).toBeVisible();
+    await type(page, '#description', 'Rozepsáno');
+
+    await backAnswering(page, false);
+    await expect(page.locator('#description')).toHaveValue('Rozepsáno');
+    await backAnswering(page, true);
+    await expect(page).toHaveURL(/\/contacts$/);
+  });
+
+  test('asks on a real Back from an edit', async ({ page }) => {
+    const url = await issueOne(page);
+    await page.goto('/contacts');
+    await page.goto(url);
+    await type(page, '#description', 'Změněno');
+
+    await backAnswering(page, false);
+    await expect(page).toHaveURL(url);
+    await expect(page.locator('#description')).toHaveValue('PráceZměněno');
+
+    await backAnswering(page, true);
+    await expect(page).toHaveURL(/\/contacts$/);
+  });
+
+  test('asks on a real Back after a refused save', async ({ page }) => {
+    await page.goto('/contacts');
+    await page.goto('/invoices/new');
+    await type(page, '#description', 'Odmítnuto');
+    await save(page);
+    await expect(page.locator('[data-error-summary]')).toBeVisible();
+
+    await backAnswering(page, false);
+    await expect(page.locator('[data-error-summary]')).toBeVisible();
+    await expect(page.locator('#description')).toHaveValue('Odmítnuto');
+
+    await backAnswering(page, true);
+    await expect(page).toHaveURL(/\/invoices\/new$/);
+    await expect(page.locator('[data-error-summary]')).toHaveCount(0);
+  });
+
+  test('a save lifts the guard, and reload asks', async ({ page }) => {
+    await openPayerForm(page);
+    await type(page, '#description', 'Uložím');
+    let asked = 0;
+    const count = (): void => { asked += 1; };
+    page.on('dialog', (dialog) => { count(); void dialog.accept(); });
+    await page.reload();
+    await expect.poll(() => asked).toBe(1);
+
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await fillLine(page);
+    await save(page);
+    await expect(page).toHaveURL(/\/edit$/);
+    expect(asked).toBe(1);
+  });
+
+  test('a firm change is a submit and asks nothing', async ({ page }) => {
+    await page.goto('/invoices/new');
+    await type(page, '#description', 'Zůstane');
+    let asked = false;
+    page.on('dialog', (dialog) => { asked = true; void dialog.dismiss(); });
+    const firm = page.locator('select[name=firmId]');
+    const other = (await firm.locator('option:checked').textContent()) === 'Example Payer s.r.o.' ? 'Example Small Trader' : 'Example Payer s.r.o.';
+    await firm.selectOption({ label: other });
+    await expect(page.getByText('Firma se změnila')).toBeVisible();
+    await expect(page.locator('#description')).toHaveValue('Zůstane');
+    expect(asked).toBe(false);
   });
 
   test('leaves an untouched form on Back without asking', async ({ page }) => {
@@ -442,16 +662,6 @@ test.describe.serial('an invoice', () => {
     await page.goto('/invoices/new');
     await page.goBack();
     await expect(page).toHaveURL(/\/contacts$/);
-  });
-
-  test('still asks after a refused save', async ({ page }) => {
-    await openPayerForm(page);
-    await page.locator('#invoice-save').click();
-    await expect(page.locator('[data-error-summary]')).toBeVisible();
-    let asked = '';
-    page.once('dialog', (dialog) => { asked = dialog.type(); void dialog.dismiss(); });
-    await page.getByRole('link', { name: 'Zrušit' }).click();
-    await expect.poll(() => asked).not.toBe('');
   });
 
   test('is clean for axe on the desktop', async ({ page }) => {

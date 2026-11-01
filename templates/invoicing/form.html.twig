@@ -5,6 +5,13 @@
 {% set form_invalid = errors|default([]) is not empty %}
 {% set editing = invoice|default(null) is not null %}
 
+{# A plain document: the browser, not Turbo, leaves this page, so its own beforeunload prompt guards a changed form on Back, reload, closing and links. #}
+{% block head %}
+    <meta name="turbo-cache-control" content="no-cache">
+    <meta name="turbo-visit-control" content="reload">
+{% endblock %}
+{% block body_attributes %} data-turbo="false"{% endblock %}
+
 {% block title %}{{ blocked|default(null) ? 'invoice.new'|trans : 'invoice.title'|trans({number: values.number ?: values.numberPeek}) }}{% endblock %}
 
 {% block actions %}
@@ -40,16 +47,16 @@
             {% if stale %}
                 <twig:Ui:Alert tone="error" role="alert" data-reload-prompt>
                     <span>{{ 'invoice.problem.changed_meanwhile'|trans }}</span>
-                    <a href="{{ path('app_invoice_edit', {id: invoice.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-turbo="false">{{ 'invoice.reload'|trans }}</a>
+                    <a href="{{ path('app_invoice_edit', {id: invoice.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.reload'|trans }}</a>
                 </twig:Ui:Alert>
             {% endif %}
             {% if trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
 
-        <form method="post" id="invoice-form" action="{{ editing ? path('app_invoice_edit', {id: invoice.id}) : path('app_invoice_new') }}" class="grid gap-4" novalidate
+        <form method="post" id="invoice-form" action="{{ editing ? path('app_invoice_edit', {id: invoice.id}) : path('app_invoice_new') }}" class="grid gap-4" novalidate data-turbo="false"
             data-controller="invoice-form"
-            data-action="combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload turbo:before-visit@document->invoice-form#beforeVisit popstate@window->invoice-form#popped:capture mouseup@window->invoice-form#disarmDrag"
+            data-action="combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload pageshow@window->invoice-form#shown mouseup@window->invoice-form#disarmDrag"
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
             data-invoice-form-contact-url-value="{{ path('app_contact_edit', {id: '00000000-0000-7000-8000-000000000000'}) }}"
@@ -65,7 +72,6 @@
             data-invoice-form-due-days-value="{{ dueDays }}"
             data-invoice-form-title-template-value="{{ 'invoice.title'|trans({number: '__NUMBER__'}) }}"
             data-invoice-form-notice-template-value="{{ 'invoice.currency_notice'|trans({contact: '__CURRENCY__', document: currency}) }}"
-            data-invoice-form-leave-value="{{ 'invoice.leave'|trans }}"
             data-invoice-form-registration-label-value="{{ 'invoice.field.registrationNumber'|trans }}"
             data-invoice-form-vat-label-value="{{ 'invoice.field.vatId'|trans }}">
             {# The first submit button is what Enter in a field presses: it must never issue a document. #}
@@ -76,6 +82,9 @@
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
             <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
             <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">
+            {# Of the stored document, never of the post: a series can go there and back across re-renders. #}
+            <input type="hidden" name="originalSeries" value="{{ editing ? invoice.series.id : '' }}" data-invoice-form-target="originalSeries">
+            <input type="hidden" name="originalNumber" value="{{ editing ? invoice.number : '' }}" data-invoice-form-target="originalNumber">
             <input type="hidden" name="numberPeek" value="{{ values.numberPeek }}" data-invoice-form-target="numberPeek">
 
             <twig:Ui:Card :title="'invoice.card.issuer'|trans" icon="building-2">
@@ -133,7 +142,7 @@
                                 <div class="sm:col-span-2"><twig:Ui:TextInput name="customer[name]" id="customer-name" :label="'invoice.field.customerName'|trans" :value="values.customer.name" maxlength="255" /></div>
                                 <twig:Ui:TextInput name="customer[registrationNumber]" id="customer-registrationNumber" :label="'invoice.field.registrationNumber'|trans" :value="values.customer.registrationNumber" maxlength="64" />
                                 {% if payer %}
-                                    <twig:Ui:TextInput name="customer[vatId]" id="customer-vatId" :label="'invoice.field.vatId'|trans" :value="values.customer.vatId" maxlength="14" />
+                                    <twig:Ui:TextInput name="customer[vatId]" id="customer-vatId" :label="'invoice.field.vatId'|trans" :value="values.customer.vatId" maxlength="14" data-action="input->invoice-form#showSupplyCodes" />
                                 {% else %}
                                     <input type="hidden" name="customer[vatId]" id="customer-vatId" value="{{ values.customer.vatId }}">
                                 {% endif %}

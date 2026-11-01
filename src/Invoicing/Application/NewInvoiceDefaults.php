@@ -43,12 +43,14 @@ final readonly class NewInvoiceDefaults
     }
 
     /**
+     * @param \DateTimeImmutable|null $on the issue date, today of the country when left out
+     *
      * @throws UnsupportedCountry for a firm whose country has no invoicing rules
      */
-    public function for(LegalEntity $firm): InvoiceDraftValues
+    public function for(LegalEntity $firm, ?\DateTimeImmutable $on = null): InvoiceDraftValues
     {
         $country = $this->countries->for($firm->address()->countryCode);
-        $today = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($country->timezone())->setTime(0, 0);
+        $today = $on ?? \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($country->timezone())->setTime(0, 0);
         $series = $this->catalog->defaultFor($firm);
         $number = $this->counter->peek($series, $today);
         $settings = $this->settings->for($firm);

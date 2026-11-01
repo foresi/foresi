@@ -507,7 +507,7 @@ invoice:
   cut_off_retry: Otevřít formulář znovu
   line_limit: 'Faktura má nejvýše 100 řádků.'
   errors_close: Zavřít seznam
-  leave: Opustit formulář? Změny se ztratí.
+  firm_changed: Firma se změnila, proto se řada, číslo a variabilní symbol nastavily znovu.
   currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
   blocked:
     no_firm_title: Faktury potřebují firmu
@@ -516,6 +516,7 @@ invoice:
   flash:
     saved: 'Faktura {number} je uložená.'
     renumbered: 'Faktura je uložená pod číslem {number}: {preview} mezitím získal jiný doklad.'
+    number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
     already_saved: Tento formulář už byl uložen.
   card:
     issuer: Vystavitel
