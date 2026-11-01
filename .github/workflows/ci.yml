@@ -22,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
+          extensions: ctype, gd, iconv, intl, pdo_sqlite, pdo_pgsql
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
@@ -137,7 +137,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
+          extensions: ctype, gd, iconv, intl, pdo_sqlite, pdo_pgsql
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.

@@ -35,6 +35,7 @@ final class SeriesTest extends TestCase
     #[TestWith([1, '26'])]
     #[TestWith([1, ''])]
     #[TestWith([1, "2026\n"])]
+    #[TestWith([2147483648, '2026'])]
     public function testARefusedStart(int $number, string $period): void
     {
         $this->expectException(\DomainException::class);

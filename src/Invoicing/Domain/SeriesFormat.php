@@ -19,11 +19,13 @@ final readonly class SeriesFormat
 {
     public const int MAX_LENGTH = 64;
     public const string ALL_PERIODS = 'all';
+    /** The largest value of the counter column. */
+    public const int MAX_SEQUENCE = 2_147_483_647;
 
     private const string TEXT = '/^[A-Za-z0-9._\/-]*$/D';
     private const string TOKEN = '/^\{(YYYY|YY|MM|DD|N+)\}$/D';
     private const array DATE_TOKENS = ['{YYYY}' => 'Y', '{YY}' => 'y', '{MM}' => 'm', '{DD}' => 'd'];
-    private const int MAX_SEQUENCE_DIGITS = 18;
+    private const int MAX_SEQUENCE_DIGITS = 10;
 
     /**
      * @param list<string> $parts text and tokens in order
@@ -79,8 +81,9 @@ final readonly class SeriesFormat
     }
 
     /**
-     * The sequence of a number of this series on that date, in any case; null
-     * when the number does not have this form.
+     * The sequence of a number of this series on that date. Numbers are the same
+     * when their NumberKey is, so case and punctuation do not matter. Null when the
+     * number does not have this form, or holds a sequence the counter cannot.
      */
     public function sequenceIn(string $number, \DateTimeImmutable $date): ?int
     {
@@ -89,14 +92,19 @@ final readonly class SeriesFormat
             $pattern .= match (true) {
                 $this->isSequence($part) => '(\d{'.(\strlen($part) - 2).',})',
                 isset(self::DATE_TOKENS[$part]) => $date->format(self::DATE_TOKENS[$part]),
-                default => preg_quote($part, '/'),
+                default => NumberKey::of($part),
             };
         }
-        if (1 !== preg_match('/^'.$pattern.'$/Di', $number, $match) || \strlen($match[1]) > self::MAX_SEQUENCE_DIGITS) {
+        if (1 !== preg_match('/^'.$pattern.'$/D', NumberKey::of($number), $match)) {
             return null;
         }
 
-        return (int) $match[1];
+        $digits = ltrim($match[1], '0');
+        if (\strlen($digits) > self::MAX_SEQUENCE_DIGITS || (int) $digits > self::MAX_SEQUENCE) {
+            return null;
+        }
+
+        return (int) $digits;
     }
 
     public function period(\DateTimeImmutable $date): string
@@ -105,13 +113,31 @@ final readonly class SeriesFormat
     }
 
     /**
-     * Whether numbers of both formats can be the same number of a firm.
+     * Whether numbers of both formats can be the same number of a firm. The width
+     * of the sequence is only a minimum, so it keeps no numbers apart.
      */
     public function collidesWith(self $other): bool
     {
-        $date = new \DateTimeImmutable('2000-01-01');
+        return $this->shape() === $other->shape();
+    }
 
-        return NumberKey::of($this->render($date, 1)) === NumberKey::of($other->render($date, 1));
+    /**
+     * The key form of the numbers, with one mark for the sequence of any width.
+     */
+    private function shape(): string
+    {
+        $date = new \DateTimeImmutable('2000-01-01');
+        $shape = '';
+        foreach ($this->parts as $part) {
+            $shape .= $this->isSequence($part) ? '#' : NumberKey::of($this->datePart($part, $date));
+        }
+
+        return $shape;
+    }
+
+    private function datePart(string $part, \DateTimeImmutable $date): string
+    {
+        return isset(self::DATE_TOKENS[$part]) ? $date->format(self::DATE_TOKENS[$part]) : $part;
     }
 
     private function isSequence(string $part): bool

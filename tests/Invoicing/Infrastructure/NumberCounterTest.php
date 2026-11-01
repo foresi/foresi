@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\NumberCounter;
+use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Series;
@@ -158,6 +159,53 @@ final class NumberCounterTest extends KernelTestCase
         self::assertFalse($this->catalog->hasDocuments($series));
     }
 
+    public function testATypedNumberDifferingOnlyInPunctuationMovesTheCounter(): void
+    {
+        $series = $this->series('FV{YY}-{NNN}');
+        $date = $this->date('2026-10-31');
+
+        $sequence = $series->format()->sequenceIn('fv-26/095', $date);
+        self::assertSame(95, $sequence);
+        $this->counter->advanceTo($series, $date, $sequence);
+
+        self::assertSame('FV26-096', $this->counter->next($series, $date));
+    }
+
+    public function testAdvancingUpToTheLimitWorks(): void
+    {
+        $series = $this->series();
+
+        $this->counter->advanceTo($series, $this->date('2026-10-31'), SeriesFormat::MAX_SEQUENCE);
+
+        self::assertSame(SeriesFormat::MAX_SEQUENCE, $this->counter->last($series, '2026'));
+    }
+
+    public function testAdvancingAboveTheLimitIsRefusedAndChangesNothing(): void
+    {
+        $series = $this->series();
+
+        try {
+            $this->counter->advanceTo($series, $this->date('2026-10-31'), SeriesFormat::MAX_SEQUENCE + 1);
+            self::fail('The sequence does not fit the counter.');
+        } catch (SequenceOutOfRange) {
+            self::assertSame(0, $this->rows());
+        }
+    }
+
+    public function testAnExhaustedSeriesIsRefusedAndKeepsItsCounter(): void
+    {
+        $series = $this->series();
+        $date = $this->date('2026-10-31');
+        $this->counter->advanceTo($series, $date, SeriesFormat::MAX_SEQUENCE);
+
+        try {
+            self::getContainer()->get(TransactionalWork::class)->run(fn (): string => $this->counter->next($series, $date));
+            self::fail('The series has no number left.');
+        } catch (SequenceOutOfRange) {
+            self::assertSame(SeriesFormat::MAX_SEQUENCE, $this->counter->last($series, '2026'));
+        }
+    }
+
     public function testPeekWritesNothing(): void
     {
         $series = $this->series();
@@ -241,6 +289,16 @@ final class NumberCounterTest extends KernelTestCase
 
         self::assertSame([$active], $this->catalog->forFirm($this->firm));
         self::assertSame($archived, $this->catalog->get($archived->id()));
+    }
+
+    public function testTheCatalogKnowsArchivedSeriesWhenAskedForEveryOne(): void
+    {
+        $active = $this->series('{YYYY}{NNNN}', 'Standard');
+        $archived = $this->series('A{YYYY}{NNNN}', 'Archived');
+        $archived->archive();
+        $this->em->flush();
+
+        self::assertSame([$archived, $active], $this->catalog->everyForFirm($this->firm));
     }
 
     public function testTheCatalogFindsNoSeriesOfAnotherTenant(): void

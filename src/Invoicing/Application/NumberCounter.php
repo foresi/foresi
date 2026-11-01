@@ -26,10 +26,15 @@ interface NumberCounter
      */
     public function peek(Series $series, \DateTimeImmutable $date): string;
 
+    /**
+     * @throws SequenceOutOfRange when the series has no number left; end the transaction
+     */
     public function next(Series $series, \DateTimeImmutable $date): string;
 
     /**
      * Moves the counter up to a number given elsewhere; never down.
+     *
+     * @throws SequenceOutOfRange when the counter cannot hold the sequence
      */
     public function advanceTo(Series $series, \DateTimeImmutable $date, int $sequence): void;
 

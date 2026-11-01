@@ -278,6 +278,31 @@ final class FirmInvoicingControllerTest extends WebTestCase
         self::assertSelectorExists('#format-error');
     }
 
+    public function testAFormatDifferingOnlyInTheSequenceWidthIsRefused(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->series($firm, '{YYYY}{NNNN}');
+
+        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => '{YYYY}{NNN}']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#format-error');
+    }
+
+    public function testAnArchivedSeriesKeepsItsFormatAndNameTaken(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->archive($this->series($firm, 'FV{YY}{NNN}'));
+
+        $this->saveNewSeries($firm, ['name' => 'Second', 'format' => 'FV{YY}{NNN}']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#format-error');
+
+        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => 'Z{YY}{NNN}']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#name-error');
+    }
+
     public function testASeriesCanBeEdited(): void
     {
         $firm = $this->signedInFirm();
@@ -321,6 +346,94 @@ final class FirmInvoicingControllerTest extends WebTestCase
         self::assertSame(90, $this->onlySeries($firm)->startFor('2026'));
         $this->client->followRedirect();
         self::assertSelectorTextContains('main table', '20260090');
+    }
+
+    public function testTheYearDefaultsToThisYearAndTheNumberStaysEmpty(): void
+    {
+        $firm = $this->signedInFirm();
+        $series = $this->series($firm);
+        $this->issue($series);
+
+        $crawler = $this->client->request('GET', $this->editUrl($firm, $series));
+
+        self::assertSame('2026', $crawler->filter('#startYear')->attr('value'));
+        self::assertSame('', $crawler->filter('#nextNumber')->attr('value'));
+        self::assertSame('2', $crawler->filter('#nextNumber')->attr('placeholder'));
+    }
+
+    public function testANextYearCanBeSeededExplicitly(): void
+    {
+        $firm = $this->signedInFirm();
+        $series = $this->series($firm);
+        $this->issue($series);
+
+        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '500', 'startYear' => '2027']);
+
+        self::assertResponseRedirects($this->settingsUrl($firm));
+        $stored = $this->onlySeries($firm);
+        self::assertSame(500, $stored->startFor('2027'));
+        self::assertSame(1, $stored->startFor('2026'));
+    }
+
+    public function testSavingWithAnotherYearAndNoNumberSetsNothing(): void
+    {
+        $firm = $this->signedInFirm();
+        $series = $this->series($firm);
+
+        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'startYear' => '2027']);
+
+        self::assertResponseRedirects($this->settingsUrl($firm));
+        self::assertSame(1, $this->onlySeries($firm)->startFor('2027'));
+    }
+
+    public function testAFormatWithoutAYearIgnoresTheYear(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveNewSeries($firm, ['name' => 'Standard', 'format' => '{NNNN}', 'nextNumber' => '7', 'startYear' => '2027']);
+
+        $stored = $this->onlySeries($firm);
+        self::assertSame(7, $stored->startFor('all'));
+        self::assertSame(1, $stored->startFor('2027'));
+    }
+
+    public function testTheCounterIsCheckedInTheChosenYear(): void
+    {
+        $firm = $this->signedInFirm();
+        $series = $this->series($firm);
+        $this->issue($series, '2025-06-01');
+        $this->issue($series, '2025-06-01');
+
+        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2025']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#nextNumber-error', '3');
+
+        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => '', 'nextNumber' => '2', 'startYear' => '2026']);
+        self::assertResponseRedirects($this->settingsUrl($firm));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function wrongYears(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'short' => ['26'];
+        yield 'text' => ['abcd'];
+        yield 'before this century' => ['1999'];
+        yield 'after it' => ['2100'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('wrongYears')]
+    public function testAWrongYearGetsAFormError(string $year): void
+    {
+        $firm = $this->signedInFirm();
+        $series = $this->series($firm);
+
+        $this->saveSeries($firm, $series, ['name' => 'Standard', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '5', 'startYear' => $year]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#startYear-error');
     }
 
     public function testANewSeriesCanStartAboveOne(): void
@@ -456,10 +569,19 @@ final class FirmInvoicingControllerTest extends WebTestCase
         return $series;
     }
 
-    private function issue(Series $series): void
+    private function issue(Series $series, string $date = '2026-10-31'): void
     {
         $this->context->switchTo($series->tenantId());
-        self::getContainer()->get(NumberCounter::class)->next($series, new \DateTimeImmutable('2026-10-31'));
+        self::getContainer()->get(NumberCounter::class)->next($series, new \DateTimeImmutable($date));
+        $this->context->reset();
+    }
+
+    private function archive(Series $series): void
+    {
+        $this->context->switchTo($series->tenantId());
+        $stored = self::getContainer()->get(SeriesCatalog::class)->get($series->id());
+        $stored->archive();
+        $this->em()->flush();
         $this->context->reset();
     }
 

@@ -18,7 +18,7 @@ Foresi is at an early stage. Interfaces and data structures may change without n
 
 ## Requirements
 
-- PHP 8.4 or newer with the `ctype`, `iconv`, `intl` and `pdo_sqlite` extensions (`pdo_pgsql` for PostgreSQL)
+- PHP 8.4 or newer with the `ctype`, `gd`, `iconv`, `intl` and `pdo_sqlite` extensions (`pdo_pgsql` for PostgreSQL)
 - `upload_max_filesize` and `post_max_size` of at least `50M` in php.ini, so imports can take files up to the 50 MB the application allows (a lower server limit is reported as such on the upload screen)
 - Composer 2
 - SQLite 3.35 or newer for development, or PostgreSQL 17 (both are covered by the tests)
@@ -45,7 +45,7 @@ The built CSS is not committed, and tests and `composer qa` do not need it. Inte
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
-Firm logos and stamps are stored in `firm-images` below `APP_SHARE_DIR` (`var/share` by default), outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files.
+Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`, which is `var/share/prod/firm-images` by default, outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files.
 
 ## Background worker
 

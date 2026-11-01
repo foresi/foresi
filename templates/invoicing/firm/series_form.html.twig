@@ -19,8 +19,9 @@
         <twig:Ui:Card :title="'series.card'|trans" icon="tag">
             <div class="grid gap-3 sm:grid-cols-2">
                 <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="100" required /></div>
-                <twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" />
-                <twig:Ui:TextInput name="nextNumber" id="nextNumber" :label="'series.field.nextNumber'|trans" :help="'series.field.nextNumber_help'|trans" :value="values.nextNumber" :error="errors.nextNumber|default(null)" inputmode="numeric" maxlength="10" />
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" /></div>
+                <twig:Ui:TextInput name="startYear" id="startYear" :label="'series.field.startYear'|trans" :help="'series.field.startYear_help'|trans" :value="values.startYear" :error="errors.startYear|default(null)" inputmode="numeric" maxlength="4" />
+                <twig:Ui:TextInput name="nextNumber" id="nextNumber" :label="'series.field.nextNumber'|trans" :help="'series.field.nextNumber_help'|trans" :value="values.nextNumber" :error="errors.nextNumber|default(null)" :placeholder="nextNow" inputmode="numeric" maxlength="10" />
                 {% if editing and series.default %}
                     <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_kept_help'|trans" value="1" :checked="true" :disabled="true" /></div>
                 {% else %}

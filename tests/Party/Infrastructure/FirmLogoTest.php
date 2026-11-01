@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Party\Application\FirmImages;
+use App\Party\Application\FirmImageType;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -24,13 +25,10 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Logo and stamp on the firm form. The images are synthetic: a one-pixel PNG and
- * a minimal JPEG, built here.
+ * Logo and stamp on the firm form. The images are synthetic, drawn here.
  */
 final class FirmLogoTest extends WebTestCase
 {
-    private const string PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-    private const string JPEG = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
     private const int MEGABYTE = 1_048_576;
 
     private KernelBrowser $client;
@@ -127,6 +125,78 @@ final class FirmLogoTest extends WebTestCase
         self::assertSelectorExists('#logo-error');
         self::assertNull($this->stored($firm)->logo());
         self::assertSame([], $this->storedFiles());
+    }
+
+    public function testAHeaderWithoutImageDataIsRefusedBeforeItIsDecoded(): void
+    {
+        $firm = $this->firm();
+
+        $this->saveFirm($firm, ['logo' => $this->upload($this->pngHeader(100_000, 100_000), 'logo.png')]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#logo-error', '3000');
+        self::assertSame([], $this->storedFiles());
+    }
+
+    /**
+     * @return iterable<string, array{int, int, bool}>
+     */
+    public static function dimensions(): iterable
+    {
+        yield 'wide at the limit' => [3000, 1, true];
+        yield 'tall at the limit' => [1, 3000, true];
+        yield 'too wide' => [3001, 1, false];
+        yield 'too tall' => [1, 3001, false];
+    }
+
+    #[DataProvider('dimensions')]
+    public function testThePixelSizeIsCapped(int $width, int $height, bool $accepted): void
+    {
+        self::assertSame($accepted ? null : 'dimensions', FirmImageType::problem($this->png($width, $height)));
+    }
+
+    public function testAPngThatDoesNotDecodeIsRefused(): void
+    {
+        $firm = $this->firm();
+
+        $this->saveFirm($firm, ['logo' => $this->upload($this->pngHeader(10, 10), 'logo.png')]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#logo-error', 'PNG or JPEG');
+    }
+
+    public function testACutOffJpegIsRefused(): void
+    {
+        $jpeg = $this->jpeg(64, 64);
+
+        self::assertSame('type', FirmImageType::problem(substr($jpeg, 0, (int) (\strlen($jpeg) * 0.8))));
+    }
+
+    public function testACutOffPngIsRefused(): void
+    {
+        $png = $this->png(64, 64);
+
+        self::assertSame('type', FirmImageType::problem(substr($png, 0, \strlen($png) - 20)));
+    }
+
+    public function testACmykJpegIsRefused(): void
+    {
+        $firm = $this->firm();
+
+        $this->saveFirm($firm, ['stamp' => $this->upload($this->cmykJpeg(), 'stamp.jpg')]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#stamp-error', 'RGB');
+        self::assertSame([], $this->storedFiles());
+    }
+
+    public function testTheDecoderLeavesItsSettingAsItFoundIt(): void
+    {
+        $before = \ini_get('gd.jpeg_ignore_warning');
+
+        FirmImageType::problem($this->jpeg());
+
+        self::assertSame($before, \ini_get('gd.jpeg_ignore_warning'));
     }
 
     public function testAStampIsCheckedLikeALogo(): void
@@ -283,7 +353,7 @@ final class FirmLogoTest extends WebTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->images()->store($this->tenant, '<?php echo "x";');
+        $this->images()->store($this->tenant, $this->pngHeader(10, 10));
     }
 
     /**
@@ -317,14 +387,45 @@ final class FirmLogoTest extends WebTestCase
         return new FilesystemFirmImages($this->imageDir);
     }
 
-    private function png(): string
+    private function png(int $width = 2, int $height = 2): string
     {
-        return (string) base64_decode(self::PNG, true);
+        return $this->drawn(imagepng(...), $width, $height);
     }
 
-    private function jpeg(): string
+    private function jpeg(int $width = 2, int $height = 2): string
     {
-        return (string) base64_decode(self::JPEG, true);
+        return $this->drawn(imagejpeg(...), $width, $height);
+    }
+
+    /**
+     * @param callable(\GdImage): bool $write
+     */
+    private function drawn(callable $write, int $width, int $height): string
+    {
+        $image = imagecreatetruecolor(max(1, $width), max(1, $height));
+        self::assertInstanceOf(\GdImage::class, $image);
+        ob_start();
+        $write($image);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * The header of a PNG with those dimensions and no image data.
+     */
+    private function pngHeader(int $width, int $height): string
+    {
+        $header = 'IHDR'.pack('NN', $width, $height)."\x08\x02\x00\x00\x00";
+
+        return "\x89PNG\r\n\x1a\n".pack('N', 13).$header.pack('N', crc32($header));
+    }
+
+    /**
+     * The start of a JPEG whose frame has four colour components, as CMYK has.
+     */
+    private function cmykJpeg(): string
+    {
+        return "\xFF\xD8\xFF\xC0\x00\x14\x08\x00\x01\x00\x01\x04\x01\x11\x00\x02\x11\x00\x03\x11\x00\x04\x11\x00\xFF\xD9";
     }
 
     private function firm(): LegalEntity

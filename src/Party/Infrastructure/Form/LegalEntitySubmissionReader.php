@@ -98,7 +98,7 @@ final readonly class LegalEntitySubmissionReader
 
     /**
      * The bytes of an uploaded image. Its name and declared type say nothing: only
-     * the content decides. Read here so a wrong file is a form error like any other.
+     * the content decides, decoded in full. Read here so a wrong file is a form error like any other.
      *
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
@@ -120,8 +120,9 @@ final readonly class LegalEntitySubmissionReader
         }
 
         $bytes = file_get_contents($file->getPathname());
-        if (false === $bytes || null === FirmImageType::of($bytes)) {
-            $errors[$field] = ['firm.error.image_type'];
+        $problem = false === $bytes ? FirmImageType::TYPE : FirmImageType::problem($bytes);
+        if (false === $bytes || null !== $problem) {
+            $errors[$field] = ['firm.error.image_'.$problem];
 
             return null;
         }

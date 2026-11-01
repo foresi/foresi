@@ -9,10 +9,13 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Doctrine;
 
 use App\Invoicing\Application\NumberCounter;
+use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesFormat;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;
 
 /**
@@ -39,6 +42,9 @@ final readonly class DoctrineNumberCounter implements NumberCounter
         SET last_value = CASE WHEN series_counter.last_value < :start THEN :start ELSE series_counter.last_value END
         SQL;
 
+    /** PostgreSQL refuses a value above its integer column; SQLite stores it, so it is checked here. */
+    private const string NUMERIC_OUT_OF_RANGE = '22003';
+
     private const string LAST = 'SELECT last_value FROM series_counter WHERE tenant_id = :tenant AND series_id = :series AND period = :period';
 
     public function __construct(private Connection $connection, private TenantContext $context)
@@ -57,15 +63,28 @@ final readonly class DoctrineNumberCounter implements NumberCounter
     {
         $format = $series->format();
         $period = $format->period($date);
-        $given = $this->connection->fetchFirstColumn(self::NEXT, $this->values($series, $period, $series->startFor($period)), ['start' => ParameterType::INTEGER]);
+        try {
+            $given = $this->connection->fetchFirstColumn(self::NEXT, $this->values($series, $period, $series->startFor($period)), ['start' => ParameterType::INTEGER]);
+        } catch (DriverException $failure) {
+            throw self::NUMERIC_OUT_OF_RANGE === $failure->getSQLState() ? new SequenceOutOfRange('The series has no number left.', previous: $failure) : $failure;
+        }
 
-        return $format->render($date, $this->sequence($given[0]));
+        $sequence = $this->sequence($given[0]);
+        if ($sequence > SeriesFormat::MAX_SEQUENCE) {
+            // The caller's rollback takes this value back out of the counter.
+            throw new SequenceOutOfRange('The series has no number left.');
+        }
+
+        return $format->render($date, $sequence);
     }
 
     public function advanceTo(Series $series, \DateTimeImmutable $date, int $sequence): void
     {
         if ($sequence < 1) {
             return;
+        }
+        if ($sequence > SeriesFormat::MAX_SEQUENCE) {
+            throw new SequenceOutOfRange('The counter cannot hold this sequence.');
         }
 
         $this->connection->executeStatement(self::ADVANCE, $this->values($series, $series->format()->period($date), $sequence), ['start' => ParameterType::INTEGER]);

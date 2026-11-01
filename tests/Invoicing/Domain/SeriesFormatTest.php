@@ -54,7 +54,12 @@ final class SeriesFormatTest extends TestCase
         yield 'text around it' => ['FV{YY}-{NNN}', 'FV26-089', 89];
         yield 'other case of the same number' => ['FV{YY}-{NNN}', 'fv26-089', 89];
         yield 'a dot is no wildcard' => ['A.{N}', 'AB1', null];
-        yield 'trailing line break' => ['{NNN}', "089\n", null];
+        yield 'punctuation added' => ['{YYYY}{NNNN}', '2026-0095', 95];
+        yield 'punctuation and case' => ['FV{YY}-{NNN}', 'fv-26/095', 95];
+        yield 'punctuation left out' => ['FV{YY}-{NNN}', 'FV26095', 95];
+        yield 'only the key counts' => ['{NNN}', "089\n", 89];
+        yield 'the largest sequence of the counter' => ['{N}', '2147483647', 2147483647];
+        yield 'above the counter' => ['{N}', '2147483648', null];
         yield 'too long for a sequence' => ['{N}', '1234567890123456789012', null];
         yield 'month of the date' => ['{MM}-{N}', '10-5', 5];
         yield 'another month' => ['{MM}-{N}', '09-5', null];
@@ -110,6 +115,13 @@ final class SeriesFormatTest extends TestCase
 
         self::assertTrue($format->collidesWith(SeriesFormat::fromString('FV-{YY}/{NNN}')));
         self::assertFalse($format->collidesWith(SeriesFormat::fromString('ZV{YY}{NNN}')));
+        self::assertFalse($format->collidesWith(SeriesFormat::fromString('FV{YYYY}{NNN}')));
+    }
+
+    public function testTheWidthOfTheSequenceDoesNotKeepNumbersApart(): void
+    {
+        self::assertTrue(SeriesFormat::fromString('{YYYY}{NNNN}')->collidesWith(SeriesFormat::fromString('{YYYY}{NNN}')));
+        self::assertTrue(SeriesFormat::fromString('FV-{N}')->collidesWith(SeriesFormat::fromString('fv{NNNNNN}')));
     }
 
     public function testTheNumberKeyIsUpperCaseLettersAndDigits(): void

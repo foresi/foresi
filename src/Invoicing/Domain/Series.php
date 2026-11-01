@@ -147,8 +147,8 @@ class Series implements TenantOwned, Audited, AuditRooted
      */
     public function startAt(int $number, string $period): void
     {
-        if ($number < 1 || 1 !== preg_match(self::PERIOD, $period)) {
-            throw new \DomainException('A series starts at a positive number of a year or of all periods.');
+        if ($number < 1 || $number > SeriesFormat::MAX_SEQUENCE || 1 !== preg_match(self::PERIOD, $period)) {
+            throw new \DomainException('A series starts at a positive number the counter holds, in a year or in all periods.');
         }
 
         $this->starts[$period] = $number;

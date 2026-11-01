@@ -422,6 +422,8 @@ firm:
     last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
     image_type: Nahrajte obrázek PNG nebo JPEG.
     image_size: Obrázek může mít nejvýš 1 MB.
+    image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.
+    image_color: Nahrajte JPEG v RGB, ne v CMYK.
     image_upload: Obrázek se nepodařilo nahrát. Zkuste to znovu.
   invoicing:
     title: Fakturace
@@ -471,7 +473,9 @@ series:
     format_help: "Značky '{YYYY} {YY} {MM} {DD}' a jedna '{NNNN}'"
     format_locked_help: Řada už má čísla, proto je formát uzamčený
     nextNumber: Další číslo
-    nextNumber_help: Pořadí pro letošní rok. Přeskočená čísla se nepoužijí
+    nextNumber_help: Prázdné nic nemění. Přeskočená čísla se nepoužijí
+    startYear: Rok
+    startYear_help: Formát bez roku ho nepoužije
     default: Výchozí řada pro nové faktury
     default_help: Převezme to po dosavadní výchozí řadě
     default_kept_help: Změníte to, když nastavíte výchozí jinou řadu
@@ -482,7 +486,8 @@ series:
     format_locked: Řada už má čísla, formát proto nejde změnit.
     format_taken: 'Čísla by se střetla s řadou {name}.'
     name_taken: Tento název už má jiná řada této firmy.
-    next_number: Zadejte celé číslo od 1.
+    next_number: Zadejte celé číslo od 1 do 2147483647.
+    start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 import:
   number: '{value, number}'

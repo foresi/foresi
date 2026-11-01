@@ -33,6 +33,16 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         return $series;
     }
 
+    public function everyForFirm(LegalEntity $firm): array
+    {
+        /** @var list<Series> $series */
+        $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm ORDER BY s.name, s.id')
+            ->setParameter('firm', $firm->id())
+            ->getResult();
+
+        return $series;
+    }
+
     public function get(string $id): Series
     {
         // A query, not find(): find() answers from the identity map without the tenant filter.

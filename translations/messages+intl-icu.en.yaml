@@ -422,6 +422,8 @@ firm:
     last_active: The last active firm cannot be archived. Add another firm first.
     image_type: Upload a PNG or JPEG image.
     image_size: The image must be 1 MB or smaller.
+    image_dimensions: The image can be at most 3000 x 3000 pixels.
+    image_color: Upload the JPEG in RGB, not in CMYK.
     image_upload: The image could not be uploaded. Try it again.
   invoicing:
     title: Invoicing
@@ -471,7 +473,9 @@ series:
     format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
     format_locked_help: This series has numbers, so its format is locked
     nextNumber: Next number
-    nextNumber_help: This year's sequence. Skipped numbers are not used
+    nextNumber_help: Empty keeps the count. Skipped numbers are not used
+    startYear: Year
+    startYear_help: A format without a year ignores it
     default: Default series for new invoices
     default_help: Takes over from the current default series
     default_kept_help: To change it, make another series the default
@@ -482,7 +486,8 @@ series:
     format_locked: This series has numbers, so its format cannot change.
     format_taken: 'Numbers would clash with the series {name}.'
     name_taken: Another series of this firm has this name.
-    next_number: Enter a whole number from 1.
+    next_number: Enter a whole number from 1 to 2147483647.
+    start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 import:
   number: '{value, number}'

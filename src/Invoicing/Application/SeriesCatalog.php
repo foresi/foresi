@@ -25,6 +25,14 @@ interface SeriesCatalog
     public function forFirm(LegalEntity $firm): array;
 
     /**
+     * All series of a firm, archived ones too, by name. An archived series keeps its
+     * name and its numbers, so a new series must not clash with it.
+     *
+     * @return list<Series>
+     */
+    public function everyForFirm(LegalEntity $firm): array;
+
+    /**
      * @throws UnknownSeries also for a series of another tenant
      */
     public function get(string $id): Series;
@@ -43,8 +51,9 @@ interface SeriesCatalog
     public function makeDefault(Series $series): void;
 
     /**
-     * Whether a number of this series was given. A document always takes its
-     * number here, and a rolled-back one leaves nothing behind.
+     * Whether the counter of this series has moved, through next() or advanceTo().
+     * A rollback undoes that too. It cannot see a number typed by hand that does not
+     * have the form of the series, because such a number never reaches the counter.
      */
     public function hasDocuments(Series $series): bool;
 }

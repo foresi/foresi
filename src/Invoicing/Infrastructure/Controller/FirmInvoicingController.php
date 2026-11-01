@@ -98,7 +98,7 @@ final class FirmInvoicingController extends AbstractController
         $this->denyUnlessOwner();
         $firm = $this->firm($id);
         if (!$request->isMethod('POST')) {
-            $values = ['name' => '', 'format' => Series::STANDARD_FORMAT, 'nextNumber' => '1', 'default' => ''];
+            $values = ['name' => '', 'format' => Series::STANDARD_FORMAT, 'startYear' => $this->today()->format('Y'), 'nextNumber' => '', 'default' => ''];
 
             return $this->seriesForm($firm, null, $values, [], $this->tokens->issue(), Response::HTTP_OK);
         }
@@ -142,7 +142,7 @@ final class FirmInvoicingController extends AbstractController
             $errors['name'] = ['series.error.name_taken'];
         }
         if ($format instanceof SeriesFormat) {
-            $this->checkNextNumber($series, $format, $values['nextNumber'], $errors);
+            $this->checkNextNumber($series, $format, $values, $errors);
         }
         if ([] !== $errors || !$format instanceof SeriesFormat) {
             return $this->seriesForm($firm, $series, $values, $errors, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -176,7 +176,7 @@ final class FirmInvoicingController extends AbstractController
             $this->catalog->add($target);
         }
 
-        $period = $format->period($this->today());
+        $period = $this->period($format, $values['startYear']);
         if ('' !== $values['nextNumber'] && (int) $values['nextNumber'] !== $this->nextNumber($target, $period)) {
             $target->startAt((int) $values['nextNumber'], $period);
         }
@@ -215,7 +215,7 @@ final class FirmInvoicingController extends AbstractController
             return null;
         }
 
-        foreach ($this->catalog->forFirm($firm) as $other) {
+        foreach ($this->catalog->everyForFirm($firm) as $other) {
             if ($other !== $series && $other->format()->collidesWith($format)) {
                 $errors['format'] = ['series.error.format_taken', ['name' => $this->seriesName($other)]];
 
@@ -230,23 +230,24 @@ final class FirmInvoicingController extends AbstractController
      * The next number can jump forward, or come back from such a jump down to where
      * the counter stands; never into numbers already given.
      *
+     * @param array<string, string>                                      $values
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function checkNextNumber(?Series $series, SeriesFormat $format, string $nextNumber, array &$errors): void
+    private function checkNextNumber(?Series $series, SeriesFormat $format, array $values, array &$errors): void
     {
-        if (!$series instanceof Series || '' === $nextNumber || isset($errors['nextNumber'])) {
+        if (!$series instanceof Series || '' === $values['nextNumber'] || isset($errors['nextNumber']) || isset($errors['startYear'])) {
             return;
         }
 
-        $last = $this->counter->last($series, $format->period($this->today()));
-        if ((int) $nextNumber <= $last) {
+        $last = $this->counter->last($series, $this->period($format, $values['startYear']));
+        if ((int) $values['nextNumber'] <= $last) {
             $errors['nextNumber'] = ['series.error.next_below_counter', ['next' => (string) ($last + 1)]];
         }
     }
 
     private function nameIsTaken(LegalEntity $firm, ?Series $series, string $name): bool
     {
-        return array_any($this->catalog->forFirm($firm), static fn (Series $other): bool => $other !== $series && $other->name() === $name);
+        return array_any($this->catalog->everyForFirm($firm), static fn (Series $other): bool => $other !== $series && $other->name() === $name);
     }
 
     /**
@@ -281,6 +282,7 @@ final class FirmInvoicingController extends AbstractController
             'series' => $series,
             'seriesName' => $series instanceof Series ? $this->seriesName($series) : '',
             'locked' => $series instanceof Series && $this->catalog->hasDocuments($series),
+            'nextNow' => $series instanceof Series ? (string) $this->nextNumber($series, $series->format()->period($this->today())) : '1',
             'values' => $values,
             'errors' => $this->messages($errors),
             'token' => $token,
@@ -361,9 +363,18 @@ final class FirmInvoicingController extends AbstractController
         return [
             'name' => $series->name(),
             'format' => $series->format()->toString(),
-            'nextNumber' => (string) $this->nextNumber($series, $series->format()->period($this->today())),
+            'startYear' => $this->today()->format('Y'),
+            'nextNumber' => '',
             'default' => $series->isDefault() ? '1' : '',
         ];
+    }
+
+    /**
+     * The period a start applies to; a format without a year has only one.
+     */
+    private function period(SeriesFormat $format, string $year): string
+    {
+        return $format->period(new \DateTimeImmutable($year.'-01-01'));
     }
 
     private function nextNumber(Series $series, string $period): int
