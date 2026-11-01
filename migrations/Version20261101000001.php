@@ -281,7 +281,7 @@ final class Version20261101000001 extends AbstractMigration implements RunsOnlyF
         $manager = $this->connection->createSchemaManager();
         $comparator = $manager->createComparator();
         $foreignKeys = [];
-        foreach (array_reverse(self::TABLES) as $table => $config) {
+        foreach (array_keys(array_reverse(self::TABLES)) as $table) {
             $foreignKeys[$table] = $manager->introspectTable($table)->getForeignKeys();
             $this->alter($comparator, $manager, $table, static function (Table $definition): void {
                 foreach ($definition->getForeignKeys() as $name => $foreignKey) {
