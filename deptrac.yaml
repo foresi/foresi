@@ -92,6 +92,14 @@ deptrac:
       collectors:
         - type: directory
           value: src/Audit/Infrastructure/.*
+    - name: InvoicingDomain
+      collectors:
+        - type: directory
+          value: src/Invoicing/Domain/.*
+    - name: InvoicingApplication
+      collectors:
+        - type: directory
+          value: src/Invoicing/Application/.*
     - name: InvoicingInfrastructure
       collectors:
         - type: directory
@@ -318,7 +326,39 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - IdentityApplication
+    InvoicingDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+    InvoicingApplication:
+      - InvoicingDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+      - PartyApplication
+      - PartyDomain
     InvoicingInfrastructure:
+      - SharedInfrastructure
+      - InvoicingDomain
+      - InvoicingApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+      - AuditDomain
+      - PartyApplication
+      - PartyDomain
+      - Ui
       - VendorTecnick
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
@@ -328,6 +368,8 @@ deptrac:
       - SharedInfrastructure
       - PartyDomain
       - PartyApplication
+      - InvoicingDomain
+      - InvoicingApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony

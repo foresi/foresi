@@ -32,6 +32,9 @@ services:
             tags: ['app.registration_number_validator']
         App\Party\Domain\DomesticBankAccount:
             tags: ['app.domestic_bank_account']
+        # A country module plugs into invoicing with its rules.
+        App\Invoicing\Application\InvoicingCountry:
+            tags: ['app.invoicing_country']
         # Modules plug into the import by implementing its target contract.
         App\Import\Application\Target\ImportTarget:
             tags: ['app.import_target']
@@ -46,6 +49,10 @@ services:
     App\Party\Application\ImportPartyValues:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
+
+    App\Invoicing\Application\InvoicingCountries:
+        arguments:
+            $countries: !tagged_iterator app.invoicing_country
 
     App\Import\Infrastructure\LocalImportFiles:
         arguments:

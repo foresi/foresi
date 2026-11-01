@@ -131,7 +131,7 @@ final readonly class LegalEntitySubmissionReader
     private function vatId(array $values, ?VatStatus $status, array &$errors): ?VatId
     {
         if ('' === $values['vatId']) {
-            if ($status instanceof VatStatus && VatStatus::NotRegistered !== $status) {
+            if ($status instanceof VatStatus && $status->requiresVatId()) {
                 $errors['vatId'] = ['firm.error.vat_id_required'];
             }
 

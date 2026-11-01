@@ -18,7 +18,7 @@ use App\Party\Domain\VatStatus;
 use App\Party\Infrastructure\Form\CountryOptions;
 use App\Party\Infrastructure\Form\LegalEntitySubmission;
 use App\Party\Infrastructure\Form\LegalEntitySubmissionReader;
-use App\Party\Infrastructure\Http\SubmissionTokens;
+use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

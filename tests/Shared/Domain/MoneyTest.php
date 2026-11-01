@@ -244,4 +244,43 @@ final class MoneyTest extends TestCase
             self::assertSame(2, $currency->minorUnits());
         }
     }
+
+    public function testDividedByRoundsHalfUp(): void
+    {
+        self::assertSame(10000, Money::of('121.00', Currency::CZK)->dividedBy('1.21')->minor());
+        self::assertSame(1, Money::ofMinor(1, Currency::CZK)->dividedBy('2')->minor());
+        self::assertSame(0, Money::ofMinor(1, Currency::CZK)->dividedBy('3')->minor());
+        self::assertSame(Currency::EUR, Money::ofMinor(100, Currency::EUR)->dividedBy('3')->currency());
+    }
+
+    public function testDividedByZeroIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        Money::of('1.00', Currency::CZK)->dividedBy('0');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function wholeUnits(): iterable
+    {
+        yield 'up' => ['193.60', '194.00'];
+        yield 'large' => ['122007.93', '122008.00'];
+        yield 'half goes up' => ['100.50', '101.00'];
+        yield 'below half goes down' => ['100.45', '100.00'];
+        yield 'whole stays' => ['100.00', '100.00'];
+        yield 'zero' => ['0.00', '0.00'];
+        yield 'negative half goes away from zero' => ['-100.50', '-101.00'];
+        yield 'negative down' => ['-100.45', '-100.00'];
+    }
+
+    #[DataProvider('wholeUnits')]
+    public function testRoundedToWholeUnitIsHalfUp(string $amount, string $expected): void
+    {
+        $rounded = Money::of($amount, Currency::CZK)->roundedToWholeUnit();
+
+        self::assertSame(Money::of($expected, Currency::CZK)->minor(), $rounded->minor());
+        self::assertSame(Currency::CZK, $rounded->currency());
+    }
 }

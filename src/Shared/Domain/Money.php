@@ -88,6 +88,29 @@ final readonly class Money
     }
 
     /**
+     * @param string $divisor e.g. "1.21"; the result is rounded HALF_UP to the minor unit
+     *
+     * @throws \InvalidArgumentException if $divisor is not a number or is zero
+     * @throws \OverflowException        if the result does not fit a 64-bit integer of minor units
+     */
+    public function dividedBy(string $divisor): self
+    {
+        return self::wrap(fn (): BrickMoney => $this->amount->dividedBy($divisor, RoundingMode::HalfUp), $this->currency);
+    }
+
+    /**
+     * Rounds to a whole unit of the currency (a whole crown), HALF_UP: a tie goes away from zero.
+     */
+    public function roundedToWholeUnit(): self
+    {
+        $unit = 10 ** $this->currency->minorUnits();
+        $minor = $this->minor();
+        $units = intdiv(abs($minor) + intdiv($unit, 2), $unit);
+
+        return self::ofMinor(($minor < 0 ? -1 : 1) * $units * $unit, $this->currency);
+    }
+
+    /**
      * Splits the amount proportionally to the ratios without losing or gaining a minor unit.
      * Leftover minor units are handed out one by one, starting with the first part with a positive ratio.
      * A part with a zero ratio always receives exactly zero.

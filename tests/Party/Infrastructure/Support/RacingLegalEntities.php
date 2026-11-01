@@ -30,6 +30,11 @@ final class RacingLegalEntities implements LegalEntities
         return self::$blind ? [] : $this->inner->all();
     }
 
+    public function active(): array
+    {
+        return $this->inner->active();
+    }
+
     public function get(string $id): LegalEntity
     {
         return $this->inner->get($id);

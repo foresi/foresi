@@ -28,6 +28,14 @@ final readonly class DoctrineLegalEntities implements LegalEntities
         return $firms;
     }
 
+    public function active(): array
+    {
+        /** @var list<LegalEntity> $firms */
+        $firms = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f WHERE f.archivedAt IS NULL ORDER BY f.name, f.id')->getResult();
+
+        return $firms;
+    }
+
     public function get(string $id): LegalEntity
     {
         // A query, not find(): find() answers from the identity map without the tenant filter.

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Http;
+namespace App\Shared\Infrastructure\Http;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 

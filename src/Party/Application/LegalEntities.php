@@ -23,6 +23,13 @@ interface LegalEntities
     public function all(): array;
 
     /**
+     * The active firms, by name, without a lock.
+     *
+     * @return list<LegalEntity>
+     */
+    public function active(): array;
+
+    /**
      * @throws UnknownLegalEntity also for a firm of another tenant
      */
     public function get(string $id): LegalEntity;
