@@ -20,6 +20,8 @@ jobs:
   quality:
     name: Quality gate (sqlite)
     runs-on: ubuntu-latest
+    # Mutation testing skips no mutant and dominates the run time.
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
