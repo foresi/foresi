@@ -200,7 +200,7 @@ export default class extends Controller {
         if (!href) {
             return;
         }
-        if (window.Turbo && typeof window.Turbo.visit === 'function') {
+        if (window.Turbo && typeof window.Turbo.visit === 'function' && document.body.dataset.turbo !== 'false') {
             window.Turbo.visit(href);
         } else {
             window.location.assign(href);

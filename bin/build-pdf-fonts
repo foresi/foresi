@@ -1,0 +1,96 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Builds the font definitions tc-lib-pdf reads from the Inter release and writes
+ * them to resources/pdf-fonts/. The output is committed, so a running installation
+ * never needs this script, and running it on the same release gives the same files.
+ *
+ * Source: Inter 4.1, SIL Open Font License 1.1 (resources/pdf-fonts/OFL.txt).
+ *   https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
+ * The archive and each face taken from it are checked by SHA-256 below.
+ *
+ * intertnum and intertnumb are the Regular and SemiBold faces with the digits pointed
+ * at their tabular glyphs by bin/inter-tabular.py, which needs Python 3 with fontTools.
+ * interdisplay is the Display SemiBold face unchanged.
+ *
+ * Usage: bin/build-pdf-fonts <path to Inter-4.1.zip>
+ */
+
+use Com\Tecnick\File\File;
+use Com\Tecnick\Pdf\Font\FontPaths;
+use Com\Tecnick\Pdf\Font\Import;
+
+require dirname(__DIR__).'/vendor/autoload.php';
+
+const ARCHIVE_SHA256 = '9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e';
+const FACES = [
+    'intertnum' => ['extras/ttf/Inter-Regular.ttf', '40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82', true],
+    'intertnumb' => ['extras/ttf/Inter-SemiBold.ttf', '78a843fade9d4612a5567302fb595b56976eb5fcebf4fea5a5912d638bafcde3', true],
+    'interdisplay' => ['extras/ttf/InterDisplay-SemiBold.ttf', '0310d7a325896129730c6c8cf9a6e0f81ee258bedf77b1ff059b2a7b75f74e02', false],
+];
+
+$fail = static function (string $message): never {
+    fwrite(\STDERR, $message."\n");
+    exit(1);
+};
+
+$archive = $argv[1] ?? '';
+if ('' === $archive || !is_file($archive)) {
+    fwrite(\STDERR, "Usage: bin/build-pdf-fonts <path to Inter-4.1.zip>\n");
+    exit(2);
+}
+if (ARCHIVE_SHA256 !== hash_file('sha256', $archive)) {
+    $fail('Refused: this is not the Inter 4.1 release.');
+}
+
+$zip = new ZipArchive();
+if (true !== $zip->open($archive)) {
+    $fail('The archive cannot be opened.');
+}
+
+$output = dirname(__DIR__).'/resources/pdf-fonts';
+$work = sys_get_temp_dir().'/foresi-fonts-'.bin2hex(random_bytes(6));
+if (!mkdir($work, 0o700)) {
+    $fail("Cannot create $work");
+}
+$work = (string) realpath($work);
+
+try {
+    foreach (FACES as $name => [$entry, $sha256, $tabular]) {
+        $bytes = $zip->getFromName($entry);
+        if (false === $bytes || $sha256 !== hash('sha256', $bytes)) {
+            $fail("Refused: $entry is not the face this script knows.");
+        }
+        $source = $work.'/source-'.basename($entry);
+        file_put_contents($source, $bytes);
+        $face = $work.'/'.$name.'.ttf';
+        if ($tabular) {
+            $command = array_map(escapeshellarg(...), ['python3', __DIR__.'/inter-tabular.py', $source, $face]);
+            passthru(implode(' ', $command), $exit);
+            if (0 !== $exit) {
+                $fail("Making $name tabular failed. It needs Python 3 with fontTools.");
+            }
+        } else {
+            copy($source, $face);
+        }
+
+        // The converter refuses a font that is already imported; start clean.
+        foreach (["$name.json", "$name.z", "$name.ctg.z"] as $old) {
+            if (is_file($output.'/'.$old)) {
+                unlink($output.'/'.$old);
+            }
+        }
+
+        // Full Unicode cmap (platform 3, encoding 10) so every glyph of the font is reachable.
+        $helper = new File(allowedPaths: array_values(array_unique([...FontPaths::buildAllowedPaths(), $work, $output])));
+        $import = new Import($face, $output.'/', 'TrueTypeUnicode', '', 32, 3, 10, false, $helper);
+        fwrite(\STDOUT, sprintf("%s -> %s (sha256 %s)\n", $entry, $import->getFontName(), hash_file('sha256', $face)));
+    }
+} finally {
+    array_map(unlink(...), glob($work.'/*') ?: []);
+    rmdir($work);
+}

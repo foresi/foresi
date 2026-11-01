@@ -50,6 +50,13 @@ class LegalEntity implements TenantOwned, Audited
     #[ORM\Column(name: 'active_registration_key', type: 'string', length: 192, nullable: true)]
     private ?string $activeRegistrationKey;
 
+    // The name of the stored image, see FirmImages. The stamp is one image holding stamp and signature.
+    #[ORM\Column(type: 'string', length: 72, nullable: true)]
+    private ?string $logo = null;
+
+    #[ORM\Column(type: 'string', length: 72, nullable: true)]
+    private ?string $stamp = null;
+
     /**
      * @param array<string> $bankAccounts IBANs (keys are discarded); spaces and case are normalised
      */
@@ -158,6 +165,26 @@ class LegalEntity implements TenantOwned, Audited
     public function bankAccounts(): array
     {
         return $this->bankAccounts;
+    }
+
+    public function logo(): ?string
+    {
+        return $this->logo;
+    }
+
+    public function changeLogo(?string $name): void
+    {
+        $this->logo = $name;
+    }
+
+    public function stamp(): ?string
+    {
+        return $this->stamp;
+    }
+
+    public function changeStamp(?string $name): void
+    {
+        $this->stamp = $name;
     }
 
     public function tenantId(): TenantId

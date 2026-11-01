@@ -92,6 +92,18 @@ deptrac:
       collectors:
         - type: directory
           value: src/Audit/Infrastructure/.*
+    - name: InvoicingDomain
+      collectors:
+        - type: directory
+          value: src/Invoicing/Domain/.*
+    - name: InvoicingApplication
+      collectors:
+        - type: directory
+          value: src/Invoicing/Application/.*
+    - name: InvoicingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Invoicing/Infrastructure/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -124,6 +136,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^OpenSpout\\
+    # PDF rendering; only the Invoicing module's infrastructure may use it.
+    - name: VendorTecnick
+      collectors:
+        - type: classLike
+          value: ^Com\\Tecnick\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -189,6 +206,8 @@ deptrac:
       - AuditDomain
     PartyApplication:
       - PartyDomain
+      # The image store is keyed by tenant.
+      - TenancyDomain
       - SharedDomain
       - SharedApplication
       - TenancyApplication
@@ -197,6 +216,7 @@ deptrac:
     PartyInfrastructure:
       - SharedInfrastructure
       - PartyDomain
+      - TenancyDomain
       - PartyApplication
       - VendorSymfony
       - VendorUid
@@ -309,6 +329,41 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - IdentityApplication
+    InvoicingDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+    InvoicingApplication:
+      - InvoicingDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+      - AuditDomain
+      - PartyApplication
+      - PartyDomain
+    InvoicingInfrastructure:
+      - SharedInfrastructure
+      - InvoicingDomain
+      - InvoicingApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+      - IdentityApplication
+      - AuditApplication
+      - AuditDomain
+      - PartyApplication
+      - PartyDomain
+      - Ui
+      - VendorTecnick
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers.
@@ -317,6 +372,8 @@ deptrac:
       - SharedInfrastructure
       - PartyDomain
       - PartyApplication
+      - InvoicingDomain
+      - InvoicingApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony

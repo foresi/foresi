@@ -10,6 +10,7 @@ Foresi is an open-source business system for small and medium firms (website: ht
 - **Identity**: users, tenant memberships with roles, form login with CSRF protection and throttling, a choice of the active tenant and a console command to create users.
 - **Address book**: customers, suppliers and other parties with roles, addresses, contact persons, bank accounts and document defaults; search, views, bulk archive and export to CSV or XLSX; lookups in the Czech business register (ARES), the EU VAT number check (VIES) and the Czech unreliable VAT payer register.
 - **Import and export**: a generic import of CSV and XLSX files (contacts first, with an iDoklad preset) that runs in a background worker: column mapping with remembered mappings, a dry-run check, three modes (add missing, update, full replace with typed confirmation), undo within 30 days; the same field definitions drive the export. See [docs/import.md](docs/import.md).
+- **Invoices**: invoices with lines, VAT per rate, reverse charge, number series per firm, a trash and history, a PDF/A-3a with ISDOC 6.0.2 attached and a QR payment code, and a download of the PDFs of a period for the accountant. Tax rules are subject to professional tax and legal review. See [docs/invoicing.md](docs/invoicing.md).
 - **User interface**: server-rendered with Twig, Symfony UX and Tailwind; a component library with a development catalogue; Czech and English.
 - **Audit**: an append-only audit log of changes to audited entities.
 - **Quality gate**: PHPStan at maximum level, architecture rules checked by Deptrac, Rector, PHP CS Fixer, Infection mutation testing and Playwright end-to-end tests with accessibility and visual checks.
@@ -18,16 +19,18 @@ Foresi is at an early stage. Interfaces and data structures may change without n
 
 ## Requirements
 
-- PHP 8.4 or newer with the `ctype`, `iconv`, `intl` and `pdo_sqlite` extensions (`pdo_pgsql` for PostgreSQL)
+- PHP 8.4 or newer with the `ctype`, `gd`, `iconv`, `intl`, `zip` and `pdo_sqlite` extensions (`pdo_pgsql` for PostgreSQL)
+- `max_input_vars` of at least `1000`, the PHP default, so an invoice of 100 lines arrives whole (a form cut off by a lower limit is refused and nothing is saved)
 - `upload_max_filesize` and `post_max_size` of at least `50M` in php.ini, so imports can take files up to the 50 MB the application allows (a lower server limit is reported as such on the upload screen)
 - Composer 2
-- SQLite 3.33 or newer for development, or PostgreSQL 17 (both are covered by the tests)
+- SQLite 3.35 or newer for development, or PostgreSQL 17 (both are covered by the tests)
 
 ## Quick start
 
 ```bash
 composer install
 bin/console about
+composer isdoc:schema   # the ISDOC schema for the tests, fetched and checked by SHA-256, never committed
 composer qa
 ```
 
@@ -44,6 +47,8 @@ For a production build run, in this order and with `APP_ENV=prod`: `bin/console 
 The built CSS is not committed, and tests and `composer qa` do not need it. Inter fonts (SIL OFL 1.1) and Lucide icons (ISC) are self-hosted in `assets/`; nothing is loaded from a CDN. All UI text lives in `translations/` (Czech default, English).
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
+
+Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`, which is `var/share/prod/firm-images` by default, outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files.
 
 ## Background worker
 

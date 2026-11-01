@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace App\Party\Infrastructure\Http;
+namespace App\Shared\Infrastructure\Http;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -31,7 +31,9 @@ final readonly class SubmissionTokens
         $tokens = $this->tokens();
         $token = bin2hex(random_bytes(16));
         $tokens[$token] = self::UNUSED;
-        $this->store(\array_slice($tokens, -self::KEEP, null, true));
+        // Only unused tokens go: a token that created something must keep leading to it.
+        $unused = array_filter($tokens, static fn (string $id): bool => self::UNUSED === $id);
+        $this->store(array_diff_key($tokens, \array_slice($unused, 0, -self::KEEP, true)));
 
         return $token;
     }

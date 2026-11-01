@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: path('app_invoices')}, {label: invoice.number}] %}
+
+{% block title %}{{ 'invoice.history.title'|trans({number: invoice.number}) }}{% endblock %}
+
+{% block content %}
+    <twig:Ui:Card :title="'invoice.history.card'|trans" icon="history">
+        <twig:Ui:Timeline :items="timeline" data-invoice-history />
+    </twig:Ui:Card>
+{% endblock %}

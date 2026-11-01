@@ -1,0 +1,65 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans}] %}
+
+{% block title %}{{ 'invoice.list.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if not firstRun %}
+        <twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('warning') %}<twig:Ui:Alert tone="warning" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    {% if firstRun %}
+        <twig:Ui:EmptyState icon="receipt-text" :title="'invoice.list.empty.title'|trans" :text="'invoice.list.empty.text'|trans">
+            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <div class="grid grid-cols-1 gap-4">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0 flex-1" />
+                <form method="get" action="{{ path('app_invoices') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
+                    {% if tab != 'all' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
+                    {% if sort != '-issueDate' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+                    {% if firms is not empty %}
+                        <div class="w-full sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
+                    {% endif %}
+                    <twig:Ui:SearchField name="q" :value="text" :label="'invoice.list.search_label'|trans" :placeholder="'invoice.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
+                    <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
+                </form>
+            </div>
+
+            <twig:Ui:DataTable :caption="'invoice.list.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+                <twig:block name="empty">
+                    {% if filtered %}
+                        <twig:Ui:EmptyState icon="search" :title="'invoice.list.empty.filtered_title'|trans" :text="'invoice.list.empty.filtered_text'|trans">
+                            <twig:Ui:Button :href="path('app_invoices')">{{ 'invoice.list.empty.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% elseif tab == 'overdue' %}
+                        <twig:Ui:EmptyState icon="circle-check" :title="'invoice.list.empty.overdue_title'|trans" />
+                    {% elseif tab == 'trash' %}
+                        <twig:Ui:EmptyState icon="trash-2" :title="'invoice.list.empty.trash_title'|trans" />
+                    {% else %}
+                        <twig:Ui:EmptyState icon="receipt-text" :title="'invoice.list.empty.all_title'|trans">
+                            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% endif %}
+                </twig:block>
+                <twig:block name="footer">
+                    <span class="num">{{ 'invoice.list.summary'|trans({total: page.total}) }}</span>
+                    <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
+                </twig:block>
+            </twig:Ui:DataTable>
+        </div>
+    {% endif %}
+{% endblock %}

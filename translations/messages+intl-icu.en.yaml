@@ -28,13 +28,18 @@ nav:
     sales: Sales
     money: Money
     contacts: Contacts
+    work: Work
     extensions: Extensions
     settings: Settings
   item:
     dashboard: Dashboard
     contacts: Address book
+    invoices: Invoices
     firms: Firms
+    import: Import and export
 ui:
+  combobox:
+    found: 'Found: {count}'
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Check this
@@ -44,6 +49,8 @@ ui:
     caption: Table
     select_all: Select all rows
     select_row: 'Select row {label}'
+    actions: Actions
+    more_actions: 'More actions for {label}'
     total: Total
   bulk:
     label: Bulk actions
@@ -368,6 +375,10 @@ firm:
   new: New firm
   edit: Edit firm
   views: Firm views
+  sections: Firm sections
+  tab:
+    details: Details
+    invoicing: Invoicing
   empty:
     title: No firms yet
     text: Add the firm your organisation issues documents from.
@@ -387,6 +398,7 @@ firm:
     tax: VAT
     seat: Registered office
     documents: On documents
+    images: Logo and stamp
   field:
     name: Name
     vatStatus: VAT status
@@ -394,6 +406,14 @@ firm:
     registerEntry_help: The register and file number, as printed on documents
     bankAccounts: Bank accounts
     bankAccounts_help: 'IBAN, one per line'
+    logo: Logo
+    logo_help: 'PNG or JPEG, up to 1 MB'
+    logo_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
+    removeLogo: Remove the logo
+    stamp: Stamp and signature
+    stamp_help: 'One PNG or JPEG, up to 1 MB. Used only in documents'
+    stamp_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
+    removeStamp: Remove the stamp and signature
   vat_status:
     registered: VAT payer
     not_registered: Non-payer
@@ -411,6 +431,448 @@ firm:
     iban: 'Check the IBAN: {iban}'
     save_failed: The firm could not be saved. Check the details and try again.
     last_active: The last active firm cannot be archived. Add another firm first.
+    image_type: Upload a PNG or JPEG image.
+    image_size: The image must be 1 MB or smaller.
+    image_dimensions: The image can be at most 3000 x 3000 pixels.
+    image_color: Upload the JPEG in RGB, not in CMYK.
+    image_upload: The image could not be uploaded. Try it again.
+  invoicing:
+    title: Invoicing
+    card:
+      defaults: Invoice defaults
+      texts: Texts on invoices
+      contact: Contact on invoices
+    field:
+      rounding: Rounding of the total
+      rounding_help: Shown as a separate row of the invoice
+      constantSymbol: Constant symbol
+      constantSymbol_help: 'Up to 10 digits, prefilled on new invoices'
+      textBefore: Text above the items
+      textBefore_help: 'Printed above the items, for example a greeting'
+      textAfter: Text below the items
+      textAfter_help: 'Printed below the items, for example payment terms'
+      contactEmail: E-mail
+      contactPhone: Phone
+      contactWeb: Website
+    rounding:
+      whole_unit: To whole crowns
+      none: No rounding
+    flash:
+      saved: The invoicing settings are saved.
+    error:
+      rounding: Choose how the total is rounded.
+      constant_symbol: Enter up to 10 digits.
+      email: Enter a valid e-mail address.
+      save_failed: The settings could not be saved. Try it again.
+series:
+  title: Number series
+  new: New series
+  edit: Edit series
+  card: Series
+  default: Default
+  first: 'No series yet. The first invoice of this firm gets the number {number} in a standard series.'
+  name:
+    standard: Standard
+  column:
+    name: Name
+    format: Format
+    next: Next number
+    default: Default
+  field:
+    name: Name
+    format: Format
+    format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
+    format_locked_help: This series has numbers, so its format is locked
+    nextNumber: Next number
+    nextNumber_help: Empty keeps the count. Skipped numbers are not used
+    startYear: Year
+    startYear_help: A format without a year ignores it
+    default: Default series for new invoices
+    default_help: Takes over from the current default series
+    default_kept_help: To change it, make another series the default
+  flash:
+    saved: The series is saved.
+  error:
+    format: "Use only letters, digits, . _ / - and the tokens '{YYYY} {YY} {MM} {DD}' with one '{NNNN}'."
+    format_locked: This series has numbers, so its format cannot change.
+    format_too_long: 'Numbers of this series would be longer than a document can carry: 40 characters at most.'
+    format_taken: 'Numbers would clash with the series {name}.'
+    name_taken: Another series of this firm has this name.
+    next_number: Enter a whole number from 1 to 2147483647.
+    start_year: Enter a year from 2000 to 2099.
+    next_below_counter: 'This number is already used. The next free one is {next}.'
+invoice:
+  export:
+    incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
+    title: Documents for the accountant
+    link: For the accountant
+    intro: Downloads a ZIP of the invoice PDFs with their ISDOC for a period, by tax point date. Documents in the trash stay out. Nothing is sent anywhere.
+    from: From
+    to: To
+    submit: Download ZIP
+    empty: No invoices of this firm in this period.
+    date_invalid: Enter a valid date.
+    backwards: The end of the period cannot come before its start.
+    too_long: 'A period has at most {days} days.'
+  pdf:
+    undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
+    footer: '{title} · Page {page}/{pages}'
+    unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
+    trashed: IN THE TRASH – NOT A VALID DOCUMENT
+    document_title: 'Invoice {number}'
+    title_tax: Invoice - tax document
+    title: Invoice
+    supplier: Supplier
+    customer: Customer
+    registration_number: Reg. No.
+    vat_id: VAT ID
+    issue_date: Issue date
+    tax_point: Tax point date
+    supply_date: Date of supply
+    due_date: Due date
+    date_format: 'j M Y'
+    bank_account: Bank account
+    payment_method: Payment method
+    variable_symbol: Variable symbol
+    constant_symbol: Constant symbol
+    order_number: Order number
+    payable: Total to pay
+    item: Description
+    quantity: Qty
+    unit: Unit
+    unit_price: Unit price excl. VAT
+    unit_price_plain: Unit price
+    discount: Discount
+    rate: VAT %
+    base: Base
+    vat: VAT
+    total: Total
+    rounding: Rounding
+    recap_rate: VAT rate
+    recap_total: Total
+    recap:
+      reverse_charge: Reverse charge
+      exempt: Exempt
+    stamp: Stamp and signature
+    stamp_alt: 'Stamp and signature: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F of invoice {number}'
+    note:
+      reverse_charge: 'Reverse charge. The customer accounts for the tax (daň odvede zákazník).{code, select, none {} other { Supply code: {code}.}}'
+      exempt: The supply is exempt from VAT.
+  copy:
+    firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
+    series_archived: The series of the original is archived, so this copy uses the default series.
+    customer_archived: The firm no longer invoices the customer of the original. Choose another customer.
+    line_dates: The lines hold a date or a month from the original. Check that it still applies.
+  list:
+    title: Invoices
+    views: Invoice lists
+    all_firms: All firms
+    search: Search
+    search_label: Search invoices
+    search_placeholder: Number, customer or description
+    summary: '{total, plural, one {# invoice} other {# invoices}}'
+    reason_missing: Say why the invoice is being deleted.
+    delete_delivered: A delivered document cannot be deleted.
+    not_in_trash: This invoice is not in the trash.
+    already_trashed: This invoice is in the trash already.
+    delivered_trashed: This invoice is in the trash. Restore it first.
+    delivered_confirm: 'Mark invoice {number} as delivered? It can no longer be deleted then.'
+    tab:
+      all: All
+      overdue: Overdue
+      trash: Trash
+    column:
+      number: Number
+      firm: Firm
+      customer: Customer
+      issueDate: Issued
+      dueDate: Due
+      payable: Total
+      status: Status
+      deletedBy: Deleted by
+      deletedAt: Deleted
+      reason: Reason
+    status:
+      delivered: Delivered
+      overdue: Overdue
+    action:
+      edit: Edit
+      pdf: PDF
+      copy: Copy
+      delivered: Mark as delivered
+      history: History
+      delete: Delete
+      restore: Restore
+    empty:
+      title: No invoices yet
+      text: Issue the first one. Saving gives it its number.
+      all_title: No invoices here
+      filtered_title: No invoice matches
+      filtered_text: Try other words or another firm.
+      reset: Show all invoices
+      overdue_title: Nothing is overdue
+      trash_title: The trash is empty
+  trash:
+    title: 'Delete invoice {number}'
+    keeps: It moves to the trash and keeps its number, which is never used again.
+    reason: Reason
+    reason_help: Stays in the history of the invoice.
+    submit: Move to the trash
+  history:
+    title: 'History of invoice {number}'
+    card: History
+    system: The system
+    created: '{who} created the invoice'
+    changed: '{who} changed the invoice'
+    trashed: '{who} moved the invoice to the trash: {reason}'
+    restored: '{who} restored the invoice'
+    delivered: '{who} marked the invoice as delivered'
+    line_added: 'Line {number} ({text}) added'
+    line_removed: 'Line {number} ({text}) removed'
+    line_changed: 'Line {number} ({text}): {fields}'
+    line_text: 'Line {number}: {text}'
+    field:
+      number: Number
+      series: Series
+      customer: Customer
+      issueDate: Issue date
+      taxPointDate: Tax point
+      dueDate: Due date
+      paymentMethod: Payment method
+      bankAccount: Bank account
+      variableSymbol: Variable symbol
+      constantSymbol: Constant symbol
+      orderNumber: Order number
+      description: Description
+      textBefore: Text before the lines
+      textAfter: Text after the lines
+      language: Language
+      payableMinor: Total
+      text: Text
+      quantity: Quantity
+      unit: Unit
+      priceMinor: Price
+      priceType: Price type
+      treatment: VAT
+      supplyCode: Supply code
+      rateKind: VAT rate
+      discount: Discount
+  new: New invoice
+  title: 'Invoice {number}'
+  reload: Reload the invoice
+  cancel: Cancel
+  save: Save
+  save_pdf: PDF and save
+  more_actions: More actions
+  more: More details
+  firm_apply: Use this firm
+  rate: '{rate}%'
+  errors_title: The invoice cannot be saved yet
+  cut_off: The form was too large to arrive whole, so nothing was saved.
+  cut_off_retry: Open the form again
+  line_limit: 'An invoice has at most 100 lines.'
+  errors_close: Close the list
+  firm_changed: The firm changed, so series, number and variable symbol start over.
+  currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
+  blocked:
+    no_firm_title: Invoices need a firm
+    no_firm_text: The firm is the issuer of every invoice.
+    add_firm: Add a firm
+  flash:
+    saved: 'Invoice {number} is saved.'
+    renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
+    number_changed: 'Invoice saved as {number}. The number changed.'
+    already_saved: This form was saved already.
+    trashed: 'Invoice {number} is in the trash.'
+    restored: 'Invoice {number} is back in the list.'
+    delivered: 'Invoice {number} is marked as delivered.'
+  card:
+    issuer: Issuer
+    customer: Customer
+    payment: Dates and payment
+    lines: Lines
+    delete: Delete the invoice
+  number:
+    edit: Change the number
+    label: Invoice number
+    help: Save gives the next free number unless you change it.
+  customer:
+    placeholder: Name, registration number or e-mail
+    empty: No customer found for this firm.
+    add: Add
+    picked: 'Customer {name} is filled in with their defaults. Check the form and save.'
+    candidates: Matching customers
+    edit_here: Edit on this document
+    edit_contact: Edit the contact
+  field:
+    firm: Firm
+    series: Series
+    customer: Customer
+    customerName: Name on the document
+    registrationNumber: Reg. no.
+    vatId: VAT ID
+    street: Street
+    city: City
+    postalCode: Postal code
+    countryCode: Country
+    email: E-mail
+    orderNumber: Order number
+    description: Description
+    description_help: Left empty, it takes the text of the first line.
+    variableSymbol: Variable symbol
+    variableSymbol_help: Follows the number until you change it.
+    constantSymbol: Constant symbol
+    language: Document language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Tax point
+    supplyDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    bankAccount_none: The firm has no bank account.
+    currency: Currency
+  field_label:
+    form: Form
+    firm: Firm
+    document: Document
+    series: Series
+    number: Number
+    customer: Customer
+    orderNumber: Order number
+    description: Description
+    variableSymbol: Variable symbol
+    constantSymbol: Constant symbol
+    language: Language
+    textBefore: Text above the lines
+    textAfter: Text below the lines
+    issueDate: Issue date
+    taxPointDate: Date of supply
+    dueDate: Due date
+    paymentMethod: Payment
+    bankAccount: Bank account
+    lines: Lines
+  line:
+    label: 'Line {number}'
+    text: Item
+    price: Price
+    quantity: Quantity
+    unit: Unit
+    priceType: Price type
+    vat: VAT
+    rate: VAT
+    treatment: VAT
+    supplyCode: Supply code
+    supplyCode_choose: Choose a code
+    discount: Discount %
+    total: Total
+    actions: Actions
+    add: New line
+    drag: Drag to reorder
+    up: Move the line up
+    down: Move the line down
+    remove: Remove the line
+  price_type:
+    with_vat: With VAT
+    without_vat: Without VAT
+    base_only: Base only
+  vat:
+    base: Base rate
+    reduced: Reduced rate
+    standard: Standard
+    reverse_charge: Reverse charge
+    exempt: Exempt
+    not_applicable: Outside VAT
+  payment:
+    bank_transfer: Bank transfer
+    cash: Cash
+    card: Card
+  language:
+    cs: Czech
+    en: English
+  total:
+    net: Without VAT
+    vat: VAT
+    rounding: Rounding
+    payable: Total
+    stale: These totals are out of date. Check the lines.
+  supply_code:
+    '1': Gold
+    1a: Gold, brokering of investment gold
+    '3': Supply of immovable property
+    3a: Supply of immovable property in a forced sale
+    '4': Construction and assembly work
+    4a: Construction and assembly work, provision of workers
+    '5': Goods listed in Annex 5
+    '6': Supply of goods originally given as security
+    '7': Supply of goods after assignment of retention of title
+    '11': Greenhouse gas emission allowances
+    '12': Cereals and industrial crops
+    '13': Metals
+    '14': Mobile phones
+    '15': Integrated circuits
+    '16': Portable data processing devices
+    '17': Video game consoles
+    '18': Supply of electricity certificates
+    '19': Supply of electricity through networks to a trader
+    '20': Supply of gas through networks to a trader
+    '21': Defined electronic communications services
+  problem:
+    number_not_accepted: A number has at most 40 characters and no * or %, or its QR code could not be made.
+    firm_identified_person: 'An identified person cannot issue documents yet: the rules for it are under review.'
+    unprintable: 'This text holds characters the invoice cannot print: {characters}'
+    unprintable_part: '{part, select, name {Name} street {Street} city {City} postal_code {Postal code} registration_number {Registration number} vat_id {VAT ID} register_entry {Register entry} email {Email} phone {Phone} web {Web} other {A value}} holds characters the invoice cannot print: {characters}'
+    country_invalid: Choose a country from the list.
+    email_invalid: Enter a valid e-mail address.
+    constant_symbol_invalid: The constant symbol has digits only.
+    too_many_lines: 'An invoice has at most 100 lines.'
+    amount_out_of_range: An amount is too large to count.
+    bank_account_foreign: Choose a bank account of the firm.
+    changed_meanwhile: Someone saved this invoice meanwhile, so yours was not saved.
+    currency_not_home: The price must be in the currency of the firm.
+    customer_address_incomplete: The customer needs a complete billing address.
+    customer_archived: This contact is archived for the firm.
+    customer_role: This contact is not a customer of the firm.
+    customer_unknown: Choose a customer.
+    customer_vat_id_invalid: The VAT ID of the customer is not valid.
+    date_invalid: This date does not exist.
+    discount_invalid: Enter a discount from 0 to 100, with up to two decimals.
+    due_date_missing: Enter the due date.
+    firm_archived: This firm is archived, so it issues no new documents.
+    firm_country_unsupported: Invoices are not available for the country of this firm yet.
+    firm_locked: The firm of an issued document cannot change.
+    firm_register_entry_missing: Add the register entry in the settings of the firm.
+    firm_vat_id_missing: Add the VAT ID in the settings of the firm.
+    issue_date_missing: Enter the issue date.
+    language_invalid: Choose a document language.
+    line_rate_missing: This line needs a VAT rate valid on the tax point.
+    line_text_missing: Enter the text of the item.
+    no_lines: Add at least one line.
+    number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
+    number_locked: Series and number cannot change once the document is delivered.
+    number_out_of_range: This number is beyond what the series can count.
+    number_taken: This number has been used in this firm already.
+    numbers_exhausted: This series has no numbers left.
+    payable_negative: The total must not be negative.
+    payment_method_invalid: Choose a payment method.
+    price_invalid: Enter a price with up to two decimals.
+    price_type_invalid: Choose a price type.
+    quantity_invalid: Enter a quantity with up to four decimals.
+    reverse_charge_customer_vat_id: Reverse charge needs a customer with a VAT ID.
+    reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
+    series_archived: This series is archived.
+    series_of_another_firm: This series belongs to another firm.
+    series_unknown: Choose a series.
+    supply_code_invalid: Choose the supply code.
+    supply_code_not_allowed: A customer from another country has no supply code.
+    tax_point_missing: Enter the date.
+    too_long: This text is too long.
+    trashed: This invoice is in the trash. Restore it to change it.
+    variable_symbol_invalid: The variable symbol has 1 to 10 digits.
+    vat_invalid: Choose the VAT of the line.
 import:
   number: '{value, number}'
   new: New import

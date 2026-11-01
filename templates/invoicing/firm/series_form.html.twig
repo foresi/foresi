@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set editing = series is not null %}
+{% set crumbs = [{label: 'firm.title'|trans, href: firmsUrl}, {label: firm.name, href: firmUrl}, {label: 'firm.invoicing.title'|trans, href: settings}, {label: editing ? seriesName : 'series.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ editing ? 'series.edit'|trans : 'series.new'|trans }}{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SERIES_TOKEN')) }}">
+        {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'series.card'|trans" icon="tag">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="100" required /></div>
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" /></div>
+                <twig:Ui:TextInput name="startYear" id="startYear" :label="'series.field.startYear'|trans" :help="'series.field.startYear_help'|trans" :value="values.startYear" :error="errors.startYear|default(null)" inputmode="numeric" maxlength="4" />
+                <twig:Ui:TextInput name="nextNumber" id="nextNumber" :label="'series.field.nextNumber'|trans" :help="'series.field.nextNumber_help'|trans" :value="values.nextNumber" :error="errors.nextNumber|default(null)" :placeholder="nextNow" inputmode="numeric" maxlength="10" />
+                {% if editing and series.default %}
+                    <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_kept_help'|trans" value="1" :checked="true" :disabled="true" /></div>
+                {% else %}
+                    <div class="sm:col-span-2"><twig:Ui:Checkbox name="default" id="default" :label="'series.field.default'|trans" :help="'series.field.default_help'|trans" value="1" :checked="values.default == '1'" /></div>
+                {% endif %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="settings">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

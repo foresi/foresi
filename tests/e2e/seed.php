@@ -9,8 +9,8 @@ declare(strict_types=1);
 /*
  * Seeds the end-to-end database (var/e2e.db): the tenant "Example Company" with
  * the user testing@example.com and 30 parties, a second, empty tenant for the
- * first-run screen, and a third with two firms and one contact for the firm
- * scope. Run it after the migrations, in the e2e environment:
+ * first-run screen, a third with two firms and one contact for the firm scope,
+ * and a fourth with a VAT payer, a non-payer and customers for the invoice form. Run it after the migrations, in the e2e environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -22,17 +22,25 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesFormat;
 use App\Kernel;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyInput;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
@@ -85,6 +93,7 @@ $tenantWithOwner = static function (string $tenantName, string $email, string $d
 $main = $tenantWithOwner('Example Company', 'testing@example.com', 'Testing Example');
 $tenantWithOwner('Example Empty Company', 'empty@example.com', 'Empty Example');
 $group = $tenantWithOwner('Example Group', 'group@example.com', 'Group Example');
+$invoicing = $tenantWithOwner('Example Invoicing', 'invoicing@example.com', 'Invoicing Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
@@ -135,6 +144,30 @@ foreach (['Example Trading s.r.o.' => '12345695', 'Example International Service
 }
 $entityManager->flush();
 $createParty->createFrom($party(PartyKind::Company, 'Example Partner s.r.o.', [PartyRole::Customer], 'partner@example.com', 1, '12345679'));
+$context->reset();
+
+$context->switchTo($invoicing);
+$entityManager->persist(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234', ['CZ6508000000192000145399']));
+$entityManager->persist(new LegalEntity('Example Small Trader', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register', ['CZ6508000000192000145399']));
+$entityManager->flush();
+$payerFirm = $entityManager->getRepository(LegalEntity::class)->findOneBy(['name' => 'Example Payer s.r.o.']) ?? throw new LogicException('The payer firm is missing.');
+$standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$standard->markDefault();
+$entityManager->persist($standard);
+$entityManager->persist(new Series($payerFirm, 'Second', SeriesFormat::fromString('B{YY}{NNN}'), DocumentKind::Invoice));
+$entityManager->flush();
+$createParty->createFrom($party(PartyKind::Company, 'Example German GmbH', [PartyRole::Customer], 'german@example.com', 7, null, 'DE123456789'));
+$createParty->createFrom($party(PartyKind::Company, 'Example Domestic a.s.', [PartyRole::Customer], 'domestic@example.com', 3, '12345679', 'CZ12345679'));
+$createParty->createFrom($party(PartyKind::Company, 'Example Builder a.s.', [PartyRole::Customer], 'builder@example.com', 4, '00000019', 'CZ00000019'));
+$createParty->createFrom($party(PartyKind::Company, 'Example Euro a.s.', [PartyRole::Customer], 'euro@example.com', 5, '00000001', 'CZ00000001'));
+$createParty->createFrom($party(PartyKind::SoleTrader, 'Example Vendor', [PartyRole::Supplier], 'vendor@example.com', 6));
+$defaultsOf = static function (string $name, InvoicingDefaults $defaults) use ($entityManager): void {
+    $entityManager->getRepository(Party::class)->findOneBy(['displayName' => $name])?->changeInvoicingDefaults($defaults);
+};
+$defaultsOf('Example Builder a.s.', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+$defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+$defaultsOf('Example Euro a.s.', new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::BankTransfer, false));
+$entityManager->flush();
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

@@ -19,6 +19,8 @@ final readonly class NavigationEntry
         public string $route,
         public ?int $count,
         public bool $current,
+        public ?string $commandLabelKey = null,
+        public ?string $commandRoute = null,
     ) {
     }
 }

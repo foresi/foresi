@@ -33,7 +33,7 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
-          extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
@@ -49,8 +49,55 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
+      # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
+      # by SHA-256, and a missing binary fails the tests instead of skipping them.
+      - name: Set up Java for veraPDF
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install veraPDF
+        env:
+          VERAPDF_VERSION: 1.30.3
+          VERAPDF_SHA256: b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/verapdf-installer"
+          cd "$RUNNER_TEMP/verapdf-installer"
+          curl -fsSL -o installer.zip "https://software.verapdf.org/releases/${VERAPDF_VERSION%.*}/verapdf-greenfield-${VERAPDF_VERSION}-installer.zip"
+          echo "${VERAPDF_SHA256}  installer.zip" | sha256sum --check
+          unzip -q installer.zip
+          cat > auto-install.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <AutomatedInstallation langpack="eng">
+          <com.izforge.izpack.panels.htmlhello.HTMLHelloPanel id="welcome"/>
+          <com.izforge.izpack.panels.target.TargetPanel id="install_dir"><installpath>${RUNNER_TEMP}/verapdf</installpath></com.izforge.izpack.panels.target.TargetPanel>
+          <com.izforge.izpack.panels.packs.PacksPanel id="sdk_pack_select"><pack index="0" name="veraPDF Runtime" selected="true"/><pack index="1" name="veraPDF Mac and *nix Scripts" selected="true"/></com.izforge.izpack.panels.packs.PacksPanel>
+          <com.izforge.izpack.panels.install.InstallPanel id="install"/>
+          <com.izforge.izpack.panels.finish.FinishPanel id="finish"/>
+          </AutomatedInstallation>
+          EOF
+          java -jar "verapdf-greenfield-${VERAPDF_VERSION}/verapdf-izpack-installer-${VERAPDF_VERSION}.jar" auto-install.xml
+          echo "${RUNNER_TEMP}/verapdf" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/verapdf/verapdf" --version
+
+      # The invoice PDF tests read the file with Poppler, as a person's tools would.
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      # The ISDOC schema has no stated licence, so it is fetched, not committed. The
+      # script refuses a file whose SHA-256 differs from the one it pins.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/isdoc-schema
+          key: isdoc-schema-${{ hashFiles('bin/fetch-isdoc-schema') }}
+
+      - name: Fetch the ISDOC schema
+        run: composer isdoc:schema
 
       - name: Migrations match the mapping
         run: |
@@ -63,6 +110,10 @@ jobs:
         run: bin/migration-roundtrip
 
       - name: Quality gate
+        env:
+          REQUIRE_VERAPDF: '1'
+          REQUIRE_ISDOC_SCHEMA: '1'
+          REQUIRE_POPPLER: '1'
         run: composer qa
 
       - name: Mutation testing
@@ -122,7 +173,7 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
-          extensions: ctype, iconv, intl, pdo_sqlite, pdo_pgsql
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
@@ -138,8 +189,55 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
+      # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
+      # by SHA-256, and a missing binary fails the tests instead of skipping them.
+      - name: Set up Java for veraPDF
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install veraPDF
+        env:
+          VERAPDF_VERSION: 1.30.3
+          VERAPDF_SHA256: b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/verapdf-installer"
+          cd "$RUNNER_TEMP/verapdf-installer"
+          curl -fsSL -o installer.zip "https://software.verapdf.org/releases/${VERAPDF_VERSION%.*}/verapdf-greenfield-${VERAPDF_VERSION}-installer.zip"
+          echo "${VERAPDF_SHA256}  installer.zip" | sha256sum --check
+          unzip -q installer.zip
+          cat > auto-install.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <AutomatedInstallation langpack="eng">
+          <com.izforge.izpack.panels.htmlhello.HTMLHelloPanel id="welcome"/>
+          <com.izforge.izpack.panels.target.TargetPanel id="install_dir"><installpath>${RUNNER_TEMP}/verapdf</installpath></com.izforge.izpack.panels.target.TargetPanel>
+          <com.izforge.izpack.panels.packs.PacksPanel id="sdk_pack_select"><pack index="0" name="veraPDF Runtime" selected="true"/><pack index="1" name="veraPDF Mac and *nix Scripts" selected="true"/></com.izforge.izpack.panels.packs.PacksPanel>
+          <com.izforge.izpack.panels.install.InstallPanel id="install"/>
+          <com.izforge.izpack.panels.finish.FinishPanel id="finish"/>
+          </AutomatedInstallation>
+          EOF
+          java -jar "verapdf-greenfield-${VERAPDF_VERSION}/verapdf-izpack-installer-${VERAPDF_VERSION}.jar" auto-install.xml
+          echo "${RUNNER_TEMP}/verapdf" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/verapdf/verapdf" --version
+
+      # The invoice PDF tests read the file with Poppler, as a person's tools would.
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      # The ISDOC schema has no stated licence, so it is fetched, not committed. The
+      # script refuses a file whose SHA-256 differs from the one it pins.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/isdoc-schema
+          key: isdoc-schema-${{ hashFiles('bin/fetch-isdoc-schema') }}
+
+      - name: Fetch the ISDOC schema
+        run: composer isdoc:schema
 
       - name: Migrations match the mapping
         run: |
@@ -157,6 +255,10 @@ jobs:
         run: bin/console doctrine:schema:drop --full-database --force
 
       - name: Tests
+        env:
+          REQUIRE_VERAPDF: '1'
+          REQUIRE_ISDOC_SCHEMA: '1'
+          REQUIRE_POPPLER: '1'
         run: composer phpunit
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
@@ -175,7 +277,7 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.5'
-          extensions: ctype, iconv, intl, pdo_sqlite
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, zip
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
           ini-values: upload_max_filesize=64M, post_max_size=64M
@@ -192,6 +294,16 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      # The ISDOC schema has no stated licence, so it is fetched, not committed. The
+      # script refuses a file whose SHA-256 differs from the one it pins.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/isdoc-schema
+          key: isdoc-schema-${{ hashFiles('bin/fetch-isdoc-schema') }}
+
+      - name: Fetch the ISDOC schema
+        run: composer isdoc:schema
 
       - name: Tests
         run: composer phpunit

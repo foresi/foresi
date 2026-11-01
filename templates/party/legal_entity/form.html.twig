@@ -20,7 +20,8 @@
 {% endblock %}
 
 {% block content %}
-    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
+    {% if editing %}<div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'details'} only %}</div>{% endif %}
+    <form method="post" action="{{ action }}" enctype="multipart/form-data" class="grid max-w-4xl gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::FORM_TOKEN')) }}">
         {% if not editing %}<input type="hidden" name="_submission" value="{{ token }}">{% endif %}
 
@@ -62,6 +63,20 @@
             <div class="grid gap-3">
                 <twig:Ui:TextInput name="registerEntry" id="registerEntry" :label="'firm.field.registerEntry'|trans" :help="'firm.field.registerEntry_help'|trans" :value="values.registerEntry" :error="errors.registerEntry|default(null)" maxlength="255" />
                 <twig:Ui:Textarea name="bankAccounts" id="bankAccounts" :label="'firm.field.bankAccounts'|trans" :help="'firm.field.bankAccounts_help'|trans" :value="values.bankAccounts" :error="errors.bankAccounts|default(null)" :rows="3" />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'firm.card.images'|trans" icon="upload">
+            <div class="grid gap-3 sm:grid-cols-2">
+                {% set fileClass = 'py-0.5 pl-0.5 file:mr-3 file:h-control-sm file:cursor-pointer file:rounded-sm file:border-0 file:bg-badge-gray file:px-2.5 file:text-small file:font-medium file:text-ink' %}
+                <div class="grid content-start gap-2">
+                    <twig:Ui:TextInput type="file" name="logo" id="logo" :label="'firm.field.logo'|trans" :help="(editing and firm.logo ? 'firm.field.logo_stored_help' : 'firm.field.logo_help')|trans" :error="errors.logo|default(null)" accept="image/png,image/jpeg" :class="fileClass" />
+                    {% if editing and firm.logo %}<twig:Ui:Checkbox name="removeLogo" id="removeLogo" :label="'firm.field.removeLogo'|trans" value="1" />{% endif %}
+                </div>
+                <div class="grid content-start gap-2">
+                    <twig:Ui:TextInput type="file" name="stamp" id="stamp" :label="'firm.field.stamp'|trans" :help="(editing and firm.stamp ? 'firm.field.stamp_stored_help' : 'firm.field.stamp_help')|trans" :error="errors.stamp|default(null)" accept="image/png,image/jpeg" :class="fileClass" />
+                    {% if editing and firm.stamp %}<twig:Ui:Checkbox name="removeStamp" id="removeStamp" :label="'firm.field.removeStamp'|trans" value="1" />{% endif %}
+                </div>
             </div>
         </twig:Ui:Card>
 

@@ -8,24 +8,27 @@
     "require": {
         "php": ">=8.4",
         "ext-ctype": "*",
+        "ext-dom": "*",
+        "ext-gd": "*",
         "ext-iconv": "*",
         "ext-intl": "*",
+        "ext-zip": "*",
         "brick/math": "^1.0",
         "brick/money": "^0.15.2",
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
-        "openspout/openspout": "^4",
+        "openspout/openspout": "^4.32",
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
         "symfony/console": "7.4.*",
-        "symfony/doctrine-messenger": "^7.4",
+        "symfony/doctrine-messenger": "^7.4.22",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2.12",
         "symfony/framework-bundle": "7.4.*",
         "symfony/http-client": "7.4.*",
-        "symfony/lock": "^7.4",
-        "symfony/messenger": "^7.4",
+        "symfony/lock": "^7.4.22",
+        "symfony/messenger": "^7.4.22",
         "symfony/rate-limiter": "7.4.*",
         "symfony/runtime": "7.4.*",
         "symfony/security-bundle": "7.4.*",
@@ -39,7 +42,8 @@
         "symfony/ux-twig-component": "^3.6",
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
-        "symfonycasts/tailwind-bundle": "^1.0"
+        "symfonycasts/tailwind-bundle": "^1.0",
+        "tecnickcom/tc-lib-pdf": "^8.82.2"
     },
     "config": {
         "allow-plugins": {
@@ -98,9 +102,10 @@
         ],
         "deptrac": "deptrac analyse --no-progress --ansi",
         "phpunit": "phpunit",
+        "isdoc:schema": "@php bin/fetch-isdoc-schema",
         "infection": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -d memory_limit=2G vendor/bin/infection --threads=max --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress"
+            "@php -d memory_limit=2G vendor/bin/infection --threads=max --initial-tests-php-options='-d memory_limit=2G' --min-msi=80 --min-covered-msi=90 --show-mutations --no-progress"
         ],
         "qa": [
             "@cs:check",
@@ -121,7 +126,8 @@
         }
     },
     "require-dev": {
-        "deptrac/deptrac": "^4.7",
+        "chillerlan/php-qrcode": "^6.0.1",
+        "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "infection/infection": "^0.35.8",
         "phpstan/extension-installer": "^1.4.3",
@@ -133,6 +139,7 @@
         "phpunit/phpunit": "^13.4.5",
         "rector/rector": "^2.8.3",
         "symfony/browser-kit": "7.4.*",
-        "symfony/css-selector": "7.4.*"
+        "symfony/css-selector": "7.4.*",
+        "symfony/process": "7.4.*"
     }
 }

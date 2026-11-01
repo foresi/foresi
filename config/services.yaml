@@ -9,8 +9,13 @@
 parameters:
     # The product name shown on every page; the only place it is defined.
     app.product_name: Foresi
+    # The released version, named as the issuing system in electronic documents. A release sets it.
+    app.version: 0.4.0
     # Uploaded import sources; never below public/, tenant directories inside.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
+    # Logos and stamps; never below public/. From the kernel, not from the environment
+    # variable: that one is relative, and the web server would resolve it inside public/.
+    app.firm_image_dir: '%kernel.share_dir%/firm-images'
 
 services:
     # default configuration for services in *this* file
@@ -32,6 +37,9 @@ services:
             tags: ['app.registration_number_validator']
         App\Party\Domain\DomesticBankAccount:
             tags: ['app.domestic_bank_account']
+        # A country module plugs into invoicing with its rules.
+        App\Invoicing\Application\InvoicingCountry:
+            tags: ['app.invoicing_country']
         # Modules plug into the import by implementing its target contract.
         App\Import\Application\Target\ImportTarget:
             tags: ['app.import_target']
@@ -46,6 +54,22 @@ services:
     App\Party\Application\ImportPartyValues:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
+
+    App\Invoicing\Application\InvoicingCountries:
+        arguments:
+            $countries: !tagged_iterator app.invoicing_country
+
+    App\Country\CzechRepublic\Invoicing\IsdocWriter:
+        arguments:
+            $issuingSystem: '%app.product_name% %app.version%'
+
+    App\Invoicing\Infrastructure\Pdf\PdfEngine:
+        arguments:
+            $logoDirectories: ['%app.firm_image_dir%']
+
+    App\Party\Infrastructure\Http\FilesystemFirmImages:
+        arguments:
+            $root: '%app.firm_image_dir%'
 
     App\Import\Infrastructure\LocalImportFiles:
         arguments:
@@ -130,6 +154,10 @@ when@e2e:
             public: true
 
 when@test:
+    parameters:
+        # Inside the test cache, so a test never writes to the real share directory.
+        app.firm_image_dir: '%kernel.cache_dir%/firm-images'
+
     services:
         _defaults:
             autowire: true
@@ -183,6 +211,38 @@ when@test:
         App\Import\Application\ImportFiles:
             alias: App\Import\Infrastructure\LocalImportFiles
             public: true
+
+        # Public for the tests and the worker of the parallel counter test, which use the ports directly.
+        App\Invoicing\Application\NumberCounter:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter
+            public: true
+        App\Invoicing\Application\SeriesCatalog:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog
+            public: true
+        App\Party\Application\TransactionalWork:
+            alias: App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork
+            public: true
+        App\Invoicing\Application\FirmInvoicingSettings:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings
+            public: true
+        App\Invoicing\Application\InvoiceStore:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
+            public: true
+        App\Invoicing\Application\ConflictRetry:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
+            public: true
+        App\Invoicing\Application\IssueInvoice: { public: true }
+        App\Invoicing\Application\EditInvoice: { public: true }
+        App\Party\Application\ContactSettingsForFirm: { public: true }
+        App\Invoicing\Application\NewInvoiceDefaults: { public: true }
+        App\Invoicing\Application\CustomerPicker: { public: true }
+        App\Invoicing\Application\TrashInvoice: { public: true }
+        App\Invoicing\Application\MarkDelivered: { public: true }
+        App\Invoicing\Application\IssuedDocumentFactory: { public: true }
+        App\Invoicing\Application\IssueRules: { public: true }
+        App\Invoicing\Application\CustomerCopies: { public: true }
+        App\Invoicing\Application\LinePricing: { public: true }
+        App\Invoicing\Application\NumberAllocator: { public: true }
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

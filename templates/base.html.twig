@@ -9,10 +9,11 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block title %}{% endblock %}</title>
+        {% block head %}{% endblock %}
         {% block stylesheets %}{% endblock %}
         {% block javascripts %}{% block importmap %}{{ importmap('app') }}{% endblock %}{% endblock %}
     </head>
-    <body data-controller="form-errors">
+    <body data-controller="form-errors"{% block body_attributes %}{% endblock %}>
         {% block body %}{% endblock %}
     </body>
 </html>

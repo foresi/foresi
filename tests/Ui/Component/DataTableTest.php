@@ -22,6 +22,87 @@ final class DataTableTest extends KernelTestCase
     ];
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    private function rowsWithActions(): array
+    {
+        return [[
+            'id' => 'a1',
+            'href' => '/invoices/a1/edit',
+            'plain' => true,
+            'secondary' => 'Example Company · 1 Nov',
+            'cells' => ['name' => '20260001', 'email' => ['text' => '1 Nov', 'tone' => 'red', 'hint' => 'Overdue'], 'balance' => '1 200'],
+            'actions' => [
+                ['label' => 'Edit', 'href' => '/invoices/a1/edit', 'method' => 'GET', 'icon' => 'pencil', 'plain' => true],
+                ['label' => 'Restore', 'href' => '/invoices/a1/restore', 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => ['return' => 'tab=trash']],
+                ['label' => 'Mark', 'href' => '/invoices/a1/mark', 'method' => 'POST', 'confirm' => 'Sure?'],
+                ['label' => 'History', 'href' => '/invoices/a1/history', 'method' => 'GET'],
+            ],
+        ]];
+    }
+
+    public function testRowActionsShowInTheRowAndInTheMenu(): void
+    {
+        $html = $this->render(['rows' => $this->rowsWithActions(), 'actionToken' => 'tok']);
+
+        self::assertStringContainsString('data-row-actions', $html);
+        self::assertMatchesRegularExpression('~<a[^>]*href="/invoices/a1/edit"[^>]*aria-label="Edit"|<a[^>]*aria-label="Edit"[^>]*href="/invoices/a1/edit"~', $html);
+        self::assertStringContainsString('name="_token" value="tok"', $html);
+        self::assertStringContainsString('name="return" value="tab=trash"', $html);
+        self::assertStringContainsString('data-turbo-confirm="Sure?"', $html);
+        self::assertStringContainsString('role="menuitem" tabindex="-1" data-phone-only data-turbo="false"', $html);
+        self::assertStringContainsString('data-dropdown-float-value="true"', $html);
+        self::assertSame(4, substr_count($html, 'role="menuitem"'), 'Everything is in the menu of a phone.');
+    }
+
+    public function testATableWithoutActionsHasNoColumnForThem(): void
+    {
+        $html = $this->render();
+
+        self::assertStringNotContainsString('data-row-actions', $html);
+        self::assertStringNotContainsString('role="menu"', $html);
+    }
+
+    public function testAPlainRowLinkLeavesTurboAndAPhoneGetsItsLine(): void
+    {
+        $html = $this->render(['rows' => $this->rowsWithActions()]);
+
+        self::assertMatchesRegularExpression('~href="/invoices/a1/edit" data-row-link data-turbo="false"~', $html);
+        self::assertStringContainsString('data-row-secondary>Example Company · 1 Nov<', $html);
+        self::assertStringContainsString('<span class="sr-only"> · Overdue</span>', $html);
+    }
+
+    public function testAColumnCanStayOffAPhone(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'email', 'label' => 'E-mail', 'phone' => false]];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(3, substr_count($html, 'max-sm:hidden'), 'The header and both cells of the column.');
+    }
+
+    public function testARowActionGoesByGetOrPost(): void
+    {
+        $this->expectExceptionMessageIsOrContains('A row action goes by GET or POST.');
+
+        $this->render(['rows' => [['cells' => [], 'actions' => [['label' => 'Go', 'href' => '/x', 'method' => 'DELETE']]]]]);
+    }
+
+    public function testARowActionNeedsALabel(): void
+    {
+        $this->expectException(\Throwable::class);
+
+        $this->render(['rows' => [['cells' => [], 'actions' => [['href' => '/x', 'method' => 'GET']]]]]);
+    }
+
+    public function testRowActionsAreAList(): void
+    {
+        $this->expectExceptionMessageIsOrContains('Row actions must be a list.');
+
+        $this->render(['rows' => [['cells' => [], 'actions' => 'edit']]]);
+    }
+
+    /**
      * @return list<array{id: string, href?: string, selected?: bool, cells: array<string, mixed>}>
      */
     private function rows(): array

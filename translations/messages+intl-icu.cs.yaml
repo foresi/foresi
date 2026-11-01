@@ -25,16 +25,21 @@ auth:
 nav:
   group:
     main: Hlavní
-    sales: Obchod
-    money: Peníze
-    contacts: Kontakty
+    sales: Prodej
+    money: Finance
+    contacts: Adresář
+    work: Práce
     extensions: Rozšíření
     settings: Nastavení
   item:
     dashboard: Přehled
     contacts: Adresář
+    invoices: Faktury
     firms: Firmy
+    import: Import a export
 ui:
+  combobox:
+    found: 'Nalezeno: {count}'
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Ověřte
@@ -44,6 +49,8 @@ ui:
     caption: Tabulka
     select_all: Vybrat všechny řádky
     select_row: 'Vybrat řádek {label}'
+    actions: Akce
+    more_actions: 'Další akce pro {label}'
     total: Celkem
   bulk:
     label: Hromadné akce
@@ -368,6 +375,10 @@ firm:
   new: Nová firma
   edit: Upravit firmu
   views: Pohledy na firmy
+  sections: Části firmy
+  tab:
+    details: Údaje
+    invoicing: Fakturace
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Přidejte firmu, za kterou vaše organizace vystavuje doklady.
@@ -387,6 +398,7 @@ firm:
     tax: DPH
     seat: Sídlo
     documents: Údaje na dokladech
+    images: Logo a razítko
   field:
     name: Název
     vatStatus: Vztah k DPH
@@ -394,6 +406,14 @@ firm:
     registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
     bankAccounts: Bankovní účty
     bankAccounts_help: 'IBAN, každý na samostatný řádek'
+    logo: Logo
+    logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
+    logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
+    removeLogo: Odebrat logo
+    stamp: Razítko a podpis
+    stamp_help: 'Jeden PNG nebo JPEG, nejvýš 1 MB. Jen pro doklady'
+    stamp_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
+    removeStamp: Odebrat razítko a podpis
   vat_status:
     registered: Plátce DPH
     not_registered: Neplátce DPH
@@ -411,6 +431,448 @@ firm:
     iban: 'Zkontrolujte IBAN: {iban}'
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
+    image_type: Nahrajte obrázek PNG nebo JPEG.
+    image_size: Obrázek může mít nejvýš 1 MB.
+    image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.
+    image_color: Nahrajte JPEG v RGB, ne v CMYK.
+    image_upload: Obrázek se nepodařilo nahrát. Zkuste to znovu.
+  invoicing:
+    title: Fakturace
+    card:
+      defaults: Výchozí hodnoty faktury
+      texts: Texty na fakturách
+      contact: Kontakt na fakturách
+    field:
+      rounding: Zaokrouhlení celkové částky
+      rounding_help: Na faktuře je jako samostatný řádek
+      constantSymbol: Konstantní symbol
+      constantSymbol_help: 'Až 10 číslic, předvyplní se na nových fakturách'
+      textBefore: Text nad položkami
+      textBefore_help: 'Tiskne se nad položkami, třeba oslovení'
+      textAfter: Text pod položkami
+      textAfter_help: 'Tiskne se pod položkami, třeba platební podmínky'
+      contactEmail: E-mail
+      contactPhone: Telefon
+      contactWeb: Web
+    rounding:
+      whole_unit: Na celé koruny
+      none: Bez zaokrouhlení
+    flash:
+      saved: Nastavení fakturace je uložené.
+    error:
+      rounding: Vyberte, jak se zaokrouhluje celková částka.
+      constant_symbol: Zadejte nejvýš 10 číslic.
+      email: Zadejte platný e-mail.
+      save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+series:
+  title: Číselné řady
+  new: Nová číselná řada
+  edit: Upravit číselnou řadu
+  card: Číselná řada
+  default: Výchozí
+  first: 'Zatím tu není žádná řada. První faktura této firmy dostane číslo {number} ve standardní řadě.'
+  name:
+    standard: Standardní
+  column:
+    name: Název
+    format: Formát
+    next: Další číslo
+    default: Výchozí
+  field:
+    name: Název
+    format: Formát
+    format_help: "Značky '{YYYY} {YY} {MM} {DD}' a jedna '{NNNN}'"
+    format_locked_help: Řada už má čísla, proto je formát uzamčený
+    nextNumber: Další číslo
+    nextNumber_help: Prázdné nic nemění. Přeskočená čísla se nepoužijí
+    startYear: Rok
+    startYear_help: Formát bez roku ho nepoužije
+    default: Výchozí řada pro nové faktury
+    default_help: Převezme to po dosavadní výchozí řadě
+    default_kept_help: Změníte to, když nastavíte výchozí jinou řadu
+  flash:
+    saved: Číselná řada je uložená.
+  error:
+    format: "Použijte jen písmena, číslice, . _ / - a značky '{YYYY} {YY} {MM} {DD}' s jednou '{NNNN}'."
+    format_locked: Řada už má čísla, formát proto nejde změnit.
+    format_too_long: 'Čísla této řady by byla delší, než doklad unese: nejvýše 40 znaků.'
+    format_taken: 'Čísla by se střetla s řadou {name}.'
+    name_taken: Tento název už má jiná řada této firmy.
+    next_number: Zadejte celé číslo od 1 do 2147483647.
+    start_year: Zadejte rok od 2000 do 2099.
+    next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
+invoice:
+  export:
+    incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
+    title: Doklady pro účetní
+    link: Pro účetní
+    intro: Stáhne ZIP s PDF fakturami a jejich ISDOC za zvolené období podle data zdanitelného plnění. Doklady v koši zůstávají stranou. Nic se nikam neodesílá.
+    from: Od
+    to: Do
+    submit: Stáhnout ZIP
+    empty: Za toto období tato firma nemá žádné faktury.
+    date_invalid: Zadejte platné datum.
+    backwards: Konec období nesmí být před jeho začátkem.
+    too_long: 'Období může mít nejvýše {days} dní.'
+  pdf:
+    undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
+    footer: '{title} · Strana {page}/{pages}'
+    unsupported_country: 'Fakturu {number} nelze vytisknout: pravidla země vystavitele tato instalace nezná.'
+    trashed: V KOŠI – DOKLAD NEPLATÍ
+    document_title: 'Faktura {number}'
+    title_tax: Faktura - daňový doklad
+    title: Faktura
+    supplier: Dodavatel
+    customer: Odběratel
+    registration_number: IČO
+    vat_id: DIČ
+    issue_date: Datum vystavení
+    tax_point: Datum zdanitelného plnění
+    supply_date: Datum uskutečnění
+    due_date: Datum splatnosti
+    date_format: 'j. n. Y'
+    bank_account: Bankovní účet
+    payment_method: Způsob platby
+    variable_symbol: Variabilní symbol
+    constant_symbol: Konstantní symbol
+    order_number: Číslo objednávky
+    payable: Celkem k úhradě
+    item: Označení dodávky
+    quantity: Počet
+    unit: m. j.
+    unit_price: Cena za m. j. bez DPH
+    unit_price_plain: Cena za m. j.
+    discount: Sleva
+    rate: DPH %
+    base: Základ
+    vat: DPH
+    total: Celkem
+    rounding: Zaokrouhlení
+    recap_rate: Sazba DPH
+    recap_total: Celkem
+    recap:
+      reverse_charge: Přenesení daňové povinnosti
+      exempt: Osvobozeno
+    stamp: Razítko a podpis
+    stamp_alt: 'Razítko a podpis: {name}'
+    qr_label: QR Platba+F
+    qr_alt: 'QR Platba+F faktury {number}'
+    note:
+      reverse_charge: 'Přenesení daňové povinnosti: daň odvede zákazník.{code, select, none {} other { Kód předmětu plnění: {code}.}}'
+      exempt: Plnění je osvobozeno od daně.
+  copy:
+    firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
+    series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
+    customer_archived: Firma už zákazníkovi z původní faktury nefakturuje. Vyberte jiného zákazníka.
+    line_dates: Položky obsahují datum nebo měsíc z původní faktury. Zkontrolujte, zda stále platí.
+  list:
+    title: Faktury
+    views: Seznamy faktur
+    all_firms: Všechny firmy
+    search: Hledat
+    search_label: Hledat ve fakturách
+    search_placeholder: Číslo, zákazník nebo popis
+    summary: '{total, plural, one {# faktura} few {# faktury} other {# faktur}}'
+    reason_missing: Napište, proč fakturu mažete.
+    delete_delivered: Doručený doklad nelze smazat.
+    not_in_trash: Tato faktura v koši není.
+    already_trashed: Tato faktura už je v koši.
+    delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
+    delivered_confirm: 'Označit fakturu {number} jako doručenou? Pak už ji nepůjde smazat.'
+    tab:
+      all: Vše
+      overdue: Po splatnosti
+      trash: Koš
+    column:
+      number: Číslo
+      firm: Firma
+      customer: Zákazník
+      issueDate: Vystaveno
+      dueDate: Splatnost
+      payable: Celkem
+      status: Stav
+      deletedBy: Smazal(a)
+      deletedAt: Smazáno
+      reason: Důvod
+    status:
+      delivered: Doručeno
+      overdue: Po splatnosti
+    action:
+      edit: Upravit
+      pdf: PDF
+      copy: Kopírovat
+      delivered: Označit jako doručené
+      history: Historie
+      delete: Smazat
+      restore: Obnovit
+    empty:
+      title: Zatím žádné faktury
+      text: Vystavte první. Uložením dostane své číslo.
+      all_title: Tady žádné faktury nejsou
+      filtered_title: Žádná faktura neodpovídá
+      filtered_text: Zkuste jiná slova nebo jinou firmu.
+      reset: Zobrazit všechny faktury
+      overdue_title: Nic není po splatnosti
+      trash_title: Koš je prázdný
+  trash:
+    title: 'Smazat fakturu {number}'
+    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
+    reason: Důvod
+    reason_help: Zůstane v historii faktury.
+    submit: Přesunout do koše
+  history:
+    title: 'Historie faktury {number}'
+    card: Historie
+    system: Systém
+    created: '{who}: faktura vytvořena'
+    changed: '{who}: faktura upravena'
+    trashed: '{who}: faktura přesunuta do koše: {reason}'
+    restored: '{who}: faktura obnovena'
+    delivered: '{who}: faktura označena jako doručená'
+    line_added: 'Položka {number} ({text}) přidána'
+    line_removed: 'Položka {number} ({text}) odebrána'
+    line_changed: 'Položka {number} ({text}): {fields}'
+    line_text: 'Položka {number}: {text}'
+    field:
+      number: Číslo
+      series: Řada
+      customer: Zákazník
+      issueDate: Datum vystavení
+      taxPointDate: DUZP
+      dueDate: Splatnost
+      paymentMethod: Způsob platby
+      bankAccount: Bankovní účet
+      variableSymbol: Variabilní symbol
+      constantSymbol: Konstantní symbol
+      orderNumber: Číslo objednávky
+      description: Popis
+      textBefore: Text před položkami
+      textAfter: Text za položkami
+      language: Jazyk
+      payableMinor: Celkem
+      text: Text
+      quantity: Množství
+      unit: Jednotka
+      priceMinor: Cena
+      priceType: Typ ceny
+      treatment: DPH
+      supplyCode: Kód plnění
+      rateKind: Sazba DPH
+      discount: Sleva
+  new: Nová faktura
+  title: 'Faktura {number}'
+  reload: Načíst fakturu znovu
+  cancel: Zrušit
+  save: Uložit
+  save_pdf: PDF a uložit
+  more_actions: Další akce
+  more: Další údaje
+  firm_apply: Použít tuto firmu
+  rate: '{rate} %'
+  errors_title: Fakturu zatím nelze uložit
+  cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.
+  cut_off_retry: Otevřít formulář znovu
+  line_limit: 'Faktura má nejvýše 100 řádků.'
+  errors_close: Zavřít seznam
+  firm_changed: Firma se změnila, proto se řada, číslo a variabilní symbol nastavily znovu.
+  currency_notice: 'Tento kontakt má nastavenou měnu {contact}. Doklad zůstává v {document}.'
+  blocked:
+    no_firm_title: Faktury potřebují firmu
+    no_firm_text: Firma je vystavitelem každé faktury.
+    add_firm: Přidat firmu
+  flash:
+    saved: 'Faktura {number} je uložená.'
+    renumbered: 'Faktura je uložená pod číslem {number}: {preview} mezitím získal jiný doklad.'
+    number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
+    already_saved: Tento formulář už byl uložen.
+    trashed: 'Faktura {number} je v koši.'
+    restored: 'Faktura {number} je zpět v seznamu.'
+    delivered: 'Faktura {number} je označená jako doručená.'
+  card:
+    issuer: Vystavitel
+    customer: Odběratel
+    payment: Data a platba
+    lines: Položky
+    delete: Smazat fakturu
+  number:
+    edit: Změnit číslo
+    label: Číslo faktury
+    help: Uložení dá další volné číslo, pokud ho nezměníte.
+  customer:
+    placeholder: Název, IČO nebo e-mail
+    empty: Pro tuto firmu jsme odběratele nenašli.
+    add: Přidat
+    picked: 'Doplnili jsme odběratele {name} s jeho výchozími údaji. Zkontrolujte formulář a uložte.'
+    candidates: Nalezení odběratelé
+    edit_here: Upravit jen na tomto dokladu
+    edit_contact: Upravit kontakt
+  field:
+    firm: Firma
+    series: Číselná řada
+    customer: Odběratel
+    customerName: Název na dokladu
+    registrationNumber: IČO
+    vatId: DIČ
+    street: Ulice
+    city: Město
+    postalCode: PSČ
+    countryCode: Země
+    email: E-mail
+    orderNumber: Číslo objednávky
+    description: Popis
+    description_help: Když ho nevyplníte, převezme text první položky.
+    variableSymbol: Variabilní symbol
+    variableSymbol_help: Sleduje číslo, dokud ho nezměníte.
+    constantSymbol: Konstantní symbol
+    language: Jazyk dokladu
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum zdanitelného plnění
+    supplyDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    bankAccount_none: Firma nemá bankovní účet.
+    currency: Měna
+  field_label:
+    form: Formulář
+    firm: Firma
+    document: Doklad
+    series: Číselná řada
+    number: Číslo
+    customer: Odběratel
+    orderNumber: Číslo objednávky
+    description: Popis
+    variableSymbol: Variabilní symbol
+    constantSymbol: Konstantní symbol
+    language: Jazyk
+    textBefore: Text nad položkami
+    textAfter: Text pod položkami
+    issueDate: Datum vystavení
+    taxPointDate: Datum uskutečnění
+    dueDate: Datum splatnosti
+    paymentMethod: Platba
+    bankAccount: Bankovní účet
+    lines: Položky
+  line:
+    label: 'Řádek {number}'
+    text: Položka
+    price: Cena
+    quantity: Množství
+    unit: Jednotka
+    priceType: Typ ceny
+    vat: DPH
+    rate: DPH
+    treatment: DPH
+    supplyCode: Kód plnění
+    supplyCode_choose: Vyberte kód
+    discount: Sleva %
+    total: Celkem
+    actions: Akce
+    add: Nový řádek
+    drag: Přetažením změníte pořadí
+    up: Posunout řádek nahoru
+    down: Posunout řádek dolů
+    remove: Odebrat řádek
+  price_type:
+    with_vat: S DPH
+    without_vat: Bez DPH
+    base_only: Pouze základ
+  vat:
+    base: Základní sazba
+    reduced: Snížená sazba
+    standard: Běžné plnění
+    reverse_charge: Přenesená daň
+    exempt: Osvobozeno
+    not_applicable: Mimo DPH
+  payment:
+    bank_transfer: Převodem
+    cash: Hotově
+    card: Kartou
+  language:
+    cs: Čeština
+    en: Angličtina
+  total:
+    net: Bez DPH
+    vat: DPH
+    rounding: Zaokrouhlení
+    payable: Celkem
+    stale: Součty nejsou aktuální. Zkontrolujte řádky.
+  supply_code:
+    '1': Zlato
+    1a: Zlato, zprostředkování dodání investičního zlata
+    '3': Dodání nemovité věci
+    3a: Dodání nemovité věci v nuceném prodeji
+    '4': Stavební a montážní práce
+    4a: Stavební a montážní práce, poskytnutí pracovníků
+    '5': Zboží uvedené v příloze č. 5
+    '6': Dodání zboží poskytnutého původně jako záruka
+    '7': Dodání zboží po postoupení výhrady vlastnictví
+    '11': Povolenky na emise skleníkových plynů
+    '12': Obiloviny a technické plodiny
+    '13': Kovy
+    '14': Mobilní telefony
+    '15': Integrované obvody
+    '16': Přenosná zařízení pro automatizované zpracování dat
+    '17': Videoherní konzole
+    '18': Dodání certifikátů elektřiny
+    '19': Dodání elektřiny soustavami nebo sítěmi obchodníkovi
+    '20': Dodání plynu soustavami nebo sítěmi obchodníkovi
+    '21': Poskytnutí vymezených služeb elektronických komunikací
+  problem:
+    number_not_accepted: Číslo může mít nejvýše 40 znaků a nesmí obsahovat * ani %, jinak by nešel vytvořit QR kód.
+    firm_identified_person: Pro identifikovanou osobu zatím nelze vystavovat doklady, pravidla pro ni čekají na posouzení.
+    unprintable: 'Tento text obsahuje znaky, které faktura nevytiskne: {characters}'
+    unprintable_part: '{part, select, name {Název} street {Ulice} city {Město} postal_code {PSČ} registration_number {IČO} vat_id {DIČ} register_entry {Zápis v rejstříku} email {E-mail} phone {Telefon} web {Web} other {Údaj}} obsahuje znaky, které faktura nevytiskne: {characters}'
+    country_invalid: Vyberte zemi ze seznamu.
+    email_invalid: Zadejte platnou e-mailovou adresu.
+    constant_symbol_invalid: Konstantní symbol obsahuje jen číslice.
+    too_many_lines: 'Faktura má nejvýše 100 řádků.'
+    amount_out_of_range: Částka je příliš velká.
+    bank_account_foreign: Vyberte bankovní účet firmy.
+    changed_meanwhile: Někdo tuto fakturu mezitím uložil, takže vaše změny se neuložily.
+    currency_not_home: Cena musí být v měně firmy.
+    customer_address_incomplete: Odběratel potřebuje úplnou fakturační adresu.
+    customer_archived: Tento kontakt je pro firmu archivovaný.
+    customer_role: Tento kontakt není odběratelem firmy.
+    customer_unknown: Vyberte odběratele.
+    customer_vat_id_invalid: DIČ odběratele není platné.
+    date_invalid: Toto datum neexistuje.
+    discount_invalid: Zadejte slevu od 0 do 100, nejvýše na dvě desetinná místa.
+    due_date_missing: Zadejte datum splatnosti.
+    firm_archived: Tato firma je archivovaná, nové doklady nevystavuje.
+    firm_country_unsupported: Pro zemi této firmy zatím faktury nejsou k dispozici.
+    firm_locked: Firmu vystaveného dokladu nelze změnit.
+    firm_register_entry_missing: Doplňte zápis v rejstříku v nastavení firmy.
+    firm_vat_id_missing: Doplňte DIČ v nastavení firmy.
+    issue_date_missing: Zadejte datum vystavení.
+    language_invalid: Vyberte jazyk dokladu.
+    line_rate_missing: Řádek potřebuje sazbu DPH platnou k datu plnění.
+    line_text_missing: Zadejte text položky.
+    no_lines: Přidejte alespoň jeden řádek.
+    number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
+    number_locked: Řadu a číslo nelze po doručení dokladu změnit.
+    number_out_of_range: Toto číslo je mimo rozsah řady.
+    number_taken: Toto číslo už bylo v této firmě použito.
+    numbers_exhausted: V této řadě už nezbývají čísla.
+    payable_negative: Celková částka nesmí být záporná.
+    payment_method_invalid: Vyberte způsob platby.
+    price_invalid: Zadejte cenu nejvýše na dvě desetinná místa.
+    price_type_invalid: Vyberte typ ceny.
+    quantity_invalid: Zadejte množství nejvýše na čtyři desetinná místa.
+    reverse_charge_customer_vat_id: Přenesená daň vyžaduje odběratele s DIČ.
+    reverse_charge_payer: Přenesená daň vyžaduje vystavitele, který je plátcem DPH.
+    series_archived: Tato řada je archivovaná.
+    series_of_another_firm: Tato řada patří jiné firmě.
+    series_unknown: Vyberte číselnou řadu.
+    supply_code_invalid: Vyberte kód plnění.
+    supply_code_not_allowed: Odběratel z jiné země kód plnění nemá.
+    tax_point_missing: Zadejte datum.
+    too_long: Text je příliš dlouhý.
+    trashed: Tato faktura je v koši. Pro změny ji obnovte.
+    variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
+    vat_invalid: Vyberte DPH řádku.
 import:
   number: '{value, number}'
   new: Nový import

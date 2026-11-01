@@ -1,0 +1,64 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'firm.invoicing.title'|trans}] %}
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ 'firm.invoicing.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% for message in app.flashes('success') %}
+        <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'invoicing'} only %}</div>
+
+    <div class="grid max-w-4xl grid-cols-1 gap-4">
+        <section class="grid grid-cols-1 gap-3">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="m-0 text-body font-semibold text-ink">{{ 'series.title'|trans }}</h2>
+                <twig:Ui:Button size="sm" icon="plus" :href="path('app_series_new', {id: firm.id})">{{ 'series.new'|trans }}</twig:Ui:Button>
+            </div>
+            {% if rows is empty %}
+                <twig:Ui:Card><p class="m-0 text-small text-muted">{{ 'series.first'|trans({number: firstNumber}) }}</p></twig:Ui:Card>
+            {% else %}
+                <twig:Ui:DataTable :caption="'series.title'|trans" :columns="columns" :rows="rows" />
+            {% endif %}
+        </section>
+
+        <form method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmInvoicingController::SETTINGS_TOKEN')) }}">
+
+            {% if errors.form is defined %}
+                <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+            {% endif %}
+
+            <twig:Ui:Card :title="'firm.invoicing.card.defaults'|trans" icon="receipt-text">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <twig:Ui:Select name="rounding" id="rounding" :label="'firm.invoicing.field.rounding'|trans" :help="'firm.invoicing.field.rounding_help'|trans" :options="roundings" :value="values.rounding" :error="errors.rounding|default(null)" />
+                    <twig:Ui:TextInput name="constantSymbol" id="constantSymbol" :label="'firm.invoicing.field.constantSymbol'|trans" :help="'firm.invoicing.field.constantSymbol_help'|trans" :value="values.constantSymbol" :error="errors.constantSymbol|default(null)" maxlength="10" inputmode="numeric" />
+                </div>
+            </twig:Ui:Card>
+
+            <twig:Ui:Card :title="'firm.invoicing.card.texts'|trans" icon="file-pen-line">
+                <div class="grid gap-3">
+                    <twig:Ui:Textarea name="textBefore" id="textBefore" :label="'firm.invoicing.field.textBefore'|trans" :help="'firm.invoicing.field.textBefore_help'|trans" :value="values.textBefore" :error="errors.textBefore|default(null)" :rows="3" />
+                    <twig:Ui:Textarea name="textAfter" id="textAfter" :label="'firm.invoicing.field.textAfter'|trans" :help="'firm.invoicing.field.textAfter_help'|trans" :value="values.textAfter" :error="errors.textAfter|default(null)" :rows="3" />
+                </div>
+            </twig:Ui:Card>
+
+            <twig:Ui:Card :title="'firm.invoicing.card.contact'|trans" icon="user">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <twig:Ui:TextInput type="email" name="contactEmail" id="contactEmail" :label="'firm.invoicing.field.contactEmail'|trans" :value="values.contactEmail" :error="errors.contactEmail|default(null)" maxlength="255" />
+                    <twig:Ui:TextInput type="tel" name="contactPhone" id="contactPhone" :label="'firm.invoicing.field.contactPhone'|trans" :value="values.contactPhone" :error="errors.contactPhone|default(null)" maxlength="32" />
+                    <div class="sm:col-span-2"><twig:Ui:TextInput name="contactWeb" id="contactWeb" :label="'firm.invoicing.field.contactWeb'|trans" :value="values.contactWeb" :error="errors.contactWeb|default(null)" maxlength="255" /></div>
+                </div>
+            </twig:Ui:Card>
+
+            <twig:Ui:ActionBar>
+                <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+            </twig:Ui:ActionBar>
+        </form>
+    </div>
+{% endblock %}

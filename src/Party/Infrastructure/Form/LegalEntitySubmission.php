@@ -12,7 +12,8 @@ use App\Party\Application\LegalEntityInput;
 
 /**
  * What came in from the firm form: the values to show again, a message per
- * field that is wrong and, when everything is fine, the parsed input.
+ * field that is wrong and, when everything is fine, the parsed input. An uploaded
+ * logo or stamp comes as its bytes, checked; null means no file came.
  */
 final readonly class LegalEntitySubmission
 {
@@ -24,6 +25,8 @@ final readonly class LegalEntitySubmission
         public array $values,
         public array $errors,
         public ?LegalEntityInput $input,
+        public ?string $logo = null,
+        public ?string $stamp = null,
     ) {
     }
 

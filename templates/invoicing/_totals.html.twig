@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The figures come from the server, here and in every recount; the browser only puts them in place. #}
+<div class="ml-auto grid w-full max-w-md gap-1.5" aria-live="polite" data-invoice-form-target="totals">
+    <p class="m-0 text-small font-medium text-badge-amber-text" hidden data-invoice-form-target="stale">{{ 'invoice.total.stale'|trans }}</p>
+    <div class="grid gap-1 text-small text-muted{% if figures.summaries is empty %} hidden{% endif %}" data-invoice-form-target="summaries">
+        {% for summary in figures.summaries %}
+            <div class="flex justify-between gap-4"><span>{{ summary.label }}</span><span class="num">{{ summary.base }}{% if summary.vat %} · {{ summary.vat }}{% endif %}</span></div>
+        {% endfor %}
+    </div>
+    {% if payer %}
+        <div class="flex justify-between gap-4"><span>{{ 'invoice.total.net'|trans }}</span><span class="num" data-total="net" data-invoice-form-target="net">{{ figures.net }}</span></div>
+        <div class="flex justify-between gap-4"><span>{{ 'invoice.total.vat'|trans }}</span><span class="num" data-total="vat" data-invoice-form-target="vat">{{ figures.vat }}</span></div>
+    {% endif %}
+    <div class="flex justify-between gap-4{% if figures.rounding is null %} hidden{% endif %}" data-invoice-form-target="roundingRow"><span>{{ 'invoice.total.rounding'|trans }}</span><span class="num" data-total="rounding" data-invoice-form-target="rounding">{{ figures.rounding }}</span></div>
+    <div class="flex justify-between gap-4 border-t border-divider pt-2 text-body font-semibold text-ink"><span>{{ 'invoice.total.payable'|trans }}</span><span class="num" data-total="payable" data-invoice-form-target="payable">{{ figures.payable }}</span></div>
+</div>

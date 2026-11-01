@@ -6,9 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+Planned as 0.5.0: the first release with invoices.
+
+### Upgrading
+
+- Run `bin/console doctrine:migrations:migrate`. The new tables hold series, number counters, invoices, their lines and the numbers an edit gave up.
+- Install the PHP extensions `gd` (the QR code and images), `dom` (the ISDOC file) and `zip` (the bulk download), which are now required, and run `composer install` to get the new PDF library, `tecnickcom/tc-lib-pdf` (LGPL-3.0-or-later). The PDF fonts (Inter, SIL Open Font License) are part of the repository.
+- Images of a firm are kept in the `firm-images` directory of the application's share directory (`var/share/<env>/firm-images`), set by the new parameter `app.firm_image_dir`. They are outside the web root and outside the database, so include the directory in backups.
+- SQLite must be 3.35 or newer.
+- The tests of the PDF and of the ISDOC file use veraPDF, Poppler and the ISDOC schema when they are installed (see CONTRIBUTING.md); CI requires them.
+
+### Added
+
+- Invoices. An invoice is issued by one firm to one customer, with lines, VAT per rate, the reverse charge with its supply code, a form without VAT for a firm that is not a VAT payer, and a total rounded to a whole crown if the firm chooses so. The amounts are calculated when the invoice is saved and stored; the screen, the PDF and the ISDOC file all show what is stored. See [docs/adr/0014-invoice-amounts-rounding-and-concurrent-edits.md](docs/adr/0014-invoice-amounts-rounding-and-concurrent-edits.md). The tax rules are subject to professional tax and legal review.
+- Two people editing the same invoice cannot overwrite each other: a save from a form opened before another save is refused with a message, and every change takes a lock on the invoice, on SQLite and on PostgreSQL.
+- PDF of an invoice, conforming to PDF/A-3a, with the ISDOC 6.0.2 file attached, a QR Platba+F code and the firm's logo, stamp and signature. Every invoice is drawn with one layout, the panel. See [docs/adr/0012-invoice-pdf-and-isdoc.md](docs/adr/0012-invoice-pdf-and-isdoc.md).
+- A download of the PDFs of a period for the accountant, each with its ISDOC file embedded, in one ZIP. If a document cannot be drawn there is no ZIP, and the form names the document.
+- [docs/invoicing.md](docs/invoicing.md): what the invoices support in this release, the ISDOC producer statement and the limits.
+
+- The invoice list with the tabs All, Overdue and Trash, search, a firm filter and row actions. A deletion asks for a reason, the trash shows who deleted a document, when and why, and each invoice has a history of who changed what, its lines included.
+- Copying an invoice: the form opens unsaved with the customer as the contact reads now, today's dates and the next number, and says when the lines hold a date or when the firm, series or customer can no longer be used.
+- The invoice form: save issues the document, with live totals from the server, a customer picker per firm, reverse charge with its supply code, and a form without VAT for a non-payer firm.
+- Number series per firm under the new Invoicing tab of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers. Deleted invoices go to a trash that keeps their number, and a number an edit gave up stays taken. See [docs/adr/0013-invoice-numbers-and-trash.md](docs/adr/0013-invoice-numbers-and-trash.md).
+- Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.
+- A logo and an image with stamp and signature on the firm form. PNG or JPEG in RGB, up to 1 MB and 3000 x 3000 pixels. Both stay outside the web root in `var/share/prod/firm-images`, so include that directory in backups.
+
 ### Changed
 
+- SQLite 3.35 or newer is required, for the atomic counter of number series.
 - The firm sections of the contact form are replaced by a scope per panel. With two or more active firms, the panels for roles, document defaults, invoicing e-mails and archive state have a dropdown: all firms, or one firm. A firm can use the shared values or have its own, for example a supplier for one firm and a customer for the other. Everything is saved with the form. A contact archived for all firms stays archived for every firm. The address book list stays on the shared values.
+- The sidebar is grouped around documents and settings. Invoices are under Sales (Prodej), the address book under Contacts (Adresář), and Settings at the bottom holds Firms and the new item Import and export, which opens the history of imports. A group without items is not shown. The firm page has two tabs, Details and Invoicing, in place of a button; the invoicing tab holds the settings and the series. All addresses stay as they were.
+- An identified person cannot issue invoices yet; the save is refused until the rules for it are reviewed.
+- Text that the PDF font cannot print is refused when an invoice is saved, with the field and the characters named, so that the PDF and the ISDOC file never differ. Text in scripts such as Chinese or Arabic cannot be used in invoices yet.
 - All firms now edits the document defaults, invoicing e-mails and archive state a contact shares, which the form did not offer before.
 
 ## [0.4.0] - 2026-11-01

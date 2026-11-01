@@ -19,5 +19,6 @@ php tests/e2e/seed.php
 
 export PHP_CLI_SERVER_WORKERS=4
 # variables_order=EGPCS: the built-in server otherwise hides APP_ENV from Symfony, which then
-# falls back to the dev environment and the developer database.
-exec php -d variables_order=EGPCS -S "127.0.0.1:${port}" -t public public/index.php
+# falls back to the dev environment and the developer database. display_errors=0 as in production:
+# the warning of a form past max_input_vars must not reach the page before the headers.
+exec php -d variables_order=EGPCS -d display_startup_errors=0 -d display_errors=0 -S "127.0.0.1:${port}" -t public public/index.php

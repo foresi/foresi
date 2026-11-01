@@ -59,7 +59,9 @@ final readonly class NavigationRegistry
                         $entry[0]->icon,
                         $entry[0]->route,
                         $tenantActive ? $entry[0]->countProvider?->count() : null,
-                        null !== $currentRoute && $entry[0]->route === $currentRoute,
+                        self::isCurrent($entry[0], $currentRoute),
+                        $entry[0]->commandLabelKey,
+                        $entry[0]->commandRoute,
                     ),
                     $items,
                 ),
@@ -67,5 +69,14 @@ final readonly class NavigationRegistry
         }
 
         return $groups;
+    }
+
+    private static function isCurrent(NavigationItem $item, ?string $currentRoute): bool
+    {
+        if (null === $currentRoute) {
+            return false;
+        }
+
+        return $item->route === $currentRoute || array_any($item->routePrefixes, static fn (string $prefix): bool => str_starts_with($currentRoute, $prefix));
     }
 }

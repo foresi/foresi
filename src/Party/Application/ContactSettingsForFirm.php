@@ -65,6 +65,22 @@ final readonly class ContactSettingsForFirm
         return $party->isArchived() || $this->hasOwnArchive($party, $firm);
     }
 
+    /**
+     * Whether the firm can invoice the contact: not archived for it, and a customer,
+     * which a plain contact without roles may be.
+     */
+    public function isCustomerOf(Party $party, LegalEntity $firm): bool
+    {
+        return !$this->isArchivedFor($party, $firm) && $this->hasCustomerRole($party, $firm);
+    }
+
+    public function hasCustomerRole(Party $party, LegalEntity $firm): bool
+    {
+        $roles = $this->rolesFor($party, $firm);
+
+        return [] === $roles || \in_array(PartyRole::Customer, $roles, true);
+    }
+
     public function hasOwnRoles(Party $party, LegalEntity $firm): bool
     {
         return null !== $this->settings->find($party, $firm)?->roles();

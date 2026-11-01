@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The sections of one firm. Variables: firm (LegalEntity), active ("details" or "invoicing"). #}
+<twig:Ui:Tabs :label="'firm.sections'|trans" :items="[
+    {label: 'firm.tab.details'|trans, href: path('app_firm_edit', {id: firm.id}), active: 'details' == active},
+    {label: 'firm.tab.invoicing'|trans, href: path('app_firm_invoicing', {id: firm.id}), active: 'invoicing' == active},
+]" />

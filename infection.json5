@@ -23,14 +23,23 @@
     "minCoveredMsi": 90,
     "mutators": {
         "@default": true,
-        // Column lengths in mapping attributes are verified by doctrine:schema:validate.
-        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*"],
+        // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate.
+        "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\JoinColumn\\(.*"],
         // Equivalent mutants: a numeric string added to an int yields the same value.
         "CastInt": {"ignore": [
             "App\\Tenancy\\Domain\\TenantId::generate",
+            "App\\Invoicing\\Domain\\Percent::fromString",
+            "App\\Invoicing\\Domain\\Quantity::fromString",
+            "App\\Invoicing\\Domain\\SeriesFormat::beyondCounter",
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
             "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate"
         ]},
+        // Equivalent mutant: the whole match of a percentage reads as a number up to its dot, which is the same integer part.
+        "DecrementInteger": {"ignore": ["App\\Invoicing\\Domain\\Percent::fromString::31"]},
+        // Equivalent mutant: the separator only keeps the keys apart, in either order.
+        "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries"]},
+        // Unreachable guards: IssueRules refuses these cases before the throw.
+        "Throw_": {"ignore": ["App\\Invoicing\\Application\\IssueInvoice::issue::65", "App\\Invoicing\\Application\\IssueInvoice::issue::67", "App\\Invoicing\\Application\\EditInvoice::edit::63", "App\\Invoicing\\Application\\EditInvoice::edit::64"]},
         // Equivalent mutants: preg_replace() without the u flag always returns a string.
         "CastString": {"ignore": [
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
