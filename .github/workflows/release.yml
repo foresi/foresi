@@ -9,21 +9,25 @@ on:
         description: Existing tag to publish, such as v0.4.0
         required: true
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    # Creating the release is the only thing that needs write access.
+    permissions:
+      contents: write
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
+          # gh authenticates with GH_TOKEN; git never pushes in this job.
+          persist-credentials: false
 
       # The notes are the changelog section of this version, read as it was at the tag.
       - name: Read the release notes

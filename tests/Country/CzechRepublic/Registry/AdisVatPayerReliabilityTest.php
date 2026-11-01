@@ -188,6 +188,121 @@ final class AdisVatPayerReliabilityTest extends TestCase
         }
     }
 
+    public function testTheRequestBodyIsExactlyTheSoapEnvelope(): void
+    {
+        $kit = $this->kit('adis-reliable.xml');
+
+        new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345687'), VatId::fromString('CZ12345695')]);
+
+        self::assertSame(
+            '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:roz="http://adis.mfcr.cz/rozhraniCRPDPH/">'
+            .'<soapenv:Body><roz:StatusNespolehlivyPlatceRozsirenyRequest><roz:dic>12345687</roz:dic><roz:dic>12345695</roz:dic></roz:StatusNespolehlivyPlatceRozsirenyRequest></soapenv:Body>'
+            .'</soapenv:Envelope>',
+            $kit->requests[0]['body'],
+        );
+    }
+
+    public function testIdsAfterADuplicateOrAForeignIdAreStillAsked(): void
+    {
+        $kit = $this->kit('adis-reliable.xml');
+
+        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([
+            VatId::fromString('CZ12345687'),
+            VatId::fromString('CZ12345687'),
+            VatId::fromString('DE123456789'),
+            VatId::fromString('CZ12345695'),
+        ]);
+
+        self::assertSame(2, substr_count($kit->requests[0]['body'], '<roz:dic>'));
+        self::assertStringContainsString('<roz:dic>12345695</roz:dic>', $kit->requests[0]['body']);
+        self::assertSame(RegistryResult::Reliable, $results['CZ12345695']->check->result);
+        self::assertSame(RegistryResult::Unavailable, $results['DE123456789']->check->result);
+    }
+
+    public function testAnAnswerWithADoctypeIsRejectedEvenWithoutAnEntity(): void
+    {
+        $withDoctype = str_replace('?>', "?>\n<!DOCTYPE soapenv:Envelope>", RegistryTestKit::fixture('adis-reliable.xml'));
+        self::assertStringContainsString('<!DOCTYPE', $withDoctype);
+        $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse($withDoctype));
+
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345695'));
+
+        self::assertSame(RegistryResult::Unavailable, $result->check->result);
+        self::assertSame(1, $kit->logger->warnings());
+    }
+
+    public function testTheXmlParserStateIsRestoredWhateverTheAnswer(): void
+    {
+        foreach ([false, true] as $before) {
+            foreach (['<not-xml', RegistryTestKit::fixture('adis-reliable.xml')] as $body) {
+                libxml_use_internal_errors($before);
+                $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse($body));
+
+                new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345695'));
+
+                self::assertSame($before, libxml_use_internal_errors());
+                self::assertSame([], libxml_get_errors());
+            }
+        }
+        libxml_use_internal_errors(false);
+    }
+
+    public function testAnUnknownPayerStatusIsUnavailableWithWarningAndTheRestOfTheAnswerIsStillRead(): void
+    {
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->payers(
+            '<statusPlatceDPH dic="12345687" nespolehlivyPlatce="MAYBE"/><statusPlatceDPH dic="12345695" nespolehlivyPlatce="NE"/>',
+        ));
+
+        $results = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->checkMany([VatId::fromString('CZ12345687'), VatId::fromString('CZ12345695')]);
+
+        self::assertSame(RegistryResult::Unavailable, $results['CZ12345687']->check->result);
+        self::assertSame(RegistryResult::Reliable, $results['CZ12345695']->check->result);
+        // One warning for the unknown status, one for the id the answer then leaves out.
+        self::assertSame(2, $kit->logger->warnings());
+    }
+
+    public function testPublishedAccountsAreReadAsTheyAreWrittenOnTheInvoice(): void
+    {
+        $accounts = '<zverejneneUcty>'
+            .'<ucet><standardniUcet predcisli="000019" cislo="2000000007" kodBanky="0800"/></ucet>'
+            .'<ucet><standardniUcet predcisli="000000" cislo="123" kodBanky="0100"/></ucet>'
+            .'<ucet><standardniUcet predcisli="" cislo="" kodBanky=""/></ucet>'
+            .'<ucet><standardniUcet cislo="" kodBanky="0800"/></ucet>'
+            .'<ucet><nestandardniUcet cislo=""/></ucet>'
+            .'<ucet><nestandardniUcet cislo="DE89370400440532013000"/></ucet>'
+            .'</zverejneneUcty>';
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->payers('<statusPlatceDPH dic="12345687" nespolehlivyPlatce="NE">'.$accounts.'</statusPlatceDPH>'));
+
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
+
+        self::assertSame(['19-2000000007/0800', '123/0100', '/0800', 'DE89370400440532013000'], $result->publishedBankAccounts);
+    }
+
+    public function testOnlyTextAccountsAreTakenFromTheCacheAsAList(): void
+    {
+        $kit = $this->kit('adis-reliable.xml');
+        $kit->cache->put('adis', 'CZ12345687', [
+            'result' => RegistryResult::Reliable->value,
+            'accounts' => [5, '1/0100', ['x'], '2/0100'],
+            'checkedAt' => '2026-10-30T09:00:00+00:00',
+        ]);
+
+        $result = new AdisVatPayerReliability($kit->client, $kit->cache, $kit->clock)->check(VatId::fromString('CZ12345687'));
+
+        self::assertSame(['1/0100', '2/0100'], $result->publishedBankAccounts);
+        self::assertSame([], $kit->requests);
+    }
+
+    private function payers(string $payers): MockResponse
+    {
+        return new MockResponse(
+            '<?xml version="1.0" encoding="utf-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body>'
+            .'<StatusNespolehlivyPlatceRozsirenyResponse xmlns="http://adis.mfcr.cz/rozhraniCRPDPH/">'.$payers.'</StatusNespolehlivyPlatceRozsirenyResponse>'
+            .'</soapenv:Body></soapenv:Envelope>',
+            ['response_headers' => ['content-type: text/xml']],
+        );
+    }
+
     private function kit(string $fixture): RegistryTestKit
     {
         return new RegistryTestKit(static fn (): MockResponse => new MockResponse(RegistryTestKit::fixture($fixture), ['response_headers' => ['content-type: text/xml']]));

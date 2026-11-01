@@ -35,7 +35,8 @@ final class CellText
     private static function number(float $value): string
     {
         if (!is_finite($value)) {
-            return (string) $value;
+            // Casting NAN to a string is a warning since PHP 8.5; the text is the same.
+            return is_nan($value) ? 'NAN' : ($value > 0 ? 'INF' : '-INF');
         }
 
         // The shortest text that reads back as the same float, e.g. "1.0E+25".

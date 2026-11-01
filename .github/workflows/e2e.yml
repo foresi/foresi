@@ -11,18 +11,25 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   e2e:
     name: E2E
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           extensions: ctype, gd, iconv, intl, pdo_sqlite
@@ -32,7 +39,7 @@ jobs:
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ hashFiles('composer.lock') }}
@@ -48,7 +55,7 @@ jobs:
       - name: Build styles
         run: bin/console tailwind:build
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -64,12 +71,27 @@ jobs:
       # tests run, because generating them creates the files the check looks for.
       - name: Decide whether to generate Linux screenshot baselines
         id: baselines
-        run: echo "generate=${{ inputs.update-snapshots || hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}" >> "$GITHUB_OUTPUT"
+        env:
+          REQUESTED: ${{ inputs.update-snapshots }}
+          NONE_COMMITTED: ${{ hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
+        run: |
+          if [ "$REQUESTED" = "true" ] || [ "$NONE_COMMITTED" = "true" ]; then
+            echo "generate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "generate=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # While baselines are being generated, the screenshot specs (tagged @visual) are skipped here.
       - name: End-to-end, accessibility, layout and screenshot tests
         working-directory: tests/e2e
-        run: npx playwright test ${{ steps.baselines.outputs.generate == 'true' && '--grep-invert @visual' || '' }}
+        env:
+          GENERATING: ${{ steps.baselines.outputs.generate }}
+        run: |
+          if [ "$GENERATING" = "true" ]; then
+            npx playwright test --grep-invert @visual
+          else
+            npx playwright test
+          fi
 
       - name: Generate Linux screenshot baselines
         if: ${{ steps.baselines.outputs.generate == 'true' }}
@@ -78,7 +100,7 @@ jobs:
 
       - name: Upload the Linux screenshot baselines
         if: ${{ steps.baselines.outputs.generate == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: screenshots-linux
           path: tests/e2e/screenshots/*-linux/
@@ -86,7 +108,7 @@ jobs:
 
       - name: Upload the report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
           path: |
