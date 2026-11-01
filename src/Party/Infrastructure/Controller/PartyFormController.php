@@ -28,6 +28,7 @@ use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Infrastructure\Form\CountryOptions;
+use App\Party\Infrastructure\Form\FirmPanels;
 use App\Party\Infrastructure\Form\FirmSettingsReader;
 use App\Party\Infrastructure\Form\FirmSettingsSubmission;
 use App\Party\Infrastructure\Form\PartySubmission;
@@ -37,6 +38,7 @@ use App\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use App\Party\Infrastructure\Registry\RegistryLookup;
 use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -78,7 +80,9 @@ final class PartyFormController extends AbstractController
         private readonly LegalEntities $firms,
         private readonly ContactSettingsForFirm $firmSettings,
         private readonly FirmSettingsReader $firmReader,
+        private readonly FirmPanels $firmPanels,
         private readonly TransactionalWork $transaction,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -145,7 +149,7 @@ final class PartyFormController extends AbstractController
 
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
-        $firms = $this->sectionFirms();
+        $firms = $this->scopeFirms();
         $firmSubmission = $this->firmReader->read($request, array_values($firms));
         $input = $submission->input;
         if (!$submission->valid() || !$input instanceof PartyInput || !$firmSubmission->valid()) {
@@ -158,7 +162,7 @@ final class PartyFormController extends AbstractController
         }
 
         try {
-            // One unit of work: the contact and its firm settings are stored together or not at all.
+            // One unit of work: the contact and the values of its firms are stored together or not at all.
             [$id, $changedVat] = $this->transaction->run(function () use ($party, $input, $firmSubmission, $firms): array {
                 if ($party instanceof Party) {
                     $changedVat = $party->vatId()?->toString() !== $input->vatId?->toString();
@@ -168,9 +172,7 @@ final class PartyFormController extends AbstractController
                     $saved = $this->createParty->createFrom($input);
                     $changedVat = true;
                 }
-                foreach ($firmSubmission->settings as $firmId => $defaults) {
-                    $this->firmSettings->change($saved, $firms[$firmId], $defaults);
-                }
+                $this->savePanels($saved, $firms, $firmSubmission);
 
                 return [$saved->id(), $changedVat];
             });
@@ -187,6 +189,41 @@ final class PartyFormController extends AbstractController
         $this->addFlash('success', $this->translator->trans($party instanceof Party ? 'party.flash.updated' : 'party.flash.created'));
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
+    }
+
+    /**
+     * @param array<string, LegalEntity> $firms
+     */
+    private function savePanels(Party $party, array $firms, FirmSettingsSubmission $submission): void
+    {
+        $shared = FirmSettingsSubmission::SHARED;
+        $defaults = $submission->defaults[$shared] ?? null;
+        if ($defaults instanceof InvoicingDefaults) {
+            $party->changeInvoicingDefaults($defaults);
+        }
+        if (null !== ($emails = $submission->emails[$shared] ?? null)) {
+            $this->firmSettings->changeSharedEmails($party, $emails);
+        }
+        if (true === ($submission->archived[$shared] ?? null)) {
+            $party->archive(\DateTimeImmutable::createFromInterface($this->clock->now()));
+        } elseif (false === ($submission->archived[$shared] ?? null)) {
+            $party->restore();
+        }
+
+        foreach ($firms as $id => $firm) {
+            if (\array_key_exists($id, $submission->roles)) {
+                $this->firmSettings->changeRoles($party, $firm, $submission->roles[$id]);
+            }
+            if (\array_key_exists($id, $submission->defaults)) {
+                $this->firmSettings->changeDefaults($party, $firm, $submission->defaults[$id]);
+            }
+            if (\array_key_exists($id, $submission->emails)) {
+                $this->firmSettings->changeEmails($party, $firm, $submission->emails[$id]);
+            }
+            if (\array_key_exists($id, $submission->archived)) {
+                $this->firmSettings->changeArchived($party, $firm, $submission->archived[$id]);
+            }
+        }
     }
 
     /**
@@ -211,7 +248,7 @@ final class PartyFormController extends AbstractController
                 'vat' => $match->sameVatId,
             ], $matches),
             'token' => $token,
-            'firmSections' => $this->firmSections($party, $firmSubmission),
+            'firmPanels' => $this->panels($party, $values, $firmSubmission),
             'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
             'languages' => array_combine(array_map(static fn (DocumentLanguage $language): string => $language->value, DocumentLanguage::cases()), array_map(fn (DocumentLanguage $language): string => $this->translator->trans('locale.'.$language->value), DocumentLanguage::cases())),
             'paymentMethods' => array_combine(array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases()), array_map(fn (PaymentMethod $method): string => $this->translator->trans('party.payment_method.'.$method->value), PaymentMethod::cases())),
@@ -224,11 +261,11 @@ final class PartyFormController extends AbstractController
     }
 
     /**
-     * The active firms that get a section in the form, by id: none unless there are at least two.
+     * The active firms the panels offer, by id: none unless there are at least two.
      *
      * @return array<string, LegalEntity>
      */
-    private function sectionFirms(): array
+    private function scopeFirms(): array
     {
         $active = array_filter($this->firms->all(), static fn (LegalEntity $firm): bool => !$firm->isArchived());
         if (\count($active) < 2) {
@@ -244,28 +281,19 @@ final class PartyFormController extends AbstractController
     }
 
     /**
-     * @return list<array{id: string, name: string, values: array<string, string>, errors: array<string, string>}>
+     * @param array<string, string|list<string>> $values
+     *
+     * @return array<string, array<string, mixed>>
      */
-    private function firmSections(?Party $party, ?FirmSettingsSubmission $submission): array
+    private function panels(?Party $party, array $values, ?FirmSettingsSubmission $submission): array
     {
-        $sections = [];
-        foreach ($this->sectionFirms() as $id => $firm) {
-            $stored = $party instanceof Party ? $this->firmSettings->defaultsFor($party, $firm) : InvoicingDefaults::standard();
-            $sections[] = [
-                'id' => $id,
-                'name' => $firm->name(),
-                'values' => $submission?->values[$id] ?? [
-                    'dueDays' => (string) $stored->dueDays,
-                    'currency' => $stored->currency->value,
-                    'language' => $stored->language->value,
-                    'paymentMethod' => $stored->paymentMethod->value,
-                    'reverseCharge' => $stored->reverseCharge ? '1' : '',
-                ],
-                'errors' => array_map(fn (string $key): string => $this->translator->trans($key), $submission?->errors[$id] ?? []),
-            ];
+        $firms = $this->scopeFirms();
+        if ([] === $firms) {
+            return [];
         }
+        $roles = $values['roles'] ?? [];
 
-        return $sections;
+        return $this->firmPanels->build($party, $firms, \is_array($roles) ? $roles : [], $submission);
     }
 
     /**

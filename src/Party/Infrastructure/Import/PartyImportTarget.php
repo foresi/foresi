@@ -216,7 +216,7 @@ final readonly class PartyImportTarget implements ImportTarget
             'vat_id' => ['SELECT '.$party.' WHERE p.vatId = :value', $row->vatId?->toString()],
             // A contact person often shares the company's address; like activeIds(), the match is about the company.
             // A join, so the search starts at the e-mail's index: SQLite would walk the tenant's parties for an IN of a text key, once per row.
-            'email' => ['SELECT DISTINCT '.$party.' JOIN '.PartyEmail::class.' e WITH e.party = p WHERE e.addressKey = :value'
+            'email' => ['SELECT DISTINCT '.$party.' JOIN '.PartyEmail::class.' e WITH e.party = p WHERE e.addressKey = :value AND e.legalEntity IS NULL'
                 .' AND NOT EXISTS (SELECT 1 FROM '.ContactLink::class.' l WHERE l.person = p)', null === $row->generalEmail ? null : PartyEmail::key($row->generalEmail)],
             default => throw new \InvalidArgumentException(\sprintf('"%s" is not a match key of contacts.', $matchKey)),
         };

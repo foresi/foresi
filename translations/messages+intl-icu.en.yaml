@@ -226,7 +226,6 @@ party:
     roles: Roles and note
     checks: Register checks
     defaults: Document defaults
-    firm: 'Settings for {name}'
     note: Private note
     note_empty: No note yet.
   field:
@@ -260,6 +259,11 @@ party:
     viesResult: VIES
     invoicingDefaults: Document defaults
     invoicingDueDays: Due period
+    legalEntity: Firm
+    invoicingCurrency: Currency
+    invoicingLanguage: Document language
+    invoicingPaymentMethod: Payment method
+    invoicingReverseCharge: Reverse charge
   lookup:
     label: Find in a register
     help: Registration number or at least three letters of a name
@@ -296,9 +300,24 @@ party:
     currency: Currency
     language: Document language
     reverse_charge: Reverse charge
+  scope:
+    all_firms: All firms
+    own: own
+    applies_to: Applies to
+    set: Set for this firm
+    reset: Back to shared
+    reset_confirm: "This firm's own values will be deleted when you save. Continue?"
+    emails: Invoicing e-mails
+    archive: Archive state
+    invoice_emails: E-mails for invoices
+    copy_emails: Invoice copies
+    emails_help: One address per line.
+    archived_all: Archived for all firms
+    archived_firm: Archived for this firm
+    archived_help: Archiving for all firms takes precedence.
   firm_settings:
     due_days: Due period in days
-    due_days_help: Applies to new documents from this firm.
+    due_days_help: Applies to new documents.
     currency: Currency
     language: Document language
     payment_method: Payment method

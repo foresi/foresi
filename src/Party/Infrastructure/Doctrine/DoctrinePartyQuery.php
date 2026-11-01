@@ -165,7 +165,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
                 $conditions[] = 'p.registrationKey LIKE :key ESCAPE \'!\'';
                 $parameters['key'] = '%'.self::like($key).'%';
             }
-            $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
+            $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND e.legalEntity IS NULL AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
             $parameters['email'] = '%'.self::like(mb_strtolower($text)).'%';
             $where .= ' AND ('.implode(' OR ', $conditions).')';
         }
@@ -191,7 +191,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         $emails = [];
         /** @var list<PartyEmail> $all */
-        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) ORDER BY e.id')->setParameter('ids', $ids)->getResult();
+        $all = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party IN (:ids) AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('ids', $ids)->getResult();
         foreach ($all as $email) {
             $partyId = $email->party()->id();
             if (!isset($emails[$partyId]) || (EmailPurpose::General === $email->purpose() && EmailPurpose::General !== $emails[$partyId]['purpose'])) {

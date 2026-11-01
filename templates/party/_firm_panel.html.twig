@@ -1,0 +1,86 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A panel of the contact form whose data can apply to all firms or to one. The header has the scope
+    dropdown. Every scope is in the page and posts with the form; a firm without its own values shows
+    the shared ones in a disabled fieldset, which posts nothing. The firm-scope controller switches.
+#}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set itemClass = 'group flex min-h-control w-full cursor-pointer items-center gap-2 rounded-control border-0 bg-transparent px-2.5 py-1 text-left text-text hover:bg-head focus-visible:bg-head' %}
+{% set menuId = 'scope-' ~ panel.key ~ '-menu' %}
+{% set buttonId = 'scope-' ~ panel.key ~ '-button' %}
+{% set activeScope = panel.scopes|filter(s => s.id == panel.active)|first %}
+<twig:Ui:Card :title="title" :icon="icon" class="min-w-0" data-firm-panel="{{ panel.key }}" data-controller="firm-scope" data-firm-scope-active-value="{{ panel.active }}" data-firm-scope-confirm-value="{{ 'party.scope.reset_confirm'|trans }}">
+    <twig:block name="actions">
+        <input type="hidden" name="panelScope[{{ panel.key }}]" value="{{ panel.active }}" data-firm-scope-target="current">
+        <div class="relative" data-controller="dropdown">
+            <twig:Ui:Button size="sm" :id="buttonId" class="max-w-44 sm:max-w-64" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">
+                <span class="sr-only">{{ 'party.scope.applies_to'|trans }}: </span>
+                <span class="truncate" data-firm-scope-target="label">{{ activeScope.name }}</span>
+                <span data-firm-scope-target="currentMarker"{% if not activeScope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
+                {{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
+            </twig:Ui:Button>
+            <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ buttonId }}" class="absolute right-0 top-full z-50 mt-1.5 w-max min-w-full max-w-[calc(100vw-4rem)] rounded-panel border border-container bg-white p-1.5 shadow-floating sm:max-w-sm">
+                {% for scope in panel.scopes %}
+                    <button type="button" role="menuitemradio" aria-checked="{{ scope.id == panel.active ? 'true' : 'false' }}" tabindex="-1" class="{{ itemClass }} {{ focus }}" data-scope="{{ scope.id }}" data-name="{{ scope.name }}" data-firm-scope-target="option" data-action="firm-scope#choose dropdown#close">
+                        {{ ux_icon('lucide:check', {class: 'invisible size-4 shrink-0 text-green group-aria-checked:visible', 'aria-hidden': 'true'}) }}
+                        <span class="min-w-0 flex-1 truncate">{{ scope.name }}</span>
+                        <span data-firm-scope-target="marker" data-scope="{{ scope.id }}"{% if not scope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </twig:block>
+
+    {% for scope in panel.scopes %}
+        {% set prefix = 'firms[' ~ scope.id ~ ']' %}
+        {% set idPrefix = 'scope-' ~ panel.key ~ '-' ~ scope.id ~ '-' %}
+        <div data-firm-scope-target="pane" data-scope="{{ scope.id }}"{% if scope.id != panel.active %} hidden{% endif %}>
+            {% if not scope.shared %}
+                <input type="hidden" name="{{ prefix }}[own][{{ panel.key }}]" value="{{ scope.own ? '1' : '' }}" data-firm-scope-role="own">
+            {% endif %}
+            <fieldset class="m-0 min-w-0 border-0 p-0" aria-label="{{ scope.name }}" data-firm-scope-role="fields"{% if not scope.shared and not scope.own %} disabled{% endif %}>
+                {% if panel.key == 'roles' %}
+                    {% if scope.shared %}
+                        <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" :options="roleOptions" :values="scope.values.roles" />
+                    {% else %}
+                        <twig:Ui:ChoiceChips :name="prefix ~ '[roles][]'" :id="idPrefix ~ 'roles'" :legend="'party.field.roles'|trans" :options="roleOptions" :values="scope.values.roles" />
+                    {% endif %}
+                {% elseif panel.key == 'invoicing' %}
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <twig:Ui:TextInput :name="prefix ~ '[dueDays]'" :id="idPrefix ~ 'dueDays'" inputmode="numeric" :label="'party.firm_settings.due_days'|trans" :help="'party.firm_settings.due_days_help'|trans" :value="scope.values.dueDays" :error="scope.errors.dueDays|default(null)" maxlength="3" required />
+                        <twig:Ui:Select :name="prefix ~ '[currency]'" :id="idPrefix ~ 'currency'" :label="'party.firm_settings.currency'|trans" :options="currencies" :value="scope.values.currency" :error="scope.errors.currency|default(null)" />
+                        <twig:Ui:Select :name="prefix ~ '[language]'" :id="idPrefix ~ 'language'" :label="'party.firm_settings.language'|trans" :options="languages" :value="scope.values.language" :error="scope.errors.language|default(null)" />
+                        <twig:Ui:Select :name="prefix ~ '[paymentMethod]'" :id="idPrefix ~ 'paymentMethod'" :label="'party.firm_settings.payment_method'|trans" :options="paymentMethods" :value="scope.values.paymentMethod" :error="scope.errors.paymentMethod|default(null)" />
+                        <div class="sm:col-span-2"><twig:Ui:Checkbox :name="prefix ~ '[reverseCharge]'" :id="idPrefix ~ 'reverseCharge'" :label="'party.firm_settings.reverse_charge'|trans" :checked="scope.values.reverseCharge == '1'" /></div>
+                    </div>
+                {% elseif panel.key == 'emails' %}
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <twig:Ui:Textarea :name="prefix ~ '[invoiceEmails]'" :id="idPrefix ~ 'invoiceEmails'" :label="'party.scope.invoice_emails'|trans" :help="'party.scope.emails_help'|trans" :value="scope.values.invoiceEmails" :error="scope.errors.invoiceEmails|default(null)" :rows="2" />
+                        <twig:Ui:Textarea :name="prefix ~ '[copyEmails]'" :id="idPrefix ~ 'copyEmails'" :label="'party.scope.copy_emails'|trans" :help="'party.scope.emails_help'|trans" :value="scope.values.copyEmails" :error="scope.errors.copyEmails|default(null)" :rows="2" />
+                    </div>
+                {% else %}
+                    <input type="hidden" name="{{ prefix }}[archived]" value="">
+                    <twig:Ui:Checkbox :name="prefix ~ '[archived]'" :id="idPrefix ~ 'archived'" :label="(scope.shared ? 'party.scope.archived_all' : 'party.scope.archived_firm')|trans" :help="scope.shared ? null : 'party.scope.archived_help'|trans" :checked="scope.values.archived == '1'" />
+                {% endif %}
+            </fieldset>
+
+            {% if scope.shared %}
+                <div class="flex flex-wrap items-center gap-x-3">
+                    {% for other in panel.scopes|filter(s => not s.shared) %}
+                        <span class="mt-3 inline-flex min-w-0 items-center gap-1.5 text-caption text-muted" data-firm-scope-target="marker" data-scope="{{ other.id }}"{% if not other.own %} hidden{% endif %}>
+                            <span class="truncate">{{ other.name }}</span>
+                            <twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge>
+                        </span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="mt-3" data-firm-scope-role="set"{% if scope.own %} hidden{% endif %}>
+                    <twig:Ui:Button size="sm" data-action="firm-scope#set">{{ 'party.scope.set'|trans }}</twig:Ui:Button>
+                </div>
+                <div class="mt-3" data-firm-scope-role="reset"{% if not scope.own %} hidden{% endif %}>
+                    <twig:Ui:Button size="sm" data-action="firm-scope#reset">{{ 'party.scope.reset'|trans }}</twig:Ui:Button>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</twig:Ui:Card>

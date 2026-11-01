@@ -11,6 +11,7 @@ namespace App\Party\Infrastructure\Doctrine;
 use App\Party\Application\FirmSettings;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
+use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -43,5 +44,25 @@ final readonly class DoctrineFirmSettings implements FirmSettings
     public function add(PartyFirmSettings $settings): void
     {
         $this->em->persist($settings);
+    }
+
+    public function remove(PartyFirmSettings $settings): void
+    {
+        $this->em->remove($settings);
+    }
+
+    public function emails(Party $party, LegalEntity $firm): array
+    {
+        if (!$this->em->contains($party) || $this->em->getUnitOfWork()->isScheduledForInsert($party)) {
+            return [];
+        }
+
+        /** @var list<PartyEmail> $emails */
+        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party AND e.legalEntity = :firm ORDER BY e.id')
+            ->setParameter('party', $party)
+            ->setParameter('firm', $firm)
+            ->getResult();
+
+        return $emails;
     }
 }

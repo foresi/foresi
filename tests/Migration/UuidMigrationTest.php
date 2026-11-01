@@ -24,6 +24,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
@@ -284,7 +285,7 @@ final class UuidMigrationTest extends TestCase
             $keys = array_values($manager->introspectTable($table)->getForeignKeys());
             self::assertNotEmpty($keys, $table);
             if (null !== $parent) {
-                self::assertSame($parent, $keys[0]->getForeignTableName());
+                self::assertContains($parent, array_map(static fn (ForeignKeyConstraint $key): string => $key->getForeignTableName(), $keys));
             }
         }
         self::assertCount(2, $manager->introspectTable('contact_link')->getForeignKeys());

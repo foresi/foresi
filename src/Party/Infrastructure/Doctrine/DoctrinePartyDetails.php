@@ -64,7 +64,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
     public function emails(Party $party): array
     {
         /** @var list<PartyEmail> $emails */
-        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party ORDER BY e.id')->setParameter('party', $party)->getResult();
+        $emails = $this->em->createQuery('SELECT e FROM '.PartyEmail::class.' e WHERE e.party = :party AND e.legalEntity IS NULL ORDER BY e.id')->setParameter('party', $party)->getResult();
 
         return $emails;
     }
