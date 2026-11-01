@@ -119,8 +119,16 @@ final class LegalEntityController extends AbstractController
         $this->checkToken($request, self::ACTION_TOKEN);
         $firm = $this->firm($id);
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->transaction->run(static fn () => $firm->archive($now));
-        $this->addFlash('success', $this->translator->trans('firm.flash.archived'));
+        $archived = $this->transaction->run(function () use ($firm, $now): bool {
+            // Under a lock: two requests must not each archive one of the last two firms.
+            if ([$firm] === $this->firms->lockActive()) {
+                return false;
+            }
+            $firm->archive($now);
+
+            return true;
+        });
+        $this->addFlash($archived ? 'success' : 'error', $this->translator->trans($archived ? 'firm.flash.archived' : 'firm.error.last_active'));
 
         return $this->redirectToRoute('app_firm_index');
     }

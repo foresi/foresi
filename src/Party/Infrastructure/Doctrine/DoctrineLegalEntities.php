@@ -11,6 +11,7 @@ namespace App\Party\Infrastructure\Doctrine;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DoctrineLegalEntities implements LegalEntities
@@ -33,6 +34,16 @@ final readonly class DoctrineLegalEntities implements LegalEntities
         $firm = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f WHERE f.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $firm instanceof LegalEntity ? $firm : throw new UnknownLegalEntity();
+    }
+
+    public function lockActive(): array
+    {
+        /** @var list<LegalEntity> $firms */
+        $firms = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f WHERE f.archivedAt IS NULL ORDER BY f.id')
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getResult();
+
+        return $firms;
     }
 
     public function add(LegalEntity $firm): void

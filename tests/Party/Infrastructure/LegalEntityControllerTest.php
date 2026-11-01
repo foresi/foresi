@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Party\Application\LegalEntities;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -18,6 +19,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Party\Infrastructure\Support\RacingLegalEntities;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\TransactionRequiredException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -363,6 +365,91 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('main table', 'Other Firm');
     }
 
+    public function testTheArchiveButtonAsksForConfirmation(): void
+    {
+        $this->signIn();
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+
+        $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
+
+        self::assertSame('Archive this firm? It cannot be restored.', $crawler->filter('form[action$="/archive"]')->attr('data-turbo-confirm'));
+    }
+
+    public function testTheLastActiveFirmCannotBeArchived(): void
+    {
+        $this->signIn();
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+
+        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
+
+        self::assertResponseRedirects('/settings/firms');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The last active firm cannot be archived.');
+        self::assertSelectorTextNotContains('main', 'The firm is archived.');
+        self::assertFalse($this->storedFirm()->isArchived());
+    }
+
+    public function testTheRefusalIsTranslated(): void
+    {
+        $this->signIn('cs');
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+
+        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('main', 'Poslední aktivní firmu nelze archivovat.');
+    }
+
+    public function testAnArchivedFirmDoesNotKeepTheLastActiveOneArchivable(): void
+    {
+        $this->signIn();
+        $this->archive($this->firm('Old Firm', $this->tenant, '12345687'));
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+
+        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
+
+        self::assertFalse($this->stored($firm)->isArchived());
+    }
+
+    public function testAFirmOfAnotherTenantDoesNotKeepTheLastActiveOneArchivable(): void
+    {
+        $this->signIn();
+        $this->firm('Foreign Firm a.s.', $this->foreign, '12345687');
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+
+        $this->client->request('POST', '/settings/firms/'.$firm->id().'/archive', ['_token' => $this->actionToken($firm)]);
+
+        self::assertFalse($this->stored($firm)->isArchived());
+    }
+
+    public function testArchivingStopsAtTheLastActiveFirm(): void
+    {
+        $this->signIn();
+        $first = $this->firm('Example Firm', $this->tenant, '12345695');
+        $second = $this->firm('Other Firm', $this->tenant, '12345687');
+        $token = $this->actionToken($first);
+
+        $this->client->request('POST', '/settings/firms/'.$first->id().'/archive', ['_token' => $token]);
+        $this->client->request('POST', '/settings/firms/'.$second->id().'/archive', ['_token' => $token]);
+
+        self::assertTrue($this->stored($first)->isArchived());
+        self::assertFalse($this->stored($second)->isArchived());
+    }
+
+    public function testActiveFirmsAreLockedOnlyInsideATransaction(): void
+    {
+        $this->signIn();
+        $this->archive($this->firm('Old Firm', $this->tenant, '12345687'));
+        $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $firms = self::getContainer()->get(LegalEntities::class);
+        $this->context->switchTo($this->tenant);
+
+        self::assertSame([$firm->id()], $this->em()->wrapInTransaction(static fn (): array => array_map(static fn (LegalEntity $active): string => $active->id(), $firms->lockActive())));
+
+        $this->expectException(TransactionRequiredException::class);
+        $firms->lockActive();
+    }
+
     public function testAForgedArchiveIsRefused(): void
     {
         $this->signIn();
@@ -464,6 +551,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertCount(1, $firms);
 
         return $firms[0];
+    }
+
+    private function stored(LegalEntity $firm): LegalEntity
+    {
+        $em = $this->em();
+        $em->clear();
+
+        return $em->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
     }
 
     private function firmCount(): int

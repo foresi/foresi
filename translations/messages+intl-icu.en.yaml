@@ -379,6 +379,8 @@ firm:
     registered: VAT payer
     not_registered: Non-payer
     identified_person: Identified person
+  confirm:
+    archive: Archive this firm? It cannot be restored.
   flash:
     created: The firm is saved.
     updated: The changes are saved.
@@ -389,6 +391,7 @@ firm:
     vat_id_required: Enter the VAT ID of this firm.
     iban: 'Check the IBAN: {iban}'
     save_failed: The firm could not be saved. Check the details and try again.
+    last_active: The last active firm cannot be archived. Add another firm first.
 import:
   number: '{value, number}'
   new: New import

@@ -101,12 +101,23 @@ test.describe.serial('an owner manages firms', () => {
   test('archives a firm, which releases its number', async ({ page }) => {
     await page.goto('/settings/firms');
     await page.getByRole('link', { name: 'Example Trader Renamed' }).click();
+    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Archivovat' }).click();
 
     await expect(page.getByText('Firma je archivovaná.')).toBeVisible();
     await expect(page.locator('tbody')).not.toContainText('Example Trader Renamed');
     await page.getByRole('link', { name: /Archivované/ }).click();
     await expect(page.locator('tbody')).toContainText('Example Trader Renamed');
+  });
+
+  test('keeps the last active firm', async ({ page }) => {
+    await page.goto('/settings/firms');
+    await page.getByRole('link', { name: 'Example Company s.r.o.' }).click();
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Archivovat' }).click();
+
+    await expect(page.getByText('Poslední aktivní firmu nelze archivovat.')).toBeVisible();
+    await expect(page.locator('tbody')).toContainText('Example Company s.r.o.');
   });
 
   test('has no serious accessibility violations @a11y', async ({ page }) => {

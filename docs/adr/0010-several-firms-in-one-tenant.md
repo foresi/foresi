@@ -32,7 +32,7 @@ Chosen option: "one tenant, several firms", because users and contacts are share
 * The issuer of a document is chosen explicitly. It is never derived from a default or from the order of the firms. With a single active firm the choice is made for the user and is still stored on the document.
 * There is no way to act as several firms at once: lists and reports for the active firms are not merged by a multi-select. Each action concerns one firm.
 * A registration number is unique among the active firms of a tenant within a country. The rule is stored as a nullable `active_registration_key` column in a unique index: it is set while the firm is active and cleared when it is archived, and a unique index ignores nulls on every supported database, so an archived firm does not block re-adding the number.
-* A firm is archived, not deleted, because documents it issued refer to it. There is no route to restore an archived firm; adding the same firm again creates a new record.
+* A firm is archived, not deleted, because documents it issued refer to it. There is no route to restore an archived firm; adding the same firm again creates a new record. The last active firm of a tenant can never be archived.
 * Separating a firm into its own tenant is possible future work and is not built. To keep it possible, shared records must hold no per-firm data, and per-firm data must always name its firm.
 
 ### Consequences

@@ -15,6 +15,9 @@
     {% for message in app.flashes('success') %}
         <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
     {% endfor %}
+    {% for message in app.flashes('error') %}
+        <twig:Ui:Alert tone="error" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
 
     {% if firstRun %}
         <twig:Ui:EmptyState icon="building-2" :title="'firm.empty.title'|trans" :text="'firm.empty.text'|trans">

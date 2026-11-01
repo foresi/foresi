@@ -12,7 +12,7 @@
 
 {% block actions %}
     {% if editing and not firm.archived %}
-        <form method="post" action="{{ path('app_firm_archive', {id: firm.id}) }}">
+        <form method="post" action="{{ path('app_firm_archive', {id: firm.id}) }}" data-turbo-confirm="{{ 'firm.confirm.archive'|trans }}">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\LegalEntityController::ACTION_TOKEN')) }}">
             <twig:Ui:Button type="submit" icon="archive">{{ 'party.archive'|trans }}</twig:Ui:Button>
         </form>

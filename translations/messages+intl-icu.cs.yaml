@@ -379,6 +379,8 @@ firm:
     registered: Plátce DPH
     not_registered: Neplátce DPH
     identified_person: Identifikovaná osoba
+  confirm:
+    archive: Archivovat tuto firmu? Obnovit ji nelze.
   flash:
     created: Firma je uložená.
     updated: Změny jsou uložené.
@@ -389,6 +391,7 @@ firm:
     vat_id_required: Zadejte DIČ této firmy.
     iban: 'Zkontrolujte IBAN: {iban}'
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
+    last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
 import:
   number: '{value, number}'
   new: Nový import
