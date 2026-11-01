@@ -156,3 +156,40 @@ jobs:
 
       - name: Tests
         run: composer phpunit
+
+  # The next PHP release. composer.json allows it (>=8.4), so the test suite
+  # runs on it too, on the in-memory SQLite database of the test environment.
+  php85:
+    name: Tests (php 8.5, sqlite)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, intl, pdo_sqlite
+          tools: composer:v2
+          # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
+          ini-values: upload_max_filesize=64M, post_max_size=64M
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Tests
+        run: composer phpunit
