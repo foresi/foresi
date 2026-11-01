@@ -242,7 +242,7 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $other = $this->secondFirm();
         $foreign = $this->issue->issue($this->input(overrides: ['firmId' => $other->id(), 'seriesId' => null]));
 
-        $page = $this->store->page(new InvoiceFilter(null, false, 1));
+        $page = $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
         self::assertSame([$second->id(), $foreign->id(), $first->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $page->rows));
         self::assertSame(3, $page->total);
         self::assertSame(1, $page->page);
@@ -257,16 +257,16 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         self::assertFalse($row->delivered);
         self::assertFalse($row->trashed);
 
-        self::assertSame([$foreign->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter($other->id(), false, 1))->rows));
-        self::assertSame([$trashed->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter(null, true, 1))->rows));
+        self::assertSame([$foreign->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter($other->id(), 'all', '', '-issueDate', 1))->rows));
+        self::assertSame([$trashed->id()], array_map(static fn (\App\Invoicing\Application\InvoiceRow $row): string => $row->id, $this->store->page(new InvoiceFilter(null, 'trash', '', '-issueDate', 1))->rows));
     }
 
     public function testThePageStaysInRange(): void
     {
         $this->issue->issue($this->input());
 
-        self::assertSame(1, $this->store->page(new InvoiceFilter(null, false, 99))->page);
-        self::assertSame(1, $this->store->page(new InvoiceFilter(null, false, -1))->page);
+        self::assertSame(1, $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', 99))->page);
+        self::assertSame(1, $this->store->page(new InvoiceFilter(null, 'all', '', '-issueDate', -1))->page);
     }
 
     public function testTheLastFirmOfAUser(): void

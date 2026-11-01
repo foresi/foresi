@@ -33,6 +33,7 @@ nav:
   item:
     dashboard: Dashboard
     contacts: Address book
+    invoices: Invoices
     firms: Firms
 ui:
   combobox:
@@ -46,6 +47,8 @@ ui:
     caption: Table
     select_all: Select all rows
     select_row: 'Select row {label}'
+    actions: Actions
+    more_actions: 'More actions for {label}'
     total: Total
   bulk:
     label: Bulk actions
@@ -492,6 +495,96 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  list:
+    title: Invoices
+    views: Invoice lists
+    all_firms: All firms
+    search: Search
+    search_label: Search invoices
+    search_placeholder: Number, customer, symbol or description
+    summary: '{total, plural, one {# invoice} other {# invoices}}'
+    reason_missing: Say why the invoice is being deleted.
+    delete_delivered: A delivered document cannot be deleted.
+    already_trashed: This invoice is in the trash already.
+    delivered_trashed: This invoice is in the trash. Restore it first.
+    delivered_confirm: 'Mark invoice {number} as delivered? It can no longer be deleted then.'
+    tab:
+      all: All
+      overdue: Overdue
+      trash: Trash
+    column:
+      number: Number
+      firm: Firm
+      customer: Customer
+      issueDate: Issued
+      dueDate: Due
+      payable: Total
+      status: Status
+      deletedBy: Deleted by
+      deletedAt: Deleted
+      reason: Reason
+    status:
+      delivered: Delivered
+      overdue: Overdue
+    action:
+      edit: Edit
+      delivered: Mark as delivered
+      history: History
+      delete: Delete
+      restore: Restore
+    empty:
+      title: No invoices yet
+      text: Issue the first one. Saving gives it its number.
+      all_title: No invoices here
+      filtered_title: No invoice matches
+      filtered_text: Try other words or another firm.
+      reset: Show all invoices
+      overdue_title: Nothing is overdue
+      trash_title: The trash is empty
+  trash:
+    title: 'Delete invoice {number}'
+    keeps: It moves to the trash and keeps its number, which is never used again.
+    reason: Reason
+    reason_help: Stays in the history of the invoice.
+    submit: Move to the trash
+  history:
+    title: 'History of invoice {number}'
+    card: History
+    system: The system
+    created: '{who} created the invoice'
+    changed: '{who} changed the invoice'
+    trashed: '{who} moved the invoice to the trash: {reason}'
+    restored: '{who} restored the invoice'
+    delivered: '{who} marked the invoice as delivered'
+    line_added: 'Line {number} ({text}) added'
+    line_removed: 'Line {number} ({text}) removed'
+    line_changed: 'Line {number} ({text}): {fields}'
+    field:
+      number: Number
+      series: Series
+      customer: Customer
+      issueDate: Issue date
+      taxPointDate: Tax point
+      dueDate: Due date
+      paymentMethod: Payment method
+      bankAccount: Bank account
+      variableSymbol: Variable symbol
+      constantSymbol: Constant symbol
+      orderNumber: Order number
+      description: Description
+      textBefore: Text before the lines
+      textAfter: Text after the lines
+      language: Language
+      payableMinor: Total
+      text: Text
+      quantity: Quantity
+      unit: Unit
+      priceMinor: Price
+      priceType: Price type
+      treatment: VAT
+      supplyCode: Supply code
+      rateKind: VAT rate
+      discount: Discount
   new: New invoice
   title: 'Invoice {number}'
   reload: Reload the invoice
@@ -518,11 +611,15 @@ invoice:
     renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
     number_changed: 'Invoice saved as {number}. The number changed.'
     already_saved: This form was saved already.
+    trashed: 'Invoice {number} is in the trash.'
+    restored: 'Invoice {number} is back in the list.'
+    delivered: 'Invoice {number} is marked as delivered.'
   card:
     issuer: Issuer
     customer: Customer
     payment: Dates and payment
     lines: Lines
+    delete: Delete the invoice
   number:
     edit: Change the number
     label: Invoice number

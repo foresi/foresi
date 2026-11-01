@@ -32,7 +32,8 @@ export default class extends Controller {
     }
 
     items() {
-        return Array.from(this.menuTarget.querySelectorAll('[role^="menuitem"]'));
+        // An item a breakpoint hides takes no focus.
+        return Array.from(this.menuTarget.querySelectorAll('[role^="menuitem"]')).filter((item) => item.getClientRects().length > 0);
     }
 
     isOpen() {
@@ -59,12 +60,19 @@ export default class extends Controller {
         const rect = this.buttonTarget.getBoundingClientRect();
         const style = this.menuTarget.style;
         style.position = 'fixed';
-        style.left = `${rect.left}px`;
         style.right = 'auto';
-        style.top = 'auto';
-        style.bottom = `${window.innerHeight - rect.top + 8}px`;
         style.minWidth = `${rect.width}px`;
         style.marginBottom = '0';
+        const box = this.menuTarget.getBoundingClientRect();
+        style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - box.width - 8))}px`;
+        // Above the button, unless the top of the window would cut it: the first row of a table.
+        if (rect.top >= box.height + 16) {
+            style.top = 'auto';
+            style.bottom = `${window.innerHeight - rect.top + 8}px`;
+        } else {
+            style.top = `${rect.bottom + 8}px`;
+            style.bottom = 'auto';
+        }
     }
 
     close(restoreFocus = true) {

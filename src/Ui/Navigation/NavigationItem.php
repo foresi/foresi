@@ -26,6 +26,8 @@ final readonly class NavigationItem
         public string $route,
         public ?NavigationCountProvider $countProvider = null,
         public int $weight = 100,
+        public ?string $commandLabelKey = null,
+        public ?string $commandRoute = null,
     ) {
         if (!\in_array($groupKey, self::GROUPS, true)) {
             throw new \InvalidArgumentException(sprintf('Unknown navigation group "%s", expected one of: %s.', $groupKey, implode(', ', self::GROUPS)));

@@ -34,10 +34,27 @@ async function tabThrough(page: Page, ids: string[]): Promise<void> {
   }
 }
 
+// A save lands on the list: the row of the number leads to the document, the newest of that number first.
+async function openFromList(page: Page, number: string): Promise<void> {
+  await page.goto(`/invoices?q=${encodeURIComponent(number)}`);
+  await page.getByRole('link', { name: number, exact: true }).first().click();
+  await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+}
+
+// The number the list says was saved, and the document opened from there.
+async function openSaved(page: Page): Promise<string> {
+  await expect(page).toHaveURL(/\/invoices$/);
+  const flash = await page.locator('[role=status]').filter({ hasText: /Faktura/ }).first().textContent();
+  const number = /Faktura (?:uložena jako )?([^\s:.]+)/.exec(flash ?? '')?.[1] ?? '';
+  await openFromList(page, number);
+  return page.url();
+}
+
 // What a saved document holds, read back from its edit form, against what the form showed and what the flash says.
 async function expectSaved(page: Page, number: string, symbol: string, flash: RegExp | string = `Faktura ${number} je uložená.`): Promise<void> {
-  await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+  await expect(page).toHaveURL(/\/invoices$/);
   await expect(page.locator('[role=status]').filter({ hasText: flash })).toBeVisible();
+  await openFromList(page, number);
   await expect(page.locator('#number')).toHaveValue(number);
   await expect(page.locator('#variableSymbol')).toHaveValue(symbol);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(number);
@@ -55,8 +72,7 @@ async function issueOne(page: Page): Promise<string> {
   await pickCustomer(page, 'Example Domestic a.s.');
   await fillLine(page);
   await save(page);
-  await expect(page).toHaveURL(/\/edit$/);
-  return page.url();
+  return openSaved(page);
 }
 
 async function nextOfSecond(page: Page): Promise<string> {
@@ -155,7 +171,7 @@ test.describe.serial('an invoice', () => {
     await tabThrough(page, ['lines-0-up', 'lines-0-down', 'lines-0-remove', 'invoice-new-line', 'invoice-cancel', 'invoice-more', 'invoice-save']);
     await page.keyboard.press('Enter');
 
-    await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+    await expect(page).toHaveURL(/\/invoices$/);
     await expect(page.getByText(/Faktura \d+ je uložená\./)).toBeVisible();
   });
 
@@ -346,7 +362,7 @@ test.describe.serial('an invoice', () => {
       });
     });
     await save(page);
-    await expect(page).toHaveURL(/\/edit$/);
+    await openSaved(page);
     await expect(page.locator('tr[data-invoice-form-target=line]')).toHaveCount(100);
     await expect(page.locator('#lines-99-text')).toHaveValue('Řádek 100');
   });
@@ -412,7 +428,7 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#lines-0-supplyCode')).toBeHidden();
     await expect(page.locator('#lines-0-supplyCode')).toHaveValue('');
     await save(page);
-    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page).toHaveURL(/\/invoices$/);
   });
 
   test('drops the code when a foreign VAT ID is typed on the document, and saves', async ({ page }) => {
@@ -424,7 +440,7 @@ test.describe.serial('an invoice', () => {
     await page.locator('#customer-vatId').fill('DE123456789');
     await expect(page.locator('#lines-0-supplyCode')).toBeHidden();
     await save(page);
-    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page).toHaveURL(/\/invoices$/);
   });
 
   test('forgets the treatment of a cleared customer for new lines', async ({ page }) => {
@@ -541,7 +557,7 @@ test.describe.serial('an invoice', () => {
     await page.locator('#lines-0-text').fill('Práce');
     await page.locator('#lines-0-price').fill('500');
     await page.getByRole('button', { name: 'Uložit', exact: true }).dblclick();
-    await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+\/edit$/);
+    await expect(page).toHaveURL(/\/invoices$/);
     await expect(page.getByText('Tento formulář už byl uložen.')).toHaveCount(0);
     await page.goto('/invoices/new');
     expect(Number(await page.locator('#variableSymbol').inputValue())).toBe(Number(before) + 1);
@@ -640,7 +656,7 @@ test.describe.serial('an invoice', () => {
     await pickCustomer(page, 'Example Domestic a.s.');
     await fillLine(page);
     await save(page);
-    await expect(page).toHaveURL(/\/edit$/);
+    await expect(page).toHaveURL(/\/invoices$/);
     expect(asked).toBe(1);
   });
 
@@ -701,7 +717,7 @@ test.describe.serial('an invoice', () => {
     await page.locator('#lines-0-text').fill('Práce');
     await page.locator('#lines-0-price').fill('500');
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
-    await expect(page).toHaveURL(/\/edit$/);
+    await openSaved(page);
     await expect(page.locator('select[name=firmId]')).toHaveCount(0);
     await expect(page.locator('[data-firm-text]')).toHaveText('Example Payer s.r.o.');
 

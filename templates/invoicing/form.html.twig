@@ -246,7 +246,7 @@
             {% endif %}
 
             <twig:Ui:ActionBar>
-                <twig:Ui:Button :href="path('app_dashboard')" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :href="path('app_invoices')" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
                 <div class="relative" data-controller="dropdown">
                     <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
                     <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">

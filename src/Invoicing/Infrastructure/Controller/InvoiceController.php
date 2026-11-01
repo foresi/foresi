@@ -51,6 +51,7 @@ use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -64,7 +65,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The invoice form, for staff. Save issues: there is no draft. The number on a new
  * form is a preview, and the flash names the one the document really got. Every
  * form carries a one-time token, so a double click, or Back and Save, lands on the
- * saved document, and an edit carries the version it was opened at, so a save over
+ * list and saves nothing twice, and an edit carries the version it was opened at, so a save over
  * someone else's asks to reload. Actions other than saving re-render the form with
  * 422, which is how Turbo shows an answer to a submission in place.
  */
@@ -188,7 +189,7 @@ final class InvoiceController extends AbstractController
         $token = $request->request->getString('_submission');
         $saved = $this->tokens->isIssued($token) ? $this->tokens->createdId($token) : null;
         if (null !== $saved) {
-            return $this->alreadySaved($saved);
+            return $this->alreadySaved();
         }
 
         $firm = $this->firm($request->request->getString('firmId'));
@@ -209,7 +210,7 @@ final class InvoiceController extends AbstractController
         }
         $token = $request->request->getString('_submission');
         if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
-            return $this->alreadySaved($invoice->id());
+            return $this->alreadySaved();
         }
         $request->request->set('firmId', $invoice->firm()->id());
 
@@ -268,7 +269,7 @@ final class InvoiceController extends AbstractController
         $this->tokens->complete($token, $saved->id());
         $this->flashSaved($saved, $submission, $ownNumber);
 
-        return $this->redirectToSaved($saved->id());
+        return $this->redirectToRoute('app_invoices');
     }
 
     /**
@@ -382,19 +383,11 @@ final class InvoiceController extends AbstractController
         $this->addFlash('success', $this->translator->trans('invoice.flash.saved', ['number' => $saved->number()]));
     }
 
-    private function alreadySaved(string $id): \Symfony\Component\HttpFoundation\RedirectResponse
+    private function alreadySaved(): RedirectResponse
     {
         $this->addFlash('warning', $this->translator->trans('invoice.flash.already_saved'));
 
-        return $this->redirectToSaved($id);
-    }
-
-    /**
-     * The invoice list arrives with its own task; until then the saved invoice is the place to land.
-     */
-    private function redirectToSaved(string $id): \Symfony\Component\HttpFoundation\RedirectResponse
-    {
-        return $this->redirectToRoute('app_invoice_edit', ['id' => $id]);
+        return $this->redirectToRoute('app_invoices');
     }
 
     /**

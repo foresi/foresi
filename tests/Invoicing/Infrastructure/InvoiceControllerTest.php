@@ -129,7 +129,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->save($this->filled());
 
         $invoice = $this->onlyInvoice();
-        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+        self::assertResponseRedirects('/invoices');
         self::assertSame('20260001', $invoice->number());
         self::assertSame('20260001', $invoice->variableSymbol());
         self::assertSame(121000, $invoice->payable()->minor());
@@ -552,7 +552,7 @@ final class InvoiceControllerTest extends WebTestCase
         $values['lines'][0]['price'] = '2000,00';
         $this->saveEdit($invoice, $values);
 
-        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+        self::assertResponseRedirects('/invoices');
         $stored = $this->stored($invoice);
         self::assertSame('Changed', $stored->description());
         self::assertSame(242000, $stored->payable()->minor());
@@ -1221,7 +1221,7 @@ final class InvoiceControllerTest extends WebTestCase
         $values = $this->filled();
         $values['lines'][0]['price'] = '100,10';
         $this->save($values);
-        $this->client->followRedirect();
+        $this->openEdit($this->onlyInvoice());
 
         self::assertSame('-0.12 CZK', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
     }

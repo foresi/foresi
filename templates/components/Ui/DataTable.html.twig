@@ -21,7 +21,7 @@
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-white px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}">
+                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-white px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}" class="inline-flex min-h-6 items-center gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
@@ -32,6 +32,9 @@
                                     {%- endif -%}
                                 </th>
                             {% endfor %}
+                            {% if this.hasActions %}
+                                <th scope="col" class="h-row border-b border-divider bg-white px-2"><span class="sr-only">{{ 'ui.table.actions'|trans }}</span></th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -45,11 +48,11 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}">
+                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ row.secondary and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}">
                                         {%- if cell.tone -%}
-                                            <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}</twig:Ui:Badge>
+                                            <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
-                                            <a href="{{ cell.link }}" data-row-link{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- elseif cell.text is same as('') -%}
@@ -57,8 +60,45 @@
                                         {%- else -%}
                                             <span class="block max-w-[32ch] truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}
+                                        {%- if row.secondary and loop.first %}<span class="mt-0.5 block whitespace-normal break-words text-caption text-muted sm:hidden" data-row-secondary>{{ row.secondary }}</span>{% endif -%}
                                     </td>
                                 {% endfor %}
+                                {% if this.hasActions %}
+                                    <td class="h-row whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
+                                        <div class="flex items-center justify-end gap-0.5">
+                                            {% set menuId = 'row-menu-' ~ row.id %}
+                                            {% set inMenu = row.actions|filter(action => action.icon is null) %}
+                                            {% for action in row.actions|filter(action => action.icon is not null) %}
+                                                {% if action.method == 'POST' %}
+                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}>
+                                                        <input type="hidden" name="_token" value="{{ actionToken }}">
+                                                        {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                                                        <twig:Ui:IconButton type="submit" :icon="action.icon" :label="action.label" variant="ghost" size="sm" />
+                                                    </form>
+                                                {% else %}
+                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" />
+                                                {% endif %}
+                                            {% endfor %}
+                                            <div class="relative{{ inMenu is empty ? ' sm:hidden' : '' }}" data-controller="dropdown" data-dropdown-float-value="true">
+                                                <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.label})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+                                                <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
+                                                    {% for action in row.actions %}
+                                                        {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus ~ (action.icon ? ' sm:hidden' : '') %}
+                                                        {% if action.method == 'POST' %}
+                                                            <form method="post" action="{{ action.href }}"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}{% if action.icon %} class="sm:hidden" {% endif %}>
+                                                                <input type="hidden" name="_token" value="{{ actionToken }}">
+                                                                {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                                                                <button type="submit" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %} class="{{ itemClass }}">{{ action.label }}</button>
+                                                            </form>
+                                                        {% else %}
+                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -71,6 +111,7 @@
                                         {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                     </td>
                                 {% endfor %}
+                                {% if this.hasActions %}<td class="h-row border-t border-divider bg-head px-2"></td>{% endif %}
                             </tr>
                         </tfoot>
                     {% endif %}

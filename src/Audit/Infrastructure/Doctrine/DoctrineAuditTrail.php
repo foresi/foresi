@@ -39,4 +39,15 @@ final readonly class DoctrineAuditTrail implements AuditTrail
 
         return (int) $query->getQuery()->getSingleScalarResult() > 0;
     }
+
+    public function rootHistory(string $rootClass, string $rootId): array
+    {
+        /** @var list<AuditEntry> $entries */
+        $entries = $this->em->createQuery('SELECT a FROM '.AuditEntry::class.' a WHERE a.rootClass = :class AND a.rootId = :id ORDER BY a.occurredAt, a.id')
+            ->setParameter('class', $rootClass)
+            ->setParameter('id', $rootId)
+            ->getResult();
+
+        return $entries;
+    }
 }

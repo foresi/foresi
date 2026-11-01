@@ -342,6 +342,7 @@ deptrac:
       - TenancyApplication
       - IdentityApplication
       - AuditApplication
+      - AuditDomain
       - PartyApplication
       - PartyDomain
     InvoicingInfrastructure:

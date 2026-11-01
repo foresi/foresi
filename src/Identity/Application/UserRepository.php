@@ -16,5 +16,12 @@ interface UserRepository
 
     public function findById(string $id): ?User;
 
+    /**
+     * @param list<string> $ids
+     *
+     * @return array<string, string> display name by id; an id without a user is left out
+     */
+    public function namesOf(array $ids): array;
+
     public function save(User $user): void;
 }

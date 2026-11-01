@@ -70,7 +70,8 @@ interface InvoiceStore
     public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool;
 
     /**
-     * Newest first; a page out of range gives the nearest one.
+     * In the order of the filter; a page out of range gives the nearest one. A firm
+     * without an invoice filters nothing.
      */
     public function page(InvoiceFilter $filter): InvoicePage;
 

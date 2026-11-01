@@ -6,6 +6,9 @@
 {% for group in groups %}
     {% for item in group.items %}
         {% set commands = commands|merge([{label: item.labelKey|trans, href: path(item.route), icon: item.icon, group: 'shell.palette.go_to'|trans}]) %}
+        {% if item.commandRoute %}
+            {% set commands = commands|merge([{label: item.commandLabelKey|trans, href: path(item.commandRoute), icon: 'plus', group: 'shell.palette.go_to'|trans}]) %}
+        {% endif %}
     {% endfor %}
 {% endfor %}
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}

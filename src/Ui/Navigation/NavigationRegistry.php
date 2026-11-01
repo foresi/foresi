@@ -60,6 +60,8 @@ final readonly class NavigationRegistry
                         $entry[0]->route,
                         $tenantActive ? $entry[0]->countProvider?->count() : null,
                         null !== $currentRoute && $entry[0]->route === $currentRoute,
+                        $entry[0]->commandLabelKey,
+                        $entry[0]->commandRoute,
                     ),
                     $items,
                 ),

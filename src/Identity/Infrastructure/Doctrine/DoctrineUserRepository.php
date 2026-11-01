@@ -28,6 +28,21 @@ final readonly class DoctrineUserRepository implements UserRepository
         return $this->entityManager->find(User::class, $id);
     }
 
+    public function namesOf(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+        /** @var list<User> $users */
+        $users = $this->entityManager->createQuery('SELECT u FROM '.User::class.' u WHERE u.id IN (:ids)')->setParameter('ids', $ids)->getResult();
+        $names = [];
+        foreach ($users as $user) {
+            $names[$user->id()] = $user->displayName();
+        }
+
+        return $names;
+    }
+
     public function save(User $user): void
     {
         $this->entityManager->persist($user);

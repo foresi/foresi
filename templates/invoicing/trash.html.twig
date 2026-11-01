@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: path('app_invoices')}, {label: invoice.number}] %}
+
+{% block title %}{{ 'invoice.trash.title'|trans({number: invoice.number}) }}{% endblock %}
+
+{% block content %}
+    <twig:Ui:Card :title="'invoice.card.delete'|trans" icon="trash-2" class="max-w-2xl">
+        <form method="post" action="{{ path('app_invoice_trash', {id: invoice.id}) }}" class="grid gap-4" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+            <input type="hidden" name="return" value="{{ return }}">
+            <p class="m-0 text-text">{{ invoice.customer.name }} · <span class="num">{{ payable }}</span></p>
+            <p class="m-0 text-muted">{{ 'invoice.trash.keeps'|trans }}</p>
+            <twig:Ui:Textarea name="reason" id="trash-reason" :label="'invoice.trash.reason'|trans" :help="'invoice.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
+            <div class="flex flex-wrap justify-end gap-2">
+                <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'invoice.trash.submit'|trans }}</twig:Ui:Button>
+            </div>
+        </form>
+    </twig:Ui:Card>
+{% endblock %}

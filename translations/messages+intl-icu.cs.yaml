@@ -33,6 +33,7 @@ nav:
   item:
     dashboard: Přehled
     contacts: Adresář
+    invoices: Faktury
     firms: Firmy
 ui:
   combobox:
@@ -46,6 +47,8 @@ ui:
     caption: Tabulka
     select_all: Vybrat všechny řádky
     select_row: 'Vybrat řádek {label}'
+    actions: Akce
+    more_actions: 'Další akce pro {label}'
     total: Celkem
   bulk:
     label: Hromadné akce
@@ -492,6 +495,96 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  list:
+    title: Faktury
+    views: Seznamy faktur
+    all_firms: Všechny firmy
+    search: Hledat
+    search_label: Hledat ve fakturách
+    search_placeholder: Číslo, zákazník, symbol nebo popis
+    summary: '{total, plural, one {# faktura} few {# faktury} other {# faktur}}'
+    reason_missing: Napište, proč fakturu mažete.
+    delete_delivered: Doručený doklad nelze smazat.
+    already_trashed: Tato faktura už je v koši.
+    delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
+    delivered_confirm: 'Označit fakturu {number} jako doručenou? Pak už ji nepůjde smazat.'
+    tab:
+      all: Vše
+      overdue: Po splatnosti
+      trash: Koš
+    column:
+      number: Číslo
+      firm: Firma
+      customer: Zákazník
+      issueDate: Vystaveno
+      dueDate: Splatnost
+      payable: Celkem
+      status: Stav
+      deletedBy: Smazal(a)
+      deletedAt: Smazáno
+      reason: Důvod
+    status:
+      delivered: Doručeno
+      overdue: Po splatnosti
+    action:
+      edit: Upravit
+      delivered: Označit jako doručené
+      history: Historie
+      delete: Smazat
+      restore: Obnovit
+    empty:
+      title: Zatím žádné faktury
+      text: Vystavte první. Uložením dostane své číslo.
+      all_title: Tady žádné faktury nejsou
+      filtered_title: Žádná faktura neodpovídá
+      filtered_text: Zkuste jiná slova nebo jinou firmu.
+      reset: Zobrazit všechny faktury
+      overdue_title: Nic není po splatnosti
+      trash_title: Koš je prázdný
+  trash:
+    title: 'Smazat fakturu {number}'
+    keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
+    reason: Důvod
+    reason_help: Zůstane v historii faktury.
+    submit: Přesunout do koše
+  history:
+    title: 'Historie faktury {number}'
+    card: Historie
+    system: Systém
+    created: '{who}: faktura vytvořena'
+    changed: '{who}: faktura upravena'
+    trashed: '{who}: faktura přesunuta do koše: {reason}'
+    restored: '{who}: faktura obnovena'
+    delivered: '{who}: faktura označena jako doručená'
+    line_added: 'Položka {number} ({text}) přidána'
+    line_removed: 'Položka {number} ({text}) odebrána'
+    line_changed: 'Položka {number} ({text}): {fields}'
+    field:
+      number: Číslo
+      series: Řada
+      customer: Zákazník
+      issueDate: Datum vystavení
+      taxPointDate: DUZP
+      dueDate: Splatnost
+      paymentMethod: Způsob platby
+      bankAccount: Bankovní účet
+      variableSymbol: Variabilní symbol
+      constantSymbol: Konstantní symbol
+      orderNumber: Číslo objednávky
+      description: Popis
+      textBefore: Text před položkami
+      textAfter: Text za položkami
+      language: Jazyk
+      payableMinor: Celkem
+      text: Text
+      quantity: Množství
+      unit: Jednotka
+      priceMinor: Cena
+      priceType: Typ ceny
+      treatment: DPH
+      supplyCode: Kód plnění
+      rateKind: Sazba DPH
+      discount: Sleva
   new: Nová faktura
   title: 'Faktura {number}'
   reload: Načíst fakturu znovu
@@ -518,11 +611,15 @@ invoice:
     renumbered: 'Faktura je uložená pod číslem {number}: {preview} mezitím získal jiný doklad.'
     number_changed: 'Faktura je uložená pod číslem {number}. Číslo se změnilo.'
     already_saved: Tento formulář už byl uložen.
+    trashed: 'Faktura {number} je v koši.'
+    restored: 'Faktura {number} je zpět v seznamu.'
+    delivered: 'Faktura {number} je označená jako doručená.'
   card:
     issuer: Vystavitel
     customer: Odběratel
     payment: Data a platba
     lines: Položky
+    delete: Smazat fakturu
   number:
     edit: Změnit číslo
     label: Číslo faktury
