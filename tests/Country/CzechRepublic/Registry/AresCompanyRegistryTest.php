@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Country\CzechRepublic\Registry;
 
 use App\Country\CzechRepublic\Registry\AresCompanyRegistry;
+use App\Party\Application\RegistryRecord;
+use App\Party\Domain\Address;
 use App\Party\Domain\RegistrationNumber;
 use App\Tests\Support\Registry\RegistryTestKit;
 use PHPUnit\Framework\TestCase;
@@ -110,7 +112,7 @@ final class AresCompanyRegistryTest extends TestCase
         $records = new AresCompanyRegistry($kit->client, $kit->cache)->searchByName('cz', 'Example', 10);
 
         self::assertCount(3, $records);
-        self::assertSame(['Example Company s.r.o.', 'Example Trading a.s.', 'Example Village Farm'], array_map(static fn (\App\Party\Application\RegistryRecord $r): string => $r->name, $records));
+        self::assertSame(['Example Company s.r.o.', 'Example Trading a.s.', 'Example Village Farm'], array_map(static fn (RegistryRecord $r): string => $r->name, $records));
         self::assertSame('Ukázková 7', $records[1]->seat?->street);
         self::assertNull($records[2]->vatId);
         self::assertSame('Vzorov 15', $records[2]->seat?->street);
@@ -210,5 +212,141 @@ final class AresCompanyRegistryTest extends TestCase
         self::assertStringNotContainsString('12345687', $logged);
         self::assertStringNotContainsString('ares.gov.cz', $logged);
         self::assertSame(1, $kit->logger->warnings());
+    }
+
+    public function testANumberLongerThanEightCharactersIsNotAsked(): void
+    {
+        $kit = new RegistryTestKit(static fn (): MockResponse => RegistryTestKit::json('ares-subject.json'));
+
+        self::assertNull(new AresCompanyRegistry($kit->client, $kit->cache)->lookupByRegistrationNumber(new RegistrationNumber('CZ', 'A12345687')));
+        self::assertSame([], $kit->requests);
+    }
+
+    public function testAnswersAreCachedUnderTheRegistryAndTheNormalisedIdentifier(): void
+    {
+        $kit = new RegistryTestKit(static fn (): MockResponse => RegistryTestKit::json('ares-search.json'));
+        $ares = new AresCompanyRegistry($kit->client, $kit->cache);
+
+        $ares->lookupByRegistrationNumber(new RegistrationNumber('CZ', '1234 5687'));
+        $ares->searchByName('CZ', '  Example  ', 10);
+
+        self::assertTrue($kit->pool->hasItem('ares.'.sha1('ico.12345687')));
+        self::assertTrue($kit->pool->hasItem('ares.'.sha1('name.10.example')));
+
+        $ares->searchByName('CZ', 'ŘEZNÍK', 10);
+
+        self::assertTrue($kit->pool->hasItem('ares.'.sha1('name.10.řezník')));
+    }
+
+    public function testTheLimitOfOneIsAllowedAndSearchStartsAtTheFirstResult(): void
+    {
+        $kit = new RegistryTestKit(static fn (): MockResponse => RegistryTestKit::json('ares-search.json'));
+
+        new AresCompanyRegistry($kit->client, $kit->cache)->searchByName('CZ', 'Example', 1);
+
+        self::assertCount(1, $kit->requests);
+        self::assertStringContainsString('"start":0', $kit->requests[0]['body']);
+        self::assertStringContainsString('"pocet":1', $kit->requests[0]['body']);
+    }
+
+    public function testAFailedSearchIsNotCached(): void
+    {
+        $kit = new RegistryTestKit(static fn (): MockResponse => new MockResponse('', ['http_code' => 500]));
+        $ares = new AresCompanyRegistry($kit->client, $kit->cache);
+
+        $ares->searchByName('CZ', 'Example', 10);
+        $ares->searchByName('CZ', 'Example', 10);
+
+        self::assertCount(2, $kit->requests);
+    }
+
+    public function testSearchResultsKeepTheirOrderWhateverKeysTheAnswerUses(): void
+    {
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->answer(['ekonomickeSubjekty' => [
+            5 => ['ico' => '12345687', 'obchodniJmeno' => 'First'],
+            9 => ['ico' => '12345695', 'obchodniJmeno' => 'Second'],
+        ]]));
+
+        $records = new AresCompanyRegistry($kit->client, $kit->cache)->searchByName('CZ', 'Example', 10);
+
+        self::assertSame(['First', 'Second'], array_map(static fn (RegistryRecord $r): string => $r->name, $records));
+        // What is cached is a plain list, whatever keys the register used.
+        self::assertSame([0, 1], array_keys($kit->cache->get('ares', 'name.10.example') ?? []));
+    }
+
+    public function testTheNameIsTrimmedAndABlankNameIsIncomplete(): void
+    {
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->answer(['ico' => '12345687', 'obchodniJmeno' => "  Example Company \n"]));
+        $record = new AresCompanyRegistry($kit->client, $kit->cache)->lookupByRegistrationNumber(new RegistrationNumber('CZ', '12345687'));
+        self::assertSame('Example Company', $record?->name);
+
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->answer(['ico' => '12345687', 'obchodniJmeno' => '   ']));
+        self::assertNull(new AresCompanyRegistry($kit->client, $kit->cache)->lookupByRegistrationNumber(new RegistrationNumber('CZ', '12345687')));
+        self::assertSame(1, $kit->logger->warnings());
+    }
+
+    public function testAPaddedVatIdIsStillRead(): void
+    {
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->answer(['ico' => '12345687', 'obchodniJmeno' => 'Example', 'dic' => ' CZ12345687 ']));
+
+        $record = new AresCompanyRegistry($kit->client, $kit->cache)->lookupByRegistrationNumber(new RegistrationNumber('CZ', '12345687'));
+
+        self::assertSame('CZ12345687', $record?->vatId?->toString());
+    }
+
+    public function testAPlaceWithoutStreetsIsAddressedByThePartOfTheMunicipalityOrTheMunicipality(): void
+    {
+        self::assertSame('Poruba 5', $this->seat(['nazevObce' => 'Ostrava', 'nazevCastiObce' => 'Poruba', 'cisloDomovni' => 5, 'psc' => '70800'])?->street);
+        self::assertSame('Ostrava 5', $this->seat(['nazevObce' => 'Ostrava', 'cisloDomovni' => 5, 'psc' => '70800'])?->street);
+        self::assertSame('Main', $this->seat(['nazevObce' => 'Ostrava', 'nazevUlice' => 'Main', 'nazevCastiObce' => 'Poruba'])?->street);
+    }
+
+    public function testTheStreetHasNoTrailingSpaceWithoutAHouseNumber(): void
+    {
+        self::assertSame('Main', $this->seat(['nazevObce' => 'Ostrava', 'nazevUlice' => 'Main'])?->street);
+        self::assertSame('Main 7/2b', $this->seat(['nazevObce' => 'Ostrava', 'nazevUlice' => 'Main', 'cisloDomovni' => 7, 'cisloOrientacni' => 2, 'cisloOrientacniPismeno' => 'b'])?->street);
+    }
+
+    public function testSeatTextIsTrimmedAndOnlyStringsAndIntegersAreText(): void
+    {
+        $seat = $this->seat(['nazevObce' => ' Ostrava ', 'nazevUlice' => ' Main ', 'psc' => ' 70800 ']);
+        self::assertSame('Ostrava', $seat?->city);
+        self::assertSame('Main', $seat->street);
+        self::assertSame('708 00', $seat->postalCode);
+
+        self::assertNull($this->seat(['nazevObce' => ['Ostrava']]));
+        self::assertNull($this->seat(['nazevObce' => 1.5]));
+    }
+
+    public function testAPostalCodeThatIsNotFiveDigitsStaysAsItIs(): void
+    {
+        self::assertSame('AB12345', $this->seat(['nazevObce' => 'Ostrava', 'psc' => 'AB12345'])?->postalCode);
+        self::assertSame('7080', $this->seat(['nazevObce' => 'Ostrava', 'psc' => '7080'])?->postalCode);
+    }
+
+    public function testTheCountryIsTheTwoLetterCodeOfTheSeatOrCzechRepublic(): void
+    {
+        self::assertSame('SK', $this->seat(['nazevObce' => 'Košice', 'kodStatu' => 'SK'])?->countryCode);
+        self::assertSame('CZ', $this->seat(['nazevObce' => 'Ostrava', 'kodStatu' => 'xCZ'])?->countryCode);
+        self::assertSame('CZ', $this->seat(['nazevObce' => 'Ostrava', 'kodStatu' => 'CZE'])?->countryCode);
+        self::assertSame('CZ', $this->seat(['nazevObce' => 'Ostrava'])?->countryCode);
+    }
+
+    /**
+     * @param array<mixed> $sidlo
+     */
+    private function seat(array $sidlo): ?Address
+    {
+        $kit = new RegistryTestKit(fn (): MockResponse => $this->answer(['ico' => '12345687', 'obchodniJmeno' => 'Example', 'sidlo' => $sidlo]));
+
+        return new AresCompanyRegistry($kit->client, $kit->cache)->lookupByRegistrationNumber(new RegistrationNumber('CZ', '12345687'))?->seat;
+    }
+
+    /**
+     * @param array<mixed> $body
+     */
+    private function answer(array $body): MockResponse
+    {
+        return new MockResponse((string) json_encode($body), ['http_code' => 200, 'response_headers' => ['content-type: application/json']]);
     }
 }
