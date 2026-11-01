@@ -495,13 +495,18 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  copy:
+    firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
+    series_archived: The series of the original is archived, so this copy uses the default series.
+    customer_archived: The firm no longer invoices the customer of the original. Choose another customer.
+    line_dates: The lines hold a date or a month from the original. Check that it still applies.
   list:
     title: Invoices
     views: Invoice lists
     all_firms: All firms
     search: Search
     search_label: Search invoices
-    search_placeholder: Number, customer, symbol or description
+    search_placeholder: Number, customer or description
     summary: '{total, plural, one {# invoice} other {# invoices}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
@@ -528,6 +533,7 @@ invoice:
       overdue: Overdue
     action:
       edit: Edit
+      copy: Copy
       delivered: Mark as delivered
       history: History
       delete: Delete

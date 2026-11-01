@@ -95,10 +95,10 @@ test.describe.serial('the invoice list', () => {
     await page.keyboard.press('ArrowDown');
     const menu = first.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
+    await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
     await expect(menu).toBeInViewport({ ratio: 1 });
     await page.keyboard.press('ArrowDown');
-    await expect(menu.getByRole('menuitem', { name: 'Historie' })).toBeFocused();
+    await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
     await expect(first.getByRole('button', { name: /Další akce/ })).toBeFocused();

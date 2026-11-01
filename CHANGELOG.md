@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - The invoice list with the tabs All, Overdue and Trash, search, a firm filter and row actions. A deletion asks for a reason, the trash shows who deleted a document, when and why, and each invoice has a history of who changed what, its lines included.
+- Copying an invoice: the form opens unsaved with the customer as the contact reads now, today's dates and the next number, and says when the lines hold a date or when the firm, series or customer can no longer be used.
 - The invoice form: save issues the document, with live totals from the server, a customer picker per firm, reverse charge with its supply code, and a form without VAT for a non-payer firm.
 - Number series per firm under the new Invoicing screen of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers.
 - Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.

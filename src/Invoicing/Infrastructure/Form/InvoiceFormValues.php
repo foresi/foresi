@@ -61,7 +61,7 @@ final readonly class InvoiceFormValues
             'dueDateSet' => '',
             'customer' => $this->emptyCustomer(),
             'orderNumber' => '',
-            'description' => '',
+            'description' => $draft->description,
             'issueDate' => $draft->issueDate->format('Y-m-d'),
             'taxPointDate' => $draft->taxPointDate->format('Y-m-d'),
             'dueDate' => $draft->dueDate->format('Y-m-d'),
@@ -74,6 +74,23 @@ final readonly class InvoiceFormValues
             'textAfter' => $draft->textAfter,
             'lines' => array_map($this->lineOfDraft(...), $draft->lines),
         ];
+    }
+
+    /**
+     * The customer as the contact reads now: saving takes a new snapshot of it.
+     *
+     * @return array<string, mixed>
+     */
+    public function ofCopy(InvoiceDraftValues $draft, LegalEntity $firm, Invoice $source): array
+    {
+        $values = $this->ofDraft($draft);
+        $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
+        if ($party instanceof Party) {
+            $values = $this->withCustomerShown($values, $this->picker->option($party, $firm));
+        }
+        $values['copyOf'] = $source->id();
+
+        return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
     }
 
     /**

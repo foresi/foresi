@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\EditInvoice;
@@ -20,6 +21,7 @@ use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\IssueRules;
+use App\Invoicing\Application\LineTextDates;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
@@ -86,6 +88,7 @@ final class InvoiceController extends AbstractController
         private readonly CustomerPicker $picker,
         private readonly ContactSettingsForFirm $contacts,
         private readonly NewInvoiceDefaults $defaults,
+        private readonly CopyInvoice $copies,
         private readonly IssueInvoice $issue,
         private readonly EditInvoice $edit,
         private readonly IssueRules $rules,
@@ -134,6 +137,24 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->form($this->storedContext($invoice), $this->values->ofInvoice($invoice), [], [], $this->tokens->issue(), $invoice->version(), Response::HTTP_OK);
+    }
+
+    /**
+     * The form of a new document, filled from another one. Nothing is written until Save.
+     */
+    #[Route('/invoices/{id}/copy', name: 'app_invoice_copy', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function copy(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        $source = $this->invoice($id);
+        try {
+            $context = $this->newContext($source->firm());
+            $draft = $this->copies->valuesFrom($source);
+        } catch (UnsupportedCountry) {
+            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+        }
+
+        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK, notices: $draft->notices);
     }
 
     #[Route('/invoices/recount', name: 'app_invoice_recount', methods: ['POST'])]
@@ -232,6 +253,7 @@ final class InvoiceController extends AbstractController
         $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
+        $values['copyOf'] = $request->request->getString('copyOf');
 
         if (1 === \count($matches)) {
             // A typed name is a pick, never a save: the defaults of the customer come first.
@@ -446,8 +468,9 @@ final class InvoiceController extends AbstractController
      * @param array<string, mixed>                                    $values
      * @param list<array{id: string, field: string, message: string}> $errors
      * @param list<array{id: string, name: string, hint: string}>     $candidates
+     * @param list<string>                                            $notices    translation keys
      */
-    private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false): Response
+    private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false, array $notices = []): Response
     {
         $firm = $context->firm;
         $invoice = $context->invoice;
@@ -470,6 +493,9 @@ final class InvoiceController extends AbstractController
             'token' => $token,
             'version' => $version,
             'stale' => $stale,
+            'copyNotices' => $notices,
+            'copyOf' => $values['copyOf'] ?? '',
+            'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
             'payer' => $context->isPayer(),
@@ -489,6 +515,21 @@ final class InvoiceController extends AbstractController
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
+    }
+
+    /**
+     * A copy repeats what the lines say, a month that has passed included.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function hasDatesInLines(array $values): bool
+    {
+        /** @var list<array<string, string>> $lines */
+        $lines = $values['lines'];
+        $language = $values['language'];
+        \assert(\is_string($language));
+
+        return array_any($lines, static fn (array $line): bool => LineTextDates::found($line['text'], $language));
     }
 
     /**

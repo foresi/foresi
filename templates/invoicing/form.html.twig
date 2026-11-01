@@ -50,6 +50,7 @@
                     <a href="{{ path('app_invoice_edit', {id: invoice.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.reload'|trans }}</a>
                 </twig:Ui:Alert>
             {% endif %}
+            {% for notice in copyNotices %}<twig:Ui:Alert tone="warning" role="status" data-copy-notice>{{ notice|trans }}</twig:Ui:Alert>{% endfor %}
             {% if trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
@@ -80,6 +81,7 @@
             <input type="hidden" name="_submission" value="{{ token }}">
             <input type="hidden" name="version" value="{{ version }}">
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
+            <input type="hidden" name="copyOf" value="{{ copyOf }}">
             <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
             <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">
             {# Of the stored document, never of the post: a series can go there and back across re-renders. #}
@@ -197,6 +199,8 @@
                     </div>
                 </twig:Ui:Card>
             </div>
+
+            {% if datesInLines %}<twig:Ui:Alert tone="warning" role="status" data-line-dates>{{ 'invoice.copy.line_dates'|trans }}</twig:Ui:Alert>{% endif %}
 
             <twig:Ui:Card :title="'invoice.card.lines'|trans" icon="receipt-text">
                 <table class="block w-full xl:table xl:table-fixed">

@@ -8,18 +8,29 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
+use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesCounter;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
+use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\DocumentLanguage;
@@ -36,6 +47,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -49,7 +61,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, dueDateSet: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
  * @phpstan-type Figures array{lines: list<array{total: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
@@ -97,6 +109,254 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame($this->series->id(), $values['seriesId']);
         self::assertCount(1, $values['lines']);
         self::assertSame('1', $values['lines'][0]['quantity']);
+    }
+
+    public function testACopyOpensAnUnsavedFormOfANewDocument(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        Clock::set(new MockClock('2027-02-10 12:00:00', 'UTC'));
+
+        $values = $this->openCopy($source);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', '20270001');
+        self::assertSelectorExists('form#invoice-form[action="/invoices/new"][data-turbo="false"]');
+        self::assertSame('', $values['invoiceId'] ?? null);
+        self::assertSame($this->customer->id(), $values['customerId']);
+        self::assertSame('Example Customer a.s.', $values['customerQuery']);
+        self::assertSame('Example Customer a.s.', $values['customer']['name']);
+        self::assertSame('2027-02-10', $values['issueDate']);
+        self::assertSame('2027-02-10', $values['taxPointDate']);
+        self::assertSame('2027-02-24', $values['dueDate']);
+        self::assertSame('20270001', $values['variableSymbol']);
+        self::assertSame('Consulting', $values['description']);
+        self::assertSame('', $values['orderNumber']);
+        self::assertSame('Work', $values['lines'][0]['text']);
+        self::assertSelectorNotExists('[data-copy-notice]');
+        self::assertSelectorNotExists('[data-line-dates]');
+    }
+
+    public function testACopyReadsTheContactAsItIsNow(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
+            $party->rename('Renamed Customer a.s.');
+            $this->em()->flush();
+        });
+
+        $values = $this->openCopy($source);
+
+        self::assertSame('Renamed Customer a.s.', $values['customer']['name']);
+        self::assertSame('Example Customer a.s.', $this->stored($source)->customer()->name);
+    }
+
+    public function testCopyWritesNothing(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $before = $this->rowCounts();
+
+        $this->openCopy($source);
+
+        self::assertSame($before, $this->rowCounts());
+    }
+
+    public function testASavedCopyIsANewDocumentAndTheSourceStaysAsItWas(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $version = $this->stored($source)->version();
+
+        $values = $this->openCopy($source);
+        $this->save($values);
+
+        self::assertResponseRedirects('/invoices');
+        $invoices = $this->invoices();
+        self::assertCount(2, $invoices);
+        self::assertSame('20260002', $invoices[1]->number());
+        self::assertNotSame($source->id(), $invoices[1]->id());
+        self::assertSame('20260001', $this->stored($source)->number());
+        self::assertSame($version, $this->stored($source)->version());
+        self::assertSame(121000, $invoices[1]->payable()->minor());
+    }
+
+    public function testATrashedInvoiceCanBeCopied(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->scoped(fn () => self::getContainer()->get(TrashInvoice::class)->trash($source->id(), 'Wrong customer'));
+
+        $values = $this->openCopy($source);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Consulting', $values['description']);
+        self::assertSelectorTextNotContains('main', 'in the trash');
+    }
+
+    #[DataProvider('datesInLines')]
+    public function testADateInLineTextShowsANotice(string $text, bool $notice): void
+    {
+        $this->signedIn();
+        $this->save($this->filled(['lines' => [$this->lineValues(['text' => $text, 'price' => '100,00'])]]));
+        $source = $this->onlyInvoice();
+
+        $values = $this->openCopy($source);
+
+        self::assertCount($notice ? 1 : 0, $this->client->getCrawler()->filter('[data-line-dates]'));
+        self::assertSame($text, $values['lines'][0]['text']);
+    }
+
+    /**
+     * @return iterable<string, array{string, bool}>
+     */
+    public static function datesInLines(): iterable
+    {
+        yield 'a month by name' => ['Pronájem říjen 2026', true];
+        yield 'a month and a year' => ['Hosting 10/2026', true];
+        yield 'a plain number' => ['2026 ks', false];
+    }
+
+    public function testTheLineNoticeStaysThroughARefusedSaveOfACopy(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled(['lines' => [$this->lineValues(['text' => 'Hosting 10/2026', 'price' => '100,00'])]]));
+        $values = $this->openCopy($this->onlyInvoice());
+
+        $this->save(array_merge($values, ['customerId' => '', 'customerQuery' => '']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-line-dates]');
+    }
+
+    public function testAnOrdinaryFormHasNoLineNotice(): void
+    {
+        $this->signedIn();
+        $values = $this->filled(['customerId' => '', 'customerQuery' => '', 'lines' => [$this->lineValues(['text' => 'Hosting 10/2026'])]]);
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorNotExists('[data-line-dates]');
+    }
+
+    public function testACopyOfAnArchivedFirmAsksForAnotherFirm(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $second = $this->secondFirm(VatStatus::Registered);
+        $this->archiveFirm();
+
+        $crawler = $this->client->request('GET', '/invoices/'.$source->id().'/copy');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-copy-notice]', 'This firm is archived');
+        self::assertCount(1, $crawler->filter('select[name="firmId"] option[value="'.$second->id().'"]'));
+    }
+
+    public function testANewIssueForAnArchivedFirmIsRefused(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $values = $this->openCopy($source);
+        $this->archiveFirm();
+
+        $this->save($values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', 'This firm is archived');
+        self::assertCount(1, $this->invoices());
+    }
+
+    public function testAnInvoiceOfAnArchivedFirmStaysEditable(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->archiveFirm();
+        $values = $this->openEdit($source);
+        $values['description'] = 'Still editable';
+
+        $this->saveEdit($source, $values);
+
+        self::assertResponseRedirects('/invoices');
+        self::assertSame('Still editable', $this->stored($source)->description());
+    }
+
+    public function testACopyForACustomerArchivedForTheFirmWarnsAndNeedsAnotherCustomer(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+        $this->scoped(function (): void {
+            $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Customer.');
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($party, $firm, true);
+            $this->em()->flush();
+        });
+
+        $values = $this->openCopy($source);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-copy-notice]', 'Choose another customer');
+        self::assertSame('', $values['customerId']);
+        self::assertSame('', $values['customer']['name']);
+
+        $this->save($values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(1, $this->invoices());
+    }
+
+    public function testAnArchivedSeriesCopyUsesTheDefaultAndSaysSo(): void
+    {
+        $this->signedIn();
+        $second = $this->secondSeries();
+        $this->save($this->filled(['seriesId' => $second->id(), 'numberPeek' => 'S2026001', 'number' => 'S2026001', 'variableSymbol' => '']));
+        $source = $this->onlyInvoice();
+        $this->scoped(function () use ($second): void {
+            $series = $this->em()->getRepository(Series::class)->find($second->id()) ?? throw new \LogicException('Series.');
+            $series->archive();
+            $this->em()->flush();
+        });
+
+        $values = $this->openCopy($source);
+
+        self::assertSelectorTextContains('[data-copy-notice]', 'default series');
+        self::assertSame($this->series->id(), $values['seriesId']);
+    }
+
+    public function testACopyOfAReverseChargeInvoiceKeepsTreatmentAndCode(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled(['lines' => [$this->lineValues(['vat' => 'reverse_charge', 'supplyCode' => '4'])]]));
+        $source = $this->onlyInvoice();
+
+        $values = $this->openCopy($source);
+
+        self::assertSame('reverse_charge', $values['lines'][0]['vat']);
+        self::assertSame('4', $values['lines'][0]['supplyCode']);
+    }
+
+    public function testANonPayerCopyStaysWithoutVat(): void
+    {
+        $this->signedIn(status: VatStatus::NotRegistered);
+        $this->save($this->filled());
+        $source = $this->onlyInvoice();
+
+        $values = $this->openCopy($source);
+
+        self::assertSame(InvoiceFormReader::VAT_NONE, $values['lines'][0]['vat']);
+        self::assertSelectorNotExists('[data-cell="vat"]');
+    }
+
+    public function testACopyOfAnotherTenantsInvoiceIs404(): void
+    {
+        $this->signedIn();
+        $foreign = $this->foreignInvoice();
+
+        $this->client->request('GET', '/invoices/'.$foreign->id().'/copy');
+
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testNoFirmSaysWhatToDo(): void
@@ -505,7 +765,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn(Role::Subcontractor);
         $id = '019a0000-0000-7000-8000-000000000001';
 
-        foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers?firm='.$this->firm->id()]] as [$method, $url]) {
+        foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['GET', '/invoices/'.$id.'/copy'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers?firm='.$this->firm->id()]] as [$method, $url]) {
             $this->client->request($method, $url);
             self::assertResponseStatusCodeSame(403, $method.' '.$url);
         }
@@ -1273,6 +1533,60 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
 
         return $this->currentValues();
+    }
+
+    /**
+     * @return Form
+     */
+    private function openCopy(Invoice $invoice): array
+    {
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/copy');
+
+        return $this->currentValues();
+    }
+
+    /**
+     * Invoices, counters and audit entries.
+     *
+     * @return list<int>
+     */
+    private function rowCounts(): array
+    {
+        return $this->scoped(fn (): array => array_map(
+            fn (string $class): int => (int) $this->em()->createQuery('SELECT COUNT(e) FROM '.$class.' e')->getSingleScalarResult(),
+            [Invoice::class, SeriesCounter::class, AuditEntry::class],
+        ));
+    }
+
+    private function archiveFirm(): void
+    {
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->archive(new \DateTimeImmutable('2026-11-01'));
+            $this->em()->flush();
+        });
+    }
+
+    private function foreignInvoice(): Invoice
+    {
+        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
+        $this->context->switchTo($tenant);
+        try {
+            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register', [self::IBAN]);
+            $this->em()->persist($firm);
+            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            $series->markDefault();
+            $this->em()->persist($series);
+            $customer = new Party(PartyKind::Company, 'Foreign Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
+            $this->em()->persist($customer);
+            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+            $this->em()->flush();
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line], true));
+        } finally {
+            $this->context->reset();
+        }
     }
 
     /**

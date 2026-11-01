@@ -306,12 +306,13 @@ final class InvoiceListController extends AbstractController
         } else {
             $due = $row->dueDate->format($date);
             $status = $this->translator->trans('invoice.list.status.delivered');
+            $overdue = $this->translator->trans('invoice.list.status.overdue');
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
-                'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $this->translator->trans('invoice.list.status.overdue')] : $due,
+                'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
                 'status' => $row->delivered ? ['text' => $status, 'tone' => 'green'] : null,
             ];
-            $secondary = $this->joined([$row->customerName, $due, $row->delivered ? $status : null]);
+            $secondary = $this->joined([$row->customerName, $due, $row->overdue ? $overdue : null, $row->delivered ? $status : null]);
         }
 
         return [
@@ -340,15 +341,17 @@ final class InvoiceListController extends AbstractController
     {
         $id = ['id' => $row->id];
         $fields = ['return' => $return];
+        $copy = ['label' => $this->label('copy'), 'href' => $this->generateUrl('app_invoice_copy', $id), 'method' => 'GET', 'plain' => true];
         $history = ['label' => $this->label('history'), 'href' => $this->generateUrl('app_invoice_history', $id), 'method' => 'GET'];
         if ($row->trashed) {
             return [
                 ['label' => $this->label('restore'), 'href' => $this->generateUrl('app_invoice_restore', $id), 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => $fields],
+                $copy,
                 $history,
             ];
         }
 
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true]];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $copy];
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]), 'fields' => $fields];
         }

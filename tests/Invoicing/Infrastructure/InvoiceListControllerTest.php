@@ -384,7 +384,8 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertSame('false', $row->filter('a[aria-label="Edit"]')->attr('data-turbo'));
         self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
-        self::assertSame(['Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Copy', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
 
@@ -449,7 +450,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertCount(2, $row->filter('form[action="/invoices/'.$invoice->id().'/restore"]'), 'In the row, and in the menu of a phone.');
         self::assertCount(0, $row->filter('a[aria-label="Edit"]'));
-        self::assertSame(['History'], $this->menu($row));
+        self::assertSame(['Copy', 'History'], $this->menu($row));
     }
 
     public function testDeliveredOffersNoDelete(): void
@@ -462,7 +463,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertStringContainsString('Delivered', $row->text());
-        self::assertSame(['History'], $this->menu($row));
+        self::assertSame(['Copy', 'History'], $this->menu($row));
         self::assertCount(1, $row->filter('a[aria-label="Edit"]'));
     }
 

@@ -733,4 +733,67 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('[data-reload-prompt]')).toContainText('mezitím uložil');
     await expectNoSeriousViolations(page);
   });
+
+  test('a copy opens from the list unsaved, and saving gives a new number and leaves the source', async ({ page }) => {
+    await openPayerForm(page);
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await page.locator('#description').fill('Zdroj kopie');
+    await page.locator('#orderNumber').fill('OBJ-7');
+    await fillLine(page, 'Hosting 10/2026', '500');
+    await save(page);
+    const source = await openSaved(page);
+    const number = await page.locator('#number').inputValue();
+
+    await page.goto(`/invoices?q=${encodeURIComponent('Zdroj kopie')}`);
+    const row = page.locator('tbody tr').first();
+    await row.getByRole('button', { name: /Další akce/ }).click();
+    await row.getByRole('menuitem', { name: 'Kopírovat' }).click();
+    await expect(page).toHaveURL(/\/copy$/);
+    await expect(page.locator('form#invoice-form')).toBeVisible();
+    await expect(page.locator('[data-line-dates]')).toBeVisible();
+    await expect(page.locator('#orderNumber')).toHaveValue('');
+    await expect(page.locator('#description')).toHaveValue('Zdroj kopie');
+    await expect(page.locator('#customer')).toHaveValue('Example Domestic a.s.');
+    await expect(page.locator('[data-customer-summary]')).toBeVisible();
+    await expect(page.locator('#lines-0-text')).toHaveValue('Hosting 10/2026');
+    const copyNumber = await page.locator('#number').inputValue();
+    expect(copyNumber).not.toBe(number);
+    await expectNoSeriousViolations(page);
+
+    // Nothing exists until Save.
+    await page.goto(`/invoices?q=${encodeURIComponent('Zdroj kopie')}`);
+    await expect(page.locator('tbody tr')).toHaveCount(1);
+
+    await page.goBack();
+    await expect(page.locator('form#invoice-form')).toBeVisible();
+    await save(page);
+    await expect(page).toHaveURL(/\/invoices$/);
+    await expect(page.locator('[role=status]').filter({ hasText: `Faktura ${copyNumber} je uložená.` })).toBeVisible();
+
+    await page.goto(`/invoices?q=${encodeURIComponent('Zdroj kopie')}`);
+    await expect(page.locator('tbody tr')).toHaveCount(2);
+    await expect(page.getByRole('link', { name: copyNumber, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: number, exact: true })).toBeVisible();
+
+    await page.goto(source);
+    await expect(page.locator('#number')).toHaveValue(number);
+    await expect(page.locator('#orderNumber')).toHaveValue('OBJ-7');
+  });
+
+  test('copies a document in the trash', async ({ page }) => {
+    await page.goto('/invoices?q=Zdroj%20kopie');
+    const row = page.locator('tbody tr').first();
+    await row.getByRole('button', { name: /Další akce/ }).click();
+    await row.getByRole('menuitem', { name: 'Smazat' }).click();
+    await page.getByRole('textbox', { name: /Důvod/ }).fill('Duplicita');
+    await page.getByRole('button', { name: 'Přesunout do koše' }).click();
+    await expect(page.getByText(/je v koši\./)).toBeVisible();
+
+    await page.goto('/invoices?tab=trash');
+    const trashed = page.locator('tbody tr').first();
+    await trashed.getByRole('button', { name: /Další akce/ }).click();
+    await trashed.getByRole('menuitem', { name: 'Kopírovat' }).click();
+    await expect(page).toHaveURL(/\/copy$/);
+    await expect(page.locator('#description')).toHaveValue('Zdroj kopie');
+  });
 });

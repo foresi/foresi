@@ -495,13 +495,18 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  copy:
+    firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
+    series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
+    customer_archived: Firma už zákazníkovi z původní faktury nefakturuje. Vyberte jiného zákazníka.
+    line_dates: Položky obsahují datum nebo měsíc z původní faktury. Zkontrolujte, zda stále platí.
   list:
     title: Faktury
     views: Seznamy faktur
     all_firms: Všechny firmy
     search: Hledat
     search_label: Hledat ve fakturách
-    search_placeholder: Číslo, zákazník, symbol nebo popis
+    search_placeholder: Číslo, zákazník nebo popis
     summary: '{total, plural, one {# faktura} few {# faktury} other {# faktur}}'
     reason_missing: Napište, proč fakturu mažete.
     delete_delivered: Doručený doklad nelze smazat.
@@ -528,6 +533,7 @@ invoice:
       overdue: Po splatnosti
     action:
       edit: Upravit
+      copy: Kopírovat
       delivered: Označit jako doručené
       history: Historie
       delete: Smazat

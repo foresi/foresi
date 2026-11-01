@@ -1,10 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 <ol {{ attributes.defaults({class: 'm-0 list-none p-0'}) }}>
     {% for item in this.views %}
-        <li class="grid grid-cols-[20px_9.5rem_1fr] items-center gap-x-2 py-1.5">
+        <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]">
             {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
             <time{% if item.datetime %} datetime="{{ item.datetime }}"{% endif %} class="num text-muted">{{ item.time }}</time>
-            <span class="min-w-0 text-text [overflow-wrap:anywhere]">{{ item.text }}</span>
+            <span class="min-w-0 text-text [overflow-wrap:anywhere] max-sm:col-start-2">{{ item.text }}</span>
         </li>
     {% endfor %}
 </ol>
