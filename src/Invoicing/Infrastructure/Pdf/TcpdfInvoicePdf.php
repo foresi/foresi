@@ -44,21 +44,20 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
 {
     public const float QR_SIZE_MM = 32.0;
     private const string TEMPLATE = 'invoicing/pdf/invoice.html.twig';
-    private const float QR_X = 162.0;
-    /** The top margin, then the label above the code. */
-    private const float QR_Y = 21.0;
-    private const string QR_BAND_HEIGHT = '40mm';
-    private const array LOGO_BOX = [60.0, 20.0];
-    private const array STAMP_BOX = [55.0, 28.0];
+    /** Inside the white plate of the panel, on a page whose body starts at the top margin. */
+    private const float QR_X = 125.6;
+    private const float QR_Y = 78.0;
+    private const array LOGO_BOX = [52.0, 16.0];
+    private const array STAMP_BOX = [48.0, 24.0];
     /** The least a column takes, in millimetres; the text column has what the others leave. */
     private const array PAYER_COLUMNS = ['quantity' => 12.6, 'unit' => 9.0, 'price' => 19.8, 'discount' => 10.8, 'rate' => 10.8, 'base' => 19.8, 'vat' => 18.0, 'total' => 19.8];
     private const array PLAIN_COLUMNS = ['quantity' => 16.2, 'unit' => 10.8, 'price' => 25.2, 'discount' => 12.6, 'total' => 25.2];
     private const array RECAP_COLUMNS = ['base' => 21.9, 'vat' => 21.9, 'total' => 23.0];
     /** The items table shrinks its type before a value would break. */
-    private const array TABLE_SIZES = [9.0, 8.0, 7.0, 6.0];
+    private const array TABLE_SIZES = [8.0, 7.5, 7.0, 6.5, 6.0];
     private const float TABLE_WIDTH_MM = 180.0;
     private const float RECAP_WIDTH_MM = 115.2;
-    private const float CELL_PADDING_MM = 2.2;
+    private const float CELL_PADDING_MM = 3.0;
     private const float LEAST_TEXT_MM = 40.0;
     private const float LEAST_LABEL_MM = 36.0;
 
@@ -91,7 +90,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
                 $template->renderBlock('body', ['doc' => $view]),
                 $file instanceof \App\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
                 null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
-                $template->renderBlock('head', ['doc' => $view]),
+                trim($template->renderBlock('head', ['doc' => $view])),
                 fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number]), 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
@@ -142,7 +141,6 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'textBefore' => $document->textBefore,
             'textAfter' => $document->textAfter,
             'hasQr' => $hasQr,
-            'qrBandHeight' => self::QR_BAND_HEIGHT,
             'hasDiscount' => $hasDiscount,
             'lines' => $lines,
             'rounding' => $rounding,

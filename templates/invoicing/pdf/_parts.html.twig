@@ -1,0 +1,120 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    s holds the inline styles: th and td for the head and the cells, and row and last
+    for the rows. A row carries its rule on each cell: tc-lib-pdf ignores it on tr.
+#}
+{% macro items(doc, s) %}
+    {% set widths = doc.columns %}
+    <table cellpadding="{{ s.padding }}" style="{{ s.table }}">
+        <thead>
+            <tr>
+                <th width="{{ widths.text }}" align="left" style="{{ s.th }}">{{ 'invoice.pdf.item'|trans }}</th>
+                <th width="{{ widths.quantity }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.quantity'|trans }}</th>
+                <th width="{{ widths.unit }}" align="left" style="{{ s.th }}">{{ 'invoice.pdf.unit'|trans }}</th>
+                <th width="{{ widths.price }}" align="right" style="{{ s.th }}">{{ doc.payer ? 'invoice.pdf.unit_price'|trans : 'invoice.pdf.unit_price_plain'|trans }}</th>
+                {% if doc.hasDiscount %}<th width="{{ widths.discount }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.discount'|trans }}</th>{% endif %}
+                {% if doc.payer %}
+                    <th width="{{ widths.rate }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.rate'|trans }}</th>
+                    <th width="{{ widths.base }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.base'|trans }}</th>
+                    <th width="{{ widths.vat }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.vat'|trans }}</th>
+                {% endif %}
+                <th width="{{ widths.total }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.total'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines %}
+                {% set cell = (loop.last and not doc.rounding) ? s.last : s.td %}
+                <tr nobr="true">
+                    <td width="{{ widths.text }}" style="{{ cell }}">{{ line.text|nl2br }}</td>
+                    <td width="{{ widths.quantity }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.quantity }}</td>
+                    <td width="{{ widths.unit }}" style="{{ cell }}">{{ line.unit }}</td>
+                    <td width="{{ widths.price }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.price }}</td>
+                    {% if doc.hasDiscount %}<td width="{{ widths.discount }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.discount }}</td>{% endif %}
+                    {% if doc.payer %}
+                        <td width="{{ widths.rate }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.rate }}</td>
+                        <td width="{{ widths.base }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.base }}</td>
+                        <td width="{{ widths.vat }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.vat }}</td>
+                    {% endif %}
+                    <td width="{{ widths.total }}" align="right" style="{{ cell }}white-space:nowrap;">{{ line.total }}</td>
+                </tr>
+            {% endfor %}
+            {% if doc.rounding %}
+                <tr nobr="true">
+                    <td width="{{ widths.text }}" style="{{ s.last }}">{{ 'invoice.pdf.rounding'|trans }}</td>
+                    <td width="{{ widths.quantity }}" align="right" style="{{ s.last }}white-space:nowrap;">{{ doc.rounding.quantity }}</td>
+                    <td width="{{ widths.unit }}" style="{{ s.last }}"></td>
+                    <td width="{{ widths.price }}" align="right" style="{{ s.last }}white-space:nowrap;">{{ doc.rounding.amount }}</td>
+                    {% if doc.hasDiscount %}<td width="{{ widths.discount }}" style="{{ s.last }}"></td>{% endif %}
+                    {% if doc.payer %}
+                        <td width="{{ widths.rate }}" align="right" style="{{ s.last }}white-space:nowrap;">0</td>
+                        <td width="{{ widths.base }}" align="right" style="{{ s.last }}white-space:nowrap;">{{ doc.rounding.amount }}</td>
+                        <td width="{{ widths.vat }}" align="right" style="{{ s.last }}white-space:nowrap;">{{ doc.rounding.zero }}</td>
+                    {% endif %}
+                    <td width="{{ widths.total }}" align="right" style="{{ s.last }}white-space:nowrap;">{{ doc.rounding.amount }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+{% endmacro %}
+
+{#
+    The recap by rate. A document without VAT has none.
+#}
+{% macro recap(doc, s) %}
+    {% if doc.payer %}
+        {% set recap = doc.recapColumns %}
+        <table cellpadding="{{ s.padding }}" style="{{ s.table }}">
+            <tr>
+                <th width="{{ recap.label }}" align="left" style="{{ s.th }}">{{ 'invoice.pdf.recap_rate'|trans }}</th>
+                <th width="{{ recap.base }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.base'|trans }}</th>
+                <th width="{{ recap.vat }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.vat'|trans }}</th>
+                <th width="{{ recap.total }}" align="right" style="{{ s.th }}">{{ 'invoice.pdf.total'|trans }}</th>
+            </tr>
+            {% for row in doc.recap %}
+                <tr>
+                    <td width="{{ recap.label }}" style="{{ s.td }}">{{ row.label }}</td>
+                    <td width="{{ recap.base }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.base }}</td>
+                    <td width="{{ recap.vat }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.vat }}</td>
+                    <td width="{{ recap.total }}" align="right" style="{{ s.td }}white-space:nowrap;">{{ row.total }}</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td width="{{ recap.label }}" style="{{ s.sum }}">{{ 'invoice.pdf.recap_total'|trans }}</td>
+                <td width="{{ recap.base }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.net }}</td>
+                <td width="{{ recap.vat }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.vat }}</td>
+                <td width="{{ recap.total }}" align="right" style="{{ s.sum }}white-space:nowrap;">{{ doc.gross }}</td>
+            </tr>
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{#
+    Who the party is, in the order the law reads it. The register entry and the contacts
+    belong to the supplier.
+#}
+{% macro party(party, label, doc, s, full) %}
+    <p style="{{ s.label }}">{{ label }}</p>
+    <p style="{{ s.name }}">{{ party.name }}</p>
+    <p style="{{ s.text }}">{{ party.street }}<br>{{ party.postalCode }} {{ party.city }}<br>{{ party.country }}</p>
+    {% if party.registrationNumber %}<p style="{{ s.text }}">{{ 'invoice.pdf.registration_number'|trans }}: {{ party.registrationNumber }}</p>{% endif %}
+    {% if party.vatId %}<p style="{{ s.text }}">{{ 'invoice.pdf.vat_id'|trans }}: {{ party.vatId }}</p>{% endif %}
+    {% if full %}
+        {% if party.registerEntry %}<p style="{{ s.small }}">{{ party.registerEntry }}</p>{% endif %}
+        {% if party.email %}<p style="{{ s.text }}">{{ party.email }}</p>{% endif %}
+        {% if party.phone %}<p style="{{ s.text }}">{{ party.phone }}</p>{% endif %}
+        {% if party.web %}<p style="{{ s.text }}">{{ party.web }}</p>{% endif %}
+    {% endif %}
+{% endmacro %}
+
+{#
+    Text that belongs to the document: its description and the two free texts, then the statutory notes.
+#}
+{% macro description(doc, s) %}
+    {% if doc.description %}<p style="{{ s.strong }}">{{ doc.description|nl2br }}</p>{% endif %}
+    {% if doc.textBefore %}<p style="{{ s.text }}">{{ doc.textBefore|nl2br }}</p>{% endif %}
+{% endmacro %}
+
+{% macro notes(doc, s) %}
+    {% if doc.textAfter %}<p style="{{ s.text }}">{{ doc.textAfter|nl2br }}</p>{% endif %}
+    {% for note in doc.notes %}<p style="{{ s.note }}">{{ note }}</p>{% endfor %}
+{% endmacro %}

@@ -17,7 +17,7 @@ use App\Invoicing\Application\PrintableText;
  */
 final class PdfFont implements PrintableText
 {
-    private const array FACES = ['inter.json', 'interb.json'];
+    private const array FACES = ['intertnum.json', 'intertnumb.json'];
     private const float MM_PER_POINT = 0.3528;
     private const array LINE_BREAKS = ["\n", "\r", "\t"];
 

@@ -39,6 +39,12 @@ use Symfony\Component\HttpClient\MockHttpClient;
 
 final class InvoicePdfTest extends InvoiceTestCase
 {
+    /** The white plate of the panel on the first page, in pixels, inside its edges. */
+    private const int PLATE_LEFT = 1225;
+    private const int PLATE_RIGHT = 1610;
+    private const int PLATE_TOP = 755;
+    private const int PLATE_BOTTOM = 1125;
+
     private InvoicePdf $pdf;
     private string $tenantImages;
 
@@ -71,7 +77,7 @@ final class InvoicePdfTest extends InvoiceTestCase
             'Datum vystavení', '1. 11. 2026',
             'Datum zdanitelného plnění',
             'Datum splatnosti', '15. 11. 2026',
-            'Consulting work', 'j. bez DPH', 'Sazba', 'Základ', 'DPH',
+            'Consulting work', 'Cena za m. j.', 'bez DPH', 'Sazba', 'Základ', 'DPH',
             '1 260,00', '264,60', '1 524,60',
             '1 525,00 CZK',
             'CZ6508000000192000145399', '19-2000145399/0800',
@@ -474,6 +480,60 @@ final class InvoicePdfTest extends InvoiceTestCase
         VeraPdf::assertConforms($rendered->bytes, '3a');
     }
 
+    public function testTheQuietZoneOfTheCodeIsWhite(): void
+    {
+        $page = imagecreatefromstring(PdfTools::firstPagePng($this->render($this->issued([$this->line()]))->bytes));
+        self::assertNotFalse($page);
+        [$x, $y, $side] = $this->qrBox($page);
+
+        // Four modules of the largest code a payment gives, of 57 in 32 mm.
+        $zone = 23;
+        for ($offset = -$zone; $offset <= $side + $zone; ++$offset) {
+            foreach ([[$x + $offset, $y - $zone], [$x + $offset, $y + $side + $zone], [$x - $zone, $y + $offset], [$x + $side + $zone, $y + $offset]] as [$px, $py]) {
+                self::assertGreaterThan(235, imagecolorat($page, $px, $py) & 0xFF);
+            }
+        }
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, string, string}>
+     */
+    public static function withoutACode(): iterable
+    {
+        yield 'cash' => [['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null], '1000.00', 'Hotově'];
+        yield 'an amount too large for a code' => [[], '90000000.00', 'CZ6508000000192000145399'];
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    #[DataProvider('withoutACode')]
+    public function testADocumentWithoutACodeStillSaysHowToPay(array $overrides, string $price, string $expected): void
+    {
+        $rendered = $this->render($this->issued([$this->line($price)], $overrides));
+        $text = PdfTools::text($rendered->bytes);
+
+        self::assertStringNotContainsString('QR Platba+F', $text);
+        foreach (['Celkem k úhradě', 'Datum splatnosti', 'Způsob platby', $expected] as $line) {
+            self::assertStringContainsString($line, $text);
+        }
+        self::assertSame(1, PdfTools::pages($rendered->bytes));
+        VeraPdf::assertConforms($rendered->bytes, '3a');
+    }
+
+    public function testTheCodeStaysOnItsPlateBelowATrashedMark(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        $this->trash->trash($id, 'Wrong customer');
+        $page = imagecreatefromstring(PdfTools::firstPagePng($this->render($this->of($id))->bytes));
+        self::assertNotFalse($page);
+
+        // The mark moves the whole body down by its height, the plate and the code with it.
+        $shifted = imagecrop($page, ['x' => 0, 'y' => 60, 'width' => imagesx($page), 'height' => imagesy($page) - 60]);
+        self::assertNotFalse($shifted);
+        self::assertGreaterThan(300, $this->qrBox($shifted)[2]);
+    }
+
     public function testTheQrIsAtLeast30mm(): void
     {
         $image = imagecreatefromstring(PdfTools::firstPagePng($this->render($this->issued([$this->line()]))->bytes));
@@ -491,9 +551,9 @@ final class InvoicePdfTest extends InvoiceTestCase
 
         $page = imagecreatefromstring(PdfTools::firstPagePng($this->render($document)->bytes));
         self::assertNotFalse($page);
-        // Only the code with its quiet zone: the decoder takes memory by the pixel.
+        // Only the code with its quiet zone, inside the plate: the decoder takes memory by the pixel.
         [$x, $y, $side] = $this->qrBox($page);
-        $part = imagecrop($page, ['x' => $x - 40, 'y' => $y - 40, 'width' => $side + 80, 'height' => $side + 80]);
+        $part = imagecrop($page, ['x' => $x - 25, 'y' => $y - 25, 'width' => $side + 50, 'height' => $side + 50]);
         self::assertNotFalse($part);
         ob_start();
         imagepng($part);
@@ -589,15 +649,14 @@ final class InvoicePdfTest extends InvoiceTestCase
 
     /**
      * Where the code is, in pixels: the left, top and side of the box of the finder
-     * squares, the only dark shapes that stand 2.5 mm tall right of the text columns
-     * of the document head.
+     * squares, the only dark shapes that stand 2.5 mm tall on the white plate of the panel.
      *
      * @return array{int, int, int}
      */
     private function qrBox(\GdImage $image): array
     {
         $tops = [];
-        for ($x = 1600, $width = imagesx($image); $x < $width; ++$x) {
+        for ($x = self::PLATE_LEFT; $x < self::PLATE_RIGHT; ++$x) {
             $top = $this->tallDarkRun($image, $x);
             if (null !== $top) {
                 $tops[$x] = $top;
@@ -613,7 +672,7 @@ final class InvoicePdfTest extends InvoiceTestCase
     private function tallDarkRun(\GdImage $image, int $x): ?int
     {
         $run = 0;
-        for ($y = 0, $height = imagesy($image); $y < $height; ++$y) {
+        for ($y = self::PLATE_TOP; $y < self::PLATE_BOTTOM; ++$y) {
             $run = (imagecolorat($image, $x, $y) & 0xFF) < 128 ? $run + 1 : 0;
             if (25 === $run) {
                 return $y - 24;

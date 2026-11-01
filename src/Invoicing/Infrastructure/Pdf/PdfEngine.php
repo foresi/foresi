@@ -22,7 +22,8 @@ use Com\Tecnick\Pdf\Tcpdf;
  */
 final readonly class PdfEngine
 {
-    private const string FONT = 'inter';
+    private const string FONT = 'intertnum';
+    private const string DISPLAY_FONT = 'interdisplay';
     private const float FONT_SIZE = 9.0;
     private const float MARGIN_MM = 15.0;
     private const float PAGE_WIDTH_MM = 210.0;
@@ -84,10 +85,11 @@ final readonly class PdfEngine
         $pdf->setLanguage($language);
         $pdf->setViewerPreferences(['DisplayDocTitle' => true]);
 
-        $regular = $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/inter.json');
-        $pdf->font->insert($pdf->pon, self::FONT, 'B', self::FONT_SIZE, ifile: $this->fontDirectory.'/interb.json');
+        $regular = $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
+        $pdf->font->insert($pdf->pon, self::FONT, 'B', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnumb.json');
+        $pdf->font->insert($pdf->pon, self::DISPLAY_FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/interdisplay.json');
         // Back to the regular face as the current font.
-        $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/inter.json');
+        $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
 
         // Every page keeps these: a table that breaks continues inside them.
         $margin = self::MARGIN_MM;
@@ -131,7 +133,7 @@ final readonly class PdfEngine
      */
     private function drawFooters(Tcpdf $pdf, \Closure $footer): void
     {
-        $font = $pdf->font->insert($pdf->pon, self::FONT, '', self::FOOTER_SIZE, ifile: $this->fontDirectory.'/inter.json');
+        $font = $pdf->font->insert($pdf->pon, self::FONT, '', self::FOOTER_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
         $pages = $pdf->page->getPageID() + 1;
         for ($page = 0; $page < $pages; ++$page) {
             $text = $pdf->getTextCell(
