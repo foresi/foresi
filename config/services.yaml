@@ -215,6 +215,21 @@ when@test:
         App\Invoicing\Application\FirmInvoicingSettings:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings
             public: true
+        App\Invoicing\Application\InvoiceStore:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
+            public: true
+        App\Invoicing\Application\ConflictRetry:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
+            public: true
+        App\Invoicing\Application\IssueInvoice: { public: true }
+        App\Invoicing\Application\EditInvoice: { public: true }
+        App\Invoicing\Application\TrashInvoice: { public: true }
+        App\Invoicing\Application\MarkDelivered: { public: true }
+        App\Invoicing\Application\IssuedDocumentFactory: { public: true }
+        App\Invoicing\Application\IssueRules: { public: true }
+        App\Invoicing\Application\CustomerCopies: { public: true }
+        App\Invoicing\Application\LinePricing: { public: true }
+        App\Invoicing\Application\NumberAllocator: { public: true }
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

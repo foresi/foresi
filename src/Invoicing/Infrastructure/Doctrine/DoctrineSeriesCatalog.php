@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesCounter;
 use App\Invoicing\Domain\SeriesFormat;
@@ -69,6 +70,12 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         $this->em->persist($series);
     }
 
+    public function store(Series $series): void
+    {
+        $this->em->persist($series);
+        $this->em->flush();
+    }
+
     public function makeDefault(Series $series): void
     {
         $current = $this->storedDefault($series->firm());
@@ -87,7 +94,15 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
             ->setParameter('series', $series->id())
             ->getSingleScalarResult();
 
-        return 0 < (int) $given;
+        if (0 < (int) $given) {
+            return true;
+        }
+
+        $invoices = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE i.series = :series')
+            ->setParameter('series', $series->id())
+            ->getSingleScalarResult();
+
+        return 0 < (int) $invoices;
     }
 
     private function storedDefault(LegalEntity $firm): ?Series

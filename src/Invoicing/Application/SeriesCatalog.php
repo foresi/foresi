@@ -45,15 +45,22 @@ interface SeriesCatalog
     public function add(Series $series): void;
 
     /**
+     * Stores the series at once; the counter refers to it, so it must exist first.
+     * Harmless for a stored series.
+     */
+    public function store(Series $series): void;
+
+    /**
      * Moves the default of the firm to this series; stores what is pending first,
      * because the unique index must never see two defaults.
      */
     public function makeDefault(Series $series): void;
 
     /**
-     * Whether the counter of this series has moved, through next() or advanceTo().
-     * A rollback undoes that too. It cannot see a number typed by hand that does not
-     * have the form of the series, because such a number never reaches the counter.
+     * Whether the series gave a number: its counter has moved, through next() or
+     * advanceTo(), which a rollback undoes too, or an invoice stands in it, as one
+     * with a number typed by hand in another form does without reaching the counter.
+     * An invoice in the trash counts.
      */
     public function hasDocuments(Series $series): bool;
 }

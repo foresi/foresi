@@ -87,24 +87,20 @@ final readonly class SeriesFormat
      */
     public function sequenceIn(string $number, \DateTimeImmutable $date): ?int
     {
-        $pattern = '';
-        foreach ($this->parts as $part) {
-            $pattern .= match (true) {
-                $this->isSequence($part) => '(\d{'.(\strlen($part) - 2).',})',
-                isset(self::DATE_TOKENS[$part]) => $date->format(self::DATE_TOKENS[$part]),
-                default => NumberKey::of($part),
-            };
-        }
-        if (1 !== preg_match('/^'.$pattern.'$/D', NumberKey::of($number), $match)) {
-            return null;
-        }
+        $digits = $this->digitsIn($number, $date);
 
-        $digits = ltrim($match[1], '0');
-        if (\strlen($digits) > self::MAX_SEQUENCE_DIGITS || (int) $digits > self::MAX_SEQUENCE) {
-            return null;
-        }
+        return null === $digits || $this->beyondCounter($digits) ? null : (int) $digits;
+    }
 
-        return (int) $digits;
+    /**
+     * Whether a number has the form of this series with a sequence the counter can
+     * never reach. Such a number would stay above every number the series gives.
+     */
+    public function exceedsCounter(string $number, \DateTimeImmutable $date): bool
+    {
+        $digits = $this->digitsIn($number, $date);
+
+        return null !== $digits && $this->beyondCounter($digits);
     }
 
     public function period(\DateTimeImmutable $date): string
@@ -119,6 +115,31 @@ final readonly class SeriesFormat
     public function collidesWith(self $other): bool
     {
         return $this->shape() === $other->shape();
+    }
+
+    /**
+     * The sequence of a number of this form without its leading zeros, however large.
+     */
+    private function digitsIn(string $number, \DateTimeImmutable $date): ?string
+    {
+        $pattern = '';
+        foreach ($this->parts as $part) {
+            $pattern .= match (true) {
+                $this->isSequence($part) => '(\d{'.(\strlen($part) - 2).',})',
+                isset(self::DATE_TOKENS[$part]) => $date->format(self::DATE_TOKENS[$part]),
+                default => NumberKey::of($part),
+            };
+        }
+        if (1 !== preg_match('/^'.$pattern.'$/D', NumberKey::of($number), $match)) {
+            return null;
+        }
+
+        return ltrim($match[1], '0');
+    }
+
+    private function beyondCounter(string $digits): bool
+    {
+        return \strlen($digits) > self::MAX_SEQUENCE_DIGITS || (int) $digits > self::MAX_SEQUENCE;
     }
 
     /**

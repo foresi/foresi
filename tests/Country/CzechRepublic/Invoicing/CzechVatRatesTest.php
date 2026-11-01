@@ -107,7 +107,7 @@ final class CzechVatRatesTest extends TestCase
     public function testThePaymentCodeAndTheElectronicFileAreFilledByLaterSteps(): void
     {
         $country = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes());
-        $document = new \App\Invoicing\Application\IssuedDocument();
+        $document = new \ReflectionClass(\App\Invoicing\Application\IssuedDocument::class)->newInstanceWithoutConstructor();
 
         try {
             $country->paymentCode($document);

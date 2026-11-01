@@ -139,4 +139,16 @@ final class SeriesFormatTest extends TestCase
         self::assertSame('', VariableSymbol::fromNumber('12345678901'));
         self::assertSame('', VariableSymbol::fromNumber('FV-2026/000000089'));
     }
+
+    public function testANumberBeyondTheCounterIsToldApartFromAnotherForm(): void
+    {
+        $format = SeriesFormat::fromString('{YYYY}{NNNN}');
+        $date = new \DateTimeImmutable('2026-10-31');
+
+        self::assertFalse($format->exceedsCounter('20262147483647', $date));
+        self::assertTrue($format->exceedsCounter('20262147483648', $date));
+        self::assertFalse($format->exceedsCounter('202600000000000000000000000001', $date));
+        self::assertTrue($format->exceedsCounter('202612345678901', $date));
+        self::assertFalse($format->exceedsCounter('ABC', $date));
+    }
 }
