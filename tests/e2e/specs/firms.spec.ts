@@ -158,7 +158,8 @@ test.describe.serial('an owner manages firms', () => {
   });
 
   test('the form looks as approved @visual', async ({ page }) => {
+    // Only the form: the sidebar counts depend on what ran before.
     await page.goto('/settings/firms/new');
-    await expect(page).toHaveScreenshot('form.png');
+    await expect(page.locator('form:has(#name)')).toHaveScreenshot('form.png');
   });
 });
