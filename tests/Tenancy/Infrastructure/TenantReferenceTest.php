@@ -77,6 +77,44 @@ final class TenantReferenceTest extends KernelTestCase
         $this->em->flush();
     }
 
+    public function testAnUninitializedProxyOfAnotherTenantIsRefusedOnUpdate(): void
+    {
+        $noteA = $this->seedNote(TenantId::generate(), 'a1');
+        $noteAId = $noteA->id();
+        $this->em->clear();
+
+        $this->context->switchTo(TenantId::generate());
+        $noteB = new TestNote('b1');
+        $attachment = new TestAttachment($noteB, 'b-att');
+        $this->em->persist($noteB);
+        $this->em->persist($attachment);
+        $this->em->flush();
+        new \ReflectionProperty(TestAttachment::class, 'note')->setValue($attachment, $this->em->getReference(TestNote::class, $noteAId));
+
+        $this->expectException(TenantMismatch::class);
+        $this->em->flush();
+    }
+
+    public function testAnUpdateLeavingAReferenceAloneDoesNotLoadIt(): void
+    {
+        $this->context->switchTo(TenantId::generate());
+        $note = new TestNote('a1');
+        $attachment = new TestAttachment($note, 'a-att');
+        $this->em->persist($note);
+        $this->em->persist($attachment);
+        $this->em->flush();
+        $this->em->clear();
+
+        $stored = $this->em->find(TestAttachment::class, $attachment->id()) ?? throw new \LogicException('The attachment is missing.');
+        $stored->relabel('renamed');
+        self::assertTrue($this->em->getUnitOfWork()->isUninitializedObject($stored->note()));
+
+        $this->em->flush();
+
+        self::assertTrue($this->em->getUnitOfWork()->isUninitializedObject($stored->note()));
+        self::assertSame('renamed', $this->em->getConnection()->fetchOne('SELECT label FROM test_attachment'));
+    }
+
     public function testAReferenceWithinOneTenantIsAccepted(): void
     {
         $this->context->switchTo(TenantId::generate());

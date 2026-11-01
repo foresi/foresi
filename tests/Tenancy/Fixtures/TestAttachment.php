@@ -33,7 +33,7 @@ class TestAttachment implements TenantOwned
         #[ORM\JoinColumn(nullable: false)]
         private TestNote $note,
         #[ORM\Column(type: 'string', length: 255)]
-        private readonly string $label,
+        private string $label,
     ) {
         $this->id = Id::generate();
     }
@@ -46,6 +46,11 @@ class TestAttachment implements TenantOwned
     public function label(): string
     {
         return $this->label;
+    }
+
+    public function relabel(string $label): void
+    {
+        $this->label = $label;
     }
 
     public function note(): TestNote

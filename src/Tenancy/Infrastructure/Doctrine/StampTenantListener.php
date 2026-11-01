@@ -20,7 +20,6 @@ use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\ToOneAssociationMapping;
-use Doctrine\ORM\Proxy\DefaultProxyClassNameResolver;
 
 /**
  * Stamps the active tenant on new tenant-owned entities. Entities expose no
@@ -28,7 +27,9 @@ use Doctrine\ORM\Proxy\DefaultProxyClassNameResolver;
  * also refuses a single-valued association from a tenant-owned entity to an
  * entity of another tenant. That runs on flush, not on persist, because by then
  * every new entity of the unit of work has been stamped, whatever the order of
- * persist calls. Targets that are not tenant-owned (a User, say) are skipped.
+ * persist calls. Targets that are not tenant-owned (a User, say) are skipped. An
+ * update checks only the associations it changes, so a proxy it leaves alone
+ * stays unloaded.
  */
 #[AsDoctrineListener(event: Events::prePersist)]
 #[AsDoctrineListener(event: Events::onFlush)]
@@ -70,20 +71,28 @@ final readonly class StampTenantListener
         $em = $args->getObjectManager();
         $uow = $em->getUnitOfWork();
 
-        foreach ([...$uow->getScheduledEntityInsertions(), ...$uow->getScheduledEntityUpdates()] as $entity) {
+        foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if ($entity instanceof TenantOwned) {
-                $this->assertReferencesShareTenant($em, $entity);
+                $this->assertReferencesShareTenant($em, $entity, null);
+            }
+        }
+        foreach ($uow->getScheduledEntityUpdates() as $entity) {
+            if ($entity instanceof TenantOwned) {
+                $this->assertReferencesShareTenant($em, $entity, array_keys($uow->getEntityChangeSet($entity)));
             }
         }
     }
 
-    private function assertReferencesShareTenant(EntityManagerInterface $em, TenantOwned $entity): void
+    /**
+     * @param list<string>|null $changed the fields to check, null for all
+     */
+    private function assertReferencesShareTenant(EntityManagerInterface $em, TenantOwned $entity, ?array $changed): void
     {
         $metadata = $em->getClassMetadata($entity::class);
         $own = $this->tenantOf($metadata, $entity);
 
         foreach ($metadata->getAssociationMappings() as $mapping) {
-            if (!$mapping instanceof ToOneAssociationMapping) {
+            if (!$mapping instanceof ToOneAssociationMapping || (null !== $changed && !\in_array($mapping->fieldName, $changed, true))) {
                 continue;
             }
 
@@ -96,7 +105,7 @@ final readonly class StampTenantListener
                 if ($em->getUnitOfWork()->isUninitializedObject($target)) {
                     $em->getUnitOfWork()->initializeObject($target);
                 }
-                $theirs = $this->tenantOf($em->getClassMetadata(DefaultProxyClassNameResolver::getClass($target)), $target);
+                $theirs = $this->tenantOf($em->getClassMetadata($target::class), $target);
             } catch (EntityNotFoundException) {
                 // An uninitialized proxy the tenant filter hides: it belongs elsewhere.
                 throw TenantMismatch::create();
