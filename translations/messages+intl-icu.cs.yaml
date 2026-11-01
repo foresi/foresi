@@ -496,6 +496,7 @@ series:
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
   export:
+    incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
     link: Pro účetní
     intro: Stáhne ZIP s PDF fakturami a jejich ISDOC za zvolené období podle data zdanitelného plnění. Doklady v koši zůstávají stranou. Nic se nikam neodesílá.
@@ -507,6 +508,9 @@ invoice:
     backwards: Konec období nesmí být před jeho začátkem.
     too_long: 'Období může mít nejvýše {days} dní.'
   pdf:
+    footer: '{title} · Strana {page}/{pages}'
+    unsupported_country: 'Fakturu {number} nelze vytisknout: pravidla země vystavitele tato instalace nezná.'
+    trashed: V KOŠI – DOKLAD NEPLATÍ
     document_title: 'Faktura {number}'
     title_tax: Faktura - daňový doklad
     title: Faktura
@@ -809,6 +813,10 @@ invoice:
     '20': Dodání plynu soustavami nebo sítěmi obchodníkovi
     '21': Poskytnutí vymezených služeb elektronických komunikací
   problem:
+    number_not_accepted: Číslo může mít nejvýše 40 znaků a nesmí obsahovat * ani %, jinak by nešel vytvořit QR kód.
+    firm_identified_person: Pro identifikovanou osobu zatím nelze vystavovat doklady, pravidla pro ni čekají na posouzení.
+    unprintable: 'Tento text obsahuje znaky, které faktura nevytiskne: {characters}'
+    unprintable_part: '{part, select, name {Název} street {Ulice} city {Město} postal_code {PSČ} registration_number {IČO} vat_id {DIČ} register_entry {Zápis v rejstříku} email {E-mail} phone {Telefon} web {Web} other {Údaj}} obsahuje znaky, které faktura nevytiskne: {characters}'
     country_invalid: Vyberte zemi ze seznamu.
     email_invalid: Zadejte platnou e-mailovou adresu.
     constant_symbol_invalid: Konstantní symbol obsahuje jen číslice.

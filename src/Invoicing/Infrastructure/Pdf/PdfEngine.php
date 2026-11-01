@@ -27,6 +27,9 @@ final readonly class PdfEngine
     private const float MARGIN_MM = 15.0;
     private const float PAGE_WIDTH_MM = 210.0;
     private const float PAGE_HEIGHT_MM = 297.0;
+    private const float CONTENT_BOTTOM_MM = 20.0;
+    private const float FOOTER_FROM_BOTTOM_MM = 12.0;
+    private const float FOOTER_SIZE = 7.0;
     private const string CREATOR = 'Foresi';
 
     private string $fontDirectory;
@@ -46,8 +49,9 @@ final readonly class PdfEngine
     }
 
     /**
-     * @param string $language BCP 47 tag of the document, for example "cs"
-     * @param string $htmlHead what comes before the body: the QR code keeps its place below it, however tall it grows
+     * @param string                            $language BCP 47 tag of the document, for example "cs"
+     * @param string                            $htmlHead what comes before the body: the QR code keeps its place below it, however tall it grows
+     * @param (\Closure(int, int): string)|null $footer   the footer of a page, from its number and the number of pages
      *
      * @return string the PDF bytes
      */
@@ -58,6 +62,7 @@ final readonly class PdfEngine
         ?EmbeddedFile $file,
         ?QrFigure $qr = null,
         string $htmlHead = '',
+        ?\Closure $footer = null,
     ): string {
         $logos = $this->existingLogoDirectories();
         $pdf = new Tcpdf(
@@ -86,7 +91,7 @@ final readonly class PdfEngine
 
         // Every page keeps these: a table that breaks continues inside them.
         $margin = self::MARGIN_MM;
-        $pdf->addPage(['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => $margin]]);
+        $pdf->addPage(['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => self::CONTENT_BOTTOM_MM]]);
         $pdf->page->addContent($regular['out']);
 
         $page = $pdf->page->getPageID();
@@ -102,6 +107,10 @@ final readonly class PdfEngine
             $this->drawQr($pdf, $qr, $page, $bodyTop - self::MARGIN_MM);
         }
 
+        if ($footer instanceof \Closure) {
+            $this->drawFooters($pdf, $footer);
+        }
+
         if ($file instanceof EmbeddedFile) {
             $pdf->addContentAsEmbeddedFile(
                 $file->name,
@@ -112,6 +121,29 @@ final readonly class PdfEngine
         }
 
         return $pdf->getOutPDFString();
+    }
+
+    /**
+     * Written last, when the number of pages is known, as artifacts: a footer is
+     * pagination, not content of the document.
+     *
+     * @param \Closure(int, int): string $footer
+     */
+    private function drawFooters(Tcpdf $pdf, \Closure $footer): void
+    {
+        $font = $pdf->font->insert($pdf->pon, self::FONT, '', self::FOOTER_SIZE, ifile: $this->fontDirectory.'/inter.json');
+        $pages = $pdf->page->getPageID() + 1;
+        for ($page = 0; $page < $pages; ++$page) {
+            $text = $pdf->getTextCell(
+                $footer($page + 1, $pages),
+                self::MARGIN_MM,
+                self::PAGE_HEIGHT_MM - self::FOOTER_FROM_BOTTOM_MM,
+                self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM,
+                valign: 'T',
+                halign: 'L',
+            );
+            $pdf->addArtifactContent($font['out'].$text, $page, 'Pagination', 'Footer');
+        }
     }
 
     /**

@@ -19,6 +19,7 @@ use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf;
 use App\Party\Application\FirmImages;
 use App\Party\Domain\Address;
@@ -408,6 +409,71 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertMatchesRegularExpression('/First row.*\n.*Second row/', $text);
     }
 
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function longValues(): iterable
+    {
+        yield 'twelve digits' => ['123456789012.34', '1', 'kilowatthodina'];
+        yield 'small price, long quantity' => ['0.01', '999999999.9999', 'měsíc'];
+        yield 'seven digits' => ['1234567.89', '1', 'měsíc'];
+    }
+
+    #[DataProvider('longValues')]
+    public function testValuesNeverBreakInsideACell(string $price, string $quantity, string $unit): void
+    {
+        $document = $this->issued([new LineInput('Work', Quantity::fromString($quantity), $unit, Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('33.33'))]);
+        $rendered = $this->render($document);
+        $text = PdfTools::text($rendered->bytes);
+
+        $line = $document->lines[0];
+        $amounts = self::getContainer()->get(AmountText::class);
+        foreach ([$line->net(), $line->vat(), $line->gross(), $document->gross, $line->price()] as $money) {
+            self::assertStringContainsString(str_replace("\u{a0}", ' ', $amounts->grouped($money)), $text);
+        }
+        self::assertStringContainsString($amounts->quantity($line->quantity()->toDecimal()), $text);
+        self::assertStringContainsString($unit, $text);
+        self::assertStringContainsString('33,33 %', $text);
+        VeraPdf::assertConforms($rendered->bytes, '3a');
+    }
+
+    public function testALargestQrAmountFitsTheBand(): void
+    {
+        $document = $this->issued([$this->line('8264462.80')]);
+
+        self::assertStringContainsString('10 000 000,00 CZK', $this->textOf($this->issued([$this->line('8264462.81')])));
+        self::assertMatchesRegularExpression('/\d 999 999,\d\d CZK|10 000 000,00 CZK/', $this->textOf($document));
+    }
+
+    public function testAPageFooterNamesTheNumberAndThePage(): void
+    {
+        $lines = [];
+        for ($index = 1; $index <= 60; ++$index) {
+            $lines[] = $this->line(text: 'Long line '.str_repeat('text ', 30).$index);
+        }
+        $document = $this->issued($lines);
+        $rendered = $this->render($document);
+        $pages = PdfTools::pages($rendered->bytes);
+
+        self::assertGreaterThan(1, $pages);
+        for ($page = 1; $page <= $pages; ++$page) {
+            self::assertMatchesRegularExpression('/Faktura '.$document->number.' · Strana '.$page.'\/'.$pages.'/u', PdfTools::text($rendered->bytes));
+        }
+        VeraPdf::assertConforms($rendered->bytes, '3a');
+    }
+
+    public function testATrashedDocumentIsMarked(): void
+    {
+        $id = $this->issue->issue($this->input())->id();
+        self::assertStringNotContainsString('V KOŠI', PdfTools::text($this->render($this->of($id))->bytes));
+
+        $this->trash->trash($id, 'Wrong customer');
+        $rendered = $this->render($this->of($id));
+
+        self::assertStringContainsString('V KOŠI', PdfTools::text($rendered->bytes));
+        VeraPdf::assertConforms($rendered->bytes, '3a');
+    }
+
     public function testTheQrIsAtLeast30mm(): void
     {
         $image = imagecreatefromstring(PdfTools::firstPagePng($this->render($this->issued([$this->line()]))->bytes));
@@ -441,6 +507,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $rendered = $this->render($this->issued([$this->line()], ['typedNumber' => 'fa/2026-7']));
 
         self::assertSame('FA20267-isdoc.pdf', $rendered->fileName);
+        self::assertSame('FACA12-isdoc.pdf', $this->render($this->issued([$this->line()], ['typedNumber' => 'FAČá/12', 'variableSymbol' => '']))->fileName);
     }
 
     public function testTheDocumentIsTitledAndLabelled(): void

@@ -234,6 +234,43 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
+    public function testADocumentThatCannotBeDrawnStopsTheDownloadAndIsNamed(): void
+    {
+        $this->signedIn();
+        $good = $this->issue('2026-10-05');
+        $bad = $this->issue('2026-10-06');
+        $this->scoped(fn (): int => (int) $this->em()->getConnection()->executeStatement("UPDATE invoice SET issuer_address_country_code = 'XX' WHERE id = :id", ['id' => $bad->id()]));
+        $before = $this->temporary();
+
+        $crawler = $this->post(['from' => '2026-10-01', 'to' => '2026-10-31']);
+
+        self::assertResponseStatusCodeSame(422);
+        $notice = $crawler->filter('main form [role="status"]')->text();
+        self::assertStringContainsString($bad->number(), $notice);
+        self::assertStringNotContainsString($good->number(), $notice);
+        self::assertSame($before, $this->temporary());
+    }
+
+    public function testAFailingArchiveFailsLoudly(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-10-05');
+        $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
+        // The working directory of the bundle cannot be created over a file.
+        touch($path.'.parts');
+
+        try {
+            $this->scoped(function () use ($path): void {
+                $firm = self::getContainer()->get(LegalEntities::class)->get($this->firm->id());
+                $this->expectException(\RuntimeException::class);
+                self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+            });
+        } finally {
+            unlink($path);
+            unlink($path.'.parts');
+        }
+    }
+
     public function testTheTemporaryFileIsGone(): void
     {
         $this->signedIn();

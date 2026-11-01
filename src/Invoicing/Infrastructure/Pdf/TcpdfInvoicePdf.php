@@ -50,9 +50,17 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     private const string QR_BAND_HEIGHT = '40mm';
     private const array LOGO_BOX = [60.0, 20.0];
     private const array STAMP_BOX = [55.0, 28.0];
-    /** Shares of the page; the text column takes what the others leave. */
-    private const array PAYER_COLUMNS = ['quantity' => 7, 'unit' => 5, 'price' => 11, 'discount' => 6, 'rate' => 6, 'base' => 11, 'vat' => 10, 'total' => 11];
-    private const array PLAIN_COLUMNS = ['quantity' => 9, 'unit' => 6, 'price' => 14, 'discount' => 7, 'total' => 14];
+    /** The least a column takes, in millimetres; the text column has what the others leave. */
+    private const array PAYER_COLUMNS = ['quantity' => 12.6, 'unit' => 9.0, 'price' => 19.8, 'discount' => 10.8, 'rate' => 10.8, 'base' => 19.8, 'vat' => 18.0, 'total' => 19.8];
+    private const array PLAIN_COLUMNS = ['quantity' => 16.2, 'unit' => 10.8, 'price' => 25.2, 'discount' => 12.6, 'total' => 25.2];
+    private const array RECAP_COLUMNS = ['base' => 21.9, 'vat' => 21.9, 'total' => 23.0];
+    /** The items table shrinks its type before a value would break. */
+    private const array TABLE_SIZES = [9.0, 8.0, 7.0, 6.0];
+    private const float TABLE_WIDTH_MM = 180.0;
+    private const float RECAP_WIDTH_MM = 115.2;
+    private const float CELL_PADDING_MM = 2.2;
+    private const float LEAST_TEXT_MM = 40.0;
+    private const float LEAST_LABEL_MM = 36.0;
 
     public function __construct(
         private Environment $twig,
@@ -63,6 +71,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
         private AmountText $amounts,
+        private PdfFont $font,
     ) {
     }
 
@@ -83,6 +92,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
                 $file instanceof \App\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
                 null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
                 $template->renderBlock('head', ['doc' => $view]),
+                fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number]), 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
             return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \App\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
@@ -97,7 +107,22 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         $payer = VatRegime::Payer === $document->regime;
         $hasDiscount = array_any($document->lines, static fn (InvoiceLine $line): bool => 0 < $line->discount()->basisPoints());
 
+        $lines = array_map($this->line(...), $document->lines);
+        $rounding = $document->rounding->isZero() ? null : [
+            'quantity' => $this->amounts->quantity('1.0000'),
+            'amount' => $this->amount($document->rounding),
+            'zero' => $this->amount(Money::ofMinor(0, $document->currency)),
+        ];
+        $recap = array_map($this->recapRow(...), $document->summaries);
+        $totals = ['base' => $this->amount($document->net), 'vat' => $this->hasCharge($document) ? $this->amount($document->vat) : '', 'total' => $this->amount($document->gross)];
+        [$columns, $size] = $this->columns($payer, $hasDiscount, $lines, $rounding);
+        [$recapColumns] = $this->fitted(self::RECAP_COLUMNS, [...$recap, $totals], 'label', self::RECAP_WIDTH_MM, self::LEAST_LABEL_MM, $size);
+
         return [
+            'trashed' => $document->trashed,
+            'columns' => $columns,
+            'tableSize' => $size,
+            'recapColumns' => $recapColumns,
             'payer' => $payer,
             'title' => $this->trans($payer ? 'invoice.pdf.title_tax' : 'invoice.pdf.title'),
             'number' => $document->number,
@@ -119,18 +144,13 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'hasQr' => $hasQr,
             'qrBandHeight' => self::QR_BAND_HEIGHT,
             'hasDiscount' => $hasDiscount,
-            'columns' => $this->columns($payer, $hasDiscount),
-            'lines' => array_map($this->line(...), $document->lines),
-            'rounding' => $document->rounding->isZero() ? null : [
-                'quantity' => $this->amounts->quantity('1.0000'),
-                'amount' => $this->amount($document->rounding),
-                'zero' => $this->amount(Money::ofMinor(0, $document->currency)),
-            ],
+            'lines' => $lines,
+            'rounding' => $rounding,
             'notes' => $this->notes($document, $country),
-            'recap' => array_map($this->recapRow(...), $document->summaries),
-            'net' => $this->amount($document->net),
-            'vat' => $this->hasCharge($document) ? $this->amount($document->vat) : '',
-            'gross' => $this->amount($document->gross),
+            'recap' => $recap,
+            'net' => $totals['base'],
+            'vat' => $totals['vat'],
+            'gross' => $totals['total'],
             'payable' => $this->money($document->payable),
             'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
             'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
@@ -159,18 +179,55 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     }
 
     /**
-     * @return array<string, string>
+     * The widths of the items table and the size of its type, from what the cells hold.
+     *
+     * @param list<array<string, string>> $lines
+     * @param array<string, string>|null  $rounding
+     *
+     * @return array{array<string, string>, float}
      */
-    private function columns(bool $payer, bool $hasDiscount): array
+    private function columns(bool $payer, bool $hasDiscount, array $lines, ?array $rounding): array
     {
-        $columns = $payer ? self::PAYER_COLUMNS : self::PLAIN_COLUMNS;
+        $least = $payer ? self::PAYER_COLUMNS : self::PLAIN_COLUMNS;
         if (!$hasDiscount) {
-            unset($columns['discount']);
+            unset($least['discount']);
         }
-        $widths = array_map(static fn (int $share): string => $share.'%', $columns);
-        $widths['text'] = (100 - array_sum($columns)).'%';
+        $rows = null === $rounding ? $lines : [...$lines, ['quantity' => $rounding['quantity'], 'price' => $rounding['amount'], 'base' => $rounding['amount'], 'vat' => $rounding['zero'], 'total' => $rounding['amount']]];
 
-        return $widths;
+        return $this->fitted($least, $rows, 'text', self::TABLE_WIDTH_MM, self::LEAST_TEXT_MM);
+    }
+
+    /**
+     * Gives every column room for its longest value, and the free column the rest,
+     * at the largest type that leaves the free column usable. A value then has no
+     * reason to break: only the free column wraps, and a unit at its spaces.
+     *
+     * @param array<string, float>        $least
+     * @param list<array<string, string>> $rows
+     *
+     * @return array{array<string, string>, float}
+     */
+    private function fitted(array $least, array $rows, string $free, float $width, float $leastFree, ?float $size = null): array
+    {
+        $sizes = null === $size ? self::TABLE_SIZES : [$size];
+        $widths = $least;
+        $last = end($sizes);
+        foreach ($sizes as $candidate) {
+            $last = $candidate;
+            $widths = $least;
+            foreach (array_keys($least) as $column) {
+                foreach ($rows as $row) {
+                    $widths[$column] = max($widths[$column], $this->font->longestWord($row[$column] ?? '', $candidate) + self::CELL_PADDING_MM);
+                }
+            }
+            if ($width - array_sum($widths) >= $leastFree) {
+                break;
+            }
+        }
+        $columns = array_map(static fn (float $mm): string => \sprintf('%.2F%%', 100 * $mm / $width), $widths);
+        $columns[$free] = \sprintf('%.2F%%', 100 * ($width - array_sum($widths)) / $width);
+
+        return [$columns, $last];
     }
 
     /**
@@ -297,7 +354,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
 
     private function percent(Percent $percent): string
     {
-        return $this->amounts->trimmed($percent->decimal()).' %';
+        return $this->amounts->trimmed($percent->decimal())."\u{a0}%";
     }
 
     private function date(\DateTimeImmutable $date): string

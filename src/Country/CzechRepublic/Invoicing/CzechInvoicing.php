@@ -60,6 +60,11 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return $this->supplyCodes->on($on);
     }
 
+    public function acceptsNumber(string $number): bool
+    {
+        return QrPlatba::canCarry($number);
+    }
+
     public function domesticAccount(string $iban): ?string
     {
         $parts = CzechBankAccount::partsOf($iban);

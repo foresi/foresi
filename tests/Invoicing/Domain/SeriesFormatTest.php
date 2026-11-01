@@ -128,7 +128,8 @@ final class SeriesFormatTest extends TestCase
     {
         self::assertSame('FV26001', NumberKey::of('fv-26/001'));
         self::assertSame('20260089', NumberKey::of('20260089'));
-        self::assertSame('A1', NumberKey::of(' a č 1 '));
+        self::assertSame('AC1', NumberKey::of(' a č 1 '));
+        self::assertSame('FA1', NumberKey::of('ФА1'));
     }
 
     public function testTheVariableSymbolIsTheDigitsThatFit(): void

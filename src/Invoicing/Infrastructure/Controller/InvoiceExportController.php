@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\BundleIncomplete;
 use App\Invoicing\Application\InvoiceBundle;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Party\Application\LegalEntities;
@@ -92,6 +93,10 @@ final class InvoiceExportController extends AbstractController
         }
         try {
             $count = $this->bundle->writeTo($path, $firm, $from, $to);
+        } catch (BundleIncomplete $incomplete) {
+            unlink($path);
+
+            return $this->form($firm->id(), $fromText, $toText, [], $this->translator->trans('invoice.export.incomplete', ['numbers' => implode(', ', $incomplete->numbers)]), Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Throwable $failure) {
             unlink($path);
 

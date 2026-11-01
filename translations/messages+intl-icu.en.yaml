@@ -496,6 +496,7 @@ series:
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
   export:
+    incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
     link: For the accountant
     intro: Downloads a ZIP of the invoice PDFs with their ISDOC for a period, by tax point date. Documents in the trash stay out. Nothing is sent anywhere.
@@ -507,6 +508,9 @@ invoice:
     backwards: The end of the period cannot come before its start.
     too_long: 'A period has at most {days} days.'
   pdf:
+    footer: '{title} · Page {page}/{pages}'
+    unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
+    trashed: IN THE TRASH – NOT A VALID DOCUMENT
     document_title: 'Invoice {number}'
     title_tax: Invoice - tax document
     title: Invoice
@@ -809,6 +813,10 @@ invoice:
     '20': Supply of gas through networks to a trader
     '21': Defined electronic communications services
   problem:
+    number_not_accepted: A number has at most 40 characters and no * or %, or its QR code could not be made.
+    firm_identified_person: 'An identified person cannot issue documents yet: the rules for it are under review.'
+    unprintable: 'This text holds characters the invoice cannot print: {characters}'
+    unprintable_part: '{part, select, name {Name} street {Street} city {City} postal_code {Postal code} registration_number {Registration number} vat_id {VAT ID} register_entry {Register entry} email {Email} phone {Phone} web {Web} other {A value}} holds characters the invoice cannot print: {characters}'
     country_invalid: Choose a country from the list.
     email_invalid: Enter a valid e-mail address.
     constant_symbol_invalid: The constant symbol has digits only.

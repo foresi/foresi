@@ -165,15 +165,6 @@ final class IssueInvoiceTest extends InvoiceTestCase
         self::assertNull($document->summaries[0]->rate);
     }
 
-    public function testAnIdentifiedPersonIssuesWithoutVat(): void
-    {
-        $firm = $this->secondFirm(VatStatus::IdentifiedPerson, 'CZ27074358');
-
-        $invoice = $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null]));
-
-        self::assertSame(VatRegime::NonPayer, $invoice->vatRegime());
-    }
-
     public function testARegisteredFirmWithoutAVatIdIsRefusedAtIssue(): void
     {
         $firm = $this->secondFirm(VatStatus::Registered, null);
@@ -272,6 +263,120 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input(overrides: ['customerOnDocument' => $copy]));
 
         self::assertSame('Typed Name', $this->reloaded($invoice)->customer()->name);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function printableScripts(): iterable
+    {
+        yield 'Czech' => ['Příliš žluťoučký kůň'];
+        yield 'Vietnamese' => ['Việt Nam, Hà Nội, Đường'];
+        yield 'Cyrillic' => ['Съешь ещё мягких булок'];
+        yield 'Greek' => ['Ταχίστη αλώπηξ'];
+    }
+
+    #[DataProvider('printableScripts')]
+    public function testTextOfTheFontIsAccepted(string $text): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line(text: $text)], ['description' => $text]));
+
+        self::assertSame($text, $invoice->description());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function unprintableFields(): iterable
+    {
+        yield 'description' => ['description', 'description'];
+        yield 'text before' => ['textBefore', 'textBefore'];
+        yield 'text after' => ['textAfter', 'textAfter'];
+        yield 'order number' => ['orderNumber', 'orderNumber'];
+    }
+
+    #[DataProvider('unprintableFields')]
+    public function testTextOutsideTheFontIsRefusedOnItsField(string $override, string $field): void
+    {
+        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: [$override => '中文'])));
+
+        self::assertSame([[$field, 'invoice.problem.unprintable', ['characters' => '中, 文']]], $problems);
+    }
+
+    public function testALineOutsideTheFontIsRefusedOnItsCell(): void
+    {
+        $line = new LineInput('Práce 😀', Quantity::fromString('1'), 'مرة', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+        $fields = array_map(static fn (array $problem): string => $problem[0], $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input([$this->line(), $line]))));
+
+        self::assertSame(['lines.1.text', 'lines.1.unit'], $fields);
+    }
+
+    public function testACustomerOutsideTheFontIsRefused(): void
+    {
+        $party = new Party(PartyKind::Person, '東京株式会社', null, null, '');
+        $this->em->persist($party);
+        $this->em->persist(new PartyAddress($party, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        $this->em->flush();
+
+        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['customerId' => $party->id()])));
+
+        self::assertSame('customer', $problems[0][0]);
+        self::assertSame('invoice.problem.unprintable_part', $problems[0][1]);
+        self::assertSame('name', $problems[0][2]['part']);
+    }
+
+    public function testAFirmOutsideTheFontIsRefused(): void
+    {
+        $firm = new LegalEntity('中文 s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 2', [self::IBAN]);
+        $this->em->persist($firm);
+        $this->em->flush();
+
+        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+
+        self::assertSame('firm', $problems[0][0]);
+        self::assertSame('invoice.problem.unprintable_part', $problems[0][1]);
+    }
+
+    public function testATypedNumberOutsideTheFontIsRefused(): void
+    {
+        $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['typedNumber' => 'FA中1'])));
+
+        self::assertContains('number', array_map(static fn (array $problem): string => $problem[0], $problems));
+    }
+
+    public function testAnIdentifiedPersonCannotIssueYet(): void
+    {
+        $firm = $this->secondFirm(VatStatus::IdentifiedPerson, 'CZ27074358');
+
+        $this->assertRefusedFor('invoice.problem.firm_identified_person', fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
+    }
+
+    public function testANumberTheCountryCannotCarryIsRefused(): void
+    {
+        foreach (['FA*1', 'FA%1', str_repeat('1', 41)] as $number) {
+            $this->assertRefusedFor('invoice.problem.number_not_accepted', fn (): Invoice => $this->issue->issue($this->input(overrides: ['typedNumber' => $number])));
+        }
+    }
+
+    public function testNumbersThatDifferOnlyByDiacriticsAreOneNumber(): void
+    {
+        $this->issue->issue($this->input(overrides: ['typedNumber' => 'FAČ1']));
+
+        $this->assertRefusedFor('invoice.problem.number_taken', fn (): Invoice => $this->issue->issue($this->input(overrides: ['typedNumber' => 'fac-1'])));
+    }
+
+    /**
+     * @return list<array{string, string, array<string, string>}>
+     */
+    private function problemsOf(callable $save): array
+    {
+        try {
+            $save();
+        } catch (IssueRefused $refused) {
+            return array_map(static fn (IssueProblem $problem): array => [$problem->field, $problem->key, $problem->parameters], $refused->problems);
+        }
+        self::fail('Expected the save to be refused.');
     }
 
     public function testReverseChargeNeedsTheCustomerVatId(): void
@@ -761,9 +866,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
     public function testLimitsOfTheDocumentFieldsAreInclusive(): void
     {
         $line = new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 32), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-        $invoice = $this->issue->issue($this->input([$line], ['orderNumber' => str_repeat('č', 64), 'constantSymbol' => str_repeat('1', 10), 'typedNumber' => str_repeat('1', 80)]));
+        $invoice = $this->issue->issue($this->input([$line], ['orderNumber' => str_repeat('č', 64), 'constantSymbol' => str_repeat('1', 10), 'typedNumber' => str_repeat('1', 40)]));
 
-        self::assertSame(str_repeat('1', 80), $invoice->number());
+        self::assertSame(str_repeat('1', 40), $invoice->number());
         self::assertSame(['invoice.problem.too_long'], $this->refusalOf(fn (): Invoice => $this->issue->issue($this->input([new LineInput('Work', Quantity::fromString('1'), str_repeat('č', 33), Money::of('10', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]))));
     }
 
@@ -889,11 +994,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testATypedNumberIsMeasuredWithoutSpacesAndInCharacters(): void
     {
-        $spaced = $this->issue->issue($this->input(overrides: ['typedNumber' => '  '.str_repeat('7', 80).'  ']));
-        $accented = $this->issue->issue($this->input(overrides: ['typedNumber' => str_repeat('ČA', 40)]));
+        $spaced = $this->issue->issue($this->input(overrides: ['typedNumber' => '  '.str_repeat('7', 40).'  ']));
+        $accented = $this->issue->issue($this->input(overrides: ['typedNumber' => str_repeat('ČA', 20)]));
 
-        self::assertSame(str_repeat('7', 80), $spaced->number());
-        self::assertSame(str_repeat('ČA', 40), $accented->number());
+        self::assertSame(str_repeat('7', 40), $spaced->number());
+        self::assertSame(str_repeat('ČA', 20), $accented->number());
     }
 
     public function testLinesWithoutARateNeedNoKind(): void
