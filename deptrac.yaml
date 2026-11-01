@@ -206,6 +206,8 @@ deptrac:
       - AuditDomain
     PartyApplication:
       - PartyDomain
+      # The image store is keyed by tenant.
+      - TenancyDomain
       - SharedDomain
       - SharedApplication
       - TenancyApplication
@@ -214,6 +216,7 @@ deptrac:
     PartyInfrastructure:
       - SharedInfrastructure
       - PartyDomain
+      - TenancyDomain
       - PartyApplication
       - VendorSymfony
       - VendorUid

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Number series per firm under the new Invoicing screen of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers.
+- Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.
+- A logo and an image with stamp and signature on the firm form. Both stay outside the web root in `var/share/firm-images`, so include that directory in backups.
+
 ### Changed
 
 - SQLite 3.35 or newer is required, for the atomic counter of number series.

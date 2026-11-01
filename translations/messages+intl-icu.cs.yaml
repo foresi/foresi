@@ -387,6 +387,7 @@ firm:
     tax: DPH
     seat: Sídlo
     documents: Údaje na dokladech
+    images: Logo a razítko
   field:
     name: Název
     vatStatus: Vztah k DPH
@@ -394,6 +395,14 @@ firm:
     registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
     bankAccounts: Bankovní účty
     bankAccounts_help: 'IBAN, každý na samostatný řádek'
+    logo: Logo
+    logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
+    logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
+    removeLogo: Odebrat logo
+    stamp: Razítko a podpis
+    stamp_help: 'Jeden PNG nebo JPEG, nejvýš 1 MB. Jen pro doklady'
+    stamp_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
+    removeStamp: Odebrat razítko a podpis
   vat_status:
     registered: Plátce DPH
     not_registered: Neplátce DPH
@@ -411,6 +420,70 @@ firm:
     iban: 'Zkontrolujte IBAN: {iban}'
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
+    image_type: Nahrajte obrázek PNG nebo JPEG.
+    image_size: Obrázek může mít nejvýš 1 MB.
+    image_upload: Obrázek se nepodařilo nahrát. Zkuste to znovu.
+  invoicing:
+    title: Fakturace
+    card:
+      defaults: Výchozí hodnoty faktury
+      texts: Texty na fakturách
+      contact: Kontakt na fakturách
+    field:
+      rounding: Zaokrouhlení celkové částky
+      rounding_help: Na faktuře je jako samostatný řádek
+      constantSymbol: Konstantní symbol
+      constantSymbol_help: 'Až 10 číslic, předvyplní se na nových fakturách'
+      textBefore: Text nad položkami
+      textBefore_help: 'Tiskne se nad položkami, třeba oslovení'
+      textAfter: Text pod položkami
+      textAfter_help: 'Tiskne se pod položkami, třeba platební podmínky'
+      contactEmail: E-mail
+      contactPhone: Telefon
+      contactWeb: Web
+    rounding:
+      whole_unit: Na celé koruny
+      none: Bez zaokrouhlení
+    flash:
+      saved: Nastavení fakturace je uložené.
+    error:
+      rounding: Vyberte, jak se zaokrouhluje celková částka.
+      constant_symbol: Zadejte nejvýš 10 číslic.
+      email: Zadejte platný e-mail.
+      save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+series:
+  title: Číselné řady
+  new: Nová číselná řada
+  edit: Upravit číselnou řadu
+  card: Číselná řada
+  default: Výchozí
+  first: 'Zatím tu není žádná řada. První faktura této firmy dostane číslo {number} ve standardní řadě.'
+  name:
+    standard: Standardní
+  column:
+    name: Název
+    format: Formát
+    next: Další číslo
+    default: Výchozí
+  field:
+    name: Název
+    format: Formát
+    format_help: "Značky '{YYYY} {YY} {MM} {DD}' a jedna '{NNNN}'"
+    format_locked_help: Řada už má čísla, proto je formát uzamčený
+    nextNumber: Další číslo
+    nextNumber_help: Pořadí pro letošní rok. Přeskočená čísla se nepoužijí
+    default: Výchozí řada pro nové faktury
+    default_help: Převezme to po dosavadní výchozí řadě
+    default_kept_help: Změníte to, když nastavíte výchozí jinou řadu
+  flash:
+    saved: Číselná řada je uložená.
+  error:
+    format: "Použijte jen písmena, číslice, . _ / - a značky '{YYYY} {YY} {MM} {DD}' s jednou '{NNNN}'."
+    format_locked: Řada už má čísla, formát proto nejde změnit.
+    format_taken: 'Čísla by se střetla s řadou {name}.'
+    name_taken: Tento název už má jiná řada této firmy.
+    next_number: Zadejte celé číslo od 1.
+    next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 import:
   number: '{value, number}'
   new: Nový import

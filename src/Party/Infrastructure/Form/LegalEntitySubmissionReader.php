@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
+use App\Party\Application\FirmImageType;
 use App\Party\Application\LegalEntityInput;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
@@ -18,6 +19,7 @@ use App\Party\Domain\InvalidVatId;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -29,6 +31,7 @@ final readonly class LegalEntitySubmissionReader
     /** The length limits of the columns. */
     private const array REQUIRED = ['name' => 255, 'street' => 255, 'city' => 128, 'postalCode' => 32];
     private const int MAX_REGISTER_ENTRY = 255;
+    private const int MAX_IMAGE_BYTES = 1_048_576;
 
     public function __construct(private RegistrationNumberFactory $registrationNumbers)
     {
@@ -49,6 +52,8 @@ final readonly class LegalEntitySubmissionReader
             'countryCode' => $this->country($post->getString('countryCode')),
             'registerEntry' => trim($post->getString('registerEntry')),
             'bankAccounts' => trim($post->getString('bankAccounts')),
+            'removeLogo' => $post->has('removeLogo') ? '1' : '',
+            'removeStamp' => $post->has('removeStamp') ? '1' : '',
         ];
 
         $errors = [];
@@ -73,6 +78,8 @@ final readonly class LegalEntitySubmissionReader
         $registrationNumber = $this->registrationNumber($values, $errors);
         $vatId = $this->vatId($values, $status, $errors);
         $accounts = $this->bankAccounts($values['bankAccounts'], $errors);
+        $logo = $this->image($request, 'logo', $errors);
+        $stamp = $this->image($request, 'stamp', $errors);
 
         if ([] !== $errors || !$registrationNumber instanceof RegistrationNumber || !$status instanceof VatStatus) {
             return new LegalEntitySubmission($values, $errors, null);
@@ -86,7 +93,40 @@ final readonly class LegalEntitySubmissionReader
             $status,
             $values['registerEntry'],
             $accounts,
-        ));
+        ), $logo, $stamp);
+    }
+
+    /**
+     * The bytes of an uploaded image. Its name and declared type say nothing: only
+     * the content decides. Read here so a wrong file is a form error like any other.
+     *
+     * @param array<string, array{0: string, 1?: array<string, string>}> $errors
+     */
+    private function image(Request $request, string $field, array &$errors): ?string
+    {
+        $file = $request->files->get($field);
+        if (!$file instanceof UploadedFile) {
+            return null;
+        }
+        if (!$file->isValid()) {
+            $errors[$field] = [\UPLOAD_ERR_INI_SIZE === $file->getError() || \UPLOAD_ERR_FORM_SIZE === $file->getError() ? 'firm.error.image_size' : 'firm.error.image_upload'];
+
+            return null;
+        }
+        if ($file->getSize() > self::MAX_IMAGE_BYTES) {
+            $errors[$field] = ['firm.error.image_size'];
+
+            return null;
+        }
+
+        $bytes = file_get_contents($file->getPathname());
+        if (false === $bytes || null === FirmImageType::of($bytes)) {
+            $errors[$field] = ['firm.error.image_type'];
+
+            return null;
+        }
+
+        return $bytes;
     }
 
     private function country(string $code): string

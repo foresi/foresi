@@ -387,6 +387,7 @@ firm:
     tax: VAT
     seat: Registered office
     documents: On documents
+    images: Logo and stamp
   field:
     name: Name
     vatStatus: VAT status
@@ -394,6 +395,14 @@ firm:
     registerEntry_help: The register and file number, as printed on documents
     bankAccounts: Bank accounts
     bankAccounts_help: 'IBAN, one per line'
+    logo: Logo
+    logo_help: 'PNG or JPEG, up to 1 MB'
+    logo_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
+    removeLogo: Remove the logo
+    stamp: Stamp and signature
+    stamp_help: 'One PNG or JPEG, up to 1 MB. Used only in documents'
+    stamp_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
+    removeStamp: Remove the stamp and signature
   vat_status:
     registered: VAT payer
     not_registered: Non-payer
@@ -411,6 +420,70 @@ firm:
     iban: 'Check the IBAN: {iban}'
     save_failed: The firm could not be saved. Check the details and try again.
     last_active: The last active firm cannot be archived. Add another firm first.
+    image_type: Upload a PNG or JPEG image.
+    image_size: The image must be 1 MB or smaller.
+    image_upload: The image could not be uploaded. Try it again.
+  invoicing:
+    title: Invoicing
+    card:
+      defaults: Invoice defaults
+      texts: Texts on invoices
+      contact: Contact on invoices
+    field:
+      rounding: Rounding of the total
+      rounding_help: Shown as a separate row of the invoice
+      constantSymbol: Constant symbol
+      constantSymbol_help: 'Up to 10 digits, prefilled on new invoices'
+      textBefore: Text above the items
+      textBefore_help: 'Printed above the items, for example a greeting'
+      textAfter: Text below the items
+      textAfter_help: 'Printed below the items, for example payment terms'
+      contactEmail: E-mail
+      contactPhone: Phone
+      contactWeb: Website
+    rounding:
+      whole_unit: To whole crowns
+      none: No rounding
+    flash:
+      saved: The invoicing settings are saved.
+    error:
+      rounding: Choose how the total is rounded.
+      constant_symbol: Enter up to 10 digits.
+      email: Enter a valid e-mail address.
+      save_failed: The settings could not be saved. Try it again.
+series:
+  title: Number series
+  new: New series
+  edit: Edit series
+  card: Series
+  default: Default
+  first: 'No series yet. The first invoice of this firm gets the number {number} in a standard series.'
+  name:
+    standard: Standard
+  column:
+    name: Name
+    format: Format
+    next: Next number
+    default: Default
+  field:
+    name: Name
+    format: Format
+    format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
+    format_locked_help: This series has numbers, so its format is locked
+    nextNumber: Next number
+    nextNumber_help: This year's sequence. Skipped numbers are not used
+    default: Default series for new invoices
+    default_help: Takes over from the current default series
+    default_kept_help: To change it, make another series the default
+  flash:
+    saved: The series is saved.
+  error:
+    format: "Use only letters, digits, . _ / - and the tokens '{YYYY} {YY} {MM} {DD}' with one '{NNNN}'."
+    format_locked: This series has numbers, so its format cannot change.
+    format_taken: 'Numbers would clash with the series {name}.'
+    name_taken: Another series of this firm has this name.
+    next_number: Enter a whole number from 1.
+    next_below_counter: 'This number is already used. The next free one is {next}.'
 import:
   number: '{value, number}'
   new: New import

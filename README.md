@@ -45,6 +45,8 @@ The built CSS is not committed, and tests and `composer qa` do not need it. Inte
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
+Firm logos and stamps are stored in `firm-images` below `APP_SHARE_DIR` (`var/share` by default), outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files.
+
 ## Background worker
 
 Long-running work (imports, register re-checks) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) and every message is handled inside the tenant it was dispatched in. Run migrations, then start one worker; it consumes `async` first and `registry` (low priority) after it:

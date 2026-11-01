@@ -11,6 +11,9 @@ parameters:
     app.product_name: Foresi
     # Uploaded import sources; never below public/, tenant directories inside.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
+    # Logos and stamps; never below public/. From the kernel, not from the environment
+    # variable: that one is relative, and the web server would resolve it inside public/.
+    app.firm_image_dir: '%kernel.share_dir%/firm-images'
 
 services:
     # default configuration for services in *this* file
@@ -53,6 +56,10 @@ services:
     App\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
+
+    App\Party\Infrastructure\Http\FilesystemFirmImages:
+        arguments:
+            $root: '%app.firm_image_dir%'
 
     App\Import\Infrastructure\LocalImportFiles:
         arguments:
@@ -137,6 +144,10 @@ when@e2e:
             public: true
 
 when@test:
+    parameters:
+        # Inside the test cache, so a test never writes to the real share directory.
+        app.firm_image_dir: '%kernel.cache_dir%/firm-images'
+
     services:
         _defaults:
             autowire: true
@@ -200,6 +211,9 @@ when@test:
             public: true
         App\Party\Application\TransactionalWork:
             alias: App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork
+            public: true
+        App\Invoicing\Application\FirmInvoicingSettings:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings
             public: true
 
         # Stands in for a plugin adding a sidebar item.

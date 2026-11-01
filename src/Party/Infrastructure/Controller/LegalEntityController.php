@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
+use App\Party\Application\FirmImages;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\LegalEntityInput;
 use App\Party\Application\TransactionalWork;
@@ -19,6 +20,7 @@ use App\Party\Infrastructure\Form\CountryOptions;
 use App\Party\Infrastructure\Form\LegalEntitySubmission;
 use App\Party\Infrastructure\Form\LegalEntitySubmissionReader;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
+use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +44,7 @@ final class LegalEntityController extends AbstractController
     public const string ACTION_TOKEN = 'firm_action';
 
     private const array VIEWS = ['active', 'archived'];
+    private const array IMAGE_TOO_LARGE = ['logo' => ['firm.error.image_size']];
 
     public function __construct(
         private readonly LegalEntities $firms,
@@ -51,6 +54,8 @@ final class LegalEntityController extends AbstractController
         private readonly OwnerCheck $owner,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly FirmImages $images,
+        private readonly TenantContext $tenant,
     ) {
     }
 
@@ -82,6 +87,10 @@ final class LegalEntityController extends AbstractController
             return $this->form($request, null, $this->defaults(), [], $this->tokens->issue(), Response::HTTP_OK);
         }
 
+        if ($this->bodyWasDropped($request)) {
+            return $this->form($request, null, $this->defaults(), self::IMAGE_TOO_LARGE, $this->tokens->issue(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $this->checkToken($request, self::FORM_TOKEN);
         $token = $request->request->getString('_submission');
         if ($this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
@@ -105,6 +114,9 @@ final class LegalEntityController extends AbstractController
         $firm = $this->firm($id);
         if (!$request->isMethod('POST')) {
             return $this->form($request, $firm, $this->valuesOf($firm), [], '', Response::HTTP_OK);
+        }
+        if ($this->bodyWasDropped($request)) {
+            return $this->form($request, $firm, $this->valuesOf($firm), self::IMAGE_TOO_LARGE, '', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $this->checkToken($request, self::FORM_TOKEN);
@@ -143,11 +155,21 @@ final class LegalEntityController extends AbstractController
             return $this->form($request, $firm, $submission->values, ['registrationNumber' => ['firm.error.registration_taken']], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        // Stored before the transaction: a file nothing points to does no harm, and files are never deleted.
+        $logo = $this->imageName($submission->logo, '1' === $submission->values['removeLogo'], $firm?->logo());
+        $stamp = $this->imageName($submission->stamp, '1' === $submission->values['removeStamp'], $firm?->stamp());
+
         try {
             if ($firm instanceof LegalEntity) {
-                $this->transaction->run(static fn () => $firm->update($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry, $input->bankAccounts));
+                $this->transaction->run(static function () use ($firm, $input, $logo, $stamp): void {
+                    $firm->update($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry, $input->bankAccounts);
+                    $firm->changeLogo($logo);
+                    $firm->changeStamp($stamp);
+                });
             } else {
                 $created = new LegalEntity($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry, $input->bankAccounts);
+                $created->changeLogo($logo);
+                $created->changeStamp($stamp);
                 $this->transaction->run(fn () => $this->firms->add($created));
                 $this->tokens->complete($token, $created->id());
             }
@@ -161,6 +183,27 @@ final class LegalEntityController extends AbstractController
         $this->addFlash('success', $this->translator->trans($firm instanceof LegalEntity ? 'firm.flash.updated' : 'firm.flash.created'));
 
         return $this->redirectToRoute('app_firm_index');
+    }
+
+    /**
+     * A body over post_max_size reaches the controller empty: no token, no file.
+     * Only an image can be that large on this form, so it is told like one.
+     */
+    private function bodyWasDropped(Request $request): bool
+    {
+        return 0 === $request->request->count() && 0 === $request->files->count() && $request->server->getInt('CONTENT_LENGTH') > 0;
+    }
+
+    /**
+     * An upload wins over removing, and without either the image stays.
+     */
+    private function imageName(?string $upload, bool $remove, ?string $current): ?string
+    {
+        if (null !== $upload) {
+            return $this->images->store($this->tenant->current(), $upload);
+        }
+
+        return $remove ? null : $current;
     }
 
     /**
@@ -223,6 +266,8 @@ final class LegalEntityController extends AbstractController
             'countryCode' => 'CZ',
             'registerEntry' => '',
             'bankAccounts' => '',
+            'removeLogo' => '',
+            'removeStamp' => '',
         ];
     }
 
@@ -243,6 +288,8 @@ final class LegalEntityController extends AbstractController
             'countryCode' => $firm->address()->countryCode,
             'registerEntry' => $firm->registerEntry(),
             'bankAccounts' => implode("\n", $firm->bankAccounts()),
+            'removeLogo' => '',
+            'removeStamp' => '',
         ];
     }
 
