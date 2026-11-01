@@ -12,12 +12,15 @@ Breaking release: every record gets a new kind of identifier. Read the upgrade n
 
 ### Upgrading
 
-1. Back up the database and the `var/imports` directory first.
-2. Stop the workers and drain the Messenger queues (`bin/console messenger:stats` shows them empty). A message queued before the upgrade cannot be read afterwards; it is moved to the `failed` transport, not lost, but its work has to be started again.
-3. Run the migrations with `bin/console doctrine:migrations:migrate`. The identifier migration cannot be reverted and cannot be rehearsed with `--dry-run` or `--write-sql`; the application refuses both. Run it through `bin/console`, not through a standalone `doctrine-migrations` binary, which does not have that protection.
-4. Start the workers.
+1. Finish or cancel imports that are in progress, because their queued work cannot be read after the upgrade. Then stop the web server and cron (`app:import:health`, `app:import:purge`).
+2. Let the workers drain the `async` and `registry` queues, until `bin/console messenger:stats` shows those two empty. The `failed` queue may hold messages. A message left in the other two cannot be read afterwards; it is moved to `failed`, not lost, but its work has to be started again.
+3. Stop the workers.
+4. Back up the database and the `var/imports` directory.
+5. Deploy the code and clear the cache (`bin/console cache:clear`).
+6. Run the migrations with `bin/console doctrine:migrations:migrate`. The identifier migration cannot be reverted and cannot be rehearsed with `--dry-run` or `--write-sql`; the application refuses both. Run it through `bin/console`, not through a standalone `doctrine-migrations` binary, which does not have that protection.
+7. Start the web server, cron and the workers.
 
-Signed-in users stay signed in: a session from before the upgrade still loads and is refreshed from the database. The organisation chosen in it is no longer valid, so a user with several organisations chooses one again. Old URLs stop working (see below).
+Signed-in users stay signed in: a session from before the upgrade still loads, the user is refreshed from the database by e-mail address, and the organisation chosen in it stays chosen, because organisation identifiers do not change. Old URLs stop working (see below).
 
 ### Added
 

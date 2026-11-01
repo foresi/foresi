@@ -140,12 +140,6 @@ Run the database migrations (`bin/console doctrine:migrations:migrate`) and star
 
 ### Upgrading to 0.4.0
 
-Version 0.4.0 identifies every record by a UUID instead of a whole number. The conversion is a one-way migration. Before upgrading:
-
-1. Back up the database and the `var/imports` directory.
-2. Stop the workers and let the Messenger queues drain (`bin/console messenger:stats` shows empty `async` and `registry` queues). A message queued before the upgrade cannot be read afterwards; it is moved to the `failed` queue rather than lost, but an import that depended on it must then be started again.
-3. Finish or cancel imports that are in progress.  Its queued work is among the messages that cannot be read afterwards.
-4. Run `bin/console doctrine:migrations:migrate`. It cannot be reverted and cannot be rehearsed with `--dry-run` or `--write-sql`; the application refuses both.
-5. Start the workers.
+Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps in the changelog](../CHANGELOG.md#upgrading).
 
 Links to imports (`/imports/<number>`) and to contacts that were saved or sent before the upgrade stop working; open them again from the lists.
