@@ -32,6 +32,12 @@ The tests of the ISDOC file validate it against the published XSD. The package s
 
 The bundled PDF fonts (Inter, SIL Open Font License) are committed under `resources/pdf-fonts/`. `bin/build-pdf-fonts` regenerates them from the Inter TTF release; you only need it to change the fonts.
 
+### Mutation testing
+
+`composer infection` runs the whole mutation test locally and enforces a minimum MSI of 80 and a covered MSI of 90. No mutant is skipped (see `infection.json5`), so it is slow.
+
+CI splits the run so that it takes minutes, with the same thresholds. The `Tests with coverage (sqlite)` job runs PHPUnit once with coverage (`composer phpunit:coverage`). Then `Mutation testing` runs six shards in parallel, each with `--skip-initial-tests` on that coverage. Infection has no sharding option, so a shard is a set of source files chosen by `bin/infection-shard files INDEX COUNT`, balanced by file size. The `Quality gate (sqlite)` job, the required check, runs `bin/infection-shard merge`: it checks that every shard is present and enforces the minimums over the total of all shards, not per shard. If the shards drift apart in time, change the matrix and `SHARD_COUNT` in `.github/workflows/ci.yml` together.
+
 ## Rules for code
 
 - PHP 8.4 and Symfony 7.4 LTS. Every PHP file starts with `declare(strict_types=1);` and starts with the block header comment `/* SPDX-License-Identifier: AGPL-3.0-only */`, laid out over three lines as `composer cs:fix` writes it (the fixer enforces it).
