@@ -1155,6 +1155,13 @@ invoice:
     trashed: Tato faktura je v koši. Pro změny ji obnovte.
     variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
     vat_invalid: Vyberte DPH řádku.
+recurring:
+  problem:
+    due_days_invalid: Splatnost je 0 až 365 dní od vystavení.
+    ended: Tato pravidelná faktura je ukončená a nedá se změnit.
+    first_issue_past: První fakturu nejde vystavit v minulosti.
+    issued: Z této pravidelné faktury už vznikly faktury, dá se jen ukončit.
+    no_occurrence_left: S tímto rozvrhem nezbývá žádná faktura k vystavení.
 import:
   number: '{value, number}'
   new: Nový import
