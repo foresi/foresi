@@ -82,10 +82,11 @@ test.describe.serial('a recurring invoice', () => {
     await expect(preview(page).locator('[data-preview-end]')).toBeVisible();
 
     await page.locator('#recurring-save').click();
-    await expect(page).toHaveURL(/\/invoices\/recurring\/[0-9a-f-]+\/edit$/);
+    await expect(page).toHaveURL(/\/invoices\/recurring$/);
     await expect(page.locator('[role=status]').filter({ hasText: 'Pravidelná faktura je uložená. Další faktura se vystaví 31. 1. 2027.' })).toBeVisible();
 
-    await page.reload();
+    await page.locator('tbody a[data-row-link]').filter({ hasText: 'Example Buyer a.s.' }).first().click();
+    await expect(page).toHaveURL(/\/invoices\/recurring\/[0-9a-f-]+\/edit$/);
     await expect(page.locator('#unit')).toHaveValue('year');
     await expect(page.locator('#firstIssueOn')).toHaveValue('2027-01-31');
     await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');

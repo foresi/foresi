@@ -38,6 +38,7 @@ nav:
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
+    recurring: Recurring invoices
 ui:
   dialog:
     close: Close
@@ -1244,6 +1245,102 @@ recurring:
   flash:
     saved: 'The recurring invoice is saved. The next invoice is issued on {date}.'
     already_saved: This recurring invoice is saved already.
+    paused: 'The recurring invoice for {customer} is paused. Nothing is issued until you resume it.'
+    resumed: 'The recurring invoice is resumed. The next invoice is issued on {date}.'
+    resumed_ended: The recurring invoice is resumed, but its schedule has no invoice left, so it has ended.
+    skipped: '{count, plural, one {Skipped date:} other {Skipped dates:}} {dates}.'
+    ended: 'The recurring invoice for {customer} has ended.'
+    deleted: 'The recurring invoice for {customer} is deleted.'
+    issued: 'Invoice {number} is issued.'
+    already_issued: This date is already issued; nothing more was issued.
+    changed_meanwhile: The recurring invoice changed meanwhile. Please try again.
+    issue_refused: 'The invoice cannot be issued: {problems}'
+  list:
+    title: Recurring invoices
+    views: Recurring invoice lists
+    filter: Show
+    summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
+    failure: The last run could not issue or send it.
+    tab:
+      active: Active
+      paused: Paused
+      ended: Ended
+      failing: Failing
+    column:
+      customer: Customer
+      description: Description
+      firm: Firm
+      interval: Repeats
+      next: Next issue
+      end: Ends
+      delivery: After issue
+      amount: Amount
+      state: State
+    state:
+      active: Active
+      paused: Paused
+      ended: Ended
+      failing: Failed
+    delivery:
+      send: Send to the customer
+      review: Hold for review
+    interval:
+      day: '{every, plural, one {Daily} other {Every # days}}'
+      week: '{every, plural, one {Weekly} other {Every # weeks}}'
+      month: '{every, plural, one {Monthly} other {Every # months}}'
+      year: '{every, plural, one {Yearly} other {Every # years}}'
+      last_day: ', on the last day of the month'
+    end:
+      never: Never
+      on_date: 'On {date}'
+      after_count: '{left, plural, =0 {No more} one {# more invoice} other {# more invoices}}'
+      ended: 'Ended {date}'
+    action:
+      edit: Edit
+      issue_now: Issue now
+      pause: Pause
+      resume: Resume
+      end: End
+      delete: Delete
+    empty:
+      title: No recurring invoices yet
+      text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
+      from_invoice: Pick an invoice
+      filtered_title: Nothing here for this firm
+      reset: Show all firms
+      active: No active recurring invoice
+      paused: Nothing is paused
+      ended: Nothing has ended
+      failing: Everything issues without trouble
+  pause:
+    title: Pause the recurring invoice
+    text: 'Neither the invoice due on {date} nor any later one is issued until you resume it.'
+    text_no_date: No further invoice is issued until you resume it.
+    resume_hint: On resume, the dates of the pause are skipped.
+    not_active: Only an active recurring invoice can be paused.
+  resume:
+    title: Resume the recurring invoice
+    skipped: '{count, plural, one {This date fell in the pause and is not issued:} other {These dates fell in the pause and are not issued:}}'
+    next: 'The next invoice is issued on {date}.'
+    ends: The schedule has no invoice left, so resuming ends the recurring invoice.
+    not_paused: This recurring invoice is not paused.
+  ending:
+    title: End the recurring invoice
+    text: No further invoice is issued. An ended recurring invoice cannot be started again.
+    keeps: The invoices already issued stay as they are.
+  delete:
+    title: Delete the recurring invoice
+    text: It has not issued any invoice yet, so it is deleted entirely.
+  issue_now:
+    title: Issue the invoice now
+    text: 'The invoice for {occurrence} is issued with these dates:'
+    issue_date: Issue date
+    due_date: Due date
+    submit: Issue
+    not_active: Only an active recurring invoice can be issued now.
+    delivery:
+      send: The invoice waits in the invoice list, where you send it. The next date moves on.
+      review: The invoice waits in the invoice list for your review. The next date moves on.
 import:
   number: '{value, number}'
   new: New import

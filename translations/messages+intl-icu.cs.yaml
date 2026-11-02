@@ -38,6 +38,7 @@ nav:
     firms: Moje firmy
     import: Import a export
     sent_mail: Odeslané e-maily
+    recurring: Pravidelné faktury
 ui:
   dialog:
     close: Zavřít
@@ -1244,6 +1245,102 @@ recurring:
   flash:
     saved: 'Pravidelná faktura je uložená. Další faktura se vystaví {date}.'
     already_saved: Tato pravidelná faktura už je uložená.
+    paused: 'Pravidelná faktura pro {customer} je pozastavená. Dokud ji neobnovíte, nic se nevystaví.'
+    resumed: 'Pravidelná faktura je obnovená. Další faktura se vystaví {date}.'
+    resumed_ended: Pravidelná faktura je obnovená, ale podle rozvrhu už žádná faktura nezbývá, takže skončila.
+    skipped: '{count, plural, one {Přeskočený termín:} other {Přeskočené termíny:}} {dates}.'
+    ended: 'Pravidelná faktura pro {customer} je ukončená.'
+    deleted: 'Pravidelná faktura pro {customer} je smazaná.'
+    issued: 'Faktura {number} je vystavená.'
+    already_issued: Tento termín už je vystavený, nic dalšího se nevystavilo.
+    changed_meanwhile: Pravidelná faktura se mezitím změnila. Zkuste to prosím znovu.
+    issue_refused: 'Fakturu nejde vystavit: {problems}'
+  list:
+    title: Pravidelné faktury
+    views: Seznamy pravidelných faktur
+    filter: Zobrazit
+    summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
+    failure: Poslední vystavení nebo odeslání se nepovedlo.
+    tab:
+      active: Aktivní
+      paused: Pozastavené
+      ended: Ukončené
+      failing: Selhaly
+    column:
+      customer: Odběratel
+      description: Popis
+      firm: Firma
+      interval: Opakování
+      next: Další vystavení
+      end: Konec
+      delivery: Po vystavení
+      amount: Částka
+      state: Stav
+    state:
+      active: Aktivní
+      paused: Pozastavená
+      ended: Ukončená
+      failing: Selhala
+    delivery:
+      send: Odeslat odběrateli
+      review: Ke kontrole
+    interval:
+      day: '{every, plural, one {Denně} few {Každé # dny} other {Každých # dní}}'
+      week: '{every, plural, one {Týdně} few {Každé # týdny} other {Každých # týdnů}}'
+      month: '{every, plural, one {Měsíčně} few {Každé # měsíce} other {Každých # měsíců}}'
+      year: '{every, plural, one {Ročně} few {Každé # roky} other {Každých # let}}'
+      last_day: ', poslední den v měsíci'
+    end:
+      never: Bez konce
+      on_date: 'Do {date}'
+      after_count: '{left, plural, =0 {Žádná další} one {Ještě # faktura} few {Ještě # faktury} other {Ještě # faktur}}'
+      ended: 'Ukončeno {date}'
+    action:
+      edit: Upravit
+      issue_now: Vystavit nyní
+      pause: Pozastavit
+      resume: Obnovit
+      end: Ukončit
+      delete: Smazat
+    empty:
+      title: Zatím žádné pravidelné faktury
+      text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
+      from_invoice: Vybrat fakturu
+      filtered_title: Pro tuto firmu tu nic není
+      reset: Zobrazit všechny firmy
+      active: Žádná aktivní pravidelná faktura
+      paused: Nic není pozastavené
+      ended: Nic není ukončené
+      failing: Všechno se vystavuje bez potíží
+  pause:
+    title: Pozastavit pravidelnou fakturu
+    text: 'Faktura plánovaná na {date} ani další se nevystaví, dokud pravidelnou fakturu neobnovíte.'
+    text_no_date: Žádná další faktura se nevystaví, dokud pravidelnou fakturu neobnovíte.
+    resume_hint: Po obnovení se termíny z doby pozastavení přeskočí.
+    not_active: Pozastavit jde jen aktivní pravidelnou fakturu.
+  resume:
+    title: Obnovit pravidelnou fakturu
+    skipped: '{count, plural, one {Tento termín připadl na dobu pozastavení a nevystaví se:} other {Tyto termíny připadly na dobu pozastavení a nevystaví se:}}'
+    next: 'Další faktura se vystaví {date}.'
+    ends: Podle rozvrhu už žádná faktura nezbývá, pravidelná faktura obnovením skončí.
+    not_paused: Tato pravidelná faktura není pozastavená.
+  ending:
+    title: Ukončit pravidelnou fakturu
+    text: Žádná další faktura se už nevystaví. Ukončenou pravidelnou fakturu nejde znovu spustit.
+    keeps: Vystavené faktury zůstanou beze změny.
+  delete:
+    title: Smazat pravidelnou fakturu
+    text: Zatím z ní nevznikla žádná faktura, smaže se celá.
+  issue_now:
+    title: Vystavit fakturu nyní
+    text: 'Vystaví se faktura za termín {occurrence}, s těmito daty:'
+    issue_date: Datum vystavení
+    due_date: Splatnost
+    submit: Vystavit
+    not_active: Vystavit nyní jde jen aktivní pravidelnou fakturu.
+    delivery:
+      send: Faktura počká v seznamu faktur, odtud ji odešlete. Další termín se posune.
+      review: Faktura počká v seznamu faktur na vaši kontrolu. Další termín se posune.
 import:
   number: '{value, number}'
   new: Nový import

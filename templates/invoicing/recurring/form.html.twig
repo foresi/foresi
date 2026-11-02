@@ -233,7 +233,7 @@
             {% endif %}
 
             <twig:Ui:ActionBar>
-                <twig:Ui:Button :href="path('app_invoices')" id="recurring-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :href="path('app_recurring')" id="recurring-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
                 <twig:Ui:Button type="submit" id="recurring-save" name="_action" value="save" variant="primary" :disabled="ended" data-save>{{ 'recurring.form.save'|trans }}</twig:Ui:Button>
             </twig:Ui:ActionBar>
             {# Last on purpose: PHP cuts a form at max_input_vars, and without this field the server knows. #}

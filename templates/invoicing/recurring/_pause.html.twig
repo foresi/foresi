@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/recurring/_action.html.twig' %}
+
+{% set available = template.state.value == 'active' %}
+
+{% block title %}{{ 'recurring.pause.title'|trans }}{% endblock %}
+
+{% block summary %}
+    {% if available %}
+        <p class="m-0 text-text">{{ next ? 'recurring.pause.text'|trans({date: next}) : 'recurring.pause.text_no_date'|trans }}</p>
+        <p class="m-0 text-muted">{{ 'recurring.pause.resume_hint'|trans }}</p>
+    {% else %}
+        <p class="m-0 text-text">{{ 'recurring.pause.not_active'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block submit %}{{ 'recurring.list.action.pause'|trans }}{% endblock %}

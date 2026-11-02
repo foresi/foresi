@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/recurring/_action.html.twig' %}
+
+{% set available = template.state.value != 'ended' %}
+
+{% block title %}{{ 'recurring.ending.title'|trans }}{% endblock %}
+
+{% block summary %}
+    {% if available %}
+        <p class="m-0 text-text">{{ 'recurring.ending.text'|trans }}</p>
+        <p class="m-0 text-muted">{{ 'recurring.ending.keeps'|trans }}</p>
+    {% else %}
+        <p class="m-0 text-text">{{ 'recurring.problem.ended'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block submit %}{{ 'recurring.list.action.end'|trans }}{% endblock %}

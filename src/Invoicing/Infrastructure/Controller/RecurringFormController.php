@@ -192,7 +192,7 @@ final class RecurringFormController extends AbstractController
         $token = $request->request->getString('_submission');
         $saved = $this->tokens->isIssued($token) ? $this->tokens->createdId($token) : null;
         if (null !== $saved) {
-            return $this->alreadySaved($saved);
+            return $this->alreadySaved();
         }
         try {
             $context = $this->context($this->firm($request->request->getString('firmId')));
@@ -212,7 +212,7 @@ final class RecurringFormController extends AbstractController
         $token = $request->request->getString('_submission');
         $saved = $this->tokens->isIssued($token) ? $this->tokens->createdId($token) : null;
         if (null !== $saved) {
-            return $this->alreadySaved($saved);
+            return $this->alreadySaved();
         }
         $request->request->set('firmId', $template->firm()->id());
 
@@ -265,7 +265,7 @@ final class RecurringFormController extends AbstractController
         // A save always leaves a date to issue on: the rules refuse a schedule without one.
         $this->addFlash('success', $this->translator->trans('recurring.flash.saved', ['date' => $this->date($saved->nextOccurrence() ?? $this->today())]));
 
-        return $this->redirectToRoute('app_recurring_edit', ['id' => $saved->id()]);
+        return $this->redirectToRoute('app_recurring');
     }
 
     /**
@@ -374,11 +374,11 @@ final class RecurringFormController extends AbstractController
         return $this->values->withCustomerShown($values, $this->picker->option($party, $context->firm));
     }
 
-    private function alreadySaved(string $id): RedirectResponse
+    private function alreadySaved(): RedirectResponse
     {
         $this->addFlash('warning', $this->translator->trans('recurring.flash.already_saved'));
 
-        return $this->redirectToRoute('app_recurring_edit', ['id' => $id]);
+        return $this->redirectToRoute('app_recurring');
     }
 
     /**

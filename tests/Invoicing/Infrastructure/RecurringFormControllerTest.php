@@ -107,7 +107,7 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSelectorExists('[data-first-issue-today]');
     }
 
-    public function testCreatingStoresTheTemplateAndOpensIt(): void
+    public function testCreatingStoresTheTemplateAndGoesToTheList(): void
     {
         $this->signedIn();
         $values = $this->filled(['description' => 'Hosting {month/year}', 'orderNumber' => 'PO-{year}', 'firstIssueOn' => '2026-12-31', 'unit' => 'month', 'every' => '3', 'onLastDayOfMonth' => '1', 'taxPoint' => 'last_day_of_month', 'dueDays' => '30', 'end' => 'after_count', 'endAfter' => '4', 'delivery' => 'review']);
@@ -115,7 +115,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->save($values);
 
         $template = $this->onlyTemplate();
-        self::assertResponseRedirects('/invoices/recurring/'.$template->id().'/edit');
+        self::assertResponseRedirects('/invoices/recurring');
         $row = $this->templateRow($template->id());
         self::assertSame('2026-12-31', $row['first_issue_on']);
         self::assertSame('2026-12-31', $row['next_occurrence']);
@@ -139,7 +139,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->client->followRedirect();
         self::assertAnySelectorTextContains('[role=status]', 'The recurring invoice is saved. The next invoice is issued on 2026-12-31.');
-        self::assertSame('Hosting {month/year}', $this->currentValues()['description']);
+        self::assertSelectorExists('tbody a[href="/invoices/recurring/'.$template->id().'/edit"]', 'the list leads back to it');
     }
 
     public function testFromAnInvoiceCopiesCustomerLinesAndTexts(): void
@@ -265,7 +265,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $values['unit'] = 'year';
         $this->saveEdit($template, $values);
 
-        self::assertResponseRedirects('/invoices/recurring/'.$template->id().'/edit');
+        self::assertResponseRedirects('/invoices/recurring');
         $row = $this->templateRow($template->id());
         self::assertSame('Support {quarter}/{year}', $row['description']);
         self::assertSame('year', $row['recurrence_unit']);
@@ -362,7 +362,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->save($values);
 
         self::assertSame(1, $this->templateCount());
-        self::assertResponseRedirects('/invoices/recurring/'.$this->onlyTemplate()->id().'/edit');
+        self::assertResponseRedirects('/invoices/recurring');
     }
 
     public function testStaffOnly(): void
