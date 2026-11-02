@@ -24,6 +24,7 @@ use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\SendPurpose;
+use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\LegalEntity;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
@@ -282,8 +283,11 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $parameters['firm'] = [$filter->firmId, null];
         }
         if ($filter->toSend) {
-            $where .= ' AND i.recurringInvoiceId IS NOT NULL AND NOT EXISTS (SELECT s.id FROM '.InvoiceSend::class.' s WHERE s.invoice = i AND s.purpose = :invoicePurpose)';
+            // Issued from a template and not delivered: neither marked so nor sent or on its way; a failed send does not count.
+            $where .= ' AND i.recurringInvoiceId IS NOT NULL AND i.deletedAt IS NULL AND i.deliveredAt IS NULL'
+                .' AND NOT EXISTS (SELECT s.id FROM '.InvoiceSend::class.' s WHERE s.invoice = i AND s.purpose = :invoicePurpose AND s.status IN (:deliveringStatuses))';
             $parameters['invoicePurpose'] = [SendPurpose::Invoice->value, null];
+            $parameters['deliveringStatuses'] = [[SendStatus::Queued->value, SendStatus::Sent->value], null];
         }
         $text = trim($filter->text);
         if ('' === $text) {

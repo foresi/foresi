@@ -16,6 +16,7 @@ use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\SendPurpose;
+use App\Invoicing\Domain\SendStatus;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -184,10 +185,11 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
     {
         // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here,
         // which also lets the key of occurrences, led by tenant and template, find the invoices.
+        // To send, as the list's filter has it: neither marked delivered nor on its way, and not in the trash.
         $count = $this->em->getConnection()->fetchOne(
-            'SELECT COUNT(*) FROM invoice i WHERE i.tenant_id = :tenant AND i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL'
-            .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.invoice_id = i.id AND s.purpose = :purpose)',
-            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value],
+            'SELECT COUNT(*) FROM invoice i WHERE i.tenant_id = :tenant AND i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL AND i.delivered_at IS NULL'
+            .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.tenant_id = :tenant AND s.invoice_id = i.id AND s.purpose = :purpose AND s.status IN (:queued, :sent))',
+            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value],
         );
 
         return is_numeric($count) ? (int) $count : 0;

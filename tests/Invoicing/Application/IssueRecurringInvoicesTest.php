@@ -116,6 +116,46 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertNull($this->templateRow($template->id())['last_failure_code'], 'a review by choice is no failure');
     }
 
+    public function testMarkingDeliveredTakesItOffTheToSendList(): void
+    {
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->runOn('2026-12-01 05:30:00');
+
+        $this->delivered->mark(self::text($this->invoicesOf($template)[0], 'id'));
+        $this->em->clear();
+
+        self::assertSame(0, $this->templates->inReview());
+        self::assertSame([], $this->toSend());
+    }
+
+    public function testAFailedSendKeepsItOnTheToSendList(): void
+    {
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->runOn('2026-12-01 05:30:00');
+        $id = self::text($this->invoicesOf($template)[0], 'id');
+
+        $send = $this->sent($this->store->get($id));
+        $this->connection->executeStatement("UPDATE invoice_send SET status = 'failed' WHERE id = ?", [$send->id()]);
+        $this->em->clear();
+        self::assertSame(1, $this->templates->inReview(), 'a send that failed for good did not deliver it');
+        self::assertSame([$id], $this->toSend());
+
+        $this->connection->executeStatement("UPDATE invoice_send SET status = 'queued' WHERE id = ?", [$send->id()]);
+        self::assertSame(0, $this->templates->inReview(), 'a queued send is on its way');
+        self::assertSame([], $this->toSend());
+    }
+
+    public function testATrashedInvoiceIsNotToSend(): void
+    {
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->runOn('2026-12-01 05:30:00');
+
+        $this->connection->executeStatement('UPDATE invoice SET deleted_at = ? WHERE id = ?', ['2026-12-01 06:00:00', self::text($this->invoicesOf($template)[0], 'id')]);
+
+        self::assertSame(0, $this->templates->inReview());
+        self::assertSame([], $this->toSend());
+    }
+
     public function testCatchUpIssuesEachMissedOccurrenceOnce(): void
     {
         $monthly = $this->template('2027-01-01');
