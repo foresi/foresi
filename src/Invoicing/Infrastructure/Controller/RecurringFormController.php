@@ -20,6 +20,7 @@ use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Invoicing\Application\PreviewRow;
 use App\Invoicing\Application\RecurringInvoices;
+use App\Invoicing\Application\RecurringOccurrence;
 use App\Invoicing\Application\RecurringPreview;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Application\RecurringRules;
@@ -79,7 +80,7 @@ final class RecurringFormController extends AbstractController
      * invoice form's recount, which checks it.
      */
     public const string FORM_TOKEN = InvoiceController::FORM_TOKEN;
-    public const string DOCUMENT_NUMBER = '{document_number}';
+    public const string DOCUMENT_NUMBER = RecurringOccurrence::DOCUMENT_NUMBER;
     private const array MORE_FIELDS = ['orderNumber', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
     /** Where a problem of the rules shows on this form. */
     private const array FIELDS = ['recurrence.firstIssueOn' => 'firstIssueOn', 'recurrence' => 'end'];
