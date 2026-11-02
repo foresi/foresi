@@ -106,7 +106,7 @@ final class RecurringListController extends AbstractController
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $firms : [],
             'tabs' => $this->tabs($counts, $tab, $query),
             'columns' => $this->columns($severalFirms),
-            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $amounts[$template->id()] ?? null, $severalFirms, $here, $today), $page->templates),
+            'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $severalFirms, $here, $today), $page->templates),
             'baseUrl' => $this->generateUrl('app_recurring', $query),
             'filtered' => null !== $firmId,
         ]);
@@ -334,13 +334,12 @@ final class RecurringListController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(RecurringInvoice $template, ?Money $amount, bool $severalFirms, string $return, \DateTimeImmutable $today): array
+    private function row(RecurringInvoice $template, bool $failing, ?Money $amount, bool $severalFirms, string $return, \DateTimeImmutable $today): array
     {
         $state = $template->state();
-        $failing = RecurringState::Ended !== $state && null !== $template->lastFailureCode();
         $next = $template->nextOccurrence();
         $customer = $template->customer()->displayName();
-        $failure = $failing ? $this->failureText($template->lastFailureCode()) : null;
+        $failure = $failing ? $this->failureText((string) $template->lastFailureCode()) : null;
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
         $cells = [

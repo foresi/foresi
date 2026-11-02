@@ -153,32 +153,46 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
             $parameters['state'] = $filter->state->value;
         }
         if ($filter->failing) {
-            $conditions[] = 'r.lastFailureCode IS NOT NULL AND r.state <> :ended';
-            $parameters['ended'] = RecurringState::Ended->value;
+            $conditions[] = RecurringFailing::dql('r');
         }
         $where = implode(' AND ', $conditions);
 
         $count = $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE '.$where);
         $this->bind($count, $parameters);
+        if ($filter->failing) {
+            RecurringFailing::bind($count);
+        }
         $total = (int) $count->getSingleScalarResult();
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
 
+        // Whether each template is failing now comes with it, so the rows need no query of their own.
         $list = $this->em->createQuery(
-            'SELECT r, CASE WHEN r.nextOccurrence IS NULL THEN 1 ELSE 0 END AS HIDDEN without_next FROM '.RecurringInvoice::class.' r WHERE '.$where.' ORDER BY without_next, r.nextOccurrence, r.id',
+            'SELECT r, CASE WHEN r.nextOccurrence IS NULL THEN 1 ELSE 0 END AS HIDDEN without_next, CASE WHEN '.RecurringFailing::dql('r', 'now').' THEN 1 ELSE 0 END AS failing_now'
+            .' FROM '.RecurringInvoice::class.' r WHERE '.$where.' ORDER BY without_next, r.nextOccurrence, r.id',
         );
         $this->bind($list, $parameters);
-        /** @var list<RecurringInvoice> $templates */
-        $templates = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
+        RecurringFailing::bind($list);
+        /** @var list<array{0: RecurringInvoice, failing_now: int|string}> $found */
+        $found = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
+        $templates = [];
+        $failing = [];
+        foreach ($found as $row) {
+            $templates[] = $row[0];
+            if (1 === (int) $row['failing_now']) {
+                $failing[] = $row[0]->id();
+            }
+        }
 
-        return new RecurringPage($templates, $total, $page, $pages);
+        return new RecurringPage($templates, $total, $page, $pages, $failing);
     }
 
     public function failing(): int
     {
-        return (int) $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE r.lastFailureCode IS NOT NULL AND r.state <> :ended')
-            ->setParameter('ended', RecurringState::Ended->value)
-            ->getSingleScalarResult();
+        $query = $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE '.RecurringFailing::dql('r'));
+        RecurringFailing::bind($query);
+
+        return (int) $query->getSingleScalarResult();
     }
 
     public function inReview(): int

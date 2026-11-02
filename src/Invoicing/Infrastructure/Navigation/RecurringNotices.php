@@ -22,7 +22,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Tells staff on every page that recurring invoices need them: templates whose
- * last run was refused, until a run goes clean or the template ends; invoices a
+ * last run was refused, until a run goes clean or the template ends, or, for a
+ * refused send, until its invoice is sent or marked delivered; invoices a
  * template issued that wait to be sent, held for review or refused for sending;
  * and a day whose run has not finished by LATE_HOUR in the tenant's zone while
  * templates are due, which most likely means no worker or scheduler runs.

@@ -89,7 +89,9 @@ interface RecurringInvoices
     public function page(RecurringFilter $filter): RecurringPage;
 
     /**
-     * How many templates that have not ended failed on their last run.
+     * How many templates that have not ended failed on their last run. A refused
+     * send counts only while an invoice of the template still waits to be sent:
+     * sending it by hand or marking it delivered ends the failure at once.
      */
     public function failing(): int;
 

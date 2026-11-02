@@ -300,7 +300,7 @@ final class RecurringListControllerTest extends WebTestCase
     {
         $this->signedIn();
         $template = $this->template(delivery: RecurringDelivery::Review);
-        $this->failed($template, 'send.no_server');
+        $this->failed($template, 'invoice.problem.customer_archived');
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
 
@@ -308,7 +308,7 @@ final class RecurringListControllerTest extends WebTestCase
         $row = $crawler->filter('tbody tr');
         self::assertCount(1, $row);
         self::assertStringContainsString('Failed', $row->text());
-        self::assertStringContainsString('The firm has no mail server set up.', $row->text());
+        self::assertStringContainsString('This contact is archived for the firm.', $row->text());
         self::assertContains('Issue now', $this->menu($row));
 
         $this->post($template, 'issue_now', ['occurrence' => '2026-12-01']);

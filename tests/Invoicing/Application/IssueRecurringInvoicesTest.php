@@ -18,8 +18,10 @@ use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\IssueRecurringInvoices;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInput;
 use App\Invoicing\Application\RecurringInvoices;
+use App\Invoicing\Application\RecurringOverview;
 use App\Invoicing\Application\SaveRecurringInvoice;
 use App\Invoicing\Domain\Recurrence;
 use App\Invoicing\Domain\RecurrenceEnd;
@@ -207,6 +209,44 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertNotNull($row['last_failure_at']);
         self::assertSame(1, $this->templates->failing());
         self::assertSame([], $this->gateway->attempts(), 'without a server no alert can leave; the notice carries it');
+    }
+
+    public function testSendingTheHeldInvoiceByHandEndsTheSendFailure(): void
+    {
+        $template = $this->template();
+        $this->connection->executeStatement('DELETE FROM firm_mail_server');
+        $this->runOn('2026-12-01 05:30:00');
+        self::assertSame(1, $this->templates->failing());
+
+        $this->firm = $this->firmNow();
+        $this->serverFor();
+        $this->sent($this->store->get(self::text($this->invoicesOf($template)[0], 'id')));
+        $this->em->clear();
+
+        self::assertSame(0, $this->templates->failing(), 'the notice is gone');
+        self::assertSame([], $this->templates->page(new RecurringFilter(null, null, true, 1))->templates, 'and so is the row under failing');
+        self::assertSame(0, self::getContainer()->get(RecurringOverview::class)->counts(null)['failing']);
+    }
+
+    public function testMarkingTheHeldInvoiceDeliveredEndsTheSendFailure(): void
+    {
+        $template = $this->template();
+        $this->connection->executeStatement('DELETE FROM firm_mail_server');
+        $this->runOn('2026-12-01 05:30:00');
+
+        $this->delivered->mark(self::text($this->invoicesOf($template)[0], 'id'));
+        $this->em->clear();
+
+        self::assertSame(0, $this->templates->failing());
+    }
+
+    public function testAnIssueFailureStaysUntilARunGoesClean(): void
+    {
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->connection->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'invoice.problem.customer_archived', last_failure_at = '2026-12-01 05:00:00' WHERE id = ?", [$template->id()]);
+
+        self::assertSame(1, $this->templates->failing(), 'nothing waits to be sent, yet the issue failed');
+        self::assertSame([$template->id()], array_map(static fn (RecurringInvoice $found): string => $found->id(), $this->templates->page(new RecurringFilter(null, null, true, 1))->templates));
     }
 
     public function testARefusedIssueIsRecordedAndOthersStillRun(): void
