@@ -14,6 +14,7 @@ use App\Invoicing\Application\InvoiceSendQueue;
 use App\Invoicing\Application\MailMessage;
 use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\RequeueStuckSends;
+use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
@@ -718,8 +719,32 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $row = $this->row($reminder->id());
         self::assertSame('queued', $row['status']);
         self::assertSame(1, self::integer($row, 'attempts'), 'one of the send\'s own tries, so MarkSendFailed can give up on it');
-        self::assertSame(MailRefused::NOT_HANDED_OVER, $row['last_error_code']);
+        self::assertSame(MailRefused::CHECK_FAILED, $row['last_error_code'], 'its own code: the mail server was never asked');
         self::assertNull($row['claimed_at'], 'the retry may check again at once');
+        self::assertSame([], $this->gateway->attempts());
+    }
+
+    public function testAReminderWhoseInvoiceCannotBeFoundFailsAtOnceWithoutRetries(): void
+    {
+        self::getContainer()->set(DueDateBalances::class, new class implements InvoiceBalances {
+            public function outstanding(array $invoiceIds): array
+            {
+                throw new UnknownInvoice();
+            }
+
+            public function isAuthoritative(): bool
+            {
+                return true;
+            }
+        });
+        [, $reminder] = $this->queuedReminder();
+
+        $this->worker->run();
+
+        $row = $this->row($reminder->id());
+        self::assertSame('failed', $row['status'], 'stopped for good, where the log shows it');
+        self::assertSame(MailRefused::CHECK_FAILED, $row['last_error_code']);
+        self::assertSame(1, self::integer($row, 'attempts'), 'no retries burnt on what cannot change');
         self::assertSame([], $this->gateway->attempts());
     }
 

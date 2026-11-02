@@ -685,6 +685,7 @@ invoice:
     gave_up: The message could not be delivered.
     link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
     no_recipient: The contact has no e-mail address for invoices any more, so the reminder was not sent.
+    check_failed: Before the reminder left, it could not be checked whether its invoice is still unpaid.
   sends:
     title: Sent e-mails
     views: Send states

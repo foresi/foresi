@@ -24,7 +24,10 @@ use App\Invoicing\Application\MailServers;
 use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Application\SendDraft;
 use App\Invoicing\Application\SendRecipient;
+use App\Invoicing\Application\UndrawableDocument;
+use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownInvoiceSend;
+use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
@@ -33,7 +36,9 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
+use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\PartyEmail;
+use Doctrine\ORM\EntityNotFoundException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -83,6 +88,7 @@ final readonly class DeliverInvoiceSendHandler
     private const string COPY_UNKNOWN = 'The copy was handed to the mail server, but its answer was not recorded.';
     private const string LINK_CHANGED = 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.';
     private const string NO_RECIPIENT = 'The contact has no address to send the reminder to any more.';
+    private const string CHECK_FAILED = 'Before the reminder left, it could not be checked whether its invoice is still unpaid.';
     /** Seconds past the end of a lease before a waiting message tries again. */
     private const int GRACE = 5;
 
@@ -122,11 +128,21 @@ final readonly class DeliverInvoiceSendHandler
         if (SendStatus::Queued === $owed->status() && SendPurpose::Reminder === $owed->purpose()) {
             try {
                 $stopped = $this->stoppedBeforeLeaving($id, $owed->invoice()->id(), null === $owed->createdBy());
+            } catch (UnknownInvoice|UnknownLegalEntity|UnsupportedCountry|UndrawableDocument|EntityNotFoundException $unanswerable) {
+                // What a retry would find the same: the reminder fails at once, in the log, and no try is wasted.
+                $this->unit(function () use ($id): void {
+                    $send = $this->sends->lock($id);
+                    $send->recordAttempt($this->now(), self::CHECK_FAILED, code: MailRefused::CHECK_FAILED);
+                    $send->fail($this->now(), self::CHECK_FAILED, false, MailRefused::CHECK_FAILED);
+                });
+                $this->logger->warning('The reminder {send} failed: it could not be checked before it left ({reason}).', ['send' => $id, 'reason' => $unanswerable::class]);
+
+                return;
             } catch (\Throwable $failure) {
                 // One of the send's own tries, and the claim released, so the retry
                 // checks again and MarkSendFailed can give up once the tries are used.
                 $this->unit(function () use ($id): void {
-                    $this->sends->lock($id)->recordAttempt($this->now(), self::UNEXPECTED, code: MailRefused::NOT_HANDED_OVER);
+                    $this->sends->lock($id)->recordAttempt($this->now(), self::CHECK_FAILED, code: MailRefused::CHECK_FAILED);
                 });
 
                 throw $failure;

@@ -685,6 +685,7 @@ invoice:
     gave_up: Zprávu se nepodařilo doručit.
     link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
     no_recipient: Kontakt už nemá e-mailovou adresu pro faktury, upomínka proto neodešla.
+    check_failed: Před odesláním upomínky se nepodařilo ověřit, zda je faktura stále neuhrazená.
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
