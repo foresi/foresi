@@ -166,6 +166,8 @@ final readonly class FirmSettingsReader
             'language' => $this->text($row['language'] ?? ''),
             'paymentMethod' => $this->text($row['paymentMethod'] ?? ''),
             'reverseCharge' => isset($row['reverseCharge']) ? '1' : '',
+            // A hidden "0" goes before the checkbox; a form without the field keeps reminders on.
+            'sendReminders' => '0' === ($row['sendReminders'] ?? null) ? '' : '1',
         ];
         $parsed->values[$scope] = $value + ($parsed->values[$scope] ?? []);
 
@@ -192,7 +194,7 @@ final readonly class FirmSettingsReader
         }
         \assert($currency instanceof Currency && $language instanceof DocumentLanguage && $method instanceof PaymentMethod);
 
-        return new InvoicingDefaults((int) $value['dueDays'], $currency, $language, $method, '' !== $value['reverseCharge']);
+        return new InvoicingDefaults((int) $value['dueDays'], $currency, $language, $method, '' !== $value['reverseCharge'], '' !== $value['sendReminders']);
     }
 
     /**

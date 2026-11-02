@@ -9,7 +9,10 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\ReminderSettings;
+use App\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -80,8 +83,11 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSelectorTextContains('#body-cs-help', '{Odkaz na doklad}');
         self::assertSelectorTextContains('#body-en-help', '{Link to the document}');
         // One toolbar per language, named with it, and one Tab stop in each.
-        self::assertSame(['variables-cs language-cs', 'variables-en language-en'], $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')));
-        self::assertSame(['0', '0'], $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
+        self::assertSame(
+            ['variables-cs language-cs', 'variables-en language-en', 'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en'],
+            $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
+        );
+        self::assertSame(['0', '0', '0', '0'], $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
         $chips = $crawler->filter('[role="toolbar"][aria-labelledby] button[type="button"][data-token]');
         self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
     }
@@ -162,6 +168,122 @@ final class FirmMailControllerTest extends WebTestCase
 
         $this->saveTemplates($firm, ['reset' => 'en']);
 
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
+    }
+
+    public function testReminderSettingsAreStored(): void
+    {
+        $firm = $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(0, $crawler->filter('#reminders-enabled[checked]'), 'off until the owner switches it on');
+        self::assertSame(['7', '7', ''], [$crawler->filter('#reminders-first')->attr('value'), $crawler->filter('#reminders-every')->attr('value'), $crawler->filter('#reminders-minimum')->attr('value')]);
+        self::assertSelectorTextContains('#reminders-card', 'Up to 10 reminders');
+
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1', 'firstAfterDays' => '10', 'everyDays' => '5', 'minimum' => '500.50']]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertEquals(
+            ['legal_entity_id' => $firm->id(), 'enabled' => 1, 'enabled_on' => '2026-11-02', 'first_after_days' => 10, 'every_days' => 5, 'minimum_minor' => 50050, 'minimum_currency' => 'CZK'],
+            $this->connection()->fetchAssociative('SELECT legal_entity_id, enabled, enabled_on, first_after_days, every_days, minimum_minor, minimum_currency FROM firm_reminders'),
+        );
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(1, $crawler->filter('#reminders-enabled[checked]'));
+        self::assertSame(['10', '5', '500.50'], [$crawler->filter('#reminders-first')->attr('value'), $crawler->filter('#reminders-every')->attr('value'), $crawler->filter('#reminders-minimum')->attr('value')]);
+
+        // A blank minimum is no minimum.
+        $this->saveTemplates($firm, ['reminders' => ['minimum' => '']]);
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(['minimum_minor' => null, 'minimum_currency' => null], $this->connection()->fetchAssociative('SELECT minimum_minor, minimum_currency FROM firm_reminders'));
+    }
+
+    public function testSwitchingOnRecordsTheDay(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        Clock::set(new MockClock('2026-11-10 12:00:00'));
+        $this->saveTemplates($firm, ['reminders' => ['everyDays' => '9']]);
+        self::assertSame('2026-11-02', $this->connection()->fetchOne('SELECT enabled_on FROM firm_reminders'), 'saving again keeps the day it was switched on');
+
+        // An unchecked box posts nothing.
+        $this->client->request('GET', $this->url($firm));
+        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => null]));
+        self::assertResponseRedirects($this->url($firm));
+        self::assertEquals(['enabled' => 0, 'enabled_on' => '2026-11-02'], $this->connection()->fetchAssociative('SELECT enabled, enabled_on FROM firm_reminders'));
+
+        Clock::set(new MockClock('2026-11-12 23:30:00'));
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        self::assertSame('2026-11-13', $this->connection()->fetchOne('SELECT enabled_on FROM firm_reminders'), 'the day of the firm, in Prague already the 13th');
+    }
+
+    public function testTheGateRefusesSwitchingOnWithoutPayments(): void
+    {
+        $firm = $this->signedInFirm();
+        $container = self::getContainer();
+        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class), false));
+
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(1, $crawler->filter('#reminders-enabled[disabled]'));
+        self::assertSelectorTextContains('#reminders-card', 'Automatic reminders start once payments are recorded');
+
+        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => '1']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#reminders-enabled-error', 'once payments are recorded');
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_reminders'));
+
+        // The rest of the card still saves while the switch stays off.
+        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => null, 'firstAfterDays' => '14']));
+        self::assertResponseRedirects($this->url($firm));
+        self::assertEquals(['enabled' => 0, 'enabled_on' => null, 'first_after_days' => 14], $this->connection()->fetchAssociative('SELECT enabled, enabled_on, first_after_days FROM firm_reminders'));
+    }
+
+    public function testDaysOutsideOneTo365AreRefused(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1', 'firstAfterDays' => '0', 'everyDays' => '366', 'minimum' => '-5']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#reminders-first-error', 'from 1 to 365');
+        self::assertSelectorTextContains('#reminders-every-error', 'from 1 to 365');
+        self::assertSelectorExists('#reminders-minimum-error');
+        self::assertSame('0', $this->client->getCrawler()->filter('#reminders-first')->attr('value'), 'what was typed is shown again');
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_reminders'));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
+    }
+
+    public function testAReminderTemplateIsStoredPerLanguage(): void
+    {
+        $firm = $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertSame('Upomínka: faktura {Číslo dokladu}', $crawler->filter('#reminder-subject-cs')->attr('value'));
+        self::assertStringContainsString('{Zbývá uhradit}', $crawler->filter('#reminder-body-cs')->text(null, false));
+        self::assertStringContainsString('{Amount due}', $crawler->filter('#reminder-body-en')->text(null, false));
+        $tokens = $crawler->filter('[role="toolbar"][aria-labelledby~="variables-reminder-cs"] button[data-token]')->each(static fn ($chip): string => (string) $chip->attr('data-token'));
+        self::assertSame(['{Dní po splatnosti}', '{Pořadí upomínky}', '{Zbývá uhradit}', '{Odkaz na doklad}'], \array_slice($tokens, -4), 'the reminder chips come before the link');
+
+        $this->saveTemplates($firm, ['reminder_subject' => ['cs' => 'Upomínka {Číslo dokladu}'], 'reminder_body' => ['cs' => "Faktura je {Dní po splatnosti} dní po splatnosti, zbývá {Zbývá uhradit}.\n{Odkaz na doklad}"]]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(
+            [['kind' => 'reminder', 'language' => 'cs', 'subject' => 'Upomínka {number}', 'body' => "Faktura je {days_overdue} dní po splatnosti, zbývá {amount_due}.\n{link}"]],
+            $this->connection()->fetchAllAssociative('SELECT kind, language, subject, body FROM mail_template'),
+            'only the changed reminder text is stored; the invoice texts stay built in',
+        );
+
+        // A reminder variable in the invoice template is unknown there.
+        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {Dní po splatnosti}']]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#subject-cs-error', '{Dní po splatnosti}');
+
+        // Each kind has its own reset.
+        $this->client->request('GET', $this->url($firm));
+        self::assertSelectorNotExists('form#mail-reset-cs');
+        $reset = $this->client->getCrawler()->filter('form#mail-reset-reminder-cs');
+        self::assertCount(1, $reset);
+        $this->client->request('POST', $this->url($firm), $reset->form()->getPhpValues());
         self::assertResponseRedirects($this->url($firm));
         self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
@@ -463,6 +585,31 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', $this->url($firm));
         $this->client->request('POST', $this->url($firm), array_replace_recursive($crawler->filter('#mail-templates')->form()->getPhpValues(), $values));
+    }
+
+    /**
+     * The templates form of the page on screen, with fields of the reminders card
+     * replaced; null leaves a field out, as an unchecked box does.
+     *
+     * @param array<string, string|null> $reminders
+     *
+     * @return array<mixed>
+     */
+    private function formValues(array $reminders): array
+    {
+        $values = $this->client->getCrawler()->filter('#mail-templates')->form()->getPhpValues();
+        $card = $values['reminders'] ?? [];
+        self::assertIsArray($card);
+        foreach ($reminders as $field => $value) {
+            if (null === $value) {
+                unset($card[$field]);
+            } else {
+                $card[$field] = $value;
+            }
+        }
+        $values['reminders'] = $card;
+
+        return $values;
     }
 
     private function sendTest(LegalEntity $firm): void

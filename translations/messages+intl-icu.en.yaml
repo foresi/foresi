@@ -1508,3 +1508,50 @@ import:
       currency: Currency
       payment_method: Payment method
       private_note: Private note
+reminder:
+  card:
+    template: Reminder
+    settings: Automatic reminders
+  templates_help: A reminder of an overdue invoice is sent in the language of the document.
+  mail:
+    default:
+      subject: 'Reminder: invoice {number}'
+      body: |-
+        Hello,
+
+        this is a friendly reminder that invoice {number}, due on {due_date}, has not been paid yet. The amount due is {amount_due}.
+
+        If you have paid it in the meantime, please disregard this message.
+
+        Thank you,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Days overdue
+    reminder_step: Reminder number
+    amount_due: Amount due
+  field:
+    enabled: Send reminders automatically
+    enabled_help: Only invoices due from the day this is switched on are reminded.
+    first: First reminder
+    first_help: Days after the due date
+    every: Next reminders
+    every_help: Days after the previous reminder
+    minimum: 'Minimum amount ({currency})'
+    minimum_help: Lower amounts get no reminder. Leave blank for no minimum.
+  gate: Automatic reminders start once payments are recorded.
+  at_most: 'Up to {count} reminders per invoice.'
+  date_format: 'j M Y'
+  tomorrow:
+    title: Reminded tomorrow
+    off: Reminders are off.
+    none: No reminder goes out tomorrow.
+    due: 'due {date}'
+  error:
+    gate: Automatic reminders start once payments are recorded.
+    days: 'Enter a whole number of days from {min} to {max}.'
+    minimum: Enter an amount such as 500 or 500.50.
+  contact:
+    send: Send reminders
+    send_help: When the firm reminds overdue invoices automatically.

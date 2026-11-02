@@ -26,6 +26,18 @@ final class InvoicingDefaultsTest extends TestCase
         self::assertSame(DocumentLanguage::Czech, $defaults->language);
         self::assertSame(PaymentMethod::BankTransfer, $defaults->paymentMethod);
         self::assertFalse($defaults->reverseCharge);
+        self::assertTrue($defaults->sendReminders, 'a contact is reminded unless the firm turns it off');
+    }
+
+    public function testTheReminderFlagTakesPartInEquality(): void
+    {
+        $on = $this->defaults(14);
+        $off = new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true, false);
+
+        self::assertTrue($on->sendReminders);
+        self::assertFalse($off->sendReminders);
+        self::assertFalse($on->equals($off));
+        self::assertTrue($off->equals(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true, false)));
     }
 
     #[DataProvider('validDueDays')]

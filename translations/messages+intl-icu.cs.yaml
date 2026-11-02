@@ -1508,3 +1508,50 @@ import:
       currency: Měna
       payment_method: Způsob platby
       private_note: Soukromá poznámka
+reminder:
+  card:
+    template: Upomínka
+    settings: Automatické upomínky
+  templates_help: Upomínka k faktuře po splatnosti se posílá v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Upomínka: faktura {number}'
+      body: |-
+        Dobrý den,
+
+        dovolujeme si Vás upozornit, že faktura č. {number} se splatností {due_date} zatím není uhrazená. Zbývá uhradit {amount_due}.
+
+        Pokud jste ji mezitím zaplatili, považujte prosím tuto zprávu za bezpředmětnou.
+
+        Děkujeme,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Dní po splatnosti
+    reminder_step: Pořadí upomínky
+    amount_due: Zbývá uhradit
+  field:
+    enabled: Posílat upomínky automaticky
+    enabled_help: Upomínky dostanou jen faktury se splatností ode dne zapnutí.
+    first: První upomínka
+    first_help: Dní po splatnosti
+    every: Další upomínky
+    every_help: Dní po předchozí upomínce
+    minimum: 'Nejnižší částka ({currency})'
+    minimum_help: Nižší částky upomínku nedostanou. Prázdné pole je bez limitu.
+  gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+  at_most: 'Nejvýš {count} upomínek k jedné faktuře.'
+  date_format: 'j. n. Y'
+  tomorrow:
+    title: Zítra dostanou upomínku
+    off: Upomínky jsou vypnuté.
+    none: Zítra nepůjde žádná upomínka.
+    due: 'splatnost {date}'
+  error:
+    gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+    days: 'Zadejte celý počet dní od {min} do {max}.'
+    minimum: Zadejte částku, třeba 500 nebo 500,50.
+  contact:
+    send: Posílat upomínky
+    send_help: Když firma posílá upomínky po splatnosti automaticky.
