@@ -32,42 +32,44 @@
                 {{ _self.templateCard('invoice', 'firm.mail.card.invoice'|trans, 'receipt-text', languages, templates, errors, chip_class) }}
                 {{ _self.templateCard('reminder', 'reminder.card.template'|trans, 'clock-3', reminderLanguages, reminderTemplates, errors, chip_class) }}
 
-                <twig:Ui:Card :title="'reminder.card.settings'|trans" icon="calendar" id="reminders-card">
-                    <div class="grid gap-4">
-                        <twig:Ui:Checkbox name="reminders[enabled]" id="reminders-enabled" role="switch" :label="'reminder.field.enabled'|trans" :help="remindersLocked ? 'reminder.gate'|trans : 'reminder.field.enabled_help'|trans" :error="errors['reminders-enabled']|default(null)" :checked="reminders.enabled == '1'" :disabled="remindersLocked" />
-                        <div class="grid gap-3 sm:grid-cols-3">
-                            <twig:Ui:TextInput name="reminders[firstAfterDays]" id="reminders-first" inputmode="numeric" maxlength="3" :label="'reminder.field.first'|trans" :help="'reminder.field.first_help'|trans" :value="reminders.firstAfterDays" :error="errors['reminders-first']|default(null)" required />
-                            <twig:Ui:TextInput name="reminders[everyDays]" id="reminders-every" inputmode="numeric" maxlength="3" :label="'reminder.field.every'|trans" :help="'reminder.field.every_help'|trans" :value="reminders.everyDays" :error="errors['reminders-every']|default(null)" required />
-                            <twig:Ui:TextInput name="reminders[minimum]" id="reminders-minimum" inputmode="decimal" maxlength="20" :label="'reminder.field.minimum'|trans({currency: homeCurrency})" :help="'reminder.field.minimum_help'|trans" :value="reminders.minimum" :error="errors['reminders-minimum']|default(null)" />
-                        </div>
-                        <p class="m-0 text-small text-muted">{{ 'reminder.at_most'|trans({count: maxReminders}) }}</p>
+                {% if remindersCard %}
+                    <twig:Ui:Card :title="'reminder.card.settings'|trans" icon="calendar" id="reminders-card">
+                        <div class="grid gap-4">
+                            <twig:Ui:Checkbox name="reminders[enabled]" id="reminders-enabled" role="switch" :label="'reminder.field.enabled'|trans" :help="remindersLocked ? 'reminder.gate'|trans : 'reminder.field.enabled_help'|trans" :error="errors['reminders-enabled']|default(null)" :checked="reminders.enabled == '1'" :disabled="remindersLocked" />
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <twig:Ui:TextInput name="reminders[firstAfterDays]" id="reminders-first" inputmode="numeric" maxlength="3" :label="'reminder.field.first'|trans" :help="'reminder.field.first_help'|trans" :value="reminders.firstAfterDays" :error="errors['reminders-first']|default(null)" required />
+                                <twig:Ui:TextInput name="reminders[everyDays]" id="reminders-every" inputmode="numeric" maxlength="3" :label="'reminder.field.every'|trans" :help="'reminder.field.every_help'|trans" :value="reminders.everyDays" :error="errors['reminders-every']|default(null)" required />
+                                <twig:Ui:TextInput name="reminders[minimum]" id="reminders-minimum" inputmode="decimal" maxlength="20" :label="'reminder.field.minimum'|trans({currency: homeCurrency})" :help="'reminder.field.minimum_help'|trans" :value="reminders.minimum" :error="errors['reminders-minimum']|default(null)" />
+                            </div>
+                            <p class="m-0 text-small text-muted">{{ 'reminder.at_most'|trans({count: maxReminders}) }}</p>
 
-                        <section class="grid gap-2 border-t border-divider pt-4" aria-labelledby="reminders-tomorrow">
-                            <h4 id="reminders-tomorrow" class="m-0 text-small font-semibold text-ink">{{ 'reminder.tomorrow.title'|trans }}</h4>
-                            {% if not remindersOn %}
-                                <p class="m-0 text-small text-muted">{{ 'reminder.tomorrow.off'|trans }}</p>
-                            {% elseif tomorrow is empty %}
-                                <p class="m-0 text-small text-muted">{{ 'reminder.tomorrow.none'|trans }}</p>
-                            {% else %}
-                                {% set dateFormat = 'reminder.date_format'|trans %}
-                                <ul class="m-0 grid list-none divide-y divide-divider p-0">
-                                    {% for row in tomorrow %}
-                                        <li class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 text-small">
-                                            <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                                                <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
-                                                <span class="min-w-0 truncate text-text">{{ row.customer }}</span>
-                                            </span>
-                                            <span class="flex items-baseline gap-x-3 text-muted">
-                                                <span>{{ 'reminder.tomorrow.due'|trans({date: row.dueDate|date(dateFormat)}) }}</span>
-                                                <span class="tabular-nums text-text">{{ row.amount }}</span>
-                                            </span>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </section>
-                    </div>
-                </twig:Ui:Card>
+                            <section class="grid gap-2 border-t border-divider pt-4" aria-labelledby="reminders-tomorrow">
+                                <h4 id="reminders-tomorrow" class="m-0 text-small font-semibold text-ink">{{ 'reminder.tomorrow.title'|trans }}</h4>
+                                {% if not remindersOn %}
+                                    <p class="m-0 text-small text-muted">{{ 'reminder.tomorrow.off'|trans }}</p>
+                                {% elseif tomorrow is empty %}
+                                    <p class="m-0 text-small text-muted">{{ 'reminder.tomorrow.none'|trans }}</p>
+                                {% else %}
+                                    {% set dateFormat = 'reminder.date_format'|trans %}
+                                    <ul class="m-0 grid list-none divide-y divide-divider p-0">
+                                        {% for row in tomorrow %}
+                                            <li class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 text-small">
+                                                <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                                                    <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
+                                                    <span class="min-w-0 truncate text-text">{{ row.customer }}</span>
+                                                </span>
+                                                <span class="flex items-baseline gap-x-3 text-muted">
+                                                    <span>{{ 'reminder.tomorrow.due'|trans({date: row.dueDate|date(dateFormat)}) }}</span>
+                                                    <span class="tabular-nums text-text">{{ row.amount }}</span>
+                                                </span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </section>
+                        </div>
+                    </twig:Ui:Card>
+                {% endif %}
 
                 <twig:Ui:ActionBar>
                     <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>

@@ -197,6 +197,23 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame(['minimum_minor' => null, 'minimum_currency' => null], $this->connection()->fetchAssociative('SELECT minimum_minor, minimum_currency FROM firm_reminders'));
     }
 
+    public function testAFirmInACountryWithoutInvoicingRulesHasNoRemindersCard(): void
+    {
+        $firm = $this->signedInFirm('DE');
+
+        $crawler = $this->client->request('GET', $this->url($firm));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('#reminders-card'));
+        self::assertCount(1, $crawler->filter('#subject-cs'));
+
+        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {number} od nás']]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(['Faktura {number} od nás'], $this->connection()->fetchFirstColumn('SELECT subject FROM mail_template'));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT legal_entity_id FROM firm_reminders'));
+    }
+
     public function testSwitchingOnRecordsTheDay(): void
     {
         $firm = $this->signedInFirm();
@@ -543,18 +560,19 @@ final class FirmMailControllerTest extends WebTestCase
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
     }
 
-    private function signedInFirm(): LegalEntity
+    private function signedInFirm(string $country = 'CZ'): LegalEntity
     {
         [$tenant] = $this->browser->seed(['Tenant A']);
         $this->browser->signIn();
 
-        return $this->firm($tenant);
+        return $this->firm($tenant, $country);
     }
 
-    private function firm(TenantId $tenant): LegalEntity
+    private function firm(TenantId $tenant, string $country = 'CZ'): LegalEntity
     {
         $this->context->switchTo($tenant);
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $number = 'CZ' === $country ? new RegistrationNumber('CZ', '12345695') : new RegistrationNumber($country, 'HRB 12345');
+        $firm = new LegalEntity('Example Firm s.r.o.', $number, null, new Address('Example Street 1', 'Example City', '10000', $country), VatStatus::NotRegistered, '', []);
         $em = $this->browser->em();
         $em->persist($firm);
         $em->flush();

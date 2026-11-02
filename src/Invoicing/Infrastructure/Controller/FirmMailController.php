@@ -23,6 +23,7 @@ use App\Invoicing\Application\MailVariables;
 use App\Invoicing\Application\ReminderPreview;
 use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Application\UnknownMailVariables;
+use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidMailServer;
@@ -58,7 +59,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The e-mail settings of a firm, for the owner: the texts its documents and its
  * reminders are sent with, when reminders go, and its own mail server. Two tabs of
- * one page, each a form of its own. The
+ * one page, each a form of its own. A firm in a country without invoicing rules
+ * has no home currency to set a minimum in, so its page has no reminders card and
+ * its stored reminder settings stay as they are. The
  * password is never sent back to the browser; a blank one keeps what is stored. A
  * firm of another tenant is never found, so it answers 404.
  */
@@ -166,42 +169,45 @@ final class FirmMailController extends AbstractController
             $submissions[$kind->value] = FirmMailSubmission::templates($request, $this->labels, $kind);
             $errors += $submissions[$kind->value]->errors;
         }
-        $reminders = FirmMailSubmission::reminders($request, $this->homeCurrency($firm), $request->getLocale());
-        $errors += $reminders->errors;
+        $home = $this->homeCurrency($firm);
+        $reminders = $home instanceof Currency ? FirmMailSubmission::reminders($request, $home, $request->getLocale()) : null;
+        $values = $reminders instanceof FirmMailSubmission ? $reminders->values : $this->storedReminders($firm);
+        $errors += $reminders->errors ?? [];
         $stored = $this->reminders->for($firm);
-        $enabled = '1' === $reminders->values['enabled'];
-        if ($enabled && !$stored->enabled() && !$this->reminders->canSwitchOn()) {
+        $enabled = '1' === $values['enabled'];
+        if ($reminders instanceof FirmMailSubmission && $enabled && !$stored->enabled() && !$this->reminders->canSwitchOn()) {
             $errors['reminders-enabled'] = ['reminder.error.gate'];
         }
         $typed = array_map(static fn (FirmMailSubmission $submission): array => $submission->typed, $submissions);
         if ([] !== $errors) {
-            return $this->page($firm, self::TEMPLATES, $typed, $reminders->values, $this->storedServer($firm), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $texts = array_map(static fn (FirmMailSubmission $submission): array => $submission->texts, $submissions);
-        $first = (int) $reminders->values['firstAfterDays'];
-        $every = (int) $reminders->values['everyDays'];
-        $minimum = $reminders->minimum;
+        $first = (int) $values['firstAfterDays'];
+        $every = (int) $values['everyDays'];
+        $minimum = $reminders?->minimum;
+        $card = $reminders instanceof FirmMailSubmission;
         $today = $this->preview->today();
         try {
-            $this->transaction->run(function () use ($firm, $texts, $stored, $enabled, $first, $every, $minimum, $today): void {
+            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today): void {
                 foreach (MailTemplateKind::cases() as $kind) {
                     foreach (DocumentLanguage::cases() as $language) {
                         $text = $texts[$kind->value][$language->value];
                         $this->storeTemplate($firm, $kind, $language, $text['subject'], $text['body']);
                     }
                 }
-                if (self::changes($stored, $enabled, $first, $every, $minimum)) {
+                if ($card && $this->changes($stored, $enabled, $first, $every, $minimum)) {
                     $stored->change($enabled, $first, $every, $minimum, $today);
                     $this->reminders->save($stored);
                 }
             });
         } catch (UnknownMailVariables) {
             // The form checks the tokens first; this is the store's own check agreeing.
-            return $this->page($firm, self::TEMPLATES, $typed, $reminders->values, $this->storedServer($firm), ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (InvalidMailTemplate|UniqueConstraintViolationException) {
             // A control character the form let through, or another request storing the same text meanwhile.
-            return $this->page($firm, self::TEMPLATES, $typed, $reminders->values, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $typed, $values, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.saved'));
 
@@ -212,7 +218,7 @@ final class FirmMailController extends AbstractController
      * Whether the card asks for anything else than what applies, so a firm that
      * never touched reminders gets no row.
      */
-    private static function changes(FirmReminders $stored, bool $enabled, int $first, int $every, ?Money $minimum): bool
+    private function changes(FirmReminders $stored, bool $enabled, int $first, int $every, ?Money $minimum): bool
     {
         $current = $stored->minimum();
 
@@ -310,6 +316,7 @@ final class FirmMailController extends AbstractController
         $stored = $this->servers->for($firm);
         $url = $this->generateUrl('app_firm_mail', ['id' => $firm->id()]);
         $settings = $this->reminders->for($firm);
+        $home = $this->homeCurrency($firm);
         $kinds = [];
         foreach (MailTemplateKind::cases() as $kind) {
             $kinds[$kind->value] = array_map(fn (DocumentLanguage $language): array => [
@@ -333,12 +340,13 @@ final class FirmMailController extends AbstractController
             'templates' => $templates[MailTemplateKind::Invoice->value],
             'reminderTemplates' => $templates[MailTemplateKind::Reminder->value],
             'reminders' => $reminders,
+            'remindersCard' => $home instanceof Currency,
             // Closed until payments are recorded; a switch that is on stays usable, so it can be turned off.
             'remindersLocked' => !$settings->enabled() && !$this->reminders->canSwitchOn(),
             'remindersOn' => $settings->enabled(),
             'maxReminders' => FirmReminders::MAX_STEPS,
-            'homeCurrency' => $this->homeCurrency($firm)->value,
-            'tomorrow' => $settings->enabled() ? array_map(fn (InvoiceRow $row): array => [
+            'homeCurrency' => $home instanceof Currency ? $home->value : '',
+            'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map(fn (InvoiceRow $row): array => [
                 'number' => $row->number,
                 'customer' => $row->customerName,
                 'dueDate' => $row->dueDate,
@@ -400,9 +408,16 @@ final class FirmMailController extends AbstractController
         ];
     }
 
-    private function homeCurrency(LegalEntity $firm): Currency
+    /**
+     * Null for a firm in a country without invoicing rules.
+     */
+    private function homeCurrency(LegalEntity $firm): ?Currency
     {
-        return $this->countries->for($firm->address()->countryCode)->homeCurrency();
+        try {
+            return $this->countries->for($firm->address()->countryCode)->homeCurrency();
+        } catch (UnsupportedCountry) {
+            return null;
+        }
     }
 
     /**
