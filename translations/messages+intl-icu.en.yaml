@@ -842,6 +842,8 @@ invoice:
     delivered_confirm_accept: Mark as delivered
     tab:
       all: All
+      paid: Paid
+      unpaid: Unpaid
       overdue: Overdue
       trash: Trash
     column:
@@ -859,7 +861,10 @@ invoice:
     status:
       issued: Issued
       delivered: Delivered
+      partly_paid: Partly paid
       overdue: Overdue
+      paid: Paid
+      overpaid: Overpaid
       trashed: In the trash
     action:
       edit: Edit
@@ -894,6 +899,8 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
+    paid: '{who} recorded a payment'
+    payment_cancelled: '{who} removed a payment'
     send: '{who} sent an e-mail to {recipients}'
     send_copy: 'copy to {address}'
     send_show: Show the e-mail
@@ -1069,6 +1076,8 @@ invoice:
     exempt: Exempt
     not_applicable: Outside VAT
   payment:
+    refused:
+      has_payments: This invoice has payments. Remove the payments first.
     bank_transfer: Bank transfer
     cash: Cash
     card: Card

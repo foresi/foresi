@@ -842,6 +842,8 @@ invoice:
     delivered_confirm_accept: Označit jako doručenou
     tab:
       all: Vše
+      paid: Uhrazené
+      unpaid: Neuhrazené
       overdue: Po splatnosti
       trash: Koš
     column:
@@ -859,7 +861,10 @@ invoice:
     status:
       issued: Vystaveno
       delivered: Doručeno
+      partly_paid: Částečně uhrazeno
       overdue: Po splatnosti
+      paid: Uhrazeno
+      overpaid: Přeplaceno
       trashed: V koši
     action:
       edit: Upravit
@@ -894,6 +899,8 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    paid: '{who}: úhrada zaznamenána'
+    payment_cancelled: '{who}: úhrada odebrána'
     send: '{who}: e-mail na {recipients}'
     send_copy: 'kopie na {address}'
     send_show: Zobrazit e-mail
@@ -1069,6 +1076,8 @@ invoice:
     exempt: Osvobozeno
     not_applicable: Mimo DPH
   payment:
+    refused:
+      has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
     bank_transfer: Převodem
     cash: Hotově
     card: Kartou

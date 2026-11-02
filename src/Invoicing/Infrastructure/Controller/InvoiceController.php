@@ -17,6 +17,7 @@ use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
@@ -117,6 +118,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoicePdf $pdf,
         private readonly InvoiceSends $sends,
         private readonly InvoiceHistory $history,
+        private readonly InvoicePayments $payments,
     ) {
     }
 
@@ -625,7 +627,7 @@ final class InvoiceController extends AbstractController
         if (!$context->invoice instanceof Invoice) {
             return null;
         }
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->today($context));
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->today($context), $this->payments->paidOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }

@@ -15,12 +15,14 @@ use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoiceHistoryLine;
 use App\Invoicing\Application\InvoicePage;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
@@ -76,6 +78,7 @@ final class InvoiceListController extends AbstractController
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
+        private readonly InvoicePayments $payments,
     ) {
     }
 
@@ -131,6 +134,10 @@ final class InvoiceListController extends AbstractController
             $problem = $refused->isMissing() ? 'invoice.list.reason_missing' : 'invoice.problem.too_long';
 
             return $this->trashForm($this->invoice($id), $reason, $this->translator->trans($problem), $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (PaymentRefused) {
+            $this->addFlash('error', $this->translator->trans('invoice.payment.refused.has_payments'));
+
+            return $this->toList($return);
         } catch (\DomainException) {
             return $this->refused($this->invoice($id), $return);
         }
@@ -313,7 +320,7 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return): array
     {
         $date = $this->translator->trans('format.date');
-        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed);
+        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
         $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()]];
         if ($severalFirms) {
@@ -353,7 +360,7 @@ final class InvoiceListController extends AbstractController
     private function badge(Invoice $invoice): array
     {
         $today = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->timezoneOf($invoice));
-        $status = InvoiceStatus::ofInvoice($invoice, $today);
+        $status = InvoiceStatus::ofInvoice($invoice, $today, $this->payments->paidOf($invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -432,6 +439,8 @@ final class InvoiceListController extends AbstractController
                 InvoiceHistoryEntry::TRASHED => 'trash-2',
                 InvoiceHistoryEntry::RESTORED => 'archive-restore',
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
+                InvoiceHistoryEntry::PAID => 'check',
+                InvoiceHistoryEntry::PAYMENT_CANCELLED => 'x',
                 default => 'pencil',
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),

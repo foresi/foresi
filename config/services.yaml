@@ -150,6 +150,11 @@ services:
         alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
     App\Invoicing\Application\PublicDocuments:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
+    App\Invoicing\Application\InvoicePayments:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+    # Nothing to take back until banking records where payments come from.
+    App\Invoicing\Application\PaymentSourceRelease:
+        alias: App\Invoicing\Application\NoPaymentSourceRelease
 
     # Links to sent documents are derived from the application secret, never stored.
     App\Invoicing\Application\LinkTokens:
@@ -403,6 +408,11 @@ when@test:
         App\Invoicing\Application\SentFiles:
             alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
             public: true
+        App\Invoicing\Application\InvoicePayments:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+            public: true
+        App\Invoicing\Application\RecordPayment: { public: true }
+        App\Invoicing\Application\CancelPayment: { public: true }
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

@@ -15,9 +15,13 @@ namespace App\Invoicing\Application;
 final readonly class InvoiceFilter
 {
     public const string ALL = 'all';
+    /** Paid and Overpaid. */
+    public const string PAID = 'paid';
+    /** Unpaid and PartlyPaid, out of the trash. */
+    public const string UNPAID = 'unpaid';
     public const string OVERDUE = 'overdue';
     public const string TRASH = 'trash';
-    public const array TABS = [self::ALL, self::OVERDUE, self::TRASH];
+    public const array TABS = [self::ALL, self::PAID, self::UNPAID, self::OVERDUE, self::TRASH];
     public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
     public const string DEFAULT_SORT = '-issueDate';
 
