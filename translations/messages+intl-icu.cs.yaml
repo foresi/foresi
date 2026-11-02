@@ -1241,10 +1241,10 @@ recurring:
   preview:
     title: Příští vystavení
     unknown: 'Náhled zatím nejde spočítat:'
-    today_send: První faktura se vystaví a odešle během několika minut po uložení.
-    today_review: První faktura se vystaví během několika minut po uložení a počká na vaši kontrolu.
-    today_send_morning: První faktura se vystaví a odešle dnes v 5:00.
-    today_review_morning: První faktura se vystaví dnes v 5:00 a počká na vaši kontrolu.
+    today_send: Vystaví se a odešle hned po uložení.
+    today_review: Vystaví se a nechá ke kontrole hned po uložení.
+    today_send_morning: Vystaví se dnes v 5:00.
+    today_review_morning: Vystaví se dnes v 5:00 a počká na vaši kontrolu.
     tax_point: 'DUZP {date}'
     supply_point: 'plnění {date}'
     due: 'splatnost {date}'

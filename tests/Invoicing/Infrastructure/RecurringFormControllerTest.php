@@ -110,8 +110,10 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSelectorExists('[data-first-issue-today]');
     }
 
-    public function testAFirstIssueTodayBeforeTheRunSaysTheMorningRunIssuesIt(): void
+    public function testAFirstIssueTodayBeforeFiveSaysTheMorningRunIssuesIt(): void
     {
+        // 4:30 in Prague.
+        Clock::set(new MockClock('2026-11-02 03:30:00', 'UTC'));
         $this->signedIn();
 
         $this->openNew();
@@ -121,7 +123,19 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame([], $this->asyncQueue()->getSent(), 'the run of the day picks it up');
     }
 
-    public function testAFirstIssueTodayAfterTheRunIsIssuedAtOnce(): void
+    public function testAFirstIssueTodayAfterFiveWithoutARunIsIssuedOnSave(): void
+    {
+        // Noon in Prague, and the run of the day never ran.
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorTextContains('[data-first-issue-today]', 'right after saving');
+        $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
+        $this->assertHandedToTheWorker();
+    }
+
+    public function testAFirstIssueTodayAfterTheRunIsIssuedOnSave(): void
     {
         $this->signedIn();
         $this->em()->getConnection()->executeStatement(
@@ -131,13 +145,30 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextContains('[data-first-issue-today]', 'within a few minutes');
+        self::assertSelectorTextContains('[data-first-issue-today]', 'right after saving');
         $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
-        $sent = $this->asyncQueue()->getSent();
-        self::assertCount(1, $sent);
-        $message = $sent[0]->getMessage();
-        self::assertInstanceOf(IssueRecurringTemplate::class, $message);
-        self::assertSame($this->onlyTemplate()->id(), $message->templateId);
+        $this->assertHandedToTheWorker();
+    }
+
+    public function testAReviewDeliverySaysItIsHeldForReview(): void
+    {
+        $this->signedIn();
+
+        $this->preview($this->filled(['firstIssueOn' => '2026-11-02', 'delivery' => 'review']));
+
+        self::assertSelectorTextContains('[data-first-issue-today]', 'held for review right after saving');
+    }
+
+    public function testAFutureFirstIssueShowsNoNotice(): void
+    {
+        $this->signedIn();
+
+        $this->preview($this->filled(['firstIssueOn' => '2026-11-03']));
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-first-issue-today]');
+        $this->save($this->filled(['firstIssueOn' => '2026-11-03']));
+        self::assertSame([], $this->asyncQueue()->getSent());
     }
 
     public function testCreatingStoresTheTemplateAndGoesToTheList(): void
@@ -503,6 +534,15 @@ final class RecurringFormControllerTest extends WebTestCase
     private function previewDates(): array
     {
         return $this->client->getCrawler()->filter('[data-preview-issue]')->each(static fn ($node): string => trim($node->text()));
+    }
+
+    private function assertHandedToTheWorker(): void
+    {
+        $sent = $this->asyncQueue()->getSent();
+        self::assertCount(1, $sent);
+        $message = $sent[0]->getMessage();
+        self::assertInstanceOf(IssueRecurringTemplate::class, $message);
+        self::assertSame($this->onlyTemplate()->id(), $message->templateId);
     }
 
     private function issued(): Invoice

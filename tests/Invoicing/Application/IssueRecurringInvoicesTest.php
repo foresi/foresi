@@ -116,17 +116,35 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertSame('2027-01-01', $this->templateRow($template->id())['next_occurrence']);
     }
 
-    public function testAChangeBeforeTodaysRunLeavesItToTheRun(): void
+    public function testAChangeBeforeTheRunsHourLeavesItToTheRun(): void
     {
         $this->finishedOn('2026-11-30');
-        self::mockTime('2026-12-01 10:00:00');
+        // 4:30 in Prague: the run of the day is still to come at 5:00.
+        self::mockTime('2026-12-01 03:30:00');
         $template = $this->template();
 
-        self::assertFalse($this->afterTodaysRun()->todaysRunFinished());
+        self::assertFalse($this->afterTodaysRun()->issuesOnSave(new \DateTimeImmutable('2026-12-01')));
+        self::assertTrue($this->afterTodaysRun()->issuesOnSave(new \DateTimeImmutable('2026-11-30')), 'a date of the run\'s day before is overdue');
         self::assertFalse($this->afterTodaysRun()->afterChange($template->id()));
 
         self::assertSame([], $this->asyncQueue()->getSent());
         self::assertSame([], $this->invoicesOf($template));
+    }
+
+    public function testAChangeAfterTheRunsHourIssuesAtOnceAlsoWithoutARun(): void
+    {
+        // The run of the day never ran: late, or no worker. 11:00 in Prague.
+        $this->finishedOn('2026-11-30');
+        self::mockTime('2026-12-01 10:00:00');
+        $template = $this->template();
+
+        self::assertTrue($this->afterTodaysRun()->issuesOnSave(new \DateTimeImmutable('2026-12-01')));
+        self::assertTrue($this->afterTodaysRun()->afterChange($template->id()));
+
+        self::assertCount(1, $this->asyncQueue()->getSent());
+        $this->asyncWorker()->run();
+        $this->em->clear();
+        self::assertCount(1, $this->invoicesOf($template));
     }
 
     public function testATemplateDueLaterWaitsForItsDay(): void

@@ -524,9 +524,9 @@ final class RecurringFormController extends AbstractController
         return [
             'rows' => $shown,
             'problems' => [],
-            'today' => [] !== $rows && $rows[0]->issue->format('Y-m-d') === $today->format('Y-m-d'),
-            // Before the day's run, the run issues it; after it, the save hands it to the worker.
-            'when' => $this->afterTodaysRun->todaysRunFinished() ? 'now' : 'morning',
+            'today' => [] !== $rows && $rows[0]->issue->format('Y-m-d') <= $today->format('Y-m-d'),
+            // Before the run's hour the run issues it; after it, run or not, the save hands it to the worker.
+            'when' => [] !== $rows && $this->afterTodaysRun->issuesOnSave($rows[0]->issue) ? 'now' : 'morning',
             'delivery' => $delivery,
             'end' => $end,
         ];

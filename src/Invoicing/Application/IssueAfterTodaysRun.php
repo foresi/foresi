@@ -9,35 +9,34 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\RecurringState;
-use App\Tenancy\Application\Schedule\ScheduledJobRuns;
 
 /**
  * A template saved or resumed with a date due today, or earlier, waits for the
- * daily run only while that run is still to come today. Once the day's run has
- * finished, the template is handed to the worker at once (RecurringIssueQueue),
- * which issues and sends it through the same path as the run, so the first
- * invoice leaves within minutes. Either way each date is issued once: the
- * occurrence key sees to that.
+ * daily run only while the run's time is still to come today (before
+ * IssueRecurringInvoices::START_HOUR in the tenant's zone). Once that time has
+ * passed, the template is handed to the worker at once (RecurringIssueQueue),
+ * whether or not the run has finished: a run that is late, or a scheduler that
+ * is not running, must not leave a promised invoice waiting for tomorrow. The
+ * worker issues and sends it through the same path as the run. Either way each
+ * date is issued once: the occurrence key sees to that.
  */
 final readonly class IssueAfterTodaysRun
 {
     public function __construct(
         private RecurringInvoices $templates,
-        private ScheduledJobRuns $runs,
         private IssueRecurringInvoices $run,
         private RecurringIssueQueue $queue,
     ) {
     }
 
     /**
-     * Whether the recurring run of the tenant's today has finished, so a date due
-     * today is no longer the run's to issue.
+     * Whether a save now issues this date at once: it is due by the run's day,
+     * which begins at the run's hour, so the run of today has had its time.
+     * Before that hour the date of today is the run's to issue.
      */
-    public function todaysRunFinished(): bool
+    public function issuesOnSave(\DateTimeImmutable $date): bool
     {
-        $last = $this->runs->lastFinished(IssueRecurringInvoices::NAME);
-
-        return null !== $last && $last >= $this->run->today()->format('Y-m-d');
+        return $date->format('Y-m-d') <= $this->run->today()->format('Y-m-d');
     }
 
     /**
@@ -54,7 +53,7 @@ final readonly class IssueAfterTodaysRun
         if (RecurringState::Active !== $template->state() || !$next instanceof \DateTimeImmutable) {
             return false;
         }
-        if ($next->format('Y-m-d') > $this->run->today()->format('Y-m-d') || !$this->todaysRunFinished()) {
+        if (!$this->issuesOnSave($next)) {
             return false;
         }
         $this->queue->issue($templateId);
