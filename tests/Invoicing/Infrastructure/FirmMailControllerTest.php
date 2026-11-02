@@ -10,13 +10,37 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\InvoiceBalances;
+use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\ReminderSettings;
+use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxTreatment;
+use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
 use App\Party\Domain\Address;
+use App\Party\Domain\AddressType;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
+use App\Party\Domain\PartyAddress;
+use App\Party\Domain\PartyEmail;
+use App\Party\Domain\PartyKind;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
+use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
@@ -229,6 +253,36 @@ final class FirmMailControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('#reminders-preview h4', 'Reminded tomorrow');
         self::assertSelectorTextContains('#reminders-preview', 'No reminder goes out tomorrow.');
+    }
+
+    public function testThePreviewRowsNameTheInvoiceAndItsDates(): void
+    {
+        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+        [$firm, $invoices] = $this->firmWithDeliveredInvoices($tenant, ['2026-11-10', '2026-10-20']);
+
+        // Off: what switching on today would send, with the day of each first reminder.
+        $crawler = $this->client->request('GET', $this->url($firm));
+
+        $rows = $crawler->filter('#reminders-preview li');
+        self::assertCount(1, $rows, 'due before today, so not reminded once switched on today');
+        self::assertSame('/invoices/'.$invoices[0]->id().'/edit', $rows->filter('a')->attr('href'));
+        self::assertStringContainsString('20260001', $rows->text());
+        self::assertStringContainsString('Example Customer a.s.', $rows->text());
+        self::assertStringContainsString('reminder on 17 Nov 2026', $rows->text());
+        self::assertStringContainsString('due 10 Nov 2026', $rows->text());
+        self::assertStringContainsString('1,210.00', $rows->text());
+
+        // On since October: tomorrow's reminders, dated by their due day.
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->connection()->executeStatement("UPDATE firm_reminders SET enabled_on = '2026-10-01'");
+        $crawler = $this->client->request('GET', $this->url($firm));
+
+        $rows = $crawler->filter('#reminders-preview li');
+        self::assertCount(1, $rows);
+        self::assertStringContainsString('20260002', $rows->text());
+        self::assertStringContainsString('due 20 Oct 2026', $rows->text());
+        self::assertStringNotContainsString('reminder on', $rows->text());
     }
 
     public function testSwitchingOnRecordsTheDay(): void
@@ -612,6 +666,44 @@ final class FirmMailControllerTest extends WebTestCase
         $this->context->reset();
 
         return $firm;
+    }
+
+    /**
+     * A payer firm with a customer reminded by e-mail, and a delivered invoice per due date, issued on 1 October.
+     *
+     * @param list<string> $dueDates
+     *
+     * @return array{LegalEntity, list<Invoice>}
+     */
+    private function firmWithDeliveredInvoices(TenantId $tenant, array $dueDates): array
+    {
+        $this->context->switchTo($tenant);
+        try {
+            $em = $this->browser->em();
+            $iban = 'CZ6508000000192000145399';
+            $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [$iban]);
+            $em->persist($firm);
+            $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+            $series->markDefault();
+            $em->persist($series);
+            $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
+            $em->persist($customer);
+            $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+            $em->persist(new PartyEmail($customer, 'billing@example.com', EmailPurpose::Invoices));
+            $em->flush();
+            $day = new \DateTimeImmutable('2026-10-01');
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $invoices = [];
+            foreach ($dueDates as $due) {
+                $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line]));
+                self::getContainer()->get(MarkDelivered::class)->mark($invoice->id());
+                $invoices[] = $invoice;
+            }
+
+            return [$firm, $invoices];
+        } finally {
+            $this->context->reset();
+        }
     }
 
     private function url(LegalEntity $firm, ?string $tab = null): string

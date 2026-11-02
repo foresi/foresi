@@ -67,9 +67,9 @@
                                                 </span>
                                                 <span class="flex flex-wrap items-baseline gap-x-3 text-muted">
                                                     {% if row.on is defined %}
-                                                        <span class="text-text">{{ 'reminder.planned.on'|trans({date: row.on|date(dateFormat)}) }}</span>
+                                                        <span class="text-text">{{ 'reminder.planned.on'|trans({date: row.on|date(dateFormat, false)}) }}</span>
                                                     {% endif %}
-                                                    <span>{{ 'reminder.tomorrow.due'|trans({date: row.dueDate|date(dateFormat)}) }}</span>
+                                                    <span>{{ 'reminder.tomorrow.due'|trans({date: row.dueDate|date(dateFormat, false)}) }}</span>
                                                     <span class="tabular-nums text-text">{{ row.amount }}</span>
                                                 </span>
                                             </li>

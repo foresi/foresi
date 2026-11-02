@@ -1574,3 +1574,28 @@ reminder:
   contact:
     send: Send reminders
     send_help: When the firm reminds overdue invoices automatically.
+  log:
+    column: Type
+    all: All types
+    purpose:
+      invoice: Invoice
+      reminder: Reminder
+    step: 'Reminder {step}'
+    again: Send another reminder
+  history:
+    sent: '{who} sent reminder {step} to {recipients}'
+    again: Send another reminder
+  list:
+    action: Send reminder
+    last: 'Last reminder {date}'
+    count: '{count, plural, one {# reminder} other {# reminders}}'
+  manual:
+    title: 'Reminder {step} for invoice {number}'
+    submit: Send reminder
+    intro: '{days, plural, one {# day} other {# days}} overdue, reminder {step} of at most {max}.'
+    queued: 'Reminder {step} of invoice {number} is queued for sending to {recipients}.'
+    already_queued: 'Reminder {step} of invoice {number} is already queued for sending.'
+    not_overdue: 'Invoice {number} is not overdue, so it gets no reminder.'
+    limit: 'Invoice {number} has had {max} reminders, the most there can be.'
+    settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
+    taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'

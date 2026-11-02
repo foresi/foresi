@@ -1574,3 +1574,28 @@ reminder:
   contact:
     send: Posílat upomínky
     send_help: Když firma posílá upomínky po splatnosti automaticky.
+  log:
+    column: Druh
+    all: Všechny druhy
+    purpose:
+      invoice: Faktura
+      reminder: Upomínka
+    step: 'Upomínka {step}'
+    again: Poslat další upomínku
+  history:
+    sent: '{who}: upomínka {step} na {recipients}'
+    again: Poslat další upomínku
+  list:
+    action: Poslat upomínku
+    last: 'Poslední upomínka {date}'
+    count: '{count, plural, one {# upomínka} few {# upomínky} other {# upomínek}}'
+  manual:
+    title: 'Upomínka {step} k faktuře {number}'
+    submit: Odeslat upomínku
+    intro: '{days, plural, one {# den} few {# dny} other {# dní}} po splatnosti, upomínka {step} z nejvýš {max}.'
+    queued: 'Upomínka {step} k faktuře {number} je ve frontě k odeslání na {recipients}.'
+    already_queued: 'Upomínka {step} k faktuře {number} už je ve frontě k odeslání.'
+    not_overdue: 'Faktura {number} není po splatnosti, upomínku proto nedostane.'
+    limit: 'Faktura {number} už má {max} upomínek, víc jich být nemůže.'
+    settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
+    taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'

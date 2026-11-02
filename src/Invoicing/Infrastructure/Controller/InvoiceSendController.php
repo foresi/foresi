@@ -10,7 +10,9 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceSends;
+use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MailVariables;
@@ -24,11 +26,14 @@ use App\Invoicing\Application\SentFiles;
 use App\Invoicing\Application\SentFileUnreadable;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -49,6 +54,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * is shown filled in, with the link as a readable token in the document's
  * language. A one-time token makes a double click queue one send. The PDF a send
  * carried is kept, and staff open it from the history.
+ *
+ * A reminder by hand is the same dialog with the firm's reminder text: offered on
+ * an overdue invoice outside the trash with something left to pay, as the next
+ * step after every reminder it has had, so it counts towards the most there can
+ * be. The step travels with the form; when another reminder took it meanwhile,
+ * the dialog shows the next one to check rather than send a text naming the wrong
+ * step.
  *
  * @phpstan-type Values array{to: list<string>, cc: list<string>, others: string, copyToMe: bool, subject: string, body: string}
  * @phpstan-type Problem array{id: string, field: string, message: string}
@@ -76,11 +88,24 @@ final class InvoiceSendController extends AbstractController
         private readonly InvoiceSends $sends,
         private readonly SentFiles $files,
         private readonly TranslatorInterface $translator,
+        private readonly InvoiceBalances $balances,
+        private readonly ClockInterface $clock,
     ) {
     }
 
     #[Route('/invoices/{id}/send', name: 'app_invoice_send', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function send(string $id, Request $request): Response
+    {
+        return $this->dialog($id, $request, SendPurpose::Invoice);
+    }
+
+    #[Route('/invoices/{id}/remind', name: 'app_invoice_remind', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function remind(string $id, Request $request): Response
+    {
+        return $this->dialog($id, $request, SendPurpose::Reminder);
+    }
+
+    private function dialog(string $id, Request $request, SendPurpose $purpose): Response
     {
         $this->denyUnlessStaff();
         $invoice = $this->invoice($id);
@@ -89,9 +114,12 @@ final class InvoiceSendController extends AbstractController
         if ($post) {
             $this->checkToken($request);
         }
+        $reminder = SendPurpose::Reminder === $purpose;
         $token = $request->request->getString('_submission');
         if ($post && $this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
-            $this->addFlash('warning', $this->translator->trans('invoice.send.flash.already_queued', ['number' => $invoice->number()]));
+            $this->addFlash('warning', $reminder
+                ? $this->translator->trans('reminder.manual.already_queued', ['number' => $invoice->number(), 'step' => $request->request->getInt('step')])
+                : $this->translator->trans('invoice.send.flash.already_queued', ['number' => $invoice->number()]));
 
             return $this->toList($return);
         }
@@ -100,18 +128,28 @@ final class InvoiceSendController extends AbstractController
 
             return $this->toList($return);
         }
+        $step = $reminder ? $this->nextStep($invoice) : null;
+        $refusal = null === $step ? null : $this->notRemindable($invoice, $step);
+        if (null !== $refusal) {
+            $this->addFlash('error', $refusal);
 
-        $draft = $this->drafts->for($invoice);
+            return $this->toList($return);
+        }
+
+        $draft = null === $step ? $this->drafts->for($invoice) : $this->drafts->forReminder($invoice, $step, $this->today($invoice));
         if (!$post) {
-            return $this->page($invoice, $draft, $this->drafted($draft), [], $this->tokens->issue(), $return, Response::HTTP_OK);
+            return $this->page($invoice, $draft, $this->drafted($draft), [], $this->tokens->issue(), $return, Response::HTTP_OK, $step);
         }
         $values = $this->posted($request);
         if (!$draft->hasServer) {
-            return $this->page($invoice, $draft, $values, [], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($invoice, $draft, $values, [], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
         }
         if (!$this->tokens->isIssued($token)) {
             // The token fell out of the session: nothing is lost, the next send goes through.
-            return $this->page($invoice, $draft, $values, [$this->problem(self::FORM, 'party.error.expired')], $this->tokens->issue(), $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($invoice, $draft, $values, [$this->problem(self::FORM, 'party.error.expired')], $this->tokens->issue(), $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
+        }
+        if (null !== $step && $request->request->getInt('step') !== $step) {
+            return $this->taken($invoice, $request->request->getInt('step'), $token, $return);
         }
 
         $problems = [];
@@ -122,19 +160,89 @@ final class InvoiceSendController extends AbstractController
             $problems[self::SUBJECT] ??= $this->problem(self::SUBJECT, 'firm.mail.error.link_in_subject', ['link' => $this->labels->token(MailVariables::LINK, $draft->language)]);
         }
         if ([] !== $problems) {
-            return $this->page($invoice, $draft, $values, array_values($problems), $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($invoice, $draft, $values, array_values($problems), $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
         }
 
         $to = [...$values['to'], ...$others];
         try {
-            $send = $this->sending->send(new SendRequest($invoice->id(), $to, $values['cc'], $values['copyToMe'], $subject, $body));
+            $send = $this->sending->send(new SendRequest($invoice->id(), $to, $values['cc'], $values['copyToMe'], $subject, $body, $purpose, $step));
         } catch (SendRefused $refused) {
-            return $this->page($invoice, $this->drafts->for($this->invoice($id)), $values, [$this->refusal($refused, $others)], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+            if (null !== $step && SendRefused::REMINDER_TAKEN === $refused->reason) {
+                return $this->taken($invoice, $step, $token, $return);
+            }
+            $fresh = $this->invoice($id);
+
+            return $this->page($fresh, null === $step ? $this->drafts->for($fresh) : $draft, $values, [$this->refusal($refused, $others)], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
         }
         $this->tokens->complete($token, $send->id());
-        $this->addFlash('success', $this->translator->trans('invoice.send.flash.queued', ['number' => $send->documentNumber(), 'recipients' => implode(', ', [...$send->to(), ...$send->cc()])]));
+        $recipients = implode(', ', [...$send->to(), ...$send->cc()]);
+        $this->addFlash('success', null === $step
+            ? $this->translator->trans('invoice.send.flash.queued', ['number' => $send->documentNumber(), 'recipients' => $recipients])
+            : $this->translator->trans('reminder.manual.queued', ['number' => $send->documentNumber(), 'step' => $step, 'recipients' => $recipients]));
 
         return $this->toList($return);
+    }
+
+    /**
+     * Another reminder took the step the form was drawn for: the next one, drawn afresh, to check and send.
+     */
+    private function taken(Invoice $invoice, int $posted, string $token, string $return): Response
+    {
+        $invoice = $this->invoice($invoice->id());
+        $step = $this->nextStep($invoice);
+        $refusal = $this->notRemindable($invoice, $step);
+        if (null !== $refusal) {
+            $this->addFlash('error', $refusal);
+
+            return $this->toList($return);
+        }
+        $draft = $this->drafts->forReminder($invoice, $step, $this->today($invoice));
+        $problem = ['id' => self::FORM, 'field' => '', 'message' => $this->translator->trans('reminder.manual.taken', ['taken' => max(1, min($posted, $step - 1)), 'step' => $step])];
+
+        return $this->page($invoice, $draft, $this->drafted($draft), [$problem], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
+    }
+
+    /**
+     * The step after every reminder the invoice has had, whatever became of them, as the daily run counts.
+     */
+    private function nextStep(Invoice $invoice): int
+    {
+        $last = 0;
+        foreach ($this->sends->ofInvoice($invoice) as $send) {
+            $last = max($last, $send->reminderStep() ?? 0);
+        }
+
+        return $last + 1;
+    }
+
+    /**
+     * Why the invoice gets no reminder now, or null when it may.
+     */
+    private function notRemindable(Invoice $invoice, int $step): ?string
+    {
+        $number = ['number' => $invoice->number()];
+        if (InvoiceStatus::Overdue !== InvoiceStatus::ofInvoice($invoice, $this->today($invoice))) {
+            return $this->translator->trans('reminder.manual.not_overdue', $number);
+        }
+        if ($step > FirmReminders::MAX_STEPS) {
+            return $this->translator->trans('reminder.manual.limit', $number + ['max' => FirmReminders::MAX_STEPS]);
+        }
+        $open = $this->balances->outstanding([$invoice->id()])[$invoice->id()];
+        if ($open->isZero() || $open->isNegative()) {
+            return $this->translator->trans('reminder.manual.settled', $number);
+        }
+
+        return null;
+    }
+
+    /**
+     * The firm's day: the date in the time zone of the country that issued the invoice, at its start.
+     */
+    private function today(Invoice $invoice): \DateTimeImmutable
+    {
+        $zone = $this->timezoneOf($invoice);
+
+        return new \DateTimeImmutable(\DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($zone)->format('Y-m-d'), $zone);
     }
 
     /**
@@ -258,11 +366,17 @@ final class InvoiceSendController extends AbstractController
      * @param Values        $values
      * @param list<Problem> $problems
      */
-    private function page(Invoice $invoice, SendDraftValues $draft, array $values, array $problems, string $token, string $return, int $status): Response
+    private function page(Invoice $invoice, SendDraftValues $draft, array $values, array $problems, string $token, string $return, int $status, ?int $step = null): Response
     {
         $errors = [];
         foreach ($problems as $problem) {
             $errors[$problem['id']] = $problem['message'];
+        }
+        $reminder = null;
+        if (null !== $step) {
+            $today = $this->today($invoice);
+            $days = (int) new \DateTimeImmutable($invoice->dueDate()->format('Y-m-d'))->diff(new \DateTimeImmutable($today->format('Y-m-d')))->format('%a');
+            $reminder = ['step' => $step, 'intro' => $this->translator->trans('reminder.manual.intro', ['days' => $days, 'step' => $step, 'max' => FirmReminders::MAX_STEPS])];
         }
 
         return $this->render('invoicing/send.html.twig', [
@@ -271,7 +385,9 @@ final class InvoiceSendController extends AbstractController
             'values' => $values,
             'problems' => $problems,
             'errors' => $errors,
-            'lastSent' => $draft->lastSentAt?->setTimezone($this->timezoneOf($invoice))->format($this->translator->trans('format.datetime')),
+            'reminder' => $reminder,
+            'action' => $this->generateUrl(null === $step ? 'app_invoice_send' : 'app_invoice_remind', ['id' => $invoice->id()]),
+            'lastSent' => null !== $step ? null : $draft->lastSentAt?->setTimezone($this->timezoneOf($invoice))->format($this->translator->trans('format.datetime')),
             'linkToken' => $this->labels->token(MailVariables::LINK, $draft->language),
             'token' => $token,
             'return' => $return,
