@@ -10,7 +10,7 @@ namespace App\Banking\Infrastructure\Imap;
 
 use App\Banking\Application\InboundMailbox;
 use App\Banking\Application\MailboxItem;
-use DirectoryTree\ImapEngine\Connection\ConnectionInterface;
+use DirectoryTree\ImapEngine\Connection\Streams\ImapStream;
 use DirectoryTree\ImapEngine\Mailbox;
 use DirectoryTree\ImapEngine\Message;
 
@@ -19,8 +19,9 @@ use DirectoryTree\ImapEngine\Message;
  * that touches the library (and the Laravel collections and Carbon it brings).
  *
  * Every fetch opens a fresh session, so a connection the server dropped since
- * the last run does no harm. It makes sure the three folders exist, under the
- * server's own hierarchy delimiter, then reads the oldest messages that are not
+ * the last run does no harm. It makes sure the three folders exist, in the
+ * user's personal namespace when the server names one (below "INBOX." on
+ * Courier and Cyrus) and under the server's own hierarchy delimiter, then reads the oldest messages that are not
  * marked deleted, by UID, whole and peeked, so they stay unread. A message is
  * moved with MOVE, or with COPY and a deleted flag on servers without it; the
  * inbox is never expunged, which would remove what an operator deleted.
@@ -42,7 +43,7 @@ final class ImapInboundMailbox implements InboundMailbox
     private array $fetched = [];
 
     /**
-     * @param ConnectionInterface|null $connection a connection to use in place of a socket, for a scripted server in tests
+     * @param NamespacedImapConnection|null $connection a connection to use in place of a socket, for a scripted server in tests
      *
      * @throws \InvalidArgumentException for an encryption other than ssl or starttls
      */
@@ -54,7 +55,7 @@ final class ImapInboundMailbox implements InboundMailbox
         #[\SensitiveParameter]
         private readonly string $password,
         private readonly string $folder,
-        private readonly ?ConnectionInterface $connection = null,
+        private readonly ?NamespacedImapConnection $connection = null,
     ) {
         $encryption = strtolower(trim($encryption));
         if (!\in_array($encryption, self::ENCRYPTIONS, true)) {
@@ -101,14 +102,15 @@ final class ImapInboundMailbox implements InboundMailbox
             return [];
         }
         $mailbox = $this->client();
-        $mailbox->connect($this->connection);
+        $connection = $this->connection ?? new NamespacedImapConnection(new ImapStream());
+        $this->connect($mailbox, $connection);
         $this->mailbox = $mailbox;
 
         $folders = $mailbox->folders();
         $inbox = $folders->findOrFail($this->folder);
-        $delimiter = '' === $inbox->delimiter() ? '/' : $inbox->delimiter();
+        [$prefix, $delimiter] = $this->home($connection, '' === $inbox->delimiter() ? '/' : $inbox->delimiter());
         foreach (self::FOLDERS as $key => $name) {
-            $path = self::PARENT.$delimiter.$name;
+            $path = $prefix.self::PARENT.$delimiter.$name;
             $folders->firstOrCreate($path);
             $this->folders[$key] = $path;
         }
@@ -149,6 +151,52 @@ final class ImapInboundMailbox implements InboundMailbox
     public function __debugInfo(): array
     {
         return ['host' => $this->host, 'port' => $this->port, 'encryption' => $this->encryption, 'user' => $this->user, 'folder' => $this->folder];
+    }
+
+    /**
+     * Opens the session. The library logs in with the password as an argument of
+     * its own methods, and a trace keeps arguments where exceptions carry them
+     * (zend.exception_ignore_args off, as in development), so its exception is
+     * never passed on: a new one says what failed, in words without the password,
+     * and starts its trace here.
+     */
+    private function connect(Mailbox $mailbox, NamespacedImapConnection $connection): void
+    {
+        try {
+            $mailbox->connect($connection);
+        } catch (\Throwable $failure) {
+            throw $this->notOpened($failure);
+        }
+    }
+
+    /**
+     * Deliberately without the library exception as its previous one: that one's
+     * trace holds the password.
+     */
+    private function notOpened(\Throwable $failure): \RuntimeException
+    {
+        $reason = '' === $this->password ? $failure->getMessage() : str_replace($this->password, '[redacted]', $failure->getMessage());
+
+        return new \RuntimeException(\sprintf('The bank inbox %s:%d could not be opened (%s): %s', $this->host, $this->port, new \ReflectionClass($failure)->getShortName(), $reason));
+    }
+
+    /**
+     * Where the user's own folders live, and the delimiter below it: the server's
+     * personal namespace, or the top with the inbox's delimiter when it names none.
+     *
+     * @return array{string, string} the prefix, ending in the delimiter or empty, and the delimiter
+     */
+    private function home(NamespacedImapConnection $connection, string $inboxDelimiter): array
+    {
+        [$prefix, $delimiter] = $connection->personalNamespace() ?? ['', ''];
+        if ('' === $delimiter) {
+            $delimiter = $inboxDelimiter;
+        }
+        if ('' !== $prefix && !str_ends_with($prefix, $delimiter)) {
+            $prefix .= $delimiter;
+        }
+
+        return [$prefix, $delimiter];
     }
 
     private function move(string $uid, string $folder): void
