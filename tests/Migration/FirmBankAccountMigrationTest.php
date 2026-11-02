@@ -82,6 +82,19 @@ final class FirmBankAccountMigrationTest extends TestCase
         self::assertNotContains('bank_accounts', $this->firmColumns());
     }
 
+    public function testAFirmOutsideCzechiaGetsItsCountrysCurrency(): void
+    {
+        $slovak = $this->firm('12345695', [self::THIRD_IBAN], 'SK');
+        $american = $this->firm('12345687', [self::IBAN], 'US');
+        // A country whose currency Foresi does not know keeps CZK, which the owner corrects.
+        $british = $this->firm('12345679', [self::SECOND_IBAN], 'GB');
+
+        $this->migrateTo(self::AFTER);
+
+        $currencies = $this->db->fetchAllKeyValue('SELECT legal_entity_id, currency FROM firm_bank_account');
+        self::assertSame([$slovak => 'EUR', $american => 'USD', $british => 'CZK'], [$slovak => $currencies[$slovak], $american => $currencies[$american], $british => $currencies[$british]]);
+    }
+
     public function testAnEmptyListMakesNoRows(): void
     {
         $this->firm('12345695', []);
@@ -154,7 +167,7 @@ final class FirmBankAccountMigrationTest extends TestCase
     /**
      * @param list<string> $ibans
      */
-    private function firm(string $number, array $ibans): string
+    private function firm(string $number, array $ibans, string $country = 'CZ'): string
     {
         $id = Id::generate();
         $this->db->insert('legal_entity', [
@@ -170,7 +183,7 @@ final class FirmBankAccountMigrationTest extends TestCase
             'address_street' => 'Example Street 1',
             'address_city' => 'Example City',
             'address_postal_code' => '100 00',
-            'address_country_code' => 'CZ',
+            'address_country_code' => $country,
         ]);
 
         return $id;
