@@ -23,10 +23,14 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
 // The dialog of a seeded invoice, reached from the row menu of the list.
 async function openFromList(page: Page, number: string): Promise<void> {
   await page.goto('/invoices');
-  const target = page.locator('tbody tr').filter({ has: page.getByRole('button', { name: `Další akce pro ${number}`, exact: true }) });
+  const target = row(page, number);
   await target.getByRole('button', { name: /Další akce/ }).click();
   await target.getByRole('menuitem', { name: 'Odeslat' }).click();
   await expect(page.getByRole('heading', { level: 1, name: `Odeslat fakturu ${number}` })).toBeVisible();
+}
+
+function row(page: Page, number: string) {
+  return page.locator('tbody tr').filter({ has: page.getByRole('button', { name: `Další akce pro ${number}`, exact: true }) });
 }
 
 async function tabThrough(page: Page, ids: string[]): Promise<void> {
@@ -96,6 +100,70 @@ test.describe.serial('sending an invoice', () => {
     }
   });
 
+  test('the list marks how each invoice was sent, at both widths @a11y @layout', async ({ page }) => {
+    for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
+      await page.setViewportSize(size);
+      await page.goto('/invoices');
+      const failed = page.locator('tbody tr').filter({ has: page.getByRole('button', { name: 'Další akce pro 20260002', exact: true }) });
+      const read = page.locator('tbody tr').filter({ has: page.getByRole('button', { name: 'Další akce pro 20260003', exact: true }) });
+      if (name === 'desktop') {
+        await expect(failed.locator('[data-icon-cell]')).toHaveText('Neodešlo');
+        await expect(failed.locator('[data-icon-cell]')).toHaveAttribute('title', 'E-mail se nepodařilo odeslat');
+        await expect(read.locator('[data-icon-cell]')).toHaveText('Přečteno');
+        await expect(row(page, '20260001').locator('[data-icon-cell]')).toHaveCount(0);
+      } else {
+        // On a phone the mark is part of the line under the number, label included.
+        await expect(failed.locator('[data-row-secondary]')).toContainText('Neodešlo');
+        await expect(read.locator('[data-row-secondary]')).toContainText('Přečteno');
+      }
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await page.screenshot({ path: `${SHOTS}/send-marks-${name}.png`, fullPage: true });
+    }
+  });
+
+  test('a failed send raises a notice that leads to the log, the history and the dialog @a11y @layout', async ({ page }) => {
+    for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
+      await page.setViewportSize(size);
+      await page.goto('/contacts');
+      const notice = page.locator('[data-shell-notices]');
+      await expect(notice).toContainText('Fakturu se nepodařilo odeslat.');
+      await notice.getByRole('link', { name: 'Zobrazit' }).click();
+
+      await expect(page.getByRole('heading', { level: 1, name: 'Odeslané e-maily' })).toBeVisible();
+      await expect(page.getByRole('navigation', { name: 'Stavy odeslání' }).getByRole('link', { name: 'Neodešlo' })).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator('tbody tr')).toHaveCount(1);
+      await expect(page.locator('tbody tr')).toContainText('SMTP 550');
+      await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
+      await page.screenshot({ path: `${SHOTS}/send-log-${name}.png`, fullPage: true });
+    }
+
+    await page.setViewportSize(DESKTOP);
+    await page.locator('tbody tr').getByRole('link', { name: '20260002' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Historie faktury 20260002' })).toBeVisible();
+    const entry = page.locator('[data-send-entry]');
+    await expect(entry).toContainText('refuse@example.com');
+    await expect(entry).toContainText('SMTP 550');
+    await entry.getByText('Zobrazit e-mail').click();
+    await expect(entry).toContainText('posíláme fakturu 20260002');
+    await expectNoSeriousViolations(page);
+    await page.screenshot({ path: `${SHOTS}/send-history-desktop.png`, fullPage: true });
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await page.screenshot({ path: `${SHOTS}/send-history-phone.png`, fullPage: true });
+    await page.setViewportSize(DESKTOP);
+
+    const history = page.url();
+    const [pdf] = await Promise.all([page.waitForResponse((response) => /\/sends\/[0-9a-f-]+\/pdf$/.test(response.url())), entry.getByRole('link', { name: 'PDF, jak odešlo' }).click()]);
+    expect(pdf.status()).toBe(200);
+    expect(pdf.headers()['content-type']).toBe('application/pdf');
+    await page.goto(history);
+
+    await page.locator('[data-send-entry]').getByRole('link', { name: 'Odeslat znovu' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Odeslat fakturu 20260002' })).toBeVisible();
+  });
+
   test('send and save from the form, then send from the keyboard', async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto('/invoices/new');
@@ -115,8 +183,8 @@ test.describe.serial('sending an invoice', () => {
     await expect(page.getByRole('menuitem').first()).toHaveText('Odeslat a uložit');
     await page.getByRole('menuitem', { name: 'Odeslat a uložit' }).click();
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Odeslat fakturu 20260002' })).toBeVisible();
-    await expect(page.getByText('Faktura 20260002 je uložená.')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Odeslat fakturu 20260004' })).toBeVisible();
+    await expect(page.getByText('Faktura 20260004 je uložená.')).toBeVisible();
 
     // Recipients, the copy, subject, body, then Back and Send.
     await page.locator('#recipient-1').focus();
@@ -127,13 +195,15 @@ test.describe.serial('sending an invoice', () => {
     await page.keyboard.press('Enter');
 
     await expect(page).toHaveURL(/\/invoices$/);
-    await expect(page.getByText('Faktura 20260002 je zařazená k odeslání na billing@example.com, accounts@example.com.')).toBeVisible();
+    await expect(page.getByText('Faktura 20260004 je zařazená k odeslání na billing@example.com, accounts@example.com.')).toBeVisible();
     // The e2e queue delivers at once: the recording gateway accepted it, which marks the invoice delivered.
-    await expect(page.locator('tbody tr').filter({ hasText: '20260002' })).toContainText('Doručeno');
+    const sent = page.locator('tbody tr').filter({ has: page.getByRole('button', { name: 'Další akce pro 20260004', exact: true }) });
+    await expect(sent).toContainText('Doručeno');
+    await expect(sent.locator('[data-icon-cell]')).toHaveText('Odesláno');
     await page.screenshot({ path: `${SHOTS}/send-queued-desktop.png`, fullPage: true });
 
     // Sent once: a second look at the dialog says so.
-    await openFromList(page, '20260002');
+    await openFromList(page, '20260004');
     await expect(page.locator('[data-sent-before]')).toContainText('Faktura už odešla');
   });
 });

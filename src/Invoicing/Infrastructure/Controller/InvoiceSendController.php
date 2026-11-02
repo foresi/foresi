@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MailVariables;
@@ -19,6 +20,8 @@ use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRecipient;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Application\SendRequest;
+use App\Invoicing\Application\SentFiles;
+use App\Invoicing\Application\SentFileUnreadable;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
@@ -27,6 +30,7 @@ use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,7 +47,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * with 422 and what was typed. Its fields come in iDoklad's order: from, to,
  * subject and text; the method is left out while a link is the only one. The text
  * is shown filled in, with the link as a readable token in the document's
- * language. A one-time token makes a double click queue one send.
+ * language. A one-time token makes a double click queue one send. The PDF a send
+ * carried is kept, and staff open it from the history.
  *
  * @phpstan-type Values array{to: list<string>, cc: list<string>, others: string, copyToMe: bool, subject: string, body: string}
  * @phpstan-type Problem array{id: string, field: string, message: string}
@@ -68,6 +73,8 @@ final class InvoiceSendController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly OwnerCheck $owner,
         private readonly InvoicingCountries $countries,
+        private readonly InvoiceSends $sends,
+        private readonly SentFiles $files,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -128,6 +135,30 @@ final class InvoiceSendController extends AbstractController
         $this->addFlash('success', $this->translator->trans('invoice.send.flash.queued', ['number' => $send->documentNumber(), 'recipients' => implode(', ', [...$send->to(), ...$send->cc()])]));
 
         return $this->toList($return);
+    }
+
+    /**
+     * The PDF exactly as a send of the invoice carried it, from the kept copy.
+     */
+    #[Route('/invoices/{id}/sends/{sendId}/pdf', name: 'app_invoice_sent_pdf', requirements: ['id' => Requirement::UUID_V7, 'sendId' => Requirement::UUID_V7], methods: ['GET'])]
+    public function sentPdf(string $id, string $sendId): Response
+    {
+        $this->denyUnlessStaff();
+        $sends = array_filter($this->sends->ofInvoice($this->invoice($id)), static fn (InvoiceSend $send): bool => $send->id() === $sendId);
+        $send = array_shift($sends) ?? throw new NotFoundHttpException();
+        try {
+            $bytes = $this->files->read($send->tenantId()->toString(), $send->pdfKey(), $send->pdfSha256());
+        } catch (SentFileUnreadable) {
+            throw new NotFoundHttpException('The kept PDF cannot be read.');
+        }
+        $number = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $send->documentNumber()), '-.');
+
+        return new Response($bytes, Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, ('' === $number ? 'document' : $number).'.pdf'),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /**

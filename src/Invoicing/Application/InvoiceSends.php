@@ -33,6 +33,30 @@ interface InvoiceSends
     public function ofInvoice(Invoice $invoice): array;
 
     /**
+     * The mark of each invoice, in one query. An invoice without a send is None.
+     *
+     * @param list<string> $invoiceIds
+     *
+     * @return array<string, SendMark> by invoice id
+     */
+    public function marksFor(array $invoiceIds): array;
+
+    /**
+     * The send log: newest first.
+     */
+    public function page(SendLogFilter $filter): SendLogPage;
+
+    /**
+     * How many invoices outside the trash have a failed send and no later one that went out.
+     */
+    public function failing(): int;
+
+    /**
+     * How many sends were queued before the moment and still wait.
+     */
+    public function queuedBefore(\DateTimeImmutable $before): int;
+
+    /**
      * Whether a send of the invoice still waits to go out.
      */
     public function hasQueued(Invoice $invoice): bool;

@@ -37,6 +37,7 @@ nav:
     invoices: Invoices
     firms: My firms
     import: Import and export
+    sent_mail: Sent e-mails
 ui:
   combobox:
     found: 'Found: {count}'
@@ -619,6 +620,51 @@ invoice:
         {sender_name}
 
         {link}
+  mark:
+    queued: Sending
+    sent: Sent
+    read: Read
+    failed: Failed
+    hint:
+      queued: Waiting in the queue to be sent
+      sent: Sent to the customer
+      read: The customer opened the document
+      failed: The e-mail could not be sent
+  changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  sends:
+    title: Sent e-mails
+    views: Send states
+    filter: Filter
+    tab:
+      all: All
+      sent: Sent
+      queued: Waiting
+      failed: Failed
+    column:
+      when: When
+      firm: Firm
+      number: Document
+      customer: Customer
+      recipients: Recipients
+      status: Status
+      error: Error
+    status:
+      queued: Waiting
+      sent: Sent
+      failed: Failed
+      cancelled: Cancelled
+    summary: '{total, plural, one {# e-mail} other {# e-mails}}'
+    action:
+      again: Send again
+    empty:
+      title: Nothing sent yet
+      text: Send an invoice from its menu in the invoice list, or with Send and save.
+      filtered_title: No e-mail matches
+      reset: Clear the filter
+    notice:
+      failed: '{count, plural, one {An invoice could not be sent.} other {# invoices could not be sent.}}'
+      stuck: '{count, plural, one {An e-mail has} other {# e-mails have}} been waiting to be sent for more than {minutes} minutes. Check that the queue worker runs on the server.'
+      link: Show
   send:
     title: 'Send invoice {number}'
     card: E-mail
@@ -744,6 +790,7 @@ invoice:
       overdue: Overdue
       trash: Trash
     column:
+      sent: E-mail
       number: Number
       firm: Firm
       customer: Customer
@@ -792,6 +839,13 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
+    send: '{who} sent an e-mail to {recipients}'
+    send_copy: 'copy to {address}'
+    send_show: Show the e-mail
+    send_subject: Subject
+    send_pdf: PDF as sent
+    send_read: 'Read {date}'
+    send_again: Send again
     line_added: 'Line {number} ({text}) added'
     line_removed: 'Line {number} ({text}) removed'
     line_changed: 'Line {number} ({text}): {fields}'

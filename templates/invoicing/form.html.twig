@@ -57,6 +57,7 @@
             {% endif %}
             {% for notice in copyNotices %}<twig:Ui:Alert tone="warning" role="status" data-copy-notice>{{ notice|trans }}</twig:Ui:Alert>{% endfor %}
             {% if trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
+            {% if changedAfterSend|default(null) %}<twig:Ui:Alert tone="warning" data-changed-after-send>{{ 'invoice.changed_after_send'|trans({date: changedAfterSend}) }}</twig:Ui:Alert>{% endif %}
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
 

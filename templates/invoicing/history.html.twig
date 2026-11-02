@@ -8,6 +8,19 @@
 
 {% block content %}
     <twig:Ui:Card :title="'invoice.history.card'|trans" icon="history">
-        <twig:Ui:Timeline :items="timeline" data-invoice-history />
+        {# The Timeline's own rows, with the sends among them in time; a send shows what went out. #}
+        <ol class="m-0 list-none p-0" data-invoice-history>
+            {% for item in timeline %}
+                {% if item.send is defined %}
+                    {{ include('invoicing/_send_entry.html.twig', {item: item}) }}
+                {% else %}
+                    <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]">
+                        {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
+                        <time datetime="{{ item.datetime }}" class="num text-muted">{{ item.time }}</time>
+                        <span class="min-w-0 text-text [overflow-wrap:anywhere] max-sm:col-start-2">{{ item.text }}</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ol>
     </twig:Ui:Card>
 {% endblock %}

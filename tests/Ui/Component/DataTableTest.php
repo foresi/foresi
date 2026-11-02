@@ -261,6 +261,17 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('num', $html);
     }
 
+    public function testAnIconCellShowsItsLabelAndExplainsItInATooltip(): void
+    {
+        $rows = $this->rows();
+        $rows[0]['cells']['name'] = ['text' => 'Read', 'icon' => 'circle-check', 'tone' => 'green', 'hint' => 'The customer opened it'];
+
+        $html = $this->render(['rows' => $rows]);
+
+        self::assertMatchesRegularExpression('#<span class="inline-flex items-center gap-1.5" title="The customer opened it" data-icon-cell="circle-check"><svg[^>]*class="size-4 shrink-0 text-green"[^>]*aria-hidden="true"#', $html);
+        self::assertStringContainsString('<span>Read</span>', $html);
+    }
+
     public function testNumericCellsAreRendered(): void
     {
         $rows = $this->rows();
@@ -342,6 +353,9 @@ final class DataTableTest extends KernelTestCase
         yield 'cell with unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'tone' => 'pink']]]]]];
         yield 'cell with object value' => [['rows' => [['cells' => ['name' => new \stdClass()]]]]];
         yield 'array cell without text' => [['rows' => [['cells' => ['name' => ['tone' => 'red']]]]]];
+        yield 'icon cell without text' => [['rows' => [['cells' => ['name' => ['icon' => 'send']]]]]];
+        yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
+        yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
     }
 
     /**

@@ -14,7 +14,8 @@ declare(strict_types=1);
  * the payer has a mail server, whose password is sealed with the e2e-only key of
  * serve.sh. A fifth tenant, without users, holds one sent invoice, whose links go
  * to var/e2e-links.json for the public link specs. A sixth, "Example Sending" with
- * sending@example.com, holds the invoices of the send dialog specs. Run it after the
+ * sending@example.com, holds the invoices of the send dialog specs, one of them refused
+ * by the recipient's server and one opened. Run it after the
  * migrations, in the e2e environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -68,6 +69,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
+use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
@@ -259,6 +261,11 @@ $sendingInvoice = static fn (LegalEntity $firm, Series $series, string $descript
 ]));
 $sendingInvoice($sendingFirm, $sendingSeries, 'Annual support', '24000.00');
 $sendingInvoice($quietFirm, $quietSeries, 'Logo design', '8000.00');
+// Delivered at once by the synchronous e2e queue: one refused by the recipient's server,
+// one sent and opened, so the list, the log and the notice have each state to show.
+$failedSend = $sendInvoice->send(new SendRequest($sendingInvoice($sendingFirm, $sendingSeries, 'Hosting', '3600.00')->id(), [RecordingMailGateway::REFUSING_RECIPIENT], [], false, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
+$readSend = $sendInvoice->send(new SendRequest($sendingInvoice($sendingFirm, $sendingSeries, 'Domain renewal', '450.00')->id(), ['billing@example.com'], ['accounts@example.com'], true, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
+$entityManager->getConnection()->executeStatement('UPDATE invoice_send SET first_read_at = created_at, read_count = 1 WHERE id = ?', [$readSend->id()]);
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

@@ -37,6 +37,7 @@ nav:
     invoices: Faktury
     firms: Moje firmy
     import: Import a export
+    sent_mail: Odeslané e-maily
 ui:
   combobox:
     found: 'Nalezeno: {count}'
@@ -619,6 +620,51 @@ invoice:
         {sender_name}
 
         {link}
+  mark:
+    queued: Odesílá se
+    sent: Odesláno
+    read: Přečteno
+    failed: Neodešlo
+    hint:
+      queued: Čeká ve frontě na odeslání
+      sent: Odesláno odběrateli
+      read: Odběratel otevřel doklad
+      failed: E-mail se nepodařilo odeslat
+  changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
+  sends:
+    title: Odeslané e-maily
+    views: Stavy odeslání
+    filter: Filtrovat
+    tab:
+      all: Vše
+      sent: Odesláno
+      queued: Čeká
+      failed: Neodešlo
+    column:
+      when: Kdy
+      firm: Firma
+      number: Doklad
+      customer: Zákazník
+      recipients: Příjemci
+      status: Stav
+      error: Chyba
+    status:
+      queued: Čeká
+      sent: Odesláno
+      failed: Neodešlo
+      cancelled: Zrušeno
+    summary: '{total, plural, one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    action:
+      again: Odeslat znovu
+    empty:
+      title: Zatím nic neodešlo
+      text: Fakturu pošlete z její nabídky v seznamu faktur, nebo tlačítkem Odeslat a uložit.
+      filtered_title: Žádný e-mail neodpovídá
+      reset: Zrušit filtr
+    notice:
+      failed: '{count, plural, one {Fakturu se nepodařilo odeslat.} few {# faktury se nepodařilo odeslat.} other {# faktur se nepodařilo odeslat.}}'
+      stuck: '{count, plural, one {E-mail čeká} few {# e-maily čekají} other {# e-mailů čeká}} na odeslání déle než {minutes} minut. Zkontrolujte, že na serveru běží zpracování fronty.'
+      link: Zobrazit
   send:
     title: 'Odeslat fakturu {number}'
     card: E-mail
@@ -744,6 +790,7 @@ invoice:
       overdue: Po splatnosti
       trash: Koš
     column:
+      sent: E-mail
       number: Číslo
       firm: Firma
       customer: Zákazník
@@ -792,6 +839,13 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    send: '{who}: e-mail na {recipients}'
+    send_copy: 'kopie na {address}'
+    send_show: Zobrazit e-mail
+    send_subject: Předmět
+    send_pdf: PDF, jak odešlo
+    send_read: 'Přečteno {date}'
+    send_again: Odeslat znovu
     line_added: 'Položka {number} ({text}) přidána'
     line_removed: 'Položka {number} ({text}) odebrána'
     line_changed: 'Položka {number} ({text}): {fields}'

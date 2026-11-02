@@ -11,8 +11,10 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
@@ -51,6 +53,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         private TenantContext $context,
         private InvoicingCountries $countries,
         private ClockInterface $clock,
+        private InvoiceSends $sends,
     ) {
     }
 
@@ -173,7 +176,10 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         /** @var list<Invoice> $invoices */
         $invoices = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
 
-        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays), $invoices), $total, $tabCounts, $page, $pages, $firms);
+        // One query for the marks of the whole page.
+        $marks = $this->sends->marksFor(array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices));
+
+        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None), $invoices), $total, $tabCounts, $page, $pages, $firms);
     }
 
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
@@ -315,7 +321,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     /**
      * @param array<string, \DateTimeImmutable> $todays by country
      */
-    private function row(Invoice $invoice, array $todays): InvoiceRow
+    private function row(Invoice $invoice, array $todays, SendMark $mark): InvoiceRow
     {
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
 
@@ -333,6 +339,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             null === $today ? $invoice->deletedAt() : $invoice->deletedAt()?->setTimezone($today->getTimezone()),
             $invoice->deletedBy(),
             $invoice->deletedReason(),
+            $mark,
         );
     }
 }

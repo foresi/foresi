@@ -15,10 +15,16 @@ use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\SendInvoice;
+use App\Invoicing\Application\SendMark;
+use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -42,6 +48,8 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Import\Support\RunMessages;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -49,6 +57,9 @@ use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class InvoiceListControllerTest extends WebTestCase
 {
@@ -727,7 +738,88 @@ final class InvoiceListControllerTest extends WebTestCase
         $used = $this->queryCount() - $before;
 
         self::assertCount(25, $page->rows);
-        self::assertLessThanOrEqual(3, $used, 'Queries used: '.$used);
+        self::assertLessThanOrEqual(4, $used, 'Queries used: '.$used);
+    }
+
+    public function testMarksTakeOneQuery(): void
+    {
+        $this->signedIn(server: true);
+        $first = $this->issue('2026-11-01', '2026-12-01');
+        for ($i = 1; $i < 25; ++$i) {
+            $this->issue('2026-11-01', '2026-12-01');
+        }
+        $this->sendOf($first);
+        $this->em()->clear();
+
+        $before = $this->queryCount();
+        $page = $this->scoped(fn () => self::getContainer()->get(InvoiceStore::class)->page(new InvoiceFilter(null, 'all', '', '-issueDate', 1)));
+        $queries = \array_slice(self::getContainer()->get('doctrine.debug_data_holder')->getData()['default'] ?? [], $before);
+
+        self::assertCount(25, $page->rows);
+        $sendQueries = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_contains($query['sql'], 'invoice_send'));
+        self::assertCount(1, $sendQueries);
+        $marks = array_count_values(array_map(static fn (InvoiceRow $row): string => $row->sendMark->value, $page->rows));
+        ksort($marks);
+        self::assertSame(['none' => 24, 'queued' => 1], $marks);
+    }
+
+    public function testEachMarkShowsItsLabel(): void
+    {
+        $this->signedIn(server: true);
+        $none = $this->issue('2026-11-01', '2026-12-01', description: 'None');
+        $queued = $this->issue('2026-11-02', '2026-12-01', description: 'Queued');
+        $sent = $this->issue('2026-11-03', '2026-12-01', description: 'Sent');
+        $read = $this->issue('2026-11-04', '2026-12-01', description: 'Read');
+        $failed = $this->issue('2026-11-05', '2026-12-01', description: 'Failed');
+        $this->sendOf($sent, deliver: true);
+        $this->opened($this->sendOf($read, deliver: true));
+        $this->sendOf($failed, ['refuse@example.com'], deliver: true);
+        // Last, so no run of the queue delivers it.
+        $this->sendOf($queued);
+
+        $crawler = $this->client->request('GET', '/invoices');
+
+        self::assertContains('E-mail', $this->headers($crawler));
+        $marks = [];
+        foreach ([$none, $queued, $sent, $read, $failed] as $invoice) {
+            $cell = $crawler->filter('tr[data-id="'.$invoice->id().'"] [data-icon-cell]');
+            $marks[$invoice->number()] = 0 === $cell->count() ? null : [$cell->text(), $cell->attr('title'), $cell->attr('data-icon-cell')];
+        }
+        self::assertSame([
+            $none->number() => null,
+            $queued->number() => ['Sending', 'Waiting in the queue to be sent', 'clock-3'],
+            $sent->number() => ['Sent', 'Sent to the customer', 'send'],
+            $read->number() => ['Read', 'The customer opened the document', 'circle-check'],
+            $failed->number() => ['Failed', 'The e-mail could not be sent', 'triangle-alert'],
+        ], $marks);
+        // An icon, never colour alone, and on a phone the label in the line under the number.
+        self::assertCount(1, $crawler->filter('tr[data-id="'.$read->id().'"] [data-icon-cell] svg'));
+        self::assertStringContainsString('Read', $crawler->filter('tr[data-id="'.$read->id().'"] [data-row-secondary]')->text());
+        // The status badge is separate and stays as it was.
+        self::assertSame('Delivered', $crawler->filter('tr[data-id="'.$sent->id().'"] td .rounded-sm')->last()->text());
+    }
+
+    public function testReadSurvivesALaterFailedResend(): void
+    {
+        $this->signedIn(server: true);
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+        $this->opened($this->sendOf($invoice, deliver: true));
+        Clock::set(new MockClock('2026-11-20 13:00:00', 'UTC'));
+        $this->sendOf($invoice, ['refuse@example.com'], deliver: true);
+
+        $rows = $this->rows(new InvoiceFilter(null, 'all', '', '-issueDate', 1));
+
+        self::assertSame(SendMark::Read, $rows[0]->sendMark);
+    }
+
+    public function testATrashedInvoiceShowsNoMarkColumn(): void
+    {
+        $this->signedIn();
+        $this->trashed($this->issue('2026-11-01', '2026-12-01'), 'Wrong customer');
+
+        $crawler = $this->client->request('GET', '/invoices?tab=trash');
+
+        self::assertNotContains('E-mail', $this->headers($crawler));
     }
 
     public function testTheSidebarLeadsToTheListAndThePaletteToANewInvoice(): void
@@ -958,7 +1050,35 @@ final class InvoiceListControllerTest extends WebTestCase
         }
     }
 
-    private function signedIn(Role $role = Role::Owner): void
+    /**
+     * Sends the invoice from the dialog's service; delivered at once when asked.
+     *
+     * @param list<string> $to
+     */
+    private function sendOf(Invoice $invoice, array $to = ['billing@example.com'], bool $deliver = false): string
+    {
+        return $this->scoped(static function () use ($invoice, $to, $deliver): string {
+            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Invoice {number}', '{link}'));
+            if ($deliver) {
+                $mail = self::getContainer()->get('messenger.transport.mail');
+                self::assertInstanceOf(InMemoryTransport::class, $mail);
+                try {
+                    new RunMessages($mail, self::getContainer()->get(MessageBusInterface::class))->run();
+                } catch (HandlerFailedException) {
+                    // A refused message fails for good, and the worker reports it: the send is stored as failed.
+                }
+            }
+
+            return $send->id();
+        });
+    }
+
+    private function opened(string $sendId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice_send SET first_read_at = '2026-11-20 12:30:00', read_count = 1 WHERE id = ?", [$sendId]);
+    }
+
+    private function signedIn(Role $role = Role::Owner, bool $server = false): void
     {
         [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
         $this->context->switchTo($this->tenant);
@@ -970,6 +1090,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em()->persist($this->customer);
         $this->em()->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        if ($server) {
+            $this->em()->persist(FirmMailServer::define($this->firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
+        }
         $this->em()->flush();
         $this->context->reset();
         $this->browser->signIn();

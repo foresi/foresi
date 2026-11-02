@@ -15,7 +15,10 @@ use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoiceHistory;
+use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePdf;
+use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
@@ -35,6 +38,7 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
@@ -109,6 +113,8 @@ final class InvoiceController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly IssuedDocumentFactory $documents,
         private readonly InvoicePdf $pdf,
+        private readonly InvoiceSends $sends,
+        private readonly InvoiceHistory $history,
     ) {
     }
 
@@ -547,6 +553,7 @@ final class InvoiceController extends AbstractController
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
+            'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
             'issuerCountry' => $this->issuerCountry($context),
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
@@ -564,6 +571,36 @@ final class InvoiceController extends AbstractController
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
+    }
+
+    /**
+     * When the invoice was changed after the last send that went out, or is about
+     * to: the customer's link shows what was sent, not what is stored. Changed means
+     * a change in its history; the delivery a send records is none.
+     *
+     * @return string|null the moment of that send, as shown
+     */
+    private function changedAfterSend(InvoiceFormContext $context): ?string
+    {
+        $invoice = $context->invoice;
+        if (!$invoice instanceof Invoice) {
+            return null;
+        }
+        $last = null;
+        foreach ($this->sends->ofInvoice($invoice) as $send) {
+            if (\in_array($send->status(), [SendStatus::Sent, SendStatus::Queued], true)) {
+                $last = $send;
+            }
+        }
+        if (null === $last || $last->invoiceVersion() >= $invoice->version()) {
+            return null;
+        }
+        $after = $last->createdAt();
+        if (!array_any($this->history->of($invoice), static fn (InvoiceHistoryEntry $entry): bool => InvoiceHistoryEntry::CHANGED === $entry->event && $entry->occurredAt > $after)) {
+            return null;
+        }
+
+        return ($last->sentAt() ?? $last->createdAt())->setTimezone($context->country->timezone())->format($this->translator->trans('format.datetime'));
     }
 
     /**
