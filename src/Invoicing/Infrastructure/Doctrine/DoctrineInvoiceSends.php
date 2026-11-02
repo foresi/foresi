@@ -174,6 +174,14 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             ->getSingleScalarResult() > 0;
     }
 
+    public function hasReminderStep(Invoice $invoice, int $step): bool
+    {
+        return (int) $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.invoice = :invoice AND s.reminderStep = :step')
+            ->setParameter('invoice', $invoice->id())
+            ->setParameter('step', $step)
+            ->getSingleScalarResult() > 0;
+    }
+
     public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void
     {
         foreach ($this->ofInvoice($invoice) as $send) {

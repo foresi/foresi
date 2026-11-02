@@ -68,6 +68,11 @@ interface InvoiceSends
     public function hasQueued(Invoice $invoice): bool;
 
     /**
+     * Whether the invoice has a reminder of this step already, in any status.
+     */
+    public function hasReminderStep(Invoice $invoice, int $step): bool;
+
+    /**
      * Ends every link of the invoice.
      */
     public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void;

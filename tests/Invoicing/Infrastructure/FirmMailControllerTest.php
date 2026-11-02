@@ -197,6 +197,23 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame(['minimum_minor' => null, 'minimum_currency' => null], $this->connection()->fetchAssociative('SELECT minimum_minor, minimum_currency FROM firm_reminders'));
     }
 
+    public function testThePreviewSaysWhatSwitchingOnTodayWouldSendWhileOff(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->client->request('GET', $this->url($firm));
+
+        self::assertSelectorTextContains('#reminders-preview h4', 'If you switched reminders on today');
+        self::assertSelectorTextContains('#reminders-preview', 'Reminders are off.');
+        self::assertSelectorTextContains('#reminders-preview', 'No first reminder would go out over the next 30 days.');
+
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->client->request('GET', $this->url($firm));
+
+        self::assertSelectorTextContains('#reminders-preview h4', 'Reminded tomorrow');
+        self::assertSelectorTextContains('#reminders-preview', 'No reminder goes out tomorrow.');
+    }
+
     public function testSwitchingOnRecordsTheDay(): void
     {
         $firm = $this->signedInFirm();

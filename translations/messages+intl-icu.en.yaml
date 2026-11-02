@@ -680,6 +680,7 @@ invoice:
     not_handed_over: The message could not be handed to the mail server.
     copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
     gave_up: The message could not be delivered.
+    no_recipient: The contact has no e-mail address for invoices any more, so the reminder was not sent.
   sends:
     title: Sent e-mails
     views: Send states
@@ -762,6 +763,7 @@ invoice:
       insecure_link_base: The link would go over unencrypted http. The administrator sets an https address in DEFAULT_URI.
       rate_limited: Too many sends in a short time. Try again in a moment.
       undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
+      reminder_taken: This reminder of the invoice has been queued already.
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -1512,7 +1514,7 @@ reminder:
   card:
     template: Reminder
     settings: Automatic reminders
-  templates_help: A reminder of an overdue invoice is sent in the language of the document.
+  templates_help: Reminders go out in the language of the document.
   mail:
     default:
       subject: 'Reminder: invoice {number}'
@@ -1533,7 +1535,7 @@ reminder:
     amount_due: Amount due
   field:
     enabled: Send reminders automatically
-    enabled_help: Only invoices due from the day this is switched on are reminded.
+    enabled_help: Only invoices due from the switch-on day get reminders.
     first: First reminder
     first_help: Days after the due date
     every: Next reminders
@@ -1548,6 +1550,11 @@ reminder:
     off: Reminders are off.
     none: No reminder goes out tomorrow.
     due: 'due {date}'
+  planned:
+    title: If you switched reminders on today
+    intro: 'These first reminders would go out over the next {days} days:'
+    none: 'No first reminder would go out over the next {days} days.'
+    'on': 'reminder on {date}'
   error:
     gate: Automatic reminders start once payments are recorded.
     days: 'Enter a whole number of days from {min} to {max}.'

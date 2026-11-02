@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\PlannedReminder;
 use App\Invoicing\Application\RemindableInvoice;
 use App\Invoicing\Application\RemindableInvoices;
 use App\Invoicing\Application\ReminderPreview;
@@ -128,6 +129,73 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         $this->em->flush();
 
         self::assertSame([], self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firm));
+    }
+
+    public function testThePreviewWhileOffShowsWhatSwitchingOnTodayWouldSend(): void
+    {
+        $this->deliveredDue('2026-11-29');                                // due before today, the switch-on day
+        $today = $this->deliveredDue('2026-11-30');                       // first reminder on 7 December
+        $later = $this->deliveredDue('2026-12-20');                       // on 27 December
+        $this->deliveredDue('2026-12-24');                                // 31 December, past the 30 days shown
+        $this->em->flush();
+        $this->em->clear();
+
+        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firm);
+
+        self::assertSame(
+            [[$today->id(), '2026-12-07'], [$later->id(), '2026-12-27']],
+            array_map(static fn (PlannedReminder $reminder): array => [$reminder->invoice->id, $reminder->on->format('Y-m-d')], $planned),
+        );
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM firm_reminders'), 'a preview stores nothing');
+
+        // The stored delays and minimum count, as they would once switched on.
+        $stored = self::getContainer()->get(ReminderSettings::class);
+        $settings = $stored->for($this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('No firm.'));
+        $settings->change(false, 3, 7, Money::of('1300', Currency::CZK), new \DateTimeImmutable('2026-11-30'));
+        $stored->save($settings);
+        $this->em->flush();
+        self::assertSame([], $this->plannedDays());
+        $settings->change(false, 3, 7, null, new \DateTimeImmutable('2026-11-30'));
+        $this->em->flush();
+        self::assertSame(['2026-12-03', '2026-12-23', '2026-12-27'], $this->plannedDays());
+    }
+
+    public function testRowsOfAnotherTenantAreIgnored(): void
+    {
+        $silent = $this->customerWithoutAddress();
+        $flagged = $this->customer();
+        $this->em->flush();
+        $unreachable = $this->deliveredDue('2026-11-15', customer: $silent);
+        $reachable = $this->deliveredDue('2026-11-15', customer: $flagged);
+        $this->em->flush();
+        $other = Id::generate();
+        $connection = $this->connection();
+        // Rows that name this tenant's contacts but belong to another tenant.
+        $connection->executeStatement("INSERT INTO party_email (id, tenant_id, party_id, legal_entity_id, address, address_key, purpose) VALUES (?, ?, ?, NULL, 'foreign@example.com', 'foreign@example.com', 'invoices')", [Id::generate(), $other, $silent->id()]);
+        $connection->executeStatement('INSERT INTO party_firm_settings (id, tenant_id, party_id, legal_entity_id, invoicing_due_days, invoicing_send_reminders) VALUES (?, ?, ?, ?, 14, ?)', [Id::generate(), $other, $flagged->id(), $this->firm->id(), false], [4 => \Doctrine\DBAL\ParameterType::BOOLEAN]);
+        $this->em->clear();
+
+        $due = array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 50));
+
+        self::assertNotContains($unreachable->id(), $due, 'another tenant\'s address does not count');
+        self::assertContains($reachable->id(), $due, 'another tenant\'s flag does not count');
+    }
+
+    /**
+     * The days of the first reminders, were reminders switched on today.
+     *
+     * @return list<string>
+     *
+     * @phpstan-impure
+     */
+    private function plannedDays(): array
+    {
+        return array_map(static fn (PlannedReminder $reminder): string => $reminder->on->format('Y-m-d'), self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firm));
+    }
+
+    private function connection(): \Doctrine\DBAL\Connection
+    {
+        return $this->em->getConnection();
     }
 
     private function settings(): FirmReminders
