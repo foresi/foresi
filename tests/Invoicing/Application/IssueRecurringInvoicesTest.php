@@ -16,6 +16,7 @@ use App\Country\CzechRepublic\Invoicing\QrPlatba;
 use App\Identity\Domain\User;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueRecurringInvoices;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringFilter;
@@ -37,9 +38,13 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\Schedule\RunScheduledJob;
 use App\Tenancy\Application\Schedule\ScheduledJobRuns;
 use App\Tenancy\Infrastructure\Schedule\RunScheduledJobHandler;
+use App\Tests\Import\Support\RunMessages;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * The daily run of recurring templates, at 05:00 in the tenant's zone (Prague
@@ -88,6 +93,66 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertCount(1, $this->mailQueue->getSent(), 'handed to the mail worker');
         $row = $this->templateRow($template->id());
         self::assertSame(['2027-01-01', null], [$row['next_occurrence'], $row['last_failure_code']]);
+    }
+
+    public function testAChangeAfterTodaysRunIssuesTheTemplateAtOnce(): void
+    {
+        $this->finishedOn('2026-12-01');
+        self::mockTime('2026-12-01 10:00:00');
+        $template = $this->template();
+
+        self::assertTrue($this->afterTodaysRun()->afterChange($template->id()));
+
+        self::assertCount(1, $this->asyncQueue()->getSent(), 'handed to the worker, not issued in the request');
+        self::assertSame([], $this->invoicesOf($template));
+        $this->asyncWorker()->run();
+        $this->em->clear();
+        $invoices = $this->invoicesOf($template);
+        self::assertCount(1, $invoices);
+        self::assertSame('2026-12-01', $invoices[0]['recurring_occurrence']);
+        self::assertCount(1, $this->sendsOf(self::text($invoices[0], 'id')), 'sent as the run sends it');
+        self::assertSame('2027-01-01', $this->templateRow($template->id())['next_occurrence']);
+    }
+
+    public function testAChangeBeforeTodaysRunLeavesItToTheRun(): void
+    {
+        $this->finishedOn('2026-11-30');
+        self::mockTime('2026-12-01 10:00:00');
+        $template = $this->template();
+
+        self::assertFalse($this->afterTodaysRun()->todaysRunFinished());
+        self::assertFalse($this->afterTodaysRun()->afterChange($template->id()));
+
+        self::assertSame([], $this->asyncQueue()->getSent());
+        self::assertSame([], $this->invoicesOf($template));
+    }
+
+    public function testATemplateDueLaterWaitsForItsDay(): void
+    {
+        $this->finishedOn('2026-12-01');
+        self::mockTime('2026-12-01 10:00:00');
+        $template = $this->template(firstIssueOn: '2026-12-02');
+
+        self::assertFalse($this->afterTodaysRun()->afterChange($template->id()));
+
+        self::assertSame([], $this->asyncQueue()->getSent());
+    }
+
+    public function testTwoDispatchesIssueOnce(): void
+    {
+        $this->finishedOn('2026-12-01');
+        self::mockTime('2026-12-01 10:00:00');
+        $template = $this->template();
+
+        $this->afterTodaysRun()->afterChange($template->id());
+        $this->afterTodaysRun()->afterChange($template->id());
+        self::assertCount(2, $this->asyncQueue()->getSent());
+        $this->asyncWorker()->run();
+        $this->em->clear();
+
+        $invoices = $this->invoicesOf($template);
+        self::assertCount(1, $invoices, 'the occurrence is issued once');
+        self::assertSame(1, $this->sendCount(), 'and sent once');
     }
 
     public function testCopyFallsBackToTheOwner(): void
@@ -518,6 +583,8 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
 
     /**
      * @return list<array<string, mixed>> oldest occurrence first
+     *
+     * @phpstan-impure
      */
     private function invoicesOf(RecurringInvoice $template): array
     {
@@ -560,6 +627,34 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', '-issueDate', 1, toSend: true));
 
         return array_map(static fn (InvoiceRow $row): string => $row->id, $page->rows);
+    }
+
+    private function afterTodaysRun(): IssueAfterTodaysRun
+    {
+        $this->em->clear();
+
+        return self::getContainer()->get(IssueAfterTodaysRun::class);
+    }
+
+    private function finishedOn(string $period): void
+    {
+        $this->connection->executeStatement(
+            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
+            [Id::generate(), $this->tenant->toString(), IssueRecurringInvoices::NAME, $period, $period.' 04:10:00'],
+        );
+    }
+
+    private function asyncQueue(): InMemoryTransport
+    {
+        $queue = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
+
+        return $queue;
+    }
+
+    private function asyncWorker(): RunMessages
+    {
+        return new RunMessages($this->asyncQueue(), self::getContainer()->get(MessageBusInterface::class));
     }
 
     private function firmNow(): LegalEntity

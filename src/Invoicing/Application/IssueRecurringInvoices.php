@@ -87,7 +87,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     public function run(?string $lastPeriod): void
     {
         // The day of the period, so a run given back and retried after midnight still works for its own day.
-        $today = new \DateTimeImmutable($this->period($this->now(), $this->tenantClock->timezone()));
+        $today = $this->today();
         /** @var array<string, true> $spent firms whose sending budget ran out in this run */
         $spent = [];
         /** @var array<string, string> $failures the code of each template refused in this run */
@@ -103,6 +103,38 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
             // One mail per firm for the whole run, also when it is given back halfway.
             $this->alerts->alertAll($failures, $today);
         }
+    }
+
+    /**
+     * Issues and sends what one template has due today, as the run does for each,
+     * for a template saved or resumed after the day's run (IssueAfterTodaysRun).
+     * A template with nothing due, or gone meanwhile, is left as it is.
+     */
+    public function runOne(string $id): void
+    {
+        $today = $this->today();
+        try {
+            if (!$this->dueOccurrence($this->templates->current($id), $today) instanceof \DateTimeImmutable) {
+                return;
+            }
+        } catch (UnknownRecurringInvoice) {
+            return;
+        }
+        $spent = [];
+        $failure = null;
+        try {
+            $failure = $this->runTemplate($id, $today, $spent);
+        } finally {
+            $this->alerts->alertAll(null === $failure ? [] : [$id => $failure], $today);
+        }
+    }
+
+    /**
+     * The tenant's day the run works for: before START_HOUR it is still the day before.
+     */
+    public function today(): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable($this->period($this->now(), $this->tenantClock->timezone()));
     }
 
     /**

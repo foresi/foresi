@@ -144,6 +144,8 @@ services:
         alias: App\Invoicing\Infrastructure\Mail\RateLimitedSends
     App\Invoicing\Application\InvoiceSendQueue:
         alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
+    App\Invoicing\Application\RecurringIssueQueue:
+        alias: App\Invoicing\Infrastructure\Messenger\MessengerRecurringIssueQueue
     App\Invoicing\Application\PublicDocuments:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
 

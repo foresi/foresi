@@ -16,6 +16,7 @@ use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Invoicing\Application\PreviewRow;
@@ -93,6 +94,7 @@ final class RecurringFormController extends AbstractController
         private readonly SaveRecurringInvoice $save,
         private readonly RecurringRules $rules,
         private readonly RecurringPreview $preview,
+        private readonly IssueAfterTodaysRun $afterTodaysRun,
         private readonly RecurringFormReader $reader,
         private readonly RecurringFormValues $recurringValues,
         private readonly InvoiceFormReader $invoiceReader,
@@ -264,6 +266,8 @@ final class RecurringFormController extends AbstractController
         $this->tokens->complete($token, $saved->id());
         // A save always leaves a date to issue on: the rules refuse a schedule without one.
         $this->addFlash('success', $this->translator->trans('recurring.flash.saved', ['date' => $this->date($saved->nextOccurrence() ?? $this->today())]));
+        // A date due today after the day's run is issued now, as the preview said.
+        $this->afterTodaysRun->afterChange($saved->id());
 
         return $this->redirectToRoute('app_recurring');
     }
@@ -503,7 +507,7 @@ final class RecurringFormController extends AbstractController
         }
         $delivery = $submission->input->delivery->value;
         if ([] !== $problems) {
-            return ['rows' => [], 'problems' => $problems, 'today' => false, 'delivery' => $delivery, 'end' => null];
+            return ['rows' => [], 'problems' => $problems, 'today' => false, 'when' => 'morning', 'delivery' => $delivery, 'end' => null];
         }
 
         $today = $this->today();
@@ -521,6 +525,8 @@ final class RecurringFormController extends AbstractController
             'rows' => $shown,
             'problems' => [],
             'today' => [] !== $rows && $rows[0]->issue->format('Y-m-d') === $today->format('Y-m-d'),
+            // Before the day's run, the run issues it; after it, the save hands it to the worker.
+            'when' => $this->afterTodaysRun->todaysRunFinished() ? 'now' : 'morning',
             'delivery' => $delivery,
             'end' => $end,
         ];

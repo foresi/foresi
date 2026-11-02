@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\IssueRecurringInvoices;
+use App\Invoicing\Application\IssueRecurringTemplate;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringAmounts;
 use App\Invoicing\Application\RecurringFilter;
@@ -55,6 +57,7 @@ use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class RecurringListControllerTest extends WebTestCase
 {
@@ -226,6 +229,30 @@ final class RecurringListControllerTest extends WebTestCase
         $status = $this->flashes($crawler);
         self::assertStringContainsString('2027-02-01', $status);
         self::assertStringContainsString('2026-12-01, 2027-01-01', $status);
+    }
+
+    public function testResumingAfterTodaysRunIssuesADueTemplateAtOnce(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+        $this->scoped(fn () => self::getContainer()->get(RecurringLifecycle::class)->pause($template->id()));
+        // Resumed on the day of an occurrence, after the day's run.
+        Clock::set(new MockClock('2027-01-01 12:00:00', 'UTC'));
+        $this->em()->getConnection()->executeStatement(
+            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
+            ['019a0000-0000-7000-8000-0000000000ac', $this->tenant->toString(), IssueRecurringInvoices::NAME, '2027-01-01', '2027-01-01 04:10:00'],
+        );
+
+        $this->post($template, 'resume');
+
+        self::assertSame('2027-01-01', $this->templateRow($template->id())['next_occurrence']);
+        $queue = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
+        $sent = $queue->getSent();
+        self::assertCount(1, $sent);
+        $message = $sent[0]->getMessage();
+        self::assertInstanceOf(IssueRecurringTemplate::class, $message);
+        self::assertSame($template->id(), $message->templateId);
     }
 
     public function testEndStoresEnded(): void

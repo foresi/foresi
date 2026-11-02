@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\DeliverRecurringInvoice;
+use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\IssueRefused;
@@ -63,6 +64,7 @@ final class RecurringListController extends AbstractController
         private readonly RecurringAmounts $amounts,
         private readonly IssueRecurringOccurrence $issue,
         private readonly DeliverRecurringInvoice $delivery,
+        private readonly IssueAfterTodaysRun $afterTodaysRun,
         private readonly TransactionalWork $work,
         private readonly LegalEntities $firms,
         private readonly AmountText $amountText,
@@ -137,6 +139,8 @@ final class RecurringListController extends AbstractController
                 $message .= ' '.$this->translator->trans('recurring.flash.skipped', ['count' => \count($skipped), 'dates' => $this->dates($skipped)]);
             }
             $this->addFlash('success', $message);
+            // A date due today after the day's run is issued now rather than tomorrow.
+            $this->afterTodaysRun->afterChange($template->id());
         });
     }
 

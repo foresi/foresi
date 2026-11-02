@@ -11,6 +11,8 @@ namespace App\Tests\Invoicing\Infrastructure;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\IssueRecurringInvoices;
+use App\Invoicing\Application\IssueRecurringTemplate;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringInput;
 use App\Invoicing\Application\SaveRecurringInvoice;
@@ -53,6 +55,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * @phpstan-type Form array{lines: list<array<string, string>>, firmId: string, seriesId: string, customerId: string, customerQuery: string, description: string, orderNumber: string, textBefore: string, textAfter: string, paymentMethod: string, bankAccount: string, firstIssueOn: string, unit: string, every: string, taxPoint: string, dueDays: string, end: string, endOn: string, endAfter: string, delivery: string, version: string, copyOf: string, ...}
@@ -105,6 +108,36 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame($this->series->id(), $values['seriesId']);
         self::assertCount(1, $values['lines']);
         self::assertSelectorExists('[data-first-issue-today]');
+    }
+
+    public function testAFirstIssueTodayBeforeTheRunSaysTheMorningRunIssuesIt(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorTextContains('[data-first-issue-today]', 'today at 5:00');
+        $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
+        self::assertSame([], $this->asyncQueue()->getSent(), 'the run of the day picks it up');
+    }
+
+    public function testAFirstIssueTodayAfterTheRunIsIssuedAtOnce(): void
+    {
+        $this->signedIn();
+        $this->em()->getConnection()->executeStatement(
+            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
+            ['019a0000-0000-7000-8000-0000000000ab', $this->tenant->toString(), IssueRecurringInvoices::NAME, '2026-11-02', '2026-11-02 04:10:00'],
+        );
+
+        $this->openNew();
+
+        self::assertSelectorTextContains('[data-first-issue-today]', 'within a few minutes');
+        $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
+        $sent = $this->asyncQueue()->getSent();
+        self::assertCount(1, $sent);
+        $message = $sent[0]->getMessage();
+        self::assertInstanceOf(IssueRecurringTemplate::class, $message);
+        self::assertSame($this->onlyTemplate()->id(), $message->templateId);
     }
 
     public function testCreatingStoresTheTemplateAndGoesToTheList(): void
@@ -583,6 +616,14 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->em()->flush();
         $this->context->reset();
         $this->browser->signIn();
+    }
+
+    private function asyncQueue(): InMemoryTransport
+    {
+        $queue = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
+
+        return $queue;
     }
 
     private function em(): EntityManagerInterface

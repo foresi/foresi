@@ -11,7 +11,7 @@
         </div>
     {% else %}
         {% if preview.today %}
-            <twig:Ui:Alert tone="info" role="status" data-first-issue-today>{{ ('recurring.preview.today_' ~ preview.delivery)|trans }}</twig:Ui:Alert>
+            <twig:Ui:Alert tone="info" role="status" data-first-issue-today>{{ ('recurring.preview.today_' ~ preview.delivery ~ ('morning' == preview.when ? '_morning' : ''))|trans }}</twig:Ui:Alert>
         {% endif %}
         <ol class="m-0 grid list-none gap-1.5 p-0">
             {% for row in preview.rows %}
