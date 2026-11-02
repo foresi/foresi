@@ -12,7 +12,8 @@ use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\MessageTrust;
 use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
-use App\Invoicing\Application\RecordPayment;
+use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\UnsupportedCountry;
 use App\Shared\Domain\Money;
 
 /**
@@ -31,13 +32,26 @@ use App\Shared\Domain\Money;
  * suggested: a payment that came first was for something else, or for an invoice
  * the firm had not yet written, and a person knows which.
  *
- * A small difference is settled only when the firm wants it, in the currencies
- * where it is a custom, on one invoice, and only up to what RecordPayment accepts.
+ * A small difference is settled only when the firm wants it, on one invoice, and
+ * only up to the limit the firm's country gives in the currency: none, no settling.
  */
 final readonly class Matcher
 {
-    public function __construct(private Candidates $candidates)
+    public function __construct(private Candidates $candidates, private InvoicingCountries $countries)
     {
+    }
+
+    /**
+     * The most minor units the movement's firm may settle in its currency, as the
+     * firm's country says, or null when the country gives no limit.
+     */
+    public function settlementLimit(BankMovement $movement): ?int
+    {
+        try {
+            return $this->countries->for($movement->firm()->address()->countryCode)->settlementLimit($movement->amount()->currency());
+        } catch (UnsupportedCountry) {
+            return null;
+        }
     }
 
     /**
@@ -54,11 +68,12 @@ final readonly class Matcher
     }
 
     /**
-     * Pure: the same movement, candidates and rules always give the same decision.
+     * Pure: the same movement, candidates, rules and limit always give the same decision.
      *
-     * @param list<Candidate> $candidates as candidates() gives them
+     * @param list<Candidate> $candidates      as candidates() gives them
+     * @param ?int            $settlementLimit as settlementLimit() gives it
      */
-    public function decide(BankMovement $movement, array $candidates, PairingRules $rules): MatchDecision
+    public function decide(BankMovement $movement, array $candidates, PairingRules $rules, ?int $settlementLimit): MatchDecision
     {
         $amount = $movement->amount();
         $suggestions = $this->ordered(array_values(array_filter(
@@ -83,17 +98,17 @@ final readonly class Matcher
             return MatchDecision::unmatched(UnmatchedReason::NoInvoice, $suggestions);
         }
         if (1 === \count($eligible)) {
-            return MatchDecision::pair([$this->whole($eligible[0], $amount, $rules)]);
+            return MatchDecision::pair([$this->whole($eligible[0], $amount, $rules, $settlementLimit)]);
         }
 
         $equal = array_values(array_filter($eligible, static fn (Candidate $candidate): bool => $candidate->remaining->minor() === $amount->minor()));
         if (1 === \count($equal)) {
-            return MatchDecision::pair([$this->whole($equal[0], $amount, $rules)]);
+            return MatchDecision::pair([$this->whole($equal[0], $amount, $rules, $settlementLimit)]);
         }
-        if ([] === $equal && $this->settles($amount, $rules)) {
-            $close = array_values(array_filter($eligible, static fn (Candidate $candidate): bool => abs($candidate->remaining->minor() - $amount->minor()) <= RecordPayment::MAX_SETTLEMENT));
+        if ([] === $equal && null !== $settlementLimit && $rules->smallDifference) {
+            $close = array_values(array_filter($eligible, static fn (Candidate $candidate): bool => abs($candidate->remaining->minor() - $amount->minor()) <= $settlementLimit));
             if (1 === \count($close)) {
-                return MatchDecision::pair([$this->whole($close[0], $amount, $rules)]);
+                return MatchDecision::pair([$this->whole($close[0], $amount, $rules, $settlementLimit)]);
             }
         }
 
@@ -129,19 +144,14 @@ final readonly class Matcher
     /**
      * The whole movement on one invoice, and the small difference settled when allowed.
      */
-    private function whole(Candidate $candidate, Money $amount, PairingRules $rules): AllocationRequest
+    private function whole(Candidate $candidate, Money $amount, PairingRules $rules, ?int $settlementLimit): AllocationRequest
     {
         $difference = $candidate->remaining->minor() - $amount->minor();
-        if (0 !== $difference && abs($difference) <= RecordPayment::MAX_SETTLEMENT && $this->settles($amount, $rules)) {
+        if (0 !== $difference && $rules->smallDifference && null !== $settlementLimit && abs($difference) <= $settlementLimit) {
             return new AllocationRequest($candidate->invoiceId, $amount, Money::ofMinor($difference, $amount->currency()));
         }
 
         return new AllocationRequest($candidate->invoiceId, $amount);
-    }
-
-    private function settles(Money $amount, PairingRules $rules): bool
-    {
-        return $rules->smallDifference && \in_array($amount->currency(), RecordPayment::SETTLEMENT_CURRENCIES, true);
     }
 
     /**

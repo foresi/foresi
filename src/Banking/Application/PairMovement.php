@@ -111,11 +111,11 @@ final readonly class PairMovement
             return null;
         }
         $candidates = $this->matcher->candidates($movement);
-        $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()));
+        $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
         if ($decision->pairs()) {
             $this->lockInvoices(array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates));
             $movement = $this->movements->get($movementId);
-            $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($movement->firm()));
+            $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
         }
         if (!$decision->pairs()) {
             $movement->stayUnmatched($decision->reason ?? UnmatchedReason::NoInvoice);

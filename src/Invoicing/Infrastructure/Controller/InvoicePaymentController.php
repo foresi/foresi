@@ -235,14 +235,16 @@ final class InvoicePaymentController extends AbstractController
 
     /**
      * How large a difference the issuer's country writes off, in minor units of the
-     * invoice's currency; null where it writes off none.
-     *
-     * The one place that asks: the rule is moving into the invoicing country module
-     * (InvoicingCountry::settlementLimit), and this follows it there.
+     * invoice's currency; null where it writes off none. The issuing firm's country
+     * decides, as RecordPayment then checks.
      */
     private function settlementLimit(Invoice $invoice): ?int
     {
-        return \in_array($invoice->currency(), RecordPayment::SETTLEMENT_CURRENCIES, true) ? RecordPayment::MAX_SETTLEMENT : null;
+        try {
+            return $this->countries->for($invoice->firm()->address()->countryCode)->settlementLimit($invoice->currency());
+        } catch (UnsupportedCountry) {
+            return null;
+        }
     }
 
     /**

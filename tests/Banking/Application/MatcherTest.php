@@ -20,6 +20,7 @@ use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Domain\PaymentSource;
+use App\Party\Domain\Address;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
@@ -64,14 +65,14 @@ final class MatcherTest extends BankingTestCase
     #[DataProvider('decisions')]
     public function testDecisions(string $amount, array $candidates, array $rules, array|string $expected): void
     {
-        $decision = $this->matcher->decide($this->movement($amount), $this->candidates($candidates), new PairingRules(...$rules));
+        $decision = $this->decide($this->movement($amount), $this->candidates($candidates), new PairingRules(...$rules));
 
         self::assertSame($expected, $this->shape($decision));
     }
 
     public function testSeveralSameVsOtherwiseAmbiguousOldestFirst(): void
     {
-        $decision = $this->matcher->decide($this->movement('100.00'), $this->candidates([['B', '300.00', '2026-11-10'], ['C', '200.00', '2026-11-20'], ['A', '500.00', '2026-11-01']]), new PairingRules(true, false));
+        $decision = $this->decide($this->movement('100.00'), $this->candidates([['B', '300.00', '2026-11-10'], ['C', '200.00', '2026-11-20'], ['A', '500.00', '2026-11-01']]), new PairingRules(true, false));
 
         self::assertSame(UnmatchedReason::Ambiguous, $decision->reason);
         self::assertSame(['A', 'B', 'C'], array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions));
@@ -81,8 +82,25 @@ final class MatcherTest extends BankingTestCase
     {
         $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1000.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
-        $decision = $this->matcher->decide($this->movement('999.01', Currency::EUR), [$eur], new PairingRules(true, true));
+        $decision = $this->decide($this->movement('999.01', Currency::EUR), [$eur], new PairingRules(true, true));
 
+        self::assertSame([['A', '999.01', null]], $this->shape($decision));
+    }
+
+    public function testTheLimitComesFromTheFirmsCountry(): void
+    {
+        self::assertSame(99, $this->matcher->settlementLimit($this->movement('999.01')));
+        self::assertNull($this->matcher->settlementLimit($this->movement('999.01', Currency::EUR)));
+    }
+
+    public function testAFirmWhoseCountryGivesNoLimitSettlesNothing(): void
+    {
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), $this->firm->vatId(), new Address('Example Street 1', 'Example City', '100 00', 'SK'), $this->firm->vatStatus(), $this->firm->registerEntry());
+        $movement = $this->movement('999.01');
+
+        $decision = $this->decide($movement, $this->candidates([['A', '1000.00', '2026-11-15']]), new PairingRules(true, true));
+
+        self::assertNull($this->matcher->settlementLimit($movement));
         self::assertSame([['A', '999.01', null]], $this->shape($decision));
     }
 
@@ -90,7 +108,7 @@ final class MatcherTest extends BankingTestCase
     {
         $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('50.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
-        $decision = $this->matcher->decide($this->movement('50.00'), [$eur], new PairingRules(true, false));
+        $decision = $this->decide($this->movement('50.00'), [$eur], new PairingRules(true, false));
 
         self::assertSame(UnmatchedReason::CurrencyMismatch, $decision->reason);
         self::assertSame([], $decision->suggestions);
@@ -101,7 +119,7 @@ final class MatcherTest extends BankingTestCase
         foreach ([null, '', '0', '000'] as $vs) {
             $movement = $this->movement('1210.00', vs: $vs);
             self::assertSame([], $this->matcher->candidates($movement));
-            self::assertSame(UnmatchedReason::NoSymbol, $this->matcher->decide($movement, [], new PairingRules(true, false))->reason);
+            self::assertSame(UnmatchedReason::NoSymbol, $this->decide($movement, [], new PairingRules(true, false))->reason);
         }
     }
 
@@ -109,8 +127,8 @@ final class MatcherTest extends BankingTestCase
     {
         $candidates = $this->candidates([['A', '1210.00', '2026-11-15']]);
 
-        $unverified = $this->matcher->decide($this->movement('1210.00', trust: MessageTrust::Unverified), $candidates, new PairingRules(true, false));
-        $failed = $this->matcher->decide($this->movement('1210.00', trust: MessageTrust::Failed), $candidates, new PairingRules(true, false));
+        $unverified = $this->decide($this->movement('1210.00', trust: MessageTrust::Unverified), $candidates, new PairingRules(true, false));
+        $failed = $this->decide($this->movement('1210.00', trust: MessageTrust::Failed), $candidates, new PairingRules(true, false));
 
         self::assertSame([UnmatchedReason::Unverified, ['A']], [$unverified->reason, array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $unverified->suggestions)]);
         self::assertSame(UnmatchedReason::Rejected, $failed->reason);
@@ -121,7 +139,7 @@ final class MatcherTest extends BankingTestCase
     {
         $later = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-12-05'), $this->czk('1210.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-21'));
 
-        $decision = $this->matcher->decide($this->movement('1210.00'), [$later], new PairingRules(true, false));
+        $decision = $this->decide($this->movement('1210.00'), [$later], new PairingRules(true, false));
 
         self::assertSame(UnmatchedReason::NoInvoice, $decision->reason);
         self::assertSame([$later], $decision->suggestions);
@@ -158,7 +176,7 @@ final class MatcherTest extends BankingTestCase
         $this->issue->issue($this->input());
         $movement = $this->movement('1210.00', Currency::EUR);
 
-        $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), new PairingRules(true, false));
+        $decision = $this->decide($movement, $this->matcher->candidates($movement), new PairingRules(true, false));
 
         self::assertSame(UnmatchedReason::CurrencyMismatch, $decision->reason);
     }
@@ -185,6 +203,14 @@ final class MatcherTest extends BankingTestCase
             '',
             [new AllocationRequest($invoiceId, $this->czk($amount))],
         ));
+    }
+
+    /**
+     * @param list<Candidate> $candidates
+     */
+    private function decide(BankMovement $movement, array $candidates, PairingRules $rules): MatchDecision
+    {
+        return $this->matcher->decide($movement, $candidates, $rules, $this->matcher->settlementLimit($movement));
     }
 
     private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified): BankMovement

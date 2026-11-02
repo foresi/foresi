@@ -222,6 +222,27 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertSame([], $this->allocations());
     }
 
+    public function testAFirmWhoseCountryGivesNoLimitIsOfferedNoWriteOff(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        // Writing off coins follows the firm's country, not the currency of the invoice.
+        $this->em()->getConnection()->executeStatement("UPDATE legal_entity SET address_country_code = 'SK' WHERE id = ?", [$this->firm->id()]);
+        $this->em()->clear();
+
+        $dialog = $this->openDialog($invoice);
+        self::assertNull($dialog->filter('[data-controller~="payment-amount"]')->attr('data-payment-amount-limit-value'));
+        self::assertCount(0, $dialog->filter('[data-settle]'));
+
+        $values = $this->dialogValues($invoice);
+        $values['amount'] = '1209.50';
+        $values['settle'] = '1';
+        $this->post($invoice, $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->allocations());
+    }
+
     public function testAZeroOrNegativeAmountAnswers422(): void
     {
         $this->signedIn();

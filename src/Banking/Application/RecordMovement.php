@@ -55,7 +55,7 @@ final readonly class RecordMovement
             $state = $this->stateOf($input, $account->firm());
             $movement = $this->movement($account, $input, $verdict, $state, MovementState::Unmatched === $state ? UnmatchedReason::NoInvoice : null);
             if (MovementState::Unmatched === $state) {
-                $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($account->firm()));
+                $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($account->firm()), $this->matcher->settlementLimit($movement));
                 if ($decision->reason instanceof UnmatchedReason) {
                     $movement->stayUnmatched($decision->reason);
                 }

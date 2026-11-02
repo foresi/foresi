@@ -10,7 +10,8 @@ namespace App\Banking\Application;
 
 /**
  * A firm's pairing switches: whether verified movements pay invoices by
- * themselves, and whether a small difference in CZK is settled on the way.
+ * themselves, and whether a small difference is settled on the way where the
+ * firm's country allows it.
  */
 final readonly class PairingRules
 {
