@@ -183,6 +183,28 @@ final class GenerateAddressTest extends KernelTestCase
         $this->generate()->generate($account->id());
     }
 
+    public function testTheAddressOfAnArchivedAccountNoLongerRoutes(): void
+    {
+        $account = $this->account();
+        $token = InboundToken::hash(Scalars::text($this->addresses()->tokenIn($this->generate()->generate($account->id()))));
+        self::assertInstanceOf(FeedRoute::class, $this->directory()->route($token));
+
+        $account->archive(new \DateTimeImmutable('2026-11-02'));
+        $this->em->flush();
+
+        self::assertNull($this->directory()->route($token), 'mail to an archived account is not taken in');
+    }
+
+    public function testAFeedRoutesOnlyToAnAccountOfItsOwnTenant(): void
+    {
+        $account = $this->account();
+        $token = InboundToken::hash(Scalars::text($this->addresses()->tokenIn($this->generate()->generate($account->id()))));
+
+        $this->connection()->update('firm_bank_account', ['tenant_id' => TenantId::generate()->toString()], ['id' => $account->id()]);
+
+        self::assertNull($this->directory()->route($token));
+    }
+
     public function testAnotherTenantsAccountIsNotFound(): void
     {
         $account = $this->account();

@@ -15,14 +15,16 @@ use Doctrine\DBAL\Connection;
 
 /**
  * Plain SQL inside the sanctioned bypass: the token hash is the only key, and
- * no entity is loaded, so nothing of a tenant stays in the session.
+ * no entity is loaded, so nothing of a tenant stays in the session. The filter is
+ * off, so the account must be of the feed's tenant by the query itself; an archived
+ * account takes in nothing, as it gets no address.
  */
 final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
 {
     private const string ROUTE = <<<'SQL'
         SELECT f.tenant_id, f.id, f.firm_bank_account_id, a.legal_entity_id
         FROM bank_feed f
-        JOIN firm_bank_account a ON a.id = f.firm_bank_account_id
+        JOIN firm_bank_account a ON a.id = f.firm_bank_account_id AND a.tenant_id = f.tenant_id AND a.archived_at IS NULL
         WHERE f.token_hash = :hash
         SQL;
 
