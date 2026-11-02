@@ -10,7 +10,9 @@ declare(strict_types=1);
  * Seeds the end-to-end database (var/e2e.db): the tenant "Example Company" with
  * the user testing@example.com and 30 parties, a second, empty tenant for the
  * first-run screen, a third with two firms and one contact for the firm scope,
- * and a fourth with a VAT payer, a non-payer and customers for the invoice form. Run it after the migrations, in the e2e environment:
+ * and a fourth with a VAT payer, a non-payer and customers for the invoice form;
+ * the payer has a mail server, whose password is sealed with the e2e-only key of
+ * serve.sh. Run it after the migrations, in the e2e environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -22,7 +24,10 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Kernel;
@@ -62,11 +67,13 @@ $context = $container->get('e2e.tenant_context');
 $createParty = $container->get('e2e.create_party');
 $registrationNumbers = $container->get('e2e.registration_numbers');
 $hashers = $container->get('e2e.password_hashers');
+$mailSecrets = $container->get('e2e.mail_secrets');
 \assert($entityManager instanceof EntityManagerInterface);
 \assert($context instanceof TenantContext);
 \assert($createParty instanceof CreateParty);
 \assert($registrationNumbers instanceof RegistrationNumberFactory);
 \assert($hashers instanceof PasswordHasherFactoryInterface);
+\assert($mailSecrets instanceof MailSecrets);
 
 $password = getenv('E2E_PASSWORD');
 // Hashed the way the application hashes it, so the sign-in form accepts it.
@@ -157,6 +164,8 @@ $standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Se
 $standard->markDefault();
 $entityManager->persist($standard);
 $entityManager->persist(new Series($payerFirm, 'Second', SeriesFormat::fromString('B{YY}{NNN}'), DocumentKind::Invoice));
+// A throwaway password: the e2e mail gateway records and never connects.
+$entityManager->persist(FirmMailServer::define($payerFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Payer s.r.o.'));
 $entityManager->flush();
 $createParty->createFrom($party(PartyKind::Company, 'Example German GmbH', [PartyRole::Customer], 'german@example.com', 7, null, 'DE123456789'));
 $createParty->createFrom($party(PartyKind::Company, 'Example Domestic a.s.', [PartyRole::Customer], 'domestic@example.com', 3, '12345679', 'CZ12345679'));

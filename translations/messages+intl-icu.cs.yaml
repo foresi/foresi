@@ -379,6 +379,7 @@ firm:
   tab:
     details: Údaje
     invoicing: Fakturace
+    mail: E-maily
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Vaše vlastní firmy, které vystavují doklady.
@@ -436,6 +437,90 @@ firm:
     image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.
     image_color: Nahrajte JPEG v RGB, ne v CMYK.
     image_upload: Obrázek se nepodařilo nahrát. Zkuste to znovu.
+  mail:
+    title: E-maily
+    sections: Části nastavení e-mailů
+    tab:
+      templates: Šablony
+      server: Poštovní server
+    card:
+      invoice: Faktura
+      server: Server odchozí pošty (SMTP)
+      test: Zkušební e-mail
+    templates_help: Text se posílá v jazyce dokladu.
+    language:
+      cs: Čeština
+      en: Angličtina
+    reset: Obnovit výchozí text
+    inserted: 'Vloženo: {name}'
+    variables: Proměnné
+    variables_help: Kliknutím nebo přetažením vložíte do textu.
+    variable:
+      number: Číslo dokladu
+      order_number: Číslo objednávky
+      variable_symbol: Variabilní symbol
+      description: Popis
+      issue_date: Datum vystavení
+      due_date: Datum splatnosti
+      currency: Měna
+      document_type: Typ dokladu
+      customer_name: Název odběratele
+      amount_vat: Částka DPH
+      amount_total: Částka k úhradě
+      amount_net: Částka bez DPH
+      firm_name: Název firmy
+      iban: IBAN
+      firm_email: E-mail firmy
+      firm_phone: Telefon firmy
+      registration_number: IČO
+      vat_id: DIČ
+      sender_name: Jméno odesílatele
+      link: Odkaz na doklad
+    field:
+      subject: Předmět
+      body: Text e-mailu
+      body_help: 'Bez {token} se odkaz připojí na konec.'
+      host: Server
+      host_help: Například smtp.example.com
+      port: Port
+      encryption: Šifrování
+      username: Uživatelské jméno
+      password: Heslo
+      password_kept: Prázdné pole ponechá uložené heslo.
+      fromAddress: E-mail odesílatele
+      fromAddress_help: Sem se vrátí i nedoručené zprávy.
+      fromName: Jméno odesílatele
+      fromName_help: Příjemce ho uvidí u zprávy.
+    encryption:
+      starttls: STARTTLS (obvykle port 587)
+      tls: TLS (obvykle port 465)
+    test:
+      intro: 'Pošle zprávu na {email} přes uložený server.'
+      button: Poslat zkušební e-mail
+      verified: 'Ověřeno {date}.'
+      date_format: 'j. n. Y \v H:i'
+      unverified: Nastavení zatím nebylo ověřeno.
+      save_first: Zkušební e-mail půjde poslat po uložení serveru.
+      subject: 'Zkušební e-mail: {firm}'
+      body: 'Tato zpráva ověřuje, že server {host}:{port} odesílá poštu firmy. Není třeba odpovídat.'
+    flash:
+      saved: E-mailové šablony jsou uložené.
+      reset: Šablona má zase výchozí text.
+      server_saved: Poštovní server je uložený.
+      test_sent: 'Zkušební e-mail odešel na {email}.'
+      test_refused: 'Zkušební e-mail neodešel: {reason}'
+      test_limited: Příliš mnoho zkušebních e-mailů. Zkuste to za minutu.
+      test_unavailable: Nejdřív uložte poštovní server.
+    error:
+      unknown_variables: 'Neznámá proměnná: {names}. Vložte ji z nabídky pod textem.'
+      link_in_subject: 'Odkaz {link} patří do textu, ne do předmětu.'
+      no_key: Tato instalace nemá klíč k šifrování hesel. Správce ho nastaví v MAIL_SECRET_KEYS.
+      host: Zadejte název serveru nebo IP adresu, bez portu.
+      host_refused: K tomuto serveru se odsud nelze připojit. Zadejte veřejný server.
+      port: 'Port musí být jeden z: {ports}.'
+      encryption: Vyberte šifrování.
+      line_break: Hodnota nesmí obsahovat zalomení řádku.
+      save_failed: Uložení se nepovedlo. Zkuste to znovu.
   invoicing:
     title: Fakturace
     card:

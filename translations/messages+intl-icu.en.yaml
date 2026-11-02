@@ -379,6 +379,7 @@ firm:
   tab:
     details: Details
     invoicing: Invoicing
+    mail: E-mail
   empty:
     title: No firms yet
     text: Your own companies that issue documents.
@@ -436,6 +437,90 @@ firm:
     image_dimensions: The image can be at most 3000 x 3000 pixels.
     image_color: Upload the JPEG in RGB, not in CMYK.
     image_upload: The image could not be uploaded. Try it again.
+  mail:
+    title: E-mail
+    sections: E-mail settings sections
+    tab:
+      templates: Templates
+      server: Mail server
+    card:
+      invoice: Invoice
+      server: Outgoing mail server (SMTP)
+      test: Test e-mail
+    templates_help: The text is sent in the language of the document.
+    language:
+      cs: Czech
+      en: English
+    reset: Restore the built-in text
+    inserted: 'Inserted: {name}'
+    variables: Variables
+    variables_help: Click or drag to insert into the text.
+    variable:
+      number: Document number
+      order_number: Order number
+      variable_symbol: Variable symbol
+      description: Description
+      issue_date: Issue date
+      due_date: Due date
+      currency: Currency
+      document_type: Document type
+      customer_name: Customer name
+      amount_vat: VAT amount
+      amount_total: Amount to pay
+      amount_net: Amount without VAT
+      firm_name: Firm name
+      iban: IBAN
+      firm_email: Firm e-mail
+      firm_phone: Firm phone
+      registration_number: Reg. No.
+      vat_id: VAT ID
+      sender_name: Sender name
+      link: Link to the document
+    field:
+      subject: Subject
+      body: Message
+      body_help: 'Without {token} the link is added at the end.'
+      host: Host
+      host_help: For example smtp.example.com
+      port: Port
+      encryption: Encryption
+      username: Username
+      password: Password
+      password_kept: Leave blank to keep the stored password.
+      fromAddress: Sender e-mail
+      fromAddress_help: Undelivered mail comes back here too.
+      fromName: Sender name
+      fromName_help: Recipients see it beside the message.
+    encryption:
+      starttls: STARTTLS (usually port 587)
+      tls: TLS (usually port 465)
+    test:
+      intro: 'Sends a message to {email} through the saved server.'
+      button: Send a test e-mail
+      verified: 'Verified on {date}.'
+      date_format: 'j M Y \a\t H:i'
+      unverified: These settings are not verified yet.
+      save_first: A test e-mail can be sent once the server is saved.
+      subject: 'Test e-mail: {firm}'
+      body: 'This message checks that the server {host}:{port} sends the mail of the firm. No reply is needed.'
+    flash:
+      saved: The e-mail templates are saved.
+      reset: The template has its built-in text again.
+      server_saved: The mail server is saved.
+      test_sent: 'The test e-mail went to {email}.'
+      test_refused: 'The test e-mail did not go out: {reason}'
+      test_limited: Too many test e-mails. Try again in a minute.
+      test_unavailable: Save the mail server first.
+    error:
+      unknown_variables: 'Unknown variable: {names}. Insert one from the list below the text.'
+      link_in_subject: 'The link {link} belongs in the message, not in the subject.'
+      no_key: This installation has no key to seal passwords. The administrator sets MAIL_SECRET_KEYS.
+      host: Enter a host name or an IP address, without a port.
+      host_refused: This server cannot be reached from here. Enter a public server.
+      port: 'The port must be one of: {ports}.'
+      encryption: Choose the encryption.
+      line_break: The value cannot hold a line break.
+      save_failed: Saving failed. Try it again.
   invoicing:
     title: Invoicing
     card:

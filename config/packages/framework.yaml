@@ -27,6 +27,12 @@ framework:
             limit: 10
             interval: '1 minute'
 
+        # Test e-mails of a firm's mail server, per signed-in user.
+        mail_test:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -39,6 +45,8 @@ when@test:
                 storage_service: test.party_refresh_checks_storage
             registry_outgoing:
                 storage_service: test.registry_outgoing_storage
+            mail_test:
+                storage_service: test.mail_test_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

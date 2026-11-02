@@ -25,6 +25,11 @@ interface MailTemplates
     public function textFor(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): RenderedMail;
 
     /**
+     * The built-in text of a kind and language, whatever a firm stored.
+     */
+    public function builtIn(MailTemplateKind $kind, DocumentLanguage $language): RenderedMail;
+
+    /**
      * Whether the firm has its own text, rather than the built-in one.
      */
     public function isCustom(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language): bool;

@@ -39,6 +39,11 @@ final readonly class DoctrineMailTemplates implements MailTemplates
             return new RenderedMail($stored->subject(), $stored->body());
         }
 
+        return $this->builtIn($kind, $language);
+    }
+
+    public function builtIn(MailTemplateKind $kind, DocumentLanguage $language): RenderedMail
+    {
         return new RenderedMail(
             $this->translator->trans($kind->value.'.mail.default.subject', locale: $language->value),
             $this->translator->trans($kind->value.'.mail.default.body', locale: $language->value),

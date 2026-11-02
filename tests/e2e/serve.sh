@@ -10,6 +10,8 @@ port="${E2E_PORT:-8099}"
 
 export APP_ENV=e2e
 export APP_DEBUG=1
+# A fixed key for sealing mail server passwords in the browser tests only; never a real one.
+export MAIL_SECRET_KEYS="e2e1:ZTJlLW9ubHktbWFpbC1rZXktbmV2ZXItZm9yLXVzZSE="
 
 # Fresh state: the login throttle and the registry cache live in the file cache.
 rm -rf var/cache/e2e

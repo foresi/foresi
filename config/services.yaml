@@ -179,6 +179,14 @@ when@e2e:
             alias: App\Tests\Support\Mail\RecordingMailGateway
             public: true
         App\Tests\Support\Mail\RecordingMailGateway: ~
+        # ...and no browser test asks a real DNS server for a mail host.
+        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        App\Tests\Support\Mail\ExampleHostResolver: ~
+        e2e.mail_secrets:
+            alias: App\Invoicing\Application\MailSecrets
+            public: true
 
 when@test:
     parameters:
@@ -201,6 +209,9 @@ when@test:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.login_throttling_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.mail_test_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         # The generic audit query; the fake import target answers changedSince()
@@ -292,6 +303,11 @@ when@test:
         App\Invoicing\Application\MailHostPolicy:
             alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
             public: true
+        # No test asks a real DNS server for a mail host.
+        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        App\Tests\Support\Mail\ExampleHostResolver: ~
         App\Invoicing\Application\MailTemplates:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
             public: true

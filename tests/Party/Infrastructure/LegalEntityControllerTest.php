@@ -95,14 +95,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(['/settings/firms My firms', '/imports Import and export'], $links);
     }
 
-    public function testTheFirmPageHasTabsForDetailsAndInvoicingAndKeepsFirmsMarkedInTheSidebar(): void
+    public function testTheFirmPageHasTabsForDetailsInvoicingAndMailAndKeepsFirmsMarkedInTheSidebar(): void
     {
         $this->signIn();
         $id = $this->firm('Example Firm', $this->tenant, '12345695')->id();
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/edit');
 
-        self::assertSame(['Details', 'Invoicing'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
+        self::assertSame(['Details', 'Invoicing', 'E-mail'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
         self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
         self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
 
