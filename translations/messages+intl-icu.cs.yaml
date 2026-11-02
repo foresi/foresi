@@ -1257,15 +1257,28 @@ recurring:
     ended: 'Pravidelná faktura pro {customer} je ukončená.'
     deleted: 'Pravidelná faktura pro {customer} je smazaná.'
     issued: 'Faktura {number} je vystavená.'
+    issued_sent: 'Faktura {number} je vystavená a odesílá se odběrateli.'
+    issued_review: 'Faktura {number} je vystavená a čeká v seznamu K odeslání.'
+    issued_refused: 'Faktura {number} je vystavená, ale nešla odeslat: {reason} Čeká v seznamu K odeslání.'
     already_issued: Tento termín už je vystavený, nic dalšího se nevystavilo.
     changed_meanwhile: Pravidelná faktura se mezitím změnila. Zkuste to prosím znovu.
     issue_refused: 'Fakturu nejde vystavit: {problems}'
+  to_send:
+    label: K odeslání
+    hint: Faktury z pravidelných faktur, které ještě nikdo neodeslal.
+  failure:
+    other: Poslední vystavení nebo odeslání se nepovedlo.
+    send:
+      no_server: Firma nemá nastavený poštovní server.
+      no_recipient: Odběratel nemá e-mail pro faktury.
+      bad_address: E-mail odběratele není platný.
+      rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+      undrawable: Fakturu nejde vykreslit do PDF.
   list:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur
     filter: Zobrazit
     summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
-    failure: Poslední vystavení nebo odeslání se nepovedlo.
     tab:
       active: Aktivní
       paused: Pozastavené
@@ -1344,8 +1357,8 @@ recurring:
     submit: Vystavit
     not_active: Vystavit nyní jde jen aktivní pravidelnou fakturu.
     delivery:
-      send: Faktura počká v seznamu faktur, odtud ji odešlete. Další termín se posune.
-      review: Faktura počká v seznamu faktur na vaši kontrolu. Další termín se posune.
+      send: Pak odejde e-mailem odběrateli a kopie vám. Další termín se posune.
+      review: Pak počká v seznamu K odeslání na vaši kontrolu. Další termín se posune.
 import:
   number: '{value, number}'
   new: Nový import

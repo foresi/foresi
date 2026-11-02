@@ -300,8 +300,8 @@ final class RecurringListControllerTest extends WebTestCase
     public function testAFailingRowShowsTheReasonAndIssueNowClearsIt(): void
     {
         $this->signedIn();
-        $template = $this->template();
-        $this->scoped(fn (): int|string => $this->em()->getConnection()->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'no_mail_server', last_failure_at = '2026-11-20 04:00:00'"));
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->failed($template, 'send.no_server');
 
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
 
@@ -309,12 +309,55 @@ final class RecurringListControllerTest extends WebTestCase
         $row = $crawler->filter('tbody tr');
         self::assertCount(1, $row);
         self::assertStringContainsString('Failed', $row->text());
-        self::assertStringContainsString('The last run could not issue or send it', $row->text());
+        self::assertStringContainsString('The firm has no mail server set up.', $row->text());
         self::assertContains('Issue now', $this->menu($row));
 
         $this->post($template, 'issue_now', ['occurrence' => '2026-12-01']);
 
         self::assertNull($this->templateRow($template->id())['last_failure_code']);
+        self::assertStringContainsString('waits under To send', $this->flashes($this->client->request('GET', '/invoices/recurring')));
+    }
+
+    public function testAFailureWithoutATextOfItsOwnSaysSoInGeneral(): void
+    {
+        $this->signedIn();
+        $this->failed($this->template(), 'invoice.problem.something_new');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
+
+        self::assertStringContainsString('The last run could not issue or send it.', $crawler->filter('tbody tr')->text());
+    }
+
+    public function testIssueNowSendsAndSaysWhenTheSendIsRefused(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+
+        $this->post($template, 'issue_now', ['occurrence' => '2026-12-01']);
+
+        self::assertSame(1, $this->rowsIn('invoice'));
+        self::assertSame(0, $this->rowsIn('invoice_send'), 'the customer has no address for invoices');
+        self::assertStringContainsString('could not be sent: The customer has no e-mail address for invoices.', $this->flashes($this->client->request('GET', '/invoices/recurring')));
+    }
+
+    public function testToSendListsHeldInvoices(): void
+    {
+        $this->signedIn();
+        $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
+
+        $crawler = $this->client->request('GET', '/invoices');
+        $chip = $crawler->filter('[data-to-send] a');
+        self::assertCount(1, $chip);
+        self::assertSame('false', $chip->attr('aria-current'));
+        self::assertStringContainsString('To send', $chip->text());
+        self::assertStringContainsString('1', $chip->text());
+
+        $crawler = $this->client->request('GET', '/invoices?toSend=1');
+        self::assertResponseIsSuccessful();
+        self::assertSame('true', $crawler->filter('[data-to-send] a')->attr('aria-current'));
+        self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertSame('/invoices', $crawler->filter('[data-to-send] a')->attr('href'), 'pressed again it shows all');
+        self::assertCount(1, $crawler->filter('form[role="search"] input[name="toSend"][value="1"]'), 'a search keeps the filter');
     }
 
     public function testEveryDialogWorksAsAPage(): void
@@ -412,6 +455,11 @@ final class RecurringListControllerTest extends WebTestCase
         });
 
         return $this->queryCount() - $before;
+    }
+
+    private function failed(RecurringInvoice $template, string $code): void
+    {
+        $this->scoped(fn (): int|string => $this->em()->getConnection()->executeStatement("UPDATE recurring_invoice SET last_failure_code = :code, last_failure_at = '2026-11-20 04:00:00' WHERE id = :id", ['code' => $code, 'id' => $template->id()]));
     }
 
     private function rowsIn(string $table): int

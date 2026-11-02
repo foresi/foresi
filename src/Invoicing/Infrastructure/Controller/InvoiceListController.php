@@ -21,6 +21,7 @@ use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
@@ -60,7 +61,7 @@ final class InvoiceListController extends AbstractController
     private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -76,6 +77,7 @@ final class InvoiceListController extends AbstractController
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
+        private readonly RecurringInvoices $recurring,
     ) {
     }
 
@@ -89,10 +91,13 @@ final class InvoiceListController extends AbstractController
         $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
         $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
         $firm = $request->query->getString('firm');
+        // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
+        $toSend = '1' === $request->query->getString('toSend');
 
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1))));
+        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend));
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
+        $toSendCount = $this->recurring->inReview();
         $here = 1 === $page->page ? $query : $query + ['page' => (string) $page->page];
         $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
@@ -109,7 +114,10 @@ final class InvoiceListController extends AbstractController
             'columns' => $this->columns($tab, $sort, $query, $severalFirms),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here)), $page->rows),
             'baseUrl' => $this->generateUrl('app_invoices', $query),
-            'filtered' => '' !== $text || '' !== $firm,
+            'toSend' => $toSend,
+            'toSendCount' => $toSendCount,
+            'toSendHref' => $this->generateUrl('app_invoices', $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
+            'filtered' => '' !== $text || '' !== $firm || $toSend,
         ]);
     }
 

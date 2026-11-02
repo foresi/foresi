@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\IssueRefused;
@@ -17,9 +18,11 @@ use App\Invoicing\Application\RecurringChangedMeanwhile;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringLifecycle;
+use App\Invoicing\Application\RecurringOutcome;
 use App\Invoicing\Application\RecurringOverview;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Application\UnknownRecurringInvoice;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PeriodText;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurringInvoice;
@@ -60,6 +63,7 @@ final class RecurringListController extends AbstractController
         private readonly RecurringOverview $overview,
         private readonly RecurringAmounts $amounts,
         private readonly IssueRecurringOccurrence $issue,
+        private readonly DeliverRecurringInvoice $delivery,
         private readonly TransactionalWork $work,
         private readonly LegalEntities $firms,
         private readonly AmountText $amountText,
@@ -183,17 +187,40 @@ final class RecurringListController extends AbstractController
 
                 return;
             }
-            if (!$invoice instanceof \App\Invoicing\Domain\Invoice) {
+            if (!$invoice instanceof Invoice) {
                 $this->addFlash('warning', $this->translator->trans('recurring.flash.already_issued'));
 
                 return;
             }
-            // Issued by hand, so whatever failed on the last run is behind it.
+            // Read before delivering, which may start the session over.
+            $number = $invoice->number();
+            // Never late: a person chose to issue it now, and sees what happened at once.
+            $outcome = $this->delivery->deliver($invoice, $this->templates->get($template->id()), false);
+            if ($outcome->isRefused()) {
+                // The person sees why at once, and the invoice waits under To send; the template
+                // keeps what it had, so a failure of the run stays until a delivery works.
+                $this->addFlash('warning', $this->translator->trans('recurring.flash.issued_refused', ['number' => $number, 'reason' => $this->failureText((string) $outcome->code)]));
+
+                return;
+            }
+            // Issued and delivered by hand, so whatever failed on the last run is behind it.
             $this->work->run(function () use ($template): void {
                 $this->templates->lock($template->id())->clearFailure();
             });
-            $this->addFlash('success', $this->translator->trans('recurring.flash.issued', ['number' => $invoice->number()]));
+            $this->addFlash('success', $this->translator->trans(RecurringOutcome::SENT === $outcome->kind ? 'recurring.flash.issued_sent' : 'recurring.flash.issued_review', ['number' => $number]));
         });
+    }
+
+    /**
+     * What a failure code says: a problem key of an issue, or "send." and the reason a
+     * send was refused; a code without a text of its own gets the general one.
+     */
+    private function failureText(string $code): string
+    {
+        $key = str_starts_with($code, 'send.') ? 'recurring.failure.'.$code : $code;
+        $text = $this->translator->trans($key);
+
+        return $text === $key ? $this->translator->trans('recurring.failure.other') : $text;
     }
 
     /**
@@ -311,7 +338,7 @@ final class RecurringListController extends AbstractController
         $failing = RecurringState::Ended !== $state && null !== $template->lastFailureCode();
         $next = $template->nextOccurrence();
         $customer = $template->customer()->displayName();
-        $failure = $failing ? $this->translator->trans('recurring.list.failure', ['code' => $template->lastFailureCode()]) : null;
+        $failure = $failing ? $this->failureText($template->lastFailureCode()) : null;
         $stateText = $this->translator->trans('recurring.list.state.'.($failing ? 'failing' : $state->value));
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';

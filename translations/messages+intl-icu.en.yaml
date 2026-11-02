@@ -1257,15 +1257,28 @@ recurring:
     ended: 'The recurring invoice for {customer} has ended.'
     deleted: 'The recurring invoice for {customer} is deleted.'
     issued: 'Invoice {number} is issued.'
+    issued_sent: 'Invoice {number} is issued and on its way to the customer.'
+    issued_review: 'Invoice {number} is issued and waits under To send.'
+    issued_refused: 'Invoice {number} is issued but could not be sent: {reason} It waits under To send.'
     already_issued: This date is already issued; nothing more was issued.
     changed_meanwhile: The recurring invoice changed meanwhile. Please try again.
     issue_refused: 'The invoice cannot be issued: {problems}'
+  to_send:
+    label: To send
+    hint: Invoices from recurring invoices that nobody has sent yet.
+  failure:
+    other: The last run could not issue or send it.
+    send:
+      no_server: The firm has no mail server set up.
+      no_recipient: The customer has no e-mail address for invoices.
+      bad_address: An e-mail address of the customer is not valid.
+      rate_limited: The firm has used up its daily budget of e-mails.
+      undrawable: The invoice cannot be drawn as a PDF.
   list:
     title: Recurring invoices
     views: Recurring invoice lists
     filter: Show
     summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
-    failure: The last run could not issue or send it.
     tab:
       active: Active
       paused: Paused
@@ -1344,8 +1357,8 @@ recurring:
     submit: Issue
     not_active: Only an active recurring invoice can be issued now.
     delivery:
-      send: The invoice waits in the invoice list, where you send it. The next date moves on.
-      review: The invoice waits in the invoice list for your review. The next date moves on.
+      send: Then it goes by e-mail to the customer, with a copy to you. The next date moves on.
+      review: Then it waits under To send for your review. The next date moves on.
 import:
   number: '{value, number}'
   new: New import
