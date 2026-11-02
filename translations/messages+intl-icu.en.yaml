@@ -670,6 +670,7 @@ invoice:
     bad_address: An address of the message is not valid.
     login_refused: '{smtp, select, none {The mail server refused the login.} other {The mail server refused the login (SMTP {smtp}).}}'
     message_refused: '{smtp, select, none {The mail server refused the message.} other {The mail server refused the message (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {The mail server refused the recipient {recipient}.} other {The mail server refused the recipient {recipient} (SMTP {smtp}).}}'
     try_later: '{smtp, select, none {The mail server asks to try again later.} other {The mail server asks to try again later (SMTP {smtp}).}}'
     unexpected_answer: The mail server gave an unexpected answer.
     secure_connection: 'The secure connection to the mail server failed: check the encryption, the port and the host name.'

@@ -83,7 +83,7 @@ final readonly class SymfonyMailGateway implements MailGateway
         $stream = new DeadlineSocketStream($this->deadlineSeconds);
         $stream->setTimeout(self::TIMEOUT_SECONDS);
         $stream->setStreamOptions(['ssl' => ['peer_name' => trim($server->host(), '[]')]]);
-        $transport = new EsmtpTransport(str_contains($address, ':') ? '['.$address.']' : $address, $server->port(), $tls, stream: $stream);
+        $transport = new RecipientNamingEsmtpTransport(str_contains($address, ':') ? '['.$address.']' : $address, $server->port(), $tls, stream: $stream);
         $transport->setAutoTls(true);
         // Without TLS from the start, STARTTLS is required, never optional.
         $transport->setRequireTls(!$tls);
@@ -115,7 +115,7 @@ final readonly class SymfonyMailGateway implements MailGateway
     /**
      * Maps a failure to a reason that is safe to keep: a 5xx answer, such as a
      * refused login, is permanent, and so is a message that cannot be built;
-     * anything else is worth another try.
+     * anything else is worth another try. A refused recipient is named.
      */
     public static function refusal(\Throwable $failure): MailRefused
     {
@@ -126,6 +126,10 @@ final readonly class SymfonyMailGateway implements MailGateway
         $code = $failure->getCode();
         if (\in_array($code, self::LOGIN_CODES, true)) {
             return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the login.', $code), true, MailRefused::LOGIN_REFUSED, $code);
+        }
+        if ($code >= 500 && $code <= 599 && $failure instanceof RecipientRefused) {
+            // The address is the one sent in RCPT TO, not the server's text.
+            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the recipient <%s>.', $code, $failure->recipient), reasonCode: MailRefused::RECIPIENT_REFUSED, smtpCode: $code);
         }
         if ($code >= 500 && $code <= 599) {
             return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the message.', $code), reasonCode: MailRefused::MESSAGE_REFUSED, smtpCode: $code);

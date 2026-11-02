@@ -670,6 +670,7 @@ invoice:
     bad_address: Některá adresa zprávy není platná.
     login_refused: '{smtp, select, none {Poštovní server odmítl přihlášení.} other {Poštovní server odmítl přihlášení (SMTP {smtp}).}}'
     message_refused: '{smtp, select, none {Poštovní server zprávu odmítl.} other {Poštovní server zprávu odmítl (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {Poštovní server odmítl adresáta {recipient}.} other {Poštovní server odmítl adresáta {recipient} (SMTP {smtp}).}}'
     try_later: '{smtp, select, none {Poštovní server žádá zkusit to později.} other {Poštovní server žádá zkusit to později (SMTP {smtp}).}}'
     unexpected_answer: Poštovní server odpověděl neočekávaně.
     secure_connection: 'Zabezpečené spojení se serverem selhalo: zkontrolujte šifrování, port a název serveru.'

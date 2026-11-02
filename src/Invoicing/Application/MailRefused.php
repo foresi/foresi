@@ -24,6 +24,7 @@ final class MailRefused extends \RuntimeException
     public const string BAD_ADDRESS = 'bad_address';
     public const string LOGIN_REFUSED = 'login_refused';
     public const string MESSAGE_REFUSED = 'message_refused';
+    public const string RECIPIENT_REFUSED = 'recipient_refused';
     public const string TRY_LATER = 'try_later';
     public const string UNEXPECTED_ANSWER = 'unexpected_answer';
     public const string SECURE_CONNECTION = 'secure_connection';
