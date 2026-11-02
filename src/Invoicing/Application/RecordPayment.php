@@ -26,15 +26,14 @@ use Psr\Clock\ClockInterface;
  * for each other in a circle. The payment and its allocations are stored together
  * or not at all.
  *
- * A settlement writes off a small difference on a single invoice in Czech crowns,
- * at most MAX_SETTLEMENT minor units either way: the coins nobody pays by transfer.
- * Another currency has no such custom, so there it is refused.
+ * A settlement writes off a small difference on a single invoice, and only the
+ * difference that closes it exactly: what is payable less what is paid already
+ * less this payment. How much may be written off, and in which currency, is the
+ * custom of the firm's country; a country without one, or without a module,
+ * allows none. Both are checked under the lock, against what is paid then.
  */
 final readonly class RecordPayment
 {
-    public const int MAX_SETTLEMENT = 99;
-    public const array SETTLEMENT_CURRENCIES = [Currency::CZK];
-
     public function __construct(
         private InvoiceStore $store,
         private InvoicePayments $payments,
@@ -70,6 +69,9 @@ final readonly class RecordPayment
             $firm = $this->firmOf($request, $invoices);
             if ($request->receivedOn->format('Y-m-d') > $this->todayOf($firm)->format('Y-m-d')) {
                 throw new PaymentRefused(PaymentRefused::FUTURE_DATE);
+            }
+            foreach ($request->allocations as $allocation) {
+                $this->checkSettlement($firm, $invoices[$allocation->invoiceId], $allocation);
             }
 
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
@@ -108,11 +110,14 @@ final readonly class RecordPayment
         if ($allocated !== $request->amount->minor()) {
             throw new PaymentRefused(PaymentRefused::AMOUNT_MISMATCH);
         }
-        foreach ($request->allocations as $allocation) {
-            if (null !== $allocation->settlement && !$allocation->settlement->isZero() && !$this->settlementAllowed($request, $allocation->settlement)) {
-                throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
-            }
+        if (1 !== \count($request->allocations) && array_any($request->allocations, $this->settles(...))) {
+            throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
         }
+    }
+
+    private function settles(AllocationRequest $allocation): bool
+    {
+        return $allocation->settlement instanceof Money && !$allocation->settlement->isZero();
     }
 
     private function positive(Money $amount): bool
@@ -120,11 +125,26 @@ final readonly class RecordPayment
         return !$amount->isZero() && !$amount->isNegative();
     }
 
-    private function settlementAllowed(PaymentRequest $request, Money $settlement): bool
+    private function checkSettlement(LegalEntity $firm, Invoice $invoice, AllocationRequest $allocation): void
     {
-        return 1 === \count($request->allocations)
-            && \in_array($settlement->currency(), self::SETTLEMENT_CURRENCIES, true)
-            && abs($settlement->minor()) <= self::MAX_SETTLEMENT;
+        if (!$allocation->settlement instanceof Money || !$this->settles($allocation)) {
+            return;
+        }
+        $settlement = $allocation->settlement->minor();
+        $limit = $this->settlementLimit($firm, $allocation->settlement->currency());
+        $closing = $invoice->payable()->minor() - $this->payments->paidOf($invoice)->minor() - $allocation->amount->minor();
+        if (null === $limit || abs($settlement) > $limit || $settlement !== $closing) {
+            throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
+        }
+    }
+
+    private function settlementLimit(LegalEntity $firm, Currency $currency): ?int
+    {
+        try {
+            return $this->countries->for($firm->address()->countryCode)->settlementLimit($currency);
+        } catch (UnsupportedCountry) {
+            return null;
+        }
     }
 
     /**

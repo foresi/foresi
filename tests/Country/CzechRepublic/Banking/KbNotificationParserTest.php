@@ -97,12 +97,19 @@ final class KbNotificationParserTest extends TestCase
         ])], $this->parse($this->mail('incoming-eur.eml')));
     }
 
-    public function testNotBookedIsIgnoredWithItsStatus(): void
+    public function testARejectedPaymentIsIgnoredWithItsStatus(): void
     {
+        // Rejected is on the closed list of statuses known never to reach the account.
         $result = $this->parse($this->mail('incoming-not-booked.eml'));
 
         self::assertSame([], $result->movements());
         self::assertSame('status:Zamítnuto', $result->ignoredReason());
+    }
+
+    public function testAnUnknownStatusFailsVisibly(): void
+    {
+        // A status the parser does not know may be a payment that is on the account after all.
+        $this->assertFailure(ParseFailure::UnknownLayout, 'Odloženo', $this->mail('incoming-unknown-status.eml'));
     }
 
     public function testShuffledInlineLayoutStillParses(): void

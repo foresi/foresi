@@ -18,7 +18,7 @@ Planned as 0.5.0: the first release with invoices.
 - The worker command is now `messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600`: it delivers mail and runs the timed jobs. Update your systemd or supervisor unit.
 - PDFs as sent are kept in `var/share/<env>/sent-documents`. Include that directory in backups, together with the database.
 - The tests of the PDF and of the ISDOC file use veraPDF, Poppler and the ISDOC schema when they are installed (see CONTRIBUTING.md); CI requires them.
-- A firm's bank accounts move from the list on the firm into records of their own. The migration keeps their order, makes the first one the primary account and sets every account to CZK, as the list held no currency: set the currency of each EUR or USD account in the firm's bank settings.
+- A firm's bank accounts move from the list on the firm into records of their own. The migration keeps their order and makes the first one the primary account. The list held no currency, so each account gets the home currency of the firm's country: CZK in Czechia, EUR in a euro-area country and USD in the United States. A firm in any other country gets CZK. Check the currency of each account in the firm's bank settings, and correct it for an account kept in another currency.
 
 ### Added
 

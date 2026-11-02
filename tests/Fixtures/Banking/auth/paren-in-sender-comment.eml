@@ -1,0 +1,10 @@
+Authentication-Results: mx.example.com; spf=pass (domain of "x);dkim=pass header.d=kb.cz(" designates 192.0.2.7 as permitted sender) smtp.mailfrom=example.net; dkim=none; dmarc=fail header.from=kb.cz
+From: info@kb.cz
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <paren-in-sender-comment@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK

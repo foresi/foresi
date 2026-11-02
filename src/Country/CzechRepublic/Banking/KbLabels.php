@@ -61,6 +61,14 @@ final class KbLabels
     private const array BOOKED = ['zaúčtováno', 'booked'];
 
     /**
+     * The closed list of statuses known never to reach the account, which are
+     * ignored. Any other status fails visibly, since it may be a payment that is
+     * on the account after all. Rejected is on it deliberately: the bank refused
+     * the payment, so no money moved.
+     */
+    private const array NOT_BOOKED = ['zamítnuto', 'rejected'];
+
+    /**
      * The field a label names, or null for any other text.
      */
     public static function field(string $label): ?string
@@ -94,9 +102,19 @@ final class KbLabels
         return null;
     }
 
-    public static function isBooked(string $status): bool
+    /**
+     * Whether a payment with the status is on the account, or null for a status
+     * on neither list.
+     */
+    public static function booked(string $status): ?bool
     {
-        return \in_array(self::normalized($status), self::BOOKED, true);
+        $status = self::normalized($status);
+
+        return match (true) {
+            \in_array($status, self::BOOKED, true) => true,
+            \in_array($status, self::NOT_BOOKED, true) => false,
+            default => null,
+        };
     }
 
     /**

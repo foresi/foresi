@@ -1,4 +1,4 @@
-Authentication-Results: mx.example.com; dkim=pass header.d=kbinfo.cz
+Authentication-Results: mx.example.com; dkim=pass header.d=kbinfo.cz; dmarc=pass header.from=kbinfo.cz
 From: KB+ <servis@kbinfo.cz>
 To: bank+token@example.com
 Subject: Payment notice

@@ -32,6 +32,7 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -159,23 +160,13 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertSame(InvoiceStatus::Paid, $this->statusOf($stored));
     }
 
-    public function testASettlementIsRefusedOutsideCzkOrAbove99Minor(): void
+    public function testASettlementIsRefusedAbove99MinorOrOverTwoInvoices(): void
     {
         $invoice = $this->issue->issue($this->input());
         $other = $this->issue->issue($this->input());
 
         $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1209.00', [new AllocationRequest($invoice->id(), $this->czk('1209.00'), $this->czk('1.00'))])));
         $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1211.00', [new AllocationRequest($invoice->id(), $this->czk('1211.00'), $this->czk('-1.00'))])));
-        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record(new PaymentRequest(
-            $this->firm->id(),
-            new \DateTimeImmutable('2026-11-20'),
-            Money::of('1209.50', Currency::EUR),
-            PaymentMethod::BankTransfer,
-            PaymentSource::Manual,
-            null,
-            '',
-            [new AllocationRequest($invoice->id(), Money::of('1209.50', Currency::EUR), Money::of('0.50', Currency::EUR))],
-        )));
         $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1209.50', [
             new AllocationRequest($invoice->id(), $this->czk('1000.00'), $this->czk('0.50')),
             new AllocationRequest($other->id(), $this->czk('209.50')),
@@ -185,6 +176,48 @@ final class RecordPaymentTest extends InvoiceTestCase
 
         // 99 minor units is the most a difference may be.
         $this->record->record($this->request('1209.01', [new AllocationRequest($invoice->id(), $this->czk('1209.01'), $this->czk('0.99'))]));
+        self::assertSame(InvoiceStatus::Paid, $this->statusOf($this->reloaded($invoice)));
+    }
+
+    public function testASettlementThatDoesNotCloseTheInvoiceIsRefused(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        // 1000.00 and 0.50 written off still leave 209.50 to pay.
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1000.00', [new AllocationRequest($invoice->id(), $this->czk('1000.00'), $this->czk('0.50'))])));
+        $this->assertNothingStored();
+
+        // What was paid before counts: after 500.00, 709.50 and 0.50 close the invoice.
+        $this->pay($invoice, '500.00');
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1209.50', [new AllocationRequest($invoice->id(), $this->czk('1209.50'), $this->czk('0.50'))])));
+        $this->record->record($this->request('709.50', [new AllocationRequest($invoice->id(), $this->czk('709.50'), $this->czk('0.50'))]));
+        $stored = $this->reloaded($invoice);
+        self::assertSame(0, $this->payments->remainingOf($stored)->minor());
+        self::assertSame(InvoiceStatus::Paid, $this->statusOf($stored));
+    }
+
+    public function testAnOverpayingSettlementIsRefused(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        // The payment already covers the invoice: writing off more would overpay it.
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1210.50', [new AllocationRequest($invoice->id(), $this->czk('1210.50'), $this->czk('0.50'))])));
+        // A negative settlement may take back only what is overpaid.
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1210.40', [new AllocationRequest($invoice->id(), $this->czk('1210.40'), $this->czk('-0.50'))])));
+        $this->assertNothingStored();
+    }
+
+    public function testANonCzechFirmCannotSettleInCzk(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        // The writing off of coins is a Czech custom: it follows the firm's country, not the currency.
+        $this->em->getConnection()->executeStatement("UPDATE legal_entity SET address_country_code = 'SK' WHERE id = ?", [$this->firm->id()]);
+        $this->em->clear();
+
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1209.50', [new AllocationRequest($invoice->id(), $this->czk('1209.50'), $this->czk('0.50'))])));
+        $this->assertNothingStored();
+
+        $this->pay($invoice, '1210.00');
         self::assertSame(InvoiceStatus::Paid, $this->statusOf($this->reloaded($invoice)));
     }
 
@@ -333,6 +366,24 @@ final class RecordPaymentTest extends InvoiceTestCase
         $payment = $this->record->record($this->request('10.00', [new AllocationRequest($invoice->id(), $this->czk('10.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
         $lines = $this->payments->linesOf($this->reloaded($invoice));
         self::assertSame([[$payment->id(), PaymentSource::BankMovement, self::MOVEMENT]], array_map(static fn (\App\Invoicing\Application\InvoicePaymentLine $line): array => [$line->paymentId, $line->source, $line->bankMovementId], $lines));
+    }
+
+    public function testAMovementPaysThroughOneActivePaymentOnly(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $bank = fn (): Payment => $this->record->record($this->request('10.00', [new AllocationRequest($invoice->id(), $this->czk('10.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
+        $first = $bank();
+
+        try {
+            $bank();
+            self::fail('A second active payment of one movement was stored.');
+        } catch (UniqueConstraintViolationException) {
+        }
+
+        // Once the first is cancelled, the movement may pay again.
+        $this->em->getConnection()->executeStatement("UPDATE payment SET cancelled_at = '2026-11-20 10:00:00' WHERE id = ?", [$first->id()]);
+        $bank();
+        self::assertEquals(2, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM payment WHERE bank_movement_id = ?', [self::MOVEMENT]));
     }
 
     public function testTrashIsRefusedWhilePaymentsExist(): void

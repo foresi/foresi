@@ -32,7 +32,7 @@ final class InvoiceStatusTest extends TestCase
     #[DataProvider('states')]
     public function testShowsTheMostRelevantState(bool $delivered, bool $overdue, bool $trashed, InvoiceStatus $status, string $tone): void
     {
-        self::assertSame($status, InvoiceStatus::of($delivered, $overdue, $trashed));
+        self::assertSame($status, InvoiceStatus::of($delivered, $overdue, $trashed, PaymentState::Unpaid));
         self::assertSame($tone, $status->tone());
     }
 
@@ -70,6 +70,15 @@ final class InvoiceStatusTest extends TestCase
     public function testStatusOrderTrashedOverpaidPaidOverduePartlyPaidDeliveredIssued(bool $delivered, bool $overdue, bool $trashed, PaymentState $payment, InvoiceStatus $expected): void
     {
         self::assertSame($expected, InvoiceStatus::of($delivered, $overdue, $trashed, $payment));
+    }
+
+    public function testThePaymentStateMustBeGiven(): void
+    {
+        // A caller that forgot it would show a paid invoice as overdue.
+        $payment = new \ReflectionMethod(InvoiceStatus::class, 'of')->getParameters()[3];
+
+        self::assertSame('payment', $payment->getName());
+        self::assertFalse($payment->isOptional());
     }
 
     public function testThePaymentStatesHaveTheirTones(): void

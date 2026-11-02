@@ -17,10 +17,11 @@ use Doctrine\Migrations\AbstractMigration;
 
 /**
  * Moves the bank accounts of each firm from the JSON list on the firm into
- * firm_bank_account, then drops the list. The accounts keep their order, the
- * first one is the primary one, and all of them are in CZK, as the list held no
- * currency: an owner sets the currency of a EUR or USD account in the firm's
- * bank settings. An IBAN listed twice becomes one account.
+ * firm_bank_account, then drops the list. The accounts keep their order and the
+ * first one is the primary one. The list held no currency, so each account gets
+ * the home currency of the firm's country, as far as it is one Foresi knows, and
+ * CZK otherwise: an owner corrects the currency of any other account in the
+ * firm's bank settings. An IBAN listed twice becomes one account.
  *
  * The copy runs in up(), so RunsOnlyForReal refuses --dry-run and --write-sql.
  * down() writes the active accounts back into the list, primary first, and
@@ -28,6 +29,18 @@ use Doctrine\Migrations\AbstractMigration;
  */
 final class Version20261103020002 extends AbstractMigration implements RunsOnlyForReal
 {
+    /**
+     * The countries whose home currency is one Foresi knows, as they were when
+     * this migration was written; frozen, so it migrates the same way later.
+     */
+    private const array HOME_CURRENCIES = [
+        'CZ' => 'CZK',
+        'US' => 'USD',
+        'AT' => 'EUR', 'BE' => 'EUR', 'BG' => 'EUR', 'CY' => 'EUR', 'DE' => 'EUR', 'EE' => 'EUR', 'ES' => 'EUR',
+        'FI' => 'EUR', 'FR' => 'EUR', 'GR' => 'EUR', 'HR' => 'EUR', 'IE' => 'EUR', 'IT' => 'EUR', 'LT' => 'EUR',
+        'LU' => 'EUR', 'LV' => 'EUR', 'MT' => 'EUR', 'NL' => 'EUR', 'PT' => 'EUR', 'SI' => 'EUR', 'SK' => 'EUR',
+    ];
+
     public function getDescription(): string
     {
         return 'Move the bank accounts of a firm into records';
@@ -35,8 +48,9 @@ final class Version20261103020002 extends AbstractMigration implements RunsOnlyF
 
     public function up(Schema $schema): void
     {
-        $firms = $this->connection->fetchAllAssociative('SELECT id, tenant_id, bank_accounts FROM legal_entity ORDER BY id');
+        $firms = $this->connection->fetchAllAssociative('SELECT id, tenant_id, bank_accounts, address_country_code FROM legal_entity ORDER BY id');
         foreach ($firms as $firm) {
+            $currency = self::HOME_CURRENCIES[strtoupper(trim((string) $firm['address_country_code']))] ?? 'CZK';
             $listed = json_decode((string) $firm['bank_accounts'], true, flags: \JSON_THROW_ON_ERROR);
             $ibans = array_values(array_unique(array_filter(\is_array($listed) ? $listed : [], is_string(...))));
             foreach ($ibans as $position => $iban) {
@@ -45,7 +59,7 @@ final class Version20261103020002 extends AbstractMigration implements RunsOnlyF
                     'tenant_id' => $firm['tenant_id'],
                     'legal_entity_id' => $firm['id'],
                     'iban' => $iban,
-                    'currency' => 'CZK',
+                    'currency' => $currency,
                     'label' => '',
                     'primary_flag' => 0 === $position ? true : null,
                     'position' => $position,

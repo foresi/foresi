@@ -1,6 +1,7 @@
 Authentication-Results: (received by the inbox) MX.Example.COM 1;
   DKIM (signature) = Pass (good signature)
   Header.D=KB.CZ. header.s=sel1;
+  DMARC (policy) = Pass (p=QUARANTINE) Header.From=KB.CZ.;
   arc=none
 From: "KB" (bank) <Info@KB.cz>
 To: bank+token@example.com
