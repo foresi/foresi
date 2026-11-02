@@ -31,6 +31,7 @@ use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Infrastructure\Form\RecurringFormReader;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\DocumentLanguage;
@@ -105,7 +106,7 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('14', $values['dueDays']);
         self::assertSame('never', $values['end']);
         self::assertSame('', $values['name']);
-        self::assertSame(['1', '1', '1'], [$values['sendToCustomer'] ?? null, $values['copyToMe'] ?? null, $values['copyToOthers'] ?? null], 'sent to the customer with both copies, as before the boxes');
+        self::assertSame(['1', '1', '1'], [$values['sendToCustomerWanted'] ?? null, $values['copyToMe'] ?? null, $values['copyToOthersWanted'] ?? null], 'sent to the customer with both copies, as before the boxes, once there are addresses');
         self::assertSame($this->series->id(), $values['seriesId']);
         self::assertCount(1, $values['lines']);
         self::assertSelectorExists('[data-preview-next][data-preview-when="now"]');
@@ -235,10 +236,50 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
         self::assertSelectorTextSame('#copyToOthers-address', 'no e-mail filled in', 'no customer picked yet');
+        $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(), ['_action' => 'refresh']));
         self::assertSelectorExists('#recurring-held[hidden]', 'shown only while "To the customer" is unticked');
         $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(['sendToCustomer' => '']), ['_action' => 'refresh']));
         self::assertSelectorNotExists('#recurring-held[hidden]');
         self::assertSelectorTextContains('#recurring-held', 'waits in the To send list');
+    }
+
+    public function testABoxWithNoAddressIsUntickedDisabledAndOff(): void
+    {
+        $this->signedIn();
+
+        // No customer yet: nothing to send to, and nothing to copy; the copy to me has the owner's address.
+        $this->openNew();
+        self::assertSelectorExists('#sendToCustomer[disabled]:not([checked])');
+        self::assertSelectorExists('#copyToOthers[disabled]:not([checked])');
+        self::assertSelectorExists('#copyToMe[checked]:not([disabled])');
+        self::assertSelectorExists('#copyToOthers-address[data-recurring-empty]');
+        self::assertSelectorNotExists('#copyToMe-address[data-recurring-empty]');
+        self::assertSelectorExists('input[type=hidden][name="copyToOthersWanted"][value="1"]:not([disabled])', 'what was chosen waits for an address');
+        self::assertSelectorExists('input[type=hidden][name="copyToMeWanted"][disabled]', 'an enabled box posts itself');
+
+        // A customer with an address for invoices but none for a copy: the box for others stays off, ticked or not.
+        $this->preview($this->filled(['copyToOthers' => '1']));
+        self::assertSelectorNotExists('#sendToCustomer-address[data-recurring-empty]', 'the refresh tells the form the box has an address now');
+        self::assertSelectorExists('#copyToOthers-address[data-recurring-empty]');
+        $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(['copyToOthers' => '1']), ['_action' => 'refresh']));
+        self::assertSelectorExists('#sendToCustomer[checked]:not([disabled])', 'chosen while there was no customer, ticked once there is one');
+        self::assertSelectorExists('#copyToOthers[disabled]:not([checked])');
+
+        $this->save($this->filled(['copyToOthers' => '1']));
+
+        self::assertResponseRedirects('/invoices/recurring');
+        $row = $this->templateRow($this->onlyTemplate()->id());
+        self::assertSame('send', $row['delivery']);
+        self::assertTrue((bool) $row['copy_to_me']);
+        self::assertFalse((bool) $row['copy_to_others'], 'a posted tick counts as off without an address');
+
+        // The address shows up later: the box for others is ticked again on the edit, as it was chosen.
+        $this->scoped(function (): void {
+            $this->em()->persist(new PartyEmail($this->em()->find(Party::class, $this->customer->id()) ?? throw new \LogicException(), 'accounts@example.com', EmailPurpose::Copy));
+            $this->em()->flush();
+        });
+        $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(), ['copyToOthers' => '', 'copyToOthersWanted' => '1', '_action' => 'refresh']));
+        self::assertSelectorExists('#copyToOthers[checked]:not([disabled])');
     }
 
     public function testThePaymentDetailsShowTheAccountAsTheInvoicePrintsIt(): void
@@ -273,7 +314,7 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('review', $row['delivery'], 'without "To the customer" the invoice waits under To send');
         self::assertSame('Example hosting', $row['name']);
         self::assertFalse((bool) $row['copy_to_me']);
-        self::assertTrue((bool) $row['copy_to_others']);
+        self::assertFalse((bool) $row['copy_to_others'], 'the customer has no address for a copy');
         self::assertSame('Hosting {month/year}', $row['description']);
         self::assertSame('PO-{year}', $row['order_number']);
         self::assertSame($this->customer->id(), $row['customer_id']);
@@ -581,6 +622,11 @@ final class RecurringFormControllerTest extends WebTestCase
         $values['name'] = 'Example hosting';
         $values['description'] = 'Hosting';
         $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Hosting {month/year}', 'price' => '1200,00', 'quantity' => '1', 'unit' => 'ks']);
+        // As the browser has it once the customer is picked: each box enabled, as it was chosen.
+        foreach (RecurringFormReader::SENDING_FIELDS as $box) {
+            $values[$box] ??= $values[$box.'Wanted'] ?? '';
+            unset($values[$box.'Wanted']);
+        }
 
         /** @var Form $filled */
         $filled = array_merge($values, $changes);

@@ -183,12 +183,14 @@ final class RecurringFormController extends AbstractController
         } catch (UnsupportedCountry) {
             throw new NotFoundHttpException();
         }
+        $recipients = $this->recipients($firm, $request->request->getString('customerId'), $template);
+        $this->withRecipients($request, $recipients);
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
         $payment = PaymentMethod::tryFrom($request->request->getString('paymentMethod'));
 
         return $this->render('invoicing/recurring/_live.html.twig', [
             'preview' => $preview,
-            'recipients' => $this->recipients($firm, $request->request->getString('customerId'), $template),
+            'recipients' => $recipients,
             'account' => $this->account($context, PaymentMethod::BankTransfer === $payment ? $request->request->getString('bankAccount') : ''),
         ], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
@@ -240,8 +242,10 @@ final class RecurringFormController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         $saving = 'save' === $action;
         $matches = $this->typedCustomers($request, $context->firm, $saving);
+        $wanted = $this->withRecipients($request, $this->recipients($context->firm, $request->request->getString('customerId'), $template));
         $submission = $this->reader->read($request, $context->currency, $this->today());
-        $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $context->firm->address()->countryCode);
+        // The form shows the boxes as they were chosen, so a box that comes back with an address is as it was.
+        $values = $this->values->withoutHiddenCodes($this->withFormFields([...$submission->values, ...$wanted], $context), $context->firm->address()->countryCode);
 
         if (1 === \count($matches)) {
             // A typed name is a pick, never a save: the defaults of the customer come first.
@@ -460,6 +464,8 @@ final class RecurringFormController extends AbstractController
         $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'], $error['key'])], $errors);
         $previewRequest = new Request(request: $values);
         $previewRequest->request->set('firmId', $firm->id());
+        $recipients = $this->recipients($firm, $previewRequest->request->getString('customerId'), $template);
+        $this->withRecipients($previewRequest, $recipients);
 
         return $this->render('invoicing/recurring/form.html.twig', [
             'blocked' => null,
@@ -495,7 +501,7 @@ final class RecurringFormController extends AbstractController
             'units' => $this->choices(RecurrenceUnit::cases(), 'recurring.unit.'),
             'taxPoints' => $this->choices(TaxPointRule::cases(), $context->isPayer() ? 'recurring.tax_point.' : 'recurring.supply_point.'),
             'ends' => $this->choices(RecurrenceEnd::cases(), 'recurring.end.'),
-            'recipients' => $this->recipients($firm, $previewRequest->request->getString('customerId'), $template),
+            'recipients' => $recipients,
             // One account is not chosen in the form: it is the one the invoice prints.
             'account' => $this->account($context, '' !== $previewRequest->request->getString('bankAccount') ? $previewRequest->request->getString('bankAccount') : (string) array_key_first($bankAccounts)),
             'variables' => $this->variables(),
@@ -562,9 +568,9 @@ final class RecurringFormController extends AbstractController
      * firm; the copy to the firm's contact address, else to the template's owner
      * (whoever creates it, for a new one), as SendInvoice makes it; and the
      * contact's addresses for a copy. Shown, never posted: the run reads them on
-     * its day.
+     * its day. Keyed by the box.
      *
-     * @return array{customer: list<string>, me: ?string, others: list<string>}
+     * @return array{sendToCustomer: list<string>, copyToMe: list<string>, copyToOthers: list<string>}
      */
     private function recipients(LegalEntity $firm, string $customerId, ?RecurringInvoice $template): array
     {
@@ -584,7 +590,33 @@ final class RecurringFormController extends AbstractController
         $owner = $template instanceof RecurringInvoice ? $template->owner() : $this->actor->userId();
         $me = '' !== $contact ? $contact : (null === $owner ? null : $this->users->findById($owner)?->email());
 
-        return ['customer' => array_values(array_unique($customer)), 'me' => $me, 'others' => array_values(array_unique($others))];
+        return [
+            'sendToCustomer' => array_values(array_unique($customer)),
+            'copyToMe' => null === $me || '' === $me ? [] : [$me],
+            'copyToOthers' => array_values(array_unique($others)),
+        ];
+    }
+
+    /**
+     * A box with no address to send to is off, whatever was posted: the form shows it
+     * unticked and disabled. What was chosen for it is kept in {box}Wanted while it is
+     * disabled, so the box is as it was once the customer has an address again. The
+     * request is left with what counts; the boxes as they were chosen are returned.
+     *
+     * @param array<string, list<string>> $recipients
+     *
+     * @return array<string, string>
+     */
+    private function withRecipients(Request $request, array $recipients): array
+    {
+        $wanted = [];
+        foreach ($recipients as $box => $addresses) {
+            $wanted[$box] = '1' === $request->request->getString($box) || '1' === $request->request->getString($box.'Wanted') ? '1' : '';
+            $request->request->set($box, [] === $addresses ? '' : $wanted[$box]);
+            $request->request->remove($box.'Wanted');
+        }
+
+        return $wanted;
     }
 
     /**

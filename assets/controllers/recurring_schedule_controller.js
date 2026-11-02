@@ -10,7 +10,8 @@ const PREVIEW_DELAY = 300;
  * customer and the totals are the invoice form's controller's; this one only
  * shows the fields the schedule needs, steps the numbers with − and +, lets a
  * picked customer set the due days until they are typed, says when an unticked
- * "Odběrateli" leaves the invoice waiting, and posts the form for the preview,
+ * "Odběrateli" leaves the invoice waiting, disables a box with no address to
+ * send to, and posts the form for the preview,
  * 300 ms after the last change. The answer holds the next issue and the other
  * parts that follow what was typed ([data-recurring-live], such as the addresses
  * under the boxes); each takes the place of the one with its id. The server
@@ -22,7 +23,7 @@ const PREVIEW_DELAY = 300;
  * them in the card's dialog instead, which a refresh keeps up to date.
  */
 export default class extends Controller {
-    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet', 'list', 'dialogList', 'stepper', 'sendToCustomer', 'held'];
+    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet', 'list', 'dialogList', 'stepper', 'box', 'sendToCustomer', 'held'];
 
     static outlets = ['dialog'];
 
@@ -31,7 +32,7 @@ export default class extends Controller {
     connect() {
         this.unitChanged();
         this.endChanged();
-        this.sendingChanged();
+        this.recipientsChanged();
         this.stepperTargets.forEach((button) => { button.hidden = false; });
     }
 
@@ -51,6 +52,24 @@ export default class extends Controller {
 
     sendingChanged() {
         this.heldTarget.hidden = this.sendToCustomerTarget.checked;
+    }
+
+    // A box with no address is unticked and disabled; what was chosen for it waits in
+    // {box}Wanted, which is posted instead, and comes back once it has an address.
+    recipientsChanged() {
+        this.boxTargets.forEach((box) => {
+            const empty = document.getElementById(`${box.id}-address`)?.hasAttribute('data-recurring-empty') ?? false;
+            const wanted = document.getElementById(`${box.id}-wanted`);
+            if (empty && !box.disabled) {
+                wanted.value = box.checked ? '1' : '';
+                box.checked = false;
+            } else if (!empty && box.disabled) {
+                box.checked = wanted.value === '1';
+            }
+            box.disabled = empty;
+            wanted.disabled = !empty;
+        });
+        this.sendingChanged();
     }
 
     // − and +: one step within the field's bounds, as if typed.
@@ -118,6 +137,8 @@ export default class extends Controller {
                 page.querySelectorAll('[data-recurring-live][id]').forEach((part) => {
                     document.getElementById(part.id)?.replaceWith(document.importNode(part, true));
                 });
+                // Another customer has other addresses.
+                this.recipientsChanged();
             }
         } catch (error) {
             if (error.name !== 'AbortError') {

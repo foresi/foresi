@@ -162,6 +162,12 @@ test.describe.serial('a recurring invoice', () => {
     await page.goto('/invoices/recurring/new');
     await expect(page.locator('#sendToCustomer-address')).toHaveText('e-mail není vyplněn');
     await expect(page.locator('#copyToOthers-address')).toHaveText('e-mail není vyplněn');
+    // A box with no address cannot be ticked.
+    for (const box of ['Odběrateli', 'Dalším příjemcům na kontaktu']) {
+      await expect(sending.getByRole('checkbox', { name: box })).toBeDisabled();
+      await expect(sending.getByRole('checkbox', { name: box })).not.toBeChecked();
+    }
+    await expect(page.locator('#recurring-held')).toBeVisible();
   });
 
   for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {

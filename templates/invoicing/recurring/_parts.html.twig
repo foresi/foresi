@@ -5,9 +5,9 @@
     over the ones on the page. Only text is replaced, never a field, so the focus stays where it is.
 #}
 
-{# The addresses a box of "Odesílání faktury" sends to, under its label. #}
+{# The addresses a box of "Odesílání faktury" sends to, under its label; with none, the box is disabled (data-recurring-empty). #}
 {% macro addresses(id, addresses) %}
-    <p id="{{ id }}" class="m-0 break-all pl-6 text-caption text-muted" data-recurring-live>
+    <p id="{{ id }}" class="m-0 break-all pl-6 text-caption text-muted" data-recurring-live{% if addresses is empty %} data-recurring-empty{% endif %}>
         {{- addresses is empty ? 'recurring.sending.no_email'|trans : addresses|join(', ') -}}
     </p>
 {% endmacro %}

@@ -2,7 +2,7 @@
 {# The answer of the preview: the next issue, and the other parts of the form that follow what was typed (_parts). #}
 {% import 'invoicing/recurring/_parts.html.twig' as parts %}
 {{ include('invoicing/recurring/_preview.html.twig') }}
-{{ parts.addresses('sendToCustomer-address', recipients.customer) }}
-{{ parts.addresses('copyToMe-address', recipients.me ? [recipients.me] : []) }}
-{{ parts.addresses('copyToOthers-address', recipients.others) }}
+{% for name, addresses in recipients %}
+    {{ parts.addresses(name ~ '-address', addresses) }}
+{% endfor %}
 {{ parts.account(account) }}

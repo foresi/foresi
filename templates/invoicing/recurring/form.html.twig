@@ -157,23 +157,21 @@
 
                 <twig:Ui:Card :title="'recurring.card.sending'|trans" icon="send">
                     {% import 'invoicing/recurring/_parts.html.twig' as parts %}
-                    {% set boxes = [
-                        {name: 'sendToCustomer', addresses: recipients.customer},
-                        {name: 'copyToMe', addresses: recipients.me ? [recipients.me] : []},
-                        {name: 'copyToOthers', addresses: recipients.others},
-                    ] %}
                     <fieldset class="m-0 grid min-w-0 gap-3 border-0 p-0">
                         <legend class="mb-3 p-0 text-small font-medium text-ink">{{ 'recurring.sending.legend'|trans }}</legend>
-                        {% for box in boxes %}
+                        {# A box with no address is unticked and disabled; what was chosen for it waits in {box}Wanted until it has one. #}
+                        {% for name, addresses in recipients %}
+                            {% set wanted = values[name] == '1' %}
                             <div class="grid gap-0.5">
-                                <label for="{{ box.name }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">
-                                    <input type="checkbox" id="{{ box.name }}" name="{{ box.name }}" value="1"{% if values[box.name] == '1' %} checked{% endif %} aria-describedby="{{ box.name }}-address{% if box.name == 'sendToCustomer' %} recurring-held{% endif %}" class="size-4 shrink-0 accent-green {{ focus }}"{% if box.name == 'sendToCustomer' %} data-recurring-schedule-target="sendToCustomer" data-action="change->recurring-schedule#sendingChanged"{% endif %}>
-                                    <span>{{ ('recurring.field.' ~ box.name)|trans }}</span>
+                                <label for="{{ name }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink has-[:disabled]:cursor-not-allowed has-[:disabled]:text-muted">
+                                    <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"{% if wanted and addresses is not empty %} checked{% endif %}{% if addresses is empty %} disabled{% endif %} aria-describedby="{{ name }}-address{% if name == 'sendToCustomer' %} recurring-held{% endif %}" class="size-4 shrink-0 accent-green {{ focus }}" data-recurring-schedule-target="box{% if name == 'sendToCustomer' %} sendToCustomer{% endif %}"{% if name == 'sendToCustomer' %} data-action="change->recurring-schedule#sendingChanged"{% endif %}>
+                                    <span>{{ ('recurring.field.' ~ name)|trans }}</span>
                                 </label>
-                                {{ parts.addresses(box.name ~ '-address', box.addresses) }}
+                                <input type="hidden" id="{{ name }}-wanted" name="{{ name }}Wanted" value="{{ wanted ? '1' : '' }}"{% if addresses is not empty %} disabled{% endif %}>
+                                {{ parts.addresses(name ~ '-address', addresses) }}
                             </div>
                         {% endfor %}
-                        <p id="recurring-held" class="m-0 text-small text-text"{% if values.sendToCustomer == '1' %} hidden{% endif %} data-recurring-schedule-target="held">{{ 'recurring.sending.held'|trans }}</p>
+                        <p id="recurring-held" class="m-0 text-small text-text"{% if values.sendToCustomer == '1' and recipients.sendToCustomer is not empty %} hidden{% endif %} data-recurring-schedule-target="held">{{ 'recurring.sending.held'|trans }}</p>
                     </fieldset>
                 </twig:Ui:Card>
             </div>
