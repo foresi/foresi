@@ -115,6 +115,9 @@ final class ZbatesonMailReaderTest extends TestCase
         yield 'binary' => ["\x00\x01\x02\xFF\xFE binary"];
         yield 'plain prose' => ["This is not a mail at all.\nJust two lines.\n"];
         yield 'a body without headers' => ["\nAmount: 100,00 CZK\n"];
+        // RFC 5322 §2.2.3: only a header can be folded, so a message cannot start with a continuation line.
+        yield 'a folded first line' => [" ; dkim=pass header.d=kb.cz\r\nFrom: info@kb.cz\r\n\r\nAmount: 100,00 CZK\r\n"];
+        yield 'a tab-folded first line' => ["\t; dmarc=pass header.from=kb.cz\nFrom: info@kb.cz\n\nAmount: 100,00 CZK\n"];
     }
 
     private function read(string $fixture): InboundMail

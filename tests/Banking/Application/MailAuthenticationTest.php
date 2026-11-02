@@ -27,9 +27,10 @@ final class MailAuthenticationTest extends TestCase
 {
     private const array BANK = ['kb.cz', 'kbinfo.cz'];
 
-    public function testAlignedDkimPassFromTheTrustedHostIsVerified(): void
+    public function testAnAlignedDkimPassAloneIsNotEnough(): void
     {
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'aligned-dkim-pass');
+        // The bank publishes DMARC, so its mail always carries a DMARC result; a signature alone proves less.
+        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED, 'aligned-dkim-pass');
     }
 
     public function testDmarcPassIsVerified(): void
@@ -39,8 +40,8 @@ final class MailAuthenticationTest extends TestCase
 
     public function testASubdomainSenderAligns(): void
     {
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'kbinfo-sender');
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'subdomain-sender');
+        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DMARC, 'kbinfo-sender');
+        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DMARC, 'subdomain-sender');
     }
 
     public function testAnUnalignedDkimPassIsNotEnough(): void
@@ -72,9 +73,49 @@ final class MailAuthenticationTest extends TestCase
         $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'dmarc-fail');
     }
 
-    public function testAFailNextToAnAlignedPassIsVerified(): void
+    public function testAFailNextToAnAlignedPassIsFailed(): void
     {
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'dkim-fail-and-pass');
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL, 'dkim-fail-and-pass');
+    }
+
+    public function testADmarcPassNextToAnAlignedDkimFailIsFailed(): void
+    {
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL, 'dmarc-pass-with-dkim-fail');
+    }
+
+    public function testADmarcPassNextToADmarcFailIsFailed(): void
+    {
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'dmarc-pass-and-fail');
+    }
+
+    public function testTwoDmarcResultsAreUnverified(): void
+    {
+        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS, 'two-dmarc-results');
+    }
+
+    public function testAPassAndAFailForOneUnalignedSignerAreUnverified(): void
+    {
+        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS, 'unaligned-dkim-pass-and-fail');
+    }
+
+    /**
+     * Results a sender smuggled into the receiving server's own header: text the
+     * server copies into it unescaped can close a comment, end a result early, or
+     * a continuation line at the top of the message joins the header it adds.
+     *
+     * @return iterable<string, array{MessageTrust, string, string}>
+     */
+    public static function smuggledResults(): iterable
+    {
+        yield 'a folded first line joins the trusted header' => [MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'folded-first-line'];
+        yield 'a parenthesis in the envelope sender comment' => [MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'paren-in-sender-comment'];
+        yield 'an unquoted HELO with a semicolon' => [MessageTrust::Unverified, TrustVerdict::UNSIGNED, 'semicolon-in-helo'];
+    }
+
+    #[DataProvider('smuggledResults')]
+    public function testASmuggledPassDoesNotVerify(MessageTrust $trust, string $basis, string $fixture): void
+    {
+        $this->assertVerdict($trust, $basis, $fixture);
     }
 
     public function testAnUnalignedFailIsOnlyUnverified(): void
@@ -110,7 +151,7 @@ final class MailAuthenticationTest extends TestCase
     {
         $settings = new TrustSettings([' MX.Example.COM. '], ['ARC.example.com.']);
 
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'aligned-dkim-pass', $settings);
+        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DMARC, 'dmarc-pass', $settings);
         $this->assertVerdict(MessageTrust::Verified, TrustVerdict::ARC, 'arc-trusted-rescue', $settings);
     }
 
@@ -222,14 +263,14 @@ final class MailAuthenticationTest extends TestCase
 
     public function testCommentsAndCaseInHeadersAreTolerated(): void
     {
-        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DKIM, 'comments-and-case');
+        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DMARC, 'comments-and-case');
     }
 
     public function testTheSenderDomainsAreMatchedWithoutCase(): void
     {
         self::assertEquals(
-            new TrustVerdict(MessageTrust::Verified, TrustVerdict::DKIM),
-            $this->authentication()->verdict($this->read('aligned-dkim-pass'), [' KB.CZ. ']),
+            new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC),
+            $this->authentication()->verdict($this->read('dmarc-pass'), [' KB.CZ. ']),
         );
     }
 
@@ -252,12 +293,12 @@ final class MailAuthenticationTest extends TestCase
     public function testAQuotedLocalPartIsOneAddress(): void
     {
         $mail = $this->mail([
-            ['Authentication-Results', 'mx.example.com; dkim=pass header.d=kb.cz'],
+            ['Authentication-Results', 'mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz'],
             ['From', 'Notices (KB, a@b) <"a@b"@kb.cz>'],
         ], '"a@b"@kb.cz');
 
         self::assertEquals(
-            new TrustVerdict(MessageTrust::Verified, TrustVerdict::DKIM),
+            new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC),
             $this->authentication()->verdict($mail, self::BANK),
         );
     }

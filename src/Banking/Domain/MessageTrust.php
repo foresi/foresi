@@ -15,7 +15,7 @@ namespace App\Banking\Domain;
  */
 enum MessageTrust: string
 {
-    /** A trusted receiving server saw a passing, aligned DMARC, DKIM or ARC result. */
+    /** A trusted receiving server saw one passing, aligned DMARC result, or a trusted ARC rescue, and nothing against it. */
     case Verified = 'verified';
     /** Nothing trusted vouches for the sender, nor speaks against it. */
     case Unverified = 'unverified';
