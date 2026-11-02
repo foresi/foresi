@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Controller;
 
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\IssueAfterTodaysRun;
@@ -70,6 +71,7 @@ final class RecurringListController extends AbstractController
         private readonly AmountText $amountText,
         private readonly TenantClock $clock,
         private readonly StaffCheck $staff,
+        private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -217,6 +219,25 @@ final class RecurringListController extends AbstractController
     }
 
     /**
+     * Where a failure is fixed: the firm's mail settings for a missing server, which
+     * only an owner may open; the contact for an address it lacks; the invoices to
+     * send for a send that needs a hand; else the template itself.
+     *
+     * @return array{href?: string, action?: string}
+     */
+    private function fix(RecurringInvoice $template, string $code): array
+    {
+        [$href, $action] = match (true) {
+            'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail', ['id' => $template->firm()->id()]), 'mail'] : [null, null],
+            \in_array($code, ['send.no_recipient', 'send.bad_address', 'invoice.problem.customer_address_incomplete', 'invoice.problem.customer_archived'], true) => [$this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]), 'contact'],
+            str_starts_with($code, 'send.') => [$this->generateUrl('app_invoices', ['toSend' => 1]), 'to_send'],
+            default => [$this->generateUrl('app_recurring_edit', ['id' => $template->id()]), 'edit'],
+        };
+
+        return null === $href ? [] : ['href' => $href, 'action' => $this->translator->trans('recurring.list.fix.'.$action)];
+    }
+
+    /**
      * What a failure code says: a problem key of an issue, or "send." and the reason a
      * send was refused; a code without a text of its own gets the general one.
      */
@@ -345,12 +366,13 @@ final class RecurringListController extends AbstractController
         $state = $template->state();
         $next = $template->nextOccurrence();
         $customer = $template->customer()->displayName();
-        $failure = $failing ? $this->failureText((string) $template->lastFailureCode()) : null;
+        $code = $failing ? (string) $template->lastFailureCode() : null;
+        $failure = null === $code ? null : $this->failureText($code);
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
         $cells = [
             'customer' => $customer,
-            'description' => null === $failure ? $description : $this->translator->trans('recurring.list.failed', ['reason' => $failure]),
+            'description' => $description,
             'interval' => $this->schedule($template),
             'next' => $nextText,
             'delivery' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),
@@ -365,7 +387,9 @@ final class RecurringListController extends AbstractController
             'href' => $this->generateUrl('app_recurring_edit', ['id' => $template->id()]),
             'plain' => true,
             'label' => $customer,
-            'secondary' => implode(' · ', array_filter([null === $failure ? $description : $this->translator->trans('recurring.list.failed', ['reason' => $failure]), $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
+            'secondary' => implode(' · ', array_filter([$description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
+            // The description stays; the failure is a line of its own, with the way to the place that fixes it.
+            'alert' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure]), 'column' => 'description'] + $this->fix($template, $code),
             'cells' => $cells,
             'actions' => $this->actions($template, $return),
         ];

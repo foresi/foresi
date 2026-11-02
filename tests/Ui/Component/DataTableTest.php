@@ -106,6 +106,29 @@ final class DataTableTest extends KernelTestCase
         ])]);
     }
 
+    public function testARowAlertShowsUnderItsColumnAndOnAPhoneUnderTheFirstCell(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/contacts/a1', 'cells' => ['name' => 'Example Company', 'email' => 'info@example.com', 'balance' => '1 200'], 'alert' => ['text' => 'Failed: no address.', 'column' => 'email', 'href' => '/contacts/a1/edit', 'action' => 'Edit the contact']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $cells = $crawler->filter('tbody td');
+        $alert = $cells->eq(1)->filter('[data-row-alert]');
+        self::assertStringContainsString('Failed: no address.', $alert->text());
+        self::assertSame('/contacts/a1/edit', $alert->filter('a')->attr('href'));
+        self::assertStringContainsString('max-sm:hidden', (string) $alert->attr('class'));
+        self::assertSame('info@example.com', $cells->eq(1)->filter('[title], span')->first()->text(), 'the cell keeps its own text');
+        $phone = $cells->eq(0)->filter('[data-row-alert-phone]');
+        self::assertStringContainsString('Edit the contact', $phone->text());
+        self::assertStringContainsString('sm:hidden', (string) $phone->attr('class'));
+    }
+
+    public function testARowAlertUnderAnUnknownColumnThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'nowhere']]]]);
+    }
+
     public function testATableWithoutActionsHasNoColumnForThem(): void
     {
         $html = $this->render();

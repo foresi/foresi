@@ -5,6 +5,7 @@
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {# Columns of long text share the room the others leave and cut their text short; numbers, badges and actions keep their width. #}
 {% set share = this.shareClass %}
+{% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
     {% if this.rowViews is empty %}
@@ -51,7 +52,7 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ row.secondary and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}">
+                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}">
                                         {%- if cell.icon -%}
                                             <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
                                         {%- elseif cell.tone -%}
@@ -65,7 +66,9 @@
                                         {%- else -%}
                                             <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}
+                                        {%- if row.alert and cell.key == row.alert.column %}<span class="mt-0.5 flex items-start gap-1 whitespace-normal break-words text-caption text-badge-red-text max-sm:hidden" data-row-alert>{{ _self.alert(row.alert, focus) }}</span>{% endif -%}
                                         {%- if row.secondary and loop.first %}<span class="mt-0.5 block whitespace-normal break-words text-caption text-muted sm:hidden" data-row-secondary>{{ row.secondary }}</span>{% endif -%}
+                                        {%- if row.alert and loop.first %}<span class="mt-1 flex items-start gap-1 whitespace-normal break-words text-caption text-badge-red-text sm:hidden" data-row-alert-phone>{{ _self.alert(row.alert, focus) }}</span>{% endif -%}
                                     </td>
                                 {% endfor %}
                                 {% if this.hasActions %}

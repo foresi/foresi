@@ -416,6 +416,42 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertFalse($this->em()->getConnection()->fetchOne('SELECT id FROM invoice'), 'nothing was issued');
     }
 
+    public function testAFailingRowKeepsItsDescriptionAndLinksWhereToFixIt(): void
+    {
+        $this->signedIn();
+        $contact = $this->template(description: 'Hosting');
+        $this->failed($contact, 'invoice.problem.customer_address_incomplete');
+        $budget = $this->template(description: 'Support', delivery: RecurringDelivery::Review);
+        $this->post($budget, 'issue_now', ['occurrence' => '2026-12-01']);
+        $this->failed($budget, 'send.rate_limited');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
+
+        $rows = $crawler->filter('tbody tr');
+        self::assertCount(2, $rows);
+        $first = $rows->eq(0);
+        self::assertSame('Hosting', $first->filter('td')->eq(1)->filter('[title]')->attr('title'), 'the description stays');
+        $alert = $first->filter('td')->eq(1)->filter('[data-row-alert]');
+        self::assertStringContainsString('Failed: The customer needs a complete billing address.', $alert->text());
+        self::assertSame('/contacts/'.$this->customer->id(), $alert->filter('a')->attr('href'), 'to the contact, where the address is fixed');
+        self::assertCount(1, $first->filter('td')->eq(0)->filter('[data-row-alert-phone]'), 'a phone shows it as a line of its own');
+        $second = $rows->eq(1);
+        self::assertStringContainsString('Support', $second->text());
+        self::assertSame('/invoices?toSend=1', $second->filter('[data-row-alert] a')->attr('href'), 'to the invoices waiting to be sent');
+    }
+
+    public function testAMissingMailServerLinksTheOwnerToTheMailSettings(): void
+    {
+        $this->signedIn();
+        $template = $this->template(delivery: RecurringDelivery::Review);
+        $this->post($template, 'issue_now', ['occurrence' => '2026-12-01']);
+        $this->failed($template, 'send.no_server');
+
+        $crawler = $this->client->request('GET', '/invoices/recurring?tab=failing');
+
+        self::assertSame('/settings/firms/'.$this->firm->id().'/mail', $crawler->filter('tbody [data-row-alert] a')->attr('href'));
+    }
+
     public function testEveryDialogWorksAsAPage(): void
     {
         $this->signedIn();

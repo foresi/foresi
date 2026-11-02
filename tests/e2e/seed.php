@@ -405,7 +405,8 @@ $recurring('Support licence', '24000.00', $every(RecurrenceUnit::Month, 12, end:
 $recurringLifecycle->pause($recurring('Backup storage', '300.00', $every(RecurrenceUnit::Month))->id());
 $recurringLifecycle->end($recurring('Old maintenance', '900.00', $every(RecurrenceUnit::Month))->id());
 $failing = $recurring('Monitoring', '600.00', $every(RecurrenceUnit::Month));
-$entityManager->getConnection()->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'send.rate_limited', last_failure_at = CURRENT_TIMESTAMP WHERE id = ?", [$failing->id()]);
+// An issue refused for want of an address fails until a run goes clean; a refused send would end once its invoice is sent.
+$entityManager->getConnection()->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'invoice.problem.customer_address_incomplete', last_failure_at = CURRENT_TIMESTAMP WHERE id = ?", [$failing->id()]);
 // Issued today for review, so it waits under "To send".
 $held = $recurring('Consulting {month/year}', '5000.00', $every(RecurrenceUnit::Month, first: $today), RecurringDelivery::Review);
 $issueRecurring->issue($held->id(), $today, $today);

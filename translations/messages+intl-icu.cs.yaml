@@ -1319,6 +1319,11 @@ recurring:
     views: Seznamy pravidelných faktur
     filter: Zobrazit
     failed: 'Selhalo: {reason}'
+    fix:
+      mail: Nastavit poštovní server
+      contact: Upravit kontakt
+      to_send: Odeslat z faktur k odeslání
+      edit: Upravit pravidelnou fakturu
     summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
     tab:
       active: Aktivní

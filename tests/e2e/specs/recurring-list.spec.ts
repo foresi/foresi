@@ -54,8 +54,15 @@ test.describe.serial('recurring list', () => {
       await expectNoSidewaysScroll(page);
 
       await page.goto('/invoices/recurring?tab=failing');
-      await expect(row(page, 'Firma vyčerpala denní limit odeslaných e-mailů.')).toBeVisible();
+      const failing = row(page, 'Monitoring');
+      await expect(failing).toBeVisible();
+      // The description stays, and the reason is a line of its own with the way to fix it.
+      const alert = failing.locator(name === 'desktop' ? '[data-row-alert]' : '[data-row-alert-phone]');
+      await expect(alert).toBeVisible();
+      await expect(alert).toContainText('Odběratel potřebuje úplnou fakturační adresu.');
+      await expect(alert.getByRole('link', { name: 'Upravit kontakt' })).toHaveAttribute('href', /^\/contacts\//);
       await expectNoSeriousViolations(page);
+      await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/recurring-failing-${name}.png`, fullPage: true });
     }
   });

@@ -1319,6 +1319,11 @@ recurring:
     views: Recurring invoice lists
     filter: Show
     failed: 'Failed: {reason}'
+    fix:
+      mail: Set up the mail server
+      contact: Edit the contact
+      to_send: Send from the invoices to send
+      edit: Edit the recurring invoice
     summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
     tab:
       active: Active
