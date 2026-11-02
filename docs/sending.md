@@ -66,6 +66,7 @@ php bin/console messenger:consume scheduler_foresi mail async registry --memory-
 
 - `scheduler_foresi` ticks every five minutes and runs the timed jobs of each organisation, such as handing back sends whose queue message was lost. Without it, a send whose web request died after storing it is never retried.
 - `mail` delivers the sends. Without it nothing leaves; after 15 minutes the application shows a notice that sends are waiting.
+- A worker claims a send for five minutes while it delivers it, so no second worker mails the same send meanwhile. A conversation with the mail server is cut off after 90 seconds in all, and each wait for the server after 30, so the customer's mail and the firm's copy both end well inside the claim, however slowly the server answers. A cut-off conversation counts as a temporary failure and is retried.
 - The schedule's state is kept in the application cache and its lock in `LOCK_DSN`. The default file lock (`flock`) suits one host; with several hosts set a shared lock store, as for imports (see [import.md](import.md)).
 
 See [import.md](import.md#running-the-worker) for systemd and supervisor units.

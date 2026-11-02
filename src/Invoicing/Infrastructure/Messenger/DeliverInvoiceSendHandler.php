@@ -52,6 +52,10 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * the queue to retry; a permanent one fails the send at once. MarkSendFailed
  * fails a queued send when the retries run out; RequeueStuckSends picks up a
  * claim that no worker came back to.
+ *
+ * The lease outlasts the work it guards: the gateway ends each conversation with
+ * the mail server within SymfonyMailGateway::DEADLINE_SECONDS, and one claim
+ * covers at most two, the customer's mail and the copy.
  */
 #[AsMessageHandler]
 final readonly class DeliverInvoiceSendHandler
