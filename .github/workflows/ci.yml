@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The merge queue tests each pull request on top of main before it lands.
+  merge_group:
 
 permissions: {}
 
