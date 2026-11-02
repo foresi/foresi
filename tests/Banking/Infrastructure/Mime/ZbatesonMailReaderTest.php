@@ -68,6 +68,14 @@ final class ZbatesonMailReaderTest extends TestCase
         self::assertSame(['bank+token@example.com'], $mail->headers('To'));
     }
 
+    public function testWhiteSpaceBeforeTheColonIsNotPartOfTheName(): void
+    {
+        // RFC 5322 §4.5.1 (obsolete syntax): "From :" is still a From field.
+        $mail = new ZbatesonMailReader()->read("From: info@kb.cz\r\nFrom \t: payee@example.net\r\nSubject: x\r\n\r\nAmount\r\n");
+
+        self::assertSame(['info@kb.cz', 'payee@example.net'], $mail->headers('From'));
+    }
+
     public function testFromWithDisplayNameGivesLowercaseAddress(): void
     {
         $mail = $this->read('auth-results.eml');

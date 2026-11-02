@@ -292,6 +292,7 @@ final class MailAuthenticationTest extends TestCase
     {
         yield 'two addresses in one header' => ['two-from-addresses'];
         yield 'two From headers' => ['two-from-headers'];
+        yield 'a second From header with a space before its colon' => ['two-from-headers-spaced'];
         yield 'an address in the display name' => ['address-in-display-name'];
     }
 

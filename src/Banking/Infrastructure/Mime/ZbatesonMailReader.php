@@ -42,7 +42,8 @@ final class ZbatesonMailReader implements MailReader
 
         $headers = [];
         foreach ($message->getRawHeaders() as [$name, $value]) {
-            $headers[] = [$name, $this->unfold($value)];
+            // The obsolete syntax allows white space before the colon (RFC 5322 §4.5.1), so "From :" is a From.
+            $headers[] = [rtrim($name, " \t"), $this->unfold($value)];
         }
         if ([] === $headers) {
             throw new \InvalidArgumentException('The mail has no header.');
