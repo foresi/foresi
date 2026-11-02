@@ -33,7 +33,7 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use Psr\Clock\ClockInterface;
+use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -89,7 +89,7 @@ final class InvoiceSendController extends AbstractController
         private readonly SentFiles $files,
         private readonly TranslatorInterface $translator,
         private readonly InvoiceBalances $balances,
-        private readonly ClockInterface $clock,
+        private readonly TenantClock $tenantClock,
     ) {
     }
 
@@ -136,7 +136,7 @@ final class InvoiceSendController extends AbstractController
             return $this->toList($return);
         }
 
-        $draft = null === $step ? $this->drafts->for($invoice) : $this->drafts->forReminder($invoice, $step, $this->today($invoice));
+        $draft = null === $step ? $this->drafts->for($invoice) : $this->drafts->forReminder($invoice, $step, $this->today());
         if (!$post) {
             return $this->page($invoice, $draft, $this->drafted($draft), [], $this->tokens->issue(), $return, Response::HTTP_OK, $step);
         }
@@ -196,7 +196,7 @@ final class InvoiceSendController extends AbstractController
 
             return $this->toList($return);
         }
-        $draft = $this->drafts->forReminder($invoice, $step, $this->today($invoice));
+        $draft = $this->drafts->forReminder($invoice, $step, $this->today());
         $problem = ['id' => self::FORM, 'field' => '', 'message' => $this->translator->trans('reminder.manual.taken', ['taken' => max(1, min($posted, $step - 1)), 'step' => $step])];
 
         return $this->page($invoice, $draft, $this->drafted($draft), [$problem], $token, $return, Response::HTTP_UNPROCESSABLE_ENTITY, $step);
@@ -221,7 +221,7 @@ final class InvoiceSendController extends AbstractController
     private function notRemindable(Invoice $invoice, int $step): ?string
     {
         $number = ['number' => $invoice->number()];
-        if (InvoiceStatus::Overdue !== InvoiceStatus::ofInvoice($invoice, $this->today($invoice))) {
+        if (InvoiceStatus::Overdue !== InvoiceStatus::ofInvoice($invoice, $this->today())) {
             return $this->translator->trans('reminder.manual.not_overdue', $number);
         }
         if ($step > FirmReminders::MAX_STEPS) {
@@ -236,13 +236,12 @@ final class InvoiceSendController extends AbstractController
     }
 
     /**
-     * The firm's day: the date in the time zone of the country that issued the invoice, at its start.
+     * The tenant's day, at its start, as the reminder run counts it (ADR 0017), so a
+     * reminder by hand and the run agree on whether an invoice is overdue and by how much.
      */
-    private function today(Invoice $invoice): \DateTimeImmutable
+    private function today(): \DateTimeImmutable
     {
-        $zone = $this->timezoneOf($invoice);
-
-        return new \DateTimeImmutable(\DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($zone)->format('Y-m-d'), $zone);
+        return $this->tenantClock->today();
     }
 
     /**
@@ -374,7 +373,7 @@ final class InvoiceSendController extends AbstractController
         }
         $reminder = null;
         if (null !== $step) {
-            $today = $this->today($invoice);
+            $today = $this->today();
             $days = (int) new \DateTimeImmutable($invoice->dueDate()->format('Y-m-d'))->diff(new \DateTimeImmutable($today->format('Y-m-d')))->format('%a');
             $reminder = ['step' => $step, 'intro' => $this->translator->trans('reminder.manual.intro', ['days' => $days, 'step' => $step, 'max' => FirmReminders::MAX_STEPS])];
         }

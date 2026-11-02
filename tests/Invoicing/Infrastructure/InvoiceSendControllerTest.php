@@ -653,6 +653,20 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame(0, $this->sendCount());
     }
 
+    public function testTheReminderCountsTheTenantsDayAsTheRunsDo(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        // Due on the 15th; at 11:00 UTC it is still the 15th in Prague, the firm's country, but the 16th for the tenant.
+        $this->connection()->executeStatement('UPDATE tenant SET timezone = ? WHERE id = ?', ['Pacific/Kiritimati', $this->tenant->toString()]);
+        self::mockTime('2026-11-15 11:00:00');
+
+        $crawler = $this->openReminder($invoice);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('1 day overdue, reminder 1', $crawler->filter('main')->text());
+    }
+
     public function testDoubleSubmitRemindsOnce(): void
     {
         $this->signedIn();

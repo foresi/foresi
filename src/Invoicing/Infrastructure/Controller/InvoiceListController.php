@@ -36,7 +36,6 @@ use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Invoicing\Infrastructure\Form\SendFailureText;
 use App\Tenancy\Application\TenantClock;
-use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -77,7 +76,6 @@ final class InvoiceListController extends AbstractController
         private readonly AmountText $amounts,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
-        private readonly ClockInterface $clock,
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
@@ -202,7 +200,7 @@ final class InvoiceListController extends AbstractController
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today($invoice)))),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today()))),
         ]);
     }
 
@@ -388,14 +386,17 @@ final class InvoiceListController extends AbstractController
      */
     private function badge(Invoice $invoice): array
     {
-        $status = InvoiceStatus::ofInvoice($invoice, $this->today($invoice));
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today());
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
 
-    private function today(Invoice $invoice): \DateTimeImmutable
+    /**
+     * The tenant's day, as the reminder run counts it (ADR 0017): whether an invoice is overdue.
+     */
+    private function today(): \DateTimeImmutable
     {
-        return \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->timezoneOf($invoice));
+        return $this->tenantClock->today();
     }
 
     /**

@@ -56,6 +56,7 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Countries;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
+use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -108,6 +109,7 @@ final class InvoiceController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
+        private readonly TenantClock $tenantClock,
         private readonly TranslatorInterface $translator,
         private readonly IssuedDocumentFactory $documents,
         private readonly InvoicePdf $pdf,
@@ -622,7 +624,8 @@ final class InvoiceController extends AbstractController
         if (!$context->invoice instanceof Invoice) {
             return null;
         }
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->today($context));
+        // Overdue by the tenant's day, as the reminders count it (ADR 0017).
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today());
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }

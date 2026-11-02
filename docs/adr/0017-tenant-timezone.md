@@ -31,9 +31,16 @@ The tick passes each tenant's zone to `ScheduledJob::period(now, zone)`. A daily
 
 A zone per firm was rejected: a tenant would have as many days as firms, a run of its jobs could not be one period, and two firms of one organisation would issue and remind on different days. An organisation with firms on several continents is rare, and can set the zone it runs its books in. The country's zone with no setting was rejected: a tenant with no firm yet, or a firm registered in one country and run from another, would have no way to correct it.
 
+### One day for reminders
+
+`TenantClock` is the one source of the firm's day for everything that reminds: the reminder run, its preview on the settings page, and a reminder sent by hand, whose dialog checks that the invoice is overdue and counts the days overdue from the tenant's today. The invoice page and its history tell overdue by the same day. A reminder by hand and the run therefore never disagree about whether an invoice is overdue.
+
+The rows of the invoice list and its Overdue tab still tell overdue by the zone of the country that issued the invoice, as they did before this decision: reading the tenant's zone there would add two queries to a page held to a fixed number. For a tenant without a stored zone that is the same day whenever its firms are in one country. With a stored zone, or firms in countries of different zones, a row may show an invoice as overdue a few hours before or after the reminder dialog does; moving the list to `TenantClock`, with the zone read once per request, is a separate change.
+
 ### Consequences
 
 * Good: one day per tenant, right on summer time changes; no setup for the usual tenant; two queries per tick.
 * Good: archiving the first firm moves an unset tenant to the next firm's country, which is what it now issues from.
 * Bad: a tenant whose firms are in different zones has all its daily work in one of them; the operator sets the one that matters.
 * Bad: the zone is set from the console only; a settings screen can follow when tenants manage themselves.
+* Bad: until the invoice list moves to `TenantClock`, its overdue status can differ by hours from the reminders' for a tenant whose stored zone is not its firms' country's.
