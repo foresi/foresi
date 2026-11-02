@@ -50,6 +50,8 @@ framework:
             messenger.bus.default:
                 middleware:
                     - App\Tenancy\Infrastructure\Messenger\TenantMiddleware
+                    # A delivery waiting for another worker's lease is put back, not retried.
+                    - App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware
 
         routing:
             # The import pipeline: one message per chunk, so a crash loses one chunk, not the import.

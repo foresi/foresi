@@ -30,7 +30,6 @@ use App\Party\Domain\PartyEmail;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
@@ -39,7 +38,8 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * mail the server accepted is never sent again:
  *
  *  1. A short unit claims the send. A claim younger than the lease belongs to a
- *     worker still at it: the message comes back when the lease ends.
+ *     worker still at it: the message comes back when the lease ends, without
+ *     using a retry (WaitForLeaseMiddleware).
  *  2. The server is called outside any transaction.
  *  3. Its acceptance is recorded on the send alone, at once.
  *  4. The invoice is marked delivered. If that fails, the send stays claimed and
@@ -110,8 +110,8 @@ final readonly class DeliverInvoiceSendHandler
     /**
      * @return InvoiceSend|null the send, claimed, when something is owed
      *
-     * @throws RecoverableMessageHandlingException while another worker holds the claim
-     * @throws UnknownInvoiceSend                  for a send of another tenant
+     * @throws SendLeaseHeld      while another worker holds the claim
+     * @throws UnknownInvoiceSend for a send of another tenant
      */
     private function claim(string $id): ?InvoiceSend
     {
@@ -126,7 +126,7 @@ final readonly class DeliverInvoiceSendHandler
             }
             $leaseEnds = $send->claimedAt()?->modify('+'.self::LEASE);
             if ($leaseEnds instanceof \DateTimeImmutable && $leaseEnds > $now) {
-                throw new RecoverableMessageHandlingException('Another worker is delivering this send.', 0, null, ($leaseEnds->getTimestamp() - $now->getTimestamp() + self::GRACE) * 1000);
+                throw new SendLeaseHeld(($leaseEnds->getTimestamp() - $now->getTimestamp() + self::GRACE) * 1000);
             }
             $send->claim($now);
 
