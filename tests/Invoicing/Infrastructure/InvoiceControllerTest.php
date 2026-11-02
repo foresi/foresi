@@ -2226,6 +2226,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $source = \dirname(__DIR__, 3).'/src/Invoicing';
         $code = (string) file_get_contents($source.'/Application/IssueRules.php');
+        $code .= (string) file_get_contents($source.'/Application/LineRules.php');
         $code .= (string) file_get_contents($source.'/Application/EditInvoice.php');
         $code .= (string) file_get_contents($source.'/Application/NumberAllocator.php');
         $reader = (string) file_get_contents($source.'/Infrastructure/Form/InvoiceFormReader.php');

@@ -357,6 +357,12 @@ when@test:
         App\Invoicing\Application\CustomerCopies: { public: true }
         App\Invoicing\Application\LinePricing: { public: true }
         App\Invoicing\Application\NumberAllocator: { public: true }
+        # Nothing uses the recurring templates yet; the run and the screens that will are on their way.
+        App\Invoicing\Application\SaveRecurringInvoice: { public: true }
+        App\Invoicing\Application\RecurringLifecycle: { public: true }
+        App\Invoicing\Application\RecurringInvoices:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
+            public: true
 
         # A scheduled job that counts its runs, and the run records it is claimed through.
         App\Tests\Tenancy\Support\CountingJob:
