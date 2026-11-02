@@ -8,18 +8,22 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\SendPurpose;
+
 /**
  * What the send dialog asks for: the addresses as typed, and the subject and body
  * as shown, already filled in. {link} marks where the link goes, and it is the
- * only token: any other brace is text.
+ * only token: any other brace is text. A reminder names which one of the invoice
+ * it is, so the same step is never queued twice.
  */
 final readonly class SendRequest
 {
     /**
      * @param list<string> $to
      * @param list<string> $cc
-     * @param bool         $copyToMe a copy with a link of its own to the firm's contact
-     *                               address, or to the signed-in user's when it has none
+     * @param bool         $copyToMe     a copy with a link of its own to the firm's contact
+     *                                   address, or to the signed-in user's when it has none
+     * @param int|null     $reminderStep for a reminder, which one of the invoice, from 1
      */
     public function __construct(
         public string $invoiceId,
@@ -28,6 +32,8 @@ final readonly class SendRequest
         public bool $copyToMe,
         public string $subject,
         public string $body,
+        public SendPurpose $purpose = SendPurpose::Invoice,
+        public ?int $reminderStep = null,
     ) {
     }
 }

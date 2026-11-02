@@ -20,6 +20,7 @@ use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailServers;
 use App\Invoicing\Application\MailTemplates;
 use App\Invoicing\Application\MailVariables;
+use App\Invoicing\Application\PlannedReminder;
 use App\Invoicing\Application\ReminderPreview;
 use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Application\UnknownMailVariables;
@@ -351,13 +352,10 @@ final class FirmMailController extends AbstractController
             'remindersOn' => $settings->enabled(),
             'maxReminders' => FirmReminders::MAX_STEPS,
             'homeCurrency' => $home instanceof Currency ? $home->value : '',
-            'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map(fn (InvoiceRow $row): array => [
-                'number' => $row->number,
-                'customer' => $row->customerName,
-                'dueDate' => $row->dueDate,
-                'amount' => $this->amounts->shown($row->payable),
-                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->id]),
-            ], $this->preview->tomorrow($firm)) : [],
+            'tomorrow' => $home instanceof Currency && $settings->enabled() ? array_map($this->previewRow(...), $this->preview->tomorrow($firm)) : [],
+            // While off: what switching on today would send over the coming days.
+            'planned' => $home instanceof Currency && !$settings->enabled() ? array_map(fn (PlannedReminder $planned): array => $this->previewRow($planned->invoice) + ['on' => $planned->on], $this->preview->ifSwitchedOnToday($firm)) : [],
+            'plannedDays' => ReminderPreview::AHEAD_DAYS,
             'server' => $server,
             'hasServer' => $stored instanceof FirmMailServer,
             'verifiedAt' => $stored?->verifiedAt(),
@@ -377,6 +375,20 @@ final class FirmMailController extends AbstractController
             'testAction' => $this->generateUrl('app_firm_mail_test', ['id' => $firm->id()]),
             'cancel' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
         ], new Response(status: $status));
+    }
+
+    /**
+     * @return array{number: string, customer: string, dueDate: \DateTimeImmutable, amount: string, href: string}
+     */
+    private function previewRow(InvoiceRow $row): array
+    {
+        return [
+            'number' => $row->number,
+            'customer' => $row->customerName,
+            'dueDate' => $row->dueDate,
+            'amount' => $this->amounts->shown($row->payable),
+            'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->id]),
+        ];
     }
 
     /**

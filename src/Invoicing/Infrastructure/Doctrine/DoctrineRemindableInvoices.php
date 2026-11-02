@@ -25,15 +25,16 @@ use Doctrine\DBAL\ParameterType;
  * its own for the firm when it has any, else the shared ones, as SendDraft picks
  * them. Times of earlier reminders are stored in the server's zone and compared
  * against the start of the firm's day, so the previous reminder counts on the
- * firm's own date.
+ * firm's own date. Every table is read in the active tenant, the joined ones too,
+ * so a row of another tenant that names the same contact never counts.
  */
 final readonly class DoctrineRemindableInvoices implements RemindableInvoices
 {
     private const string SQL = <<<'SQL'
         SELECT i.id, r.steps, r.last_at
         FROM invoice i
-        INNER JOIN party p ON p.id = i.customer_id
-        LEFT JOIN party_firm_settings s ON s.party_id = i.customer_id AND s.legal_entity_id = i.legal_entity_id
+        INNER JOIN party p ON p.id = i.customer_id AND p.tenant_id = :tenant
+        LEFT JOIN party_firm_settings s ON s.party_id = i.customer_id AND s.legal_entity_id = i.legal_entity_id AND s.tenant_id = :tenant
         LEFT JOIN (
             SELECT invoice_id, MAX(reminder_step) AS steps, MAX(created_at) AS last_at
             FROM invoice_send
@@ -57,11 +58,11 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                 (i.customer_email IS NOT NULL AND i.customer_email <> '')
                 OR EXISTS (
                     SELECT 1 FROM party_email e
-                    WHERE e.party_id = i.customer_id AND e.purpose = :invoices
+                    WHERE e.tenant_id = :tenant AND e.party_id = i.customer_id AND e.purpose = :invoices
                         AND (
                             e.legal_entity_id = i.legal_entity_id
                             OR (e.legal_entity_id IS NULL AND NOT EXISTS (
-                                SELECT 1 FROM party_email o WHERE o.party_id = i.customer_id AND o.legal_entity_id = i.legal_entity_id
+                                SELECT 1 FROM party_email o WHERE o.tenant_id = :tenant AND o.party_id = i.customer_id AND o.legal_entity_id = i.legal_entity_id
                             ))
                         )
                 )

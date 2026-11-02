@@ -683,6 +683,7 @@ invoice:
     copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
     gave_up: Zprávu se nepodařilo doručit.
     link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
+    no_recipient: Kontakt už nemá e-mailovou adresu pro faktury, upomínka proto neodešla.
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
@@ -765,6 +766,7 @@ invoice:
       insecure_link_base: Odkaz by vedl přes nešifrované http. Správce nastaví v DEFAULT_URI adresu s https.
       rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
       undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
+      reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -1550,7 +1552,7 @@ reminder:
     every: Další upomínky
     every_help: Dní po předchozí upomínce
     minimum: 'Nejnižší částka ({currency})'
-    minimum_help: Nižší částky upomínku nedostanou. Prázdné pole je bez limitu.
+    minimum_help: Nižší částka upomínku nedostane. Prázdné pole je bez minima.
   gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
   at_most: 'Nejvýš {count} upomínek k jedné faktuře.'
   date_format: 'j. n. Y'
@@ -1559,6 +1561,11 @@ reminder:
     off: Upomínky jsou vypnuté.
     none: Zítra nepůjde žádná upomínka.
     due: 'splatnost {date}'
+  planned:
+    title: Kdybyste upomínky zapnuli dnes
+    intro: 'V příštích {days} dnech by odešly tyto první upomínky:'
+    none: 'V příštích {days} dnech by neodešla žádná první upomínka.'
+    'on': 'upomínka {date}'
   error:
     gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
     days: 'Zadejte celý počet dní od {min} do {max}.'
