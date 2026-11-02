@@ -13,6 +13,7 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\Organisation;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\LinkTokens;
+use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PublicDocument;
 use App\Invoicing\Application\PublicDocuments;
 use App\Invoicing\Application\SentFiles;
@@ -42,6 +43,10 @@ use Symfony\Component\Routing\Attribute\Route;
  * counts as read; the page itself does not, nor does a request without the
  * browser's same-origin mark, the firm's own copy, or a member of the firm, so a
  * mail filter that follows links does not mark the document read.
+ *
+ * A paid or overpaid invoice shows neither the payment instructions nor the QR
+ * code; a part payment shows what remains and asks for that, without the code,
+ * which asks for the whole amount. The PDF is the one sent and stays as it was.
  */
 final class PublicDocumentController extends AbstractController
 {
@@ -89,8 +94,12 @@ final class PublicDocumentController extends AbstractController
         }
         $language = $document->language->value;
         $request->setLocale($language);
-        // Cash and card are paid on the spot: no account to pay to.
-        $iban = PaymentMethod::BankTransfer === $document->paymentMethod ? $document->bankAccount : null;
+        // Cash and card are paid on the spot: no account to pay to. A paid invoice
+        // asks for nothing more, so it shows no way to pay it twice.
+        $settled = $document->payment->isSettled();
+        $partly = PaymentState::PartlyPaid === $document->payment;
+        $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled ? $document->bankAccount : null;
+        $remaining = $partly ? $this->format->money(Money::ofMinor($document->remainingMinor, $document->currency), $document->language) : null;
 
         return $this->secured($this->render('invoicing/public/document.html.twig', [
             'locale' => $language,
@@ -102,9 +111,12 @@ final class PublicDocumentController extends AbstractController
             'open' => $this->generateUrl(self::OPEN, ['token' => $token]),
             'download' => $this->generateUrl(self::DOWNLOAD, ['token' => $token]),
             'transfer' => null !== $iban,
-            'paid' => $document->payment->isSettled(),
+            'paid' => $settled,
+            'remaining' => $remaining,
             'iban' => null === $iban ? null : trim(chunk_split($iban, 4, ' ')),
-            'qr' => null !== $iban && null !== $document->paymentCode ? $this->qr->svg($document->paymentCode) : null,
+            // The stored code asks for the whole amount and none other can be built
+            // from what was sent, so after a part payment it would ask for too much.
+            'qr' => null !== $iban && !$partly && null !== $document->paymentCode ? $this->qr->svg($document->paymentCode) : null,
         ]));
     }
 

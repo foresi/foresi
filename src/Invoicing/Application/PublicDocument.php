@@ -16,7 +16,7 @@ use App\Shared\Domain\Currency;
 /**
  * What the public page of a sent document shows, as frozen when it was sent:
  * scalars only, read across tenants without making one active. The payment state
- * alone is today's, of the invoice as it stands now.
+ * and what remains to pay are today's, of the invoice as it stands now.
  */
 final readonly class PublicDocument
 {
@@ -39,6 +39,8 @@ final readonly class PublicDocument
         public string $variableSymbol,
         public ?string $paymentCode,
         public PaymentState $payment = PaymentState::Unpaid,
+        /** What is still to pay in minor units, never below zero. */
+        public int $remainingMinor = 0,
     ) {
     }
 }

@@ -338,6 +338,40 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno', 'overpaid is paid to the customer');
     }
 
+    public function testAPaidOrOverpaidInvoiceInvitesNoPayment(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->paid($sent['invoice'], '1210.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('#payment-title', 'paid: no payment instructions');
+        self::assertSelectorNotExists('figure svg', 'paid: no QR code');
+        self::assertSelectorNotExists('[data-remaining]');
+
+        $this->paid($sent['invoice'], '100.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('#payment-title', 'overpaid: no payment instructions');
+        self::assertSelectorNotExists('figure svg', 'overpaid: no QR code');
+    }
+
+    public function testAPartPaymentShowsWhatRemainsWithoutTheQrCode(): void
+    {
+        $sent = $this->sentDocument();
+        $this->paid($sent['invoice'], '500.00');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertMatchesRegularExpression('/^710,00\x{a0}Kč$/u', $crawler->filter('[data-remaining] dd')->text());
+        self::assertSame('Zbývá uhradit', $crawler->filter('[data-remaining] dt')->text());
+        $payment = $crawler->filter('section[aria-labelledby="payment-title"]');
+        $values = $payment->filter('dd')->each(static fn ($dd): string => $dd->text());
+        self::assertSame(['19-2000145399/0800', 'CZ65 0800 0000 1920 0014 5399', '20260001'], \array_slice($values, 0, 3));
+        self::assertMatchesRegularExpression('/^710,00\x{a0}Kč$/u', $values[3], 'the transfer asks for what remains');
+        // The stored code asks for the whole amount, and the builder takes no other.
+        self::assertCount(0, $payment->filter('figure svg'));
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {

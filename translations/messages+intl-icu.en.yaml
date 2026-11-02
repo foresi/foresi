@@ -753,6 +753,7 @@ invoice:
     paid: Paid
     amount: Amount to pay
     due: Due date
+    remaining: Left to pay
     payment:
       title: Pay by bank transfer
       account: Account number

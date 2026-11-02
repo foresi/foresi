@@ -753,6 +753,7 @@ invoice:
     paid: Uhrazeno
     amount: K úhradě
     due: Splatnost
+    remaining: Zbývá uhradit
     payment:
       title: Platba převodem
       account: Číslo účtu

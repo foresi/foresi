@@ -54,6 +54,8 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             return null;
         }
         $currency = Currency::from($this->text($row, 'currency'));
+        $payable = (int) $this->text($row, 'payable_minor');
+        $paid = (int) $this->text($row, 'paid_minor');
 
         return new PublicDocument(
             $this->text($row, 'id'),
@@ -74,7 +76,8 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             trim($this->text($row, 'variable_symbol')),
             $this->optional($row, 'payment_code'),
             // The invoice in the currency it was sent in: a document keeps its currency.
-            PaymentState::of(Money::ofMinor((int) $this->text($row, 'payable_minor'), $currency), Money::ofMinor((int) $this->text($row, 'paid_minor'), $currency)),
+            PaymentState::of(Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency)),
+            max(0, $payable - $paid),
         );
     }
 

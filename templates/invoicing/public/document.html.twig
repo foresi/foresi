@@ -40,6 +40,12 @@
                 <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
                 <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ dueDate }}</dd>
             </div>
+            {% if remaining %}
+                <div class="min-w-0" data-remaining>
+                    <dt class="text-small text-muted">{{ 'invoice.public.remaining'|trans({}, 'messages', locale) }}</dt>
+                    <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ remaining }}</dd>
+                </div>
+            {% endif %}
         </dl>
 
         <div class="flex flex-col gap-2 border-t border-divider bg-head p-4 sm:flex-row sm:items-center sm:px-6">
@@ -48,6 +54,7 @@
         </div>
     </section>
 
+    {# Paid in full or more: no way to pay twice. #}
     {% if transfer %}
         <section class="rounded-panel border border-container bg-white p-4 shadow-raised sm:p-6" aria-labelledby="payment-title">
             <h2 id="payment-title" class="m-0 text-heading font-semibold text-ink">{{ 'invoice.public.payment.title'|trans({}, 'messages', locale) }}</h2>
@@ -71,7 +78,7 @@
                     {% endif %}
                     <div class="min-w-0">
                         <dt class="text-small text-muted">{{ 'invoice.public.payment.amount'|trans({}, 'messages', locale) }}</dt>
-                        <dd class="num m-0 mt-0.5 text-body font-medium text-ink">{{ amount }}</dd>
+                        <dd class="num m-0 mt-0.5 text-body font-medium text-ink">{{ remaining ?? amount }}</dd>
                     </div>
                 </dl>
                 {% if qr %}
