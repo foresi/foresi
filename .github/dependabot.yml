@@ -10,6 +10,11 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore
+    # Foresi stays on the Symfony 7.4 LTS line until its support ends; a move to
+    # a new major version is a planned upgrade, not a weekly bump.
+    ignore:
+      - dependency-name: "symfony/*"
+        update-types: ["version-update:semver-major"]
   # The end-to-end test tooling (Playwright, axe).
   - package-ecosystem: npm
     directory: /tests/e2e
