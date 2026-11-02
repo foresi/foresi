@@ -360,6 +360,7 @@ when@test:
         # Nothing uses the recurring templates yet; the run and the screens that will are on their way.
         App\Invoicing\Application\SaveRecurringInvoice: { public: true }
         App\Invoicing\Application\RecurringLifecycle: { public: true }
+        App\Invoicing\Application\IssueRecurringOccurrence: { public: true }
         App\Invoicing\Application\RecurringInvoices:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
             public: true

@@ -32,6 +32,11 @@ use Doctrine\ORM\Mapping as ORM;
  * Payments, corrections and sending hang on the id of the invoice in their own
  * tables; deliveredAt is what sending sets. A number is unique in a firm, trash
  * included. Create invoices through IssueInvoice.
+ *
+ * An invoice issued from a recurring template names the template and the date of
+ * its occurrence, unique in a tenant, so no occurrence is ever issued twice. The
+ * trash keeps both, so trashing never lets the occurrence come again. Ordinary
+ * invoices hold null in both, which repeats freely.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice')]
@@ -40,6 +45,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['tenant_id', 'recurring_invoice_id', 'recurring_occurrence'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -139,6 +145,12 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'deleted_reason', type: 'text', nullable: true)]
     private ?string $deletedReason = null;
+
+    #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
+    private ?string $recurringInvoiceId = null;
+
+    #[ORM\Column(name: 'recurring_occurrence', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $recurringOccurrence = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
@@ -280,6 +292,31 @@ class Invoice implements TenantOwned, Audited
         $this->deletedBy = null;
         $this->deletedReason = null;
         ++$this->version;
+    }
+
+    /**
+     * Names the template and the occurrence this invoice was issued for. Set once, at
+     * issue, by the occurrence that locked the template.
+     *
+     * @throws \DomainException when the invoice already came from an occurrence
+     */
+    public function issuedFrom(string $recurringId, \DateTimeImmutable $occurrence): void
+    {
+        if (null !== $this->recurringInvoiceId) {
+            throw new \DomainException('An invoice is issued from one occurrence only.');
+        }
+        $this->recurringInvoiceId = $recurringId;
+        $this->recurringOccurrence = new \DateTimeImmutable($occurrence->format('Y-m-d'));
+    }
+
+    public function recurringInvoiceId(): ?string
+    {
+        return $this->recurringInvoiceId;
+    }
+
+    public function recurringOccurrence(): ?\DateTimeImmutable
+    {
+        return $this->recurringOccurrence;
     }
 
     public function isTrashed(): bool

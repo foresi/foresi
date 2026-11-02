@@ -35,6 +35,31 @@ interface RecurringInvoices
      */
     public function lock(string $id): RecurringInvoice;
 
+    /**
+     * The template as stored now, for reading it and its lines outside a transaction:
+     * it starts the session over, as lock() does, so nothing remembered from earlier
+     * answers for it.
+     *
+     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws \LogicException         when the session holds unsaved changes, which it would lose
+     */
+    public function current(string $id): RecurringInvoice;
+
+    /**
+     * Takes the row as lock() does, for a transaction that has written already, as an
+     * issue has: the session stays and only the template is read again from its row.
+     * Call it inside TransactionalWork.
+     *
+     * @throws UnknownRecurringInvoice also for a template of another tenant
+     */
+    public function lockDuringWrite(string $id): RecurringInvoice;
+
+    /**
+     * Whether an invoice was issued for this occurrence of the template, one in the
+     * trash too: the trash keeps the occurrence taken.
+     */
+    public function occurrenceIssued(string $id, \DateTimeImmutable $occurrence): bool;
+
     public function add(RecurringInvoice $template): void;
 
     /**

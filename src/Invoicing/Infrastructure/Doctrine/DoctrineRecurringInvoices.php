@@ -41,13 +41,17 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         return $template instanceof RecurringInvoice ? $template : throw new UnknownRecurringInvoice();
     }
 
+    public function current(string $id): RecurringInvoice
+    {
+        $this->refusePendingChanges();
+        $this->em->clear();
+
+        return $this->get($id);
+    }
+
     public function lock(string $id): RecurringInvoice
     {
-        $work = $this->em->getUnitOfWork();
-        $work->computeChangeSets();
-        if ([] !== $work->getScheduledEntityInsertions() || [] !== $work->getScheduledEntityUpdates() || [] !== $work->getScheduledEntityDeletions()) {
-            throw new \LogicException('Store pending changes before working on a recurring invoice.');
-        }
+        $this->refusePendingChanges();
         $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
         if (1 !== $locked) {
             throw new UnknownRecurringInvoice();
@@ -56,6 +60,38 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         $this->em->clear();
 
         return $this->get($id);
+    }
+
+    public function lockDuringWrite(string $id): RecurringInvoice
+    {
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        if (1 !== $locked) {
+            throw new UnknownRecurringInvoice();
+        }
+        // A query answers from the identity map, and refresh() cannot write readonly
+        // fields, so a template loaded before the lock leaves the session first, with
+        // its lines, which would otherwise point to an object the session no longer knows.
+        $work = $this->em->getUnitOfWork();
+        foreach ($work->getIdentityMap()[RecurringInvoiceLine::class] ?? [] as $line) {
+            if ($line instanceof RecurringInvoiceLine && $line->template()->id() === $id) {
+                $this->em->detach($line);
+            }
+        }
+        $loaded = $work->tryGetById($id, RecurringInvoice::class);
+        if ($loaded instanceof RecurringInvoice) {
+            $this->em->detach($loaded);
+        }
+
+        return $this->get($id);
+    }
+
+    public function occurrenceIssued(string $id, \DateTimeImmutable $occurrence): bool
+    {
+        // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here.
+        return false !== $this->em->getConnection()->fetchOne(
+            'SELECT 1 FROM invoice WHERE tenant_id = :tenant AND recurring_invoice_id = :id AND recurring_occurrence = :occurrence',
+            ['tenant' => $this->context->current()->toString(), 'id' => $id, 'occurrence' => $occurrence->format('Y-m-d')],
+        );
     }
 
     public function add(RecurringInvoice $template): void
@@ -141,6 +177,15 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         return (int) $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE r.lastFailureCode IS NOT NULL AND r.state <> :ended')
             ->setParameter('ended', RecurringState::Ended->value)
             ->getSingleScalarResult();
+    }
+
+    private function refusePendingChanges(): void
+    {
+        $work = $this->em->getUnitOfWork();
+        $work->computeChangeSets();
+        if ([] !== $work->getScheduledEntityInsertions() || [] !== $work->getScheduledEntityUpdates() || [] !== $work->getScheduledEntityDeletions()) {
+            throw new \LogicException('Store pending changes before working on a recurring invoice.');
+        }
     }
 
     /**

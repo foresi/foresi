@@ -429,6 +429,7 @@ final class InvoiceListController extends AbstractController
             'datetime' => $entry->occurredAt->format(\DATE_ATOM),
             'icon' => match ($entry->event) {
                 InvoiceHistoryEntry::CREATED => 'plus',
+                InvoiceHistoryEntry::ISSUED_FROM_RECURRING => 'refresh-cw',
                 InvoiceHistoryEntry::TRASHED => 'trash-2',
                 InvoiceHistoryEntry::RESTORED => 'archive-restore',
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',

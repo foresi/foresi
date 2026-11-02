@@ -35,6 +35,29 @@ final readonly class InvoiceChange
     ) {
     }
 
+    /**
+     * @param callable(string): string $text applied to the order number, the description and the texts before and after the lines
+     */
+    public function withTexts(callable $text): self
+    {
+        return new self(
+            $this->customerParty,
+            $this->customer,
+            $this->issueDate,
+            $this->taxPointDate,
+            $this->dueDate,
+            $this->paymentMethod,
+            $this->bankAccount,
+            $this->variableSymbol,
+            $this->constantSymbol,
+            $text($this->orderNumber),
+            $text($this->description),
+            $text($this->textBefore),
+            $text($this->textAfter),
+            $this->language,
+        );
+    }
+
     public function withVariableSymbol(string $variableSymbol): self
     {
         return new self(
