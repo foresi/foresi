@@ -168,14 +168,22 @@ final class PairMovementTest extends BankingTestCase
                 return new PairingRules(true, true);
             }
         };
-        $container = self::getContainer();
-        $pairing = new PairMovement($this->movements, $this->matcher, $rules, $container->get(RecordPayment::class), $this->store, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class));
+        // Just after the first read, 0.50 is paid on the invoice, as by a person on another screen.
+        $log = new LockLog(self::getContainer()->get(Candidates::class), function (int $read, array $found) use ($invoice): array {
+            if (1 === $read) {
+                self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('0.50'), PaymentMethod::Cash, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $this->czk('0.50'))]));
+                $this->em->flush();
+            }
 
-        $payment = $pairing->auto($movement->id());
+            return $found;
+        });
+
+        $payment = $this->pairingWith($log, $rules)->auto($movement->id());
 
         self::assertNotNull($payment);
+        self::assertSame('lock:'.$invoice->id(), $log->entries[1], 'the decision is made after the lock');
         $allocation = $this->em->getConnection()->fetchAssociative('SELECT amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment->id()]);
-        self::assertSame([99901, 99], [self::int($allocation['amount_minor'] ?? 0), self::int($allocation['settlement_minor'] ?? 0)]);
+        self::assertSame([99901, 49], [self::int($allocation['amount_minor'] ?? 0), self::int($allocation['settlement_minor'] ?? 0)], 'the settlement is what is left after the 0.50, not what the first read saw');
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
