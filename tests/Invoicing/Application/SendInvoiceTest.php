@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
 use App\Invoicing\Application\LineInput;
@@ -29,6 +30,8 @@ use App\Tests\Support\Mail\RecordingMailGateway;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 final class SendInvoiceTest extends SendingTestCase
 {
@@ -211,6 +214,8 @@ final class SendInvoiceTest extends SendingTestCase
     public function testSendsAreLimitedPerUser(): void
     {
         $invoice = $this->issue->issue($this->input());
+        // A person's budget: the system's sends spend only the firm's (RateLimitedSendsTest).
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser('019a0000-0000-7000-8000-00000000002a', 'staff@example.com', 'hash'), 'main', ['ROLE_USER']));
         for ($i = 0; $i < 30; ++$i) {
             $this->sent($invoice);
         }

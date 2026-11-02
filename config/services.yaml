@@ -357,8 +357,9 @@ when@test:
         App\Invoicing\Application\CustomerCopies: { public: true }
         App\Invoicing\Application\LinePricing: { public: true }
         App\Invoicing\Application\NumberAllocator: { public: true }
-        # Nothing uses the recurring templates yet; the run and the screens that will are on their way.
+        # The recurring templates and their daily run, for the tests that drive them directly.
         App\Invoicing\Application\SaveRecurringInvoice: { public: true }
+        App\Invoicing\Application\IssueRecurringInvoices: { public: true, tags: ['app.scheduled_job'] }
         App\Invoicing\Application\RecurringLifecycle: { public: true }
         App\Invoicing\Application\IssueRecurringOccurrence: { public: true }
         App\Invoicing\Application\RecurringInvoices:
