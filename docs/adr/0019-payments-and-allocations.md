@@ -1,4 +1,4 @@
-# 17. Payments and allocations
+# 19. Payments and allocations
 
 * Status: accepted
 * Date: 2026-11-02

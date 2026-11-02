@@ -1,4 +1,4 @@
-# 18. Bank notification mail
+# 20. Bank notification mail
 
 * Status: accepted
 * Date: 2026-11-02

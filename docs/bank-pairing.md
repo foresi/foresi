@@ -2,7 +2,7 @@
 
 Foresi records payments against invoices in two ways: by hand, in the Pay dialog of an invoice, and from the payment notifications a bank mails. A notification goes to a secret address of the bank account; Foresi reads it, records the movement and pays the invoice it belongs to when the rules leave exactly one answer. A forged or unreadable message never pays anything and stays visible, and every pairing can be undone.
 
-This page describes how to set the bank mail up on a server, what Foresi believes and why, and what the screens do. The banks supported in this release: Komerční banka. The decisions behind it are in [ADR 0017](adr/0017-payments-and-allocations.md) and [ADR 0018](adr/0018-bank-notification-mail.md).
+This page describes how to set the bank mail up on a server, what Foresi believes and why, and what the screens do. The banks supported in this release: Komerční banka. The decisions behind it are in [ADR 0019](adr/0019-payments-and-allocations.md) and [ADR 0020](adr/0020-bank-notification-mail.md).
 
 ## Paying an invoice by hand
 
