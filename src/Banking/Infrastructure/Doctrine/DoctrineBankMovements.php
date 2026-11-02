@@ -83,7 +83,7 @@ final readonly class DoctrineBankMovements implements BankMovements
 
     public function anyOnAccount(string $accountId): bool
     {
-        $found = $this->em->createQuery('SELECT m.id FROM '.BankMovement::class.' m WHERE m.account = :account')
+        $found = $this->em->createQuery('SELECT m.id FROM '.BankMovement::class.' m JOIN m.account a WHERE m.account = :account AND m.currency = a.currency')
             ->setParameter('account', $accountId)
             ->setMaxResults(1)
             ->getOneOrNullResult();

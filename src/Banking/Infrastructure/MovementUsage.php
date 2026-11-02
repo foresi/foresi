@@ -12,8 +12,9 @@ use App\Banking\Application\BankMovements;
 use App\Party\Application\BankAccountUsage;
 
 /**
- * A firm's bank account is used once a movement is recorded on it: from then on
- * its currency is what the bank booked in.
+ * A firm's bank account is used once a movement in its currency is recorded on it:
+ * from then on its currency is what the bank booked in. Movements in another
+ * currency only say the account was set up wrong, which may still be put right.
  */
 final readonly class MovementUsage implements BankAccountUsage
 {

@@ -187,6 +187,28 @@ final class RecordMovementTest extends BankingTestCase
         self::assertSame(Currency::CZK, self::getContainer()->get(FirmBankAccounts::class)->get($this->account->id())->currency());
     }
 
+    public function testAMovementInAnotherCurrencyThanItsAccountStaysUnmatchedAndLocksNothing(): void
+    {
+        // An invoice the movement would pay, were it not on a CZK account.
+        $invoice = $this->issue->issue($this->input());
+        $this->em->getConnection()->update('invoice', ['currency' => 'EUR'], ['id' => $invoice->id()]);
+        $usage = self::getContainer()->get(BankAccountUsage::class);
+
+        $movement = $this->recordMovement->record($this->incoming('1210.00', currency: Currency::EUR), self::verified());
+
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::AccountCurrency], [$movement->state(), $movement->unmatchedReason()]);
+        self::assertNull($this->pairing->auto($movement->id()), 'never paired by itself');
+        $stored = $this->storedMovement($movement->id());
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::AccountCurrency], [$stored->state(), $stored->unmatchedReason()]);
+        self::assertSame(0, $this->paymentCount());
+        self::assertFalse($usage->hasMovements($this->account->id()), 'the account\'s currency may still be put right');
+        self::assertSame('Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.', self::getContainer()->get('translator')->getCatalogue('cs')->get('bank.movement.reason.'.UnmatchedReason::AccountCurrency->value, 'messages+intl-icu'));
+
+        $this->recordMovement->record($this->incoming('10.00', vs: null), self::verified());
+
+        self::assertTrue($usage->hasMovements($this->account->id()), 'a movement in the account\'s currency locks it');
+    }
+
     public function testAnotherTenantsAccountIsRefused(): void
     {
         $account = $this->account->id();

@@ -54,7 +54,8 @@ interface BankMovements
     public function hasLivePayment(string $movementId): bool;
 
     /**
-     * Whether any movement is recorded on the account.
+     * Whether a movement in the account's currency is recorded on the account. One in
+     * another currency says the account's currency is wrong, so it does not count.
      */
     public function anyOnAccount(string $accountId): bool;
 }

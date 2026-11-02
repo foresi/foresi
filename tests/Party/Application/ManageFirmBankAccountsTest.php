@@ -114,6 +114,38 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         $firm = $this->firm();
         /** @var \ArrayObject<int, string> $calls */
         $calls = new \ArrayObject();
+
+        $this->recording($calls)->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
+
+        $order = $calls->getArrayCopy();
+        self::assertSame('lock firm', $order[0] ?? null, implode(', ', $order));
+        self::assertNotContains('get firm', $order);
+        $this->em->clear();
+        self::assertSame([[self::IBAN, true, 'CZK', 'Main', 0]], $this->stored($firm));
+    }
+
+    public function testChangingTheCurrencyLocksTheAccountBeforeLookingForMovements(): void
+    {
+        // A movement recorded meanwhile takes the account's lock too: it either
+        // waits for the change or is seen by it, and the currency stays.
+        $account = $this->manage->open($this->firm()->id(), self::IBAN, 'CZK', 'Main', false);
+        /** @var \ArrayObject<int, string> $calls */
+        $calls = new \ArrayObject();
+
+        $this->recording($calls)->change($account->id(), 'Main', 'EUR', false);
+
+        self::assertSame(['lock account', 'movements?'], $calls->getArrayCopy());
+        $this->em->clear();
+        self::assertSame('EUR', $this->accounts()->get($account->id())->currency()->value);
+    }
+
+    /**
+     * Writes what it reads and locks to the calls, in order.
+     *
+     * @param \ArrayObject<int, string> $calls
+     */
+    private function recording(\ArrayObject $calls): ManageFirmBankAccounts
+    {
         $container = self::getContainer();
         $firms = new readonly class($container->get(LegalEntities::class), $calls) implements LegalEntities {
             /** @param \ArrayObject<int, string> $calls */
@@ -210,21 +242,28 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
             {
                 $this->inner->makePrimary($account);
             }
+
+            public function lock(string $id): FirmBankAccount
+            {
+                $this->calls->append('lock account');
+
+                return $this->inner->lock($id);
+            }
         };
-        $manage = new ManageFirmBankAccounts($firms, $accounts, $container->get(TransactionalWork::class), new readonly class implements BankAccountUsage {
+
+        return new ManageFirmBankAccounts($firms, $accounts, $container->get(TransactionalWork::class), new readonly class($calls) implements BankAccountUsage {
+            /** @param \ArrayObject<int, string> $calls */
+            public function __construct(private \ArrayObject $calls)
+            {
+            }
+
             public function hasMovements(string $accountId): bool
             {
+                $this->calls->append('movements?');
+
                 return false;
             }
         }, $container->get(ClockInterface::class), [new CzechBankAccount()]);
-
-        $manage->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
-
-        $order = $calls->getArrayCopy();
-        self::assertSame('lock firm', $order[0] ?? null, implode(', ', $order));
-        self::assertNotContains('get firm', $order);
-        $this->em->clear();
-        self::assertSame([[self::IBAN, true, 'CZK', 'Main', 0]], $this->stored($firm));
     }
 
     public function testUnmarkingThePrimaryKeepsIt(): void

@@ -78,7 +78,8 @@ final readonly class ManageFirmBankAccounts
     public function change(string $id, string $label, string $currency, bool $primary): FirmBankAccount
     {
         return $this->transaction->run(function () use ($id, $label, $currency, $primary): FirmBankAccount {
-            $account = $this->accounts->get($id);
+            // A movement is recorded under the same lock, so none slips in after the look below.
+            $account = $this->accounts->lock($id);
             $currency = $this->currency($currency);
             if ($currency !== $account->currency() && $this->usage->hasMovements($account->id())) {
                 throw new BankAccountRefused(BankAccountRefusal::CurrencyLocked);

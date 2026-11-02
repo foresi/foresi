@@ -31,4 +31,6 @@ enum UnmatchedReason: string
     case Rejected = 'rejected';
     /** The invoice refused the payment the matcher chose, a received date in the future, say. */
     case Refused = 'refused';
+    /** The movement is in another currency than its account: the account's currency is likely wrong. */
+    case AccountCurrency = 'account_currency';
 }

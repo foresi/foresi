@@ -38,6 +38,15 @@ interface FirmBankAccounts
     public function get(string $id): FirmBankAccount;
 
     /**
+     * Takes the row of the account for this transaction and gives it as stored now,
+     * the lock a movement is recorded under too, so a change that depends on the
+     * account's movements sees every one of them. Call it inside TransactionalWork.
+     *
+     * @throws UnknownFirmBankAccount also for an account of another tenant
+     */
+    public function lock(string $id): FirmBankAccount;
+
+    /**
      * Archived accounts included: an IBAN is there once per firm.
      *
      * @param string $iban normalised, see Iban

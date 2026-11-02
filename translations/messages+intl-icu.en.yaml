@@ -711,6 +711,7 @@ bank:
   movement:
     reason:
       refused: The invoice refused the payment. Pair it by hand.
+      account_currency: The movement is in another currency than its account. Check the account's currency.
 
 series:
   title: Number series

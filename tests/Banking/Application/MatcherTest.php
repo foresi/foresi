@@ -21,10 +21,12 @@ use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Domain\Address;
+use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tests\Banking\Support\BankingTestCase;
+use App\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -34,6 +36,8 @@ final class MatcherTest extends BankingTestCase
 {
     private const array ON = [true, false];
     private const array SMALL = [true, true];
+
+    private ?FirmBankAccount $foreign = null;
 
     /**
      * @return iterable<string, array{string, list<array{string, string, string}>, array{bool, bool}, list<array{string, string, ?string}>|string}>
@@ -137,6 +141,17 @@ final class MatcherTest extends BankingTestCase
         self::assertFalse($unverified->pairs());
     }
 
+    public function testAMovementInAnotherCurrencyThanItsAccountIsNeverPairedByItself(): void
+    {
+        $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
+
+        $decision = $this->decide($this->movement('1210.00', Currency::EUR, account: $this->account), [$eur], new PairingRules(true, false));
+        $failed = $this->decide($this->movement('1210.00', Currency::EUR, trust: MessageTrust::Failed, account: $this->account), [$eur], new PairingRules(true, false));
+
+        self::assertSame([UnmatchedReason::AccountCurrency, ['A']], [$decision->reason, array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions)], 'the CZK account says the bank booked something else');
+        self::assertSame(UnmatchedReason::Rejected, $failed->reason, 'a rejected message stays rejected');
+    }
+
     public function testAnInvoiceIssuedAfterThePaymentIsOnlySuggested(): void
     {
         $later = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-12-05'), $this->czk('1210.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-21'));
@@ -215,9 +230,16 @@ final class MatcherTest extends BankingTestCase
         return $this->matcher->decide($movement, $candidates, $rules, $this->matcher->settlementLimit($movement));
     }
 
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified): BankMovement
+    /**
+     * On an account in the currency of the movement, unless one is given.
+     */
+    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null): BankMovement
     {
-        return new BankMovement($this->account, null, MovementDirection::Incoming, Money::of($amount, $currency), new \DateTimeImmutable('2026-11-20'), null, null, null, $vs, null, null, null, null, str_repeat('a', 64), $trust, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);
+        if (!$account instanceof FirmBankAccount) {
+            $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, $this->firm, 'DE89370400440532013000', $currency));
+        }
+
+        return new BankMovement($account, null, MovementDirection::Incoming, Money::of($amount, $currency), new \DateTimeImmutable('2026-11-20'), null, null, null, $vs, null, null, null, null, str_repeat('a', 64), $trust, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);
     }
 
     /**

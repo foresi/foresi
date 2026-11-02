@@ -21,8 +21,9 @@ use App\Shared\Domain\Money;
  * It pairs only when the rules leave one answer; anything else stays for a person,
  * with the invoices that may fit as suggestions.
  *
- * The gate comes first: a message nothing trusted vouches for, a firm that pairs by
- * hand and a movement someone unpaired never pair by themselves. Then the symbol
+ * The gate comes first: a message nothing trusted vouches for, a movement in another
+ * currency than its account, a firm that pairs by hand and a movement someone
+ * unpaired never pair by themselves. Then the symbol
  * picks the open invoices of the firm in the currency of the movement. One of them
  * takes the whole amount, whatever it leaves or overpays. Of several, the one whose
  * remaining amount is the amount takes it; failing that, an amount that is what
@@ -134,6 +135,7 @@ final readonly class Matcher
     {
         return match (true) {
             MessageTrust::Failed === $movement->trust() => UnmatchedReason::Rejected,
+            $movement->amount()->currency() !== $movement->account()->currency() => UnmatchedReason::AccountCurrency,
             MessageTrust::Verified !== $movement->trust() => UnmatchedReason::Unverified,
             $movement->isAutoPairBlocked() => UnmatchedReason::Blocked,
             !$rules->autoPairing => UnmatchedReason::AutoPairingOff,

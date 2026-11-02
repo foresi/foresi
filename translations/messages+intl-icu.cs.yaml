@@ -711,6 +711,7 @@ bank:
   movement:
     reason:
       refused: Faktura platbu nepřijala. Spárujte ji ručně.
+      account_currency: Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.
 
 series:
   title: Číselné řady

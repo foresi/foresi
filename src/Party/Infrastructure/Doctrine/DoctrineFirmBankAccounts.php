@@ -12,14 +12,19 @@ use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\UnknownFirmBankAccount;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
+use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 
 /**
  * Tenant-scoped through the Doctrine tenant filter.
  */
 final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
 {
-    public function __construct(private EntityManagerInterface $em)
+    /** The statement that locks a movement's account too: plain SQL, so the tenant is in it. */
+    private const string LOCK = 'UPDATE firm_bank_account SET position = position WHERE id = :id AND tenant_id = :tenant';
+
+    public function __construct(private EntityManagerInterface $em, private TenantContext $context)
     {
     }
 
@@ -51,6 +56,21 @@ final readonly class DoctrineFirmBankAccounts implements FirmBankAccounts
     {
         // A query, not find(): find() answers from the identity map without the tenant filter.
         $account = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.id = :id')->setParameter('id', $id)->getOneOrNullResult();
+
+        return $account instanceof FirmBankAccount ? $account : throw new UnknownFirmBankAccount();
+    }
+
+    public function lock(string $id): FirmBankAccount
+    {
+        $locked = $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        if (1 !== $locked) {
+            throw new UnknownFirmBankAccount();
+        }
+        // What this process remembers of the account may be older than the lock.
+        $account = $this->em->createQuery('SELECT a FROM '.FirmBankAccount::class.' a WHERE a.id = :id')
+            ->setParameter('id', $id)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getOneOrNullResult();
 
         return $account instanceof FirmBankAccount ? $account : throw new UnknownFirmBankAccount();
     }
