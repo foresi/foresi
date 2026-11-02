@@ -16,6 +16,9 @@ parameters:
     # Logos and stamps; never below public/. From the kernel, not from the environment
     # variable: that one is relative, and the web server would resolve it inside public/.
     app.firm_image_dir: '%kernel.share_dir%/firm-images'
+    # A firm's mail server may not be in a private, loopback or link-local network,
+    # as tenants type the host. An installation whose server is inside sets this.
+    app.mail.allow_private_hosts: false
 
 services:
     # default configuration for services in *this* file
@@ -99,6 +102,17 @@ services:
         arguments:
             $registryOutgoingLimiter: '@limiter.registry_outgoing'
 
+    # Mail goes out through the firm's own server. Named here so the test and e2e
+    # environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
+    App\Invoicing\Application\MailGateway:
+        alias: App\Invoicing\Infrastructure\Mail\SymfonyMailGateway
+    App\Invoicing\Application\MailServers:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+    App\Invoicing\Application\MailSecrets:
+        alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    App\Invoicing\Application\MailHostPolicy:
+        alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
@@ -155,6 +169,12 @@ when@e2e:
         e2e.entity_manager:
             alias: Doctrine\ORM\EntityManagerInterface
             public: true
+
+        # Nothing is ever sent from the browser tests.
+        App\Invoicing\Application\MailGateway:
+            alias: App\Tests\Support\Mail\RecordingMailGateway
+            public: true
+        App\Tests\Support\Mail\RecordingMailGateway: ~
 
 when@test:
     parameters:
@@ -252,6 +272,21 @@ when@test:
             tags: ['app.scheduled_job']
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
+            public: true
+
+        # Tests never send mail: the gateway records instead.
+        App\Invoicing\Application\MailGateway:
+            alias: App\Tests\Support\Mail\RecordingMailGateway
+            public: true
+        App\Tests\Support\Mail\RecordingMailGateway: ~
+        App\Invoicing\Application\MailServers:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+            public: true
+        App\Invoicing\Application\MailSecrets:
+            alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+            public: true
+        App\Invoicing\Application\MailHostPolicy:
+            alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
             public: true
 
         # Stands in for a plugin adding a sidebar item.
