@@ -70,6 +70,17 @@ final class InboundMailControllerTest extends WebTestCase
         self::assertSame(0, $this->rowCount());
     }
 
+    public function testTheBearerSchemeIsMatchedWithoutCase(): void
+    {
+        // RFC 9110 §11.1: the authentication scheme is case-insensitive.
+        foreach (['bearer', 'BEARER', 'Bearer'] as $n => $scheme) {
+            $this->client->request('POST', self::URL, server: ['CONTENT_TYPE' => 'message/rfc822', 'HTTP_AUTHORIZATION' => $scheme.' '.self::SECRET], content: InboundMailKit::mail($this->kit->address, $n.'@mail.example.com'));
+            self::assertResponseStatusCodeSame(202, $scheme);
+        }
+
+        self::assertSame(3, $this->rowCount());
+    }
+
     public function testWebhookAnswers202ForStoredDuplicateAndUnknownAlike(): void
     {
         $answers = [];

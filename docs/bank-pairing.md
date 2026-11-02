@@ -108,7 +108,7 @@ php -r 'echo bin2hex(random_bytes(32)), "\n";'
 |---|---|
 | 202 | Stored, a duplicate, or for no known address: all alike, so the answer says nothing about which addresses exist |
 | 400 | The body is not readable as mail |
-| 401 | The bearer token is missing or wrong |
+| 401 | The bearer token is missing or wrong (the scheme `Bearer` is matched without case, the secret exactly) |
 | 404 | `INBOUND_WEBHOOK_SECRET` is empty: the webhook is off |
 | 413 | The body is above 10 MiB, by its stated length or, for a chunked body, after reading one byte past the limit; the rest is never read |
 | 429 | More than 120 requests a minute with a wrong or missing secret from one client IP address, or more than 600 a minute with the secret |
@@ -307,7 +307,7 @@ The small-difference settlement applies only when the switch is on, the movement
 
 The list filters by firm, account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.
 
-- **Pair** opens a dialog with the suggested invoices first (same variable symbol, then same amount, then same customer) and a search over the firm's other unpaid invoices in the movement's currency. Tick one or more; the amounts fill in oldest due first, and the parts must add up to the movement. When the firm allows it, the difference on one invoice can be written off, up to the limit. Pairing needs no confirm: the flash "Paired with …" offers **Undo**. Only the invoices the dialog offered can be paid, and an invoice paid meanwhile is refused under its lock.
+- **Pair** opens a dialog with the suggested invoices first (same variable symbol, then same amount, then same customer) and a search over the firm's other unpaid invoices in the movement's currency. Tick one or more; the amounts fill in oldest due first, and the parts must add up to the movement. When the firm allows it, the difference on one invoice can be written off, up to the limit. Pairing needs no confirm: the flash "Paired with …" offers **Undo**, for ten minutes. Only the invoices the dialog offered can be paid, and an invoice paid meanwhile is refused under its lock.
 - For a movement Foresi did not verify (listed as "Not verified, check it in the bank first"), the dialog warns, nothing is ticked or filled in, and the box "I checked the payment in the bank" must be ticked. Find the payment in your internet banking first.
 - **Unpair** on a paired row asks first: the invoices become unpaid again, the payment is cancelled, and the movement returns to unmatched and is **never paired automatically again**. Undo from the flash does the same without asking.
 - **Show** opens the message: its text as text, never as HTML, the sender, the account, the status and the verification. Only the owner sees an inbound address, so the token of any address the mail quotes, such as a forwarding confirmation does, is shown as `bank+…@example.com`, also when a link URL-encodes it or a long line wraps it.

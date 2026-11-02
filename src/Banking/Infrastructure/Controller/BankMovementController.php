@@ -34,6 +34,7 @@ use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\Payment;
 use App\Shared\Domain\Money;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,6 +71,8 @@ final class BankMovementController extends AbstractController
     public const array LIST_QUERY = ['tab', 'firm', 'account', 'q', 'page'];
     /** The pairing made just now, which the flash may undo. */
     private const string UNDO = 'bank.undo';
+    /** How long Undo stays offered for a pairing; later, unpairing asks first. */
+    private const int UNDO_SECONDS = 600;
     private const string PAIRED_FLASH = 'bank_paired';
     private const string FORM = 'form';
     /** The box a person ticks after finding an unverified payment in their internet banking. */
@@ -88,6 +91,7 @@ final class BankMovementController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly InboundAddresses $addresses,
         private readonly Ownership $ownership,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -187,7 +191,7 @@ final class BankMovementController extends AbstractController
         }
 
         $numbers = implode(', ', $this->payments->invoiceNumbersOf($payment->id()));
-        $request->getSession()->set(self::UNDO, ['movement' => $id, 'payment' => $payment->id()]);
+        $request->getSession()->set(self::UNDO, ['movement' => $id, 'payment' => $payment->id(), 'at' => $this->clock->now()->getTimestamp()]);
         $this->addFlash(self::PAIRED_FLASH, ['text' => $this->translator->trans('bank.movement.flash.paired', ['numbers' => $numbers]), 'movement' => $id, 'return' => $return]);
 
         return $this->toList($return);
@@ -225,8 +229,8 @@ final class BankMovementController extends AbstractController
 
     /**
      * Unpairs without asking, from the flash after a pairing made by hand, and only
-     * that pairing: one made by the matcher or earlier is unpaired after the
-     * confirmation.
+     * that pairing, for ten minutes: one made by the matcher or earlier is unpaired
+     * after the confirmation.
      */
     #[Route('/bank/movements/{id}/undo', name: 'app_bank_movement_undo', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function undo(string $id, Request $request): RedirectResponse
@@ -238,7 +242,9 @@ final class BankMovementController extends AbstractController
         $session = $request->getSession();
         $undo = $session->get(self::UNDO);
         $paymentId = $movement->paymentId();
-        if (!\is_array($undo) || ($undo['movement'] ?? null) !== $id || null === $paymentId || ($undo['payment'] ?? null) !== $paymentId) {
+        $at = \is_array($undo) && \is_int($undo['at'] ?? null) ? $undo['at'] : null;
+        $fresh = null !== $at && $this->clock->now()->getTimestamp() - $at <= self::UNDO_SECONDS;
+        if (!\is_array($undo) || !$fresh || ($undo['movement'] ?? null) !== $id || null === $paymentId || ($undo['payment'] ?? null) !== $paymentId) {
             $this->addFlash('warning', $this->translator->trans('bank.movement.flash.undo_gone'));
 
             return $this->toList($return);

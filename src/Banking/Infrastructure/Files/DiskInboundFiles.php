@@ -30,13 +30,22 @@ final readonly class DiskInboundFiles implements InboundFiles
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The directory of inbound mail cannot be created.');
         }
-        // A directory that already exists may have been created with wider permissions.
-        chmod($directory, 0o700);
+        // A directory that already exists may have been created with wider permissions. Best effort, as
+        // before: where it fails, the file itself is still private, and written here or not at all.
+        @chmod($directory, 0o700);
 
-        // Private from the start, so the content is never readable by others.
-        $temporary = tempnam($directory, 'mail');
-        if (false === $temporary || false === file_put_contents($temporary, $raw) || !chmod($temporary, 0o600) || !rename($temporary, $this->root.'/'.$key)) {
+        // Private from the start, so the content is never readable by others. tempnam() falls back to
+        // the system's temporary directory when it cannot write here: nothing is written there.
+        $temporary = @tempnam($directory, 'mail');
+        if (false === $temporary || realpath(\dirname($temporary)) !== realpath($directory)) {
             if (\is_string($temporary) && is_file($temporary)) {
+                unlink($temporary);
+            }
+
+            throw new \RuntimeException('The inbound mail cannot be stored.');
+        }
+        if (false === file_put_contents($temporary, $raw) || !chmod($temporary, 0o600) || !rename($temporary, $this->root.'/'.$key)) {
+            if (is_file($temporary)) {
                 unlink($temporary);
             }
 

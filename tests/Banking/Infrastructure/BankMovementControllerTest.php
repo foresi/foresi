@@ -21,6 +21,8 @@ use App\Party\Domain\Party;
 use App\Tests\Banking\Support\BankScreenTestCase;
 use App\Tests\Banking\Support\Scalars;
 use App\Tests\Party\Support\FirmAccounts;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -311,6 +313,24 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSame([], $this->liveAllocations());
         self::assertSame('unmatched', $this->movementRow($movement)['state']);
         self::assertNotSame('', $invoice->id());
+    }
+
+    public function testUndoExpiresAfterTenMinutes(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
+        $token = Scalars::text($this->page('/bank')->filter('[data-undo] form input[name="_token"]')->attr('value'));
+        $clock = Clock::get();
+        self::assertInstanceOf(MockClock::class, $clock);
+        $clock->modify('+10 minutes +1 second');
+
+        $this->client->request('POST', '/bank/movements/'.$movement.'/undo', ['_token' => $token]);
+
+        self::assertResponseRedirects('/bank');
+        self::assertSame('paired', $this->movementRow($movement)['state'], 'Too late for Undo: unpairing asks first.');
+        self::assertStringContainsString('Only the pairing just made can be undone.', $this->page('/bank')->filter('main')->text());
     }
 
     public function testUndoIsOnlyForThePairingJustMade(): void

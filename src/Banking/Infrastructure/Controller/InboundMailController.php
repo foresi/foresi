@@ -90,7 +90,8 @@ final readonly class InboundMailController
     private function authorised(Request $request): bool
     {
         $header = $request->headers->get('Authorization') ?? '';
-        if (1 !== preg_match('/^Bearer (\S+)$/D', $header, $match)) {
+        // The scheme is case-insensitive (RFC 9110 §11.1); the secret is not.
+        if (1 !== preg_match('/^Bearer (\S+)$/Di', $header, $match)) {
             return false;
         }
 
