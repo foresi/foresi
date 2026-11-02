@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
@@ -52,6 +53,7 @@ final readonly class SendInvoice
         private InvoicingCountries $countries,
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
+        private StaffCheck $staff,
         private AuditActor $actor,
         private TenantContext $context,
         private TransactionalWork $work,
@@ -100,7 +102,8 @@ final readonly class SendInvoice
                 throw new SendRefused(SendRefused::UNDRAWABLE);
             }
             $payment = [null === $document->bankAccount ? null : $country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
-            $copyUser = $userId ?? $request->onBehalfOf;
+            // On behalf of someone, the copy goes to them only while they still work here.
+            $copyUser = $userId ?? (null !== $request->onBehalfOf && $this->staff->isStaffMember($request->onBehalfOf) ? $request->onBehalfOf : null);
             $user = null === $copyUser ? null : $this->users->findById($copyUser);
             // Nothing is filled in: no value is passed, so every token stays as written.
             $text = new MailText();

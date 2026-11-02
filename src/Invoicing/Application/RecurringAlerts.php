@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\RecurringInvoice;
@@ -19,7 +20,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Tells the firm by e-mail which recurring templates could not issue or send
  * their invoice in a run: to the firm's contact address, else to the template's
- * owner, through the firm's own server, in the language of the template's
+ * owner while they are still staff of the tenant, through the firm's own server, in the language of the template's
  * documents, with a built-in text. One mail per firm, address and language for
  * the whole run, naming each template, so a day of refusals is one mail and not
  * one per template. Each template is told at most once a day, however often the
@@ -101,6 +102,7 @@ final readonly class RecurringAlerts
         private MailGateway $gateway,
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
+        private StaffCheck $staff,
         private TransactionalWork $work,
         private LoggerInterface $logger,
     ) {
@@ -169,8 +171,9 @@ final readonly class RecurringAlerts
         if ('' !== $contact && PartyEmail::isValid($contact)) {
             return $contact;
         }
+        // The owner only while they still work here: someone who left hears nothing more.
         $owner = $template->owner();
-        $email = null === $owner ? null : $this->users->findById($owner)?->email();
+        $email = null === $owner || !$this->staff->isStaffMember($owner) ? null : $this->users->findById($owner)?->email();
 
         return null !== $email && PartyEmail::isValid($email) ? $email : null;
     }

@@ -13,6 +13,8 @@ use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
 use App\Country\CzechRepublic\Invoicing\CzechVatRates;
 use App\Country\CzechRepublic\Invoicing\IsdocWriter;
 use App\Country\CzechRepublic\Invoicing\QrPlatba;
+use App\Identity\Domain\Membership;
+use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceRow;
@@ -157,9 +159,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
 
     public function testCopyFallsBackToTheOwner(): void
     {
-        $owner = new User('owner@example.com', 'hash', 'Example Owner');
-        $this->em->persist($owner);
-        $this->em->flush();
+        $owner = $this->owner();
         $template = $this->template();
         $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$owner->id(), $template->id()]);
 
@@ -168,6 +168,32 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $sends = $this->sendsOf(self::text($this->invoicesOf($template)[0], 'id'));
         self::assertSame('owner@example.com', $sends[0]['copy_to']);
         self::assertNull($sends[0]['created_by'], 'sent on behalf of the owner, by the system');
+    }
+
+    public function testAnOwnerWhoLeftGetsNoCopy(): void
+    {
+        $owner = $this->owner(member: false);
+        $template = $this->template();
+        $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$owner->id(), $template->id()]);
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $sends = $this->sendsOf(self::text($this->invoicesOf($template)[0], 'id'));
+        self::assertCount(1, $sends, 'still sent to the customer');
+        self::assertNull($sends[0]['copy_to'], 'no copy to someone who no longer works here');
+    }
+
+    public function testAnOwnerWhoLeftGetsNoAlert(): void
+    {
+        $owner = $this->owner(member: false);
+        $template = $this->template();
+        $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$owner->id(), $template->id()]);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        self::assertNotNull($this->templateRow($template->id())['last_failure_code']);
+        self::assertSame([], $this->gateway->messages());
     }
 
     public function testReviewDeliveryIssuesWithoutSending(): void
@@ -492,9 +518,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
 
     public function testTheAlertFallsBackToTheOwnerInEnglish(): void
     {
-        $owner = new User('owner@example.com', 'hash', 'Example Owner');
-        $this->em->persist($owner);
-        $this->em->flush();
+        $owner = $this->owner();
         $template = $this->template(language: DocumentLanguage::English);
         $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$owner->id(), $template->id()]);
         $this->connection->executeStatement('DELETE FROM party_address');
@@ -627,6 +651,21 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', '-issueDate', 1, toSend: true));
 
         return array_map(static fn (InvoiceRow $row): string => $row->id, $page->rows);
+    }
+
+    /**
+     * A user who works for the tenant as a member, or one who has left it.
+     */
+    private function owner(bool $member = true): User
+    {
+        $owner = new User('owner@example.com', 'hash', 'Example Owner');
+        $this->em->persist($owner);
+        if ($member) {
+            $this->em->persist(new Membership($owner, Role::Member));
+        }
+        $this->em->flush();
+
+        return $owner;
     }
 
     private function afterTodaysRun(): IssueAfterTodaysRun
