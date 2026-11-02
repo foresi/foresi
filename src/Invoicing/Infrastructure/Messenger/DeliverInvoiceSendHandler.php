@@ -50,8 +50,8 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * Only a worker dying between steps 2 and 3 can repeat the customer's mail, once,
  * with the same Message-ID. A temporary refusal is counted and thrown again for
  * the queue to retry; a permanent one fails the send at once. MarkSendFailed
- * fails a queued send when the retries run out; RequeueStuckSends picks up a
- * claim that no worker came back to.
+ * fails a queued send when the retries run out and the send has used its tries;
+ * RequeueStuckSends picks up a claim that no worker came back to.
  *
  * The lease outlasts the work it guards: the gateway ends each conversation with
  * the mail server within SymfonyMailGateway::DEADLINE_SECONDS, and one claim

@@ -14,6 +14,7 @@ use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\RequeueStuckSends;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use App\Invoicing\Infrastructure\Messenger\MarkSendFailed;
 use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
@@ -29,6 +30,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Yaml\Yaml;
 
 final class DeliverInvoiceSendTest extends SendingTestCase
 {
@@ -163,7 +165,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $send = $this->sent($invoice);
-        $this->gateway->failNext(1, false);
+        $this->gateway->failNext(MarkSendFailed::ATTEMPTS, false);
         $failure = $this->deliveryFailure();
         self::assertSame('queued', $this->row($send->id())['status']);
 
@@ -171,7 +173,11 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last(), 'mail', $failure));
         self::assertSame('queued', $this->row($send->id())['status'], 'a retry is still to come');
 
-        // After the fifth retry the queue gives up.
+        // The five retries fail too, and then the queue gives up.
+        for ($retry = 1; $retry < MarkSendFailed::ATTEMPTS; ++$retry) {
+            $failure = $this->deliveryFailure(redeliver: true);
+        }
+        self::assertSame(MarkSendFailed::ATTEMPTS, self::integer($this->row($send->id()), 'attempts'));
         self::mockTime('2026-11-03 15:00:00');
         $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last()->with(new RedeliveryStamp(5)), 'mail', $failure));
 
@@ -181,6 +187,52 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertSame('SMTP 451: the mail server asks to try again later.', $row['last_error']);
         self::assertNull($this->invoiceRow($invoice)['delivered_at']);
         self::assertSame([], $this->gateway->messages());
+    }
+
+    public function testTheTriesOfTheSendDecideNotTheMessageThatRunsOutFirst(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $failure = $this->deliveryFailure();
+
+        // A second message for the same send, from the job during a backlog, runs out of retries first.
+        $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last()->with(new RedeliveryStamp(5)), 'mail', $failure));
+
+        $row = $this->row($send->id());
+        self::assertSame('queued', $row['status'], 'one try of six: the other message still retries');
+        self::assertSame(1, self::integer($row, 'attempts'));
+        self::assertNull($row['failed_at']);
+    }
+
+    public function testTheTriesOfASendAreTheMailTransportsTries(): void
+    {
+        /** @var array{framework: array{messenger: array{transports: array{mail: array{retry_strategy: array{max_retries: int}}}}}} $config */
+        $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/messenger.yaml');
+
+        self::assertSame(MarkSendFailed::ATTEMPTS, 1 + $config['framework']['messenger']['transports']['mail']['retry_strategy']['max_retries']);
+    }
+
+    public function testASendWhoseRetriesEndedWithTriesLeftIsHandedBack(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $this->deliveryFailure();
+        $this->mailQueue->reset();
+        $job = self::getContainer()->get(RequeueStuckSends::class);
+
+        // The longest wait between two retries is 256 minutes: until then a retry may still come.
+        self::mockTime('2026-11-03 14:00:00');
+        $job->run(null);
+        self::assertSame([], [...$this->mailQueue->getSent()]);
+
+        // Past it, no message comes back to the send: the job hands it back.
+        self::mockTime('2026-11-03 16:30:00');
+        $job->run(null);
+        self::assertCount(1, [...$this->mailQueue->getSent()]);
+        $this->worker->run();
+        self::assertSame('sent', $this->row($send->id())['status']);
     }
 
     public function testRedeliveryOfASentRowSendsNothing(): void
