@@ -15,6 +15,11 @@ updates:
     ignore:
       - dependency-name: "symfony/*"
         update-types: ["version-update:semver-major"]
+    # One pull request a week for the minor and patch updates; a major version
+    # keeps a pull request of its own, so it can be judged on its own.
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
   # The end-to-end test tooling (Playwright, axe).
   - package-ecosystem: npm
     directory: /tests/e2e
@@ -24,6 +29,9 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore
+    groups:
+      e2e-tooling:
+        patterns: ['*']
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -32,3 +40,6 @@ updates:
       default-days: 7
     commit-message:
       prefix: ci
+    groups:
+      actions:
+        patterns: ['*']
