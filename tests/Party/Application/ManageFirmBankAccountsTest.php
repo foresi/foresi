@@ -107,6 +107,126 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         self::assertNotSame($first->id(), $second->id());
     }
 
+    public function testOpeningLocksTheFirmBeforeReadingItsAccounts(): void
+    {
+        // Two requests opening a firm's first account at once would both find no
+        // primary and both mark theirs: the firm's row lock makes the second wait.
+        $firm = $this->firm();
+        /** @var \ArrayObject<int, string> $calls */
+        $calls = new \ArrayObject();
+        $container = self::getContainer();
+        $firms = new readonly class($container->get(LegalEntities::class), $calls) implements LegalEntities {
+            /** @param \ArrayObject<int, string> $calls */
+            public function __construct(private LegalEntities $inner, private \ArrayObject $calls)
+            {
+            }
+
+            public function all(): array
+            {
+                return $this->inner->all();
+            }
+
+            public function active(): array
+            {
+                return $this->inner->active();
+            }
+
+            public function get(string $id): LegalEntity
+            {
+                $this->calls->append('get firm');
+
+                return $this->inner->get($id);
+            }
+
+            public function lock(string $id): LegalEntity
+            {
+                $this->calls->append('lock firm');
+
+                return $this->inner->lock($id);
+            }
+
+            public function lockActive(): array
+            {
+                return $this->inner->lockActive();
+            }
+
+            public function add(LegalEntity $firm): void
+            {
+                $this->inner->add($firm);
+            }
+        };
+        $accounts = new readonly class($container->get(FirmBankAccounts::class), $calls) implements FirmBankAccounts {
+            /** @param \ArrayObject<int, string> $calls */
+            public function __construct(private FirmBankAccounts $inner, private \ArrayObject $calls)
+            {
+            }
+
+            public function of(LegalEntity $firm, bool $withArchived = false): array
+            {
+                $this->calls->append('read accounts');
+
+                return $this->inner->of($firm, $withArchived);
+            }
+
+            public function primaryOf(LegalEntity $firm): ?FirmBankAccount
+            {
+                $this->calls->append('read accounts');
+
+                return $this->inner->primaryOf($firm);
+            }
+
+            public function ibansOf(LegalEntity $firm): array
+            {
+                $this->calls->append('read accounts');
+
+                return $this->inner->ibansOf($firm);
+            }
+
+            public function get(string $id): FirmBankAccount
+            {
+                return $this->inner->get($id);
+            }
+
+            public function ofIban(LegalEntity $firm, string $iban): ?FirmBankAccount
+            {
+                $this->calls->append('read accounts');
+
+                return $this->inner->ofIban($firm, $iban);
+            }
+
+            public function nextPosition(LegalEntity $firm): int
+            {
+                $this->calls->append('read accounts');
+
+                return $this->inner->nextPosition($firm);
+            }
+
+            public function add(FirmBankAccount $account): void
+            {
+                $this->inner->add($account);
+            }
+
+            public function makePrimary(FirmBankAccount $account): void
+            {
+                $this->inner->makePrimary($account);
+            }
+        };
+        $manage = new ManageFirmBankAccounts($firms, $accounts, $container->get(TransactionalWork::class), new readonly class implements BankAccountUsage {
+            public function hasMovements(string $accountId): bool
+            {
+                return false;
+            }
+        }, $container->get(ClockInterface::class), [new CzechBankAccount()]);
+
+        $manage->open($firm->id(), self::IBAN, 'CZK', 'Main', false);
+
+        $order = $calls->getArrayCopy();
+        self::assertSame('lock firm', $order[0] ?? null, implode(', ', $order));
+        self::assertNotContains('get firm', $order);
+        $this->em->clear();
+        self::assertSame([[self::IBAN, true, 'CZK', 'Main', 0]], $this->stored($firm));
+    }
+
     public function testUnmarkingThePrimaryKeepsIt(): void
     {
         $firm = $this->firm();

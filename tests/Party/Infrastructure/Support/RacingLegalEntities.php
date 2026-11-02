@@ -40,6 +40,11 @@ final class RacingLegalEntities implements LegalEntities
         return $this->inner->get($id);
     }
 
+    public function lock(string $id): LegalEntity
+    {
+        return $this->inner->lock($id);
+    }
+
     public function lockActive(): array
     {
         return $this->inner->lockActive();

@@ -50,7 +50,8 @@ final readonly class ManageFirmBankAccounts
     public function open(string $firmId, string $iban, string $currency, string $label, bool $primary): FirmBankAccount
     {
         return $this->transaction->run(function () use ($firmId, $iban, $currency, $label, $primary): FirmBankAccount {
-            $firm = $this->firms->get($firmId);
+            // Two opens at once would both find no primary account and both take it.
+            $firm = $this->firms->lock($firmId);
             $number = $this->iban($firm, $iban);
             $currency = $this->currency($currency);
             if ($this->accounts->ofIban($firm, $number->toString()) instanceof FirmBankAccount) {

@@ -35,6 +35,14 @@ interface LegalEntities
     public function get(string $id): LegalEntity;
 
     /**
+     * The firm, its row locked until the transaction ends, so whoever changes
+     * what belongs to it waits for the one before. Call it inside TransactionalWork.
+     *
+     * @throws UnknownLegalEntity also for a firm of another tenant
+     */
+    public function lock(string $id): LegalEntity;
+
+    /**
      * The active firms, locked until the transaction ends. Call it inside TransactionalWork.
      *
      * @return list<LegalEntity>
