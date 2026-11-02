@@ -2,6 +2,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expectTableInFrame } from '../support/layout';
 import { REMINDERS_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -66,6 +67,21 @@ test.describe.serial('reminders of overdue invoices', () => {
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/reminder-list-${name}.png`, fullPage: true });
     }
+  });
+
+  test('the list of a tenant with two firms fits its frame at 1440 with every column shown @layout', async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.goto('/invoices');
+    const table = page.getByRole('table', { name: 'Faktury' });
+    for (const label of ['Číslo', 'Firma', 'Zákazník', 'Vystaveno', 'Splatnost', 'Celkem', 'Stav', 'E-mail']) {
+      await expect(table.getByRole('columnheader', { name: label, exact: true })).toBeVisible();
+    }
+    await expect(row(page, 'R0001').locator('[data-icon-cell="bell-ring"]')).toBeVisible();
+    await expectTableInFrame(table);
+    // The firm and the customer give way: cut short where needed, the full name in a title.
+    const firm = row(page, 'R0001').locator('td').nth(1).locator('span');
+    await expect(firm).toHaveAttribute('title', /^Example /);
+    await expect(row(page, 'R0001').getByRole('link', { name: 'Upravit' })).toBeInViewport({ ratio: 1 });
   });
 
   test('a reminder by hand opens over the list with the reminder text and Send focused @a11y @layout', async ({ page }) => {

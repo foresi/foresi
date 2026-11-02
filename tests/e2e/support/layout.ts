@@ -18,6 +18,24 @@ export async function expectFocusedClearOfActionBar(page: Page, control: Locator
 }
 
 /**
+ * The table fits its frame: the box that would scroll it sideways has nothing to scroll,
+ * and the last cell of every row (its actions) ends inside the frame.
+ */
+export async function expectTableInFrame(table: Locator): Promise<void> {
+  const fit = await table.evaluate((element) => {
+    const frame = element.parentElement as HTMLElement;
+    const right = frame.getBoundingClientRect().right;
+    const outside = [...element.querySelectorAll('tbody tr')]
+      .map((row) => row.lastElementChild as HTMLElement)
+      .filter((cell) => cell.getBoundingClientRect().right > right + 0.5)
+      .map((cell) => cell.closest('tr')!.textContent!.trim().slice(0, 20));
+    return { overflow: frame.scrollWidth - frame.clientWidth, outside };
+  });
+  expect(fit.overflow, 'the table scrolls sideways inside its frame').toBeLessThanOrEqual(0);
+  expect(fit.outside, 'rows whose last cell ends outside the frame').toEqual([]);
+}
+
+/**
  * Fields side by side in one grid row start their controls at the same height
  * (±1 px), whatever label, help or error text sits next to them. Returns the
  * rows that do not, so a failure names the fields.

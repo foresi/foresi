@@ -3,6 +3,8 @@
 {% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
 {% set bulkSlot %}{% block bulk %}{% endblock %}{% endset %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{# Columns of long text share the room the others leave and cut their text short; numbers, badges and actions keep their width. #}
+{% set share = this.shareClass %}
 {% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
     {% if this.rowViews is empty %}
@@ -22,7 +24,7 @@
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-white px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}">
+                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-white px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}" class="inline-flex min-h-6 items-center gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
@@ -49,19 +51,19 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ row.secondary and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}">
+                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ row.secondary and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}">
                                         {%- if cell.icon -%}
                                             <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
                                         {%- elseif cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
-                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                            <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- elseif cell.text is same as('') -%}
                                             <span class="text-control-line" aria-hidden="true">—</span>
                                         {%- else -%}
-                                            <span class="block max-w-[32ch] truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
+                                            <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}
                                         {%- if row.secondary and loop.first %}<span class="mt-0.5 block whitespace-normal break-words text-caption text-muted sm:hidden" data-row-secondary>{{ row.secondary }}</span>{% endif -%}
                                     </td>

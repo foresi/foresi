@@ -323,7 +323,9 @@ final class RecurringListController extends AbstractController
         $keys += ['interval' => false, 'next' => false, 'delivery' => false, 'amount' => true];
         $columns = [];
         foreach ($keys as $key => $phone) {
-            $columns[] = ['key' => $key, 'label' => $this->translator->trans('recurring.list.column.'.$key), 'align' => 'amount' === $key ? 'right' : 'left', 'phone' => $phone];
+            // The names and the description give way, cut short with their full text in a title.
+            $truncate = \in_array($key, ['customer', 'description', 'firm'], true);
+            $columns[] = ['key' => $key, 'label' => $this->translator->trans('recurring.list.column.'.$key), 'align' => 'amount' === $key ? 'right' : 'left', 'phone' => $phone, 'truncate' => $truncate];
         }
 
         return $columns;

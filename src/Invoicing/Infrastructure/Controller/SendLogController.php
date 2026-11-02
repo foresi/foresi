@@ -98,7 +98,10 @@ final class SendLogController extends AbstractController
     }
 
     /**
-     * @return list<array{key: string, label: string, phone: bool}>
+     * The names, addresses and errors give way, cut short with their full text in a title, so
+     * the table fits its frame.
+     *
+     * @return list<array{key: string, label: string, phone: bool, truncate: bool}>
      */
     private function columns(bool $severalFirms): array
     {
@@ -110,7 +113,8 @@ final class SendLogController extends AbstractController
         $columns = [];
         foreach ($keys as $key => $phone) {
             $label = 'purpose' === $key ? 'reminder.log.column' : 'invoice.sends.column.'.$key;
-            $columns[] = ['key' => $key, 'label' => $this->translator->trans($label), 'phone' => $phone];
+            $truncate = \in_array($key, ['firm', 'customer', 'recipients', 'error'], true);
+            $columns[] = ['key' => $key, 'label' => $this->translator->trans($label), 'phone' => $phone, 'truncate' => $truncate];
         }
 
         return $columns;

@@ -273,6 +273,11 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
+     * The names and the reason give way to the numbers, dates, states and actions, cut short
+     * with their full text in a title, so the table fits its frame with every column shown. A
+     * narrower screen leaves out the issue date and the e-mail mark, the columns of least value
+     * to a list read for what to collect; the invoice still shows both.
+     *
      * @param array<string, string> $query
      *
      * @return list<array<string, mixed>>
@@ -282,21 +287,21 @@ final class InvoiceListController extends AbstractController
         $trash = InvoiceFilter::TRASH === $tab;
         $columns = [$this->column('number', $sort, $query, sortable: true)];
         if ($severalFirms) {
-            $columns[] = $this->column('firm', $sort, $query, phone: false);
+            $columns[] = $this->column('firm', $sort, $query, phone: false) + ['truncate' => true];
         }
-        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false);
+        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false) + ['truncate' => true];
         if ($trash) {
-            $columns[] = $this->column('deletedBy', $sort, $query, phone: false);
+            $columns[] = $this->column('deletedBy', $sort, $query, phone: false) + ['truncate' => true];
             $columns[] = $this->column('deletedAt', $sort, $query, phone: false);
-            $columns[] = $this->column('reason', $sort, $query, phone: false);
+            $columns[] = $this->column('reason', $sort, $query, phone: false) + ['truncate' => true];
         } else {
-            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false);
+            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false) + ['wide' => true];
             $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false);
         }
         $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
-            $columns[] = $this->column('sent', $sort, $query, phone: false);
+            $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
         }
 
         return $columns;
