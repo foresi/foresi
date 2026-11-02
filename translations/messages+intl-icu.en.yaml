@@ -750,6 +750,7 @@ invoice:
     title: 'Invoice {number}'
     from: From
     for: 'For {customer}'
+    paid: Paid
     amount: Amount to pay
     due: Due date
     payment:
@@ -996,6 +997,7 @@ invoice:
     action:
       edit: Edit
       send: Send
+      pay: Pay
       pdf: PDF
       copy: Copy
       delivered: Mark as delivered
@@ -1011,6 +1013,10 @@ invoice:
       reset: Show all invoices
       overdue_title: Nothing is overdue
       trash_title: The trash is empty
+      paid_title: Nothing is paid yet
+      paid_text: Paid invoices show here once you record a payment.
+      unpaid_title: Everything is paid
+      unpaid_text: No invoice is waiting for its money.
   trash:
     title: 'Delete invoice {number}'
     keeps: It moves to the trash and keeps its number, which is never used again.
@@ -1026,8 +1032,8 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
-    paid: '{who} recorded a payment'
-    payment_cancelled: '{who} removed a payment'
+    paid: '{who}: payment of {amount} recorded'
+    payment_cancelled: '{who}: payment of {amount} removed'
     send: '{who} sent an e-mail to {recipients}'
     send_copy: 'copy to {address}'
     send_show: Show the e-mail
@@ -1205,6 +1211,63 @@ invoice:
   payment:
     refused:
       has_payments: This invoice has payments. Remove the payments first.
+      no_allocation: The payment pays no invoice.
+      amount_mismatch: The parts of the payment do not add up to its amount.
+      not_positive: Enter an amount above zero.
+      wrong_firm: The invoice belongs to another firm.
+      currency_mismatch: The payment is in another currency than the invoice.
+      trashed: The invoice is in the trash.
+      future_date: A payment cannot come from the future.
+      settlement_not_allowed: The difference changed meanwhile, so it was not written off. Check the amount and try again.
+      note_too_long: 'Keep the note under {max} characters.'
+      no_movement: The payment needs its bank movement.
+    error:
+      date: Enter a valid date.
+      amount: 'Enter an amount, such as 1,210.50.'
+      method: Choose how it was paid.
+      note_too_long: 'Keep the note under {max} characters.'
+      settle_too_large: 'Only a difference of up to {limit} can be written off.'
+      settle_none: A difference in this currency is not written off.
+    title: 'Pay invoice {number}'
+    page_card: Payment
+    submit: Record payment
+    field:
+      receivedOn: Date paid
+      amount: Amount
+      method: Method
+      note: Note
+      settle: Close the invoice and write off the difference
+    payable: '{payable} to pay'
+    remaining_of: 'Remaining {remaining} of {payable}'
+    settled: This invoice is paid already. Another payment overpays it.
+    overpay: 'The invoice will be overpaid by {over}.'
+    settle_difference: '{difference} is written off, so the invoice is paid exactly.'
+    trashed: 'Invoice {number} is in the trash. Restore it first.'
+    nothing_due: 'Invoice {number} has nothing to pay.'
+    left: '{amount} left to pay'
+    panel:
+      title: Payments
+      pay: Pay
+      empty: No payments yet.
+      paid: Paid
+      remaining: Left to pay
+      overpaid: Overpaid by
+      written_off: 'written off {amount}'
+      bank: Bank movement
+      remove: Remove
+      remove_label: 'Remove the payment of {amount} from {date}'
+      remove_confirm: 'Remove the payment of {amount}?'
+      remove_text: The invoice counts as unpaid again by that amount.
+      remove_text_bank: The invoice counts as unpaid again by that amount, and the bank movement goes back among the unmatched ones.
+      remove_accept: Remove payment
+      keep: Keep it
+    flash:
+      recorded: 'A payment of {amount} was recorded for invoice {number}.'
+      settled: 'A payment of {amount} was recorded for invoice {number}. The difference of {difference} was written off.'
+      overpaid: 'A payment of {amount} was recorded. Invoice {number} is overpaid by {over}.'
+      already_recorded: This payment is recorded already.
+      removed: 'The payment of {amount} was removed.'
+      already_removed: This payment was removed already.
     bank_transfer: Bank transfer
     cash: Cash
     card: Card

@@ -23,6 +23,7 @@ use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\PaymentRefused;
+use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
@@ -34,6 +35,8 @@ use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Invoicing\Infrastructure\Form\SendFailureText;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -187,7 +190,7 @@ final class InvoiceListController extends AbstractController
         $invoice = $this->invoice($id);
 
         $timezone = $this->timezoneOf($invoice);
-        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone), $this->history->of($invoice));
+        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone, $invoice->currency()), $this->history->of($invoice));
 
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
@@ -322,7 +325,10 @@ final class InvoiceListController extends AbstractController
         $date = $this->translator->trans('format.date');
         $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
-        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()]];
+        // A part payment says what is left; overdue or not, that is what someone acts on.
+        $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;
+        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left])];
+        $badge = null === $left ? $badge : $badge.' · '.$left;
         if ($severalFirms) {
             $cells['firm'] = $row->firmName;
         }
@@ -393,7 +399,12 @@ final class InvoiceListController extends AbstractController
         }
 
         $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send, $copy];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf];
+        // Offered while something is still to pay, as iDoklad's Pay is.
+        if (!$row->payment->isSettled() && !$row->payable->isZero() && !$row->payable->isNegative()) {
+            $actions[] = ['label' => $this->label('pay'), 'href' => $this->generateUrl('app_invoice_pay', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'icon' => 'banknote', 'dialog' => true];
+        }
+        $actions = [...$actions, $send, $copy];
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
                 'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),
@@ -425,10 +436,11 @@ final class InvoiceListController extends AbstractController
     /**
      * @return array{time: string, datetime: string, icon: string, text: string}
      */
-    private function timelineItem(InvoiceHistoryEntry $entry, \DateTimeZone $timezone): array
+    private function timelineItem(InvoiceHistoryEntry $entry, \DateTimeZone $timezone, Currency $currency): array
     {
         $who = $entry->userName ?? $this->translator->trans('invoice.history.system');
-        $text = $this->translator->trans('invoice.history.'.$entry->event, ['who' => $who, 'reason' => $entry->reason ?? '']);
+        $amount = $this->amounts->shown(Money::ofMinor($entry->amountMinor ?? 0, $currency));
+        $text = $this->translator->trans('invoice.history.'.$entry->event, ['who' => $who, 'reason' => $entry->reason ?? '', 'amount' => $amount]);
         $changes = [...array_map($this->fieldLabel(...), $entry->fields), ...array_map($this->lineChange(...), $entry->lines)];
 
         return [
@@ -439,8 +451,8 @@ final class InvoiceListController extends AbstractController
                 InvoiceHistoryEntry::TRASHED => 'trash-2',
                 InvoiceHistoryEntry::RESTORED => 'archive-restore',
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
-                InvoiceHistoryEntry::PAID => 'check',
-                InvoiceHistoryEntry::PAYMENT_CANCELLED => 'x',
+                InvoiceHistoryEntry::PAID => 'banknote',
+                InvoiceHistoryEntry::PAYMENT_CANCELLED => 'banknote-x',
                 default => 'pencil',
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),

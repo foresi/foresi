@@ -102,6 +102,7 @@ final class PublicDocumentController extends AbstractController
             'open' => $this->generateUrl(self::OPEN, ['token' => $token]),
             'download' => $this->generateUrl(self::DOWNLOAD, ['token' => $token]),
             'transfer' => null !== $iban,
+            'paid' => $document->payment->isSettled(),
             'iban' => null === $iban ? null : trim(chunk_split($iban, 4, ' ')),
             'qr' => null !== $iban && null !== $document->paymentCode ? $this->qr->svg($document->paymentCode) : null,
         ]));

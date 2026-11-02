@@ -285,5 +285,6 @@
             {# Last on purpose: PHP cuts a form at max_input_vars, and without this field the server knows. #}
             <input type="hidden" name="_complete" value="1">
         </form>
+        {% if payments|default(null) %}{{ include('invoicing/_payments.html.twig') }}{% endif %}
     {% endif %}
 {% endblock %}

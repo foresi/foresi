@@ -27,7 +27,15 @@ final readonly class AmountText
      */
     public function shown(Money $money): string
     {
-        return \sprintf("%s\u{a0}%s", $this->grouped($money), Currency::CZK === $money->currency() ? 'Kč' : $money->currency()->value);
+        return \sprintf("%s\u{a0}%s", $this->grouped($money), $this->unit($money->currency()));
+    }
+
+    /**
+     * What follows an amount on screen: "Kč" for crowns, the code for the rest.
+     */
+    public function unit(Currency $currency): string
+    {
+        return Currency::CZK === $currency ? 'Kč' : $currency->value;
     }
 
     /**

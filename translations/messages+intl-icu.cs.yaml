@@ -750,6 +750,7 @@ invoice:
     title: 'Faktura {number}'
     from: Od
     for: 'Pro {customer}'
+    paid: Uhrazeno
     amount: K úhradě
     due: Splatnost
     payment:
@@ -996,6 +997,7 @@ invoice:
     action:
       edit: Upravit
       send: Odeslat
+      pay: Uhradit
       pdf: PDF
       copy: Kopírovat
       delivered: Označit jako doručené
@@ -1011,6 +1013,10 @@ invoice:
       reset: Zobrazit všechny faktury
       overdue_title: Nic není po splatnosti
       trash_title: Koš je prázdný
+      paid_title: Zatím nic není uhrazeno
+      paid_text: Uhrazené faktury se tu objeví, jakmile zaznamenáte úhradu.
+      unpaid_title: Vše je uhrazeno
+      unpaid_text: Žádná faktura nečeká na peníze.
   trash:
     title: 'Smazat fakturu {number}'
     keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
@@ -1026,8 +1032,8 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
-    paid: '{who}: úhrada zaznamenána'
-    payment_cancelled: '{who}: úhrada odebrána'
+    paid: '{who}: úhrada {amount} zaznamenána'
+    payment_cancelled: '{who}: úhrada {amount} odebrána'
     send: '{who}: e-mail na {recipients}'
     send_copy: 'kopie na {address}'
     send_show: Zobrazit e-mail
@@ -1205,6 +1211,63 @@ invoice:
   payment:
     refused:
       has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
+      no_allocation: Úhrada nehradí žádnou fakturu.
+      amount_mismatch: Části úhrady nedávají dohromady její částku.
+      not_positive: Zadejte částku větší než nula.
+      wrong_firm: Faktura patří jiné firmě.
+      currency_mismatch: Úhrada je v jiné měně než faktura.
+      trashed: Faktura je v koši.
+      future_date: Úhrada nemůže mít datum v budoucnosti.
+      settlement_not_allowed: Rozdíl se mezitím změnil, proto se neodepsal. Zkontrolujte částku a zkuste to znovu.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      no_movement: Úhrada potřebuje svůj bankovní pohyb.
+    error:
+      date: Zadejte platné datum.
+      amount: 'Zadejte částku, například 1 210,50.'
+      method: Vyberte způsob úhrady.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      settle_too_large: 'Odepsat lze jen rozdíl do {limit}.'
+      settle_none: Rozdíl v této měně se neodepisuje.
+    title: 'Uhradit fakturu {number}'
+    page_card: Úhrada
+    submit: Zaznamenat úhradu
+    field:
+      receivedOn: Datum úhrady
+      amount: Částka
+      method: Způsob úhrady
+      note: Poznámka
+      settle: Uzavřít fakturu a rozdíl odepsat
+    payable: 'K úhradě {payable}'
+    remaining_of: 'Zbývá {remaining} z {payable}'
+    settled: Faktura je už uhrazená. Další úhrada ji přeplatí.
+    overpay: 'Faktura bude přeplacená o {over}.'
+    settle_difference: 'Odepíše se {difference}, aby byla faktura uhrazená přesně.'
+    trashed: 'Faktura {number} je v koši. Nejdřív ji obnovte.'
+    nothing_due: 'Faktura {number} nemá nic k úhradě.'
+    left: 'zbývá {amount}'
+    panel:
+      title: Úhrady
+      pay: Uhradit
+      empty: Zatím žádné úhrady.
+      paid: Uhrazeno
+      remaining: Zbývá uhradit
+      overpaid: Přeplaceno o
+      written_off: 'odepsáno {amount}'
+      bank: Bankovní pohyb
+      remove: Odebrat
+      remove_label: 'Odebrat úhradu {amount} ze dne {date}'
+      remove_confirm: 'Odebrat úhradu {amount}?'
+      remove_text: Faktura bude o tuto částku znovu neuhrazená.
+      remove_text_bank: Faktura bude o tuto částku znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.
+      remove_accept: Odebrat úhradu
+      keep: Ponechat
+    flash:
+      recorded: 'Úhrada {amount} k faktuře {number} je zaznamenaná.'
+      settled: 'Úhrada {amount} k faktuře {number} je zaznamenaná. Rozdíl {difference} se odepsal.'
+      overpaid: 'Úhrada {amount} je zaznamenaná. Faktura {number} je přeplacená o {over}.'
+      already_recorded: Tato úhrada už je zaznamenaná.
+      removed: 'Úhrada {amount} je odebraná.'
+      already_removed: Tato úhrada už byla odebrána.
     bank_transfer: Převodem
     cash: Hotově
     card: Kartou

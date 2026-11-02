@@ -22,10 +22,11 @@ final readonly class InvoiceHistoryEntry
     public const string PAYMENT_CANCELLED = 'payment_cancelled';
 
     /**
-     * @param string|null              $userName null when no person did it
-     * @param list<string>             $fields   names of the fields of the document that changed
+     * @param string|null              $userName    null when no person did it
+     * @param list<string>             $fields      names of the fields of the document that changed
      * @param list<InvoiceHistoryLine> $lines
-     * @param string|null              $reason   why it went to the trash
+     * @param string|null              $reason      why it went to the trash
+     * @param int|null                 $amountMinor what a payment put on the invoice or took off it, settlement included, in its currency
      */
     public function __construct(
         public \DateTimeImmutable $occurredAt,
@@ -34,6 +35,7 @@ final readonly class InvoiceHistoryEntry
         public array $fields,
         public array $lines,
         public ?string $reason,
+        public ?int $amountMinor = null,
     ) {
     }
 }

@@ -88,6 +88,7 @@ final readonly class InvoiceHistory
         $fields = [];
         $reason = null;
         $event = InvoiceHistoryEntry::CHANGED;
+        $amount = null;
         $shown = [];
         foreach ($group as $entry) {
             $changes = $entry->changes();
@@ -96,7 +97,9 @@ final readonly class InvoiceHistory
                 continue;
             }
             if (PaymentAllocation::class === $entry->entityClass()) {
-                $event = AuditAction::Deleted === $entry->action() ? InvoiceHistoryEntry::PAYMENT_CANCELLED : InvoiceHistoryEntry::PAID;
+                $removed = AuditAction::Deleted === $entry->action();
+                $event = $removed ? InvoiceHistoryEntry::PAYMENT_CANCELLED : InvoiceHistoryEntry::PAID;
+                $amount = ($amount ?? 0) + $this->minor($changes, 'amountMinor', $removed) + $this->minor($changes, 'settlementMinor', $removed);
                 continue;
             }
             $event = $this->event($entry) ?? $event;
@@ -114,7 +117,21 @@ final readonly class InvoiceHistory
             $created ? [] : array_values(array_unique($fields)),
             $created ? [] : array_values(array_filter($shown, static fn (InvoiceHistoryLine $line): bool => InvoiceHistoryLine::CHANGED !== $line->change || [] !== $line->fields || null !== $line->previousText)),
             $reason,
+            $amount,
         );
+    }
+
+    /**
+     * A money column of an allocation as the log has it: the new value when it came,
+     * the old one when it went.
+     *
+     * @param array<string, array<mixed>> $changes
+     */
+    private function minor(array $changes, string $field, bool $removed): int
+    {
+        $value = $changes[$field][$removed ? 0 : 1] ?? 0;
+
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private function event(AuditEntry $entry): ?string
