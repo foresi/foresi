@@ -1274,6 +1274,7 @@ recurring:
       bad_address: E-mail odběratele není platný.
       rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
       undrawable: Fakturu nejde vykreslit do PDF.
+      unexpected: Odeslání selhalo kvůli neočekávané chybě. Fakturu odešlete ze seznamu K odeslání.
   list:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur

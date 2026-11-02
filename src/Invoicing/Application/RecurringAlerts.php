@@ -67,6 +67,7 @@ final readonly class RecurringAlerts
         'send.bad_address' => ['cs' => 'E-mail odběratele není platný.', 'en' => 'An e-mail address of the customer is not valid.'],
         'send.rate_limited' => ['cs' => 'Firma vyčerpala denní limit odeslaných e-mailů.', 'en' => 'The firm has used up its daily budget of e-mails.'],
         'send.undrawable' => ['cs' => 'Fakturu nejde vykreslit do PDF.', 'en' => 'The invoice cannot be drawn as a PDF.'],
+        'send.unexpected' => ['cs' => 'Odeslání selhalo kvůli neočekávané chybě.', 'en' => 'Sending failed on an unexpected error.'],
     ];
 
     private const array OTHER_REASON = ['cs' => 'Pravidla to nedovolila (kód %s).', 'en' => 'The rules refused it (code %s).'];

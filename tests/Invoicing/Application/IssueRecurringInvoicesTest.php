@@ -274,7 +274,31 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     public function testAnUnexpectedErrorGivesThePeriodBack(): void
     {
         $template = $this->template();
-        // Whatever no rule foresaw: here the table of sends is gone.
+        // Whatever no rule foresaw while issuing: here the table of invoice lines is gone.
+        $this->connection->executeStatement('ALTER TABLE invoice_line RENAME TO invoice_line_gone');
+        try {
+            self::mockTime('2026-12-01 05:30:00');
+            $this->em->clear();
+            self::getContainer()->get(RunScheduledJobHandler::class)(new RunScheduledJob(IssueRecurringInvoices::NAME, '2026-12-01'));
+        } finally {
+            $this->connection->executeStatement('ALTER TABLE invoice_line_gone RENAME TO invoice_line');
+        }
+
+        $this->em->clear();
+        self::assertNull(self::getContainer()->get(ScheduledJobRuns::class)->lastFinished(IssueRecurringInvoices::NAME), 'not finished: the next tick retries');
+        $run = $this->connection->fetchAssociative('SELECT * FROM scheduled_job_run WHERE job = ?', [IssueRecurringInvoices::NAME]);
+        self::assertIsArray($run);
+        self::assertNotNull($run['last_error']);
+        self::assertSame([], $this->invoicesOf($template), 'nothing was issued');
+        self::assertNull($this->templateRow($template->id())['last_failure_code'], 'no refusal was recorded for it');
+    }
+
+    public function testAnUnexpectedErrorWhileSendingHoldsTheInvoiceAndRunsTheNextTemplate(): void
+    {
+        $this->contactEmail('office@example.com');
+        $failing = $this->template();
+        $other = $this->template(delivery: RecurringDelivery::Review);
+        // Whatever no rule foresaw while sending: here the table of sends is gone.
         $this->connection->executeStatement('ALTER TABLE invoice_send RENAME TO invoice_send_gone');
         try {
             self::mockTime('2026-12-01 05:30:00');
@@ -285,11 +309,20 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         }
 
         $this->em->clear();
-        self::assertNull(self::getContainer()->get(ScheduledJobRuns::class)->lastFinished(IssueRecurringInvoices::NAME), 'not finished: the next tick retries');
-        $run = $this->connection->fetchAssociative('SELECT * FROM scheduled_job_run WHERE job = ?', [IssueRecurringInvoices::NAME]);
-        self::assertIsArray($run);
-        self::assertNotNull($run['last_error']);
-        self::assertNull($this->templateRow($template->id())['last_failure_code'], 'no refusal was recorded for it');
+        self::assertSame('2026-12-01', self::getContainer()->get(ScheduledJobRuns::class)->lastFinished(IssueRecurringInvoices::NAME), 'the run finished');
+        $invoices = $this->invoicesOf($failing);
+        self::assertCount(1, $invoices, 'the invoice stays issued');
+        self::assertCount(1, $this->invoicesOf($other), 'the next template still ran');
+        self::assertSame(2, $this->templates->inReview(), 'both wait to be sent');
+        $row = $this->templateRow($failing->id());
+        self::assertSame(['send.unexpected', '2027-01-01'], [$row['last_failure_code'], $row['next_occurrence']]);
+        self::assertCount(1, $this->gateway->messages(), 'the firm is told');
+
+        // The same day again: the held invoice is not issued or sent a second time.
+        $this->runOn('2026-12-01 09:00:00');
+        self::assertCount(1, $this->invoicesOf($failing));
+        self::assertSame(0, $this->sendCount());
+        self::assertSame(2, $this->templates->inReview());
     }
 
     public function testTheAlertMailGoesOncePerDay(): void

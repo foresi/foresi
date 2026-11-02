@@ -1274,6 +1274,7 @@ recurring:
       bad_address: An e-mail address of the customer is not valid.
       rate_limited: The firm has used up its daily budget of e-mails.
       undrawable: The invoice cannot be drawn as a PDF.
+      unexpected: Sending failed on an unexpected error. Send the invoice from the To send list.
   list:
     title: Recurring invoices
     views: Recurring invoice lists

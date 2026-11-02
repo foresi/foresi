@@ -33,9 +33,11 @@ use Psr\Log\LoggerInterface;
  * without a mail server, is never skipped in silence: the refusal is recorded on
  * the template, the firm is told by e-mail and the shell shows it, and the next
  * template runs. A refused issue keeps the next date, so the next run tries again;
- * a template that runs clean again clears its failure. Anything else is thrown,
- * so the scheduler gives the day back and the next tick retries it; what was
- * issued stays issued and is not issued twice.
+ * a template that runs clean again clears its failure. A send that breaks on
+ * anything else is logged and recorded the same way (UNEXPECTED): its invoice is
+ * issued and waits to be sent, and the other templates still run. Anything else
+ * while issuing is thrown, so the scheduler gives the day back and the next tick
+ * retries it; what was issued stays issued and is not issued twice.
  *
  * The run works by ids: issuing starts the session over, so nothing loaded
  * before it is used after it.
@@ -47,6 +49,8 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     /** An occurrence up to this many days late is still sent; a later one waits for review. */
     public const int LATE_DAYS = 3;
     public const int MAX_PER_RUN = 24;
+    /** The failure of a send that broke on something no rule foresaw. */
+    public const string UNEXPECTED = 'send.unexpected';
 
     public function __construct(
         private RecurringInvoices $templates,
@@ -104,7 +108,15 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
                 // Taken meanwhile, by "issue now" or another worker; the next round reads where it stands.
                 continue;
             }
-            $outcome = $this->delivery->deliver($invoice, $this->templates->get($id), $this->isLate($occurrence, $today));
+            $invoiceId = $invoice->id();
+            try {
+                $outcome = $this->delivery->deliver($invoice, $this->templates->get($id), $this->isLate($occurrence, $today));
+            } catch (\Throwable $error) {
+                // The invoice is issued and stays so; it waits to be sent like a refused one, and the next template runs.
+                $this->logger->error('Sending invoice {invoice} of recurring invoice {template} failed unexpectedly.', ['invoice' => $invoiceId, 'template' => $id, 'exception' => $error]);
+                $failure = self::UNEXPECTED;
+                break;
+            }
             if ($outcome->isRefused()) {
                 $failure = $outcome->code;
             }
