@@ -64,6 +64,10 @@ framework:
             App\Party\Application\RecheckRegistry: registry
             # Timed work: the schedule ticks, and each due job runs in its tenant.
             App\Tenancy\Application\Schedule\RunScheduledJob: async
+            # Operator tasks, such as polling the bank inbox, run with no tenant.
+            App\Tenancy\Application\Schedule\RunOperatorTask: async
+            # Inbound bank mail is processed in its tenant after it was stored.
+            App\Banking\Application\ProcessInboundMessage: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
 
