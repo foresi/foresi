@@ -14,7 +14,8 @@ const CONTACT_CHANNEL = 'foresi-contact-created';
  * reordered here, with the names renumbered, so the server reads them in the order
  * on screen. Enter in a field never issues a document; in the last cell of a row it
  * adds a line. The page is a plain document without Turbo, so the browser's own
- * beforeunload prompt guards a changed form.
+ * beforeunload prompt guards a changed form. A recurring template's form uses it
+ * too: it has no number and no dates, so those parts stay idle there.
  */
 export default class extends Controller {
     static targets = [
@@ -35,7 +36,7 @@ export default class extends Controller {
         this.dirty = this.unsavedValue;
         this.leaving = false;
         this.noScriptTargets.forEach((element) => { element.hidden = true; });
-        this.taxPointFollows = this.taxPointDateTarget.value === this.issueDateTarget.value;
+        this.taxPointFollows = this.hasTaxPointDateTarget && this.taxPointDateTarget.value === this.issueDateTarget.value;
         this.dueDateFollows = !this.dueDateSetValue;
         this.symbolFollows = this.hasVariableSymbolTarget && this.variableSymbolTarget.value === this.symbolOf(this.numberPeekTarget.value);
         this.showSupplyCodes();
@@ -252,7 +253,7 @@ export default class extends Controller {
         this.contactLinkTarget.href = this.contactUrlValue.replace(/[0-9a-f-]{36}/, customer.id);
 
         this.dueDaysValue = customer.dueDays;
-        if (this.dueDateFollows && this.issueDateTarget.value !== '') {
+        if (this.hasDueDateTarget && this.dueDateFollows && this.issueDateTarget.value !== '') {
             this.dueDateTarget.value = this.daysAfter(this.issueDateTarget.value, customer.dueDays);
         }
         this.paymentMethodTarget.value = customer.paymentMethod;
@@ -507,7 +508,7 @@ export default class extends Controller {
 
     closeErrors() {
         this.errorsTarget.remove();
-        (this.element.querySelector('[aria-invalid="true"]') ?? document.getElementById('invoice-save')).focus();
+        (this.element.querySelector('[aria-invalid="true"]') ?? this.element.querySelector('[data-save]')).focus();
     }
 
     goToField(event) {

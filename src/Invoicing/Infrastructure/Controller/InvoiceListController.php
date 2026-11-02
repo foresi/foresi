@@ -413,12 +413,14 @@ final class InvoiceListController extends AbstractController
         }
 
         $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
+        $recurring = ['label' => $this->translator->trans('recurring.form.from_invoice'), 'href' => $this->generateUrl('app_recurring_new', ['from' => $row->id]), 'method' => 'GET', 'plain' => true];
         $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send];
         // Reminders of other statuses still take a step, so the dialog may yet refuse the tenth; it says why.
         if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
             $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
         $actions[] = $copy;
+        $actions[] = $recurring;
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
                 'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),

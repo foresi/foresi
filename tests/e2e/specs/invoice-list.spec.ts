@@ -113,6 +113,8 @@ test.describe.serial('the invoice list', () => {
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: 'Pravidelná faktura' })).toBeFocused();
+    await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();

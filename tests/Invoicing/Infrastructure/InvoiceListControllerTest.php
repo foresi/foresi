@@ -398,7 +398,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
         self::assertSame('false', $row->filter('a[aria-label="PDF"]')->attr('data-turbo'));
         self::assertSame('/invoices/'.$invoice->id().'/pdf', $row->filter('a[aria-label="PDF"]')->attr('href'));
-        self::assertSame(['Send', 'Copy', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
@@ -596,7 +596,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertStringContainsString('Delivered', $row->text());
-        self::assertSame(['Send', 'Copy', 'History'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'History'], $this->menu($row));
         self::assertCount(1, $row->filter('a[aria-label="Edit"]'));
     }
 
@@ -854,7 +854,8 @@ final class InvoiceListControllerTest extends WebTestCase
         // On a phone the count goes with the row's second line.
         self::assertStringContainsString('2 reminders', $crawler->filter('tbody tr[data-id="'.$twice->id().'"] [data-row-secondary]')->text());
         self::assertGreaterThan(5, \count($queries), 'the request was recorded');
-        $reminderQueries = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_starts_with($query['sql'], 'SELECT') && str_contains($query['sql'], 'invoice_send') && str_contains($query['sql'], 'purpose'));
+        // The tally of the page's rows: grouped by invoice, whatever the shell's notices count besides.
+        $reminderQueries = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_starts_with($query['sql'], 'SELECT') && str_contains($query['sql'], 'FROM invoice_send') && str_contains($query['sql'], 'purpose') && str_contains($query['sql'], 'GROUP BY'));
         self::assertCount(1, $reminderQueries);
         // The menu offers a reminder on the overdue rows only.
         self::assertCount(1, $crawler->filter('a[href^="/invoices/'.$never->id().'/remind"]'));
