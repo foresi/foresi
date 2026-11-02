@@ -132,8 +132,11 @@ services:
     App\Invoicing\Application\SentFiles:
         alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
     # What is still owed on invoices. The payments module rebinds this to an
-    # authoritative implementation that passes InvoiceBalancesContractTest.
+    # authoritative implementation that passes InvoiceBalancesContractTest, and
+    # the SQL condition below to the same implementation.
     App\Invoicing\Application\InvoiceBalances:
+        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+    App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition:
         alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
     App\Invoicing\Application\DocumentLinks:
         alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks

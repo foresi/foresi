@@ -14,7 +14,9 @@ use App\Party\Domain\LegalEntity;
 /**
  * The invoices of a firm that are due for a reminder on a day, by every rule but
  * the open amount, which the caller reads from InvoiceBalances and checks with
- * FirmReminders::isWorthReminding(). An invoice qualifies when it is outside the
+ * FirmReminders::isWorthReminding(). It already leaves out what it can tell owes
+ * nothing or less than the minimum, so settled invoices do not crowd the limit;
+ * what it lets through the caller still checks. An invoice qualifies when it is outside the
  * trash, delivered, due on or after the day reminders were switched on, its
  * contact is reminded for this firm, it has had fewer than MAX_STEPS reminders,
  * there is an address to send to, and the day has come: the due date plus the
@@ -25,9 +27,10 @@ use App\Party\Domain\LegalEntity;
 interface RemindableInvoices
 {
     /**
-     * @param \DateTimeImmutable $today the firm's day, in the firm's time zone
+     * @param \DateTimeImmutable $today   the firm's day, in the firm's time zone
+     * @param ?string            $afterId the last invoice of the previous page: this page starts after it
      *
-     * @return list<RemindableInvoice> oldest due date first
+     * @return list<RemindableInvoice> oldest due date first, then by id
      */
-    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit): array;
+    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array;
 }

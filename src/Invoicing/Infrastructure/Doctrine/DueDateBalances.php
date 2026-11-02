@@ -19,9 +19,9 @@ use Doctrine\DBAL\Connection;
 /**
  * Without payments an invoice owes its whole payable amount, and nothing once it
  * is in the trash. It cannot tell a paid invoice from an open one, so it is not
- * authoritative.
+ * authoritative. In SQL, the same rule: an invoice outside the trash may owe.
  */
-final readonly class DueDateBalances implements InvoiceBalances
+final readonly class DueDateBalances implements InvoiceBalances, OwingInvoiceCondition
 {
     public function __construct(private Connection $connection, private TenantContext $context)
     {
@@ -51,6 +51,11 @@ final readonly class DueDateBalances implements InvoiceBalances
         }
 
         return $owed;
+    }
+
+    public function owing(string $invoice): string
+    {
+        return $invoice.'.deleted_at IS NULL';
     }
 
     public function isAuthoritative(): bool

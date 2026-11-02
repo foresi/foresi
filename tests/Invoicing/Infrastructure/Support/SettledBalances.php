@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Infrastructure\Support;
 
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Infrastructure\Doctrine\DueDateBalances;
+use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
@@ -17,14 +18,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Stands in for the payments module: the invoices it is told of are paid in
- * full, every other one owes what DueDateBalances says.
+ * full, every other one owes what DueDateBalances says. Its SQL condition is
+ * DueDateBalances' own and lets paid invoices through, so whatever reads it must
+ * still drop them by outstanding().
  */
-final class SettledBalances implements InvoiceBalances
+final class SettledBalances implements InvoiceBalances, OwingInvoiceCondition
 {
     /** @var array<string, true> */
     private array $paid = [];
 
-    public function __construct(private readonly InvoiceBalances $inner)
+    public function __construct(private readonly DueDateBalances $inner)
     {
     }
 
@@ -54,6 +57,11 @@ final class SettledBalances implements InvoiceBalances
         }
 
         return $owed;
+    }
+
+    public function owing(string $invoice): string
+    {
+        return $this->inner->owing($invoice);
     }
 
     public function isAuthoritative(): bool

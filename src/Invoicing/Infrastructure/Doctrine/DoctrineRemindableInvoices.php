@@ -14,6 +14,7 @@ use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\SendPurpose;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -27,6 +28,12 @@ use Doctrine\DBAL\ParameterType;
  * against the start of the firm's day, so the previous reminder counts on the
  * firm's own date. Every table is read in the active tenant, the joined ones too,
  * so a row of another tenant that names the same contact never counts.
+ *
+ * Invoices that owe nothing are left out in SQL by the balances' own condition,
+ * and so are those whose payable in the minimum's currency is below the minimum:
+ * nothing is owed beyond the payable. So settled invoices never fill the limit
+ * ahead of a due one. Pages go on after the last invoice of the previous one, by
+ * due date and id, so reminders queued meanwhile do not shift them.
  */
 final readonly class DoctrineRemindableInvoices implements RemindableInvoices
 {
@@ -67,14 +74,20 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                         )
                 )
             )
-        ORDER BY i.due_date, i.id
         SQL;
+    private const string AFTER = <<<'SQL'
+        AND (
+            i.due_date > (SELECT a.due_date FROM invoice a WHERE a.tenant_id = :tenant AND a.id = :after)
+            OR (i.due_date = (SELECT a.due_date FROM invoice a WHERE a.tenant_id = :tenant AND a.id = :after) AND i.id > :after)
+        )
+        SQL;
+    private const string MINIMUM = ' AND (i.currency <> :minimumCurrency OR i.payable_minor >= :minimum)';
 
-    public function __construct(private Connection $connection, private TenantContext $context)
+    public function __construct(private Connection $connection, private TenantContext $context, private OwingInvoiceCondition $owing)
     {
     }
 
-    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit): array
+    public function due(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today, int $limit, ?string $afterId = null): array
     {
         $enabledOn = $settings->enabledOn();
         if (!$settings->enabled() || !$enabledOn instanceof \DateTimeImmutable || $limit < 1) {
@@ -86,9 +99,21 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         // The previous reminder was on or before today minus the delay: before the start of the day after that.
         $nextBefore = $day->modify(\sprintf('-%d days', $settings->everyDays() - 1))->setTimezone($stored);
 
+        $sql = self::SQL.' AND ('.$this->owing->owing('i').')';
+        $parameters = [];
+        $minimum = $settings->minimum();
+        if ($minimum instanceof Money) {
+            $sql .= self::MINIMUM;
+            $parameters = ['minimumCurrency' => $minimum->currency()->value, 'minimum' => $minimum->minor()];
+        }
+        if (null !== $afterId) {
+            $sql .= ' '.self::AFTER;
+            $parameters['after'] = $afterId;
+        }
+
         $rows = $this->connection->fetchAllAssociative(
-            self::SQL.' LIMIT '.$limit,
-            [
+            $sql.' ORDER BY i.due_date, i.id LIMIT '.$limit,
+            $parameters + [
                 'tenant' => $this->context->current()->toString(),
                 'firm' => $firm->id(),
                 'reminder' => SendPurpose::Reminder->value,
@@ -105,6 +130,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                 'maxSteps' => ParameterType::INTEGER,
                 'nextBefore' => 'datetime_immutable',
                 'yes' => ParameterType::BOOLEAN,
+                'minimum' => ParameterType::INTEGER,
             ],
         );
 

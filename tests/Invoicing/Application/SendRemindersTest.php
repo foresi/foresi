@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\MailTemplates;
+use App\Invoicing\Application\ReminderPreview;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Application\SendReminders;
 use App\Invoicing\Domain\FirmReminders;
@@ -27,6 +29,7 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
+use App\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
 use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
 
 /**
@@ -178,6 +181,41 @@ final class SendRemindersTest extends SendingTestCase
 
         self::assertSame([], $this->reminders($paid));
         self::assertSame([1], $this->steps($open));
+    }
+
+    public function testHundredsOfSkippedInvoicesAheadDoNotHoldBackOneThatIsDue(): void
+    {
+        $source = $this->overdue('2027-01-09');
+        $this->balances->pay($source->id());
+        // More than one firm's daily batch, all due before it: paid ones and ones below the minimum.
+        foreach (InvoiceCopies::of($this->connection, $source->id(), 300) as $paid) {
+            $this->balances->pay($paid);
+        }
+        InvoiceCopies::of($this->connection, $source->id(), 300, ['payable_minor' => 100_00]);
+        $due = $this->overdue();
+        $this->switchOn(minimum: Money::of('500', Currency::CZK));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([1], $this->steps($due));
+        self::assertSame(1, $this->sendCount(), 'only the one that owes enough');
+    }
+
+    public function testThePreviewLooksPastInvoicesThatOweNothing(): void
+    {
+        $source = $this->overdue('2027-01-09');
+        $this->balances->pay($source->id());
+        foreach (InvoiceCopies::of($this->connection, $source->id(), 520) as $paid) {
+            $this->balances->pay($paid);
+        }
+        $due = $this->overdue();
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+
+        self::assertSame([$due->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
     }
 
     public function testSwitchedOffSendsNothing(): void

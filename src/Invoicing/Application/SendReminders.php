@@ -21,8 +21,8 @@ use Psr\Log\LoggerInterface;
 /**
  * Reminds customers of overdue invoices, once a day from 08:00 in the tenant's
  * zone, business hours for a mail about money. For each active firm with
- * reminders on it reads the invoices due for their next reminder in one query,
- * their open amounts a hundred at a time, and queues one reminder per invoice
+ * reminders on it reads the invoices worth their next reminder, page after page
+ * until the firm's daily budget is taken, and queues one reminder per invoice
  * through SendInvoice, as the send dialog would: the contact's addresses for
  * invoices, the firm's reminder text in the document's language. Nothing is sent
  * while the gate is closed, so a paid invoice nobody recorded is never reminded.
@@ -39,13 +39,11 @@ final readonly class SendReminders implements ScheduledJob
     public const int START_HOUR = 8;
     /** The firm's daily sending budget: more could not leave today anyway. */
     private const int MAX_PER_FIRM = 500;
-    private const int BATCH = 100;
 
     public function __construct(
         private LegalEntities $firms,
         private ReminderSettings $settings,
-        private RemindableInvoices $remindable,
-        private InvoiceBalances $balances,
+        private ReminderCandidates $candidates,
         private InvoiceStore $store,
         private SendDraft $drafts,
         private SendInvoice $sending,
@@ -83,23 +81,20 @@ final readonly class SendReminders implements ScheduledJob
 
     private function remind(LegalEntity $firm, FirmReminders $settings, \DateTimeImmutable $today): void
     {
-        $due = $this->remindable->due($firm, $settings, $today, self::MAX_PER_FIRM);
-        foreach (array_chunk($due, self::BATCH) as $batch) {
-            $outstanding = $this->balances->outstanding(array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $batch));
-            foreach ($batch as $candidate) {
-                if (!$settings->isWorthReminding($outstanding[$candidate->invoiceId])) {
+        $tried = 0;
+        foreach ($this->candidates->worthReminding($firm, $settings, $today) as $candidate) {
+            if (self::MAX_PER_FIRM === $tried++) {
+                return;
+            }
+            try {
+                $this->send($candidate, $today);
+            } catch (SendRefused $refused) {
+                if (SendRefused::REMINDER_TAKEN === $refused->reason) {
                     continue;
                 }
-                try {
-                    $this->send($candidate, $today);
-                } catch (SendRefused $refused) {
-                    if (SendRefused::REMINDER_TAKEN === $refused->reason) {
-                        continue;
-                    }
-                    $this->logger->warning('The reminder {step} of invoice {invoice} was not queued: {reason}.', ['step' => $candidate->nextStep, 'invoice' => $candidate->invoiceId, 'reason' => $refused->reason]);
-                    if (SendRefused::RATE_LIMITED === $refused->reason) {
-                        return;
-                    }
+                $this->logger->warning('The reminder {step} of invoice {invoice} was not queued: {reason}.', ['step' => $candidate->nextStep, 'invoice' => $candidate->invoiceId, 'reason' => $refused->reason]);
+                if (SendRefused::RATE_LIMITED === $refused->reason) {
+                    return;
                 }
             }
         }

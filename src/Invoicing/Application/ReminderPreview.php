@@ -24,13 +24,10 @@ final readonly class ReminderPreview
     public const int SHOWN = 10;
     /** How far ahead the preview of switching on looks. */
     public const int AHEAD_DAYS = 30;
-    /** Candidates read before the open amounts thin them out to what is shown. */
-    private const int READ = 100;
 
     public function __construct(
         private ReminderSettings $settings,
-        private RemindableInvoices $remindable,
-        private InvoiceBalances $balances,
+        private ReminderCandidates $candidates,
         private InvoiceStore $store,
         private TenantClock $clock,
     ) {
@@ -43,17 +40,8 @@ final readonly class ReminderPreview
     {
         $settings = $this->settings->for($firm);
         $tomorrow = $this->today()->modify('+1 day');
-        $due = $this->remindable->due($firm, $settings, $tomorrow, self::READ);
-        if ([] === $due) {
-            return [];
-        }
-        $outstanding = $this->balances->outstanding(array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $due));
-
         $rows = [];
-        foreach ($due as $candidate) {
-            if (!$settings->isWorthReminding($outstanding[$candidate->invoiceId])) {
-                continue;
-            }
+        foreach ($this->candidates->worthReminding($firm, $settings, $tomorrow) as $candidate) {
             $rows[] = $this->row($candidate->invoiceId, $tomorrow);
             if (self::SHOWN === \count($rows)) {
                 break;
@@ -77,17 +65,8 @@ final readonly class ReminderPreview
         $settings = FirmReminders::standard($firm);
         $settings->change(true, $stored->firstAfterDays(), $stored->everyDays(), $stored->minimum(), $today);
         $until = $today->modify(\sprintf('+%d days', self::AHEAD_DAYS));
-        $due = $this->remindable->due($firm, $settings, $until, self::READ);
-        if ([] === $due) {
-            return [];
-        }
-        $outstanding = $this->balances->outstanding(array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $due));
-
         $planned = [];
-        foreach ($due as $candidate) {
-            if (!$settings->isWorthReminding($outstanding[$candidate->invoiceId])) {
-                continue;
-            }
+        foreach ($this->candidates->worthReminding($firm, $settings, $until) as $candidate) {
             $row = $this->row($candidate->invoiceId, $today);
             $on = new \DateTimeImmutable($row->dueDate->format('Y-m-d'), $today->getTimezone())->modify(\sprintf('+%d days', $settings->firstAfterDays()));
             $planned[] = new PlannedReminder($row, $on);

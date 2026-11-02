@@ -87,6 +87,43 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         self::assertSame([$second->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 1)));
     }
 
+    public function testAPageStartsAfterTheLastInvoiceOfThePreviousOne(): void
+    {
+        $first = $this->deliveredDue('2026-11-14');
+        $second = $this->deliveredDue('2026-11-15');
+        $third = $this->deliveredDue('2026-11-15');
+        $this->em->flush();
+        $this->em->clear();
+
+        $ids = [];
+        $after = null;
+        do {
+            $page = $this->remindable->due($this->firm, $this->settings(), $this->today(), 1, $after);
+            foreach ($page as $invoice) {
+                $ids[] = $after = $invoice->invoiceId;
+            }
+        } while ([] !== $page);
+
+        $sameDay = [$second->id(), $third->id()];
+        sort($sameDay);
+        self::assertSame([$first->id(), ...$sameDay], $ids, 'by due date, then id; each once');
+    }
+
+    public function testBelowTheMinimumIsLeftOutInTheQuery(): void
+    {
+        $small = $this->deliveredDue('2026-11-14');
+        $this->em->getConnection()->executeStatement('UPDATE invoice SET payable_minor = 100 WHERE id = ?', [$small->id()]);
+        $enough = $this->deliveredDue('2026-11-15');
+        $this->em->flush();
+        $this->em->clear();
+        $settings = $this->settings();
+        $settings->change(true, 7, 7, Money::of('500', Currency::CZK), new \DateTimeImmutable('2026-11-01'));
+
+        $due = $this->remindable->due($this->firm, $settings, $this->today(), 1);
+
+        self::assertSame([$enough->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $due));
+    }
+
     public function testNothingWhileSwitchedOff(): void
     {
         $this->deliveredDue('2026-11-15');
