@@ -79,7 +79,7 @@ final class RecurringLifecycleTest extends RecurringTestCase
         self::assertNull($row['next_occurrence']);
         self::assertSame([], $this->templates->due(new \DateTimeImmutable('2027-12-31')));
 
-        self::assertSame(['recurring.problem.ended'], $this->recurringRefusalOf(fn () => $this->lifecycle->resume($template->id(), new \DateTimeImmutable('2026-12-01'))));
+        self::assertSame(['recurring.problem.ended'], $this->recurringRefusalOf(fn (): array => $this->lifecycle->resume($template->id(), new \DateTimeImmutable('2026-12-01'))));
         self::assertSame(['recurring.problem.ended'], $this->recurringRefusalOf(fn () => $this->lifecycle->pause($template->id())));
         self::assertSame(['recurring.problem.ended'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->edit($template->id(), $this->templates->get($template->id())->version(), $this->recurringInput())));
         self::assertSame('ended', $this->templateRow($template->id())['state']);

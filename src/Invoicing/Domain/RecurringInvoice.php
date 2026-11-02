@@ -126,7 +126,7 @@ class RecurringInvoice implements TenantOwned, Audited
     private RecurringState $state = RecurringState::Active;
 
     #[ORM\Column(name: 'next_occurrence', type: 'date_immutable', nullable: true)]
-    private ?\DateTimeImmutable $nextOccurrence = null;
+    private ?\DateTimeImmutable $nextOccurrence;
 
     #[ORM\Column(name: 'last_occurrence', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastOccurrence = null;
@@ -208,12 +208,12 @@ class RecurringInvoice implements TenantOwned, Audited
      */
     public function nextOccurrenceUnder(Recurrence $recurrence, \DateTimeImmutable $today): ?\DateTimeImmutable
     {
-        $from = self::day($today);
-        if ($this->nextOccurrence instanceof \DateTimeImmutable && self::day($this->nextOccurrence) < $from) {
-            $from = self::day($this->nextOccurrence);
+        $from = $this->day($today);
+        if ($this->nextOccurrence instanceof \DateTimeImmutable && $this->day($this->nextOccurrence) < $from) {
+            $from = $this->day($this->nextOccurrence);
         }
-        if ($this->lastOccurrence instanceof \DateTimeImmutable && self::day($this->lastOccurrence->modify('+1 day')) > $from) {
-            $from = self::day($this->lastOccurrence->modify('+1 day'));
+        if ($this->lastOccurrence instanceof \DateTimeImmutable && $this->day($this->lastOccurrence->modify('+1 day')) > $from) {
+            $from = $this->day($this->lastOccurrence->modify('+1 day'));
         }
 
         return self::firstOccurrenceFrom($recurrence, $this->issuedCount, new \DateTimeImmutable($from));
@@ -246,7 +246,7 @@ class RecurringInvoice implements TenantOwned, Audited
         if (RecurringState::Active !== $this->state) {
             throw new \DomainException('Only an active template issues invoices.');
         }
-        if (!$this->nextOccurrence instanceof \DateTimeImmutable || self::day($occurrence) !== self::day($this->nextOccurrence)) {
+        if (!$this->nextOccurrence instanceof \DateTimeImmutable || $this->day($occurrence) !== $this->day($this->nextOccurrence)) {
             throw new \DomainException('A template issues its next date only.');
         }
         ++$this->issuedCount;
@@ -291,9 +291,9 @@ class RecurringInvoice implements TenantOwned, Audited
             return [];
         }
         $recurrence = $this->recurrence();
-        $day = self::day($today);
+        $day = $this->day($today);
         $skipped = [];
-        if ($this->nextOccurrence instanceof \DateTimeImmutable && self::day($this->nextOccurrence) < $day) {
+        if ($this->nextOccurrence instanceof \DateTimeImmutable && $this->day($this->nextOccurrence) < $day) {
             $open = new Recurrence($recurrence->firstIssueOn(), $recurrence->unit(), $recurrence->every(), $recurrence->onLastDayOfMonth(), RecurrenceEnd::Never, null, null);
             foreach (RecurringSchedule::next($open, $this->issuedCount, $this->nextOccurrence, self::MAX_SKIPPED) as $date) {
                 if ($date->format('Y-m-d') >= $day || RecurringSchedule::isOver($recurrence, $this->issuedCount, $date)) {
@@ -303,8 +303,8 @@ class RecurringInvoice implements TenantOwned, Audited
             }
         }
         $from = $day;
-        if ($this->lastOccurrence instanceof \DateTimeImmutable && self::day($this->lastOccurrence->modify('+1 day')) > $from) {
-            $from = self::day($this->lastOccurrence->modify('+1 day'));
+        if ($this->lastOccurrence instanceof \DateTimeImmutable && $this->day($this->lastOccurrence->modify('+1 day')) > $from) {
+            $from = $this->day($this->lastOccurrence->modify('+1 day'));
         }
         $this->nextOccurrence = self::firstOccurrenceFrom($recurrence, $this->issuedCount, new \DateTimeImmutable($from));
         $this->pausedAt = null;
@@ -359,7 +359,7 @@ class RecurringInvoice implements TenantOwned, Audited
      */
     public function markAlerted(\DateTimeImmutable $day): void
     {
-        $this->lastAlertOn = $this->keepDay($this->lastAlertOn, new \DateTimeImmutable(self::day($day)));
+        $this->lastAlertOn = $this->keepDay($this->lastAlertOn, new \DateTimeImmutable($this->day($day)));
     }
 
     public function isIssued(): bool
@@ -557,10 +557,10 @@ class RecurringInvoice implements TenantOwned, Audited
 
     private function keepDay(?\DateTimeImmutable $stored, \DateTimeImmutable $given): \DateTimeImmutable
     {
-        return $stored instanceof \DateTimeImmutable && self::day($stored) === self::day($given) ? $stored : $given;
+        return $stored instanceof \DateTimeImmutable && $this->day($stored) === $this->day($given) ? $stored : $given;
     }
 
-    private static function day(\DateTimeImmutable $date): string
+    private function day(\DateTimeImmutable $date): string
     {
         return $date->format('Y-m-d');
     }
