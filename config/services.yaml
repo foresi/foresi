@@ -79,6 +79,11 @@ services:
 
     App\Banking\Application\MailReader:
         alias: App\Banking\Infrastructure\Mime\ZbatesonMailReader
+    # Whose authentication results are believed; empty lists verify no message.
+    App\Banking\Application\TrustSettings:
+        arguments:
+            $authservIds: '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%'
+            $arcSealers: '%env(csv:BANK_INBOX_TRUSTED_ARC)%'
     # Every firm gets the default switches until the pairing settings are stored.
     App\Banking\Application\FirmPairingRules:
         alias: App\Banking\Application\DefaultPairingRules

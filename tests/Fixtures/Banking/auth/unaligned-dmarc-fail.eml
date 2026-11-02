@@ -1,0 +1,10 @@
+Authentication-Results: mx.example.com; dmarc=fail header.from=example.com
+From: info@kb.cz
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <unaligned-dmarc-fail@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK
