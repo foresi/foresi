@@ -96,7 +96,7 @@ final class FirmBankController extends AbstractController
         $rules = $this->pairing->for($firm);
         $url = $this->generateUrl('app_firm_bank', ['id' => $firm->id()]);
 
-        return $this->render('banking/firm/bank.html.twig', [
+        return $this->render('banking/firm/bank.html.twig', parameters: [
             'firm' => $firm,
             'tab' => $tab,
             'tabs' => [
@@ -112,7 +112,7 @@ final class FirmBankController extends AbstractController
             'newUrl' => $this->generateUrl('app_firm_bank_account_new', ['id' => $firm->id()]),
             'pairingAction' => $this->generateUrl('app_firm_bank_pairing', ['id' => $firm->id()]),
             'cancel' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
-        ]);
+        ], response: self::PAIRING === $tab ? $this->unstored() : null);
     }
 
     #[Route('/settings/firms/{id}/bank/accounts/new', name: 'app_firm_bank_account_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -244,7 +244,7 @@ final class FirmBankController extends AbstractController
                 'unavailable' => $this->unavailable(),
                 'guide' => self::GUIDE,
                 'cancel' => $this->generateUrl('app_firm_bank', ['id' => $firm->id(), 'tab' => self::PAIRING]),
-            ]);
+            ], $this->unstored());
         }
 
         $this->checkToken($request, self::ADDRESS_TOKEN);
@@ -475,6 +475,18 @@ final class FirmBankController extends AbstractController
         }
 
         return $account;
+    }
+
+    /**
+     * For a page that shows an inbound address: who knows it can send payment mail
+     * in, so neither the browser nor anything between keeps a copy.
+     */
+    private function unstored(): Response
+    {
+        $response = new Response();
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 
     private function denyUnlessOwner(): void

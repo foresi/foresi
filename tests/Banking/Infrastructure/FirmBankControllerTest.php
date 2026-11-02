@@ -219,6 +219,20 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertStringEndsWith('docs/bank-pairing.md', Scalars::text($crawler->filter('dialog#dialog-page a[target="_blank"]')->attr('href')));
     }
 
+    public function testPagesShowingTheAddressAreNeverStored(): void
+    {
+        $firm = $this->signedInFirm();
+        $account = $this->withAccount($firm);
+        $this->generate($firm, $account);
+        $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
+
+        foreach ([[$this->url($firm, 'pairing'), []], [$this->url($firm).'/accounts/'.$account.'/address', []], [$this->url($firm).'/accounts/'.$account.'/address', $dialog]] as [$url, $server]) {
+            $this->client->request('GET', $url, server: $server);
+            self::assertResponseIsSuccessful();
+            self::assertStringContainsString('no-store', Scalars::text($this->client->getResponse()->headers->get('Cache-Control')), $url);
+        }
+    }
+
     public function testGeneratingFromTheDialogClosesItOverTheTab(): void
     {
         $firm = $this->signedInFirm();
