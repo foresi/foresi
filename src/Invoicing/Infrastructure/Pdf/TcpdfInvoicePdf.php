@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Pdf;
 
+use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\InvoicingCountry;
@@ -80,6 +81,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         private TranslatorInterface $translator,
         private AmountText $amounts,
         private PdfFont $font,
+        private DocumentFormat $format,
     ) {
     }
 
@@ -140,10 +142,10 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'number' => $document->number,
             'issuer' => $this->party($document->issuer, $payer),
             'customer' => $this->party($document->customer, $payer),
-            'issueDate' => $this->date($document->issueDate),
-            'taxPointDate' => $this->date($document->taxPointDate),
+            'issueDate' => $this->format->date($document->issueDate, $document->language),
+            'taxPointDate' => $this->format->date($document->taxPointDate, $document->language),
             'taxPointLabel' => $this->trans($payer ? 'invoice.pdf.tax_point' : 'invoice.pdf.supply_date'),
-            'dueDate' => $this->date($document->dueDate),
+            'dueDate' => $this->format->date($document->dueDate, $document->language),
             'account' => $country->domesticAccount($document->bankAccount ?? ''),
             'iban' => $document->bankAccount,
             'paymentMethod' => $this->trans('invoice.payment.'.$document->paymentMethod->value),
@@ -162,7 +164,7 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'net' => $totals['base'],
             'vat' => $totals['vat'],
             'gross' => $totals['total'],
-            'payable' => $this->money($document->payable),
+            'payable' => $this->format->money($document->payable, $document->language),
             'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
             'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
         ];
@@ -378,19 +380,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
         return $this->amounts->grouped($money);
     }
 
-    private function money(Money $money): string
-    {
-        return $this->amounts->money($money);
-    }
-
     private function percent(Percent $percent): string
     {
         return $this->amounts->trimmed($percent->decimal())."\u{a0}%";
-    }
-
-    private function date(\DateTimeImmutable $date): string
-    {
-        return $date->format($this->trans('invoice.pdf.date_format'));
     }
 
     /**

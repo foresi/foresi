@@ -112,6 +112,10 @@ services:
         alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
     App\Invoicing\Application\MailHostPolicy:
         alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+    App\Invoicing\Application\MailTemplates:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+    App\Invoicing\Application\DocumentTitles:
+        alias: App\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -288,6 +292,10 @@ when@test:
         App\Invoicing\Application\MailHostPolicy:
             alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
             public: true
+        App\Invoicing\Application\MailTemplates:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+            public: true
+        App\Invoicing\Application\MailVariables: { public: true }
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

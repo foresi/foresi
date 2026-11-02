@@ -502,6 +502,16 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  mail:
+    default:
+      subject: 'Faktura {number}'
+      body: |-
+        Na základě Vaší objednávky Vám zasílám fakturu č. {number} na částku {amount_total} se splatností {due_date}.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -530,7 +540,6 @@ invoice:
     tax_point: Datum zdanitelného plnění
     supply_date: Datum uskutečnění
     due_date: Datum splatnosti
-    date_format: 'j. n. Y'
     bank_account: Bankovní účet
     payment_method: Způsob platby
     variable_symbol: Variabilní symbol

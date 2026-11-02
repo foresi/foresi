@@ -502,6 +502,16 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  mail:
+    default:
+      subject: 'Invoice {number}'
+      body: |-
+        Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -530,7 +540,6 @@ invoice:
     tax_point: Tax point date
     supply_date: Date of supply
     due_date: Due date
-    date_format: 'j M Y'
     bank_account: Bank account
     payment_method: Payment method
     variable_symbol: Variable symbol
