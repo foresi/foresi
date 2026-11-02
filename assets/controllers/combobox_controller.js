@@ -13,7 +13,7 @@ const DELAY = 200;
  * after a pick clears it and sends "combobox:clear".
  */
 export default class extends Controller {
-    static targets = ['value', 'input', 'list', 'status'];
+    static targets = ['value', 'input', 'list', 'status', 'empty'];
     static values = { url: String, empty: String, found: String, minLength: { type: Number, default: 3 } };
 
     disconnect() {
@@ -67,6 +67,7 @@ export default class extends Controller {
         this.listTarget.replaceChildren(...results.map((result, index) => this.option(result, index)));
         this.statusTarget.textContent = results.length === 0 ? this.emptyValue : this.foundValue.replace('__COUNT__', results.length);
         this.setOpen(results.length > 0);
+        this.emptyTarget.hidden = results.length > 0;
     }
 
     option(result, index) {
@@ -146,6 +147,7 @@ export default class extends Controller {
 
     setOpen(open) {
         this.listTarget.hidden = !open;
+        this.emptyTarget.hidden = true;
         if (open) {
             this.active = -1;
         }
