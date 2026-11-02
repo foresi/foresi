@@ -1,0 +1,15 @@
+Authentication-Results: mx.example.com; dkim=fail header.d=kb.cz; arc=fail
+ARC-Seal: i=2; a=rsa-sha256; t=1793607300; cv=pass; d=arc.example.com; s=arc1;
+  b=ZmFrZSBzZWFsIGZvciBhIHRlc3Q=
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=arc.example.com; s=arc1;
+  h=from:to:subject:date; bh=ZmFrZQ==; b=ZmFrZQ==
+ARC-Authentication-Results: i=2; arc.example.com; dkim=pass header.d=kb.cz; spf=pass smtp.mailfrom=kb.cz
+From: info@kb.cz
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <arc-fail@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK
