@@ -1,0 +1,70 @@
+From: Komercni banka <info@kb.cz>
+To: bank+token@example.com
+Subject: =?utf-8?B?T3puw6FtZW7DrSBvIHBsYXRiw6FjaA==?=
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <incoming-1250-qp@kb.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="kb-mixed"
+
+--kb-mixed
+Content-Type: text/html; charset=windows-1250
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html><head><meta http-equiv=3D"Content-Type" content=3D"text/html; charset=
+=3Dwindows-1250"><title>Notice</title></head>
+<body>
+<p>V=E1=9Een=FD kliente,</p>
+<p>zas=EDl=E1me V=E1m ozn=E1men=ED o platb=E1ch na Va=9Aem =FA=E8tu.</p>
+<table>
+<tr><td colspan=3D"2" style=3D"font-weight:bold;padding-top:16px">P=F8=
+=EDchoz=ED platba</td></tr>
+<tr><td style=3D"color:#555">=C8=E1stka a m=ECna</td><td>150,00 CZK</td></t=
+r>
+<tr><td style=3D"color:#555">=C8=EDslo va=9Aeho =FA=E8tu</td><td>19-2000145=
+399/0800</td></tr>
+<tr><td style=3D"color:#555">=C8=EDslo proti=FA=E8tu</td><td>123-4567890123=
+/0100</td></tr>
+<tr><td style=3D"color:#555">Jm=E9no proti=FA=E8tu</td><td>P=F8=EDkladn=
+=E1 =DA=E8etn=ED s.r.o.</td></tr>
+<tr><td style=3D"color:#555">Datum splatnosti</td><td>02.11.2026</td></tr>
+<tr><td style=3D"color:#555">Stav platby</td><td>Za=FA=E8tov=E1no</td></tr>
+<tr><td style=3D"color:#555">Variabiln=ED symbol</td><td>2026001</td></tr>
+<tr><td style=3D"color:#555">Konstantn=ED symbol</td><td>0308</td></tr>
+<tr><td style=3D"color:#555">Specifick=FD symbol</td><td>0</td></tr>
+<tr><td style=3D"color:#555">Zpr=E1va pro p=F8=EDjemce</td><td>Platba za sl=
+u=9Eby =F8=EDjen</td></tr>
+</table>
+<hr>
+<p>Dear client,</p>
+<p>we send you a notice of payments on your account.</p>
+<table>
+<tr><td colspan=3D"2" style=3D"font-weight:bold;padding-top:16px">Incoming =
+payment</td></tr>
+<tr><td style=3D"color:#555">Amount and currency</td><td>150,00 CZK</td></t=
+r>
+<tr><td style=3D"color:#555">Your account number</td><td>19-2000145399/0800=
+</td></tr>
+<tr><td style=3D"color:#555">Counteraccount number</td><td>123-4567890123/0=
+100</td></tr>
+<tr><td style=3D"color:#555">Counteraccount name</td><td>P=F8=EDkladn=
+=E1 =DA=E8etn=ED s.r.o.</td></tr>
+<tr><td style=3D"color:#555">Due date</td><td>02.11.2026</td></tr>
+<tr><td style=3D"color:#555">Status of the payment</td><td>Booked</td></tr>
+<tr><td style=3D"color:#555">Variable symbol</td><td>2026001</td></tr>
+<tr><td style=3D"color:#555">Constant symbol</td><td>0308</td></tr>
+<tr><td style=3D"color:#555">Specific symbol</td><td>0</td></tr>
+<tr><td style=3D"color:#555">Message for beneficiary</td><td>Platba za slu=
+=9Eby =F8=EDjen</td></tr>
+</table>
+<p>Example footer, example.com</p>
+</body></html>
+
+--kb-mixed
+Content-Type: application/pdf; name="Oznameni.pdf"
+Content-Disposition: attachment; filename="Oznameni.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKU1lOVEhFVElDIEFUVEFDSE1FTlQKJSVFT0YK
+
+--kb-mixed--
