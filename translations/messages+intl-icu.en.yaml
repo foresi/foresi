@@ -878,6 +878,7 @@ bank:
     flash:
       queued: The e-mail is still in the queue. Give it a moment.
       processed: The e-mail is processed.
+      retry_failed: The e-mail could not be processed now. Try again later.
       still: 'It did not work this time either: {reason}'
       now: 'The e-mail is now: {status}.'
       accepted: The payment is recorded unpaired. Pair it by hand.

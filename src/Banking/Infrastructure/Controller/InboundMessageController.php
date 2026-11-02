@@ -27,6 +27,7 @@ use App\Banking\Domain\InboundStatus;
 use App\Banking\Domain\MessageTrust;
 use App\Identity\Application\StaffCheck;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -62,6 +63,7 @@ final class InboundMessageController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly InboundAddresses $addresses,
         private readonly Ownership $ownership,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -103,7 +105,15 @@ final class InboundMessageController extends AbstractController
 
             return $this->toList($return);
         }
-        $status = $this->retrying->retry($id);
+        try {
+            $status = $this->retrying->retry($id);
+        } catch (\Throwable $failure) {
+            // Undone and counted by ProcessMessage: the person learns it failed, the log says why.
+            $this->logger->error('Trying the inbound message {message} again failed.', ['message' => $id, 'exception' => $failure]);
+            $this->addFlash('error', $this->translator->trans('bank.message.flash.retry_failed'));
+
+            return $this->toList($return);
+        }
         match ($status) {
             InboundStatus::Processed => $this->addFlash('success', $this->translator->trans('bank.message.flash.processed')),
             InboundStatus::Failed, InboundStatus::Rejected => $this->addFlash('error', $this->translator->trans('bank.message.flash.still', ['reason' => $this->text->reason($status, $this->message($id)->failure(), false)])),

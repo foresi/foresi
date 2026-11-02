@@ -878,6 +878,7 @@ bank:
     flash:
       queued: E-mail ještě čeká ve frontě. Chvíli vydržte.
       processed: E-mail je zpracovaný.
+      retry_failed: E-mail se teď nepodařilo zpracovat. Zkuste to později.
       still: 'Ani tentokrát to nevyšlo: {reason}'
       now: 'E-mail je teď: {status}.'
       accepted: Platba je zaznamenaná nespárovaná. Spárujte ji ručně.

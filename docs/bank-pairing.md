@@ -311,7 +311,7 @@ The list filters by firm, account and a search over partner, VS or amount. The s
 - For a movement Foresi did not verify (listed as "Not verified, check it in the bank first"), the dialog warns, nothing is ticked or filled in, and the box "I checked the payment in the bank" must be ticked. Find the payment in your internet banking first.
 - **Unpair** on a paired row asks first: the invoices become unpaid again, the payment is cancelled, and the movement returns to unmatched and is **never paired automatically again**. Undo from the flash does the same without asking.
 - **Show** opens the message: its text as text, never as HTML, the sender, the account, the status and the verification.
-- **Try again** processes a failed, waiting or not-bank message now. Pressing it twice records nothing twice.
+- **Try again** processes a failed, waiting or not-bank message now. Pressing it twice records nothing twice. An unexpected error leaves the message as it was, says so in a flash and is logged.
 - **Record anyway** exists only for a message that failed the sender check, and only for the owner. It warns that the message did not pass the bank-sender check and may be forged, then records the movements unverified and unpaired; they are never paired by themselves, and pairing them needs the bank check above. The audit log keeps who recorded it and when.
 - **Dismiss** sets aside a message nobody will record: one about another firm's account, a failure no parser will read, a mail that is no bank's, or a stuck one. It is never processed again; the raw message stays stored, and the audit log says who dismissed it.
 

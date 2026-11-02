@@ -18,6 +18,7 @@ use App\Banking\Application\InboundFiles;
 final class FailingInboundFiles implements InboundFiles
 {
     private static ?string $marker = null;
+    private static ?string $readMarker = null;
 
     public function __construct(private readonly InboundFiles $files)
     {
@@ -37,9 +38,23 @@ final class FailingInboundFiles implements InboundFiles
         return $this->files->store($tenantId, $messageId, $raw);
     }
 
+    /**
+     * Reading any message holding the marker fails as no store says it would, so
+     * the error reaches whoever asked to process it.
+     */
+    public static function breakReadsOn(?string $marker): void
+    {
+        self::$readMarker = $marker;
+    }
+
     public function read(string $tenantId, string $key, string $sha256): string
     {
-        return $this->files->read($tenantId, $key, $sha256);
+        $raw = $this->files->read($tenantId, $key, $sha256);
+        if (null !== self::$readMarker && str_contains($raw, self::$readMarker)) {
+            throw new \LogicException('The store broke.');
+        }
+
+        return $raw;
     }
 
     public function remove(string $tenantId, string $messageId): void

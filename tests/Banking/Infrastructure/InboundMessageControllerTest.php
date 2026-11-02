@@ -13,6 +13,7 @@ use App\Banking\Domain\InboundMessage;
 use App\Identity\Domain\Role;
 use App\Party\Domain\FirmBankAccount;
 use App\Tests\Banking\Support\BankScreenTestCase;
+use App\Tests\Banking\Support\FailingInboundFiles;
 use App\Tests\Banking\Support\Scalars;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -66,6 +67,23 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertSame('processed', $row['status']);
         self::assertSame(1, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$id])));
         self::assertStringContainsString('The e-mail is processed.', $this->page('/bank?tab=messages')->filter('main')->text());
+    }
+
+    public function testAnErrorOnTryAgainIsAFlashNotAnErrorPage(): void
+    {
+        $this->signedIn();
+        $id = $this->received($this->notice('incoming-unknown-status', messageId: 'broken@kb.example.com'));
+        $crawler = $this->page('/bank?tab=messages');
+        FailingInboundFiles::breakReadsOn('broken@kb.example.com');
+        try {
+            $this->client->submit($this->row($crawler, $id)->filter('form[action="/bank/messages/'.$id.'/retry"]')->first()->form());
+        } finally {
+            FailingInboundFiles::breakReadsOn(null);
+        }
+
+        self::assertResponseRedirects('/bank?tab=messages');
+        self::assertStringContainsString('The e-mail could not be processed now. Try again later.', $this->page('/bank?tab=messages')->filter('main')->text());
+        self::assertSame('failed', $this->messageRow($id)['status']);
     }
 
     public function testRecordAnywayExistsOnlyForTrustRejections(): void
