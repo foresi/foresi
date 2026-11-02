@@ -1269,6 +1269,41 @@ recurring:
   to_send:
     label: K odeslání
     hint: Faktury z pravidelných faktur, které ještě nikdo neodeslal.
+  alert:
+    subject:
+      issue: Pravidelnou fakturu se nepodařilo vystavit
+      send: Pravidelná faktura se vystavila, ale neodeslala
+    opening:
+      issue: 'Pravidelnou fakturu firmy {firm} pro {customer} se {date} nepodařilo vystavit.'
+      send: 'Pravidelná faktura firmy {firm} pro {customer} se {date} vystavila, ale neodeslala. Čeká mezi fakturami k odeslání.'
+    closing:
+      issue: Další běh to zkusí znovu zítra v 5:00. Příčinu opravte ve Foresi v pravidelných fakturách.
+      send: Po opravě ji odešlete ve Foresi z přehledu faktur.
+    digest:
+      subject: '{count, plural, one {# pravidelnou fakturu se nepodařilo vystavit nebo odeslat} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat}}'
+      subject_send: '{count, plural, one {# pravidelná faktura se vystavila, ale neodeslala} few {# pravidelné faktury se vystavily, ale neodeslaly} other {# pravidelných faktur se vystavilo, ale neodeslalo}}'
+      opening: 'Pravidelné faktury firmy {firm} se {date} nepodařilo vystavit nebo odeslat:'
+      closing: Vystavené faktury čekají mezi fakturami k odeslání. Nevystavené zkusí další běh znovu zítra v 5:00.
+    link: 'Pravidelné faktury ve Foresi: {url}'
+    reason:
+      other: 'Pravidla to nedovolila (kód {code}).'
+      issue:
+        refused: Pravidla vystavení fakturu odmítla.
+      invoice:
+        problem:
+          customer_archived: Odběratel je pro tuto firmu archivovaný.
+          customer_unknown: Odběratel už neexistuje.
+          customer_address_incomplete: Odběratel nemá úplnou fakturační adresu.
+          line_rate_missing: Druh sazby DPH některé položky k datu zdanitelného plnění neexistuje.
+          firm_archived: Firma je archivovaná.
+          firm_country_unsupported: Pravidla země firmy nejsou k dispozici.
+      send:
+        no_server: Firma nemá nastavený poštovní server.
+        no_recipient: Odběratel nemá e-mail pro faktury.
+        bad_address: E-mail odběratele není platný.
+        rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+        undrawable: Fakturu nejde vykreslit do PDF.
+        unexpected: Odeslání selhalo kvůli neočekávané chybě.
   failure:
     other: Poslední vystavení nebo odeslání se nepovedlo.
     send:

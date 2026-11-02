@@ -53,6 +53,8 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     /** An occurrence up to this many days late is still sent; a later one waits for review. */
     public const int LATE_DAYS = 3;
     public const int MAX_PER_RUN = 24;
+    /** The failure of an issue refused without a problem named. */
+    public const string REFUSED = 'issue.refused';
     /** The failure of a send that broke on something no rule foresaw. */
     public const string UNEXPECTED = 'send.unexpected';
     /** The failure of a send the firm's budget refused; the firm's later templates of the run are held with it. */
@@ -155,7 +157,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
             try {
                 $invoice = $this->occurrences->issue($id, $occurrence, $today);
             } catch (IssueRefused $refused) {
-                $failure = $refused->problems[0]->key ?? 'invoice.problem.refused';
+                $failure = $refused->problems[0]->key ?? self::REFUSED;
                 break;
             } catch (UnsupportedCountry) {
                 $failure = 'invoice.problem.firm_country_unsupported';

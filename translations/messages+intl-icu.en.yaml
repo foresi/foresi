@@ -1269,6 +1269,41 @@ recurring:
   to_send:
     label: To send
     hint: Invoices from recurring invoices that nobody has sent yet.
+  alert:
+    subject:
+      issue: A recurring invoice could not be issued
+      send: A recurring invoice was issued but not sent
+    opening:
+      issue: 'A recurring invoice of {firm} for {customer} could not be issued on {date}.'
+      send: 'A recurring invoice of {firm} for {customer} was issued on {date} but not sent. It waits among the invoices to send.'
+    closing:
+      issue: The next run tries again tomorrow at 5:00. Fix the cause in Foresi under recurring invoices.
+      send: Once fixed, send it in Foresi from the list of invoices.
+    digest:
+      subject: '{count, plural, one {# recurring invoice could not be issued or sent} other {# recurring invoices could not be issued or sent}}'
+      subject_send: '{count, plural, one {# recurring invoice was issued but not sent} other {# recurring invoices were issued but not sent}}'
+      opening: 'Recurring invoices of {firm} could not be issued or sent on {date}:'
+      closing: The issued invoices wait among the invoices to send. The next run tries the others again tomorrow at 5:00.
+    link: 'Recurring invoices in Foresi: {url}'
+    reason:
+      other: 'The rules refused it (code {code}).'
+      issue:
+        refused: The rules refused to issue the invoice.
+      invoice:
+        problem:
+          customer_archived: The customer is archived for this firm.
+          customer_unknown: The customer no longer exists.
+          customer_address_incomplete: The customer has no complete invoicing address.
+          line_rate_missing: The kind of VAT rate of a line does not exist on the tax point.
+          firm_archived: The firm is archived.
+          firm_country_unsupported: The rules of the firm's country are not available.
+      send:
+        no_server: The firm has no mail server set up.
+        no_recipient: The customer has no e-mail address for invoices.
+        bad_address: An e-mail address of the customer is not valid.
+        rate_limited: The firm has used up its daily budget of e-mails.
+        undrawable: The invoice cannot be drawn as a PDF.
+        unexpected: Sending failed on an unexpected error.
   failure:
     other: The last run could not issue or send it.
     send:

@@ -127,6 +127,8 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
     App\Invoicing\Application\DocumentTitles:
         alias: App\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
+    App\Invoicing\Application\RecurringAlertTexts:
+        alias: App\Invoicing\Infrastructure\Mail\TranslatedRecurringAlertTexts
     App\Invoicing\Application\InvoiceSends:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
     App\Invoicing\Application\SentFiles:
