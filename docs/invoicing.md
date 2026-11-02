@@ -12,6 +12,16 @@ This page says what the invoices of this release do and do not do. It is a state
 - Numbers: series per firm with date tokens and a counter that never repeats a number. A deleted invoice goes to the trash and keeps its number. See ADR 13.
 - Output: a PDF/A-3a with the ISDOC file embedded, a QR Platba+F code, and the logo and stamp of the firm. See ADR 12.
 
+## The form
+
+- **Customer.** Any active contact can be picked, whatever its role; a contact archived for the firm cannot. Customers come first. A saved invoice makes the contact a customer of the firm: of the firm alone when it has roles of its own or the organisation has several active firms, otherwise in the shared roles.
+- **New customer.** The plus opens the contact form in a new tab, with the register lookup and its validation. The first contact saved there is picked on the invoice with its defaults.
+- **My firms.** These are your own companies, which issue documents. Customers belong in the address book. `/invoices/new` explains what is missing when there is no firm, or only archived series. A firm with no series at all gets the standard one on its first save.
+- **Register entry.** Required on every firm, as Civil Code section 435 requires it on business documents. A business outside the Commercial Register states its record in another register, such as the trade register.
+- **More details.** Order number, description, symbols, language and texts. The section opens when one of them differs from what the form starts with, or holds a mistake. An empty description takes the text of the first line.
+- **Numbers.** Prices and quantities are grouped as you type; without JavaScript the server reads the same forms. A separator counts only where it groups thousands properly, and a comma in `1,000` is a decimal mark in Czech and a thousands separator in English.
+- **Status.** One derived status per document, the most relevant: in the trash, overdue, delivered, issued. Payment states will join this order.
+
 ## ISDOC statement
 
 Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own writer. The producer is named in the file. The files are validated against the published schema in the tests. The file uses the extension `LocalReverseChargeCode` and `LocalReverseChargeFlag` for a domestic reverse charge. Which parts of the format other programs read, and how, differs between programs; check the import with yours before relying on it.

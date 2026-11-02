@@ -35,7 +35,7 @@ test.describe('first run', () => {
 
   test('an organisation without firms is told how to start', async ({ page }) => {
     await page.goto('/settings/firms');
-    await expect(page.getByRole('heading', { level: 1, name: 'Firmy' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Moje firmy' })).toBeVisible();
     await expect(page.getByText('Zatím tu nejsou žádné firmy')).toBeVisible();
     await expectNoSeriousViolations(page);
   });
@@ -47,7 +47,7 @@ test.describe.serial('an owner manages firms', () => {
 
   test('reaches them from the sidebar', async ({ page }) => {
     await page.goto('/contacts');
-    await page.locator('#sidebar').getByRole('link', { name: 'Firmy' }).click();
+    await page.locator('#sidebar').getByRole('link', { name: 'Moje firmy' }).click();
     await expect(page).toHaveURL(/\/settings\/firms$/);
   });
 

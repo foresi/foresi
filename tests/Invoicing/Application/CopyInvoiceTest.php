@@ -170,7 +170,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
         self::assertSame('2027-02-24', $draft->dueDate->format('Y-m-d'));
     }
 
-    public function testACustomerWhoStoppedBeingACustomerAlsoWarns(): void
+    public function testAContactWhoStoppedBeingACustomerStaysOnTheCopy(): void
     {
         $source = $this->source();
         self::getContainer()->get(ContactSettingsForFirm::class)->changeRoles($this->customer, $this->firm, [\App\Party\Domain\PartyRole::Supplier]);
@@ -178,8 +178,8 @@ final class CopyInvoiceTest extends InvoiceTestCase
 
         $draft = $this->copy->valuesFrom($source);
 
-        self::assertNull($draft->customerId);
-        self::assertSame(['invoice.copy.customer_archived'], $draft->notices);
+        self::assertSame($this->customer->id(), $draft->customerId);
+        self::assertSame([], $draft->notices);
     }
 
     public function testACopyOfAReverseChargeInvoiceKeepsTreatmentAndCode(): void

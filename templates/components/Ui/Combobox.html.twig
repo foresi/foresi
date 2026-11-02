@@ -7,6 +7,7 @@
         <input type="hidden" name="{{ name }}" value="{{ value }}" data-combobox-target="value">
         <input type="text" id="{{ id }}" name="{{ textName }}" value="{{ text }}" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="{{ id }}-list" autocomplete="off"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} data-combobox-target="input" data-action="input->combobox#search keydown->combobox#navigate blur->combobox#close" {{ controlAttributes.defaults({class: 'h-control ' ~ ctl.classes}) }}>
         <ul id="{{ id }}-list" role="listbox" aria-label="{{ label }}" hidden data-combobox-target="list" class="absolute inset-x-0 top-full z-30 m-0 mt-1 max-h-72 list-none overflow-y-auto rounded-panel border border-container bg-white p-1.5 shadow-floating"></ul>
+        <p hidden aria-hidden="true" data-combobox-target="empty" class="absolute inset-x-0 top-full z-30 m-0 mt-1 rounded-panel border border-container bg-white px-2.5 py-2 text-small text-muted shadow-floating">{{ emptyText }}</p>
         <p role="status" class="sr-only" data-combobox-target="status"></p>
     </div>
 </twig:Ui:Field>

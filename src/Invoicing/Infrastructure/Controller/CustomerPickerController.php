@@ -13,6 +13,7 @@ use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
+use App\Party\Domain\LegalEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,8 +23,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * The customers a firm can invoice, for the combobox of the invoice form. A firm of
- * another tenant is never found, so it answers 404 like one that does not exist.
+ * The contacts a firm can invoice, for the combobox of the invoice form: found by
+ * text, or the one with an id, which the form asks for after the contact was created
+ * in another tab. A firm of another tenant is never found, so it answers 404 like
+ * one that does not exist.
  */
 final class CustomerPickerController extends AbstractController
 {
@@ -50,7 +53,10 @@ final class CustomerPickerController extends AbstractController
             throw new NotFoundHttpException();
         }
 
-        $options = $this->picker->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), $firm);
+        $contact = $request->query->getString('id');
+        $options = '' === $contact
+            ? $this->picker->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), $firm)
+            : $this->one($contact, $firm);
 
         return $this->json(['results' => array_map(static fn (CustomerOption $option): array => [
             'id' => $option->id,
@@ -72,5 +78,15 @@ final class CustomerPickerController extends AbstractController
             'reverseCharge' => $option->defaults->reverseCharge,
             'currency' => $option->defaults->currency->value,
         ], $options)]);
+    }
+
+    /**
+     * @return list<CustomerOption>
+     */
+    private function one(string $id, LegalEntity $firm): array
+    {
+        $option = Uuid::isValid($id) ? $this->picker->find($id, $firm) : null;
+
+        return $option instanceof CustomerOption ? [$option] : [];
     }
 }

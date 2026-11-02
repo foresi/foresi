@@ -27,6 +27,7 @@
 
 {% block content %}
     <div class="grid grid-cols-1 gap-4">
+        {% for id in app.flashes(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::CREATED_FLASH')) %}<div hidden data-controller="contact-created" data-contact-created-id-value="{{ id }}"></div>{% endfor %}
         {% for message in app.flashes('success') %}
             <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
         {% endfor %}

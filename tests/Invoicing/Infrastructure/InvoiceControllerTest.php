@@ -29,6 +29,7 @@ use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\Address;
@@ -58,14 +59,17 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
- * @phpstan-type Figures array{lines: list<array{total: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
+ * @phpstan-type Figures array{lines: list<array{total: string, discount: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
 {
+    /** Refused while saving, under the "version" or "form" field, or kept for a later step. */
+    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
@@ -648,14 +652,14 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $data = $this->json();
         self::assertStringStartsWith('{"lines":', (string) $this->client->getResponse()->getContent());
-        self::assertSame(['1,209.99 CZK', '100.00 CZK'], array_map($this->nbsp(...), array_column($data['lines'], 'total')));
-        self::assertSame('1,089.28 CZK', $this->nbsp($data['net']));
-        self::assertSame('220.71 CZK', $this->nbsp((string) $data['vat']));
-        self::assertSame('0.01 CZK', $this->nbsp((string) $data['rounding']));
-        self::assertSame('1,310.00 CZK', $this->nbsp($data['payable']));
+        self::assertSame(['1,209.99 Kč', '100.00 Kč'], array_map($this->nbsp(...), array_column($data['lines'], 'total')));
+        self::assertSame('1,089.28 Kč', $this->nbsp($data['net']));
+        self::assertSame('220.71 Kč', $this->nbsp((string) $data['vat']));
+        self::assertSame('0.01 Kč', $this->nbsp((string) $data['rounding']));
+        self::assertSame('1,310.00 Kč', $this->nbsp($data['payable']));
         self::assertCount(2, $data['summaries']);
         self::assertSame('21%', $data['summaries'][0]['label']);
-        self::assertSame('999.99 CZK', $this->nbsp($data['summaries'][0]['base']));
+        self::assertSame('999.99 Kč', $this->nbsp($data['summaries'][0]['base']));
     }
 
     public function testRecountAndTheSavedDocumentNeverDiverge(): void
@@ -762,7 +766,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->client->request('POST', '/invoices/recount', $values);
 
-        self::assertSame('1,210.00 CZK', $this->nbsp($this->json()['payable']));
+        self::assertSame('1,210.00 Kč', $this->nbsp($this->json()['payable']));
     }
 
     public function testNextNumberIsAPreviewOfTheSeriesOnThatDate(): void
@@ -819,7 +823,7 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame([], $this->invoices());
     }
 
-    public function testASupplierCannotBeForgedIn(): void
+    public function testASupplierIsInvoicedAndBecomesACustomer(): void
     {
         $this->signedIn();
         $this->scoped(function (): void {
@@ -829,8 +833,278 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->save($this->filled());
 
+        self::assertResponseRedirects('/invoices');
+        $roles = $this->scoped(fn (): array => $this->em()->getRepository(Party::class)->find($this->customer->id())?->roles() ?? []);
+        self::assertSame([PartyRole::Supplier, PartyRole::Customer], $roles);
+    }
+
+    public function testAnEditToAnotherContactMakesItACustomer(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+        $invoice = $this->invoices()[0];
+        $other = $this->scoped(function (): Party {
+            $party = new Party(PartyKind::Person, 'Example Vendor', null, null, '');
+            $party->assignRoles([PartyRole::Supplier]);
+            $this->em()->persist($party);
+            $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Vendor Street 1', 'Vendor City', '300 00', 'CZ')));
+            $this->em()->flush();
+
+            return $party;
+        });
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
+        $values = $this->currentValues();
+
+        $this->saveEdit($invoice, array_merge($values, ['customerId' => $other->id(), 'customerQuery' => 'Example Vendor', 'customer' => array_merge($values['customer'], ['name' => '']), '_action' => 'save']));
+
+        self::assertResponseRedirects('/invoices');
+        $roles = $this->scoped(fn (): array => $this->em()->getRepository(Party::class)->find($other->id())?->roles() ?? []);
+        self::assertSame([PartyRole::Supplier, PartyRole::Customer], $roles);
+    }
+
+    /**
+     * Every problem the code can raise, walked through the form as it is rendered.
+     */
+    #[DataProvider('forms')]
+    public function testEveryProblemLeadsToARealTarget(VatStatus $status, bool $account): void
+    {
+        $this->signedIn(status: $status);
+        if (!$account) {
+            $this->withoutBankAccounts();
+        }
+        $crawler = $this->client->request('GET', '/invoices/new');
+        $firmUrl = '/settings/firms/'.$this->firm->id().'/edit';
+        $targets = new InvoiceErrorTargets(VatStatus::Registered === $status, false, $account, true, $firmUrl);
+
+        $problems = $this->problemsInTheCode();
+        self::assertGreaterThan(50, \count($problems));
+        foreach ($problems as [$field, $key]) {
+            $link = $targets->of(InvoiceErrorTargets::inputId($field), $key);
+            if (null === $link) {
+                self::assertContains(InvoiceErrorTargets::inputId($field), ['form', 'document', 'version', 'firm'], $key);
+                continue;
+            }
+            if ($link['external']) {
+                self::assertSame($firmUrl, $link['href'], $key);
+                continue;
+            }
+            $target = $crawler->filter('[id="'.substr($link['href'], 1).'"]');
+            self::assertCount(1, $target, $key.' at '.$link['href']);
+            $node = $target->getNode(0);
+            self::assertInstanceOf(\DOMElement::class, $node);
+            self::assertNotSame('hidden', $node->getAttribute('type'), $key);
+            self::assertTrue(\in_array($node->tagName, ['input', 'select', 'textarea', 'button', 'a'], true) || $node->hasAttribute('tabindex'), $key.' is not focusable');
+        }
+    }
+
+    /**
+     * @return iterable<string, array{VatStatus, bool}>
+     */
+    public static function forms(): iterable
+    {
+        yield 'a VAT payer' => [VatStatus::Registered, true];
+        yield 'a VAT payer without an account' => [VatStatus::Registered, false];
+        yield 'a non-payer' => [VatStatus::NotRegistered, true];
+    }
+
+    public function testEveryTranslatedProblemIsWalked(): void
+    {
+        $keys = array_column($this->problemsInTheCode(), 1);
+        /** @var array{invoice: array{problem: array<string, string>}} $messages */
+        $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/translations/messages+intl-icu.en.yaml');
+        $translated = array_map(static fn (string $key): string => 'invoice.problem.'.$key, array_keys($messages['invoice']['problem']));
+
+        self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE)));
+    }
+
+    public function testFirmProblemsLinkToTheFirmInANewTabAndTheFormStays(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), '', []);
+            $this->em()->flush();
+        });
+
+        $this->save($this->filled());
+
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_role'));
+        $links = $this->client->getCrawler()->filter('[data-error-summary] a[target="_blank"]');
+        self::assertCount(2, $links);
+        foreach ($links as $link) {
+            self::assertInstanceOf(\DOMElement::class, $link);
+            self::assertStringEndsWith('/settings/firms/'.$this->firm->id().'/edit', $link->getAttribute('href'));
+            self::assertSame('noopener', $link->getAttribute('rel'));
+        }
+    }
+
+    public function testAFirmWithoutAnAccountSaysSoBeforeTheSave(): void
+    {
+        $this->signedIn();
+        $this->withoutBankAccounts();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorTextContains('[data-bank-note]', $this->text('invoice.field.bankAccount_none'));
+        self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firms/'.$this->firm->id().'/edit"]');
+    }
+
+    public function testAnAccountAddedInAnotherTabIsUsedByTheOpenForm(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(), ['bankAccount' => '']));
+
+        self::assertResponseRedirects('/invoices');
+        self::assertSame(self::IBAN, $this->invoices()[0]->bankAccount());
+    }
+
+    public function testNoFirmExplainsWhatIsNeeded(): void
+    {
+        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', $this->text('invoice.blocked.no_firm_title'));
+        self::assertSelectorExists('main a[href="/settings/firms/new"]');
+        self::assertSelectorNotExists('#invoice-form');
+    }
+
+    public function testOnlyArchivedSeriesExplainWhatIsNeeded(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $this->em()->getRepository(Series::class)->find($this->series->id())?->archive();
+            $this->em()->flush();
+        });
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorTextContains('main', $this->text('invoice.blocked.no_series_title'));
+        self::assertSelectorExists('main a[href="/settings/firms/'.$this->firm->id().'/invoicing"]');
+        self::assertSelectorNotExists('#invoice-form');
+    }
+
+    public function testAFirmWithoutSeriesStillOpensTheForm(): void
+    {
+        $this->signedIn(series: false);
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorExists('#invoice-form');
+    }
+
+    public function testMoreDetailsStayClosedOnANewForm(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorNotExists('details[data-more-details][open]');
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>}>
+     */
+    public static function moreDetails(): iterable
+    {
+        yield 'an order number' => [['orderNumber' => 'PO-1']];
+        yield 'a description of its own' => [['description' => 'Something else']];
+        yield 'a constant symbol' => [['constantSymbol' => '0308']];
+        yield 'a text after' => [['textAfter' => 'Thanks']];
+        yield 'a mistake inside' => [['variableSymbol' => 'abc']];
+    }
+
+    /**
+     * @param array<string, string> $values
+     */
+    #[DataProvider('moreDetails')]
+    public function testMoreDetailsOpenForWhatTheyHold(array $values): void
+    {
+        $this->signedIn();
+
+        $action = \array_key_exists('variableSymbol', $values) ? 'save' : 'refresh';
+
+        $this->save([...$this->filled(), ...$values, '_action' => $action]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('details[data-more-details][open]');
+    }
+
+    public function testADescriptionLikeTheFirstLineStaysClosed(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(), ['description' => 'Work', '_action' => 'refresh']));
+
+        self::assertSelectorNotExists('details[data-more-details][open]');
+    }
+
+    public function testTheTotalColumnSaysWhatItHolds(): void
+    {
+        $this->signedIn();
+        $crawler = $this->client->request('GET', '/invoices/new');
+
+        self::assertStringContainsString($this->text('invoice.line.total_with_vat'), $crawler->filter('thead')->text());
+    }
+
+    public function testANonPayerTotalsWithoutTheWordVat(): void
+    {
+        $this->signedIn(status: VatStatus::NotRegistered);
+        $crawler = $this->client->request('GET', '/invoices/new');
+
+        self::assertStringNotContainsString($this->text('invoice.line.total_with_vat'), $crawler->filter('thead')->text());
+        self::assertStringContainsString($this->text('invoice.line.total'), $crawler->filter('thead')->text());
+    }
+
+    public function testADiscountShowsOnlyWithAValue(): void
+    {
+        $this->signedIn();
+        $crawler = $this->client->request('GET', '/invoices/new');
+        self::assertNotNull($crawler->filter('#lines-0-discount-box')->attr('hidden'));
+
+        $this->save($this->filled(['lines' => [$this->lineValues(['discount' => '10'])], '_action' => 'refresh']));
+
+        self::assertNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+    }
+
+    public function testADiscountOpensAndClosesWithoutJavaScript(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['_action' => 'discount_add:0']));
+        self::assertNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+
+        $this->save($this->filled(['lines' => [$this->lineValues(['discount' => '10'])], '_action' => 'discount_remove:0']));
+        self::assertNotNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+        self::assertSame('', $this->currentValues()['lines'][0]['discount']);
+    }
+
+    public function testRecountGivesTheFullAmountAndTheDeductionOfALine(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('POST', '/invoices/recount', $this->filled(['lines' => [$this->lineValues(['price' => '1000,00', 'discount' => '10', 'vat' => 'base'])]]));
+
+        $line = $this->json()['lines'][0];
+        self::assertSame('1,210.00 Kč', $this->nbsp($line['total']));
+        self::assertSame('-121.00 Kč', $this->nbsp($line['discount']));
+        self::assertSame('1,089.00 Kč', $this->nbsp($this->json()['payable']));
+    }
+
+    public function testAStoredDocumentShowsItsStatus(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+
+        $id = $this->invoices()[0]->id();
+
+        foreach (['/invoices', '/invoices/'.$id.'/edit', '/invoices/'.$id.'/history'] as $page) {
+            $this->client->request('GET', $page);
+            self::assertSelectorTextContains('main', $this->text('invoice.list.status.issued'), $page);
+        }
     }
 
     public function testAForeignInvoiceIs404(): void
@@ -1435,7 +1709,7 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('reverse_charge', $this->currentValues()['lines'][0]['vat']);
     }
 
-    public function testAPickChecksTheContactIsACustomerOfTheFirm(): void
+    public function testAPickTakesAContactOfAnyRoleAndRefusesAnArchivedOne(): void
     {
         $this->signedIn();
         $supplier = $this->scoped(function (): Party {
@@ -1448,9 +1722,16 @@ final class InvoiceControllerTest extends WebTestCase
         });
 
         $this->save(array_merge($this->filled(), ['_action' => 'pick:'.$supplier->id()]));
+        self::assertSame('Example Vendor', $this->currentValues()['customer']['name']);
+
+        $this->scoped(function () use ($supplier): void {
+            $this->em()->getRepository(Party::class)->find($supplier->id())?->archive(new \DateTimeImmutable());
+            $this->em()->flush();
+        });
+        $this->save(array_merge($this->filled(), ['_action' => 'pick:'.$supplier->id()]));
 
         self::assertSame($this->customer->id(), $this->currentValues()['customerId']);
-        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_role'));
+        self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_archived'));
     }
 
     public function testAKeptTokenOutlivesAnyNumberOfNewForms(): void
@@ -1523,7 +1804,7 @@ final class InvoiceControllerTest extends WebTestCase
             $firm = $this->em()->getRepository(LegalEntity::class)->find($second->id()) ?? throw new \LogicException('Firm.');
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id()) ?? throw new \LogicException('Party.');
             $settings = new \App\Party\Domain\PartyFirmSettings($party, $firm);
-            $settings->changeRoles([PartyRole::Supplier]);
+            $settings->archive(new \DateTimeImmutable());
             $this->em()->persist($settings);
             $this->em()->flush();
         });
@@ -1586,7 +1867,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->save($values);
         $this->openEdit($this->onlyInvoice());
 
-        self::assertSame('-0.12 CZK', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
+        self::assertSame('-0.12 Kč', $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
     }
 
     public function testATextLikeMarkupStaysText(): void
@@ -1836,6 +2117,41 @@ final class InvoiceControllerTest extends WebTestCase
         $this->em()->flush();
         $this->context->reset();
         $this->browser->signIn();
+    }
+
+    private function withoutBankAccounts(): void
+    {
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), $firm->registerEntry(), []);
+            $this->em()->flush();
+        });
+    }
+
+    /**
+     * The fields and keys of every problem in the source, a line's standing for all of them.
+     *
+     * @return list<array{string, string}>
+     */
+    private function problemsInTheCode(): array
+    {
+        $source = \dirname(__DIR__, 3).'/src/Invoicing';
+        $code = (string) file_get_contents($source.'/Application/IssueRules.php');
+        $code .= (string) file_get_contents($source.'/Application/EditInvoice.php');
+        $code .= (string) file_get_contents($source.'/Application/NumberAllocator.php');
+        $reader = (string) file_get_contents($source.'/Infrastructure/Form/InvoiceFormReader.php');
+
+        $problems = [];
+        preg_match_all("/IssueProblem\\((?:'([a-zA-Z]+)'|\\\$field(?:\\.'\\.([a-zA-Z]+)')?), 'invoice\\.problem\\.([a-z_]+)'/", $code, $found, \PREG_SET_ORDER);
+        foreach ($found as [, $field, $cell, $key]) {
+            $problems[] = ['' !== $field ? $field : 'lines.0.'.('' !== $cell ? $cell : 'text'), 'invoice.problem.'.$key];
+        }
+        preg_match_all("/\\\$errors\\[(?:'([a-zA-Z.]+)'|\\\$field(?:\\.'([a-zA-Z]+)')?)\\] = 'invoice\\.problem\\.([a-z_]+)'/", $reader, $found, \PREG_SET_ORDER);
+        foreach ($found as [, $field, $cell, $key]) {
+            $problems[] = ['' !== $field ? $field : ('' !== $cell ? 'lines.0.'.$cell : 'issueDate'), 'invoice.problem.'.$key];
+        }
+
+        return $problems;
     }
 
     private function secondSeries(): Series

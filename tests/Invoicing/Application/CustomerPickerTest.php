@@ -35,21 +35,23 @@ final class CustomerPickerTest extends InvoiceTestCase
         $this->picker = self::getContainer()->get(CustomerPicker::class);
     }
 
-    public function testASupplierOfThisFirmIsNotOffered(): void
+    public function testASupplierOfThisFirmIsOffered(): void
     {
         $this->rolesForTheFirm($this->customer, [PartyRole::Supplier]);
 
-        self::assertSame([], $this->picker->search('Example Customer', $this->firm));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
     }
 
-    public function testACustomerOfThisFirmOnlyIsOfferedThere(): void
+    public function testACustomerOfThisFirmIsACustomerThereOnly(): void
     {
         $other = $this->firm(registrationNumber: '12345687');
         $this->customer->assignRoles([PartyRole::Supplier]);
         $this->rolesForTheFirm($this->customer, [PartyRole::Customer]);
+        $contacts = self::getContainer()->get(ContactSettingsForFirm::class);
 
-        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
-        self::assertSame([], $this->picker->search('Example Customer', $other));
+        self::assertTrue($contacts->isCustomer($this->customer, $this->firm));
+        self::assertFalse($contacts->isCustomer($this->customer, $other));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $other));
     }
 
     public function testAContactWithoutRolesIsOffered(): void
@@ -59,12 +61,23 @@ final class CustomerPickerTest extends InvoiceTestCase
         self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
     }
 
-    public function testAPartnerWithoutTheCustomerRoleIsNotOffered(): void
+    public function testAPartnerWithoutTheCustomerRoleIsOffered(): void
     {
         $this->customer->assignRoles([PartyRole::Partner]);
         $this->em->flush();
 
-        self::assertSame([], $this->picker->search('Example Customer', $this->firm));
+        self::assertSame(['Example Customer a.s.'], $this->names('Example Customer', $this->firm));
+    }
+
+    public function testCustomersComeFirst(): void
+    {
+        $this->customer->assignRoles([PartyRole::Customer]);
+        $supplier = new Party(PartyKind::Person, 'Example A Supplier', null, null, '');
+        $supplier->assignRoles([PartyRole::Supplier]);
+        $this->em->persist($supplier);
+        $this->em->flush();
+
+        self::assertSame(['Example Customer a.s.', 'Example A Supplier'], $this->names('Example', $this->firm));
     }
 
     public function testAContactArchivedForThisFirmIsNotOffered(): void
@@ -167,17 +180,19 @@ final class CustomerPickerTest extends InvoiceTestCase
         self::assertCount(CustomerPicker::LIMIT, $this->picker->search('Example Many', $this->firm));
     }
 
-    public function testCustomersBehindAFullPageOfSuppliersAreFound(): void
+    public function testCustomersBehindAFullPageOfSuppliersComeFirst(): void
     {
         for ($i = 0; $i < 26; ++$i) {
             $supplier = new Party(PartyKind::Person, 'Example A Supplier '.$i, null, null, '');
             $supplier->assignRoles([PartyRole::Supplier]);
             $this->em->persist($supplier);
         }
-        $this->em->persist(new Party(PartyKind::Person, 'Example Z Customer', null, null, ''));
+        $customer = new Party(PartyKind::Person, 'Example Z Customer', null, null, '');
+        $customer->assignRoles([PartyRole::Customer]);
+        $this->em->persist($customer);
         $this->em->flush();
 
-        self::assertSame(['Example Z Customer'], $this->names('Example ', $this->firm, ['Example Customer a.s.']));
+        self::assertSame('Example Z Customer', $this->names('Example ', $this->firm, ['Example Customer a.s.'])[0]);
     }
 
     public function testOffersAreInNameOrder(): void
@@ -189,15 +204,68 @@ final class CustomerPickerTest extends InvoiceTestCase
         self::assertSame(['Example A', 'Example B', 'Example Customer a.s.'], $this->names('Example', $this->firm));
     }
 
-    public function testTheRoleCheckIsSharedWithTheSave(): void
+    public function testTheOnlyFirmMakesAContactACustomerInTheSharedRoles(): void
     {
+        $this->customer->assignRoles([PartyRole::Supplier]);
+        $this->em->flush();
+
+        $this->issue->issue($this->input());
+
+        self::assertSame([PartyRole::Supplier, PartyRole::Customer], $this->customer->roles());
+        self::assertFalse(self::getContainer()->get(ContactSettingsForFirm::class)->hasOwnRoles($this->customer, $this->firm));
+    }
+
+    public function testAPlainContactBecomesACustomer(): void
+    {
+        $this->issue->issue($this->input());
+
+        self::assertSame([PartyRole::Customer], $this->customer->roles());
+    }
+
+    public function testAFirmAmongSeveralTakesTheRoleForItselfOnly(): void
+    {
+        $other = $this->firm(registrationNumber: '12345687');
+        $this->customer->assignRoles([PartyRole::Supplier]);
+        $this->em->flush();
         $contacts = self::getContainer()->get(ContactSettingsForFirm::class);
 
-        self::assertTrue($contacts->isCustomerOf($this->customer, $this->firm));
+        $this->issue->issue($this->input());
 
+        self::assertSame([PartyRole::Supplier], $this->customer->roles());
+        self::assertSame([PartyRole::Supplier, PartyRole::Customer], $contacts->rolesFor($this->customer, $this->firm));
+        self::assertSame([PartyRole::Supplier], $contacts->rolesFor($this->customer, $other));
+    }
+
+    public function testOwnRolesOfTheFirmGrowAndTheSharedOnesStay(): void
+    {
+        $this->customer->assignRoles([PartyRole::Partner]);
         $this->rolesForTheFirm($this->customer, [PartyRole::Supplier]);
-        self::assertFalse($contacts->isCustomerOf($this->customer, $this->firm));
-        $this->assertRefusedFor('invoice.problem.customer_role', fn (): \App\Invoicing\Domain\Invoice => $this->issue->issue($this->input()));
+
+        $this->issue->issue($this->input());
+
+        self::assertSame([PartyRole::Partner], $this->customer->roles());
+        self::assertSame([PartyRole::Supplier, PartyRole::Customer], self::getContainer()->get(ContactSettingsForFirm::class)->rolesFor($this->customer, $this->firm));
+    }
+
+    public function testARefusedDocumentGivesNoRole(): void
+    {
+        $this->customer->assignRoles([PartyRole::Supplier]);
+        $this->em->flush();
+
+        $this->assertRefusedFor('invoice.problem.no_lines', fn (): \App\Invoicing\Domain\Invoice => $this->issue->issue($this->input(lines: [])));
+
+        self::assertSame([PartyRole::Supplier], $this->customer->roles());
+    }
+
+    public function testACustomerAlreadyIsLeftAlone(): void
+    {
+        $this->customer->assignRoles([PartyRole::Customer, PartyRole::Supplier]);
+        $this->em->flush();
+
+        $this->issue->issue($this->input());
+
+        self::assertSame([PartyRole::Customer, PartyRole::Supplier], $this->customer->roles());
+        self::assertFalse(self::getContainer()->get(ContactSettingsForFirm::class)->hasOverride($this->customer, $this->firm));
     }
 
     public function testAnExistingDocumentKeepsItsCustomerWhenTheRoleChanges(): void

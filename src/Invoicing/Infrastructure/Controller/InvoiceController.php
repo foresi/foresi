@@ -16,6 +16,7 @@ use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoicePdf;
+use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuedDocumentFactory;
@@ -38,6 +39,7 @@ use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Infrastructure\Form\AmountText;
+use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFigures;
 use App\Invoicing\Infrastructure\Form\InvoiceFormContext;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
@@ -79,7 +81,7 @@ final class InvoiceController extends AbstractController
 {
     public const string FORM_TOKEN = 'invoice_form';
     private const array SAVING = ['save', 'save_pdf'];
-    private const array LINE_CELLS = ['rate' => 'vat', 'treatment' => 'vat'];
+    private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
         private readonly LegalEntities $firms,
@@ -122,6 +124,11 @@ final class InvoiceController extends AbstractController
         $firm = '' === $id ? $this->defaults->firmFor($this->actor->userId()) : $this->firm($id);
         if (!$firm instanceof LegalEntity) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'no_firm']);
+        }
+
+        // No series at all is fine: the first save stores the default. Only archived ones leave nothing to number from.
+        if ([] === $this->catalog->forFirm($firm) && [] !== $this->catalog->everyForFirm($firm)) {
+            return $this->render('invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
         }
 
         try {
@@ -287,6 +294,10 @@ final class InvoiceController extends AbstractController
     {
         // Only a button issues a document: a request without one changes nothing.
         $action = $request->request->getString('_action', 'refresh');
+        // The firm got its first account in another tab while this form was open.
+        if (!$context->invoice instanceof Invoice && '' === $request->request->getString('bankAccount')) {
+            $request->request->set('bankAccount', $context->firm->bankAccounts()[0] ?? '');
+        }
         $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
@@ -354,8 +365,8 @@ final class InvoiceController extends AbstractController
         $errors = [];
         if (str_starts_with($action, 'pick:')) {
             $party = $this->pickable(substr($action, 5));
-            if ($party instanceof Party && !$this->contacts->isCustomerOf($party, $context->firm)) {
-                $errors = [$this->message('customer', 'invoice.problem.customer_role')];
+            if ($party instanceof Party && $this->contacts->isArchivedFor($party, $context->firm)) {
+                $errors = [$this->message('customer', 'invoice.problem.customer_archived')];
             } elseif ($party instanceof Party) {
                 $values = $this->values->withCustomer($values, $party, $context->firm, $submission->input->issueDate, $context->regime, $this->issuerCountry($context));
             }
@@ -453,16 +464,16 @@ final class InvoiceController extends AbstractController
      * @param array<string, string> $formErrors
      * @param list<IssueProblem>    $problems
      *
-     * @return list<array{id: string, field: string, message: string}>
+     * @return list<array{id: string, key: string, field: string, message: string}>
      */
     private function messages(array $formErrors, array $problems): array
     {
         $messages = [];
         foreach ($formErrors as $field => $key) {
-            $messages[$this->inputId($field)] ??= $this->message($field, $key);
+            $messages[InvoiceErrorTargets::inputId($field)] ??= $this->message($field, $key);
         }
         foreach ($problems as $problem) {
-            $messages[$this->inputId($problem->field)] ??= $this->message($problem->field, $problem->key, $problem->parameters);
+            $messages[InvoiceErrorTargets::inputId($problem->field)] ??= $this->message($problem->field, $problem->key, $problem->parameters);
         }
 
         // In the order of the form: the lines come after the document.
@@ -474,28 +485,18 @@ final class InvoiceController extends AbstractController
     /**
      * @param array<string, string> $parameters
      *
-     * @return array{id: string, field: string, message: string}
+     * @return array{id: string, key: string, field: string, message: string}
      */
     private function message(string $field, string $key, array $parameters = []): array
     {
-        return ['id' => $this->inputId($field), 'field' => $this->fieldLabel($field), 'message' => $this->translator->trans($key, $parameters)];
-    }
-
-    private function inputId(string $field): string
-    {
-        $parts = explode('.', $field);
-        if ('lines' === $parts[0] && 3 === \count($parts)) {
-            return \sprintf('lines-%s-%s', $parts[1], self::LINE_CELLS[$parts[2]] ?? $parts[2]);
-        }
-
-        return implode('-', $parts);
+        return ['id' => InvoiceErrorTargets::inputId($field), 'key' => $key, 'field' => $this->fieldLabel($field), 'message' => $this->translator->trans($key, $parameters)];
     }
 
     private function fieldLabel(string $field): string
     {
         $parts = explode('.', $field);
         if ('lines' === $parts[0] && 3 === \count($parts)) {
-            $cell = self::LINE_CELLS[$parts[2]] ?? $parts[2];
+            $cell = InvoiceErrorTargets::LINE_CELLS[$parts[2]] ?? $parts[2];
 
             return $this->translator->trans('invoice.line.label', ['number' => (int) $parts[1] + 1]).' · '.$this->translator->trans('invoice.line.'.$cell);
         }
@@ -504,9 +505,9 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * @param array<string, mixed>                                    $values
-     * @param list<array{id: string, field: string, message: string}> $errors
-     * @param list<array{id: string, name: string, hint: string}>     $candidates
+     * @param array<string, mixed>                                                 $values
+     * @param list<array{id: string, key: string, field: string, message: string}> $errors
+     * @param list<array{id: string, name: string, hint: string}>                  $candidates
      */
     private function form(InvoiceFormContext $context, array $values, array $errors, array $candidates, string $token, int $version, int $status, bool $stale = false): Response
     {
@@ -517,6 +518,8 @@ final class InvoiceController extends AbstractController
         foreach ($errors as $error) {
             $errorFields[$error['id']] = $error['message'];
         }
+        $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
+        $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl);
 
         return $this->render('invoicing/form.html.twig', [
             'blocked' => null,
@@ -525,8 +528,12 @@ final class InvoiceController extends AbstractController
             'firms' => $this->firmOptions($context),
             'series' => $this->seriesOptions($context),
             'values' => $values,
-            'errors' => $errors,
+            'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
             'errorFields' => $errorFields,
+            'firmUrl' => $firmUrl,
+            'statusBadge' => $this->statusBadge($context),
+            'moreOpen' => $this->moreOpen($values, $context, $errorFields),
+            'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,
             'token' => $token,
             'version' => $version,
@@ -553,6 +560,46 @@ final class InvoiceController extends AbstractController
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
+    }
+
+    /**
+     * @return array{label: string, tone: string}|null
+     */
+    private function statusBadge(InvoiceFormContext $context): ?array
+    {
+        if (!$context->invoice instanceof Invoice) {
+            return null;
+        }
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->today($context));
+
+        return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
+    }
+
+    /**
+     * "More details" opens for a mistake inside it and for anything that is not what
+     * the form starts with. An empty description follows the first line.
+     *
+     * @param array<string, mixed>  $values
+     * @param array<string, string> $errorFields
+     */
+    private function moreOpen(array $values, InvoiceFormContext $context, array $errorFields): bool
+    {
+        if ([] !== array_intersect_key($errorFields, array_flip(self::MORE_FIELDS))) {
+            return true;
+        }
+        $settings = $this->settings->for($context->firm);
+        /** @var list<array<string, string>> $lines */
+        $lines = $values['lines'];
+        $number = '' !== $values['number'] ? $values['number'] : $values['numberPeek'];
+        \assert(\is_string($number));
+
+        return '' !== $values['orderNumber']
+            || !\in_array($values['description'], ['', $lines[0]['text'] ?? ''], true)
+            || $values['variableSymbol'] !== VariableSymbol::fromNumber($number)
+            || $values['constantSymbol'] !== $settings->constantSymbol()
+            || $values['textBefore'] !== $settings->textBefore()
+            || $values['textAfter'] !== $settings->textAfter()
+            || DocumentLanguage::Czech->value !== $values['language'];
     }
 
     /**

@@ -17,6 +17,7 @@ use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRegime;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
@@ -29,6 +30,7 @@ use Psr\Clock\ClockInterface;
  * transaction writes the number, the frozen copies, the lines and the totals. The
  * first write is the counter, because a transaction that read first can fail on
  * SQLite when it starts to write. Losing to another save starts again at loading.
+ * The same transaction makes the contact a customer of the firm.
  */
 final readonly class IssueInvoice
 {
@@ -47,6 +49,7 @@ final readonly class IssueInvoice
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private ContactSettingsForFirm $contacts,
     ) {
     }
 
@@ -70,7 +73,12 @@ final readonly class IssueInvoice
             $issuer = DocumentParty::ofIssuer($firm, $settings);
             $content = $input->change($party, $customer);
 
-            return $this->work->run(fn (): Invoice => $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content));
+            return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party): Invoice {
+                $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content);
+                $this->contacts->makeCustomer($party, $firm);
+
+                return $invoice;
+            });
         });
     }
 

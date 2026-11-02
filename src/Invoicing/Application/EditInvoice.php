@@ -13,6 +13,7 @@ use App\Invoicing\Domain\InvoiceChange;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 
@@ -36,6 +37,7 @@ final readonly class EditInvoice
         private NumberAllocator $numbers,
         private TransactionalWork $work,
         private ConflictRetry $retry,
+        private ContactSettingsForFirm $contacts,
     ) {
     }
 
@@ -63,6 +65,10 @@ final readonly class EditInvoice
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
             $customer = $this->copies->for($input, $party, $firm, $invoice) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $series = null === $input->seriesId ? $invoice->series() : $this->catalog->get($input->seriesId);
+            // An archived firm has no settings to change; its old documents can still be edited.
+            if ($party->id() !== $invoice->customerParty()->id() && !$firm->isArchived()) {
+                $this->contacts->makeCustomer($party, $firm);
+            }
             $this->renumber($invoice, $input, $series);
             $this->save($invoice, $input, $input->change($party, $customer));
 

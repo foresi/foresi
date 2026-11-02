@@ -94,6 +94,7 @@ $main = $tenantWithOwner('Example Company', 'testing@example.com', 'Testing Exam
 $tenantWithOwner('Example Empty Company', 'empty@example.com', 'Empty Example');
 $group = $tenantWithOwner('Example Group', 'group@example.com', 'Group Example');
 $invoicing = $tenantWithOwner('Example Invoicing', 'invoicing@example.com', 'Invoicing Example');
+$tenantWithOwner('Example First Run', 'first-run@example.com', 'First Run Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
@@ -150,6 +151,7 @@ $context->switchTo($invoicing);
 $entityManager->persist(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234', ['CZ6508000000192000145399']));
 $entityManager->persist(new LegalEntity('Example Small Trader', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register', ['CZ6508000000192000145399']));
 $entityManager->flush();
+$entityManager->persist(new LegalEntity('Example No Account s.r.o.', new RegistrationNumber('CZ', '12345679'), null, $address(3), VatStatus::NotRegistered, '', []));
 $payerFirm = $entityManager->getRepository(LegalEntity::class)->findOneBy(['name' => 'Example Payer s.r.o.']) ?? throw new LogicException('The payer firm is missing.');
 $standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $standard->markDefault();

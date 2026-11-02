@@ -62,6 +62,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class PartyFormController extends AbstractController
 {
     public const string FORM_TOKEN = 'party_form';
+    public const string CREATED_FLASH = 'contact_created';
 
     public function __construct(
         private readonly PartyQuery $parties,
@@ -187,6 +188,10 @@ final class PartyFormController extends AbstractController
             RefreshRegistryChecksAfterResponse::schedule($request, $id);
         }
         $this->addFlash('success', $this->translator->trans($party instanceof Party ? 'party.flash.updated' : 'party.flash.created'));
+        if (!$party instanceof Party) {
+            // The detail tells a form waiting in another tab, once.
+            $this->addFlash(self::CREATED_FLASH, $id);
+        }
 
         return $this->redirectToRoute('app_contact_show', ['id' => $id]);
     }
