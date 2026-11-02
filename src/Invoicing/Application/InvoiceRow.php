@@ -11,8 +11,8 @@ namespace App\Invoicing\Application;
 use App\Shared\Domain\Money;
 
 /**
- * One line of the invoice list, with the names as the document holds them. Nothing is
- * paid yet in this step, so whatever is past its due date is overdue. The deletion is
+ * One line of the invoice list, with the names as the document holds them. Overdue is
+ * past the due date while something is still to pay. The deletion is
  * given in the time zone of the country that issued the document. The send mark says how
  * the newest e-mail of the invoice went.
  */
@@ -29,6 +29,8 @@ final readonly class InvoiceRow
         public bool $delivered,
         public bool $overdue,
         public bool $trashed,
+        public Money $paid,
+        public PaymentState $payment,
         public ?\DateTimeImmutable $deletedAt = null,
         public ?string $deletedBy = null,
         public ?string $deletedReason = null,

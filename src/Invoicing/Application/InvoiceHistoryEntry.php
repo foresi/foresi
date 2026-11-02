@@ -18,6 +18,8 @@ final readonly class InvoiceHistoryEntry
     public const string TRASHED = 'trashed';
     public const string RESTORED = 'restored';
     public const string DELIVERED = 'delivered';
+    public const string PAID = 'paid';
+    public const string PAYMENT_CANCELLED = 'payment_cancelled';
 
     /**
      * @param string|null              $userName null when no person did it

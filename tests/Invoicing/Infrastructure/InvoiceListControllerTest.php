@@ -116,7 +116,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['All 2', 'Overdue 1', 'Trash 1'], $this->tabs($crawler));
+        self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 1', 'Trash 1'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('tbody tr'));
 
         $crawler = $this->client->request('GET', '/invoices?tab=overdue');
@@ -132,7 +132,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->issue('2026-11-01', '2026-12-15');
 
-        $crawler = $this->client->request('GET', '/invoices?tab=paid');
+        $crawler = $this->client->request('GET', '/invoices?tab=settled');
 
         self::assertSame(['All 1'], $crawler->filter('nav[aria-label="Invoice lists"] a[aria-current="page"]')->each(static fn (Crawler $tab): string => (string) preg_replace('/(\D)(\d)/', '$1 $2', $tab->text())));
     }
@@ -147,7 +147,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices', ['firm' => $second->id()]);
 
         self::assertSame([$other->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
         self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
         // The tabs and the sort keep the firm.
         self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
@@ -260,7 +260,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices', ['q' => 'findable']);
 
-        self::assertSame(['All 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
     }
 
     public function testTheNewestDayComesFirstAndWithinItTheHighestNumber(): void
@@ -355,7 +355,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertSame([$invoice->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
 
         $this->client->request('GET', '/invoices/'.$other->id().'/history');
         self::assertResponseStatusCodeSame(404);
@@ -787,7 +787,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['20260001'], $this->numbers($crawler));
     }
 
-    public function testTwentyFiveRowsLoadInAtMostThreeQueries(): void
+    public function testTwentyFiveRowsLoadInAtMostFiveQueries(): void
     {
         $this->signedIn();
         for ($i = 0; $i < 25; ++$i) {
@@ -800,7 +800,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $used = $this->queryCount() - $before;
 
         self::assertCount(25, $page->rows);
-        self::assertLessThanOrEqual(4, $used, 'Queries used: '.$used);
+        // The firms, the counts, the rows, the send marks and the paid amounts.
+        self::assertLessThanOrEqual(5, $used, 'Queries used: '.$used);
     }
 
     public function testMarksTakeOneQuery(): void
