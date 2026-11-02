@@ -17,6 +17,8 @@ final readonly class Claim
         public string $job,
         public string $period,
         public ?string $lastPeriod,
+        /** When the claim was taken, in UTC to the second: finishing names it, so a claim taken again after a crash is not finished by the crashed run. */
+        public \DateTimeImmutable $startedAt,
     ) {
     }
 }

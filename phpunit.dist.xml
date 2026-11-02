@@ -21,6 +21,8 @@
     <groups>
         <exclude>
             <group>throughput</group>
+            <!-- Real worker processes claiming at once: run with group claim-race. -->
+            <group>claim-race</group>
         </exclude>
     </groups>
 

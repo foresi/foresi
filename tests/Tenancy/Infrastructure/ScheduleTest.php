@@ -171,6 +171,70 @@ final class ScheduleTest extends KernelTestCase
         self::assertFalse($this->stored($this->second));
     }
 
+    public function testATickDoesNotQueueAPeriodTwice(): void
+    {
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new ScheduleTick());
+        self::mockTime('2026-11-01 08:05:00');
+        $bus->dispatch(new ScheduleTick());
+        self::assertCount(2, $this->queue->getSent(), 'A busy worker is not handed the period again.');
+        self::assertSame('2026-11-01', $this->stored($this->first)['queued_period'] ?? null);
+
+        self::mockTime('2026-11-01 09:01:00');
+        $bus->dispatch(new ScheduleTick());
+        self::assertCount(4, $this->queue->getSent(), 'A queued message lost for an hour is sent again.');
+
+        $this->worker->run();
+        self::assertCount(2, CountingJob::runs(), 'The second copy finds the period done.');
+        $row = $this->stored($this->first);
+        self::assertIsArray($row);
+        self::assertNull($row['queued_period']);
+    }
+
+    public function testALateFinishOfAReclaimedRunChangesNothing(): void
+    {
+        $this->context->set($this->first);
+        $crashed = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
+        self::assertInstanceOf(Claim::class, $crashed);
+
+        self::mockTime('2026-11-01 09:01:00');
+        $again = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
+        self::assertInstanceOf(Claim::class, $again);
+
+        $this->runs()->finish($crashed);
+        $this->runs()->giveBack($crashed, 'late');
+        $row = $this->row($this->first);
+        self::assertNull($row['finished_at']);
+        self::assertNull($row['last_period']);
+        self::assertNull($row['last_error']);
+
+        $this->runs()->finish($again);
+        self::assertSame('2026-11-01', $this->row($this->first)['last_period']);
+    }
+
+    public function testTimesAreStoredInUtc(): void
+    {
+        self::mockTime(new \DateTimeImmutable('2026-11-01 09:00:00.750', new \DateTimeZone('Europe/Prague')));
+        $this->context->set($this->first);
+
+        $claim = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
+
+        self::assertInstanceOf(Claim::class, $claim);
+        self::assertSame('2026-11-01 08:00:00.000000 UTC', $claim->startedAt->format('Y-m-d H:i:s.u T'));
+        self::assertSame('2026-11-01 08:00:00', $this->stored($this->first)['started_at'] ?? null);
+    }
+
+    public function testPeriodsCompareByteByByte(): void
+    {
+        $this->context->set($this->first);
+        $claim = $this->runs()->claim(CountingJob::NAME, 'B');
+        self::assertInstanceOf(Claim::class, $claim);
+        $this->runs()->finish($claim);
+
+        // Byte order puts "B" before "a"; a locale's order would not.
+        self::assertInstanceOf(Claim::class, $this->runs()->claim(CountingJob::NAME, 'a'));
+    }
+
     public function testTheTickSendsOneStampedMessagePerTenantToTheQueue(): void
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
@@ -249,7 +313,7 @@ final class ScheduleTest extends KernelTestCase
     private function stored(TenantId $tenant): array|false
     {
         return $this->connection->fetchAssociative(
-            'SELECT last_period, finished_at, last_error FROM scheduled_job_run WHERE tenant_id = :tenant AND job = :job',
+            'SELECT last_period, started_at, finished_at, last_error, queued_period FROM scheduled_job_run WHERE tenant_id = :tenant AND job = :job',
             ['tenant' => $tenant->toString(), 'job' => CountingJob::NAME],
         );
     }

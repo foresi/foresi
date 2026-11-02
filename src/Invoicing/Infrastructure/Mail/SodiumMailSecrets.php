@@ -31,7 +31,7 @@ final readonly class SodiumMailSecrets implements MailSecrets
         $this->keys = $this->parse($keys);
     }
 
-    public function seal(string $secret): string
+    public function seal(#[\SensitiveParameter] string $secret): string
     {
         $id = array_key_first($this->keys) ?? throw new MailSecretsUnavailable('No key to seal mail server passwords is configured: set MAIL_SECRET_KEYS.');
         $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);

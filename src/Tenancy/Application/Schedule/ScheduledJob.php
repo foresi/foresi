@@ -24,8 +24,9 @@ interface ScheduledJob
     public function name(): string;
 
     /**
-     * The period now falls in. Periods of one job must sort as strings in time
-     * order, such as "2026-11-01".
+     * The period now falls in. Periods of one job must sort byte by byte in time
+     * order, so they are written at one fixed width, such as "2026-11-01", at
+     * most 32 characters.
      */
     public function period(\DateTimeImmutable $now): string;
 
