@@ -8,11 +8,13 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\InvoicingEmail;
 use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\PaymentMethod;
@@ -25,6 +27,8 @@ use Symfony\Component\HttpFoundation\Request;
  * what to do with a firm's panel: "1" stores the firm's own values, "0" is a
  * confirmed back to shared. Anything else leaves the panel alone, so a form
  * that showed shared values cannot delete an override set after it was rendered.
+ * A panel posted without the reminder flag, such as from a form older than the
+ * flag, keeps the flag stored for its scope.
  *
  * @phpstan-import-type Values from FirmSettingsSubmission
  */
@@ -32,22 +36,27 @@ final readonly class FirmSettingsReader
 {
     private const int MAX_DUE_DAYS = 365;
 
+    public function __construct(private ContactSettingsForFirm $settings)
+    {
+    }
+
     /**
      * @param list<LegalEntity> $firms the active firms the form offered
+     * @param Party|null        $party the contact as stored, null for a new one
      */
-    public function read(Request $request, array $firms): FirmSettingsSubmission
+    public function read(Request $request, array $firms, ?Party $party = null): FirmSettingsSubmission
     {
         $posted = $request->request->all('firms');
         $parsed = new FirmSettingsParsed();
 
         $shared = $posted[FirmSettingsSubmission::SHARED] ?? null;
         if (\is_array($shared)) {
-            $this->shared($shared, $parsed);
+            $this->shared($shared, $parsed, static fn (): bool => $party?->invoicingDefaults()->sendReminders ?? true);
         }
         foreach ($firms as $firm) {
             $row = $posted[$firm->id()] ?? null;
             if (\is_array($row) && \is_array($row['own'] ?? null)) {
-                $this->firm($firm->id(), $row, $parsed);
+                $this->firm($firm->id(), $row, $parsed, fn (): bool => $party instanceof Party ? $this->settings->defaultsFor($party, $firm)->sendReminders : true);
             }
         }
 
@@ -62,13 +71,14 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed> $row
+     * @param array<mixed>     $row
+     * @param \Closure(): bool $stored the reminder flag stored for the scope
      */
-    private function shared(array $row, FirmSettingsParsed $parsed): void
+    private function shared(array $row, FirmSettingsParsed $parsed, \Closure $stored): void
     {
         $scope = FirmSettingsSubmission::SHARED;
         if (\array_key_exists('dueDays', $row)) {
-            $defaults = $this->defaults($scope, $row, $parsed);
+            $defaults = $this->defaults($scope, $row, $parsed, $stored);
             if ($defaults instanceof InvoicingDefaults) {
                 $parsed->defaults[$scope] = $defaults;
             }
@@ -91,9 +101,10 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed> $row
+     * @param array<mixed>     $row
+     * @param \Closure(): bool $stored the reminder flag stored for the scope
      */
-    private function firm(string $id, array $row, FirmSettingsParsed $parsed): void
+    private function firm(string $id, array $row, FirmSettingsParsed $parsed, \Closure $stored): void
     {
         /** @var array<mixed> $own */
         $own = $row['own'];
@@ -106,7 +117,7 @@ final readonly class FirmSettingsReader
             $parsed->own[$id][$panel] = $setting;
             match ($panel) {
                 'roles' => $parsed->roles[$id] = $setting ? $this->roles($id, $row, $parsed) : null,
-                'invoicing' => $this->firmDefaults($id, $row, $setting, $parsed),
+                'invoicing' => $this->firmDefaults($id, $row, $setting, $parsed, $stored),
                 'emails' => $this->firmEmails($id, $row, $setting, $parsed),
                 default => $parsed->archived[$id] = $setting && $this->archived($id, $row, $parsed),
             };
@@ -114,11 +125,12 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed> $row
+     * @param array<mixed>     $row
+     * @param \Closure(): bool $stored
      */
-    private function firmDefaults(string $id, array $row, bool $setting, FirmSettingsParsed $parsed): void
+    private function firmDefaults(string $id, array $row, bool $setting, FirmSettingsParsed $parsed, \Closure $stored): void
     {
-        $defaults = $setting ? $this->defaults($id, $row, $parsed) : null;
+        $defaults = $setting ? $this->defaults($id, $row, $parsed, $stored) : null;
         if ($defaults instanceof InvoicingDefaults || !$setting) {
             $parsed->defaults[$id] = $defaults;
         }
@@ -156,9 +168,10 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed> $row
+     * @param array<mixed>     $row
+     * @param \Closure(): bool $stored the reminder flag stored for the scope, read only when the field is missing
      */
-    private function defaults(string $scope, array $row, FirmSettingsParsed $parsed): ?InvoicingDefaults
+    private function defaults(string $scope, array $row, FirmSettingsParsed $parsed, \Closure $stored): ?InvoicingDefaults
     {
         $value = [
             'dueDays' => $this->text($row['dueDays'] ?? ''),
@@ -166,8 +179,12 @@ final readonly class FirmSettingsReader
             'language' => $this->text($row['language'] ?? ''),
             'paymentMethod' => $this->text($row['paymentMethod'] ?? ''),
             'reverseCharge' => isset($row['reverseCharge']) ? '1' : '',
-            // A hidden "0" goes before the checkbox; a form without the field keeps reminders on.
-            'sendReminders' => '0' === ($row['sendReminders'] ?? null) ? '' : '1',
+            // A hidden "0" goes before the checkbox; a form without the field keeps what is stored.
+            'sendReminders' => match ($row['sendReminders'] ?? null) {
+                '0' => '',
+                null => $stored() ? '1' : '',
+                default => '1',
+            },
         ];
         $parsed->values[$scope] = $value + ($parsed->values[$scope] ?? []);
 

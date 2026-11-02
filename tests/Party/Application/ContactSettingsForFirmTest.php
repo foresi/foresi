@@ -587,9 +587,41 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertEquals(false, $shared());
         self::assertEquals([$first->id() => false], $flags());
 
-        // A form from before the flag, without the field, keeps it on.
+        // Back on for all firms.
         $this->post($stored, ['shared' => ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '1']]);
         self::assertEquals(true, $shared());
+    }
+
+    public function testAFormWithoutTheReminderFlagKeepsTheStoredOne(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $defaults = ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer'];
+        $this->post($party, [
+            'shared' => $defaults + ['sendReminders' => '0'],
+            $first->id() => ['own' => ['invoicing' => '1'], 'sendReminders' => '0'] + $defaults,
+        ]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $connection = $this->em()->getConnection();
+        $shared = static fn (): mixed => $connection->fetchOne('SELECT invoicing_send_reminders FROM party WHERE id = ?', [$party->id()]);
+        $own = static fn (): mixed => $connection->fetchOne('SELECT invoicing_send_reminders FROM party_firm_settings WHERE legal_entity_id = ?', [$first->id()]);
+        self::assertEquals(false, $shared());
+        self::assertEquals(false, $own());
+
+        // A form that leaves the field out, such as one from before the flag, changes the due days only.
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        $this->post($stored, [
+            'shared' => ['dueDays' => '21'] + $defaults,
+            $first->id() => ['own' => ['invoicing' => '1'], 'dueDays' => '30'] + $defaults,
+        ]);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        self::assertEquals(false, $shared(), 'The shared flag stays off.');
+        self::assertEquals(false, $own(), "The firm's own flag stays off.");
+        self::assertEquals(21, $connection->fetchOne('SELECT invoicing_due_days FROM party WHERE id = ?', [$party->id()]));
     }
 
     public function testAllFirmsEditsTheSharedValues(): void
