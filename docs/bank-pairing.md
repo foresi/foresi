@@ -136,7 +136,28 @@ export default {
 };
 ```
 
-Store the secret as a secret of the worker (`FORESI_INBOUND_SECRET` here), never in its code. A failed post throws, so the relay's own handling of a failed delivery applies; check your service's documentation for what it does then. The trust rule below applies to webhook mail as to polled mail: the relay's own receiving server must add `Authentication-Results`, and its authserv-id must be trusted, or the mail is recorded but never pays anything by itself. Look at one raw message as the relay receives it before you trust its id.
+Store the secret as a secret of the worker (`FORESI_INBOUND_SECRET` here), never in its code. A failed post throws, so the relay's own handling of a failed delivery applies; check your service's documentation for what it does then.
+
+**Trust for the webhook is set apart from the inbox.** Mail posted to the webhook is believed only on the word of the relay's own receiving server, listed in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`, never on the servers of `BANK_INBOX_TRUSTED_AUTHSERV`: the two are different paths, and a relay that trusted the inbox's id would believe any sender who wrote it. Empty, the default, verifies no webhook mail, so none pays by itself; it is still recorded, unverified, for a person to pair after checking it in the bank.
+
+The relay must stamp its **own** `Authentication-Results` at the **top** of every message it posts, above every header the message arrived with, as the result of its own SPF, DKIM and DMARC checks. A relay that only passes on what the message carried proves nothing: those headers may be the sender's. For a relay whose receiving server writes the header itself, the raw message as the relay receives it starts like this:
+
+```
+Authentication-Results: relay.example.net;
+    dkim=pass header.d=kb.cz header.s=selector1;
+    dmarc=pass header.from=kb.cz policy.dmarc=quarantine;
+    spf=pass smtp.mailfrom=kb.cz
+From: Komercni banka <info@kb.cz>
+...
+```
+
+Then trust exactly that id for the webhook:
+
+```
+INBOUND_WEBHOOK_TRUSTED_AUTHSERV=relay.example.net
+```
+
+The id above is an example, and providers differ in whether and how they write the header: look at one raw message as the relay receives it, and at what the owner's Pairing tab shows (see [below](#checking-the-setup)), before you trust an id. A relay that cannot stamp its own results leaves every webhook mail unverified.
 
 IMAP and the webhook can run together. The same message arriving both ways with the same bytes, or again after a crash, is stored once: the key is the SHA-256 of its `Message-ID`, or of its bytes when it has none. Anyone can send mail with the `Message-ID` of a notice the bank is about to send, so a copy whose `Message-ID` is stored already but whose bytes differ is stored as well, under the SHA-256 of its bytes: junk that arrives first never keeps the real notice out. Should both copies carry the same movement, such as one notice forwarded through two paths that changed its headers, the second movement is a **possible duplicate** and never pays anything.
 
@@ -149,7 +170,7 @@ Anyone can send a mail that looks like the bank's, and anyone can write an `Auth
 A message is **verified** only when:
 
 - its `From` names exactly one address, in a domain of the bank (for Komerční banka `kb.cz` and `kbinfo.cz`, and their subdomains);
-- the **topmost** `Authentication-Results` header carries an authserv-id listed in `BANK_INBOX_TRUSTED_AUTHSERV`;
+- the **topmost** `Authentication-Results` header carries an authserv-id trusted for the channel the message came by: listed in `BANK_INBOX_TRUSTED_AUTHSERV` for mail polled over IMAP, in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` for mail posted to the webhook;
 - that header holds exactly one DMARC result, and it is `dmarc=pass` for a `header.from` the sender's domain aligns with, which is itself a domain of the bank;
 - no `Authentication-Results` header below the topmost one carries a trusted authserv-id.
 
@@ -198,6 +219,10 @@ Why so strict: a receiving server copies text the sender chose, such as the HELO
    ```
 
 4. **If your inbox provider seals with ARC on receipt, list it too.** The newest ARC set is then the provider's own, so without it in the list no ARC rescue ever applies.
+
+### Checking the setup
+
+The owner's **My firms › (firm) › Bank › Pairing** tab shows, under each account's address, a check of the last e-mail that account received: the channel it came by (IMAP or webhook), the authserv-id of its topmost `Authentication-Results`, whether that server is trusted for the channel, and the verdict, such as "Verified sender (dmarc)" or "Sender not verified (no-results)". Nothing else of the mail is shown there. An id that is yours but shown as not trusted belongs in `BANK_INBOX_TRUSTED_AUTHSERV` (IMAP) or `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` (webhook); an id that is not your server's means your server added no header of its own, and nothing from that path will ever verify.
 
 When notifications arrive but stay unverified, open one under **Bank › Messages › Show**: the verification line says why. Compare its raw headers with the rule above.
 
@@ -344,6 +369,6 @@ Raw bank messages hold the names and account numbers of payers, the amounts, and
 - Run `bin/console doctrine:migrations:migrate`. The new tables hold payments and their allocations, the firms' bank accounts, inbound addresses, pairing settings, inbound messages and bank movements.
 - **Firm bank accounts became records.** The migration copies each firm's list in order and makes the first account the primary one. The list held no currency, so the migration guesses it from the firm's country: CZK in Czechia, EUR in a euro-area country, USD in the United States, and CZK elsewhere. Check each account under **My firms › (firm) › Bank › Accounts** and correct the currency of an account kept in another one. The currency locks once the account has a movement.
 - **Country modules:** the interface `InvoicingCountry` has a new method, `settlementLimit(Currency $currency): ?int`, the most minor units a firm of the country may write off on an invoice in the currency, or null for none. A third-party country module must implement it; return null to keep small differences unsettled.
-- **New environment variables**, all empty by default, so bank mail stays off until set: `BANK_INBOX_ADDRESS`, `BANK_INBOX_TRUSTED_AUTHSERV`, `BANK_INBOX_TRUSTED_ARC`, `BANK_INBOX_HOST`, `BANK_INBOX_PORT` (993), `BANK_INBOX_ENCRYPTION` (`ssl`), `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD`, `BANK_INBOX_FOLDER` (`INBOX`) and `INBOUND_WEBHOOK_SECRET`. Inbound addresses also need `MAIL_SECRET_KEYS`.
+- **New environment variables**, all empty by default, so bank mail stays off until set: `BANK_INBOX_ADDRESS`, `BANK_INBOX_TRUSTED_AUTHSERV`, `BANK_INBOX_TRUSTED_ARC`, `BANK_INBOX_HOST`, `BANK_INBOX_PORT` (993), `BANK_INBOX_ENCRYPTION` (`ssl`), `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD`, `BANK_INBOX_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
 - Include `inbound-mail` in backups.
 - The worker command is unchanged.

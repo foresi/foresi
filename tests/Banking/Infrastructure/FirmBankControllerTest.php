@@ -11,6 +11,10 @@ namespace App\Tests\Banking\Infrastructure;
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundAddresses;
 use App\Banking\Application\InboundToken;
+use App\Banking\Application\ProcessMessage;
+use App\Banking\Application\ReceiveInboundMail;
+use App\Banking\Application\ReceiveOutcome;
+use App\Banking\Domain\InboundChannel;
 use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\MailSecrets;
@@ -231,6 +235,43 @@ final class FirmBankControllerTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertStringContainsString('no-store', Scalars::text($this->client->getResponse()->headers->get('Cache-Control')), $url);
         }
+    }
+
+    /**
+     * Setting up trust means reading a raw header: the tab shows the owner whose
+     * results the last message carried on top, and what Foresi made of them,
+     * and nothing else of the mail.
+     */
+    public function testThePairingTabShowsWhoVouchedForTheLastMessage(): void
+    {
+        $firm = $this->signedInFirm();
+        $account = $this->withAccount($firm);
+        $this->generate($firm, $account);
+        $address = $this->shownAddress($firm, $account);
+        self::assertCount(0, $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-trust-check]'), 'Nothing came yet.');
+        $raw = (string) file_get_contents(__DIR__.'/../../Fixtures/Banking/kb/incoming-booked.eml');
+        $raw = "Authentication-Results: mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n".str_replace('bank+token@example.com', $address, $raw);
+
+        $this->context->switchTo($firm->tenantId());
+        self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
+        $this->context->switchTo($firm->tenantId());
+        $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message'));
+        $before = $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]')->text();
+        $this->context->switchTo($firm->tenantId());
+        self::getContainer()->get(ProcessMessage::class)->process($id);
+        $this->context->reset();
+
+        $check = $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]');
+
+        self::assertStringContainsString('Waiting to be processed', $before);
+        self::assertCount(1, $check);
+        $text = $check->text();
+        self::assertStringContainsString('webhook', $text);
+        self::assertStringContainsString('mx.example.com', $text);
+        self::assertStringContainsString('a trusted server', $text);
+        self::assertStringContainsString('Verified sender', $text);
+        self::assertStringNotContainsString('Oznámení', $text, 'Nothing else of the mail.');
+        self::assertStringNotContainsString('kb.cz', $text);
     }
 
     public function testGeneratingFromTheDialogClosesItOverTheTab(): void

@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The inbound address of one account on the pairing tab. Variables: feed (from the controller's
-    feedView), unavailable (why nothing can be generated here, or null), first (no top border).
+    The inbound address of one account on the pairing tab, with the trust check of its last mail.
+    Variables: feed (from the controller's feedView), unavailable (why nothing can be generated here,
+    or null), first (no top border).
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set token = csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) %}
@@ -21,6 +22,13 @@
         <p class="m-0 text-small text-muted">{{ 'bank.account.address.hidden'|trans }}</p>
     {% else %}
         <p class="m-0 text-small text-muted">{{ 'bank.account.address.none'|trans }}</p>
+    {% endif %}
+    {# Whose Authentication-Results the last mail carried on top, and the verdict: what setting up trust needs, nothing else of the mail. #}
+    {% if feed.check %}
+        <p class="m-0 text-caption text-muted [overflow-wrap:anywhere]" data-trust-check>
+            {{- 'bank.account.address.check.label'|trans({channel: feed.check.channel}) }}
+            {% if feed.check.authserv %}<span class="font-mono text-ink">{{ feed.check.authserv }}</span>, {% endif %}{{ feed.check.server }} · {{ feed.check.verdict -}}
+        </p>
     {% endif %}
     <div class="flex flex-wrap items-center justify-between gap-2">
         {% if feed.hasFeed %}

@@ -42,6 +42,11 @@ interface InboundMessages
     public function find(string $id): ?InboundMessage;
 
     /**
+     * The message the feed received last, or null for none in the active tenant.
+     */
+    public function lastOfFeed(string $feedId): ?InboundMessage;
+
+    /**
      * Takes the message for processing by a single statement, when it stands in
      * one of the statuses (and, when given, has the failure). Call it inside the
      * transaction that processes it: its row stays locked to the end, so of two

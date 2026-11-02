@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Banking\Application;
 
+use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\MessageTrust;
 
 /**
@@ -17,7 +18,8 @@ use App\Banking\Domain\MessageTrust;
  * Anyone can write an Authentication-Results header into the mail they send, so
  * a pass is believed only from the topmost one: the receiving server adds its
  * own above every header the message arrived with, and it counts only when its
- * authserv-id is a trusted one. A fail is another matter: a claim of an aligned
+ * authserv-id is one trusted for the channel the message came by: the bank
+ * inbox's servers for mail polled over IMAP, the relay's for the webhook. A fail is another matter: a claim of an aligned
  * DMARC or DKIM fail can only make the verdict stricter, so it counts from any
  * Authentication-Results header, trusted or not, and the message is Failed.
  *
@@ -48,9 +50,10 @@ final readonly class MailAuthentication
     }
 
     /**
-     * @param list<string> $senderDomains the bank's own domains, from its parser; subdomains align
+     * @param list<string>   $senderDomains the bank's own domains, from its parser; subdomains align
+     * @param InboundChannel $channel       the path the message took, whose receiving servers are trusted
      */
-    public function verdict(InboundMail $mail, array $senderDomains): TrustVerdict
+    public function verdict(InboundMail $mail, array $senderDomains, InboundChannel $channel): TrustVerdict
     {
         $banks = array_map(TrustSettings::name(...), $senderDomains);
         $from = $this->soleSenderDomain($mail);
@@ -59,7 +62,7 @@ final readonly class MailAuthentication
         }
 
         $all = array_map($this->parser->parse(...), $mail->headers('Authentication-Results'));
-        $trusted = [] !== $all && $this->settings->trustsAuthserv($all[0]['authserv']);
+        $trusted = [] !== $all && $this->settings->trustsAuthserv($all[0]['authserv'], $channel);
         $rescued = $trusted && $this->claims($all[0]['results'], 'arc', 'pass') && $this->arcVouches($mail, $from, $banks);
         // A fail counts from every header, whoever wrote it: claiming one can only make the verdict stricter.
         if (array_any($all, fn (array $header): bool => $this->aligned($header['results'], 'dmarc', 'fail', 'header.from', $from, $banks))) {
@@ -84,7 +87,7 @@ final readonly class MailAuthentication
         if (\count($dmarc) > 1 || [] !== $contested) {
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::AMBIGUOUS);
         }
-        if (array_any(\array_slice($all, 1), fn (array $lower): bool => $this->settings->trustsAuthserv($lower['authserv']))) {
+        if (array_any(\array_slice($all, 1), fn (array $lower): bool => $this->settings->trustsAuthserv($lower['authserv'], $channel))) {
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::PLANTED);
         }
         if (!$rescued && !$this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $banks)) {

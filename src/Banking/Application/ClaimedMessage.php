@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Banking\Application;
 
+use App\Banking\Domain\InboundChannel;
+
 /**
  * An inbound message one worker took for processing, with what processing
  * needs of it: plain values, so a session started over keeps them.
@@ -15,7 +17,8 @@ namespace App\Banking\Application;
 final readonly class ClaimedMessage
 {
     /**
-     * @param string $accountId the bank account of the feed the message came to
+     * @param string         $accountId the bank account of the feed the message came to
+     * @param InboundChannel $channel   the path it came by, whose receiving servers are trusted
      */
     public function __construct(
         public string $id,
@@ -23,6 +26,7 @@ final readonly class ClaimedMessage
         public string $accountId,
         public string $rawKey,
         public string $rawSha256,
+        public InboundChannel $channel,
     ) {
     }
 }

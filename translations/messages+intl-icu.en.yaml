@@ -678,6 +678,15 @@ bank:
       howto: How to set up the bank
       close: Close
       back: Back to the bank settings
+      check:
+        label: 'Last e-mail ({channel}): the topmost Authentication-Results is by'
+        channel:
+          imap: by IMAP
+          webhook: by webhook
+        trusted: a trusted server
+        untrusted: a server Foresi does not trust
+        no_header: no server, the header is missing
+        pending: Waiting to be processed
       secret: Enter the address only in your bank or in a forwarding rule. Whoever knows it can send messages to it.
       date_format: 'j M Y H:i'
       last: 'Last message received {date}'

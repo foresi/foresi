@@ -15,7 +15,10 @@ use App\Banking\Application\ChangePairing;
 use App\Banking\Application\FirmPairingRules;
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundAddresses;
+use App\Banking\Application\TrustCheck;
+use App\Banking\Application\TrustChecks;
 use App\Banking\Domain\BankFeed;
+use App\Banking\Domain\MessageTrust;
 use App\Identity\Application\OwnerCheck;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MailSecrets;
@@ -82,6 +85,7 @@ final class FirmBankController extends AbstractController
         private readonly InvoicingCountries $countries,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
+        private readonly TrustChecks $checks,
     ) {
     }
 
@@ -374,7 +378,7 @@ final class FirmBankController extends AbstractController
      * What the pairing tab and the address dialog show of one account. The
      * address is opened from its sealed copy only here, for the owner.
      *
-     * @return array{id: string, name: string, hasFeed: bool, address: ?string, lastReceivedAt: ?\DateTimeImmutable, url: string, archived: bool}
+     * @return array{id: string, name: string, hasFeed: bool, address: ?string, lastReceivedAt: ?\DateTimeImmutable, check: array{channel: string, authserv: ?string, server: string, verdict: string}|null, url: string, archived: bool}
      */
     private function feedView(LegalEntity $firm, FirmBankAccount $account, ?BankFeed $feed): array
     {
@@ -393,8 +397,31 @@ final class FirmBankController extends AbstractController
             'hasFeed' => $feed instanceof BankFeed,
             'address' => $address,
             'lastReceivedAt' => $feed?->lastReceivedAt(),
+            'check' => $feed instanceof BankFeed ? $this->checkView($this->checks->lastOf($feed->id())) : null,
             'url' => $this->generateUrl('app_firm_bank_address', ['id' => $firm->id(), 'account' => $account->id()]),
             'archived' => $account->isArchived(),
+        ];
+    }
+
+    /**
+     * Whose results the last message carried on top, and what Foresi made of it,
+     * for the owner setting up trust: the authserv-id, never anything else of it.
+     *
+     * @return array{channel: string, authserv: ?string, server: string, verdict: string}|null
+     */
+    private function checkView(?TrustCheck $check): ?array
+    {
+        if (!$check instanceof TrustCheck) {
+            return null;
+        }
+
+        return [
+            'channel' => $this->translator->trans('bank.account.address.check.channel.'.$check->channel->value),
+            'authserv' => $check->authservId,
+            'server' => $this->translator->trans(null === $check->authservId ? 'bank.account.address.check.no_header' : ($check->trusted ? 'bank.account.address.check.trusted' : 'bank.account.address.check.untrusted')),
+            'verdict' => $check->trust instanceof MessageTrust
+                ? $this->translator->trans('bank.message.trust.'.$check->trust->value).(null === $check->basis ? '' : ' ('.$check->basis.')')
+                : $this->translator->trans('bank.account.address.check.pending'),
         ];
     }
 

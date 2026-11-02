@@ -26,8 +26,9 @@ use Psr\Clock\ClockInterface;
  * delivered, and a run that fails leaves nothing behind but the attempt.
  *
  * In order: the raw file must be the one stored; the parser is the one parser
- * that knows the mail; the receiving server's word on the sender decides the
- * trust, and a failed trust rejects the message unread; the parser reads it; every
+ * that knows the mail; the word of a receiving server trusted for the channel
+ * the message came by decides the trust, and a failed trust rejects the message
+ * unread; the parser reads it; every
  * movement must be booked on an active account of the firm the message came to
  * (another account of that firm is fine, as a bank may send all notices to one
  * address); then the movements are recorded and each incoming one paired when
@@ -142,7 +143,7 @@ final readonly class ProcessMessage
             return new ProcessingResult(InboundStatus::NotBankMail, parserId: $this->parsers->signature());
         }
 
-        $verdict = $accepted ?? $this->authentication->verdict($mail, $parser->senderDomains());
+        $verdict = $accepted ?? $this->authentication->verdict($mail, $parser->senderDomains(), $message->channel);
         if (MessageTrust::Failed === $verdict->trust) {
             return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::UNTRUSTED, $verdict->basis);
         }

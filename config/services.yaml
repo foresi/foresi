@@ -91,11 +91,13 @@ services:
 
     App\Banking\Application\MailReader:
         alias: App\Banking\Infrastructure\Mime\ZbatesonMailReader
-    # Whose authentication results are believed; empty lists verify no message.
+    # Whose authentication results are believed, per channel; empty lists verify no message.
+    # The webhook has its own list and never falls back to the mailbox's.
     App\Banking\Application\TrustSettings:
         arguments:
             $authservIds: '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%'
             $arcSealers: '%env(csv:BANK_INBOX_TRUSTED_ARC)%'
+            $webhookAuthservIds: '%env(csv:INBOUND_WEBHOOK_TRUSTED_AUTHSERV)%'
     # A firm's stored switches, or the defaults while it has none.
     App\Banking\Application\FirmPairingRules:
         alias: App\Banking\Infrastructure\Doctrine\DoctrineFirmPairings

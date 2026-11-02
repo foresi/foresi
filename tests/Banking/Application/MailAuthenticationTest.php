@@ -13,6 +13,7 @@ use App\Banking\Application\InboundMail;
 use App\Banking\Application\MailAuthentication;
 use App\Banking\Application\TrustSettings;
 use App\Banking\Application\TrustVerdict;
+use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\MessageTrust;
 use App\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -112,7 +113,7 @@ final class MailAuthenticationTest extends TestCase
             ['From', 'info@kb.cz'],
         ], 'info@kb.cz');
 
-        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK));
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
     }
 
     public function testAFailClaimedBelowATrustedPassIsFailed(): void
@@ -123,7 +124,7 @@ final class MailAuthenticationTest extends TestCase
             ['From', 'info@kb.cz'],
         ], 'info@kb.cz');
 
-        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL), $this->authentication()->verdict($mail, self::BANK));
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
     }
 
     public function testAnUnalignedFailClaimedByAnUntrustedServerIsOnlyUnverified(): void
@@ -133,7 +134,7 @@ final class MailAuthenticationTest extends TestCase
             ['From', 'info@kb.cz'],
         ], 'info@kb.cz');
 
-        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS), $this->authentication()->verdict($mail, self::BANK));
+        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
     }
 
     /**
@@ -176,13 +177,39 @@ final class MailAuthenticationTest extends TestCase
     {
         self::assertEquals(
             new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER),
-            $this->authentication()->verdict($this->read('aligned-dkim-pass'), []),
+            $this->authentication()->verdict($this->read('aligned-dkim-pass'), [], InboundChannel::Imap),
         );
     }
 
     public function testNoTrustedResultsIsUnverified(): void
     {
         $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS, 'aligned-dkim-pass', new TrustSettings([], []));
+    }
+
+    /**
+     * A relay that posts to the webhook has receiving servers of its own: the
+     * mailbox's are never trusted for it, and the relay's never for the mailbox.
+     */
+    public function testEachChannelTrustsItsOwnReceivingServers(): void
+    {
+        $mailbox = new TrustSettings(['mx.example.com'], [], ['relay.example.net']);
+        $relayed = $this->mail([
+            ['Authentication-Results', 'relay.example.net; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC), $this->authentication($mailbox)->verdict($relayed, self::BANK, InboundChannel::Webhook));
+        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS), $this->authentication($mailbox)->verdict($relayed, self::BANK, InboundChannel::Imap));
+        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS), $this->authentication($mailbox)->verdict($this->read('dmarc-pass'), self::BANK, InboundChannel::Webhook));
+    }
+
+    public function testTheWebhookTrustsNothingByDefault(): void
+    {
+        // Not the mailbox's servers: a relay is another path, set up on purpose.
+        self::assertEquals(
+            new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS),
+            $this->authentication(new TrustSettings(['mx.example.com'], ['arc.example.com']))->verdict($this->read('dmarc-pass'), self::BANK, InboundChannel::Webhook),
+        );
     }
 
     public function testTrustedNamesAreMatchedWithoutCaseOrRootDot(): void
@@ -202,7 +229,7 @@ final class MailAuthenticationTest extends TestCase
 
         self::assertEquals(
             new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS),
-            $this->authentication(new TrustSettings(['', ' '], []))->verdict($mail, self::BANK),
+            $this->authentication(new TrustSettings(['', ' '], []))->verdict($mail, self::BANK, InboundChannel::Imap),
         );
     }
 
@@ -215,7 +242,7 @@ final class MailAuthenticationTest extends TestCase
 
         self::assertEquals(
             new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER),
-            $this->authentication()->verdict($mail, self::BANK),
+            $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap),
         );
     }
 
@@ -319,7 +346,7 @@ final class MailAuthenticationTest extends TestCase
     {
         self::assertEquals(
             new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC),
-            $this->authentication()->verdict($this->read('dmarc-pass'), [' KB.CZ. ']),
+            $this->authentication()->verdict($this->read('dmarc-pass'), [' KB.CZ. '], InboundChannel::Imap),
         );
     }
 
@@ -349,7 +376,7 @@ final class MailAuthenticationTest extends TestCase
 
         self::assertEquals(
             new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC),
-            $this->authentication()->verdict($mail, self::BANK),
+            $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap),
         );
     }
 
@@ -357,7 +384,7 @@ final class MailAuthenticationTest extends TestCase
     {
         self::assertEquals(
             new TrustVerdict($trust, $basis),
-            $this->authentication($settings)->verdict($this->read($fixture), self::BANK),
+            $this->authentication($settings)->verdict($this->read($fixture), self::BANK, InboundChannel::Imap),
             $fixture,
         );
     }

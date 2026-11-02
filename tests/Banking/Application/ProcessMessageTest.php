@@ -180,6 +180,25 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(ReceiveOutcome::Duplicate, $this->receive->receive($real, InboundChannel::Imap));
     }
 
+    /**
+     * The channel a message came by decides whose results count: the relay's
+     * receiving server is trusted for the webhook, never for the bank inbox.
+     */
+    public function testTheChannelOfAMessageDecidesWhoseResultsCount(): void
+    {
+        $header = "Authentication-Results: relay.example.net; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n";
+        $posted = $this->received($header.$this->notice('incoming-booked', auth: null, messageId: 'posted@kb.example.com'));
+        $polled = $header.$this->notice('incoming-booked', auth: null, messageId: 'polled@kb.example.com');
+        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($polled, InboundChannel::Imap));
+        $polledId = Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM inbound_message WHERE raw_sha256 = ?', [hash('sha256', $polled)]));
+
+        $this->process->process($posted);
+        $this->process->process($polledId);
+
+        self::assertSame(['verified', 'dmarc'], [$this->messageRow($posted)['trust'], $this->messageRow($posted)['trust_basis']]);
+        self::assertSame(['unverified', 'no-results'], [$this->messageRow($polledId)['trust'], $this->messageRow($polledId)['trust_basis']]);
+    }
+
     public function testRetryIsManualAndIdempotent(): void
     {
         $retry = new RetryInboundMessage($this->process);

@@ -16,6 +16,8 @@ export MAIL_SECRET_KEYS="e2e1:ZTJlLW9ubHktbWFpbC1rZXktbmV2ZXItZm9yLXVzZSE="
 export BANK_INBOX_ADDRESS="bank+{token}@example.com"
 # The receiving server whose Authentication-Results the seeded bank mail carries.
 export BANK_INBOX_TRUSTED_AUTHSERV="mx.example.com"
+# The seed posts its bank mail as a relay would, through the webhook's channel.
+export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
 
 # Fresh state: the login throttle and the registry cache live in the file cache.
 rm -rf var/cache/e2e

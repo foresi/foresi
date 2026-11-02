@@ -19,6 +19,7 @@ use App\Banking\Application\MessageRow;
 use App\Banking\Application\MovementFilter;
 use App\Banking\Application\ProcessingResult;
 use App\Banking\Application\TrustVerdict;
+use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Domain\MessageTrust;
@@ -52,7 +53,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         SQL;
 
     private const string CLAIMED = <<<'SQL'
-        SELECT m.raw_key, m.raw_sha256, f.firm_bank_account_id
+        SELECT m.raw_key, m.raw_sha256, m.channel, f.firm_bank_account_id
         FROM inbound_message m JOIN bank_feed f ON f.id = m.bank_feed_id AND f.tenant_id = m.tenant_id
         WHERE m.id = :id AND m.tenant_id = :tenant
         SQL;
@@ -121,6 +122,16 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         return $message instanceof InboundMessage ? $message : null;
     }
 
+    public function lastOfFeed(string $feedId): ?InboundMessage
+    {
+        $id = $this->connection->fetchOne(
+            'SELECT id FROM inbound_message WHERE tenant_id = :tenant AND bank_feed_id = :feed ORDER BY received_at DESC, id DESC LIMIT 1',
+            ['tenant' => $this->context->current()->toString(), 'feed' => $feedId],
+        );
+
+        return false === $id ? null : $this->find($this->text($id));
+    }
+
     public function claim(string $id, array $from, ?string $failure = null): ?ClaimedMessage
     {
         $tenant = $this->context->current()->toString();
@@ -138,7 +149,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             throw new \LogicException('A claimed message has no feed of its tenant.');
         }
 
-        return new ClaimedMessage($id, $tenant, $this->text($row['firm_bank_account_id']), $this->text($row['raw_key']), $this->text($row['raw_sha256']));
+        return new ClaimedMessage($id, $tenant, $this->text($row['firm_bank_account_id']), $this->text($row['raw_key']), $this->text($row['raw_sha256']), InboundChannel::from($this->text($row['channel'])));
     }
 
     public function finish(string $id, ProcessingResult $result, \DateTimeImmutable $at): void

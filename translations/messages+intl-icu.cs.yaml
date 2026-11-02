@@ -678,6 +678,15 @@ bank:
       howto: Jak nastavit banku
       close: Zavřít
       back: Zpět na nastavení banky
+      check:
+        label: 'Poslední e-mail ({channel}): Authentication-Results nahoře zapsal'
+        channel:
+          imap: přes IMAP
+          webhook: přes webhook
+        trusted: důvěryhodný server
+        untrusted: server, kterému Foresi nevěří
+        no_header: žádný server, hlavička chybí
+        pending: Čeká na zpracování
       secret: Adresu zadejte jen v bance nebo v pravidle pro přeposílání. Kdo ji zná, může na ni posílat zprávy.
       date_format: 'j. n. Y H:i'
       last: 'Poslední zpráva přišla {date}'
