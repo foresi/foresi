@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceRow;
@@ -17,6 +18,8 @@ use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\SendRequest;
@@ -25,6 +28,7 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -344,6 +348,92 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringContainsString('2026-11-01', $row->text());
         self::assertStringContainsString('2026-12-01', $row->text());
         self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $row->text());
+    }
+
+    public function testEachStateShowsItsBadge(): void
+    {
+        $this->signedIn();
+        $issued = $this->issue('2026-11-01', '2026-12-01');
+        $overdue = $this->issue('2026-11-02', '2026-11-10');
+        $partly = $this->issue('2026-11-03', '2026-12-01');
+        $partlyOverdue = $this->issue('2026-11-04', '2026-11-10');
+        $paid = $this->issue('2026-11-05', '2026-11-10');
+        $overpaid = $this->issue('2026-11-06', '2026-12-01');
+        $this->pay($partly, '210.00');
+        $this->pay($partlyOverdue, '1000.00');
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1300.00');
+
+        $rows = $this->client->request('GET', '/invoices')->filter('tbody tr');
+
+        $badges = [];
+        foreach ($rows as $row) {
+            $row = new Crawler($row, 'http://localhost/');
+            $badges[$row->filter('a[data-row-link]')->text()] = $row->filter('td')->eq(5)->filter('span')->first()->text();
+        }
+        self::assertSame([
+            $overpaid->number() => 'Overpaid',
+            $paid->number() => 'Paid',
+            $partlyOverdue->number() => 'Overdue · 210.00 Kč left to pay',
+            $partly->number() => 'Partly paid · 1,000.00 Kč left to pay',
+            $overdue->number() => 'Overdue',
+            $issued->number() => 'Issued',
+        ], array_map($this->nbspless(...), $badges));
+        $partlyRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $partly->number()));
+        self::assertSame('1,000.00 Kč left to pay', $this->nbspless((string) $partlyRow->filter('td')->eq(5)->filter('span')->first()->attr('title')));
+        self::assertStringContainsString('Partly paid · 1,000.00 Kč left to pay', $this->nbspless($partlyRow->filter('[data-row-secondary]')->text()));
+    }
+
+    public function testThePaidTabListsPaidAndOverpaidOnly(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-01');
+        $partly = $this->issue('2026-11-02', '2026-12-01');
+        $paid = $this->issue('2026-11-03', '2026-11-10');
+        $overpaid = $this->issue('2026-11-04', '2026-12-01');
+        $this->pay($partly, '100.00');
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1210.01');
+
+        $crawler = $this->client->request('GET', '/invoices?tab=paid');
+
+        self::assertSame([$overpaid->number(), $paid->number()], $this->numbers($crawler));
+        self::assertSame(['All 4', 'Paid 2', 'Unpaid 2', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['20260002', '20260001'], $this->numbers($this->client->request('GET', '/invoices?tab=unpaid')));
+    }
+
+    public function testPayIsOfferedUntilTheInvoiceIsPaid(): void
+    {
+        $this->signedIn();
+        $unpaid = $this->issue('2026-11-01', '2026-12-01');
+        $paid = $this->issue('2026-11-02', '2026-12-01');
+        $this->pay($paid, '1210.00');
+
+        $rows = $this->client->request('GET', '/invoices')->filter('tbody tr');
+
+        $unpaidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $unpaid->number()));
+        $pay = $unpaidRow->filter('a[aria-label="Pay"]');
+        self::assertSame('/invoices/'.$unpaid->id().'/pay', $pay->attr('href'));
+        self::assertNotNull($pay->attr('data-dialog'));
+        self::assertSame('dialog', $pay->attr('aria-haspopup'));
+        self::assertCount(1, $unpaidRow->filter('[role="menu"] a[data-phone-only][href="/invoices/'.$unpaid->id().'/pay"]'), 'on a phone it is in the menu');
+        $paidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $paid->number()));
+        self::assertCount(0, $paidRow->filter('a[href$="/pay"]'));
+    }
+
+    public function testThePaidAndUnpaidTabsSayWhyTheyAreEmpty(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $this->client->request('GET', '/invoices?tab=paid');
+        self::assertSelectorTextContains('main', 'Nothing is paid yet');
+        self::assertSelectorTextContains('main', 'Paid invoices show here once you record a payment.');
+
+        $this->pay($invoice, '1210.00');
+        $this->client->request('GET', '/invoices?tab=unpaid');
+        self::assertSelectorTextContains('main', 'Everything is paid');
+        self::assertSelectorTextNotContains('main', 'No invoices here');
     }
 
     public function testAnotherTenantSeesNothing(): void
@@ -1032,6 +1122,19 @@ final class InvoiceListControllerTest extends WebTestCase
                 '' === $variableSymbol,
             ));
         });
+    }
+
+    private function pay(Invoice $invoice, string $amount): void
+    {
+        $this->scoped(function () use ($invoice, $amount): void {
+            $money = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
+        });
+    }
+
+    private function nbspless(string $text): string
+    {
+        return str_replace("\u{a0}", ' ', $text);
     }
 
     private function trashed(Invoice $invoice, string $reason): void

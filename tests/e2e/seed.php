@@ -29,11 +29,14 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Domain\DocumentKind;
@@ -41,6 +44,7 @@ use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -304,6 +308,32 @@ foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'
     $issueInvoice->issue(new InvoiceInput($dialogFirm->id(), $dialogSeries->id(), null, $buyer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
+}
+$context->reset();
+
+// The tenant of the pay dialog spec: three invoices of one firm, one unpaid to pay in the
+// dialog, one paid in part and one paid in full, so the list shows each state.
+$paying = $tenantWithOwner('Example Paying', 'paying@example.com', 'Paying Example');
+$recordPayment = $container->get('e2e.record_payment');
+\assert($recordPayment instanceof RecordPayment);
+$context->switchTo($paying);
+$payingFirm = new LegalEntity('Example Paying s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890');
+$entityManager->persist($payingFirm);
+$firmAccount($payingFirm);
+$payingSeries = new Series($payingFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$payingSeries->markDefault();
+$entityManager->persist($payingSeries);
+$entityManager->flush();
+$payer = $createParty->createFrom($party(PartyKind::Company, 'Example Payer a.s.', [PartyRole::Customer], 'payer@example.com', 10, '12345679', 'CZ12345679'));
+$payable = [];
+foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '3000.00'] as $description => $price) {
+    $payable[$description] = $issueInvoice->issue(new InvoiceInput($payingFirm->id(), $payingSeries->id(), null, $payer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    ]));
+}
+foreach (['Workshop' => '1000.00', 'Audit' => '3630.00'] as $description => $amount) {
+    $money = Money::of($amount, Currency::CZK);
+    $recordPayment->record(new PaymentRequest($payingFirm->id(), $day, $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($payable[$description]->id(), $money)]));
 }
 $context->reset();
 

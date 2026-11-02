@@ -50,6 +50,7 @@ use App\Invoicing\Infrastructure\Form\InvoiceFormContext;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
+use App\Invoicing\Infrastructure\Form\PaymentPanel;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
@@ -121,6 +122,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoiceHistory $history,
         private readonly FirmBankAccounts $accounts,
         private readonly InvoicePayments $payments,
+        private readonly PaymentPanel $panel,
     ) {
     }
 
@@ -558,6 +560,7 @@ final class InvoiceController extends AbstractController
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
             'statusBadge' => $this->statusBadge($context),
+            'payments' => $invoice instanceof Invoice ? $this->panel->of($invoice) : null,
             'moreOpen' => $this->moreOpen($values, $context, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,

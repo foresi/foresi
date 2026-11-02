@@ -21,8 +21,9 @@
                 {% if item.send is defined %}
                     {{ include('invoicing/_send_entry.html.twig', {item: item}) }}
                 {% else %}
-                    <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]">
-                        {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
+                    <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]" data-history-icon="{{ item.icon }}">
+                        {# A removed payment reads quieter than one recorded. #}
+                        {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 ' ~ (item.icon == 'banknote-x' ? 'text-muted' : 'text-green'), 'aria-hidden': 'true'}) }}
                         <time datetime="{{ item.datetime }}" class="num text-muted">{{ item.time }}</time>
                         <span class="min-w-0 text-text [overflow-wrap:anywhere] max-sm:col-start-2">{{ item.text }}</span>
                     </li>

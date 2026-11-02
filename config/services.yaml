@@ -262,6 +262,9 @@ when@e2e:
         e2e.link_tokens:
             alias: App\Invoicing\Application\LinkTokens
             public: true
+        e2e.record_payment:
+            alias: App\Invoicing\Application\RecordPayment
+            public: true
 
 when@test:
     parameters:

@@ -9,12 +9,15 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
@@ -22,6 +25,7 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -314,6 +318,26 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertStringNotContainsString($code, (string) $this->client->getResponse()->getContent(), 'drawn, not printed');
     }
 
+    public function testThePublicPageSaysPaidWhenPaid(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-status]', 'nothing is paid yet');
+
+        $this->paid($sent['invoice'], '500.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-status]', 'a part payment says nothing to the customer');
+
+        $this->paid($sent['invoice'], '710.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno');
+
+        $this->paid($sent['invoice'], '100.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno', 'overpaid is paid to the customer');
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
@@ -488,6 +512,14 @@ final class PublicDocumentControllerTest extends WebTestCase
                 'token' => $tokens->token($send->id(), LinkAudience::Customer),
                 'copyToken' => $copy ? $tokens->token($send->id(), LinkAudience::Copy) : null,
             ];
+        });
+    }
+
+    private function paid(string $invoiceId, string $amount): void
+    {
+        $this->inTenant(function () use ($invoiceId, $amount): void {
+            $money = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm[0] ?? '', new \DateTimeImmutable('2026-11-03'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
         });
     }
 

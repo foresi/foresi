@@ -20,8 +20,15 @@
                 <h1 id="document-title" class="m-0 break-words text-title font-semibold text-ink">{{ title }}</h1>
                 <p class="m-0 mt-1 text-body text-muted">{{ 'invoice.public.for'|trans({customer: document.customerName}, 'messages', locale) }}</p>
             </div>
-            {# The paid status of the document goes here once payments are recorded. #}
-            {% block status %}{% endblock %}
+            {# Paid in full, or more: the customer needs to do nothing. A part payment says nothing here. #}
+            {% block status %}
+                {% if paid %}
+                    <span class="inline-flex h-badge items-center gap-1 whitespace-nowrap rounded-sm bg-badge-green px-2 text-caption font-medium text-badge-green-text" data-paid-status>
+                        {{- ux_icon('lucide:circle-check', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) -}}
+                        <span>{{ 'invoice.public.paid'|trans({}, 'messages', locale) }}</span>
+                    </span>
+                {% endif %}
+            {% endblock %}
         </div>
 
         <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6">
