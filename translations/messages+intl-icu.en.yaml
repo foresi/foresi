@@ -681,6 +681,7 @@ invoice:
     not_handed_over: The message could not be handed to the mail server.
     copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
     gave_up: The message could not be delivered.
+    link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
   sends:
     title: Sent e-mails
     views: Send states

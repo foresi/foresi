@@ -681,6 +681,7 @@ invoice:
     not_handed_over: Zprávu se nepodařilo předat poštovnímu serveru.
     copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
     gave_up: Zprávu se nepodařilo doručit.
+    link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání

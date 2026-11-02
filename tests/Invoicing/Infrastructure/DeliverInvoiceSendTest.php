@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\MailMessage;
+use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\RequeueStuckSends;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
@@ -273,6 +274,40 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertSame('sent', $row['status']);
         self::assertNull($row['copy_sent_at']);
         self::assertSame('SMTP 550: the mail server refused the message.', $row['copy_error']);
+        self::assertNull($row['claimed_at']);
+    }
+
+    public function testASendWhoseLinkNoLongerMatchesFailsWithoutMailing(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        // Queued under another application secret: the link derived now would lead nowhere.
+        $this->connection->executeStatement('UPDATE invoice_send SET token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $send->id()]);
+
+        $failure = $this->deliveryFailure();
+
+        self::assertInstanceOf(UnrecoverableMessageHandlingException::class, $failure);
+        self::assertSame([], $this->gateway->attempts());
+        $row = $this->row($send->id());
+        self::assertSame('failed', $row['status']);
+        self::assertSame(MailRefused::LINK_CHANGED, $row['last_error_code']);
+        self::assertNull($this->invoiceRow($invoice)['delivered_at']);
+    }
+
+    public function testACopyWhoseLinkNoLongerMatchesIsNotMailed(): void
+    {
+        $this->contactEmail('office@example.com');
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice, ['copyToMe' => true]);
+        $this->connection->executeStatement('UPDATE invoice_send SET copy_token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $send->id()]);
+
+        $this->worker->run();
+
+        self::assertCount(1, $this->gateway->attempts(), 'the customer only');
+        $row = $this->row($send->id());
+        self::assertSame('sent', $row['status']);
+        self::assertNull($row['copy_sent_at']);
+        self::assertSame(MailRefused::LINK_CHANGED, $row['copy_error_code']);
         self::assertNull($row['claimed_at']);
     }
 

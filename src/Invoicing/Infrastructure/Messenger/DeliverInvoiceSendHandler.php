@@ -61,6 +61,7 @@ final readonly class DeliverInvoiceSendHandler
     private const string UNBUILDABLE = 'The message could not be built from the stored send.';
     private const string UNEXPECTED = 'The message could not be handed to the mail server.';
     private const string COPY_UNKNOWN = 'The copy was handed to the mail server, but its answer was not recorded.';
+    private const string LINK_CHANGED = 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.';
     /** Seconds past the end of a lease before a waiting message tries again. */
     private const int GRACE = 5;
 
@@ -229,13 +230,21 @@ final readonly class DeliverInvoiceSendHandler
      * @param list<string> $to
      * @param list<string> $cc
      *
-     * @throws MailRefused when the stored send cannot make a message, which no retry changes
+     * @throws MailRefused when the stored send cannot make a message, or its link no
+     *                     longer matches the application secret, which no retry changes
      */
     private function message(InvoiceSend $send, FirmMailServer $server, LinkAudience $audience, array $to, array $cc): MailMessage
     {
         $from = $server->fromAddress();
         $domain = substr($from, (int) strrpos($from, '@') + 1);
-        $body = new LinkedMailBody($send->body(), $this->links->url($this->tokens->token($send->id(), $audience)));
+        $token = $this->tokens->token($send->id(), $audience);
+        // Derived again from the application secret: if that changed since the send
+        // was queued, the link would lead nowhere while the invoice counts as delivered.
+        $stored = LinkAudience::Copy === $audience ? $send->copyTokenHash() : $send->tokenHash();
+        if (null === $stored || !hash_equals($stored, $this->tokens->hash($token))) {
+            throw new MailRefused(true, self::LINK_CHANGED, reasonCode: MailRefused::LINK_CHANGED);
+        }
+        $body = new LinkedMailBody($send->body(), $this->links->url($token));
         $replyTo = trim($this->settings->for($send->invoice()->firm())->contactEmail());
 
         try {
