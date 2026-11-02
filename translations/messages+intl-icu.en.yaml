@@ -795,6 +795,7 @@ bank:
       possible_duplicate: 'This payment cannot be paired: it came in another e-mail already.'
       own_transfer: 'This payment cannot be paired: it came from another account of the firm.'
       not_checked_in_bank: This payment cannot be paired until you confirm you checked it in the bank.
+      invoice_settled: 'This payment cannot be paired: the invoice is paid already.'
       not_paired: The payment is not paired, or not any more.
     flash:
       paired: 'Paired with {numbers}.'

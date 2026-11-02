@@ -338,9 +338,10 @@ final class BankMovementController extends AbstractController
     }
 
     /**
-     * The parts as typed, checked to add up to the movement. A small difference on
-     * one invoice is written off only when the firm allows it and the box is ticked;
-     * PairMovement checks it again under the lock of the invoice.
+     * The parts as typed, checked to add up to the movement, for invoices the dialog
+     * offered only. A small difference on one invoice is written off only when the
+     * firm allows it and the box is ticked; PairMovement checks it again under the
+     * lock of the invoice, and refuses an invoice paid meanwhile.
      *
      * @param Values $values
      *
@@ -351,6 +352,10 @@ final class BankMovementController extends AbstractController
         $total = $movement->amount();
         if ([] === $values['invoices']) {
             return [[], [self::FORM => $this->translator->trans('bank.movement.pair.error.none')]];
+        }
+        // Only what the dialog offered: unpaid invoices of the firm in the movement's currency.
+        if (array_any($values['invoices'], static fn (string $invoiceId): bool => !$options->choice($invoiceId) instanceof PairingChoice)) {
+            return [[], [self::FORM => $this->translator->trans('bank.movement.pair.error.unknown_invoice')]];
         }
         $errors = [];
         $allocations = [];

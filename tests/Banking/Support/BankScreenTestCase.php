@@ -142,12 +142,12 @@ abstract class BankScreenTestCase extends WebTestCase
     /**
      * An invoice of the firm, price without VAT; 1 000.00 is 1 210.00 to pay.
      */
-    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?LegalEntity $firm = null, ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null): Invoice
+    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?LegalEntity $firm = null, ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null, string $iban = self::IBAN): Invoice
     {
-        return $this->scoped(function () use ($price, $vs, $due, $firm, $series, $currency, $customer): Invoice {
+        return $this->scoped(function () use ($price, $vs, $due, $firm, $series, $currency, $customer, $iban): Invoice {
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, $currency), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(($firm ?? $this->firm)->id(), ($series ?? $this->series)->id(), null, ($customer ?? $this->customer)->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable($due), PaymentMethod::BankTransfer, self::IBAN, $vs, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], '' === $vs));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(($firm ?? $this->firm)->id(), ($series ?? $this->series)->id(), null, ($customer ?? $this->customer)->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, $vs, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], '' === $vs));
         });
     }
 

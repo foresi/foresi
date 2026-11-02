@@ -14,6 +14,7 @@ use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
@@ -51,6 +52,7 @@ final readonly class PairMovement
         private InvoiceStore $store,
         private TransactionalWork $work,
         private ConflictRetry $retry,
+        private InvoicePayments $payments,
     ) {
     }
 
@@ -75,7 +77,12 @@ final readonly class PairMovement
         try {
             return $this->retry->run(fn (): Payment => $this->work->run(function () use ($movementId, $allocations, $checkedInBank): Payment {
                 $this->refuseUnpairable($this->movements->lock($movementId), $checkedInBank);
-                $this->lockInvoices(array_map(static fn (AllocationRequest $allocation): string => $allocation->invoiceId, $allocations));
+                foreach ($this->lockInvoices(array_map(static fn (AllocationRequest $allocation): string => $allocation->invoiceId, $allocations)) as $invoiceId) {
+                    // Read under its lock: an invoice paid meanwhile takes no more.
+                    if ($this->payments->remainingOf($this->store->get($invoiceId))->minor() <= 0) {
+                        throw new PairingRefused(PairingRefused::INVOICE_SETTLED);
+                    }
+                }
 
                 return $this->paid($movementId, $allocations);
             }));

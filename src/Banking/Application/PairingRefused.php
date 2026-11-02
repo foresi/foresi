@@ -26,6 +26,8 @@ final class PairingRefused extends \DomainException
      * confirm they checked it in their internet banking.
      */
     public const string NOT_CHECKED_IN_BANK = 'not_checked_in_bank';
+    /** An invoice chosen has nothing left to pay. */
+    public const string INVOICE_SETTLED = 'invoice_settled';
     /** Unpairing a movement that has no payment. */
     public const string NOT_PAIRED = 'not_paired';
 

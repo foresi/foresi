@@ -795,6 +795,7 @@ bank:
       possible_duplicate: 'Tuto platbu nejde spárovat: přišla už v jiném e-mailu.'
       own_transfer: 'Tuto platbu nejde spárovat: přišla z jiného účtu firmy.'
       not_checked_in_bank: Tuto platbu nejde spárovat, dokud nepotvrdíte, že jste ji ověřil(a) v bance.
+      invoice_settled: 'Tuto platbu nejde spárovat: faktura už je uhrazená.'
       not_paired: Platba není spárovaná, nebo už ne.
     flash:
       paired: 'Spárováno s {numbers}.'

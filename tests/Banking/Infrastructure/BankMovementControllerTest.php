@@ -154,6 +154,34 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSame('paired', $this->movementRow($movement)['state']);
     }
 
+    /**
+     * The dialog pays only the invoices it offered: a forged post naming an
+     * invoice of another firm of the tenant, or one paid already, pays nothing.
+     */
+    public function testAnInvoiceTheDialogDidNotOfferIsRefused(): void
+    {
+        $this->signedIn();
+        [$otherFirm, , $otherSeries] = $this->scoped(fn (): array => $this->firmWithSeries('Example Other s.r.o.', self::OTHER_IBAN));
+        $foreign = $this->invoice(vs: '20260001', firm: $otherFirm, series: $otherSeries, iban: self::OTHER_IBAN);
+        $paid = $this->invoice(vs: '20260009');
+        $this->movement('1210.00', '20260009', trust: MessageTrust::Verified);
+        self::assertSame([$paid->id() => 121000], $this->liveAllocations(), 'Paid by its notice.');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, bookedOn: '2026-11-18', auto: false);
+        $form = $this->pairForm($movement);
+
+        foreach ([$foreign, $paid] as $invoice) {
+            $posted = $form;
+            $posted['invoices'] = [$invoice->id()];
+            $posted['amounts'] = [$invoice->id() => '1210.00'];
+            $dialog = $this->dialogPost($this->pairUrl($movement), $posted);
+
+            self::assertResponseStatusCodeSame(422);
+            self::assertStringContainsString('The invoice is gone. Pick another one.', $dialog->filter('[data-error-summary]')->text());
+        }
+        self::assertSame([$paid->id() => 121000], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+    }
+
     public function testAVerifiedPaymentNeedsNoBankCheck(): void
     {
         $this->signedIn();

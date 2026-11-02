@@ -24,6 +24,7 @@ use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
@@ -174,6 +175,19 @@ final class PairMovementTest extends BankingTestCase
         self::assertSame(0, $this->paymentCount());
     }
 
+    public function testAnInvoicePaidAlreadyIsRefused(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $first = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        self::assertNotNull($this->pairing->auto($first->id()));
+        self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
+        $second = $this->recordMovement->record($this->incoming('1210.00', vs: null, bookedOn: '2026-11-19'), self::verified());
+
+        $this->expectPairingRefused(PairingRefused::INVOICE_SETTLED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($second->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        self::assertSame(1, $this->paymentCount());
+        self::assertSame(MovementState::Unmatched, $this->storedMovement($second->id())->state());
+    }
+
     public function testUnpairableMovementsAreRefused(): void
     {
         $invoice = $this->issue->issue($this->input());
@@ -316,6 +330,7 @@ final class PairMovementTest extends BankingTestCase
             new LoggingInvoiceStore($this->store, $log),
             $container->get(TransactionalWork::class),
             $container->get(ConflictRetry::class),
+            $container->get(InvoicePayments::class),
         );
     }
 
