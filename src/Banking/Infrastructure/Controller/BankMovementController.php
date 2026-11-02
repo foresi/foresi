@@ -15,6 +15,7 @@ use App\Banking\Application\MessageRow;
 use App\Banking\Application\MovementFilter;
 use App\Banking\Application\MovementPage;
 use App\Banking\Application\MovementRow;
+use App\Banking\Application\Ownership;
 use App\Banking\Application\PairingChoice;
 use App\Banking\Application\PairingChoices;
 use App\Banking\Application\PairingOptions;
@@ -53,11 +54,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * first, ticked and filled in as the matcher would, a search finds any other
  * unpaid one, and the parts must add up to the movement. It asks for no
  * confirmation: the flash after it offers Undo instead, for that pairing only.
+ * A movement the bank did not vouch for may be forged, so its dialog warns,
+ * ticks and fills in nothing, and pairs only with the box "checked in the bank"
+ * ticked; PairMovement holds the same rule.
  * Unpairing from a row asks first, as it also stops the movement from pairing by
  * itself again. Each dialog is also a page of its own, which works without
  * JavaScript. A movement of another tenant is never found, so it answers 404.
  *
- * @phpstan-type Values array{invoices: list<string>, amounts: array<string, string>, q: string, settle: bool}
+ * @phpstan-type Values array{invoices: list<string>, amounts: array<string, string>, q: string, settle: bool, checked: bool}
  */
 final class BankMovementController extends AbstractController
 {
@@ -68,6 +72,8 @@ final class BankMovementController extends AbstractController
     private const string UNDO = 'bank.undo';
     private const string PAIRED_FLASH = 'bank_paired';
     private const string FORM = 'form';
+    /** The box a person ticks after finding an unverified payment in their internet banking. */
+    private const string CHECKED = 'checked_in_bank';
     private const int MAX_TEXT = 100;
 
     public function __construct(
@@ -81,6 +87,7 @@ final class BankMovementController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
         private readonly InboundAddresses $addresses,
+        private readonly Ownership $ownership,
     ) {
     }
 
@@ -160,12 +167,15 @@ final class BankMovementController extends AbstractController
             return $this->pairPage($movement, $options, $values, [], $return, Response::HTTP_OK);
         }
         [$allocations, $errors] = $this->allocations($movement, $options, $values);
+        if ($this->checkFirst($movement) && !$values['checked']) {
+            $errors[self::CHECKED] = $this->translator->trans('bank.movement.pair.error.checked');
+        }
         if ([] !== $errors || [] === $allocations) {
             return $this->pairPage($movement, $options, $values, $errors, $return, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         try {
-            $payment = $this->pairing->pair($id, $allocations);
+            $payment = $this->pairing->pair($id, $allocations, $values['checked']);
         } catch (PairingRefused $refused) {
             $this->addFlash('error', $this->translator->trans('bank.movement.refused.'.$refused->reason));
 
@@ -256,26 +266,46 @@ final class BankMovementController extends AbstractController
     }
 
     /**
+     * What the dialog opens with: as the matcher would pair it, or nothing at all
+     * for a movement to check in the bank first, so a person types what they found.
+     *
      * @return Values
      */
     private function prefilled(BankMovement $movement, PairingOptions $options): array
     {
+        if ($this->checkFirst($movement)) {
+            return ['invoices' => [], 'amounts' => [], 'q' => '', 'settle' => false, 'checked' => false];
+        }
+
         return [
             'invoices' => array_keys($options->prefill),
             'amounts' => array_map($this->text->plain(...), $options->prefill) + $this->defaults($movement, $options),
             'q' => '',
             'settle' => false,
+            'checked' => false,
         ];
     }
 
     /**
+     * Whether the bank did not vouch for the movement: from an unverified message,
+     * or one recorded anyway. A person checks it in their internet banking first.
+     */
+    private function checkFirst(BankMovement $movement): bool
+    {
+        return MessageTrust::Verified !== $movement->trust();
+    }
+
+    /**
      * What an invoice not filled in gets once ticked without JavaScript: what it has
-     * left, up to the whole movement.
+     * left, up to the whole movement. Nothing for a movement to check in the bank first.
      *
      * @return array<string, string>
      */
     private function defaults(BankMovement $movement, PairingOptions $options): array
     {
+        if ($this->checkFirst($movement)) {
+            return [];
+        }
         $amounts = [];
         foreach ([...$options->suggested, ...$options->others] as $choice) {
             $remaining = $choice->candidate->remaining;
@@ -298,7 +328,13 @@ final class BankMovementController extends AbstractController
             }
         }
 
-        return ['invoices' => $invoices, 'amounts' => $amounts, 'q' => trim(mb_substr($request->request->getString('q'), 0, self::MAX_TEXT)), 'settle' => $request->request->getBoolean('settle')];
+        return [
+            'invoices' => $invoices,
+            'amounts' => $amounts,
+            'q' => trim(mb_substr($request->request->getString('q'), 0, self::MAX_TEXT)),
+            'settle' => $request->request->getBoolean('settle'),
+            'checked' => $request->request->getBoolean(self::CHECKED),
+        ];
     }
 
     /**
@@ -378,6 +414,7 @@ final class BankMovementController extends AbstractController
             'limit' => $options->settlementLimit,
             'settleText' => null === $options->settlementLimit ? null : $this->translator->trans('bank.movement.pair.settle_help', ['limit' => $this->text->amount(Money::ofMinor($options->settlementLimit, $total->currency()))]),
             'searched' => '' !== $values['q'],
+            'checkFirst' => $this->checkFirst($movement),
         ], new Response(status: $status));
     }
 
@@ -601,7 +638,7 @@ final class BankMovementController extends AbstractController
         if ($row->canRetry()) {
             $actions[] = ['label' => $this->translator->trans('bank.message.action.retry'), 'href' => $this->generateUrl('app_bank_message_retry', $id), 'method' => 'POST', 'icon' => 'refresh-cw', 'fields' => $fields];
         }
-        if ($row->canAccept()) {
+        if ($row->canAccept() && $this->ownership->isOwner()) {
             $actions[] = ['label' => $this->translator->trans('bank.message.action.accept'), 'href' => $this->generateUrl('app_bank_message_accept', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
         if ($row->canDismiss()) {

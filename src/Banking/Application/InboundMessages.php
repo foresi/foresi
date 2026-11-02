@@ -54,6 +54,13 @@ interface InboundMessages
     public function finish(string $id, ProcessingResult $result, \DateTimeImmutable $at): void;
 
     /**
+     * Writes to the audit log, on the message, that the signed-in user recorded it
+     * anyway and when, with the status and trust basis it leaves: call it inside the
+     * transaction that processes it, before finish().
+     */
+    public function recordAccepted(string $id, InboundStatus $status): void;
+
+    /**
      * Counts an attempt that failed unexpectedly, after its transaction was undone.
      */
     public function countFailedAttempt(string $id): void;

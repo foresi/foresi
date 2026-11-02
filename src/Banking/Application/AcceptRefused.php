@@ -18,6 +18,8 @@ final class AcceptRefused extends \DomainException
     public const string ACCOUNT_MISMATCH = 'account_mismatch';
     /** Not rejected, or not any more. */
     public const string NOT_REJECTED = 'not_rejected';
+    /** Only the owner records a message that may be forged. */
+    public const string NOT_OWNER = 'not_owner';
 
     public function __construct(public readonly string $reason)
     {

@@ -155,21 +155,22 @@ A message is **verified** only when:
 
 Or, by the strict ARC rescue, when the topmost trusted header says `arc=pass`, the newest ARC set (the highest `i=`) is sealed by a domain listed in `BANK_INBOX_TRUSTED_ARC`, and that set's `ARC-Authentication-Results` shows an aligned `dkim=pass` for the bank. The rescue overrides a DKIM signature that a forwarder broke on the way; it never overrides a `dmarc=fail`.
 
-A message is **never verified** when the trusted header holds:
+A claim of failure counts **from any `Authentication-Results` header**, whether its authserv-id is trusted or not: claiming a fail can only make the verdict stricter, so nobody gains by forging one. A message is **failed** when:
 
-- an aligned `dmarc=fail`, or an aligned `dkim=fail` without the ARC rescue: **failed**;
-- a pass and a fail for one signing domain (`header.d`): **failed** when that domain is the bank's, otherwise unverified;
-- two DMARC results: **unverified**.
+- any header claims an aligned `dmarc=fail`, or an aligned `dkim=fail` (in the trusted topmost header the ARC rescue may override a broken DKIM signature; it never overrides a fail any other header claims);
+- the trusted header holds a pass and a fail for one signing domain (`header.d`), or two DMARC results: no honest check writes either, so a sender smuggled one in;
+- a header lower down claims the trusted authserv-id. A receiving server removes or renames headers that carry its own id (RFC 8601 §5), so a trusted id further down was planted by the sender or misplaced;
+- the `From` domain is not the bank's or names more than one address.
 
-It is also **failed** when the `From` domain is not the bank's or names more than one address, and **unverified** when there is no trusted header at the top, when the header gives no verifying result (a `dkim=pass` alone never verifies), or when a header lower down claims the trusted authserv-id. A receiving server removes or renames headers that carry its own id (RFC 8601 §5), so a trusted id further down was planted by the sender or misplaced.
+It is **unverified** when there is no trusted header at the top, or when the header gives no verifying result (a `dkim=pass` alone never verifies).
 
 | Verdict | What happens |
 |---|---|
 | Verified | The movements are recorded and paired by the [pairing rules](#what-pairs-by-itself) |
-| Unverified | The movements are recorded and the fitting invoices are suggested, so pairing takes one click; **nothing is paired by itself** |
-| Failed | The message is rejected and no movement is recorded. "Record anyway" records it unpaired, after a warning to check the payment in the bank first |
+| Unverified | The movements are recorded and the fitting invoices are suggested; **nothing is paired by itself**. The pair dialog warns that Foresi did not verify the payment with the bank, ticks and fills in nothing, and pairs only once the person ticks "I checked the payment in the bank". The application refuses the pairing without that confirmation, whatever sends it |
+| Failed | The message is rejected and no movement is recorded. Only the owner can "Record anyway", after a warning that the message failed the sender check and may be forged; the audit log keeps who did and when. The movements are then unverified, as above |
 
-Why so strict: a receiving server copies text the sender chose, such as the HELO name or the envelope sender, into its header without always quoting it, so a sender can make one header seem to hold a result the server never reached. A second DMARC result, or a pass and a fail for one signer, is how that shows, and then nothing verifies.
+Why so strict: a receiving server copies text the sender chose, such as the HELO name or the envelope sender, into its header without always quoting it, so a sender can make one header seem to hold a result the server never reached. A second DMARC result, or a pass and a fail for one signer, is how that shows, and then the message is failed. An attacker who can send mail must never get an invoice marked paid, neither by itself nor through a click that looks routine: anything Foresi cannot verify goes to a person, who checks it in the bank.
 
 ### What the operator must do
 
@@ -282,10 +283,11 @@ The small-difference settlement applies only when the switch is on, the movement
 The list filters by firm, account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.
 
 - **Pair** opens a dialog with the suggested invoices first (same variable symbol, then same amount, then same customer) and a search over the firm's other unpaid invoices in the movement's currency. Tick one or more; the amounts fill in oldest due first, and the parts must add up to the movement. When the firm allows it, the difference on one invoice can be written off, up to the limit. Pairing needs no confirm: the flash "Paired with …" offers **Undo**.
+- For a movement Foresi did not verify (listed as "Not verified, check it in the bank first"), the dialog warns, nothing is ticked or filled in, and the box "I checked the payment in the bank" must be ticked. Find the payment in your internet banking first.
 - **Unpair** on a paired row asks first: the invoices become unpaid again, the payment is cancelled, and the movement returns to unmatched and is **never paired automatically again**. Undo from the flash does the same without asking.
 - **Show** opens the message: its text as text, never as HTML, the sender, the account, the status and the verification.
 - **Try again** processes a failed, waiting or not-bank message now. Pressing it twice records nothing twice.
-- **Record anyway** exists only for a message that failed the sender check. It warns to check the payment in the bank first, then records the movements unverified and unpaired; they are never paired by themselves.
+- **Record anyway** exists only for a message that failed the sender check, and only for the owner. It warns that the message did not pass the bank-sender check and may be forged, then records the movements unverified and unpaired; they are never paired by themselves, and pairing them needs the bank check above. The audit log keeps who recorded it and when.
 - **Dismiss** sets aside a message nobody will record: one about another firm's account, a failure no parser will read, a mail that is no bank's, or a stuck one. It is never processed again; the raw message stays stored, and the audit log says who dismissed it.
 
 A message still waiting to be processed **after 60 minutes** is shown as **stuck**: the queue gave up on it, or no worker runs. It is listed among the messages that need someone, with Try again and Dismiss.
@@ -321,7 +323,7 @@ The hourly job `bank-reparse` reads again, by itself, the failed messages whose 
 | The sender allowlist | A `From` outside the bank's domains, or with two addresses, is rejected |
 | Trusted authentication results | Only your own receiving server's topmost header counts, only a single aligned `dmarc=pass` or the strict ARC rescue verifies, and anything unclear verifies nothing |
 | The account check | A notice about an account that is not the firm's is rejected and cannot be recorded |
-| The gate | An unverified message is recorded and suggested, never paid |
+| The gate | An unverified message is recorded and suggested, never paid by itself; a person pairs it only after confirming it in the bank, and only the owner records a failed one anyway |
 | The webhook secret and limit | Bearer token compared in constant time, 120 requests a minute per IP counted before it, 10 MiB at most, and the same answer whether an address exists |
 | Undo | Every pairing, automatic or by hand, can be undone, and the movement then waits for a person |
 

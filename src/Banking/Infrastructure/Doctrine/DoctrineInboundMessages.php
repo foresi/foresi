@@ -18,6 +18,7 @@ use App\Banking\Application\InboundMessages;
 use App\Banking\Application\MessageRow;
 use App\Banking\Application\MovementFilter;
 use App\Banking\Application\ProcessingResult;
+use App\Banking\Application\TrustVerdict;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Domain\MessageTrust;
@@ -37,8 +38,8 @@ use Psr\Clock\ClockInterface;
  * of one mail at the same moment exactly one is stored, and no failed insert
  * leaves the persistence session broken. Processing writes by plain statements
  * too: the processing of a message starts the session over on the way, and the
- * row is a log no person edits. Setting a message aside is the one change a person
- * makes, so it writes its own line to the audit log.
+ * row is a log no person edits. Setting a message aside and recording one anyway
+ * are the changes a person makes, so each writes its own line to the audit log.
  */
 final readonly class DoctrineInboundMessages implements InboundMessages
 {
@@ -147,6 +148,24 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             'id' => $id,
             'tenant' => $this->context->current()->toString(),
         ], ['version' => null === $result->parserVersion ? ParameterType::NULL : ParameterType::INTEGER, 'at' => Types::DATETIME_IMMUTABLE]);
+    }
+
+    public function recordAccepted(string $id, InboundStatus $status): void
+    {
+        $row = $this->connection->fetchAssociative('SELECT status, trust_basis FROM inbound_message WHERE id = :id AND tenant_id = :tenant', ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        if (false === $row) {
+            throw new \LogicException('Only a stored message of the tenant is recorded anyway.');
+        }
+        $this->em->persist(new AuditEntry(
+            InboundMessage::class,
+            $id,
+            AuditAction::Updated,
+            // The claim marked it processing; it was rejected for its sender until now.
+            ['status' => [InboundStatus::Rejected->value, $status->value], 'trust_basis' => [$this->optional($row['trust_basis']), TrustVerdict::ACCEPTED_BY_USER]],
+            $this->actor->userId(),
+            \DateTimeImmutable::createFromInterface($this->clock->now()),
+            $this->correlation->current(),
+        ));
     }
 
     public function countFailedAttempt(string $id): void

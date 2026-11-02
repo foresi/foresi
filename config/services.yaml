@@ -119,6 +119,8 @@ services:
             $folder: '%env(string:BANK_INBOX_FOLDER)%'
     App\Banking\Application\InboundMessages:
         alias: App\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
+    App\Banking\Application\Ownership:
+        alias: App\Banking\Infrastructure\IdentityOwnership
     App\Banking\Application\InboundFiles:
         alias: App\Banking\Infrastructure\Files\DiskInboundFiles
     App\Banking\Application\InboundProcessing:

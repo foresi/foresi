@@ -84,11 +84,18 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertResponseRedirects('/bank?tab=messages');
 
         $dialog = $this->dialog('/bank/messages/'.$untrusted.'/accept');
-        self::assertStringContainsString('Check in your bank that the payment really came', $dialog->filter('dialog')->text());
+        self::assertStringContainsString('The e-mail failed the check of its sender and may be forged', $dialog->filter('dialog')->text());
+        self::assertStringContainsString('checked in your internet banking that the payment really came', $dialog->filter('dialog')->text());
         $this->client->request('POST', '/bank/messages/'.$untrusted.'/accept', $dialog->filter('form#accept-form')->form()->getPhpValues(), server: self::DIALOG);
 
         self::assertSame(['location' => '/bank?tab=messages'], $this->json());
         self::assertSame('processed', $this->messageRow($untrusted)['status']);
+        // Who recorded it anyway, and when, stays on the message.
+        $audit = $this->connection()->fetchAssociative('SELECT changes, user_id, occurred_at FROM audit_entry WHERE entity_class = ? AND entity_id = ?', [InboundMessage::class, $untrusted]);
+        self::assertIsArray($audit);
+        self::assertSame(['status' => ['rejected', 'processed'], 'trust_basis' => ['dkim-fail', 'accepted-by-user']], json_decode(Scalars::text($audit['changes']), true));
+        self::assertNotNull($audit['user_id']);
+        self::assertNotNull($audit['occurred_at']);
         $movement = $this->connection()->fetchAssociative('SELECT state, unmatched_reason, trust_basis FROM bank_movement WHERE inbound_message_id = ?', [$untrusted]);
         self::assertSame(['state' => 'unmatched', 'unmatched_reason' => 'unverified', 'trust_basis' => 'accepted-by-user'], $movement);
 
@@ -96,6 +103,22 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertResponseRedirects('/bank?tab=messages');
         self::assertSame('rejected', $this->messageRow($mismatch)['status']);
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$mismatch])));
+    }
+
+    public function testAMemberCannotRecordAnyway(): void
+    {
+        $this->signedIn(Role::Member);
+        $untrusted = $this->received($this->notice('incoming-booked', auth: 'aligned-dkim-fail', messageId: 'forged@kb.example.com'));
+        $token = $this->messageToken();
+
+        self::assertCount(0, $this->row($this->page('/bank?tab=messages'), $untrusted)->filter('a[href*="/accept"]'), 'A member is not offered it.');
+        $this->client->request('GET', '/bank/messages/'.$untrusted.'/accept');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/bank/messages/'.$untrusted.'/accept', ['_token' => $token]);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame('rejected', $this->messageRow($untrusted)['status']);
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_movement WHERE inbound_message_id = ?', [$untrusted])));
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM audit_entry WHERE entity_id = ?', [$untrusted])));
     }
 
     public function testDismissingAnAccountMismatchClearsTheNoticeAndKeepsTheRawAndAuditsIt(): void

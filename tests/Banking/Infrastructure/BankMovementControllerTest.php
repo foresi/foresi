@@ -93,7 +93,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $byAmount = $this->invoice(due: '2026-11-10', customer: $stranger);
         $byCustomer = $this->invoice('700.00', customer: $payer);
         $other = $this->invoice('300.00', customer: $stranger);
-        $movement = $this->movement('1210.00', '20260007', counterName: 'Example Payer s.r.o.');
+        $movement = $this->movement('1210.00', '20260007', trust: MessageTrust::Verified, counterName: 'Example Payer s.r.o.', auto: false);
 
         $dialog = $this->dialog($this->pairUrl($movement));
 
@@ -111,13 +111,68 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertSame('pair-form', $dialog->filter('#pair-submit')->attr('form'));
     }
 
+    /**
+     * A notice the bank did not vouch for may be forged: a click must not pay an
+     * invoice on it. The dialog warns, ticks and fills in nothing, and pairs only
+     * once the person confirms they found the payment in their internet banking.
+     */
+    public function testAnUnverifiedPaymentWarnsFillsInNothingAndNeedsTheBankCheck(): void
+    {
+        $this->signedIn();
+        $invoice = $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001');
+        self::assertStringContainsString('Not verified, check it in the bank first', $this->row($this->page('/bank'), $movement)->text());
+
+        $dialog = $this->dialog($this->pairUrl($movement));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Foresi did not verify this payment with the bank. Before you pair it, check it in your internet banking.', $dialog->filter('[data-pair-unverified]')->text());
+        self::assertSame([$invoice->id()], $this->invoiceIds($dialog, '[data-pair-suggestions]'), 'Still suggested, to find it faster.');
+        self::assertCount(0, $dialog->filter('[data-pair-invoice] input[type="checkbox"][checked]'), 'Nothing ticked.');
+        self::assertSame([''], $dialog->filter('[data-pair-invoice] input[type="text"]')->each(static fn (Crawler $field): string => (string) $field->attr('value')), 'No amount filled in.');
+        self::assertSame('false', $dialog->filter('form#pair-form')->attr('data-pair-sum-fill-value'), 'Ticking fills in nothing either.');
+        $box = $dialog->filter('#pair-checked-in-bank');
+        self::assertCount(1, $box);
+        self::assertNull($box->attr('checked'));
+        self::assertStringContainsString('I checked the payment in the bank', $dialog->filter('[data-pair-checked]')->text());
+
+        $form = $this->pairForm($movement);
+        $form['invoices'] = [$invoice->id()];
+        $form['amounts'][$invoice->id()] = '1210.00';
+        $dialog = $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Confirm that you checked the payment in the bank.', $dialog->filter('[data-pair-checked]')->text());
+        self::assertSame([], $this->liveAllocations());
+        self::assertSame('unmatched', $this->movementRow($movement)['state']);
+
+        $form['checked_in_bank'] = '1';
+        $this->dialogPost($this->pairUrl($movement), $form);
+
+        self::assertSame(['location' => '/bank'], $this->json());
+        self::assertSame([$invoice->id() => 121000], $this->liveAllocations());
+        self::assertSame('paired', $this->movementRow($movement)['state']);
+    }
+
+    public function testAVerifiedPaymentNeedsNoBankCheck(): void
+    {
+        $this->signedIn();
+        $this->invoice(vs: '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+
+        $dialog = $this->dialog($this->pairUrl($movement));
+
+        self::assertCount(0, $dialog->filter('[data-pair-unverified], #pair-checked-in-bank'));
+        self::assertNull($dialog->filter('form#pair-form')->attr('data-pair-sum-fill-value'));
+    }
+
     public function testSearchingKeepsWhatWasTickedAndFindsAnotherInvoice(): void
     {
         $this->signedIn();
         $first = $this->invoice(vs: '20260001');
         $found = $this->invoice('500.00', due: '2026-12-30');
         $this->invoice('300.00');
-        $movement = $this->movement('1815.00', '20260001');
+        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
         $number = $found->number();
 
         $form = $this->pairForm($movement);
@@ -137,7 +192,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $this->signedIn();
         $first = $this->invoice(vs: '20260001');
         $second = $this->invoice('500.00', vs: '20260001', due: '2026-11-30');
-        $movement = $this->movement('1815.00', '20260001');
+        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
         $form = $this->pairForm($movement, 'tab=unmatched');
         self::assertSame(['1210.00', '605.00'], [$form['amounts'][$first->id()], $form['amounts'][$second->id()]], 'Prefilled oldest due first.');
 
@@ -159,7 +214,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
         $form = $this->pairForm($movement);
         $form['amounts'][$invoice->id()] = '1000.00';
 
@@ -181,7 +236,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1209.50', '20260001');
+        $movement = $this->movement('1209.50', '20260001', trust: MessageTrust::Verified, auto: false);
         $form = $this->pairForm($movement);
         self::assertArrayNotHasKey('settle', $form, 'Offered, not ticked.');
         $this->dialog($this->pairUrl($movement));
@@ -205,7 +260,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001');
+        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
         $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
         $flash = $this->page('/bank')->filter('[data-undo] form');
         $token = Scalars::text($flash->filter('input[name="_token"]')->attr('value'));

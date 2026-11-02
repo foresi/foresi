@@ -51,34 +51,61 @@ test.describe.serial('the bank movements', () => {
     await page.goto('/bank');
     await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Banka/);
     await expect(row(page, '20260001').locator('[data-links] a')).toHaveText('20260001');
-    await expect(row(page, '2 420,00')).toContainText('Neověřeno, spárujte ručně');
+    await expect(row(page, '2 420,00')).toContainText('Neověřeno, nejdřív zkontrolujte v bance');
     await expect(page.getByRole('navigation', { name: 'Pohledy na banku' }).getByRole('link', { name: /Nespárované/ })).toContainText('4');
   });
 
-  test('a waiting payment is paired by keyboard in the dialog, then undone from the flash', async ({ page }) => {
+  test('the unverified pair dialog fills the phone and keeps its warning in view @a11y @layout', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await page.goto('/bank?tab=unmatched');
+    await row(page, '2 420,00').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, '2 420,00').getByRole('menuitem', { name: 'Spárovat' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Spárovat platbu 2 420,00 Kč' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-pair-unverified]')).toBeInViewport();
+    await expect(dialog.getByRole('checkbox', { name: 'Platbu jsem ověřil(a) v bance' })).not.toBeChecked();
+    const box = await dialog.boundingBox();
+    expect(box?.width).toBe(PHONE.width);
+    await expectNoSeriousViolations(page);
+    await expectNoSidewaysScroll(page);
+    await page.screenshot({ path: `${SHOTS}/bank-pair-unverified-phone.png`, fullPage: true });
+    await dialog.getByRole('button', { name: 'Zrušit' }).click();
+  });
+
+  test('an unverified payment is paired by keyboard only after the bank check, then undone from the flash', async ({ page }) => {
     await page.goto('/bank?tab=unmatched');
     const waiting = row(page, '2 420,00');
-    // Keyboard only: the row's Pair opens the dialog with the invoice of its symbol ticked and filled in.
+    // Keyboard only. The bank did not vouch for this payment: the dialog warns, and nothing is ticked or filled in.
     await waiting.getByRole('link', { name: 'Spárovat' }).focus();
     await page.keyboard.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Spárovat platbu 2 420,00 Kč' });
     await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-pair-unverified]')).toContainText('Tuto platbu Foresi neověřil u banky. Než ji spárujete, zkontrolujte ji ve svém internetovém bankovnictví.');
     const suggested = dialog.locator('[data-pair-suggestions] [data-pair-invoice]').first();
     await expect(suggested).toContainText('20260002');
     await expect(suggested).toContainText('Stejný variabilní symbol');
-    await expect(suggested.getByRole('checkbox')).toBeChecked();
-    await expect(suggested.getByRole('textbox')).toHaveValue(/^2\s420,00$/);
-    await expect(dialog.locator('[data-pair-sum]')).toContainText('Rozděleno 2 420,00 Kč / 2 420,00 Kč');
+    await expect(dialog.locator('[data-pair-invoice] input[type="checkbox"]:checked')).toHaveCount(0);
+    await expect(suggested.getByRole('textbox')).toHaveValue('');
+    const checked = dialog.getByRole('checkbox', { name: 'Platbu jsem ověřil(a) v bance' });
+    await expect(checked).not.toBeChecked();
     await expectNoSeriousViolations(page);
-    await page.screenshot({ path: `${SHOTS}/bank-pair-desktop.png`, fullPage: true });
+    await page.screenshot({ path: `${SHOTS}/bank-pair-unverified-desktop.png`, fullPage: true });
 
-    // A second invoice takes what is left: nothing, so the sum says by how much it is over.
-    const other = dialog.locator('[data-pair-invoice]').filter({ hasText: '20260003' });
-    await other.getByRole('checkbox').check();
-    await expect(dialog.locator('[data-pair-sum]')).toContainText('víc než platba');
-    await other.getByRole('checkbox').uncheck();
-    await expect(dialog.locator('[data-pair-sum]')).not.toContainText('víc než platba');
+    // Ticking fills in nothing either: the person types what they found in the bank.
+    await suggested.getByRole('checkbox').check();
+    await expect(suggested.getByRole('textbox')).toHaveValue('');
+    await suggested.getByRole('textbox').fill('2 420,00');
+    await expect(dialog.locator('[data-pair-sum]')).toContainText('Rozděleno 2 420,00 Kč / 2 420,00 Kč');
 
+    // Without the bank check the server refuses and keeps what was typed.
+    await page.locator('#pair-submit').focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog.locator('[data-pair-checked]')).toContainText('Potvrďte, že jste platbu ověřil(a) v bance.');
+    await expect(dialog.locator('[data-pair-suggestions] [data-pair-invoice]').first().getByRole('textbox')).toHaveValue(/^2\s?420,00$/);
+    await page.screenshot({ path: `${SHOTS}/bank-pair-unverified-refused-desktop.png`, fullPage: true });
+
+    await dialog.getByRole('checkbox', { name: 'Platbu jsem ověřil(a) v bance' }).focus();
+    await page.keyboard.press('Space');
     await page.locator('#pair-submit').focus();
     await page.keyboard.press('Enter');
     await expect(dialog).toBeHidden();
@@ -109,6 +136,9 @@ test.describe.serial('the bank movements', () => {
     await row(page, '350,00').getByRole('link', { name: 'Spárovat' }).click();
     const dialog = page.getByRole('dialog', { name: 'Spárovat platbu 350,00 Kč' });
     await expect(dialog).toBeVisible();
+    // A verified payment: no warning and no bank check; a ticked invoice fills in what it has left.
+    await expect(dialog.locator('[data-pair-unverified], [data-pair-checked]')).toHaveCount(0);
+    await page.screenshot({ path: `${SHOTS}/bank-pair-desktop.png`, fullPage: true });
     await dialog.locator('#pair-q').fill('20260003');
     await page.keyboard.press('Enter');
     const found = dialog.locator('[data-pair-invoice]').filter({ hasText: '20260003' });
@@ -172,7 +202,7 @@ test.describe.serial('the bank movements', () => {
     await untrusted.getByRole('button', { name: /Další akce/ }).click();
     await untrusted.getByRole('menuitem', { name: 'Přesto zaznamenat' }).click();
     const accept = page.getByRole('dialog', { name: 'Přesto platbu zaznamenat?' });
-    await expect(accept).toContainText('Ověřte v bance, že platba opravdu přišla.');
+    await expect(accept).toContainText('E-mail neprošel kontrolou odesílatele a může být podvržený');
     await expectNoSeriousViolations(page);
     await page.screenshot({ path: `${SHOTS}/bank-accept-desktop.png`, fullPage: true });
     await accept.getByRole('button', { name: 'Zrušit' }).click();

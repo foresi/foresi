@@ -770,7 +770,7 @@ bank:
       ambiguous: Several invoices fit
       currency_mismatch: The invoice is in another currency
       auto_pairing_off: Pairing by hand
-      unverified: Not verified, pair by hand
+      unverified: Not verified, check it in the bank first
       blocked: Unpaired, pair by hand
       rejected: Rejected, never paired
       refused: The invoice refused the payment. Pair it by hand.
@@ -785,6 +785,7 @@ bank:
       rejected: 'This payment cannot be paired: its e-mail failed its checks.'
       possible_duplicate: 'This payment cannot be paired: it came in another e-mail already.'
       own_transfer: 'This payment cannot be paired: it came from another account of the firm.'
+      not_checked_in_bank: This payment cannot be paired until you confirm you checked it in the bank.
       not_paired: The payment is not paired, or not any more.
     flash:
       paired: 'Paired with {numbers}.'
@@ -816,8 +817,12 @@ bank:
       left: '{amount} left to split'
       over: '{amount} more than the payment'
       submit: Pair
+      unverified_title: The payment is not verified
+      unverified: Foresi did not verify this payment with the bank. Before you pair it, check it in your internet banking.
+      checked_in_bank: I checked the payment in the bank
       error:
         none: Tick the invoices the payment pays.
+        checked: Confirm that you checked the payment in the bank.
         amount: Enter an amount above zero.
         sum: 'The parts add up to {sum}, the payment is {amount}.'
         settle: A difference is written off only on one invoice, up to the limit, when the firm allows it.
@@ -871,6 +876,7 @@ bank:
     refused:
       account_mismatch: The account in the e-mail is not the firm's, so it cannot be recorded.
       not_rejected: Only an e-mail whose sender could not be verified can be recorded anyway.
+      not_owner: Only the owner can record an e-mail anyway.
       not_dismissable: This e-mail cannot be dismissed.
     trust:
       verified: Verified sender
@@ -879,9 +885,9 @@ bank:
     accept:
       crumb: Record anyway
       title: Record the payment anyway?
-      warning_title: Check the payment in your bank first
-      warning: Check in your bank that the payment really came. The e-mail failed the checks of its sender, so it may be forged.
-      text: The payment is recorded unpaired and is never paired automatically.
+      warning_title: The e-mail failed the check of its sender and may be forged
+      warning: Record it only once you checked in your internet banking that the payment really came.
+      text: The payment is recorded unpaired and is never paired automatically. Who recorded it, and when, is kept.
       submit: Record anyway
     dismiss:
       crumb: Dismiss

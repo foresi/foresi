@@ -18,6 +18,7 @@ use App\Banking\Application\InboundMessages;
 use App\Banking\Application\MailReader;
 use App\Banking\Application\MovementFilter;
 use App\Banking\Application\NotificationLines;
+use App\Banking\Application\Ownership;
 use App\Banking\Application\ProcessMessage;
 use App\Banking\Application\RetryInboundMessage;
 use App\Banking\Application\UnknownInboundMessage;
@@ -39,9 +40,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The bank mail of the Messages tab, for staff: a message as it came, in a
  * dialog with its text escaped; trying it again; recording a trust rejection
- * anyway after the payment was checked in the bank; and dismissing what nobody
- * will record. Recording anyway and dismissing ask first, in a dialog that is a
- * page of its own as well. A message of another tenant is never found.
+ * anyway after the payment was checked in the bank, which only the owner may, as
+ * the message may be forged; and dismissing what nobody will record. Recording
+ * anyway and dismissing ask first, in a dialog that is a page of its own as well.
+ * A message of another tenant is never found.
  */
 final class InboundMessageController extends AbstractController
 {
@@ -59,6 +61,7 @@ final class InboundMessageController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly InboundAddresses $addresses,
+        private readonly Ownership $ownership,
     ) {
     }
 
@@ -115,6 +118,10 @@ final class InboundMessageController extends AbstractController
     {
         $this->denyUnlessStaff();
         $message = $this->message($id);
+        // A message that failed the sender check may be forged: only the owner records it.
+        if (!$this->ownership->isOwner()) {
+            throw new AccessDeniedHttpException('Only the owner records a bank e-mail anyway.');
+        }
         $post = $request->isMethod('POST');
         $return = $post ? $request->request->getString('return') : $request->query->getString('return');
         if ($post) {

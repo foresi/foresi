@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 use App\Banking\Domain\BankMovement;
+use App\Banking\Domain\MessageTrust;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
@@ -56,18 +57,24 @@ final readonly class PairMovement
     /**
      * Pays the invoices a person chose. The parts must add up to the movement.
      *
+     * A movement the bank did not vouch for, from an unverified message or one
+     * recorded anyway, may be forged: it pairs only when the person confirms they
+     * found the payment in their internet banking. The rule holds here, for every
+     * caller, not only in the dialog that asks.
+     *
      * @param non-empty-list<AllocationRequest> $allocations
+     * @param bool                              $checkedInBank whether the person confirmed they checked the payment in the bank
      *
      * @throws PairingRefused      nothing is stored
      * @throws PaymentRefused      nothing is stored; the parts do not add up to the movement, say
      * @throws UnknownBankMovement also for a movement of another tenant
      * @throws UnknownInvoice      also for an invoice of another tenant
      */
-    public function pair(string $movementId, array $allocations): Payment
+    public function pair(string $movementId, array $allocations, bool $checkedInBank = false): Payment
     {
         try {
-            return $this->retry->run(fn (): Payment => $this->work->run(function () use ($movementId, $allocations): Payment {
-                $this->refuseUnpairable($this->movements->lock($movementId));
+            return $this->retry->run(fn (): Payment => $this->work->run(function () use ($movementId, $allocations, $checkedInBank): Payment {
+                $this->refuseUnpairable($this->movements->lock($movementId), $checkedInBank);
                 $this->lockInvoices(array_map(static fn (AllocationRequest $allocation): string => $allocation->invoiceId, $allocations));
 
                 return $this->paid($movementId, $allocations);
@@ -212,7 +219,7 @@ final readonly class PairMovement
         return $ids;
     }
 
-    private function refuseUnpairable(BankMovement $movement): void
+    private function refuseUnpairable(BankMovement $movement, bool $checkedInBank): void
     {
         $refusal = match (true) {
             !$movement->isIncoming() => PairingRefused::NOT_INCOMING,
@@ -220,6 +227,7 @@ final readonly class PairMovement
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
             UnmatchedReason::Rejected === $movement->unmatchedReason() => PairingRefused::REJECTED,
+            MessageTrust::Verified !== $movement->trust() && !$checkedInBank => PairingRefused::NOT_CHECKED_IN_BANK,
             default => null,
         };
         if (null !== $refusal) {

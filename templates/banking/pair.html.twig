@@ -5,6 +5,8 @@
     its currency or what a search finds. Each ticked invoice takes a part, filled in oldest due first;
     the parts must add up to the movement, which the running sum shows. No confirmation: the flash
     after it offers Undo. From the list it opens over the page; the same URL is a page of its own.
+    A movement the bank did not vouch for (checkFirst) gets a warning, nothing ticked or filled in,
+    and a required box saying the payment was checked in the bank.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
@@ -45,12 +47,17 @@
         data-controller="pair-sum"
         data-pair-sum-total-value="{{ amountMinor }}"
         data-pair-sum-unit-value="{{ unit }}"
-        {%- if limit is not null %} data-pair-sum-limit-value="{{ limit }}"{% endif %}>
+        {%- if limit is not null %} data-pair-sum-limit-value="{{ limit }}"{% endif %}
+        {%- if checkFirst %} data-pair-sum-fill-value="false"{% endif %}>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
         <input type="hidden" name="return" value="{{ return }}">
 
         {% if errors.form is defined %}
             <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+        {# The bank did not vouch for this payment: nothing is ticked or filled in, and the person confirms they found it in the bank. #}
+        {% if checkFirst %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'bank.movement.pair.unverified_title'|trans" data-pair-unverified>{{ 'bank.movement.pair.unverified'|trans }}</twig:Ui:Alert>
         {% endif %}
 
         <dl class="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 rounded-panel bg-head px-4 py-3 text-small" data-pair-movement>
@@ -88,6 +95,12 @@
             <div class="grid gap-1" data-pair-sum-target="settle" data-settle>
                 <twig:Ui:Checkbox name="settle" id="pair-settle" :label="'bank.movement.pair.settle'|trans" :checked="values.settle" :error="errors.settle|default(null)" />
                 <p class="m-0 pl-6 text-caption text-muted">{{ settleText }}</p>
+            </div>
+        {% endif %}
+
+        {% if checkFirst %}
+            <div data-pair-checked>
+                <twig:Ui:Checkbox name="checked_in_bank" id="pair-checked-in-bank" :label="'bank.movement.pair.checked_in_bank'|trans" :checked="values.checked" :required="true" :error="errors.checked_in_bank|default(null)" />
             </div>
         {% endif %}
 

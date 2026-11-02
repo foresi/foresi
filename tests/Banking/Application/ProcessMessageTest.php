@@ -15,9 +15,11 @@ use App\Banking\Application\BankMessageParsers;
 use App\Banking\Application\BankMovements;
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundMessages;
+use App\Banking\Application\Ownership;
 use App\Banking\Application\PendingChanges;
 use App\Banking\Application\RetryInboundMessage;
 use App\Banking\Application\UnknownInboundMessage;
+use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Infrastructure\Navigation\BankNotices;
 use App\Identity\Application\MembershipDirectory;
@@ -190,9 +192,30 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertCount(1, $movements);
         self::assertSame(['unmatched', 'unverified', 'unverified', 'accepted-by-user', null], [$movements[0]['state'], $movements[0]['unmatched_reason'], $movements[0]['trust'], $movements[0]['trust_basis'], $movements[0]['payment_id']]);
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
+        // Who recorded it, and when, stays on the message.
+        $audit = $this->em->getConnection()->fetchAllAssociative('SELECT action, changes, occurred_at FROM audit_entry WHERE entity_class = ? AND entity_id = ?', [InboundMessage::class, $id]);
+        self::assertCount(1, $audit);
+        self::assertSame('updated', $audit[0]['action']);
+        self::assertSame(['status' => ['rejected', 'processed'], 'trust_basis' => ['dkim-fail', 'accepted-by-user']], json_decode(Scalars::text($audit[0]['changes']), true));
+        self::assertNotNull($audit[0]['occurred_at']);
 
         $this->expectExceptionObject(new AcceptRefused(AcceptRefused::NOT_REJECTED));
         $accept->accept($id);
+    }
+
+    public function testOnlyTheOwnerRecordsAMessageAnyway(): void
+    {
+        $id = $this->received($this->notice('incoming-booked', auth: 'aligned-dkim-fail'));
+        self::assertSame(InboundStatus::Rejected, $this->process->process($id));
+
+        try {
+            $this->accept(owner: false)->accept($id);
+            self::fail('A member does not record a forged-looking message.');
+        } catch (AcceptRefused $refused) {
+            self::assertSame(AcceptRefused::NOT_OWNER, $refused->reason);
+        }
+        self::assertSame('rejected', $this->messageRow($id)['status']);
+        self::assertCount(0, $this->movementsOf($id));
     }
 
     public function testAMessageThatIsNotRejectedCannotBeAccepted(): void
@@ -300,9 +323,20 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(['/bank?tab=messages', '/bank?tab=unmatched'], array_map(static fn (ShellNotice $notice): string => $notice->href, iterator_to_array($this->bankNotices(true, self::getContainer()->get(UrlGeneratorInterface::class))->notices(), false)));
     }
 
-    private function accept(): AcceptRejectedMessage
+    private function accept(bool $owner = true): AcceptRejectedMessage
     {
-        return new AcceptRejectedMessage(self::getContainer()->get(InboundMessages::class), $this->process);
+        $ownership = new readonly class($owner) implements Ownership {
+            public function __construct(private bool $owner)
+            {
+            }
+
+            public function isOwner(): bool
+            {
+                return $this->owner;
+            }
+        };
+
+        return new AcceptRejectedMessage(self::getContainer()->get(InboundMessages::class), $this->process, $ownership);
     }
 
     /**

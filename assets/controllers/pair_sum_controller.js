@@ -9,7 +9,9 @@ const SPACES = /[\s   ]/g;
  * The parts of the pair dialog, added up as they are ticked and typed.
  *
  * - Ticking an invoice fills in what it has left, up to what the movement still
- *   has to give, so a second invoice takes the rest of the first.
+ *   has to give, so a second invoice takes the rest of the first. Not for a
+ *   payment the bank did not vouch for (fill false): the person types what they
+ *   found in the bank.
  * - The running sum says what is split and what is left, or by how much the parts
  *   are more than the movement. The server checks the same and refuses otherwise.
  * - The box to write off a small difference shows only for one invoice taking the
@@ -23,7 +25,7 @@ const SPACES = /[\s   ]/g;
  */
 export default class extends Controller {
     static targets = ['line', 'check', 'amount', 'sum', 'left', 'settle', 'search'];
-    static values = { total: Number, unit: String, limit: { type: Number, default: -1 } };
+    static values = { total: Number, unit: String, limit: { type: Number, default: -1 }, fill: { type: Boolean, default: true } };
 
     connect() {
         this.check();
@@ -32,7 +34,7 @@ export default class extends Controller {
     ticked(event) {
         const line = event.target.closest('[data-pair-invoice]');
         const field = line.querySelector('[data-pair-sum-target="amount"]');
-        if (event.target.checked) {
+        if (event.target.checked && this.fillValue) {
             const others = this.checkedLines().filter((other) => other !== line).reduce((sum, other) => sum + (this.minor(this.amountOf(other).value) ?? 0), 0);
             const rest = this.totalValue - others;
             if (rest > 0) {

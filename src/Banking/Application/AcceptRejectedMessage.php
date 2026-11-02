@@ -14,24 +14,29 @@ use App\Banking\Domain\InboundStatus;
 /**
  * "Record anyway" on a message rejected because its sender could not be trusted,
  * after a person checked the payment in the bank: its movements are recorded as
- * unverified, accepted by a user, and are never paired by themselves. A message
- * about an account that is not the firm's is refused whoever asks: it is either
- * someone else's money or the wrong address.
+ * unverified, accepted by a user, and are never paired by themselves. Such a
+ * message may be forged, so only the owner records it, and the audit log keeps
+ * who did and when, on the message. A message about an account that is not the
+ * firm's is refused whoever asks: it is either someone else's money or the wrong
+ * address.
  */
 final readonly class AcceptRejectedMessage
 {
-    public function __construct(private InboundMessages $messages, private ProcessMessage $process)
+    public function __construct(private InboundMessages $messages, private ProcessMessage $process, private Ownership $ownership)
     {
     }
 
     /**
      * @return InboundStatus where the message stands afterwards: Rejected when its account turns out not to be the firm's
      *
-     * @throws AcceptRefused         when the message is not rejected for its trust; nothing is stored
+     * @throws AcceptRefused         when the user is not the owner, or the message is not rejected for its trust; nothing is stored
      * @throws UnknownInboundMessage also for a message of another tenant
      */
     public function accept(string $messageId): InboundStatus
     {
+        if (!$this->ownership->isOwner()) {
+            throw new AcceptRefused(AcceptRefused::NOT_OWNER);
+        }
         $message = $this->messages->find($messageId);
         if (!$message instanceof InboundMessage) {
             throw new UnknownInboundMessage();

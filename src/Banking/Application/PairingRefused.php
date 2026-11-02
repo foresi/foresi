@@ -21,6 +21,11 @@ final class PairingRefused extends \DomainException
     public const string REJECTED = 'rejected';
     public const string POSSIBLE_DUPLICATE = 'possible_duplicate';
     public const string OWN_TRANSFER = 'own_transfer';
+    /**
+     * The bank did not vouch for the movement, and the person pairing it did not
+     * confirm they checked it in their internet banking.
+     */
+    public const string NOT_CHECKED_IN_BANK = 'not_checked_in_bank';
     /** Unpairing a movement that has no payment. */
     public const string NOT_PAIRED = 'not_paired';
 

@@ -88,14 +88,52 @@ final class MailAuthenticationTest extends TestCase
         $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'dmarc-pass-and-fail');
     }
 
-    public function testTwoDmarcResultsAreUnverified(): void
+    public function testTwoDmarcResultsAreFailed(): void
     {
-        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS, 'two-dmarc-results');
+        // No honest check writes two: a sender smuggled one in, so the message goes to a person as rejected.
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::AMBIGUOUS, 'two-dmarc-results');
     }
 
-    public function testAPassAndAFailForOneUnalignedSignerAreUnverified(): void
+    public function testAPassAndAFailForOneUnalignedSignerAreFailed(): void
     {
-        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS, 'unaligned-dkim-pass-and-fail');
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::AMBIGUOUS, 'unaligned-dkim-pass-and-fail');
+    }
+
+    public function testADmarcFailCountsWithoutAnyTrustedServer(): void
+    {
+        // A claim of fail can only make the verdict stricter, so it counts whoever wrote it.
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL, 'dmarc-fail', new TrustSettings([], []));
+    }
+
+    public function testAFailClaimedByAnUntrustedServerIsFailed(): void
+    {
+        $mail = $this->mail([
+            ['Authentication-Results', 'relay.example.net; dkim=fail header.d=kb.cz'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK));
+    }
+
+    public function testAFailClaimedBelowATrustedPassIsFailed(): void
+    {
+        $mail = $this->mail([
+            ['Authentication-Results', 'mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz'],
+            ['Authentication-Results', 'relay.example.net; dmarc=fail header.from=kb.cz'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL), $this->authentication()->verdict($mail, self::BANK));
+    }
+
+    public function testAnUnalignedFailClaimedByAnUntrustedServerIsOnlyUnverified(): void
+    {
+        $mail = $this->mail([
+            ['Authentication-Results', 'relay.example.net; dkim=fail header.d=example.net; dmarc=fail header.from=example.net'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS), $this->authentication()->verdict($mail, self::BANK));
     }
 
     /**
@@ -194,13 +232,13 @@ final class MailAuthenticationTest extends TestCase
     public function testOnlyTheTopmostResultsHeaderCounts(): void
     {
         $this->assertVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL, 'planted-below-fail');
-        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED, 'planted-below-none');
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::PLANTED, 'planted-below-none');
     }
 
-    public function testATrustedIdOnALowerResultsHeaderIsUnverified(): void
+    public function testATrustedIdOnALowerResultsHeaderIsFailed(): void
     {
         // RFC 8601 §5: the receiving server removes or renames headers carrying its id, so one below its own was planted or misplaced.
-        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::PLANTED, 'planted-below-pass');
+        $this->assertVerdict(MessageTrust::Failed, TrustVerdict::PLANTED, 'planted-below-pass');
     }
 
     public function testAnUntrustedLowerResultsHeaderIsIgnored(): void

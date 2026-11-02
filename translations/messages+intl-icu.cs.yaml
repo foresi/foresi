@@ -770,7 +770,7 @@ bank:
       ambiguous: Hodí se víc faktur
       currency_mismatch: Faktura je v jiné měně
       auto_pairing_off: Párování ručně
-      unverified: Neověřeno, spárujte ručně
+      unverified: Neověřeno, nejdřív zkontrolujte v bance
       blocked: Zrušené spárování, spárujte ručně
       rejected: Odmítnuto, nikdy se nespáruje
       refused: Faktura platbu nepřijala. Spárujte ji ručně.
@@ -785,6 +785,7 @@ bank:
       rejected: 'Tuto platbu nejde spárovat: její e-mail neprošel kontrolou.'
       possible_duplicate: 'Tuto platbu nejde spárovat: přišla už v jiném e-mailu.'
       own_transfer: 'Tuto platbu nejde spárovat: přišla z jiného účtu firmy.'
+      not_checked_in_bank: Tuto platbu nejde spárovat, dokud nepotvrdíte, že jste ji ověřil(a) v bance.
       not_paired: Platba není spárovaná, nebo už ne.
     flash:
       paired: 'Spárováno s {numbers}.'
@@ -816,8 +817,12 @@ bank:
       left: 'Zbývá rozdělit {amount}'
       over: 'O {amount} víc než platba'
       submit: Spárovat
+      unverified_title: Platba není ověřená
+      unverified: Tuto platbu Foresi neověřil u banky. Než ji spárujete, zkontrolujte ji ve svém internetovém bankovnictví.
+      checked_in_bank: Platbu jsem ověřil(a) v bance
       error:
         none: Zaškrtněte faktury, které platba hradí.
+        checked: Potvrďte, že jste platbu ověřil(a) v bance.
         amount: Zadejte částku větší než nula.
         sum: 'Části dávají dohromady {sum}, platba je {amount}.'
         settle: Rozdíl jde odepsat jen u jedné faktury, do limitu a jen když to firma dovoluje.
@@ -871,6 +876,7 @@ bank:
     refused:
       account_mismatch: Účet v e-mailu nepatří firmě, proto ho nejde zaznamenat.
       not_rejected: Přesto zaznamenat jde jen e-mail, jehož odesílatele se nepodařilo ověřit.
+      not_owner: Přesto zaznamenat smí jen vlastník.
       not_dismissable: Tento e-mail nejde zahodit.
     trust:
       verified: Ověřený odesílatel
@@ -879,9 +885,9 @@ bank:
     accept:
       crumb: Přesto zaznamenat
       title: Přesto platbu zaznamenat?
-      warning_title: Nejdřív zkontrolujte platbu v bance
-      warning: Ověřte v bance, že platba opravdu přišla. E-mail neprošel kontrolou odesílatele, takže může být podvržený.
-      text: Platba se zaznamená nespárovaná a nikdy se nespáruje automaticky.
+      warning_title: E-mail neprošel kontrolou odesílatele a může být podvržený
+      warning: Zaznamenejte ho, jen když jste ve svém internetovém bankovnictví ověřil(a), že platba opravdu přišla.
+      text: Platba se zaznamená nespárovaná a nikdy se nespáruje automaticky. Zapíše se, kdo ji zaznamenal a kdy.
       submit: Přesto zaznamenat
     dismiss:
       crumb: Zahodit

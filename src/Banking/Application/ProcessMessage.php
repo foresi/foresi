@@ -105,6 +105,9 @@ final readonly class ProcessMessage
                     return $this->messages->find($messageId)?->status() ?? throw new UnknownInboundMessage();
                 }
                 $result = $this->result($claimed, $accepted);
+                if ($accepted instanceof TrustVerdict) {
+                    $this->messages->recordAccepted($messageId, $result->status);
+                }
                 $this->messages->finish($messageId, $result, \DateTimeImmutable::createFromInterface($this->clock->now()));
 
                 return $result->status;

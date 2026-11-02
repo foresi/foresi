@@ -122,7 +122,7 @@ final class PairMovementTest extends BankingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $movement = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]);
+        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true);
 
         self::assertNull($this->pairing->auto($movement->id()));
         $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
@@ -139,6 +139,23 @@ final class PairMovementTest extends BankingTestCase
 
         self::assertNull($this->pairing->auto($movement->id()));
         $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        self::assertSame(1, $this->paymentCount());
+    }
+
+    public function testAnUnverifiedMovementPairsOnlyOnceAPersonCheckedItInTheBank(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $unverified = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
+        $accepted = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), new TrustVerdict(MessageTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
+        $allocation = [new AllocationRequest($invoice->id(), $this->czk('1210.00'))];
+
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($unverified->id(), $allocation));
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($accepted->id(), $allocation, checkedInBank: false));
+        self::assertSame(0, $this->paymentCount());
+        self::assertSame(MovementState::Unmatched, $this->storedMovement($unverified->id())->state());
+
+        $this->pairing->pair($unverified->id(), $allocation, checkedInBank: true);
+        self::assertSame(MovementState::Paired, $this->storedMovement($unverified->id())->state());
         self::assertSame(1, $this->paymentCount());
     }
 

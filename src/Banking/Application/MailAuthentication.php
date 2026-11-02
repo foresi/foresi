@@ -15,9 +15,11 @@ use App\Banking\Domain\MessageTrust;
  * receiving server wrote about it. No signature is checked here.
  *
  * Anyone can write an Authentication-Results header into the mail they send, so
- * only the topmost one is read: the receiving server adds its own above every
- * header the message arrived with. It counts only when its authserv-id is a
- * trusted one; what any header below it claims is ignored.
+ * a pass is believed only from the topmost one: the receiving server adds its
+ * own above every header the message arrived with, and it counts only when its
+ * authserv-id is a trusted one. A fail is another matter: a claim of an aligned
+ * DMARC or DKIM fail can only make the verdict stricter, so it counts from any
+ * Authentication-Results header, trusted or not, and the message is Failed.
  *
  * The bank publishes a DMARC policy, so the receiving server always gives its
  * mail a DMARC result, and only that verifies: the header must hold exactly one
@@ -26,15 +28,16 @@ use App\Banking\Domain\MessageTrust;
  * server copies text the sender chose, such as the HELO name or the envelope
  * sender, into the header without always quoting it, so a sender can make a
  * header seem to hold results the server never reached; a second DMARC result,
- * or a pass and a fail for one signing domain, shows that, and nothing then
- * verifies. An aligned DMARC or DKIM fail is Failed whatever else the header says.
- * The receiving server removes or renames headers that carry its own id (RFC
- * 8601 §5), so a trusted id on any header below the topmost was planted or
- * misplaced, and the message is not verified.
+ * or a pass and a fail for one signing domain, shows that, and the message is
+ * Failed. The receiving server removes or renames headers that carry its own id
+ * (RFC 8601 §5), so a trusted id on any header below the topmost was planted or
+ * misplaced, and the message is Failed too. A Failed message is rejected; only a
+ * person who checked the payment in the bank records it anyway.
  *
  * An ARC pass rescues a signature broken by a forwarder only when the newest
  * ARC set was sealed by a trusted forwarder whose own results show an aligned
- * DKIM pass; it overrides the broken signature, never a DMARC fail.
+ * DKIM pass; it overrides the broken signature in the trusted topmost header,
+ * never a DMARC fail and never a fail claimed by another header.
  */
 final readonly class MailAuthentication
 {
@@ -55,31 +58,37 @@ final readonly class MailAuthentication
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER);
         }
 
-        $all = $mail->headers('Authentication-Results');
-        $header = [] === $all ? null : $this->parser->parse($all[0]);
-        if (null === $header || !$this->settings->trustsAuthserv($header['authserv'])) {
+        $all = array_map($this->parser->parse(...), $mail->headers('Authentication-Results'));
+        $trusted = [] !== $all && $this->settings->trustsAuthserv($all[0]['authserv']);
+        $rescued = $trusted && $this->claims($all[0]['results'], 'arc', 'pass') && $this->arcVouches($mail, $from, $banks);
+        // A fail counts from every header, whoever wrote it: claiming one can only make the verdict stricter.
+        if (array_any($all, fn (array $header): bool => $this->aligned($header['results'], 'dmarc', 'fail', 'header.from', $from, $banks))) {
+            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL);
+        }
+        foreach ($all as $index => $header) {
+            // The ARC rescue overrides a broken signature in the trusted header alone.
+            if ((0 !== $index || !$rescued) && $this->aligned($header['results'], 'dkim', 'fail', 'header.d', $from, $banks)) {
+                return new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL);
+            }
+        }
+        if (!$trusted) {
             return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
         }
 
-        $results = $header['results'];
-        if ($this->aligned($results, 'dmarc', 'fail', 'header.from', $from, $banks)) {
-            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::DMARC_FAIL);
-        }
-        $rescued = $this->claims($results, 'arc', 'pass') && $this->arcVouches($mail, $from, $banks);
+        $results = $all[0]['results'];
         $contested = $this->contestedSigners($results);
-        if (array_any($contested, fn (string $signer): bool => $this->isWithin($from, $signer) && $this->isBanks($signer, $banks))
-            || (!$rescued && $this->aligned($results, 'dkim', 'fail', 'header.d', $from, $banks))) {
+        if (array_any($contested, fn (string $signer): bool => $this->isWithin($from, $signer) && $this->isBanks($signer, $banks))) {
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL);
         }
         $dmarc = array_values(array_filter($results, static fn (array $result): bool => 'dmarc' === $result['method']));
         if (\count($dmarc) > 1 || [] !== $contested) {
-            return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS);
+            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::AMBIGUOUS);
+        }
+        if (array_any(\array_slice($all, 1), fn (array $lower): bool => $this->settings->trustsAuthserv($lower['authserv']))) {
+            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::PLANTED);
         }
         if (!$rescued && !$this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $banks)) {
             return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED);
-        }
-        if (array_any(\array_slice($all, 1), fn (string $lower): bool => $this->settings->trustsAuthserv($this->parser->parse($lower)['authserv']))) {
-            return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::PLANTED);
         }
 
         return new TrustVerdict(MessageTrust::Verified, $rescued ? TrustVerdict::ARC : TrustVerdict::DMARC);
