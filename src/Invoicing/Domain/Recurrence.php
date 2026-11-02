@@ -103,8 +103,9 @@ final readonly class Recurrence
         if (!$this->endOn instanceof \DateTimeImmutable || null !== $this->endAfter) {
             throw new InvalidRecurrence('A recurrence that ends on a date needs that date and no count.');
         }
-        if ($this->endOn < $this->firstIssueOn) {
-            throw new InvalidRecurrence('A recurrence cannot end before its first issue date.');
+        // On the last day of the month, the first occurrence can fall after the first issue date.
+        if ($this->endOn < RecurringSchedule::occurrence($this, 0)) {
+            throw new InvalidRecurrence('A recurrence cannot end before its first occurrence, as it would never issue.');
         }
     }
 

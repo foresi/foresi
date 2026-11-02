@@ -313,6 +313,20 @@ final class RecurringScheduleTest extends TestCase
         self::assertSame(['2027-01-31'], array_map($this->day(...), RecurringSchedule::next($same, 0, new \DateTimeImmutable('2027-01-01'), 5)));
     }
 
+    public function testRefusesAnEndDateBeforeTheFirstOccurrence(): void
+    {
+        // The first occurrence of a last-day-of-month recurrence is 31 January, after the end date.
+        try {
+            $this->recurrence('2027-01-15', RecurrenceUnit::Month, lastDay: true, end: RecurrenceEnd::OnDate, endOn: '2027-01-20');
+            self::fail('A recurrence that would never issue was accepted.');
+        } catch (InvalidRecurrence $refused) {
+            self::assertStringContainsString('first occurrence', $refused->getMessage());
+        }
+
+        $onTheDay = $this->recurrence('2027-01-15', RecurrenceUnit::Month, lastDay: true, end: RecurrenceEnd::OnDate, endOn: '2027-01-31');
+        self::assertSame(['2027-01-31'], array_map($this->day(...), RecurringSchedule::next($onTheDay, 0, new \DateTimeImmutable('2027-01-01'), 5)));
+    }
+
     public function testRefusesANegativeOccurrence(): void
     {
         $this->expectException(\InvalidArgumentException::class);
