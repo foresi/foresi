@@ -107,6 +107,14 @@ final class RecordingMailGateway implements MailGateway
         self::$settingsProblem = $settingsProblem;
     }
 
+    /**
+     * The next message fails as a refused login: a settings problem.
+     */
+    public function failNextAsSettingsProblem(): void
+    {
+        $this->failNext(1, true, true);
+    }
+
     public static function reset(): void
     {
         self::$messages = [];

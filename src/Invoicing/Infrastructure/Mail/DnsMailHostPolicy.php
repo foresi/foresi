@@ -50,7 +50,8 @@ final readonly class DnsMailHostPolicy implements MailHostPolicy
         if (false !== filter_var($literal, \FILTER_VALIDATE_IP)) {
             return $this->allowsAddress($literal) ? $literal : throw $this->forbidden();
         }
-        if (1 !== preg_match(self::HOST_NAME, $host) || 'localhost' === $host || str_ends_with($host, '.localhost')) {
+        // A localhost name is its loopback address: refused or allowed with it, never on its own rule.
+        if (1 !== preg_match(self::HOST_NAME, $host) || (!$this->allowPrivateHosts && ('localhost' === $host || str_ends_with($host, '.localhost')))) {
             throw $this->forbidden();
         }
 
@@ -85,6 +86,11 @@ final readonly class DnsMailHostPolicy implements MailHostPolicy
         $binary = @inet_pton($address);
         if (false === $binary) {
             return false;
+        }
+        // The IPv6 loopback lies inside the IPv4-compatible range refused below, but it is
+        // loopback like 127.0.0.1 and follows the same setting.
+        if ($binary === inet_pton('::1')) {
+            return $this->allowPrivateHosts;
         }
         foreach (self::ALWAYS_REFUSED as $range) {
             if ($this->inRange($binary, $range)) {

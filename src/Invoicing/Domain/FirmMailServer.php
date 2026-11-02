@@ -66,6 +66,13 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'verified_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $verifiedAt;
 
+    #[ORM\Column(name: 'last_test_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastTestAt;
+
+    /** The safe reason of the last test that failed; null when it passed. */
+    #[ORM\Column(name: 'last_test_error', type: 'string', length: 255, nullable: true)]
+    private ?string $lastTestError;
+
     private function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
         #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
@@ -93,7 +100,7 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
      */
     public function change(string $host, int $port, MailEncryption $encryption, string $username, ?string $sealedSecret, string $fromAddress, string $fromName): void
     {
-        $host = $this->normalHost($host);
+        $host = self::normalHost($host);
         if (null === $host) {
             throw new InvalidMailServer('The mail server needs a host name or an IP address, without a port.');
         }
@@ -123,6 +130,8 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
         $this->fromAddress = $fromAddress;
         $this->fromName = $fromName;
         $this->verifiedAt = null;
+        $this->lastTestAt = null;
+        $this->lastTestError = null;
     }
 
     /**
@@ -131,6 +140,32 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
     public function markVerified(\DateTimeImmutable $at): void
     {
         $this->verifiedAt = $at;
+        $this->lastTestAt = $at;
+        $this->lastTestError = null;
+    }
+
+    /**
+     * A test message was refused. A settings problem (a refused login, a failed
+     * secure connection, a host not allowed) means these settings no longer
+     * count as verified; a refusal of another kind leaves an earlier pass as it is.
+     */
+    public function markTestFailed(\DateTimeImmutable $at, string $safeReason, bool $settingsProblem): void
+    {
+        $this->lastTestAt = $at;
+        $this->lastTestError = mb_substr($safeReason, 0, 255);
+        if ($settingsProblem) {
+            $this->verifiedAt = null;
+        }
+    }
+
+    public function lastTestAt(): ?\DateTimeImmutable
+    {
+        return $this->lastTestAt;
+    }
+
+    public function lastTestError(): ?string
+    {
+        return $this->lastTestError;
     }
 
     public function id(): string
@@ -197,7 +232,7 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
      * The host in its stored form: a lower-case name, an IPv4 address, or an IPv6
      * address in brackets, as in a URL; null when it is none of these.
      */
-    private function normalHost(string $host): ?string
+    public static function normalHost(string $host): ?string
     {
         $host = rtrim(strtolower(trim($host)), '.');
         $literal = trim($host, '[]');

@@ -452,6 +452,7 @@ firm:
       cs: Czech
       en: English
     reset: Restore the built-in text
+    reset_confirm: 'Restore the built-in text for {language}? Your own text is deleted.'
     inserted: 'Inserted: {name}'
     variables: Variables
     variables_help: Click or drag to insert into the text.
@@ -500,6 +501,7 @@ firm:
       verified: 'Verified on {date}.'
       date_format: 'j M Y \a\t H:i'
       unverified: These settings are not verified yet.
+      last_failed: 'Last test on {date} failed: {reason}'
       save_first: A test e-mail can be sent once the server is saved.
       subject: 'Test e-mail: {firm}'
       body: 'This message checks that the server {host}:{port} sends the mail of the firm. No reply is needed.'
@@ -517,6 +519,8 @@ firm:
       no_key: This installation has no key to seal passwords. The administrator sets MAIL_SECRET_KEYS.
       host: Enter a host name or an IP address, without a port.
       host_refused: This server cannot be reached from here. Enter a public server.
+      host_unresolved: No server of this name was found. Check the name.
+      unknown_token: The text holds an unknown variable. Insert one from the list below the text.
       port: 'The port must be one of: {ports}.'
       encryption: Choose the encryption.
       line_break: The value cannot hold a line break.

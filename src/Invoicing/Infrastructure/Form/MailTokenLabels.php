@@ -18,10 +18,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * template's own language, such as {Číslo dokladu} in a Czech template and
  * {Document number} in an English one. What is stored stays the stable name,
  * {number}, so a renamed label never breaks a saved text. Reading back accepts a
- * label in any case and with any spacing, and the stable name too.
+ * label in any case, spacing and Unicode form, with or without diacritics
+ * ({cislo dokladu}), and the stable name too.
  */
 final readonly class MailTokenLabels
 {
+    /** How much of an unknown token a message repeats. */
+    private const int SHOWN = 40;
+
     public function __construct(private MailVariables $variables, private TranslatorInterface $translator)
     {
     }
@@ -68,10 +72,10 @@ final readonly class MailTokenLabels
             $names[$this->key($name)] ??= $name;
         }
         $unknown = [];
-        $stored = (string) preg_replace_callback('/\{([^{}\r\n]{1,80})\}/u', function (array $token) use ($names, &$unknown): string {
+        $stored = (string) preg_replace_callback('/\{([^{}\r\n]+)\}/u', function (array $token) use ($names, &$unknown): string {
             $name = $names[$this->key($token[1])] ?? null;
             if (null === $name) {
-                $unknown[] = $token[0];
+                $unknown[] = '{'.(mb_strlen($token[1]) > self::SHOWN ? mb_substr($token[1], 0, self::SHOWN).'…' : $token[1]).'}';
 
                 return $token[0];
             }
@@ -82,8 +86,15 @@ final readonly class MailTokenLabels
         return ['text' => $stored, 'unknown' => array_values(array_unique($unknown))];
     }
 
+    /**
+     * The form two spellings of one label share: NFC, no diacritics, lower case,
+     * single spaces.
+     */
     private function key(string $label): string
     {
-        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $label)));
+        $normal = \Normalizer::normalize($label, \Normalizer::FORM_C);
+        $folded = \Transliterator::create('NFD; [:Nonspacing Mark:] Remove; NFC; Lower()')?->transliterate(\is_string($normal) ? $normal : $label);
+
+        return trim((string) preg_replace('/\s+/u', ' ', \is_string($folded) ? $folded : mb_strtolower($label)));
     }
 }

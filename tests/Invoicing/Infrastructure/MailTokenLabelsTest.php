@@ -44,6 +44,23 @@ final class MailTokenLabelsTest extends KernelTestCase
         self::assertSame(['text' => '{number} {number} {due_date}', 'unknown' => []], $this->labels()->fromEditor('{ číslo   DOKLADU } {number} {Datum splatnosti}', DocumentLanguage::Czech));
     }
 
+    public function testLabelsMatchWithoutDiacriticsAndInAnyUnicodeForm(): void
+    {
+        $decomposed = \Normalizer::normalize('{Číslo dokladu} {Částka k úhradě}', \Normalizer::FORM_D);
+        \assert(\is_string($decomposed));
+
+        self::assertSame(['text' => '{number} {amount_total}', 'unknown' => []], $this->labels()->fromEditor($decomposed, DocumentLanguage::Czech));
+        self::assertSame(['text' => '{number} {amount_total} {registration_number}', 'unknown' => []], $this->labels()->fromEditor('{cislo dokladu} {CASTKA K UHRADE} {ico}', DocumentLanguage::Czech));
+    }
+
+    public function testALongTokenIsUnknownAndShortenedForTheMessage(): void
+    {
+        $result = $this->labels()->fromEditor('{'.str_repeat('a', 200).'}', DocumentLanguage::Czech);
+
+        self::assertSame('{'.str_repeat('a', 200).'}', $result['text']);
+        self::assertSame(['{'.str_repeat('a', 40).'…}'], $result['unknown']);
+    }
+
     public function testAnUnknownTokenIsListedAsTyped(): void
     {
         self::assertSame(['text' => 'A {Cislo} {Document number} {Cislo}', 'unknown' => ['{Cislo}', '{Document number}']], $this->labels()->fromEditor('A {Cislo} {Document number} {Cislo}', DocumentLanguage::Czech));

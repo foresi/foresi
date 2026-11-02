@@ -452,6 +452,7 @@ firm:
       cs: Čeština
       en: Angličtina
     reset: Obnovit výchozí text
+    reset_confirm: 'Vrátit text pro {language} na výchozí? Vlastní text se smaže.'
     inserted: 'Vloženo: {name}'
     variables: Proměnné
     variables_help: Kliknutím nebo přetažením vložíte do textu.
@@ -500,6 +501,7 @@ firm:
       verified: 'Ověřeno {date}.'
       date_format: 'j. n. Y \v H:i'
       unverified: Nastavení zatím nebylo ověřeno.
+      last_failed: 'Poslední test {date} neprošel: {reason}'
       save_first: Zkušební e-mail půjde poslat po uložení serveru.
       subject: 'Zkušební e-mail: {firm}'
       body: 'Tato zpráva ověřuje, že server {host}:{port} odesílá poštu firmy. Není třeba odpovídat.'
@@ -517,6 +519,8 @@ firm:
       no_key: Tato instalace nemá klíč k šifrování hesel. Správce ho nastaví v MAIL_SECRET_KEYS.
       host: Zadejte název serveru nebo IP adresu, bez portu.
       host_refused: K tomuto serveru se odsud nelze připojit. Zadejte veřejný server.
+      host_unresolved: Server tohoto jména se nenašel. Zkontrolujte název.
+      unknown_token: Text obsahuje neznámou proměnnou. Vložte ji z nabídky pod textem.
       port: 'Port musí být jeden z: {ports}.'
       encryption: Vyberte šifrování.
       line_break: Hodnota nesmí obsahovat zalomení řádku.
