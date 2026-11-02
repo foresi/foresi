@@ -19,6 +19,7 @@ use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Party\Application\TransactionalWork;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\RegistrationNumber;
@@ -354,6 +355,51 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         });
 
         self::assertSame(2, $attempts);
+    }
+
+    public function testInsideAnotherTransactionALockErrorIsLeftToTheOutermostUnit(): void
+    {
+        $retry = self::getContainer()->get(ConflictRetry::class);
+        $attempts = 0;
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+
+        try {
+            $retry->run(function () use (&$attempts): int {
+                if (++$attempts < 100) {
+                    throw $this->deadlock();
+                }
+
+                return $attempts;
+            });
+            self::fail('Expected the lock error.');
+        } catch (DeadlockException) {
+            self::assertSame(1, $attempts, 'a lock error ends the whole transaction, so only its outermost unit can run again');
+        } finally {
+            $connection->rollBack();
+        }
+    }
+
+    public function testNestedRetriesRunTheOutermostUnitAgain(): void
+    {
+        $retry = self::getContainer()->get(ConflictRetry::class);
+        $work = self::getContainer()->get(TransactionalWork::class);
+        $outer = 0;
+        $inner = 0;
+
+        $retry->run(function () use ($work, $retry, &$outer, &$inner): void {
+            $work->run(function () use ($retry, &$outer, &$inner): void {
+                ++$outer;
+                $retry->run(function () use (&$inner): void {
+                    if (++$inner < 3) {
+                        throw $this->deadlock();
+                    }
+                });
+            });
+        });
+
+        self::assertSame(3, $outer, 'the outer unit ran three times');
+        self::assertSame(3, $inner, 'and the inner one once each time');
     }
 
     private function deadlock(): DeadlockException

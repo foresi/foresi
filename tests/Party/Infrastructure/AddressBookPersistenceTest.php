@@ -243,6 +243,46 @@ final class AddressBookPersistenceTest extends KernelTestCase
         self::assertEquals([['DE89370400440532013000', 1]], $this->em->getConnection()->fetchAllNumeric('SELECT iban, primary_flag FROM party_bank_account'));
     }
 
+    public function testAnInnerUnitFailingLeavesThePendingChangeOfTheOuterUnit(): void
+    {
+        $work = $this->transaction();
+        $em = $this->em;
+
+        $failed = false;
+
+        $work->run(function () use ($work, $em, &$failed): void {
+            $em->persist($this->company('Outer Company'));
+            try {
+                $work->run(static function (): never {
+                    throw new \RuntimeException('The inner unit failed.');
+                });
+            } catch (\RuntimeException) {
+                $failed = true;
+            }
+            self::assertTrue($em->isOpen(), 'the outer unit keeps its session');
+        });
+
+        self::assertTrue($failed, 'the inner failure surfaced');
+
+        self::assertSame(['Outer Company'], $this->em->getConnection()->fetchFirstColumn('SELECT display_name FROM party'));
+    }
+
+    public function testAnInnerUnitIsStoredByTheOuterOne(): void
+    {
+        $work = $this->transaction();
+        $connection = $this->em->getConnection();
+
+        $work->run(function () use ($work, $connection): void {
+            $work->run(function (): void {
+                $this->em->persist($this->company('Inner Company'));
+            });
+            self::assertSame(1, $connection->getTransactionNestingLevel(), 'the inner unit opens no transaction of its own');
+            self::assertEquals(0, $connection->fetchOne('SELECT COUNT(*) FROM party'), 'nor flushes by itself');
+        });
+
+        self::assertEquals(1, $connection->fetchOne('SELECT COUNT(*) FROM party'));
+    }
+
     public function testCreatingAPartyIsAtomic(): void
     {
         $this->em->getEventManager()->addEventListener(Events::prePersist, new class {
