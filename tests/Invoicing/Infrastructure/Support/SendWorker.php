@@ -47,6 +47,8 @@ use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 
@@ -173,7 +175,16 @@ abstract class SendWorker extends KernelTestCase
     private static function deliver(MessageBusInterface $bus, RecordingMailGateway $gateway, string $tenant, string $send): string
     {
         $before = \count($gateway->attempts());
-        $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
+        try {
+            $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
+        } catch (HandlerFailedException $failed) {
+            // The other worker holds the claim: the message comes back when its lease ends.
+            if (!$failed->getPrevious() instanceof RecoverableMessageHandlingException) {
+                throw $failed;
+            }
+
+            return \count($gateway->attempts()) > $before ? 'mailed and waiting' : 'waiting';
+        }
 
         return \count($gateway->attempts()) > $before ? 'mailed' : 'left alone';
     }

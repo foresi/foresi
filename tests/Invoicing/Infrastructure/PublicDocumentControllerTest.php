@@ -62,8 +62,11 @@ final class PublicDocumentControllerTest extends WebTestCase
     use ClockSensitiveTrait;
 
     private const string IBAN = 'CZ6508000000192000145399';
-    private const string CSP = "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; object-src 'self'; frame-ancestors 'self'";
-    private const array SAME_ORIGIN = ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_DEST' => 'object'];
+    private const string CSP = "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; object-src 'self'; frame-src 'self'; frame-ancestors 'self'";
+    /** What a browser sends when a person presses a button on the page. */
+    private const array CLICK = ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'navigate', 'HTTP_SEC_FETCH_DEST' => 'document', 'HTTP_SEC_FETCH_USER' => '?1'];
+    /** What a browser sends when it loads the embedded PDF itself. */
+    private const array EMBED = ['HTTP_SEC_FETCH_SITE' => 'same-origin', 'HTTP_SEC_FETCH_MODE' => 'navigate', 'HTTP_SEC_FETCH_DEST' => 'object'];
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
@@ -78,6 +81,8 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::mockTime('2026-11-03 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
+        // A Czech browser, unless a test says otherwise.
+        $this->client->setServerParameter('HTTP_ACCEPT_LANGUAGE', 'cs-CZ,cs;q=0.9');
         $this->context = self::getContainer()->get(TenantContext::class);
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
         $this->tenant = $this->browser->fixtures->tenant('Tenant A');
@@ -101,12 +106,14 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Faktura 20260001');
         self::assertSelectorTextContains('main', 'Example Firm s.r.o.');
         self::assertSelectorTextContains('main', 'Example Customer a.s.');
-        // Grouped as on the PDF, with no-break spaces.
-        self::assertMatchesRegularExpression('/1\s210,00\sCZK/u', $crawler->filter('dl')->text());
-        self::assertSelectorTextContains('dl', '15. 11. 2026');
+        // Grouped as on the PDF, with no-break spaces, and in crowns as people write them.
+        self::assertMatchesRegularExpression('/^K úhradě 1\x{a0}210,00\x{a0}Kč Splatnost 15\. 11\. 2026$/u', trim($crawler->filter('section dl')->first()->text()));
         self::assertSame('/d/'.$sent['token'].'/pdf', $crawler->filter('object')->attr('data'));
-        self::assertSame('/d/'.$sent['token'].'/pdf', $crawler->filter('section a')->first()->attr('href'));
+        self::assertSame('/d/'.$sent['token'].'/open', $crawler->filter('section a')->first()->attr('href'));
         self::assertSame('Otevřít PDF', trim($crawler->filter('section a')->first()->text()));
+        self::assertSame('/d/'.$sent['token'].'/download', $crawler->filter('section a')->eq(1)->attr('href'));
+        // The number is in the title only.
+        self::assertSame(1, substr_count($crawler->filter('section')->first()->text(), '20260001'));
         // No application shell, no script.
         self::assertSelectorNotExists('script');
         self::assertSelectorNotExists('nav');
@@ -122,6 +129,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Invoice 20260001');
         self::assertSelectorTextContains('dl', 'Amount to pay');
         self::assertSelectorTextContains('dl', '15 Nov 2026');
+        self::assertSelectorTextContains('#payment-title', 'Pay by bank transfer');
         self::assertSame('en', $this->client->getCrawler()->filter('html')->attr('lang'));
     }
 
@@ -134,13 +142,15 @@ final class PublicDocumentControllerTest extends WebTestCase
             $connection->executeStatement("UPDATE invoice SET description = 'Changed after sending', version = version + 1 WHERE id = ?", [$sent['invoice']]);
         });
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf');
+        foreach (['/pdf' => 'inline', '/open' => 'inline', '/download' => 'attachment'] as $suffix => $disposition) {
+            $this->client->request('GET', '/d/'.$sent['token'].$suffix);
 
-        self::assertResponseIsSuccessful();
-        $response = $this->client->getResponse();
-        self::assertSame('application/pdf', $response->headers->get('Content-Type'));
-        self::assertSame('inline; filename=20260001.pdf', $response->headers->get('Content-Disposition'));
-        self::assertSame($stored, $this->client->getInternalResponse()->getContent());
+            self::assertResponseIsSuccessful();
+            $response = $this->client->getResponse();
+            self::assertSame('application/pdf', $response->headers->get('Content-Type'));
+            self::assertSame($disposition.'; filename=20260001.pdf', $response->headers->get('Content-Disposition'));
+            self::assertSame($stored, $this->client->getInternalResponse()->getContent());
+        }
     }
 
     public function testUnknownRevokedAndCancelledAnswerAlike(): void
@@ -154,7 +164,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
         $bodies = [];
         foreach ([str_repeat('A', 43), $revoked['token'], $cancelled['token']] as $token) {
-            foreach (['', '/pdf'] as $suffix) {
+            foreach (['', '/pdf', '/open', '/download'] as $suffix) {
                 $this->client->request('GET', '/d/'.$token.$suffix);
                 self::assertResponseStatusCodeSame(404);
                 $bodies[] = (string) $this->client->getResponse()->getContent();
@@ -172,7 +182,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $this->client->request('GET', '/d/'.str_repeat('A', 43));
         $unknown = (string) $this->client->getResponse()->getContent();
 
-        foreach (['/d/short', '/d/'.str_repeat('A', 44), '/d/'.str_repeat('A', 42).'%24', '/d/'.str_repeat('A', 42).'.', '/d/short/pdf'] as $path) {
+        foreach (['/d/short', '/d/'.str_repeat('A', 44), '/d/'.str_repeat('A', 42).'%24', '/d/'.str_repeat('A', 42).'.', '/d/short/pdf', '/d/'.str_repeat('A', 43).'/x/y', '/d/'.str_repeat('A', 300), '/d/'] as $path) {
             $this->client->request('GET', $path);
             self::assertResponseStatusCodeSame(404, $path);
             self::assertSame($unknown, (string) $this->client->getResponse()->getContent(), $path);
@@ -187,7 +197,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $log = self::getContainer()->getParameter('kernel.cache_dir').'/test.log';
         $before = is_file($log) ? (int) filesize($log) : 0;
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
         self::assertResponseStatusCodeSame(404);
         self::assertStringContainsString('Odkaz není k dispozici', (string) $this->client->getResponse()->getContent());
@@ -201,7 +211,7 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $sent = $this->sentDocument();
 
-        foreach (['/d/'.$sent['token'], '/d/'.$sent['token'].'/pdf', '/d/'.str_repeat('A', 43), '/d/'.str_repeat('A', 43).'/pdf'] as $path) {
+        foreach (['/d/'.$sent['token'], '/d/'.$sent['token'].'/pdf', '/d/'.$sent['token'].'/open', '/d/'.$sent['token'].'/download', '/d/'.str_repeat('A', 43), '/d/'.str_repeat('A', 43).'/pdf', '/d/'.$sent['token'].'/x/y', '/d/'.str_repeat('A', 300)] as $path) {
             $this->client->request('GET', $path);
             $headers = $this->client->getResponse()->headers;
             self::assertSame('noindex, nofollow', $headers->get('X-Robots-Tag'), $path);
@@ -209,6 +219,7 @@ final class PublicDocumentControllerTest extends WebTestCase
             self::assertSame('no-store, private', $headers->get('Cache-Control'), $path);
             self::assertSame(self::CSP, $headers->get('Content-Security-Policy'), $path);
             self::assertSame('nosniff', $headers->get('X-Content-Type-Options'), $path);
+            self::assertSame('SAMEORIGIN', $headers->get('X-Frame-Options'), $path);
         }
     }
 
@@ -226,14 +237,93 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $sent = $this->sentDocument();
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf');
+        $this->client->request('GET', '/d/'.$sent['token'].'/open');
         self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: ['HTTP_SEC_FETCH_SITE' => 'cross-site']);
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: ['HTTP_SEC_FETCH_SITE' => 'none']);
-        $this->client->request('HEAD', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_SEC_FETCH_USER' => '?1']);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: ['HTTP_SEC_FETCH_SITE' => 'none', 'HTTP_SEC_FETCH_USER' => '?1']);
+        $this->client->request('HEAD', '/d/'.$sent['token'].'/open', server: self::CLICK);
         self::assertResponseIsSuccessful();
 
         self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
+    }
+
+    public function testTheEmbeddedPdfNeverCounts(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::EMBED);
+        self::assertResponseIsSuccessful();
+        // Even a request that looks like a click: the embed is not a button.
+        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::CLICK);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::EMBED);
+
+        self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
+    }
+
+    public function testAPrefetchNeverCounts(): void
+    {
+        $sent = $this->sentDocument();
+
+        foreach ([['HTTP_SEC_PURPOSE' => 'prefetch'], ['HTTP_SEC_PURPOSE' => 'prefetch;prerender'], ['HTTP_PURPOSE' => 'prefetch'], ['HTTP_X_MOZ' => 'prefetch'], ['HTTP_SEC_FETCH_USER' => '?0']] as $extra) {
+            $this->client->request('GET', '/d/'.$sent['token'].'/open', server: $extra + self::CLICK);
+            self::assertResponseIsSuccessful();
+        }
+
+        self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
+    }
+
+    public function testTheDownloadButtonCounts(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->client->request('GET', '/d/'.$sent['token'].'/download', server: self::CLICK);
+
+        self::assertSame(['first_read_at' => '2026-11-03 10:00:00', 'read_count' => 1], $this->readState($sent['send']));
+    }
+
+    public function testTheGonePageSpeaksTheBrowsersLanguage(): void
+    {
+        $this->client->request('GET', '/d/'.str_repeat('A', 43), server: ['HTTP_ACCEPT_LANGUAGE' => 'en-GB,en;q=0.9']);
+        self::assertSelectorTextContains('h1', 'This link is not available');
+        self::assertSame('en', $this->client->getCrawler()->filter('html')->attr('lang'));
+
+        $this->client->request('GET', '/d/'.str_repeat('A', 43), server: ['HTTP_ACCEPT_LANGUAGE' => 'cs-CZ,cs;q=0.9,en;q=0.8']);
+        self::assertSelectorTextContains('h1', 'Odkaz není k dispozici');
+
+        $this->client->request('GET', '/d/'.str_repeat('A', 43), server: ['HTTP_ACCEPT_LANGUAGE' => 'fr-FR']);
+        self::assertSelectorTextContains('h1', 'Odkaz není k dispozici');
+    }
+
+    public function testThePaymentBlockShowsWhatThePdfShows(): void
+    {
+        $sent = $this->sentDocument();
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        $payment = $crawler->filter('section[aria-labelledby="payment-title"]');
+        self::assertSame('Platba převodem', $payment->filter('h2')->text());
+        $values = $payment->filter('dd')->each(static fn ($dd): string => $dd->text());
+        self::assertSame(['19-2000145399/0800', 'CZ65 0800 0000 1920 0014 5399', '20260001'], \array_slice($values, 0, 3));
+        self::assertMatchesRegularExpression('/^1\x{a0}210,00\x{a0}Kč$/u', $values[3]);
+        self::assertCount(1, $payment->filter('figure svg'), 'the QR code is drawn inline');
+        self::assertGreaterThan(100, $payment->filter('figure svg rect')->count());
+        $code = $this->connection()->fetchOne('SELECT payment_code FROM invoice_send WHERE id = ?', [$sent['send']]);
+        self::assertIsString($code);
+        self::assertStringStartsWith('SPD*1.0*ACC:CZ6508000000192000145399*AM:1210.00*CC:CZK*DT:20261115*MSG:20260001*X-VS:20260001', $code);
+        self::assertStringNotContainsString($code, (string) $this->client->getResponse()->getContent(), 'drawn, not printed');
+    }
+
+    public function testCashOrCardShowsNoPaymentBlock(): void
+    {
+        foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
+            $sent = $this->sentDocument(method: $method);
+
+            $this->client->request('GET', '/d/'.$sent['token']);
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorNotExists('#payment-title');
+            self::assertSelectorNotExists('svg rect');
+        }
     }
 
     public function testASameOriginPdfFetchSetsReadOnceAndCounts(): void
@@ -241,10 +331,10 @@ final class PublicDocumentControllerTest extends WebTestCase
         $sent = $this->sentDocument();
         self::mockTime('2026-11-04 08:30:00');
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
         self::assertResponseIsSuccessful();
         self::mockTime('2026-11-05 09:00:00');
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
         self::assertSame(['first_read_at' => '2026-11-04 08:30:00', 'read_count' => 2], $this->readState($sent['send']));
     }
@@ -256,7 +346,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
         $this->client->request('GET', '/d/'.$sent['copyToken']);
         self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['copyToken'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['copyToken'].'/open', server: self::CLICK);
         self::assertResponseIsSuccessful();
         self::assertSame($this->storedPdf($sent['send']), $this->client->getInternalResponse()->getContent());
 
@@ -268,7 +358,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $sent = $this->sentDocument();
         $this->signedInMemberOf([$this->tenant]);
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
         self::assertResponseIsSuccessful();
         self::assertSame(['first_read_at' => null, 'read_count' => 0], $this->readState($sent['send']));
@@ -279,7 +369,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $sent = $this->sentDocument();
         $this->signedInMemberOf([$this->browser->fixtures->tenant('Tenant B')]);
 
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
         self::assertResponseIsSuccessful();
         self::assertSame(1, $this->readState($sent['send'])['read_count']);
@@ -295,7 +385,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
         $this->client->request('GET', '/d/'.$sent['token']);
         self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
         self::assertResponseIsSuccessful();
 
         $this->client->request('GET', '/');
@@ -322,7 +412,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $before = $this->auditEntries();
 
         $this->client->request('GET', '/d/'.$sent['token']);
-        $this->client->request('GET', '/d/'.$sent['token'].'/pdf', server: self::SAME_ORIGIN);
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
 
         self::assertSame(1, $this->readState($sent['send'])['read_count']);
         self::assertSame($before, $this->auditEntries());
@@ -336,7 +426,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $this->client->request('GET', '/d/'.$sent['token']);
         self::assertResponseIsSuccessful();
         foreach (['/d/'.$sent['token'], '/d/'.$sent['token'].'/pdf'] as $path) {
-            $this->client->request('GET', $path, server: self::SAME_ORIGIN);
+            $this->client->request('GET', $path, server: self::CLICK);
             self::assertResponseStatusCodeSame(429, $path);
             self::assertStringNotContainsString('20260001', (string) $this->client->getResponse()->getContent());
         }
@@ -365,9 +455,9 @@ final class PublicDocumentControllerTest extends WebTestCase
      *
      * @return array{send: string, invoice: string, token: string, copyToken: ?string}
      */
-    private function sentDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false): array
+    private function sentDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false, PaymentMethod $method = PaymentMethod::BankTransfer): array
     {
-        $sent = $this->queuedDocument($language, $copy);
+        $sent = $this->queuedDocument($language, $copy, $method);
         $this->inTenant(static function (): void {
             $mail = self::getContainer()->get('messenger.transport.mail');
             self::assertInstanceOf(InMemoryTransport::class, $mail);
@@ -380,14 +470,14 @@ final class PublicDocumentControllerTest extends WebTestCase
     /**
      * @return array{send: string, invoice: string, token: string, copyToken: ?string}
      */
-    private function queuedDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false): array
+    private function queuedDocument(DocumentLanguage $language = DocumentLanguage::Czech, bool $copy = false, PaymentMethod $method = PaymentMethod::BankTransfer): array
     {
-        return $this->inTenant(function () use ($language, $copy): array {
+        return $this->inTenant(function () use ($language, $copy, $method): array {
             $container = self::getContainer();
             [$firm, $series, $customer] = $this->firm ??= $this->newFirm();
             $day = new \DateTimeImmutable('2026-11-01');
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-            $invoice = $container->get(IssueInvoice::class)->issue(new InvoiceInput($firm, $series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', $language, [$line]));
+            $invoice = $container->get(IssueInvoice::class)->issue(new InvoiceInput($firm, $series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-15'), $method, PaymentMethod::BankTransfer === $method ? self::IBAN : null, '20260001', '', '', 'Consulting', '', '', $language, [$line]));
             $send = $container->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], $copy, 'Invoice {number}', "Invoice {number}\n{link}"));
             $tokens = $container->get(LinkTokens::class);
 

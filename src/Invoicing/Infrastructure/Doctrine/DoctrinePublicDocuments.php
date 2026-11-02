@@ -13,6 +13,7 @@ use App\Invoicing\Application\PublicDocuments;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Tenancy\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\DBAL\Connection;
@@ -26,7 +27,8 @@ use Psr\Clock\ClockInterface;
 final readonly class DoctrinePublicDocuments implements PublicDocuments
 {
     private const string FIND = <<<'SQL'
-        SELECT id, tenant_id, token_hash, issuer_name, document_number, customer_name, amount_minor, currency, due_date, language, pdf_key, pdf_sha256
+        SELECT id, tenant_id, token_hash, issuer_name, document_number, customer_name, amount_minor, currency, due_date, language, pdf_key, pdf_sha256,
+            payment_method, bank_account, domestic_account, variable_symbol, payment_code
         FROM invoice_send
         WHERE (token_hash = :hash OR copy_token_hash = :hash) AND revoked_at IS NULL AND status <> :cancelled
         SQL;
@@ -60,6 +62,11 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             DocumentLanguage::from(trim($this->text($row, 'language'))),
             $this->text($row, 'pdf_key'),
             $this->text($row, 'pdf_sha256'),
+            PaymentMethod::from($this->text($row, 'payment_method')),
+            $this->optional($row, 'bank_account'),
+            $this->optional($row, 'domestic_account'),
+            trim($this->text($row, 'variable_symbol')),
+            $this->optional($row, 'payment_code'),
         );
     }
 
@@ -87,5 +94,13 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         }
 
         return \is_string($value) ? $value : throw new \UnexpectedValueException(\sprintf('The column %s of a send is empty.', $column));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function optional(array $row, string $column): ?string
+    {
+        return null === $row[$column] || '' === $row[$column] ? null : $this->text($row, $column);
     }
 }

@@ -48,6 +48,7 @@ final readonly class SendInvoice
         private SendLimits $limits,
         private InvoiceSendQueue $queue,
         private MailVariables $variables,
+        private InvoicingCountries $countries,
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
         private AuditActor $actor,
@@ -71,6 +72,9 @@ final readonly class SendInvoice
         if (!$this->links->allowed()) {
             throw new SendRefused(SendRefused::LOCAL_LINK_BASE);
         }
+        if (!$this->links->secure()) {
+            throw new SendRefused(SendRefused::INSECURE_LINK_BASE);
+        }
         $userId = $this->actor->userId();
         $limited = false;
         for ($round = 0; $round < self::DRAWING_ROUNDS; ++$round) {
@@ -89,9 +93,12 @@ final readonly class SendInvoice
             $limited = true;
             try {
                 $pdf = $this->pdf->render($document)->bytes;
+                // What the page shows for paying, as the PDF shows it.
+                $country = $this->countries->for($document->issuer->address->countryCode);
             } catch (UndrawableDocument|UnsupportedCountry) {
                 throw new SendRefused(SendRefused::UNDRAWABLE);
             }
+            $payment = [null === $document->bankAccount ? null : $country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
             $user = null === $userId ? null : $this->users->findById($userId);
             $values = $this->variables->valuesFor($document, $user?->displayName() ?? $firm->name());
             $text = new MailText();
@@ -110,7 +117,7 @@ final readonly class SendInvoice
                 $copyTo = null;
             }
 
-            $send = $this->store($request->invoiceId, $invoice->version(), $to, $cc, $copyTo, $subject, $body, $userId, $pdf);
+            $send = $this->store($request->invoiceId, $invoice->version(), $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment);
             if ($send instanceof InvoiceSend) {
                 $this->queue->deliver($send->id());
 
@@ -122,17 +129,18 @@ final readonly class SendInvoice
     }
 
     /**
-     * @param list<string> $to
-     * @param list<string> $cc
+     * @param list<string>            $to
+     * @param list<string>            $cc
+     * @param array{?string, ?string} $payment the domestic account and the payment code
      *
      * @return InvoiceSend|null null when the invoice changed since it was drawn, so it is drawn again
      */
-    private function store(string $invoiceId, int $drawnVersion, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $pdf): ?InvoiceSend
+    private function store(string $invoiceId, int $drawnVersion, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $pdf, array $payment): ?InvoiceSend
     {
         $tenant = $this->context->current()->toString();
         $id = Id::generate();
         try {
-            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($invoiceId, $drawnVersion, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $tenant, $id): ?InvoiceSend {
+            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($invoiceId, $drawnVersion, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment, $tenant, $id): ?InvoiceSend {
                 $invoice = $this->store->lock($invoiceId);
                 if ($invoice->isTrashed()) {
                     throw new SendRefused(SendRefused::TRASHED);
@@ -141,7 +149,7 @@ final readonly class SendInvoice
                     return null;
                 }
                 $key = $this->files->store($tenant, $id, $pdf);
-                $send = $this->queued($id, $invoice, $to, $cc, $copyTo, $subject, $body, $userId, $key, hash('sha256', $pdf));
+                $send = $this->queued($id, $invoice, $to, $cc, $copyTo, $subject, $body, $userId, $key, hash('sha256', $pdf), $payment);
                 $this->sends->add($send);
 
                 return $send;
@@ -155,10 +163,11 @@ final readonly class SendInvoice
     }
 
     /**
-     * @param list<string> $to
-     * @param list<string> $cc
+     * @param list<string>            $to
+     * @param list<string>            $cc
+     * @param array{?string, ?string} $payment
      */
-    private function queued(string $id, Invoice $invoice, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $key, string $sha256): InvoiceSend
+    private function queued(string $id, Invoice $invoice, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $key, string $sha256, array $payment): InvoiceSend
     {
         return InvoiceSend::queue(
             $id,
@@ -174,6 +183,8 @@ final readonly class SendInvoice
             null === $copyTo ? null : $this->tokens->hash($this->tokens->token($id, LinkAudience::Copy)),
             $key,
             $sha256,
+            $payment[0],
+            $payment[1],
         );
     }
 

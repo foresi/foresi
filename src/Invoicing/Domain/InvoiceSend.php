@@ -12,6 +12,7 @@ use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
@@ -89,6 +90,11 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'revoked_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $revokedAt = null;
 
+    /** When RequeueStuckSends last handed it to the queue again, so it does not do so twice in a row. */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'requeued_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $requeuedAt = null;
+
     #[AuditExcluded]
     #[ORM\Column(name: 'first_read_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $firstReadAt = null;
@@ -149,15 +155,27 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         private readonly Currency $currency,
         #[ORM\Column(name: 'due_date', type: 'date_immutable')]
         private readonly \DateTimeImmutable $dueDate,
+        #[ORM\Column(name: 'payment_method', type: 'string', length: 32, enumType: PaymentMethod::class, options: ['default' => 'bank_transfer'])]
+        private readonly PaymentMethod $paymentMethod,
+        #[ORM\Column(name: 'bank_account', type: 'string', length: 34, nullable: true)]
+        private readonly ?string $bankAccount,
+        #[ORM\Column(name: 'domestic_account', type: 'string', length: 64, nullable: true)]
+        private readonly ?string $domesticAccount,
+        #[ORM\Column(name: 'variable_symbol', type: 'string', length: 10, options: ['default' => ''])]
+        private readonly string $variableSymbol,
+        #[ORM\Column(name: 'payment_code', type: 'text', nullable: true)]
+        private readonly ?string $paymentCode,
     ) {
     }
 
     /**
      * A new send, waiting for the worker.
      *
-     * @param list<string> $to     the mail is addressed to them
+     * @param list<string> $to              the mail is addressed to them
      * @param list<string> $cc
-     * @param string|null  $copyTo where the firm's own copy goes, with a link of its own
+     * @param string|null  $copyTo          where the firm's own copy goes, with a link of its own
+     * @param string|null  $domesticAccount the account as people of the issuer's country write it
+     * @param string|null  $paymentCode     the payment QR code of the PDF, as text
      *
      * @throws \InvalidArgumentException without a recipient, past the limit, or with a value that could start a header
      */
@@ -175,6 +193,8 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         ?string $copyTokenHash,
         string $pdfKey,
         string $pdfSha256,
+        ?string $domesticAccount = null,
+        ?string $paymentCode = null,
     ): self {
         if ([] === $to) {
             throw new \InvalidArgumentException('A send needs a recipient.');
@@ -216,16 +236,12 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
             $invoice->payable()->minor(),
             $invoice->currency(),
             $invoice->dueDate(),
+            $invoice->paymentMethod(),
+            $invoice->bankAccount(),
+            $domesticAccount,
+            $invoice->variableSymbol(),
+            $paymentCode,
         );
-    }
-
-    /**
-     * Whether a worker started on this send since the given moment; an older claim
-     * belongs to a worker that died.
-     */
-    public function isClaimedSince(\DateTimeImmutable $since): bool
-    {
-        return $this->claimedAt instanceof \DateTimeImmutable && $this->claimedAt > $since;
     }
 
     /**
@@ -240,7 +256,7 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     /**
      * The mail server accepted the message. Recorded whatever the status was, since
      * it is what happened: a send cancelled while the server talked still went out.
-     * The claim stays while the copy is still to go.
+     * The claim stays: the worker still has the invoice and the copy to see to.
      */
     public function markSent(\DateTimeImmutable $at, string $messageId): void
     {
@@ -252,9 +268,14 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         $this->messageId = $messageId;
         $this->lastError = null;
         $this->settingsProblem = false;
-        if (!$this->isCopyOwed()) {
-            $this->claimedAt = null;
-        }
+    }
+
+    /**
+     * The worker is done with it.
+     */
+    public function release(): void
+    {
+        $this->claimedAt = null;
     }
 
     /**
@@ -303,9 +324,19 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         $this->revokedAt ??= $at;
     }
 
+    /**
+     * The copy is about to leave. Until the server answers its outcome counts as
+     * unknown, so a worker that dies meanwhile never leads to a second copy.
+     */
+    public function startCopy(string $unknown): void
+    {
+        $this->copyError = self::shortened($unknown);
+    }
+
     public function markCopySent(\DateTimeImmutable $at): void
     {
         $this->copySentAt = $at;
+        $this->copyError = null;
         $this->claimedAt = null;
     }
 
@@ -518,6 +549,36 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public function dueDate(): \DateTimeImmutable
     {
         return $this->dueDate;
+    }
+
+    public function paymentMethod(): PaymentMethod
+    {
+        return $this->paymentMethod;
+    }
+
+    public function bankAccount(): ?string
+    {
+        return $this->bankAccount;
+    }
+
+    public function domesticAccount(): ?string
+    {
+        return $this->domesticAccount;
+    }
+
+    public function variableSymbol(): string
+    {
+        return $this->variableSymbol;
+    }
+
+    public function paymentCode(): ?string
+    {
+        return $this->paymentCode;
+    }
+
+    public function requeuedAt(): ?\DateTimeImmutable
+    {
+        return $this->requeuedAt;
     }
 
     public function tenantId(): TenantId

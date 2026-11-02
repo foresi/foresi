@@ -23,6 +23,7 @@ final class SendRefused extends \RuntimeException
     public const string BAD_BODY = 'bad_body';
     public const string UNKNOWN_VARIABLE = 'unknown_variable';
     public const string LOCAL_LINK_BASE = 'local_link_base';
+    public const string INSECURE_LINK_BASE = 'insecure_link_base';
     public const string RATE_LIMITED = 'rate_limited';
     public const string UNDRAWABLE = 'undrawable';
 
