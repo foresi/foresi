@@ -24,7 +24,7 @@ Some work must happen without a request: handing back sends whose queue message 
 
 Chosen option: one schedule, `foresi`, ticking every 5 minutes, `stateful` in `cache.app`, with a `lock` and `processOnlyLastMissedRun(true)`, consumed by the worker as the transport `scheduler_foresi`. The tick only fans out: for each tenant and each service tagged `app.scheduled_job` it dispatches a run to the `async` queue.
 
-A job implements `ScheduledJob { name(); period(now); run(?lastPeriod) }`. A run first claims its job, tenant and period in `scheduled_job_run` by one atomic insert; a second worker finds the claim and does nothing. A failed run gives its period back, so the next tick retries it, and `lastPeriod` lets a job catch up on the periods it missed. A daily job computes its period from its country's today, not UTC. `scheduled_job_run` is not audited, like `series_counter`.
+A job implements `ScheduledJob { name(); period(now); run(?lastPeriod) }`. A run first claims its job, tenant and period in `scheduled_job_run` by one atomic insert; a second worker finds the claim and does nothing. A failed run gives its period back, so the next tick retries it, and `lastPeriod` lets a job catch up on the periods it missed. A daily job computes its period from its tenant's today in the tenant's time zone, not UTC: the tick passes each tenant's zone to `period(now, zone)`, see [ADR 0017](0017-tenant-timezone.md). `scheduled_job_run` is not audited, like `series_counter`.
 
 System cron was rejected: it is a second thing to install and watch beside the worker. Checking after sign-in was rejected: reminders must run when nobody signs in.
 

@@ -352,6 +352,8 @@ when@test:
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
+        # Nothing uses the tenant's clock yet; the jobs that will are on their way.
+        App\Tenancy\Application\TenantClock: { public: true }
 
         # Tests never send mail: the gateway records instead.
         App\Invoicing\Application\MailGateway:

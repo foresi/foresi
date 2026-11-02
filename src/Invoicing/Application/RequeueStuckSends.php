@@ -39,7 +39,10 @@ final readonly class RequeueStuckSends implements ScheduledJob
         return self::NAME;
     }
 
-    public function period(\DateTimeImmutable $now): string
+    /**
+     * Five minutes of UTC, the same in every zone: sends wait for no tenant's day.
+     */
+    public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
     {
         $utc = $now->setTimezone(new \DateTimeZone('UTC'));
         $minute = intdiv((int) $utc->format('i'), self::PERIOD_MINUTES) * self::PERIOD_MINUTES;

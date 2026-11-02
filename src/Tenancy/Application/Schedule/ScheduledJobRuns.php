@@ -36,6 +36,12 @@ interface ScheduledJobRuns
     public function giveBack(Claim $claim, string $error): void;
 
     /**
+     * The last period of the job that finished in the active tenant; null before
+     * the first one. A run in progress does not count until it finishes.
+     */
+    public function lastFinished(string $job): ?string;
+
+    /**
      * Marks the period as queued when a claim of it could succeed now and it is
      * not queued already, without a tenant being active. True means the caller
      * sends the work; a second tick before a worker took it gets false. A mark

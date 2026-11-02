@@ -13,8 +13,8 @@ namespace App\Tenancy\Application\Schedule;
  * job for the period of now; the job runs inside its tenant when that period has
  * not run yet. A failed run gives its period back, so the next tick tries again.
  *
- * A daily job computes its period from the country's today, not from UTC.
- * Implementations are tagged app.scheduled_job.
+ * A daily job computes its period in the tenant's zone, with DailyPeriod, not
+ * from UTC; see ADR 0017. Implementations are tagged app.scheduled_job.
  */
 interface ScheduledJob
 {
@@ -27,8 +27,10 @@ interface ScheduledJob
      * The period now falls in. Periods of one job must sort byte by byte in time
      * order, so they are written at one fixed width, such as "2026-11-01", at
      * most 32 characters.
+     *
+     * @param \DateTimeZone $zone the zone of the tenant the period is asked for; a job on UTC periods ignores it
      */
-    public function period(\DateTimeImmutable $now): string;
+    public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string;
 
     /**
      * Does the work of the current period in the active tenant.
