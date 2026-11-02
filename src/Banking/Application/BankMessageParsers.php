@@ -14,6 +14,9 @@ namespace App\Banking\Application;
  */
 final readonly class BankMessageParsers
 {
+    /** Starts a signature, which a parser id never does. */
+    public const string SIGNATURE_PREFIX = 'parsers:';
+
     /**
      * @param iterable<BankMessageParser> $parsers
      */
@@ -51,5 +54,36 @@ final readonly class BankMessageParsers
         }
 
         return null;
+    }
+
+    /**
+     * The version of every parser, by its id.
+     *
+     * @return array<string, int>
+     */
+    public function versions(): array
+    {
+        $versions = [];
+        foreach ($this->parsers as $parser) {
+            $versions[$parser->id()] = $parser->version();
+        }
+        ksort($versions, \SORT_STRING);
+
+        return $versions;
+    }
+
+    /**
+     * A name for the set of parsers as it is now, which changes when a parser is
+     * added or removed or its version goes up. A mail no parser could tell apart
+     * keeps it, so it is read again only once the set changed.
+     */
+    public function signature(): string
+    {
+        $parts = [];
+        foreach ($this->versions() as $id => $version) {
+            $parts[] = $id.'@'.$version;
+        }
+
+        return self::SIGNATURE_PREFIX.substr(hash('sha256', implode("\n", $parts)), 0, 32);
     }
 }

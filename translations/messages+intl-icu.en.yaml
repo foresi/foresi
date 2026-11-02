@@ -712,6 +712,11 @@ bank:
     reason:
       refused: The invoice refused the payment. Pair it by hand.
       account_currency: The movement is in another currency than its account. Check the account's currency.
+  inbox:
+    notice:
+      failed: '{count, plural, one {A bank e-mail could not be processed.} other {# bank e-mails could not be processed.}} Check them and try again.'
+      unmatched: '{count, plural, one {An incoming payment is not paired with an invoice.} other {# incoming payments are not paired with an invoice.}}'
+      link: Show
 
 series:
   title: Number series

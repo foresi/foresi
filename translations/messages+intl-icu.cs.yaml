@@ -712,6 +712,11 @@ bank:
     reason:
       refused: Faktura platbu nepřijala. Spárujte ji ručně.
       account_currency: Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.
+  inbox:
+    notice:
+      failed: '{count, plural, one {E-mail z banky se nepodařilo zpracovat.} few {# e-maily z banky se nepodařilo zpracovat.} other {# e-mailů z banky se nepodařilo zpracovat.}} Zkontrolujte je a zkuste to znovu.'
+      unmatched: '{count, plural, one {Příchozí platba není spárovaná s fakturou.} few {# příchozí platby nejsou spárované s fakturou.} other {# příchozích plateb není spárovaných s fakturou.}}'
+      link: Zobrazit
 
 series:
   title: Číselné řady

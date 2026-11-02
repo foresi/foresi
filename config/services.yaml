@@ -123,6 +123,8 @@ services:
         alias: App\Banking\Infrastructure\Files\DiskInboundFiles
     App\Banking\Application\InboundProcessing:
         alias: App\Banking\Infrastructure\Messenger\MessengerInboundProcessing
+    App\Banking\Application\PendingChanges:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrinePendingChanges
     App\Banking\Infrastructure\Files\DiskInboundFiles:
         arguments:
             $root: '%app.inbound_mail_dir%'

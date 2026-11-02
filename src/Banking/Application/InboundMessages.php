@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 use App\Banking\Domain\InboundMessage;
+use App\Banking\Domain\InboundStatus;
 
 /**
  * The inbound messages of the active tenant.
@@ -28,4 +29,49 @@ interface InboundMessages
      * @return bool false when a message with its dedup key is stored already
      */
     public function add(InboundMessage $message): bool;
+
+    /**
+     * The message as stored now, or null for none in the active tenant.
+     */
+    public function find(string $id): ?InboundMessage;
+
+    /**
+     * Takes the message for processing by a single statement, when it stands in
+     * one of the statuses (and, when given, has the failure). Call it inside the
+     * transaction that processes it: its row stays locked to the end, so of two
+     * workers on one message the second waits and then finds it taken, and a
+     * worker that dies leaves it as it was.
+     *
+     * @param non-empty-list<InboundStatus> $from
+     *
+     * @return ClaimedMessage|null null when the message is of another tenant, or stands elsewhere
+     */
+    public function claim(string $id, array $from, ?string $failure = null): ?ClaimedMessage;
+
+    /**
+     * Stores where processing left the claimed message and counts the attempt.
+     */
+    public function finish(string $id, ProcessingResult $result, \DateTimeImmutable $at): void;
+
+    /**
+     * Counts an attempt that failed unexpectedly, after its transaction was undone.
+     */
+    public function countFailedAttempt(string $id): void;
+
+    /**
+     * Failed or unrecognised messages that a parser of today may read: failed ones
+     * of a parser whose version went up since, and ones read under another set of
+     * parsers. Oldest first.
+     *
+     * @param array<string, int> $parserVersions the current version of every parser, by id
+     * @param string             $signature      see BankMessageParsers::signature()
+     *
+     * @return list<string> their ids
+     */
+    public function due(array $parserVersions, string $signature, int $limit): array;
+
+    /**
+     * How many messages failed or were rejected and wait for someone.
+     */
+    public function needingAttention(): int;
 }

@@ -458,6 +458,8 @@ deptrac:
       - TenantFilterBypass
       # The bank settings of a firm are for its owner.
       - IdentityApplication
+      # Notices on every page about bank mail that needs someone.
+      - Ui
     BankingImap:
       - BankingDomain
       - BankingApplication

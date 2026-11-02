@@ -58,4 +58,9 @@ interface BankMovements
      * another currency says the account's currency is wrong, so it does not count.
      */
     public function anyOnAccount(string $accountId): bool;
+
+    /**
+     * How many incoming movements wait for a pairing.
+     */
+    public function unmatchedIncoming(): int;
 }

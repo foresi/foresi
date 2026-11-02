@@ -11,6 +11,8 @@ namespace App\Banking\Infrastructure\Doctrine;
 use App\Banking\Application\BankMovements;
 use App\Banking\Application\UnknownBankMovement;
 use App\Banking\Domain\BankMovement;
+use App\Banking\Domain\MovementDirection;
+use App\Banking\Domain\MovementState;
 use App\Invoicing\Domain\Payment;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
@@ -89,5 +91,13 @@ final readonly class DoctrineBankMovements implements BankMovements
             ->getOneOrNullResult();
 
         return null !== $found;
+    }
+
+    public function unmatchedIncoming(): int
+    {
+        return (int) $this->em->createQuery('SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE m.state = :state AND m.direction = :direction')
+            ->setParameter('state', MovementState::Unmatched)
+            ->setParameter('direction', MovementDirection::Incoming)
+            ->getSingleScalarResult();
     }
 }
