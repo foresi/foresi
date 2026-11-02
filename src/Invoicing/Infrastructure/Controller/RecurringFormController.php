@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
+use App\Identity\Application\UserRepository;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
@@ -33,7 +34,6 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PeriodText;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurrenceUnit;
-use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\TaxPointRule;
@@ -51,8 +51,10 @@ use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
+use App\Party\Domain\PaymentMethod;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
 use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -82,7 +84,7 @@ final class RecurringFormController extends AbstractController
      */
     public const string FORM_TOKEN = InvoiceController::FORM_TOKEN;
     public const string DOCUMENT_NUMBER = RecurringOccurrence::DOCUMENT_NUMBER;
-    private const array MORE_FIELDS = ['orderNumber', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
+    private const array MORE_FIELDS = ['constantSymbol', 'language', 'textBefore', 'textAfter'];
     /** Where a problem of the rules shows on this form. */
     private const array FIELDS = ['recurrence.firstIssueOn' => 'firstIssueOn', 'recurrence' => 'end'];
     private const array WITHOUT_LINK = ['form', 'version', 'state'];
@@ -112,6 +114,7 @@ final class RecurringFormController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly TenantClock $clock,
+        private readonly UserRepository $users,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -181,8 +184,13 @@ final class RecurringFormController extends AbstractController
             throw new NotFoundHttpException();
         }
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
+        $payment = PaymentMethod::tryFrom($request->request->getString('paymentMethod'));
 
-        return $this->render('invoicing/recurring/_preview.html.twig', ['preview' => $preview], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        return $this->render('invoicing/recurring/_live.html.twig', [
+            'preview' => $preview,
+            'recipients' => $this->recipients($firm, $request->request->getString('customerId'), $template),
+            'account' => $this->account($context, PaymentMethod::BankTransfer === $payment ? $request->request->getString('bankAccount') : ''),
+        ], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     private function submitNew(Request $request): Response
@@ -426,7 +434,7 @@ final class RecurringFormController extends AbstractController
 
             return $this->translator->trans('invoice.line.label', ['number' => (int) $parts[1] + 1]).' · '.$this->translator->trans('invoice.line.'.$cell);
         }
-        if (\in_array($parts[0], [...RecurringFormReader::SCHEDULE_FIELDS, 'state'], true)) {
+        if (\in_array($parts[0], [...RecurringFormReader::OWN_FIELDS, 'state'], true)) {
             return $this->translator->trans('recurring.field.'.$parts[0]);
         }
 
@@ -487,7 +495,9 @@ final class RecurringFormController extends AbstractController
             'units' => $this->choices(RecurrenceUnit::cases(), 'recurring.unit.'),
             'taxPoints' => $this->choices(TaxPointRule::cases(), $context->isPayer() ? 'recurring.tax_point.' : 'recurring.supply_point.'),
             'ends' => $this->choices(RecurrenceEnd::cases(), 'recurring.end.'),
-            'deliveries' => array_map(fn (RecurringDelivery $delivery): array => ['value' => $delivery->value, 'label' => $this->translator->trans('recurring.delivery.'.$delivery->value.'.label'), 'text' => $this->translator->trans('recurring.delivery.'.$delivery->value.'.text')], RecurringDelivery::cases()),
+            'recipients' => $this->recipients($firm, $previewRequest->request->getString('customerId'), $template),
+            // One account is not chosen in the form: it is the one the invoice prints.
+            'account' => $this->account($context, '' !== $previewRequest->request->getString('bankAccount') ? $previewRequest->request->getString('bankAccount') : (string) array_key_first($bankAccounts)),
             'variables' => $this->variables(),
             'preview' => $this->previewOf($this->reader->read($previewRequest, $context->currency, $today), $template),
         ], new Response(status: $status));
@@ -547,6 +557,52 @@ final class RecurringFormController extends AbstractController
     }
 
     /**
+     * Whom each box of "Odesílání faktury" sends to, as DeliverRecurringInvoice
+     * picks them through SendDraft: the contact's addresses for invoices of the
+     * firm; the copy to the firm's contact address, else to the template's owner
+     * (whoever creates it, for a new one), as SendInvoice makes it; and the
+     * contact's addresses for a copy. Shown, never posted: the run reads them on
+     * its day.
+     *
+     * @return array{customer: list<string>, me: ?string, others: list<string>}
+     */
+    private function recipients(LegalEntity $firm, string $customerId, ?RecurringInvoice $template): array
+    {
+        $customer = [];
+        $others = [];
+        $party = $this->pickable($customerId);
+        if ($party instanceof Party) {
+            foreach ($this->contacts->emailsFor($party, $firm) as $email) {
+                if (EmailPurpose::Invoices === $email->purpose()) {
+                    $customer[] = $email->address();
+                } elseif (EmailPurpose::Copy === $email->purpose()) {
+                    $others[] = $email->address();
+                }
+            }
+        }
+        $contact = trim($this->settings->for($firm)->contactEmail());
+        $owner = $template instanceof RecurringInvoice ? $template->owner() : $this->actor->userId();
+        $me = '' !== $contact ? $contact : (null === $owner ? null : $this->users->findById($owner)?->email());
+
+        return ['customer' => array_values(array_unique($customer)), 'me' => $me, 'others' => array_values(array_unique($others))];
+    }
+
+    /**
+     * The chosen account of the firm as the invoice prints it: the domestic number
+     * when the country writes one, and the IBAN. Nothing for another payment.
+     *
+     * @return array{number: ?string, iban: string}|null
+     */
+    private function account(InvoiceFormContext $context, string $iban): ?array
+    {
+        if ('' === $iban) {
+            return null;
+        }
+
+        return ['number' => $context->country->domesticAccount($iban), 'iban' => trim(chunk_split($iban, 4, ' '))];
+    }
+
+    /**
      * The variable chips: the period ones, then the document number, labelled.
      *
      * @return list<array{token: string, label: string}>
@@ -598,8 +654,7 @@ final class RecurringFormController extends AbstractController
         }
         $settings = $this->settings->for($firm);
 
-        return '' !== $values['orderNumber']
-            || $values['constantSymbol'] !== $settings->constantSymbol()
+        return $values['constantSymbol'] !== $settings->constantSymbol()
             || $values['textBefore'] !== $settings->textBefore()
             || $values['textAfter'] !== $settings->textAfter()
             || DocumentLanguage::Czech->value !== $values['language'];

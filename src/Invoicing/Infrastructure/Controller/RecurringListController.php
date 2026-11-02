@@ -342,7 +342,8 @@ final class RecurringListController extends AbstractController
      */
     private function columns(bool $severalFirms): array
     {
-        $keys = ['customer' => true, 'description' => false];
+        // The name first, as iDoklad lists its templates; it is the link to the form.
+        $keys = ['name' => true, 'customer' => false, 'description' => false];
         if ($severalFirms) {
             $keys['firm'] = false;
         }
@@ -351,7 +352,7 @@ final class RecurringListController extends AbstractController
         $columns = [];
         foreach ($keys as $key => $phone) {
             // The names and the description give way, cut short with their full text in a title.
-            $truncate = \in_array($key, ['customer', 'description', 'firm'], true);
+            $truncate = \in_array($key, ['name', 'customer', 'description', 'firm'], true);
             $columns[] = ['key' => $key, 'label' => $this->translator->trans('recurring.list.column.'.$key), 'align' => 'amount' === $key ? 'right' : 'left', 'phone' => $phone, 'truncate' => $truncate];
         }
 
@@ -371,6 +372,7 @@ final class RecurringListController extends AbstractController
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
         $cells = [
+            'name' => $template->name(),
             'customer' => $customer,
             'description' => $description,
             'interval' => $this->schedule($template),
@@ -386,8 +388,8 @@ final class RecurringListController extends AbstractController
             'id' => $template->id(),
             'href' => $this->generateUrl('app_recurring_edit', ['id' => $template->id()]),
             'plain' => true,
-            'label' => $customer,
-            'secondary' => implode(' · ', array_filter([$description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
+            'label' => $template->name(),
+            'secondary' => implode(' · ', array_filter([$customer, $description, $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
             // The description stays; the failure is a line of its own, with the way to the place that fixes it.
             'alert' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure]), 'column' => 'description'] + $this->fix($template, $code),
             'cells' => $cells,

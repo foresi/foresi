@@ -13,6 +13,7 @@ use App\Invoicing\Domain\Recurrence;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringDelivery;
+use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Shared\Domain\Currency;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,12 +22,18 @@ use Symfony\Component\HttpFoundation\Request;
  * Reads the form of a recurring template before anything is written. What it shares
  * with an invoice, the customer, the texts and the lines, the invoice form's reader
  * reads, so both refuse the same mistakes in the same words; this one adds the
- * schedule and the delivery. A schedule it cannot read is a form error, never an
+ * name, the schedule and whom a sent invoice goes to. Without "to the customer"
+ * ticked the invoice is only issued and waits under "To send" (RecurringDelivery).
+ * An unticked box is not sent at all, so each reads as ticked only when it says 1. A schedule it cannot read is a form error, never an
  * exception, and the input then carries a neutral one.
  */
 final readonly class RecurringFormReader
 {
-    public const array SCHEDULE_FIELDS = ['firstIssueOn', 'unit', 'every', 'onLastDayOfMonth', 'taxPoint', 'dueDays', 'end', 'endOn', 'endAfter', 'delivery'];
+    public const array SCHEDULE_FIELDS = ['firstIssueOn', 'unit', 'every', 'onLastDayOfMonth', 'taxPoint', 'dueDays', 'end', 'endOn', 'endAfter'];
+    /** The boxes of "Odesílání faktury". */
+    public const array SENDING_FIELDS = ['sendToCustomer', 'copyToMe', 'copyToOthers'];
+    /** The fields of this form the invoice form does not have, labelled as recurring.field.*. */
+    public const array OWN_FIELDS = ['name', ...self::SCHEDULE_FIELDS, ...self::SENDING_FIELDS];
 
     /** What the invoice reader says about fields this form has too. */
     private const array SHARED_FIELDS = ['description', 'textBefore', 'textAfter', 'paymentMethod', 'language'];
@@ -50,9 +57,12 @@ final readonly class RecurringFormReader
         if (!$taxPoint instanceof TaxPointRule) {
             $errors['taxPoint'] = 'recurring.problem.choice_invalid';
         }
-        $delivery = RecurringDelivery::tryFrom($schedule['delivery']);
-        if (!$delivery instanceof RecurringDelivery) {
-            $errors['delivery'] = 'recurring.problem.choice_invalid';
+        $delivery = '1' === $schedule['sendToCustomer'] ? RecurringDelivery::Send : RecurringDelivery::Review;
+        $name = trim(preg_replace('/\s+/u', ' ', $request->request->getString('name')) ?? '');
+        if ('' === $name) {
+            $errors['name'] = 'recurring.problem.name_missing';
+        } elseif (mb_strlen($name) > RecurringInvoice::MAX_NAME_LENGTH) {
+            $errors['name'] = 'recurring.problem.name_too_long';
         }
         $dueDays = $this->whole($schedule['dueDays']);
         if (null === $dueDays) {
@@ -76,10 +86,13 @@ final readonly class RecurringFormReader
             $recurrence ?? $this->neutral($today),
             $taxPoint ?? TaxPointRule::IssueDate,
             $dueDays ?? 0,
-            $delivery ?? RecurringDelivery::Send,
+            $delivery,
+            mb_substr($name, 0, RecurringInvoice::MAX_NAME_LENGTH),
+            '1' === $schedule['copyToMe'],
+            '1' === $schedule['copyToOthers'],
         );
 
-        return new RecurringSubmission([...$shared->values, ...$schedule, 'copyOf' => trim($request->request->getString('copyOf'))], $errors, $input, $shared->version);
+        return new RecurringSubmission([...$shared->values, ...$schedule, 'name' => $request->request->getString('name'), 'copyOf' => trim($request->request->getString('copyOf'))], $errors, $input, $shared->version);
     }
 
     /**
@@ -88,7 +101,7 @@ final readonly class RecurringFormReader
     private function schedule(Request $request): array
     {
         $values = [];
-        foreach ([...self::SCHEDULE_FIELDS, 'dueDaysSet'] as $field) {
+        foreach ([...self::SCHEDULE_FIELDS, ...self::SENDING_FIELDS, 'dueDaysSet'] as $field) {
             $values[$field] = trim($request->request->getString($field));
         }
 

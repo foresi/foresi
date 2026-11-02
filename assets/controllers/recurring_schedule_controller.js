@@ -6,19 +6,23 @@ import { Controller } from '@hotwired/stimulus';
 const PREVIEW_DELAY = 300;
 
 /**
- * The schedule of a recurring template's form. The lines, the customer and the
- * totals are the invoice form's controller's; this one only shows the fields the
- * schedule needs, lets a picked customer set the due days until they are typed,
- * and posts the form to the preview frame, 300 ms after the last change. The
- * server reads the whole form for the preview and writes nothing; without
- * JavaScript the Apply button re-renders the form with a fresh preview.
+ * The schedule and the sending of a recurring template's form. The lines, the
+ * customer and the totals are the invoice form's controller's; this one only
+ * shows the fields the schedule needs, steps the numbers with − and +, lets a
+ * picked customer set the due days until they are typed, says when an unticked
+ * "Odběrateli" leaves the invoice waiting, and posts the form for the preview,
+ * 300 ms after the last change. The answer holds the next issue and the other
+ * parts that follow what was typed ([data-recurring-live], such as the addresses
+ * under the boxes); each takes the place of the one with its id. The server
+ * reads the whole form and writes nothing; without JavaScript the Apply button
+ * re-renders the form with all of them fresh.
  *
  * The preview is one line with the next issue and a link to the dates after
  * it. The link is the summary of a disclosure that holds them; here it opens
  * them in the card's dialog instead, which a refresh keeps up to date.
  */
 export default class extends Controller {
-    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet', 'list', 'dialogList'];
+    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet', 'list', 'dialogList', 'stepper', 'sendToCustomer', 'held'];
 
     static outlets = ['dialog'];
 
@@ -27,6 +31,8 @@ export default class extends Controller {
     connect() {
         this.unitChanged();
         this.endChanged();
+        this.sendingChanged();
+        this.stepperTargets.forEach((button) => { button.hidden = false; });
     }
 
     disconnect() {
@@ -43,11 +49,27 @@ export default class extends Controller {
         this.endAfterTarget.hidden = this.endTarget.value !== 'after_count';
     }
 
+    sendingChanged() {
+        this.heldTarget.hidden = this.sendToCustomerTarget.checked;
+    }
+
+    // − and +: one step within the field's bounds, as if typed.
+    step({ params: { field, delta } }) {
+        const input = this.element.querySelector(`#${CSS.escape(field)}`);
+        const min = Number(input.dataset.min);
+        const max = Number(input.dataset.max);
+        const typed = Number.parseInt(input.value, 10);
+        input.value = String(Math.min(max, Math.max(min, (Number.isNaN(typed) ? min : typed) + delta)));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // A picked customer has addresses of its own, and may set the due days.
     customerPicked(event) {
         if (this.dueDaysSetTarget.value !== '1' && event.detail.dueDays !== undefined) {
             this.dueDaysTarget.value = event.detail.dueDays;
-            this.changed();
         }
+        this.changed();
     }
 
     dueDaysTyped() {
@@ -93,6 +115,9 @@ export default class extends Controller {
                         this.hasListTarget ? this.fillDialog() : this.dialogOutlet.close();
                     }
                 }
+                page.querySelectorAll('[data-recurring-live][id]').forEach((part) => {
+                    document.getElementById(part.id)?.replaceWith(document.importNode(part, true));
+                });
             }
         } catch (error) {
             if (error.name !== 'AbortError') {

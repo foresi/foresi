@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The parts of the recurring form that follow what was typed. Each has an id and data-recurring-live:
+    the form draws them in place, and the preview answers with them, which the schedule controller puts
+    over the ones on the page. Only text is replaced, never a field, so the focus stays where it is.
+#}
+
+{# The addresses a box of "Odesílání faktury" sends to, under its label. #}
+{% macro addresses(id, addresses) %}
+    <p id="{{ id }}" class="m-0 break-all pl-6 text-caption text-muted" data-recurring-live>
+        {{- addresses is empty ? 'recurring.sending.no_email'|trans : addresses|join(', ') -}}
+    </p>
+{% endmacro %}
+
+{# The chosen account as the invoice prints it, read-only. #}
+{% macro account(account) %}
+    <dl id="recurring-account" class="m-0 grid gap-x-4 gap-y-1.5 sm:grid-cols-2" data-recurring-live>
+        {% if account %}
+            {% if account.number %}
+                <div class="grid content-start gap-0.5">
+                    <dt class="text-small font-medium text-ink">{{ 'recurring.payment.account_number'|trans }}</dt>
+                    <dd class="num m-0 break-all text-ink" data-account-number>{{ account.number }}</dd>
+                </div>
+            {% endif %}
+            <div class="grid content-start gap-0.5">
+                <dt class="text-small font-medium text-ink">{{ 'recurring.payment.iban'|trans }}</dt>
+                <dd class="num m-0 break-all text-ink" data-account-iban>{{ account.iban }}</dd>
+            </div>
+        {% endif %}
+    </dl>
+{% endmacro %}

@@ -36,9 +36,11 @@ use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
+use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\Schedule\RunScheduledJob;
@@ -173,6 +175,32 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $invoices = $this->invoicesOf($template);
         self::assertCount(1, $invoices, 'the occurrence is issued once');
         self::assertSame(1, $this->sendCount(), 'and sent once');
+    }
+
+    public function testTheContactsCopyAddressesTakeACopyAsTheBoxSays(): void
+    {
+        $this->contactEmail('office@example.com');
+        $this->copyAddress('accounts@example.com');
+        $with = $this->template();
+        $without = $this->template(copyToMe: false, copyToOthers: false);
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $sent = $this->sendsOf(self::text($this->invoicesOf($with)[0], 'id'))[0];
+        self::assertSame(['["billing@example.com"]', '["accounts@example.com"]', 'office@example.com'], [$sent['recipients_to'], $sent['recipients_cc'], $sent['copy_to']]);
+        $alone = $this->sendsOf(self::text($this->invoicesOf($without)[0], 'id'))[0];
+        self::assertSame(['["billing@example.com"]', '[]', null], [$alone['recipients_to'], $alone['recipients_cc'], $alone['copy_to']], 'only the customer, without the copies');
+    }
+
+    public function testATemplateNotSentToTheCustomerWaitsWhateverTheCopiesSay(): void
+    {
+        $template = $this->template(delivery: RecurringDelivery::Review, copyToMe: true, copyToOthers: true);
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $invoices = $this->invoicesOf($template);
+        self::assertCount(1, $invoices);
+        self::assertSame([], $this->sendsOf(self::text($invoices[0], 'id')), 'issued, and it waits under To send');
     }
 
     public function testCopyFallsBackToTheOwner(): void
@@ -592,6 +620,8 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         ?array $lines = null,
         ?Recurrence $recurrence = null,
         DocumentLanguage $language = DocumentLanguage::Czech,
+        bool $copyToMe = true,
+        bool $copyToOthers = true,
     ): RecurringInvoice {
         $this->em->clear();
 
@@ -612,6 +642,9 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
             TaxPointRule::IssueDate,
             14,
             $delivery,
+            'Example hosting',
+            $copyToMe,
+            $copyToOthers,
         ));
     }
 
@@ -684,6 +717,14 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->flush();
 
         return $owner;
+    }
+
+    private function copyAddress(string $address): void
+    {
+        $customer = $this->em->find(Party::class, $this->customer->id()) ?? throw new \LogicException('The customer is stored.');
+        $this->em->persist(new PartyEmail($customer, $address, EmailPurpose::Copy));
+        $this->em->flush();
+        $this->em->clear();
     }
 
     private function afterTodaysRun(): IssueAfterTodaysRun

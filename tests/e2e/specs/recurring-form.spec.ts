@@ -70,6 +70,8 @@ test.describe.serial('a recurring invoice', () => {
     const text = await page.locator('#lines-0-text').inputValue();
     expect(['Support', 'Hosting', 'Licence']).toContain(text);
     await expect(page.locator('#description')).toHaveValue(text);
+    await expect(page.locator('#name')).toHaveValue(text);
+    await page.locator('#name').fill('Example yearly hosting');
     // A first issue today: issued on save after 5:00, by the run before it.
     await expect(preview(page).locator('[data-preview-next]')).toHaveText(/^Další faktura bude vystavena (hned po uložení|dnes v 5:00)$/);
 
@@ -103,8 +105,9 @@ test.describe.serial('a recurring invoice', () => {
     await expect(page).toHaveURL(/\/invoices\/recurring$/);
     await expect(page.locator('[role=status]').filter({ hasText: 'Pravidelná faktura je uložená. Další faktura se vystaví 31. 1. 2027.' })).toBeVisible();
 
-    await page.locator('tbody a[data-row-link]').filter({ hasText: 'Example Buyer a.s.' }).first().click();
+    await page.locator('tbody a[data-row-link]').filter({ hasText: 'Example yearly hosting' }).first().click();
     await expect(page).toHaveURL(/\/invoices\/recurring\/[0-9a-f-]+\/edit$/);
+    await expect(page.locator('#name')).toHaveValue('Example yearly hosting');
     await expect(page.locator('#unit')).toHaveValue('year');
     await expect(page.locator('#firstIssueOn')).toHaveValue('2027-01-31');
     await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');
@@ -116,7 +119,8 @@ test.describe.serial('a recurring invoice', () => {
     await page.goto('/invoices/recurring/new');
     await expect(page.locator('#onLastDayOfMonth')).toBeVisible();
     await page.locator('#unit').focus();
-    await tabThrough(page, ['firstIssueOn', 'every', 'taxPoint', 'onLastDayOfMonth', 'end']);
+    // The − and + of "Opakovat každý" stay out of the way: the field takes the number typed.
+    await tabThrough(page, ['firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-all-link', 'end']);
 
     await page.locator('#unit').selectOption('week');
     await expect(page.locator('#onLastDayOfMonth')).toBeHidden();
@@ -135,6 +139,31 @@ test.describe.serial('a recurring invoice', () => {
     await expect(page.locator('#every')).toHaveAttribute('aria-invalid', 'true');
   });
 
+  test('steps the numbers and says whom the invoice goes to', async ({ page }) => {
+    await openFromInvoice(page);
+    await page.locator('#firstIssueOn').fill('2027-01-31');
+    await expect(preview(page).locator('[data-preview-next]')).toHaveText('Další faktura bude vystavena 31. 1. 2027');
+    await page.getByRole('button', { name: 'Zvýšit: Opakovat každý' }).click();
+    await expect(page.locator('#every')).toHaveValue('2');
+    await expect(preview(page).locator('[data-preview-issue]').nth(1)).toHaveText('31. 3. 2027');
+    const due = Number(await page.locator('#dueDays').inputValue());
+    await page.getByRole('button', { name: 'Snížit: Splatnost (dní)' }).click();
+    await expect(page.locator('#dueDays')).toHaveValue(String(due - 1));
+
+    const sending = page.getByRole('group', { name: 'Po vystavení odeslat:' });
+    await expect(sending.getByRole('checkbox', { name: 'Odběrateli' })).toBeChecked();
+    await expect(page.locator('#sendToCustomer-address')).toHaveText(/@example\.com/);
+    await expect(page.locator('#recurring-held')).toBeHidden();
+    await sending.getByRole('checkbox', { name: 'Odběrateli' }).uncheck();
+    await expect(page.locator('#recurring-held')).toHaveText('Faktura se jen vystaví a počká v seznamu K odeslání.');
+    await expect(preview(page).locator('[data-preview-next]')).toHaveText('Další faktura bude vystavena 31. 1. 2027');
+
+    // A new one has no customer yet: nobody to send to.
+    await page.goto('/invoices/recurring/new');
+    await expect(page.locator('#sendToCustomer-address')).toHaveText('e-mail není vyplněn');
+    await expect(page.locator('#copyToOthers-address')).toHaveText('e-mail není vyplněn');
+  });
+
   for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
     test(`is accessible and fits the ${name}`, async ({ page }) => {
       await page.setViewportSize(size);
@@ -146,6 +175,9 @@ test.describe.serial('a recurring invoice', () => {
       await expectNoSeriousViolations(page);
       await page.screenshot({ path: `${SHOTS}/recurring-form-${name}.png`, fullPage: true });
       await page.locator('section').filter({ has: page.locator('#unit') }).screenshot({ path: `${SHOTS}/recurring-schedule-${name}.png` });
+      await page.locator('section').filter({ has: page.locator('#sendToCustomer') }).screenshot({ path: `${SHOTS}/recurring-sending-${name}.png` });
+      await page.locator('section').filter({ has: page.locator('#dueDays') }).screenshot({ path: `${SHOTS}/recurring-dates-${name}.png` });
+      await page.locator('section').filter({ has: page.locator('#paymentMethod') }).screenshot({ path: `${SHOTS}/recurring-payment-${name}.png` });
 
       await preview(page).getByText('Přehled budoucích vystavení').click();
       await expect(allDates(page).locator('[data-preview-issue]')).toHaveCount(5);

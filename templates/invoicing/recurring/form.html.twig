@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'layout/app.html.twig' %}
 
-{# The invoice form without a number and dates, with a schedule, a delivery and a preview: the same cards, line rows and controller, so the two read alike. #}
+{# The invoice form without a number and dates, laid out as iDoklad's recurring invoice: the template and its customer, the schedule beside the sending, the dates beside the payment, then the same line rows and controller as the invoice form. #}
 {% set crumbs = [] %}
 {% set editing = template|default(null) is not null %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
@@ -94,93 +94,128 @@
                 </div>
             </twig:Ui:Card>
 
-            <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                <twig:Ui:Card :title="'invoice.card.customer'|trans" icon="users">
-                    <div class="grid gap-3">
-                        <div class="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                            <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers', {firm: firm.id})" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
-                            <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="sm:mt-6" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
-                        </div>
-                        {% if candidates is not empty %}
-                            <ul class="m-0 grid list-none gap-1 p-0" data-customer-candidates aria-label="{{ 'invoice.customer.candidates'|trans }}">
-                                {% for candidate in candidates %}
-                                    <li><button type="submit" name="_action" value="pick:{{ candidate.id }}" class="flex min-h-6 w-full flex-wrap items-center gap-x-3 rounded-control border border-control-line bg-white px-2.5 py-1.5 text-left text-ink hover:bg-head {{ focus }}"><span class="font-medium">{{ candidate.name }}</span><span class="num text-muted">{{ candidate.hint }}</span></button></li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                        {# The template keeps the contact, not a copy of it: each invoice takes the contact as it reads on its day. #}
-                        <div class="grid gap-2{% if values.customerId == '' %} hidden{% endif %}" data-invoice-form-target="customerBox">
-                            <p class="m-0 text-small text-muted" data-customer-summary data-invoice-form-target="summary">
-                                {%- if values.customer.registrationNumber %}{{ 'invoice.field.registrationNumber'|trans }} {{ values.customer.registrationNumber }} · {% endif -%}
-                                {%- if payer and values.customer.vatId %}{{ 'invoice.field.vatId'|trans }} {{ values.customer.vatId }} · {% endif -%}
-                                {{- seat -}}
-                            </p>
-                            <a href="{{ values.customerId ? path('app_contact_edit', {id: values.customerId}) : '#' }}" id="customer-contact" target="_blank" rel="noopener" class="justify-self-start text-small font-medium text-text underline underline-offset-2 {{ focus }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
-                            {% for field, value in values.customer %}<input type="hidden" name="customer[{{ field }}]" value="{{ value }}">{% endfor %}
-                        </div>
-                        <div data-invoice-form-target="notice" hidden>
-                            <twig:Ui:Alert tone="warning" role="status" data-currency-notice><span data-invoice-form-target="noticeText"></span></twig:Ui:Alert>
-                        </div>
-                        <twig:Ui:TextInput name="description" id="description" :label="'invoice.field.description'|trans" :help="'invoice.field.description_help'|trans" :value="values.description" :error="errorFields.description|default(null)" autocomplete="off" data-mail-chips-target="field" data-mail-chips-default data-action="focus->mail-chips#remember" />
-                        <div class="grid gap-1.5">
-                            <p id="recurring-variables" class="m-0 text-small font-medium text-ink">{{ 'recurring.variables.title'|trans }}</p>
-                            <p id="recurring-variables-help" class="m-0 text-caption text-muted">{{ 'recurring.variables.help'|trans }}</p>
-                            {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
-                            <div role="toolbar" aria-labelledby="recurring-variables" aria-describedby="recurring-variables-help" class="flex flex-wrap gap-1.5" data-action="keydown->mail-chips#move">
-                                {% for variable in variables %}
-                                    <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" title="{{ variable.token }}" class="inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing {{ focus }}">{{ variable.label }}</button>
-                                {% endfor %}
-                            </div>
-                            <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
-                        </div>
-                        <details data-more-details class="rounded-control border border-divider px-3 py-2"{% if moreOpen %} open{% endif %}>
-                            <summary id="recurring-details" class="cursor-pointer text-small font-medium text-ink {{ focus }}">{{ 'invoice.more'|trans }}</summary>
-                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                                <twig:Ui:TextInput name="orderNumber" id="orderNumber" :label="'invoice.field.orderNumber'|trans" :value="values.orderNumber" :error="errorFields.orderNumber|default(null)" maxlength="64" autocomplete="off" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
-                                <twig:Ui:TextInput name="constantSymbol" id="constantSymbol" :label="'invoice.field.constantSymbol'|trans" :value="values.constantSymbol" :error="errorFields.constantSymbol|default(null)" inputmode="numeric" autocomplete="off" />
-                                <twig:Ui:Select name="language" id="language" :label="'invoice.field.language'|trans" :options="languages" :value="values.language" :error="errorFields.language|default(null)" data-invoice-form-target="language" />
-                                <div class="sm:col-span-2"><twig:Ui:Textarea name="textBefore" id="textBefore" :label="'invoice.field.textBefore'|trans" :value="values.textBefore" :error="errorFields.textBefore|default(null)" :rows="2" data-mail-chips-target="field" data-action="focus->mail-chips#remember" /></div>
-                                <div class="sm:col-span-2"><twig:Ui:Textarea name="textAfter" id="textAfter" :label="'invoice.field.textAfter'|trans" :value="values.textAfter" :error="errorFields.textAfter|default(null)" :rows="2" data-mail-chips-target="field" data-action="focus->mail-chips#remember" /></div>
-                            </div>
-                        </details>
+            {# iDoklad's order: the template and its customer, then two pairs of sections side by side, then the lines. #}
+            <twig:Ui:Card :title="'recurring.card.main'|trans" icon="file-pen-line">
+                <div class="grid gap-3">
+                    <twig:Ui:TextInput name="name" id="name" :label="'recurring.field.name'|trans" :help="'recurring.field.name_help'|trans" :value="values.name" :error="errorFields.name|default(null)" :required="true" maxlength="120" autocomplete="off" />
+                    <div class="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers', {firm: firm.id})" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
+                        <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="sm:mt-6" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
                     </div>
-                </twig:Ui:Card>
+                    {% if candidates is not empty %}
+                        <ul class="m-0 grid list-none gap-1 p-0" data-customer-candidates aria-label="{{ 'invoice.customer.candidates'|trans }}">
+                            {% for candidate in candidates %}
+                                <li><button type="submit" name="_action" value="pick:{{ candidate.id }}" class="flex min-h-6 w-full flex-wrap items-center gap-x-3 rounded-control border border-control-line bg-white px-2.5 py-1.5 text-left text-ink hover:bg-head {{ focus }}"><span class="font-medium">{{ candidate.name }}</span><span class="num text-muted">{{ candidate.hint }}</span></button></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {# The template keeps the contact, not a copy of it: each invoice takes the contact as it reads on its day. #}
+                    <div class="grid gap-2{% if values.customerId == '' %} hidden{% endif %}" data-invoice-form-target="customerBox">
+                        <p class="m-0 text-small text-muted" data-customer-summary data-invoice-form-target="summary">
+                            {%- if values.customer.registrationNumber %}{{ 'invoice.field.registrationNumber'|trans }} {{ values.customer.registrationNumber }} · {% endif -%}
+                            {%- if payer and values.customer.vatId %}{{ 'invoice.field.vatId'|trans }} {{ values.customer.vatId }} · {% endif -%}
+                            {{- seat -}}
+                        </p>
+                        <a href="{{ values.customerId ? path('app_contact_edit', {id: values.customerId}) : '#' }}" id="customer-contact" target="_blank" rel="noopener" class="justify-self-start text-small font-medium text-text underline underline-offset-2 {{ focus }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
+                        {% for field, value in values.customer %}<input type="hidden" name="customer[{{ field }}]" value="{{ value }}">{% endfor %}
+                    </div>
+                    <div data-invoice-form-target="notice" hidden>
+                        <twig:Ui:Alert tone="warning" role="status" data-currency-notice><span data-invoice-form-target="noticeText"></span></twig:Ui:Alert>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                        <twig:Ui:TextInput name="orderNumber" id="orderNumber" :label="'invoice.field.orderNumber'|trans" :value="values.orderNumber" :error="errorFields.orderNumber|default(null)" maxlength="64" autocomplete="off" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                        <div class="grid content-start gap-1.5">
+                            <twig:Ui:TextInput name="description" id="description" :label="'invoice.field.description'|trans" :help="'invoice.field.description_help'|trans" :value="values.description" :error="errorFields.description|default(null)" autocomplete="off" data-mail-chips-target="field" data-mail-chips-default data-action="focus->mail-chips#remember" />
+                            {# The variables, compact under Popis; what they do is in the tooltip and read out with them. #}
+                            <div class="flex flex-wrap items-center gap-1">
+                                <span id="recurring-variables" class="inline-flex items-center gap-1 text-caption font-medium text-muted" title="{{ 'recurring.variables.help'|trans }}">{{ 'recurring.variables.title'|trans }}{{ ux_icon('lucide:circle-help', {class: 'size-3.5', 'aria-hidden': 'true'}) }}</span>
+                                <span id="recurring-variables-help" class="sr-only">{{ 'recurring.variables.help'|trans }}</span>
+                                {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
+                                <div role="toolbar" aria-labelledby="recurring-variables" aria-describedby="recurring-variables-help" class="flex flex-wrap gap-1" data-action="keydown->mail-chips#move">
+                                    {% for variable in variables %}
+                                        <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" title="{{ variable.token }}" class="inline-flex h-badge cursor-grab select-none items-center rounded-sm border border-control-line bg-white px-1.5 text-caption font-medium text-text hover:border-muted active:cursor-grabbing {{ focus }}">{{ variable.label }}</button>
+                                    {% endfor %}
+                                </div>
+                                <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <details data-more-details class="rounded-control border border-divider px-3 py-2"{% if moreOpen %} open{% endif %}>
+                        <summary id="recurring-details" class="cursor-pointer text-small font-medium text-ink {{ focus }}">{{ 'invoice.more'|trans }}</summary>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            <twig:Ui:TextInput name="constantSymbol" id="constantSymbol" :label="'invoice.field.constantSymbol'|trans" :value="values.constantSymbol" :error="errorFields.constantSymbol|default(null)" inputmode="numeric" autocomplete="off" />
+                            <twig:Ui:Select name="language" id="language" :label="'invoice.field.language'|trans" :options="languages" :value="values.language" :error="errorFields.language|default(null)" data-invoice-form-target="language" />
+                            <div class="sm:col-span-2"><twig:Ui:Textarea name="textBefore" id="textBefore" :label="'invoice.field.textBefore'|trans" :value="values.textBefore" :error="errorFields.textBefore|default(null)" :rows="2" data-mail-chips-target="field" data-action="focus->mail-chips#remember" /></div>
+                            <div class="sm:col-span-2"><twig:Ui:Textarea name="textAfter" id="textAfter" :label="'invoice.field.textAfter'|trans" :value="values.textAfter" :error="errorFields.textAfter|default(null)" :rows="2" data-mail-chips-target="field" data-action="focus->mail-chips#remember" /></div>
+                        </div>
+                    </details>
+                </div>
+            </twig:Ui:Card>
 
+            <div class="grid items-start gap-4 lg:grid-cols-2">
                 {{ include('invoicing/recurring/_schedule.html.twig') }}
+
+                <twig:Ui:Card :title="'recurring.card.sending'|trans" icon="send">
+                    {% import 'invoicing/recurring/_parts.html.twig' as parts %}
+                    {% set boxes = [
+                        {name: 'sendToCustomer', addresses: recipients.customer},
+                        {name: 'copyToMe', addresses: recipients.me ? [recipients.me] : []},
+                        {name: 'copyToOthers', addresses: recipients.others},
+                    ] %}
+                    <fieldset class="m-0 grid min-w-0 gap-3 border-0 p-0">
+                        <legend class="mb-3 p-0 text-small font-medium text-ink">{{ 'recurring.sending.legend'|trans }}</legend>
+                        {% for box in boxes %}
+                            <div class="grid gap-0.5">
+                                <label for="{{ box.name }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">
+                                    <input type="checkbox" id="{{ box.name }}" name="{{ box.name }}" value="1"{% if values[box.name] == '1' %} checked{% endif %} aria-describedby="{{ box.name }}-address{% if box.name == 'sendToCustomer' %} recurring-held{% endif %}" class="size-4 shrink-0 accent-green {{ focus }}"{% if box.name == 'sendToCustomer' %} data-recurring-schedule-target="sendToCustomer" data-action="change->recurring-schedule#sendingChanged"{% endif %}>
+                                    <span>{{ ('recurring.field.' ~ box.name)|trans }}</span>
+                                </label>
+                                {{ parts.addresses(box.name ~ '-address', box.addresses) }}
+                            </div>
+                        {% endfor %}
+                        <p id="recurring-held" class="m-0 text-small text-text"{% if values.sendToCustomer == '1' %} hidden{% endif %} data-recurring-schedule-target="held">{{ 'recurring.sending.held'|trans }}</p>
+                    </fieldset>
+                </twig:Ui:Card>
             </div>
 
             <div class="grid items-start gap-4 lg:grid-cols-2">
-                <twig:Ui:Card :title="'invoice.card.payment'|trans" icon="landmark">
+                <twig:Ui:Card :title="'recurring.card.dates'|trans" icon="calendar">
                     <div class="grid gap-3 sm:grid-cols-2">
-                        <twig:Ui:TextInput name="dueDays" id="dueDays" :label="'recurring.field.dueDays'|trans" :help="'recurring.field.dueDays_help'|trans" :value="values.dueDays" :error="errorFields.dueDays|default(null)" inputmode="numeric" autocomplete="off" maxlength="3" data-recurring-schedule-target="dueDays" data-action="input->recurring-schedule#dueDaysTyped" />
-                        <input type="hidden" name="dueDaysSet" value="{{ values.dueDaysSet }}" data-recurring-schedule-target="dueDaysSet">
-                        <twig:Ui:Select name="paymentMethod" id="paymentMethod" :label="'invoice.field.paymentMethod'|trans" :options="paymentMethods" :value="values.paymentMethod" :error="errorFields.paymentMethod|default(null)" data-invoice-form-target="paymentMethod" data-action="change->invoice-form#paymentChanged" />
-                        <div class="sm:col-span-2{% if values.paymentMethod != 'bank_transfer' %} hidden{% endif %}" data-invoice-form-target="bankRow">
+                        <div>
+                            {{ include('invoicing/recurring/_stepper.html.twig', {id: 'dueDays', label: 'recurring.field.dueDays'|trans, help: 'recurring.field.dueDays_help'|trans, error: errorFields.dueDays|default(null), value: values.dueDays, min: 0, max: 365, maxlength: 3, extra: 'data-recurring-schedule-target="dueDays" data-action="input->recurring-schedule#dueDaysTyped"'}, with_context = false) }}
+                            <input type="hidden" name="dueDaysSet" value="{{ values.dueDaysSet }}" data-recurring-schedule-target="dueDaysSet">
+                        </div>
+                        <twig:Ui:Select name="taxPoint" id="taxPoint" :label="(payer ? 'recurring.field.taxPoint' : 'invoice.field.supplyDate')|trans" :options="taxPoints" :value="values.taxPoint" :error="errorFields.taxPoint|default(null)" />
+                    </div>
+                </twig:Ui:Card>
+
+                <twig:Ui:Card :title="'recurring.card.payment'|trans" icon="landmark">
+                    <div class="grid gap-3">
+                        <twig:Ui:Select name="paymentMethod" id="paymentMethod" :label="'recurring.field.paymentMethod'|trans" :options="paymentMethods" :value="values.paymentMethod" :error="errorFields.paymentMethod|default(null)" data-invoice-form-target="paymentMethod" data-action="change->invoice-form#paymentChanged" />
+                        <div class="grid gap-3{% if values.paymentMethod != 'bank_transfer' %} hidden{% endif %}" data-invoice-form-target="bankRow">
                             {% if bankAccounts is empty %}
                                 <input type="hidden" name="bankAccount" value="">
                                 <p class="m-0 text-small font-medium text-ink">{{ 'invoice.field.bankAccount'|trans }}</p>
-                                <twig:Ui:Alert tone="warning" class="mt-1.5" data-bank-note>
+                                <twig:Ui:Alert tone="warning" data-bank-note>
                                     <span>{{ 'invoice.field.bankAccount_none'|trans }}</span>
                                     <a href="{{ firmUrl }}" target="_blank" rel="noopener" id="bank-account-settings" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'invoice.field.bankAccount_add'|trans }}</a>
                                 </twig:Ui:Alert>
                             {% elseif bankAccounts|length > 1 %}
                                 <twig:Ui:Select name="bankAccount" id="bankAccount" :label="'invoice.field.bankAccount'|trans" :options="bankAccounts" :value="values.bankAccount" :error="errorFields.bankAccount|default(null)" />
                             {% else %}
+                                {# One account: nothing to choose, its numbers below are what the invoice prints. #}
                                 <input type="hidden" name="bankAccount" value="{{ values.bankAccount ?: bankAccounts|first }}">
-                                <p class="m-0 text-small font-medium text-ink">{{ 'invoice.field.bankAccount'|trans }}</p>
-                                <p class="num m-0 mt-1.5 break-all text-ink" id="bankAccount" tabindex="-1">{{ values.bankAccount ?: bankAccounts|first }}</p>
-                                {% if errorFields.bankAccount is defined %}<p class="m-0 mt-1 text-caption font-medium text-badge-red-text">{{ errorFields.bankAccount }}</p>{% endif %}
+                                <p class="m-0 text-small font-medium text-ink" id="bankAccount" tabindex="-1">{{ 'invoice.field.bankAccount'|trans }}</p>
+                                {% if errorFields.bankAccount is defined %}<p class="m-0 text-caption font-medium text-badge-red-text">{{ errorFields.bankAccount }}</p>{% endif %}
                             {% endif %}
+                            {% import 'invoicing/recurring/_parts.html.twig' as parts %}
+                            {{ parts.account(account) }}
                         </div>
-                        <div class="sm:col-span-2">
+                        <div>
                             <p class="m-0 text-small font-medium text-ink">{{ 'invoice.field.currency'|trans }}</p>
                             <p class="m-0 mt-1.5 text-ink">{{ currency }}</p>
                         </div>
                     </div>
-                </twig:Ui:Card>
-
-                <twig:Ui:Card :title="'recurring.card.delivery'|trans" icon="send">
-                    <twig:Ui:RadioCards name="delivery" id="delivery" :legend="'recurring.field.delivery'|trans" :options="deliveries" :value="values.delivery" :error="errorFields.delivery|default(null)" class="m-0 min-w-0 border-0 p-0 [&>div]:!grid-cols-1" />
                 </twig:Ui:Card>
             </div>
 

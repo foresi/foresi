@@ -58,7 +58,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, firmId: string, seriesId: string, customerId: string, customerQuery: string, description: string, orderNumber: string, textBefore: string, textAfter: string, paymentMethod: string, bankAccount: string, firstIssueOn: string, unit: string, every: string, taxPoint: string, dueDays: string, end: string, endOn: string, endAfter: string, delivery: string, version: string, copyOf: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, firmId: string, seriesId: string, customerId: string, customerQuery: string, description: string, orderNumber: string, textBefore: string, textAfter: string, paymentMethod: string, bankAccount: string, firstIssueOn: string, unit: string, every: string, taxPoint: string, dueDays: string, end: string, endOn: string, endAfter: string, name: string, sendToCustomer?: string, copyToMe?: string, copyToOthers?: string, version: string, copyOf: string, ...}
  */
 final class RecurringFormControllerTest extends WebTestCase
 {
@@ -104,7 +104,8 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('issue_date', $values['taxPoint']);
         self::assertSame('14', $values['dueDays']);
         self::assertSame('never', $values['end']);
-        self::assertSame('send', $values['delivery']);
+        self::assertSame('', $values['name']);
+        self::assertSame(['1', '1', '1'], [$values['sendToCustomer'] ?? null, $values['copyToMe'] ?? null, $values['copyToOthers'] ?? null], 'sent to the customer with both copies, as before the boxes');
         self::assertSame($this->series->id(), $values['seriesId']);
         self::assertCount(1, $values['lines']);
         self::assertSelectorExists('[data-preview-next][data-preview-when="now"]');
@@ -172,7 +173,7 @@ final class RecurringFormControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->preview($this->filled(['firstIssueOn' => '2026-11-02', 'delivery' => 'review']));
+        $this->preview($this->filled(['firstIssueOn' => '2026-11-02', 'sendToCustomer' => '']));
 
         self::assertSelectorTextContains('[data-preview-next]', 'right after saving and will wait for your review');
     }
@@ -189,10 +190,71 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame([], $this->asyncQueue()->getSent());
     }
 
+    public function testATemplateNeedsAName(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['name' => '  ']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('a[href="#name"][data-error-link]');
+        self::assertSelectorTextContains('[data-error-summary]', 'Template name: Enter a template name.');
+        self::assertSelectorExists('#name[aria-invalid="true"]');
+        self::assertSame(0, $this->templateCount());
+    }
+
+    public function testTheFormIsLaidOutAsTheInvoiceItRepeats(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        $titles = $this->client->getCrawler()->filter('form#recurring-form section h3')->each(static fn ($node): string => trim($node->text()));
+        self::assertSame(['Issuer', 'Invoice template', 'Repeat issuing', 'Sending the invoice', 'Dates', 'My payment details', 'Lines'], $titles);
+        $ids = $this->client->getCrawler()->filter('form#recurring-form [id]')->each(static fn ($node): string => (string) $node->attr('id'));
+        $order = array_values(array_intersect($ids, ['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod']));
+        self::assertSame(['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod'], $order);
+        self::assertSelectorNotExists('input[name="delivery"]', 'the boxes replace the radio');
+        self::assertSelectorNotExists('[data-preview-problem], .bg-head[role=status]', 'no grey notice');
+    }
+
+    public function testTheBoxesShowWhomTheyReach(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $this->em()->persist(new PartyEmail($this->em()->find(Party::class, $this->customer->id()) ?? throw new \LogicException(), 'accounts@example.com', EmailPurpose::Copy));
+            $this->em()->flush();
+        });
+
+        $this->preview($this->filled(['sendToCustomer' => '']));
+
+        self::assertSelectorTextSame('#sendToCustomer-address', 'billing@example.com');
+        self::assertSelectorTextSame('#copyToMe-address', 'testing@example.com', 'the firm has no contact address: the signed-in owner\'s');
+        self::assertSelectorTextSame('#copyToOthers-address', 'accounts@example.com');
+        self::assertSelectorTextContains('[data-preview-next]', 'will wait for your review');
+
+        $this->openNew();
+        self::assertSelectorTextSame('#copyToOthers-address', 'no e-mail filled in', 'no customer picked yet');
+        self::assertSelectorExists('#recurring-held[hidden]', 'shown only while "To the customer" is unticked');
+        $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(['sendToCustomer' => '']), ['_action' => 'refresh']));
+        self::assertSelectorNotExists('#recurring-held[hidden]');
+        self::assertSelectorTextContains('#recurring-held', 'waits in the To send list');
+    }
+
+    public function testThePaymentDetailsShowTheAccountAsTheInvoicePrintsIt(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorTextSame('#recurring-account [data-account-number]', '19-2000145399/0800');
+        self::assertSelectorTextSame('#recurring-account [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
+    }
+
     public function testCreatingStoresTheTemplateAndGoesToTheList(): void
     {
         $this->signedIn();
-        $values = $this->filled(['description' => 'Hosting {month/year}', 'orderNumber' => 'PO-{year}', 'firstIssueOn' => '2026-12-31', 'unit' => 'month', 'every' => '3', 'onLastDayOfMonth' => '1', 'taxPoint' => 'last_day_of_month', 'dueDays' => '30', 'end' => 'after_count', 'endAfter' => '4', 'delivery' => 'review']);
+        $values = $this->filled(['description' => 'Hosting {month/year}', 'orderNumber' => 'PO-{year}', 'firstIssueOn' => '2026-12-31', 'unit' => 'month', 'every' => '3', 'onLastDayOfMonth' => '1', 'taxPoint' => 'last_day_of_month', 'dueDays' => '30', 'end' => 'after_count', 'endAfter' => '4', 'name' => 'Example hosting', 'sendToCustomer' => '', 'copyToMe' => '']);
 
         $this->save($values);
 
@@ -208,7 +270,10 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame(4, $row['end_after']);
         self::assertSame('last_day_of_month', $row['tax_point']);
         self::assertSame(30, $row['due_days']);
-        self::assertSame('review', $row['delivery']);
+        self::assertSame('review', $row['delivery'], 'without "To the customer" the invoice waits under To send');
+        self::assertSame('Example hosting', $row['name']);
+        self::assertFalse((bool) $row['copy_to_me']);
+        self::assertTrue((bool) $row['copy_to_others']);
         self::assertSame('Hosting {month/year}', $row['description']);
         self::assertSame('PO-{year}', $row['order_number']);
         self::assertSame($this->customer->id(), $row['customer_id']);
@@ -513,6 +578,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $values = $this->openNew();
         $values['customerId'] = $this->customer->id();
         $values['customerQuery'] = 'Example Customer a.s.';
+        $values['name'] = 'Example hosting';
         $values['description'] = 'Hosting';
         $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Hosting {month/year}', 'price' => '1200,00', 'quantity' => '1', 'unit' => 'ks']);
 

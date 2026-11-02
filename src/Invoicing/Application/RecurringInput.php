@@ -45,6 +45,9 @@ final readonly class RecurringInput
         public TaxPointRule $taxPoint,
         public int $dueDays,
         public RecurringDelivery $delivery,
+        public string $name = '',
+        public bool $copyToMe = true,
+        public bool $copyToOthers = true,
     ) {
         $this->lines = array_values($lines);
     }

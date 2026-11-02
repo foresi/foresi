@@ -52,7 +52,7 @@ final readonly class RecurringFormValues
     {
         $draft = $this->defaults->for($firm);
 
-        return [...$this->values->ofDraft($draft), ...$this->schedule($today, $this->dueDays($draft)), 'copyOf' => ''];
+        return [...$this->values->ofDraft($draft), ...$this->schedule($today, $this->dueDays($draft)), 'name' => '', 'copyOf' => ''];
     }
 
     /**
@@ -69,7 +69,7 @@ final readonly class RecurringFormValues
         $values = $this->values->ofCopy($draft, $source->firm(), $source);
         $days = (int) $source->issueDate()->diff($source->dueDate())->format('%r%a');
 
-        return [...$values, ...$this->schedule($today, max(0, min(RecurringInvoice::MAX_DUE_DAYS, $days))), 'orderNumber' => $source->orderNumber(), 'copyOf' => $source->id()];
+        return [...$values, ...$this->schedule($today, max(0, min(RecurringInvoice::MAX_DUE_DAYS, $days))), 'orderNumber' => $source->orderNumber(), 'name' => $this->nameFrom($values), 'copyOf' => $source->id()];
     }
 
     /**
@@ -97,7 +97,8 @@ final readonly class RecurringFormValues
             'end' => $recurrence->end()->value,
             'endOn' => $recurrence->endOn()?->format('Y-m-d') ?? '',
             'endAfter' => null === $recurrence->endAfter() ? '' : (string) $recurrence->endAfter(),
-            'delivery' => $template->delivery()->value,
+            'name' => $template->name(),
+            ...$this->sending(RecurringDelivery::Send === $template->delivery(), $template->copyToMe(), $template->copyToOthers()),
             'copyOf' => '',
         ];
     }
@@ -118,8 +119,29 @@ final readonly class RecurringFormValues
             'end' => RecurrenceEnd::Never->value,
             'endOn' => '',
             'endAfter' => '',
-            'delivery' => RecurringDelivery::Send->value,
+            ...$this->sending(true, true, true),
         ];
+    }
+
+    /**
+     * @return array{sendToCustomer: string, copyToMe: string, copyToOthers: string}
+     */
+    private function sending(bool $customer, bool $me, bool $others): array
+    {
+        return ['sendToCustomer' => $customer ? '1' : '', 'copyToMe' => $me ? '1' : '', 'copyToOthers' => $others ? '1' : ''];
+    }
+
+    /**
+     * A template started from an invoice is named after its description, as a
+     * template without a name is (RecurringInvoice).
+     *
+     * @param array<string, mixed> $values
+     */
+    private function nameFrom(array $values): string
+    {
+        $description = $values['description'] ?? '';
+
+        return \is_string($description) ? mb_substr(trim(preg_replace('/\s+/u', ' ', $description) ?? ''), 0, RecurringInvoice::MAX_NAME_LENGTH) : '';
     }
 
     private function dueDays(InvoiceDraftValues $draft): int

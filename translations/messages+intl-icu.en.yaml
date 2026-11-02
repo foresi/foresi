@@ -1171,6 +1171,8 @@ recurring:
     unfinished: 'Today''s recurring invoices have not been issued yet, although it is past {hour}:00. Check that the queue worker and the scheduler run on the server.'
     link: Show
   problem:
+    name_missing: Enter a template name.
+    name_too_long: A template name has at most 120 characters.
     due_days_invalid: An invoice is due 0 to 365 days after it is issued.
     ended: This recurring invoice has ended and cannot be changed.
     first_issue_past: The first invoice cannot be issued in the past.
@@ -1189,21 +1191,29 @@ recurring:
     apply: Update the preview
     from_invoice: Recurring invoice
   card:
-    schedule: Recurring issue
-    delivery: Delivery
+    main: Invoice template
+    schedule: Repeat issuing
+    sending: Sending the invoice
+    dates: Dates
+    payment: My payment details
   field:
+    paymentMethod: Payment method
+    name: Template name
+    name_help: The recurring invoice is listed under this name.
+    sendToCustomer: To the customer
+    copyToMe: A copy to my e-mail
+    copyToOthers: To other recipients on the contact
     firstIssueOn: First issue
     unit: Repeat
     every: Repeat every
     every_help: For example 3 means every third day, week, month or year.
     onLastDayOfMonth: Issue on the last day of the month
     taxPoint: Tax point
-    dueDays: Due (days)
+    dueDays: Due in (days)
     dueDays_help: Days from the issue date.
     end: End repeating
     endOn: Last issue
     endAfter: Number of issues
-    delivery: After the issue
     series_help: Each invoice takes the next number of this series.
     state: State
   unit:
@@ -1212,22 +1222,25 @@ recurring:
     month: Monthly
     year: Yearly
   tax_point:
-    issue_date: Issue date
-    last_day_of_month: Last day of the issue month
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
   supply_point:
-    issue_date: Issue date
-    last_day_of_month: Last day of the issue month
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
   end:
     never: Never
     on_date: On a date
     after_count: After a number of issues
-  delivery:
-    send:
-      label: Send to the customer
-      text: The invoice goes to the customer by e-mail, with a copy to you.
-    review:
-      label: Hold for my review
-      text: The invoice is issued and waits until you check and send it.
+  sending:
+    legend: 'After issuing, send:'
+    held: The invoice is only issued and waits in the To send list.
+    no_email: no e-mail filled in
+  step:
+    less: 'Decrease: {field}'
+    more: 'Increase: {field}'
+  payment:
+    account_number: Account number
+    iban: IBAN
   variables:
     title: Variables
     help: Inserted into the field you were in last.
@@ -1329,6 +1342,7 @@ recurring:
       ended: Ended
       failing: Failing
     column:
+      name: Template name
       customer: Customer
       description: Description
       firm: Firm

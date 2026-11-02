@@ -1171,6 +1171,8 @@ recurring:
     unfinished: 'Dnešní pravidelné faktury ještě nejsou vystavené, ač už je po {hour}:00. Zkontrolujte, že na serveru běží fronta i plánovač.'
     link: Zobrazit
   problem:
+    name_missing: Zadejte název vzoru.
+    name_too_long: Název vzoru může mít nejvýš 120 znaků.
     due_days_invalid: Splatnost je 0 až 365 dní od vystavení.
     ended: Tato pravidelná faktura je ukončená a nedá se změnit.
     first_issue_past: První fakturu nejde vystavit v minulosti.
@@ -1189,21 +1191,29 @@ recurring:
     apply: Přepočítat náhled
     from_invoice: Pravidelná faktura
   card:
-    schedule: Pravidelné vystavení
-    delivery: Odeslání
+    main: Vzor faktury
+    schedule: Opakování vystavení
+    sending: Odesílání faktury
+    dates: Datumy
+    payment: Moje platební údaje
   field:
+    paymentMethod: Způsob úhrady
+    name: Název vzoru
+    name_help: Pod tímto názvem pravidelnou fakturu najdete v přehledu.
+    sendToCustomer: Odběrateli
+    copyToMe: Kopie na můj e-mail
+    copyToOthers: Dalším příjemcům na kontaktu
     firstIssueOn: První vystavení
     unit: Opakování
     every: Opakovat každý
     every_help: Např. 3 znamená každý třetí den, týden, měsíc či rok.
     onLastDayOfMonth: Vystavovat poslední den v měsíci
-    taxPoint: Datum zdanitelného plnění
-    dueDays: Splatnost (dny)
+    taxPoint: DUZP
+    dueDays: Splatnost (dní)
     dueDays_help: Počet dní od vystavení faktury.
     end: Ukončit opakování
     endOn: Poslední vystavení
     endAfter: Počet vystavení
-    delivery: Po vystavení
     series_help: Každá faktura dostane další číslo této řady.
     state: Stav
   unit:
@@ -1212,22 +1222,25 @@ recurring:
     month: Měsíčně
     year: Ročně
   tax_point:
-    issue_date: Den vystavení
-    last_day_of_month: Poslední den měsíce vystavení
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
   supply_point:
-    issue_date: Den vystavení
-    last_day_of_month: Poslední den měsíce vystavení
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
   end:
     never: Nikdy
     on_date: K datu
     after_count: Po počtu vystavení
-  delivery:
-    send:
-      label: Odeslat odběrateli
-      text: Faktura odejde e-mailem odběrateli a kopie vám.
-    review:
-      label: Nechat ke kontrole
-      text: Faktura se vystaví a počká, až ji zkontrolujete a odešlete.
+  sending:
+    legend: 'Po vystavení odeslat:'
+    held: Faktura se jen vystaví a počká v seznamu K odeslání.
+    no_email: e-mail není vyplněn
+  step:
+    less: 'Snížit: {field}'
+    more: 'Zvýšit: {field}'
+  payment:
+    account_number: Číslo účtu
+    iban: IBAN
   variables:
     title: Proměnné
     help: Vloží se do pole, ve kterém jste byli naposledy.
@@ -1329,6 +1342,7 @@ recurring:
       ended: Ukončené
       failing: Selhaly
     column:
+      name: Název vzoru
       customer: Odběratel
       description: Popis
       firm: Firma

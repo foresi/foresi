@@ -130,6 +130,9 @@ final readonly class SaveRecurringInvoice
             $input->taxPoint,
             $input->dueDays,
             $input->delivery,
+            $input->name,
+            $input->copyToMe,
+            $input->copyToOthers,
         );
     }
 

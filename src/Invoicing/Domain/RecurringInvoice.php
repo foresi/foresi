@@ -42,6 +42,7 @@ use Doctrine\ORM\Mapping as ORM;
 class RecurringInvoice implements TenantOwned, Audited
 {
     public const int MAX_DUE_DAYS = 365;
+    public const int MAX_NAME_LENGTH = 120;
     public const int MAX_IMPORTED_FROM_LENGTH = 64;
     public const int MAX_FAILURE_CODE_LENGTH = 64;
     /** The most skipped dates a resume names; a longer pause is not worth listing date by date. */
@@ -79,6 +80,9 @@ class RecurringInvoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'order_number', type: 'string', length: Invoice::MAX_ORDER_NUMBER_LENGTH)]
     private string $orderNumber;
+
+    #[ORM\Column(type: 'string', length: self::MAX_NAME_LENGTH, options: ['default' => ''])]
+    private string $name;
 
     #[ORM\Column(type: 'text')]
     private string $description;
@@ -121,6 +125,14 @@ class RecurringInvoice implements TenantOwned, Audited
 
     #[ORM\Column(type: 'string', length: 16, enumType: RecurringDelivery::class)]
     private RecurringDelivery $delivery;
+
+    /** A copy of each sent invoice to the firm's contact address, else to the owner. */
+    #[ORM\Column(name: 'copy_to_me', type: 'boolean', options: ['default' => true])]
+    private bool $copyToMe;
+
+    /** Each sent invoice also to the contact's addresses for a copy. */
+    #[ORM\Column(name: 'copy_to_others', type: 'boolean', options: ['default' => true])]
+    private bool $copyToOthers;
 
     #[ORM\Column(type: 'string', length: 16, enumType: RecurringState::class)]
     private RecurringState $state = RecurringState::Active;
@@ -422,6 +434,14 @@ class RecurringInvoice implements TenantOwned, Audited
         return $this->orderNumber;
     }
 
+    /**
+     * What the template is called in the list, as iDoklad's "Název vzoru".
+     */
+    public function name(): string
+    {
+        return $this->name;
+    }
+
     public function description(): string
     {
         return $this->description;
@@ -455,6 +475,16 @@ class RecurringInvoice implements TenantOwned, Audited
     public function delivery(): RecurringDelivery
     {
         return $this->delivery;
+    }
+
+    public function copyToMe(): bool
+    {
+        return $this->copyToMe;
+    }
+
+    public function copyToOthers(): bool
+    {
+        return $this->copyToOthers;
     }
 
     public function state(): RecurringState
@@ -538,6 +568,7 @@ class RecurringInvoice implements TenantOwned, Audited
         $this->constantSymbol = $content->constantSymbol;
         $this->orderNumber = $content->orderNumber;
         $this->description = $content->description;
+        $this->name = $this->nameOf($content);
         $this->textBefore = $content->textBefore;
         $this->textAfter = $content->textAfter;
         $this->language = $content->language;
@@ -553,6 +584,27 @@ class RecurringInvoice implements TenantOwned, Audited
         $this->taxPoint = $content->taxPoint;
         $this->dueDays = $content->dueDays;
         $this->delivery = $content->delivery;
+        $this->copyToMe = $content->copyToMe;
+        $this->copyToOthers = $content->copyToOthers;
+    }
+
+    /**
+     * The name as given; without one, the description, else the customer, as the
+     * templates made before names existed were named.
+     *
+     * @throws \DomainException for a name over MAX_NAME_LENGTH characters
+     */
+    private function nameOf(RecurringContent $content): string
+    {
+        $name = trim($content->name);
+        if (mb_strlen($name) > self::MAX_NAME_LENGTH) {
+            throw new \DomainException(\sprintf('A template is named in at most %d characters.', self::MAX_NAME_LENGTH));
+        }
+        if ('' === $name) {
+            $name = trim(preg_replace('/\s+/u', ' ', $content->description) ?? '');
+        }
+
+        return mb_substr('' !== $name ? $name : $content->customer->displayName(), 0, self::MAX_NAME_LENGTH);
     }
 
     private function keepDay(?\DateTimeImmutable $stored, \DateTimeImmutable $given): \DateTimeImmutable

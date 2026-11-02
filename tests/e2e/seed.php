@@ -397,6 +397,7 @@ $recurring = static fn (string $description, string $price, Recurrence $recurren
     TaxPointRule::IssueDate,
     14,
     $delivery,
+    'Example '.str_replace(' {month/year}', '', $description),
 ));
 $every = static fn (RecurrenceUnit $unit, int $every = 1, ?DateTimeImmutable $first = null, RecurrenceEnd $end = RecurrenceEnd::Never, ?int $endAfter = null): Recurrence => new Recurrence($first ?? $firstOfNextMonth, $unit, $every, false, $end, null, $endAfter);
 $recurring('Hosting {month/year}', '1200.00', $every(RecurrenceUnit::Month));

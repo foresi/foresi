@@ -116,7 +116,7 @@ final class RecurringListControllerTest extends WebTestCase
     public function testTheListShowsNextIssueAndInterval(): void
     {
         $this->signedIn();
-        $this->template(description: 'Hosting {month/year}');
+        $hosting = $this->template(description: 'Hosting {month/year}', name: 'Example hosting');
         $this->template(recurrence: $this->recurrence(unit: RecurrenceUnit::Year), description: 'Domain');
         $this->template(recurrence: $this->recurrence(every: 12, end: RecurrenceEnd::AfterCount, endAfter: 3), description: 'Licence', delivery: RecurringDelivery::Review);
 
@@ -124,9 +124,14 @@ final class RecurringListControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(['Active 3', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
-        self::assertSame(['Customer', 'Description', 'Repeats', 'Next issue', 'After issue', 'Amount'], $this->headers($crawler));
+        self::assertSame(['Template name', 'Customer', 'Description', 'Repeats', 'Next issue', 'After issue', 'Amount'], $this->headers($crawler));
         $rows = $this->rowTexts($crawler);
         self::assertCount(3, $rows);
+        $first = $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(0)->filter('a');
+        self::assertSame('Example hosting', trim($first->text()), 'the name leads the row');
+        self::assertSame('/invoices/recurring/'.$hosting->id().'/edit', $first->attr('href'), 'and links to the form');
+        self::assertStringContainsString('Domain', $crawler->filter('tbody tr')->eq(1)->filter('td')->eq(0)->text(), 'one without a name is named after its description');
+        self::assertStringContainsString('Example Customer', $rows[0], 'the customer follows');
         self::assertStringContainsString('Hosting 12/2026', $rows[0], 'the description as the next invoice has it');
         self::assertStringContainsString('Monthly', $rows[0]);
         self::assertStringContainsString('2026-12-01', $rows[0]);
@@ -430,8 +435,8 @@ final class RecurringListControllerTest extends WebTestCase
         $rows = $crawler->filter('tbody tr');
         self::assertCount(2, $rows);
         $first = $rows->eq(0);
-        self::assertSame('Hosting', $first->filter('td')->eq(1)->filter('[title]')->attr('title'), 'the description stays');
-        $alert = $first->filter('td')->eq(1)->filter('[data-row-alert]');
+        self::assertSame('Hosting', $first->filter('td')->eq(2)->filter('[title]')->attr('title'), 'the description stays');
+        $alert = $first->filter('td')->eq(2)->filter('[data-row-alert]');
         self::assertStringContainsString('Failed: The customer needs a complete billing address.', $alert->text());
         self::assertSame('/contacts/'.$this->customer->id(), $alert->filter('a')->attr('href'), 'to the contact, where the address is fixed');
         self::assertCount(1, $first->filter('td')->eq(0)->filter('[data-row-alert-phone]'), 'a phone shows it as a line of its own');
@@ -622,7 +627,7 @@ final class RecurringListControllerTest extends WebTestCase
         return new Recurrence(new \DateTimeImmutable($first), $unit, $every, false, $end, null, $endAfter);
     }
 
-    private function template(?Recurrence $recurrence = null, string $description = 'Hosting', RecurringDelivery $delivery = RecurringDelivery::Send, ?Party $customer = null, ?LegalEntity $firm = null, bool $series = true): RecurringInvoice
+    private function template(?Recurrence $recurrence = null, string $description = 'Hosting', RecurringDelivery $delivery = RecurringDelivery::Send, ?Party $customer = null, ?LegalEntity $firm = null, bool $series = true, string $name = ''): RecurringInvoice
     {
         return $this->scoped(fn (): RecurringInvoice => self::getContainer()->get(SaveRecurringInvoice::class)->create($this->input(
             $firm ?? $this->firm,
@@ -631,14 +636,15 @@ final class RecurringListControllerTest extends WebTestCase
             $recurrence ?? $this->recurrence(),
             $description,
             $delivery,
+            $name,
         )));
     }
 
-    private function input(LegalEntity $firm, ?Series $series, Party $customer, Recurrence $recurrence, string $description, RecurringDelivery $delivery): RecurringInput
+    private function input(LegalEntity $firm, ?Series $series, Party $customer, Recurrence $recurrence, string $description, RecurringDelivery $delivery, string $name = ''): RecurringInput
     {
         $line = new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-        return new RecurringInput($firm->id(), $series?->id(), $customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, $delivery);
+        return new RecurringInput($firm->id(), $series?->id(), $customer->id(), PaymentMethod::BankTransfer, self::IBAN, '', '', $description, '', '', DocumentLanguage::Czech, [$line], $recurrence, TaxPointRule::IssueDate, 14, $delivery, $name);
     }
 
     private function signedIn(Role $role = Role::Owner): void
