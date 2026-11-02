@@ -956,6 +956,26 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firms/'.$this->firm->id().'/bank"]');
     }
 
+    public function testAMemberIsToldOfTheMissingAccountWithoutALinkToTheOwnersBankTab(): void
+    {
+        $this->signedIn(Role::Member);
+        $this->withoutBankAccounts();
+        $bankUrl = '/settings/firms/'.$this->firm->id().'/bank';
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorTextContains('[data-bank-note]', $this->text('invoice.field.bankAccount_none'));
+        self::assertSelectorNotExists('#bank-account-settings');
+
+        $this->save($this->filled());
+
+        self::assertResponseStatusCodeSame(422);
+        $summary = $this->client->getCrawler()->filter('[data-error-summary]');
+        self::assertStringContainsString($this->text('invoice.problem.bank_account_foreign'), $summary->text());
+        self::assertCount(0, $summary->filter('a[href="'.$bankUrl.'"]'), 'a member cannot open the bank tab');
+        self::assertCount(0, $this->client->getCrawler()->filter('a[href="'.$bankUrl.'"]'));
+    }
+
     public function testAnAccountAddedInAnotherTabIsUsedByTheOpenForm(): void
     {
         $this->signedIn();

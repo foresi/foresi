@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
@@ -123,6 +124,7 @@ final class InvoiceController extends AbstractController
         private readonly FirmBankAccounts $accounts,
         private readonly InvoicePayments $payments,
         private readonly PaymentPanel $panel,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -547,7 +549,8 @@ final class InvoiceController extends AbstractController
             $errorFields[$error['id']] = $error['message'];
         }
         $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
-        $bankUrl = $this->generateUrl('app_firm_bank', ['id' => $firm->id()]);
+        // The bank tab is the owner's: staff learn the account is missing, not where to add it.
+        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
         $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
         return $this->render('invoicing/form.html.twig', [
