@@ -275,10 +275,17 @@ export default class extends Controller {
         this.changed();
     }
 
-    // The plus opens the contact form in a new tab, which keeps this form. The first contact
-    // saved there comes back here; a contact saved in some other tab does not.
+    // The plus opens the short contact form in a dialog over this form; without JavaScript, or with
+    // a modified click, the full one in a new tab, which keeps this form. The first contact saved
+    // there comes back here; a contact saved in some other tab does not.
     awaitContact() {
         this.awaitingContact = true;
+    }
+
+    // The dialog lives outside this form: only its result touches the invoice, as a picked customer.
+    contactFromDialog(event) {
+        this.awaitingContact = true;
+        this.contactCreated(event.detail.id);
     }
 
     async contactCreated(id) {

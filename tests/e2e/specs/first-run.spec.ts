@@ -7,7 +7,7 @@ const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
 
 test.use({ storageState: FIRST_RUN_OWNER_STATE });
 
-test('an empty organisation gets from nothing to the first invoice and its PDF', async ({ page, context }) => {
+test('an empty organisation gets from nothing to the first invoice and its PDF', async ({ page }) => {
   await page.goto('/invoices/new');
   await expect(page.getByText('Nejdřív přidejte svou firmu')).toBeVisible();
   await expect(page.locator('#invoice-form')).toHaveCount(0);
@@ -40,16 +40,17 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.goto('/invoices/new');
   await expect(page.getByText('Zatím žádní zákazníci. Použijte plus nebo adresář.')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/first-run-empty-customers.png`, fullPage: true });
-  const [tab] = await Promise.all([context.waitForEvent('page'), page.locator('#customer-add').click()]);
-  await tab.locator('#kind').selectOption('person');
-  await tab.locator('#displayName').fill('Example First Customer');
-  await tab.locator('#street').fill('Example Street 2');
-  await tab.locator('#city').fill('Example City');
-  await tab.locator('#postalCode').fill('100 00');
-  await tab.locator('button[type=submit]').last().click();
-  await expect(tab).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
-  await expect(page.locator('#customer')).toHaveValue('Example First Customer');
-  await tab.close();
+  await page.locator('#customer-add').click();
+  const dialog = page.getByRole('dialog', { name: 'Nový zákazník' });
+  await dialog.locator('#displayName').fill('Example First Customer s.r.o.');
+  await dialog.locator('#registrationNumber').fill('34567895');
+  await dialog.getByText('Fakturační adresa').click();
+  await dialog.locator('#street').fill('Example Street 2');
+  await dialog.locator('#city').fill('Example City');
+  await dialog.locator('#postalCode').fill('100 00');
+  await dialog.getByRole('button', { name: 'Vytvořit zákazníka' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('#customer')).toHaveValue('Example First Customer s.r.o.');
 
   await page.locator('#lines-0-text').fill('První práce');
   await page.locator('#lines-0-price').fill('1000');

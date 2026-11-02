@@ -85,6 +85,8 @@ final class InvoiceController extends AbstractController
 {
     public const string FORM_TOKEN = 'invoice_form';
     private const array SAVING = ['save', 'save_send', 'save_pdf'];
+    /** The dialog a saved form opens once over itself: the send dialog of save and send. */
+    public const string OPEN_DIALOG_FLASH = 'open_dialog';
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
@@ -347,7 +349,10 @@ final class InvoiceController extends AbstractController
 
         return match ($action) {
             'save_pdf' => $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]),
-            'save_send' => $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
+            // With JavaScript the send dialog opens over the saved form; without, the send page.
+            'save_send' => '1' === $request->request->getString('_dialogs')
+                ? $this->openOverForm($saved)
+                : $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
             default => $this->redirectToRoute('app_invoices'),
         };
     }
@@ -461,6 +466,13 @@ final class InvoiceController extends AbstractController
             return;
         }
         $this->addFlash('success', $this->translator->trans('invoice.flash.saved', ['number' => $saved->number()]));
+    }
+
+    private function openOverForm(Invoice $saved): RedirectResponse
+    {
+        $this->addFlash(self::OPEN_DIALOG_FLASH, $this->generateUrl('app_invoice_send', ['id' => $saved->id()]));
+
+        return $this->redirectToRoute('app_invoice_edit', ['id' => $saved->id()]);
     }
 
     private function alreadySaved(): RedirectResponse

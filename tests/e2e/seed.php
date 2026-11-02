@@ -15,8 +15,9 @@ declare(strict_types=1);
  * serve.sh. A fifth tenant, without users, holds one sent invoice, whose links go
  * to var/e2e-links.json for the public link specs. A sixth, "Example Sending" with
  * sending@example.com, holds the invoices of the send dialog specs, one of them refused
- * by the recipient's server and one opened. Run it after the
- * migrations, in the e2e environment:
+ * by the recipient's server and one opened. "Example Dialogs" with dialogs@example.com
+ * holds three invoices for the dialog specs. Run it after the migrations, in the e2e
+ * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -130,6 +131,7 @@ $group = $tenantWithOwner('Example Group', 'group@example.com', 'Group Example')
 $invoicing = $tenantWithOwner('Example Invoicing', 'invoicing@example.com', 'Invoicing Example');
 $tenantWithOwner('Example First Run', 'first-run@example.com', 'First Run Example');
 $sending = $tenantWithOwner('Example Sending', 'sending@example.com', 'Sending Example');
+$dialogs = $tenantWithOwner('Example Dialogs', 'dialogs@example.com', 'Dialogs Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
@@ -269,6 +271,26 @@ $failedSend = $sendInvoice->send(new SendRequest($hosting->id(), [RecordingMailG
 $renewal = $sendingInvoice($sendingFirm, $sendingSeries, 'Domain renewal', '450.00');
 $readSend = $sendInvoice->send(new SendRequest($renewal->id(), ['billing@example.com'], ['accounts@example.com'], true, ...$sendingText($renewal)));
 $entityManager->getConnection()->executeStatement('UPDATE invoice_send SET first_read_at = created_at, read_count = 1 WHERE id = ?', [$readSend->id()]);
+$context->reset();
+
+// The tenant of the dialog specs: a firm with a mail server and a customer, and three
+// invoices to send, to move to the trash and to mark delivered in dialogs.
+$context->switchTo($dialogs);
+$dialogFirm = new LegalEntity('Example Dialogs s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(3), VatStatus::Registered, 'Example register, entry C 3456', ['CZ6508000000192000145399']);
+$entityManager->persist($dialogFirm);
+$dialogSeries = new Series($dialogFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$dialogSeries->markDefault();
+$entityManager->persist($dialogSeries);
+$entityManager->persist(FirmMailServer::define($dialogFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Dialogs s.r.o.'));
+$entityManager->flush();
+$buyer = $createParty->createFrom($party(PartyKind::Company, 'Example Buyer a.s.', [PartyRole::Customer], '', 9, '12345679', 'CZ12345679'));
+$entityManager->persist(new PartyEmail($buyer, 'buyer@example.com', EmailPurpose::Invoices));
+$entityManager->flush();
+foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'] as $description => $price) {
+    $issueInvoice->issue(new InvoiceInput($dialogFirm->id(), $dialogSeries->id(), null, $buyer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    ]));
+}
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

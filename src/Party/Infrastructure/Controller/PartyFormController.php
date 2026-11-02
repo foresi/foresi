@@ -39,6 +39,7 @@ use App\Party\Infrastructure\Registry\RegistryLookup;
 use App\Shared\Domain\Currency;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
 use App\Tenancy\Application\TenantContext;
+use App\Ui\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -53,6 +54,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Creating and editing contacts, and the registry lookup that fills the form.
+ * A new contact can also come from a dialog over the invoice form: a short form
+ * whose result is the new contact's id, which the page under it picks.
  *
  * Everything that can be wrong with a submission is found before a write
  * service is called, so a mistake is a form error. A write that still fails
@@ -187,6 +190,10 @@ final class PartyFormController extends AbstractController
         if ($changedVat && $input->vatId instanceof \App\Party\Domain\VatId) {
             RefreshRegistryChecksAfterResponse::schedule($request, $id);
         }
+        if (!$party instanceof Party && DialogRequest::is($request)) {
+            // The page under the dialog takes the new contact: no message waits for another page.
+            return new JsonResponse(['event' => 'contact:created', 'detail' => ['id' => $id], 'message' => $this->translator->trans('party.flash.created')]);
+        }
         $this->addFlash('success', $this->translator->trans($party instanceof Party ? 'party.flash.updated' : 'party.flash.created'));
         if (!$party instanceof Party) {
             // The detail tells a form waiting in another tab, once.
@@ -241,7 +248,10 @@ final class PartyFormController extends AbstractController
         $locale = $request->getLocale();
         $messages = array_map(fn (string $key): string => $this->translator->trans($key), $errors);
 
-        return $this->render('party/form.html.twig', [
+        // A new contact from a dialog is the short form; the page is the whole one.
+        $template = !$party instanceof Party && DialogRequest::is($request) ? 'party/quick.html.twig' : 'party/form.html.twig';
+
+        return $this->render($template, [
             'party' => $party,
             'values' => $values,
             'errors' => $messages,
