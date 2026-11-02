@@ -37,6 +37,9 @@ final class TenantClockTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
 
+    /** A user-assigned ISO code no real country takes, so it never gains invoicing rules. */
+    private const string NO_RULES = 'XX';
+
     private EntityManagerInterface $em;
     private TenantContext $context;
     private int $firms = 0;
@@ -71,14 +74,14 @@ final class TenantClockTest extends KernelTestCase
     public function testFallsBackToTheFirstActiveFirmsCountry(): void
     {
         $tenant = $this->tenant(null);
-        $archived = $this->firm($tenant, 'DE')->id();
+        $archived = $this->firm($tenant, self::NO_RULES)->id();
         $this->context->switchTo($tenant);
         $this->em->find(LegalEntity::class, $archived)?->archive(new \DateTimeImmutable('2026-12-01'));
         $this->em->flush();
         self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne('SELECT id FROM legal_entity WHERE id = :id AND archived_at IS NOT NULL', ['id' => $archived]), 'The first firm is archived.');
         $this->context->reset();
         $this->firm($tenant, 'CZ');
-        $this->firm($tenant, 'DE');
+        $this->firm($tenant, self::NO_RULES);
 
         $this->context->switchTo($tenant);
 
@@ -90,7 +93,7 @@ final class TenantClockTest extends KernelTestCase
     {
         $tenant = $this->tenant(null);
         $unsupported = $this->tenant(null);
-        $this->firm($unsupported, 'DE');
+        $this->firm($unsupported, self::NO_RULES);
 
         $zones = $this->directory()->zones();
         $this->context->switchTo($tenant);
@@ -108,7 +111,7 @@ final class TenantClockTest extends KernelTestCase
         foreach (range(1, 4) as $ignored) {
             $tenant = $this->tenant(null);
             $this->firm($tenant, 'CZ');
-            $this->firm($tenant, 'DE');
+            $this->firm($tenant, self::NO_RULES);
             $czech[] = $tenant->toString();
         }
         $bare = $this->tenant(null);
