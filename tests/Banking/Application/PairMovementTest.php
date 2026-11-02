@@ -8,7 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Banking\Application;
 
+use App\Banking\Application\Candidate;
+use App\Banking\Application\Candidates;
 use App\Banking\Application\FirmPairingRules;
+use App\Banking\Application\Matcher;
 use App\Banking\Application\PairingRefused;
 use App\Banking\Application\PairingRules;
 use App\Banking\Application\PairMovement;
@@ -21,6 +24,7 @@ use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentState;
@@ -33,6 +37,8 @@ use App\Party\Domain\PaymentMethod;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\BankingTestCase;
+use App\Tests\Banking\Support\LockLog;
+use App\Tests\Banking\Support\LoggingInvoiceStore;
 
 final class PairMovementTest extends BankingTestCase
 {
@@ -173,6 +179,47 @@ final class PairMovementTest extends BankingTestCase
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
+    public function testAnInvoiceThatAppearsBetweenTheReadsIsLockedBeforeItIsDecidedOn(): void
+    {
+        $older = $this->issue->issue($this->input());
+        $newer = $this->issue->issue($this->input(overrides: ['lines' => [$this->line(price: '500.00', type: PriceType::WithVat)]]));
+        $movement = $this->recordMovement->record($this->incoming('500.00'), self::verified());
+        // The first read misses the newer invoice, as if it was issued just after it.
+        $log = new LockLog(self::getContainer()->get(Candidates::class), static fn (int $read, array $found): array => 1 === $read
+            ? array_values(array_filter($found, static fn (Candidate $candidate): bool => $candidate->invoiceId !== $newer->id()))
+            : $found);
+
+        $payment = $this->pairingWith($log)->auto($movement->id());
+
+        self::assertNotNull($payment);
+        $both = $older->id().','.$newer->id();
+        self::assertSame(['read:'.$older->id(), 'lock:'.$older->id(), 'read:'.$both, 'lock:'.$older->id(), 'lock:'.$newer->id(), 'read:'.$both], $log->entries, 'the decision is made from a read whose invoices were all locked before it');
+        self::assertSame(PaymentState::Paid, $this->stateOf($newer), 'the exact amount pays the newer invoice');
+        self::assertSame(PaymentState::Unpaid, $this->stateOf($older));
+    }
+
+    public function testCandidatesThatNeverSettleLeaveTheMovementAmbiguous(): void
+    {
+        $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $invoices = 0;
+        // Every read finds one invoice more than the one before.
+        $log = new LockLog(self::getContainer()->get(Candidates::class), function (int $read, array $found) use (&$invoices): array {
+            while ($invoices < $read) {
+                $this->issue->issue($this->input(overrides: ['lines' => [$this->line(price: (100 + ++$invoices).'.00', type: PriceType::WithVat)]]));
+                $this->em->flush();
+            }
+
+            return $found;
+        });
+
+        self::assertNull($this->pairingWith($log)->auto($movement->id()));
+
+        $stored = $this->storedMovement($movement->id());
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::Ambiguous], [$stored->state(), $stored->unmatchedReason()]);
+        self::assertSame(0, $this->paymentCount());
+    }
+
     public function testAnotherTenantsMovementIsNotFound(): void
     {
         $movement = $this->recordMovement->record($this->incoming('10.00'), self::verified());
@@ -180,6 +227,21 @@ final class PairMovementTest extends BankingTestCase
 
         $this->expectException(UnknownBankMovement::class);
         $this->pairing->auto($movement->id());
+    }
+
+    private function pairingWith(LockLog $log, ?FirmPairingRules $rules = null): PairMovement
+    {
+        $container = self::getContainer();
+
+        return new PairMovement(
+            $this->movements,
+            new Matcher($log, $container->get(InvoicingCountries::class)),
+            $rules ?? $container->get(FirmPairingRules::class),
+            $container->get(RecordPayment::class),
+            new LoggingInvoiceStore($this->store, $log),
+            $container->get(TransactionalWork::class),
+            $container->get(ConflictRetry::class),
+        );
     }
 
     private function expectPairingRefused(string $reason, callable $pair): void

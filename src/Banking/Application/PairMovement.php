@@ -36,6 +36,12 @@ use App\Party\Domain\PaymentMethod;
  */
 final readonly class PairMovement
 {
+    /**
+     * How many times auto() locks a wider set of candidates before it leaves the
+     * movement to a person.
+     */
+    private const int LOCK_ROUNDS = 3;
+
     public function __construct(
         private BankMovements $movements,
         private Matcher $matcher,
@@ -103,6 +109,11 @@ final readonly class PairMovement
      * The decision that pays, and any settlement in it, is made from amounts read
      * under the locks of the invoices, the same locks RecordPayment then takes in this
      * transaction: never from what was read before them.
+     *
+     * An invoice issued meanwhile may join the candidates after the first locks, so
+     * the candidates are read again under the locks of all invoices read so far until
+     * no read brings one that was not locked before it. Should they keep changing, a
+     * person decides.
      */
     private function autoUnderLocks(string $movementId): ?Payment
     {
@@ -112,10 +123,21 @@ final readonly class PairMovement
         }
         $candidates = $this->matcher->candidates($movement);
         $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
-        if ($decision->pairs()) {
-            $this->lockInvoices(array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates));
+        $locked = [];
+        for ($round = 0; $decision->pairs(); ++$round) {
+            $read = array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates);
+            if ([] === array_diff($read, $locked)) {
+                break;
+            }
+            if (self::LOCK_ROUNDS === $round) {
+                $decision = MatchDecision::unmatched(UnmatchedReason::Ambiguous, $candidates);
+
+                break;
+            }
+            $locked = $this->lockInvoices([...$locked, ...$read]);
             $movement = $this->movements->get($movementId);
-            $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
+            $candidates = $this->matcher->candidates($movement);
+            $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()), $this->matcher->settlementLimit($movement));
         }
         if (!$decision->pairs()) {
             $movement->stayUnmatched($decision->reason ?? UnmatchedReason::NoInvoice);
@@ -150,14 +172,18 @@ final readonly class PairMovement
 
     /**
      * @param list<string> $ids
+     *
+     * @return list<string> the ids locked, ascending
      */
-    private function lockInvoices(array $ids): void
+    private function lockInvoices(array $ids): array
     {
         $ids = array_values(array_unique($ids));
         sort($ids, \SORT_STRING);
         foreach ($ids as $id) {
             $this->store->lock($id);
         }
+
+        return $ids;
     }
 
     private function refuseUnpairable(BankMovement $movement): void
