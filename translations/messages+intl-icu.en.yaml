@@ -895,6 +895,7 @@ invoice:
     card: History
     system: The system
     created: '{who} created the invoice'
+    issued_recurring: '{who} issued the invoice from a recurring invoice'
     changed: '{who} changed the invoice'
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'

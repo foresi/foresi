@@ -895,6 +895,7 @@ invoice:
     card: Historie
     system: Systém
     created: '{who}: faktura vytvořena'
+    issued_recurring: '{who}: faktura vystavena z pravidelné faktury'
     changed: '{who}: faktura upravena'
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
