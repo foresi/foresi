@@ -17,6 +17,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * The optional webhook takes raw mail from a relay such as an e-mail worker.
@@ -142,6 +143,29 @@ final class InboundMailControllerTest extends WebTestCase
         $this->client->request('POST', self::URL, server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::SECRET, 'CONTENT_LENGTH' => (string) (ReceiveInboundMail::MAX_BYTES + 1)], content: 'Subject: small');
         self::assertResponseStatusCodeSame(413);
 
+        self::assertSame(0, $this->rowCount());
+    }
+
+    /**
+     * A chunked body states no length: the webhook reads one byte past the limit
+     * and stops, never the whole body into memory.
+     */
+    public function testABodyWithoutALengthIsReadOnlyUpToTheLimit(): void
+    {
+        $body = fopen('php://temp', 'w+b');
+        self::assertIsResource($body);
+        $chunk = str_repeat('a', 1024 * 1024);
+        for ($written = 0; $written <= ReceiveInboundMail::MAX_BYTES + 4 * \strlen($chunk); $written += \strlen($chunk)) {
+            fwrite($body, $chunk);
+        }
+        rewind($body);
+        $request = Request::create(self::URL, 'POST', server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::SECRET, 'CONTENT_TYPE' => 'message/rfc822', 'REMOTE_ADDR' => '127.0.0.1'], content: $body);
+        $request->headers->remove('Content-Length');
+
+        $response = $this->client->getKernel()->handle($request);
+
+        self::assertSame(413, $response->getStatusCode());
+        self::assertLessThanOrEqual(ReceiveInboundMail::MAX_BYTES + 1, ftell($body));
         self::assertSame(0, $this->rowCount());
     }
 

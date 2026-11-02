@@ -110,7 +110,7 @@ php -r 'echo bin2hex(random_bytes(32)), "\n";'
 | 400 | The body is not readable as mail |
 | 401 | The bearer token is missing or wrong |
 | 404 | `INBOUND_WEBHOOK_SECRET` is empty: the webhook is off |
-| 413 | The body is above 10 MiB |
+| 413 | The body is above 10 MiB, by its stated length or, for a chunked body, after reading one byte past the limit; the rest is never read |
 | 429 | More than 120 requests a minute with a wrong or missing secret from one client IP address, or more than 600 a minute with the secret |
 
 The secret is checked first, in constant time. Failed checks have a budget of their own per client IP, which keeps guessing slow; requests with the secret count against a separate, higher budget, so a flood of bad bearers from a shared address, such as other workers of the same provider, never locks the real relay out. A secret of 256 random bits cannot be guessed anyway. Both limits count the client IP that Symfony gives, so behind a reverse proxy set `trusted_proxies` as described in [sending.md](sending.md#the-public-link). The route keeps no session and needs no sign-in.

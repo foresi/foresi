@@ -70,9 +70,17 @@ final readonly class InboundMailController
         if (null !== $length && is_numeric($length) && (int) $length > ReceiveInboundMail::MAX_BYTES) {
             return new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
         }
+        // A chunked body states no length: one byte past the limit is read, never the rest.
+        $raw = stream_get_contents($request->getContent(true), ReceiveInboundMail::MAX_BYTES + 1);
+        if (false === $raw) {
+            return new Response('', Response::HTTP_BAD_REQUEST);
+        }
+        if (\strlen($raw) > ReceiveInboundMail::MAX_BYTES) {
+            return new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
+        }
         $recipient = $request->headers->get(self::RECIPIENT_HEADER);
 
-        return match ($this->receive->receive($request->getContent(), InboundChannel::Webhook, null === $recipient || '' === trim($recipient) ? null : $recipient)) {
+        return match ($this->receive->receive($raw, InboundChannel::Webhook, null === $recipient || '' === trim($recipient) ? null : $recipient)) {
             ReceiveOutcome::Stored, ReceiveOutcome::Duplicate, ReceiveOutcome::UnknownRecipient => new Response('', Response::HTTP_ACCEPTED),
             ReceiveOutcome::TooLarge => new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE),
             ReceiveOutcome::Unreadable => new Response('', Response::HTTP_BAD_REQUEST),
