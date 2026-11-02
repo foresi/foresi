@@ -32,6 +32,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_payment_firm_received', columns: ['tenant_id', 'legal_entity_id', 'received_on'])]
 #[ORM\Index(name: 'idx_payment_bank_movement', columns: ['bank_movement_id'])]
 #[ORM\Index(name: 'idx_payment_firm', columns: ['legal_entity_id'])]
+// A bank movement pays through one payment not cancelled; SQLite and PostgreSQL both keep a partial index.
+#[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['bank_movement_id'], options: ['where' => '(cancelled_at IS NULL)'])]
 class Payment implements TenantOwned, Audited
 {
     public const int MAX_NOTE = 500;

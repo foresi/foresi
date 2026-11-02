@@ -32,6 +32,7 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -365,6 +366,24 @@ final class RecordPaymentTest extends InvoiceTestCase
         $payment = $this->record->record($this->request('10.00', [new AllocationRequest($invoice->id(), $this->czk('10.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
         $lines = $this->payments->linesOf($this->reloaded($invoice));
         self::assertSame([[$payment->id(), PaymentSource::BankMovement, self::MOVEMENT]], array_map(static fn (\App\Invoicing\Application\InvoicePaymentLine $line): array => [$line->paymentId, $line->source, $line->bankMovementId], $lines));
+    }
+
+    public function testAMovementPaysThroughOneActivePaymentOnly(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $bank = fn (): Payment => $this->record->record($this->request('10.00', [new AllocationRequest($invoice->id(), $this->czk('10.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
+        $first = $bank();
+
+        try {
+            $bank();
+            self::fail('A second active payment of one movement was stored.');
+        } catch (UniqueConstraintViolationException) {
+        }
+
+        // Once the first is cancelled, the movement may pay again.
+        $this->em->getConnection()->executeStatement("UPDATE payment SET cancelled_at = '2026-11-20 10:00:00' WHERE id = ?", [$first->id()]);
+        $bank();
+        self::assertEquals(2, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM payment WHERE bank_movement_id = ?', [self::MOVEMENT]));
     }
 
     public function testTrashIsRefusedWhilePaymentsExist(): void
