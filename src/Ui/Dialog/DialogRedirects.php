@@ -14,11 +14,12 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * A dialog that finished answers with where to go next instead of a redirect.
+ * A dialog request answered with a redirect gets the target as JSON instead.
  * fetch() would follow a redirect itself and spend the flash message on a page
- * nobody sees; this way the browser loads that page and shows it. A page
- * request keeps its redirect. Both vary on the header, so no cache serves the
- * dialog for the page or the other way round.
+ * nobody sees; this way the controller decides what the browser loads next (the
+ * page under the dialog again, or this target) and the message shows there. A
+ * page request keeps its redirect. Every dialog answer varies on the header, so
+ * a cache never serves the dialog for the page.
  */
 final readonly class DialogRedirects
 {

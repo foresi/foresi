@@ -142,7 +142,7 @@ final class SendLogController extends AbstractController
             'secondary' => implode(' · ', array_filter([$when, $recipients, $error], static fn (?string $part): bool => null !== $part && '' !== $part)),
             'cells' => $cells,
             'actions' => [
-                ['label' => $this->translator->trans('invoice.sends.action.again'), 'href' => $this->generateUrl('app_invoice_send', $id), 'method' => 'GET', 'icon' => 'send'],
+                ['label' => $this->translator->trans('invoice.sends.action.again'), 'href' => $this->generateUrl('app_invoice_send', $id), 'method' => 'GET', 'icon' => 'send', 'dialog' => true],
             ],
         ];
     }
