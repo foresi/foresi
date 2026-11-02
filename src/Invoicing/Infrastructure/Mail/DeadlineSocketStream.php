@@ -36,7 +36,7 @@ final class DeadlineSocketStream extends AbstractStream
     private const int MAX_LINE = 65536;
     private const string PAST_DEADLINE = 'The conversation with the mail server ran past its deadline.';
 
-    private SocketStream $socket;
+    private readonly SocketStream $socket;
     private float $endsAt = \INF;
     private string $buffer = '';
 
@@ -50,7 +50,7 @@ final class DeadlineSocketStream extends AbstractStream
 
     public function initialize(): void
     {
-        $this->endsAt = self::now() + $this->deadlineSeconds;
+        $this->endsAt = $this->now() + $this->deadlineSeconds;
         $this->buffer = '';
         // Connecting may not take longer than the whole conversation.
         $this->socket->setTimeout(min($this->socket->getTimeout(), $this->deadlineSeconds));
@@ -106,7 +106,7 @@ final class DeadlineSocketStream extends AbstractStream
             $chunk = @fread($out, self::CHUNK);
             if (false === $chunk || '' === $chunk) {
                 if (stream_get_meta_data($out)['timed_out']) {
-                    throw new TransportException(self::now() >= $this->endsAt ? self::PAST_DEADLINE : \sprintf('Connection to "%s" timed out.', $this->getReadConnectionDescription()));
+                    throw new TransportException($this->now() >= $this->endsAt ? self::PAST_DEADLINE : \sprintf('Connection to "%s" timed out.', $this->getReadConnectionDescription()));
                 }
                 if (feof($out)) {
                     continue;
@@ -133,7 +133,7 @@ final class DeadlineSocketStream extends AbstractStream
             $this->waitAtMostTheTimeLeft();
             $done = @fwrite($in, substr($bytes, $written, self::CHUNK));
             if (false === $done || 0 === $done) {
-                throw new TransportException(self::now() >= $this->endsAt ? self::PAST_DEADLINE : 'Unable to write bytes on the wire.');
+                throw new TransportException($this->now() >= $this->endsAt ? self::PAST_DEADLINE : 'Unable to write bytes on the wire.');
             }
         }
     }
@@ -229,7 +229,7 @@ final class DeadlineSocketStream extends AbstractStream
      */
     private function waitAtMostTheTimeLeft(): void
     {
-        $left = $this->endsAt - self::now();
+        $left = $this->endsAt - $this->now();
         if ($left <= 0.0) {
             throw new TransportException(self::PAST_DEADLINE);
         }
@@ -240,7 +240,7 @@ final class DeadlineSocketStream extends AbstractStream
         stream_set_timeout($this->stream, (int) $wait, (int) (($wait - (int) $wait) * 1_000_000));
     }
 
-    private static function now(): float
+    private function now(): float
     {
         return hrtime(true) / 1e9;
     }

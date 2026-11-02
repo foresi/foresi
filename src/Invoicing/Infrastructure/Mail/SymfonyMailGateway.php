@@ -18,7 +18,6 @@ use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\MailEncryption;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Exception\ExceptionInterface as MimeException;
@@ -77,7 +76,7 @@ final readonly class SymfonyMailGateway implements MailGateway
      *
      * @param string $address the address the host policy vetted
      */
-    public function transport(FirmMailServer $server, string $address): EsmtpTransport
+    public function transport(FirmMailServer $server, string $address): RecipientNamingEsmtpTransport
     {
         $tls = MailEncryption::Tls === $server->encryption();
         $stream = new DeadlineSocketStream($this->deadlineSeconds);
