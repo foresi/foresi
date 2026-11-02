@@ -59,7 +59,7 @@ final readonly class DoctrineTenantDirectory implements TenantDirectory
             $id = (string) $id;
             $zone = $this->named($name);
             $zones[$id] = $zone;
-            if (null === $zone) {
+            if (!$zone instanceof \DateTimeZone) {
                 $missing[] = TenantId::fromString($id);
             }
         }

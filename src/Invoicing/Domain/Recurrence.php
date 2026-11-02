@@ -38,8 +38,8 @@ final readonly class Recurrence
         }
 
         $zone = $firstIssueOn->getTimezone();
-        $this->firstIssueOn = self::day($zone, $firstIssueOn);
-        $this->endOn = null === $endOn ? null : self::day($zone, $endOn);
+        $this->firstIssueOn = $this->day($zone, $firstIssueOn);
+        $this->endOn = $endOn instanceof \DateTimeImmutable ? $this->day($zone, $endOn) : null;
 
         match ($end) {
             RecurrenceEnd::Never => $this->expectNoEndValue(),
@@ -86,21 +86,21 @@ final readonly class Recurrence
     /**
      * The calendar day of $date, whatever its own zone, at midnight in $zone.
      */
-    private static function day(\DateTimeZone $zone, \DateTimeImmutable $date): \DateTimeImmutable
+    private function day(\DateTimeZone $zone, \DateTimeImmutable $date): \DateTimeImmutable
     {
         return RecurringSchedule::calendarDay($zone, (int) $date->format('Y'), (int) $date->format('n'), (int) $date->format('j'));
     }
 
     private function expectNoEndValue(): void
     {
-        if (null !== $this->endOn || null !== $this->endAfter) {
+        if ($this->endOn instanceof \DateTimeImmutable || null !== $this->endAfter) {
             throw new InvalidRecurrence('A recurrence that never ends has no end date or count.');
         }
     }
 
     private function expectEndOn(): void
     {
-        if (null === $this->endOn || null !== $this->endAfter) {
+        if (!$this->endOn instanceof \DateTimeImmutable || null !== $this->endAfter) {
             throw new InvalidRecurrence('A recurrence that ends on a date needs that date and no count.');
         }
         if ($this->endOn < $this->firstIssueOn) {
@@ -110,7 +110,7 @@ final readonly class Recurrence
 
     private function expectEndAfter(): void
     {
-        if (null === $this->endAfter || null !== $this->endOn) {
+        if (null === $this->endAfter || $this->endOn instanceof \DateTimeImmutable) {
             throw new InvalidRecurrence('A recurrence that ends after a count needs that count and no date.');
         }
         if ($this->endAfter < 1 || $this->endAfter > self::MAX_END_AFTER) {
