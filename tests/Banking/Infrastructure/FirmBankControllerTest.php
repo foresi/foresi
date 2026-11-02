@@ -166,12 +166,12 @@ final class FirmBankControllerTest extends WebTestCase
 
         $this->client->request('POST', $this->url($firm).'/accounts/'.$second.'/primary', ['_token' => $token]);
         self::assertResponseRedirects($this->url($firm));
-        self::assertSame([$second], $this->connection()->fetchFirstColumn('SELECT id FROM firm_bank_account WHERE primary_flag = 1'));
+        self::assertSame([$second], $this->connection()->fetchFirstColumn('SELECT id FROM firm_bank_account WHERE primary_flag IS NOT NULL'));
 
         $this->client->request('POST', $this->url($firm).'/accounts/'.$second.'/archive', ['_token' => $token]);
         self::assertResponseRedirects($this->url($firm));
         self::assertNotNull($this->connection()->fetchOne('SELECT archived_at FROM firm_bank_account WHERE id = ?', [$second]));
-        self::assertSame([$first], $this->connection()->fetchFirstColumn('SELECT id FROM firm_bank_account WHERE primary_flag = 1'));
+        self::assertSame([$first], $this->connection()->fetchFirstColumn('SELECT id FROM firm_bank_account WHERE primary_flag IS NOT NULL'));
 
         $this->client->request('POST', $this->url($firm).'/accounts/'.$second.'/restore', ['_token' => $token]);
         self::assertNull($this->connection()->fetchOne('SELECT archived_at FROM firm_bank_account WHERE id = ?', [$second]));
