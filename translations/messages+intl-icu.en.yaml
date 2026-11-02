@@ -402,6 +402,7 @@ firm:
     details: Details
     invoicing: Invoicing
     mail: E-mail
+    bank: Bank
   empty:
     title: No firms yet
     text: Your own companies that issue documents.
@@ -590,6 +591,122 @@ bank:
       currency_locked: The account already has bank movements, so its currency stays.
       archived_primary: An archived account cannot be the primary one. Restore it first.
       unknown_currency: Choose one of the offered currencies.
+    title: Bank
+    sections: Bank settings sections
+    tab:
+      accounts: Accounts
+      pairing: Payment pairing
+    card:
+      accounts: Bank accounts
+    intro: The accounts your customers pay to. New invoices get the primary one.
+    add: Add account
+    new: New bank account
+    edit: Edit bank account
+    empty:
+      title: No accounts yet
+      text: Add the account your customers pay to. The first account is the primary one, which new invoices get.
+    column:
+      name: Account
+      iban: IBAN
+      currency: Currency
+      state: State
+      address: Bank address
+    state:
+      primary: Primary
+      active: Active
+      archived: Archived
+    action:
+      edit: Edit
+      primary: Make primary
+      address: Bank address
+      archive: Archive
+      restore: Restore
+    confirm:
+      archive: 'Archive the account {name}?'
+      archive_text: New invoices no longer offer it. Issued invoices stay as they are, and the account can be restored.
+      archive_accept: Archive account
+      archive_cancel: Keep account
+    field:
+      number: Account number
+      number_help: 'A number with its bank code, as 19-2000145399/0800, or IBAN'
+      iban_value: 'IBAN {iban}'
+      number_locked_help: The number cannot change. Add other accounts as new ones.
+      currency: Currency
+      currency_locked_help: The account has bank movements, so its currency stays.
+      label: Name
+      label_help: 'For you only, such as Operating account'
+      primary: Primary account
+      primary_help: New invoices get this account.
+      primary_kept_help: You change it by making another account the primary one.
+    submit:
+      create: Add account
+    flash:
+      created: 'The account {name} is added.'
+      updated: 'The changes to {name} are saved.'
+      primary: '{name} is now the primary account.'
+      archived: 'The account {name} is archived.'
+      restored: 'The account {name} is restored.'
+    error:
+      number_required: Enter an account number or an IBAN.
+      label: A name has at most 100 characters.
+      save_failed: The account could not be saved. Try again.
+    pairing:
+      card: Pairing payments with invoices
+      auto: Automatic payment pairing
+      auto_help: A verified payment pays its one matching invoice itself.
+      small: Small-difference settlement
+      small_help: Settles a difference under 1 CZK onto the invoice total.
+      saved: The pairing settings are saved.
+      save_failed: The settings could not be saved. Try again.
+    address:
+      card: Addresses for bank e-mail
+      intro: The bank sends its payment notifications to the account's address. From them Foresi tells which invoices are paid.
+      no_accounts: The firm has no active account yet.
+      no_accounts_link: Add an account
+      title: 'Bank address: {name}'
+      field: Address for bank e-mail
+      none: The account has no address yet.
+      hidden: The address cannot be shown now, as the server settings changed. Generate a new one.
+      first: Generate an address and enter it in your bank as the recipient of payment notifications.
+      generate: Generate address
+      regenerate: Generate a new one
+      copy: Copy
+      copied: Copied
+      copy_failed: The address could not be copied. It is selected, so copy it by hand.
+      howto: How to set up the bank
+      close: Close
+      back: Back to the bank settings
+      secret: Enter the address only in your bank or in a forwarding rule. Whoever knows it can send messages to it.
+      date_format: 'j M Y H:i'
+      last: 'Last message received {date}'
+      last_none: No message received yet.
+      state:
+        set: Set
+        none: No address
+      confirm:
+        regenerate: 'Generate a new address for {name}?'
+        regenerate_text: The old address stops working at once. Enter the new one in your bank or in your forwarding rule.
+        regenerate_accept: Generate a new one
+        regenerate_cancel: Keep the address
+      flash:
+        generated: 'The address for {name} is ready. Enter it in your bank.'
+      refused:
+        not_configured: Bank e-mail is not set up on this server. The administrator turns it on with BANK_INBOX_ADDRESS.
+        no_key: 'The address cannot be stored: the server has no MAIL_SECRET_KEYS key.'
+        archived: An archived account gets no address. Restore it first.
+        conflict: An address was generated elsewhere meanwhile. Check it, and generate a new one if needed.
+      steps:
+        business_title: MojeBanka Business
+        business_1: In the directory of notification recipients, add a recipient with the address above.
+        business_2: In Notifications, open payment notifications and choose this account.
+        business_3: Choose incoming payments and the e-mail channel.
+        business_4: Choose the address above as the recipient and confirm the settings.
+        kbplus_title: KB+
+        kbplus_1: KB+ sends notifications to one address only, so keep your own there.
+        kbplus_2: In Settings, Notifications, turn on By e-mail for incoming payments.
+        kbplus_3: In your own mailbox, forward these e-mails to the address above.
+        guide_text: Other banks and forwarding are covered in
+        guide: the payment pairing guide
 
 series:
   title: Number series
@@ -1029,7 +1146,7 @@ invoice:
     paymentMethod: Payment
     bankAccount: Bank account
     bankAccount_none: The firm has no bank account yet.
-    bankAccount_add: Add it in the firm settings
+    bankAccount_add: Add one in the bank settings
     currency: Currency
   field_label:
     form: Form

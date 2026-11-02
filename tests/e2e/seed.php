@@ -134,6 +134,7 @@ $invoicing = $tenantWithOwner('Example Invoicing', 'invoicing@example.com', 'Inv
 $tenantWithOwner('Example First Run', 'first-run@example.com', 'First Run Example');
 $sending = $tenantWithOwner('Example Sending', 'sending@example.com', 'Sending Example');
 $dialogs = $tenantWithOwner('Example Dialogs', 'dialogs@example.com', 'Dialogs Example');
+$bank = $tenantWithOwner('Example Bank', 'bank@example.com', 'Bank Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 // The firm's one bank account, the primary one; the firm itself is persisted by the caller.
@@ -305,6 +306,12 @@ foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
+$context->reset();
+
+// The tenant of the bank settings spec: a firm with no bank account yet.
+$context->switchTo($bank);
+$entityManager->persist(new LegalEntity('Example Bank Settings s.r.o.', new RegistrationNumber('CZ', '12345695'), null, $address(4), VatStatus::NotRegistered, ''));
+$entityManager->flush();
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

@@ -545,7 +545,8 @@ final class InvoiceController extends AbstractController
             $errorFields[$error['id']] = $error['message'];
         }
         $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
-        $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl);
+        $bankUrl = $this->generateUrl('app_firm_bank', ['id' => $firm->id()]);
+        $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
         return $this->render('invoicing/form.html.twig', [
             'blocked' => null,
@@ -557,6 +558,7 @@ final class InvoiceController extends AbstractController
             'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
+            'bankUrl' => $bankUrl,
             'statusBadge' => $this->statusBadge($context),
             'moreOpen' => $this->moreOpen($values, $context, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,

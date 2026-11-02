@@ -11,7 +11,8 @@ namespace App\Invoicing\Infrastructure\Form;
 /**
  * Where an item of the error list leads on this form. A field that is on the page is
  * its target; what only the firm's settings can fix opens them in a new tab, which
- * keeps the form; a problem nobody can act on from here has no link.
+ * keeps the form (a missing bank account opens the firm's bank tab); a problem
+ * nobody can act on from here has no link.
  */
 final readonly class InvoiceErrorTargets
 {
@@ -24,6 +25,7 @@ final readonly class InvoiceErrorTargets
         private bool $hasBankAccount,
         private bool $customerPicked,
         private string $firmUrl,
+        private string $bankUrl,
     ) {
     }
 
@@ -52,7 +54,7 @@ final readonly class InvoiceErrorTargets
             return 'invoice.problem.firm_locked' === $key ? null : $this->settings();
         }
         if ('bankAccount' === $id && !$this->hasBankAccount) {
-            return $this->settings();
+            return ['href' => $this->bankUrl, 'external' => true];
         }
         if (\in_array($id, self::WITHOUT_LINK, true) || ($this->delivered && \in_array($id, ['number', 'series'], true))) {
             return null;

@@ -875,7 +875,8 @@ final class InvoiceControllerTest extends WebTestCase
         }
         $crawler = $this->client->request('GET', '/invoices/new');
         $firmUrl = '/settings/firms/'.$this->firm->id().'/edit';
-        $targets = new InvoiceErrorTargets(VatStatus::Registered === $status, false, $account, true, $firmUrl);
+        $bankUrl = '/settings/firms/'.$this->firm->id().'/bank';
+        $targets = new InvoiceErrorTargets(VatStatus::Registered === $status, false, $account, true, $firmUrl, $bankUrl);
 
         $problems = $this->problemsInTheCode();
         self::assertGreaterThan(50, \count($problems));
@@ -886,7 +887,7 @@ final class InvoiceControllerTest extends WebTestCase
                 continue;
             }
             if ($link['external']) {
-                self::assertSame($firmUrl, $link['href'], $key);
+                self::assertSame('bankAccount' === InvoiceErrorTargets::inputId($field) ? $bankUrl : $firmUrl, $link['href'], $key);
                 continue;
             }
             $target = $crawler->filter('[id="'.substr($link['href'], 1).'"]');
@@ -933,11 +934,15 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         $links = $this->client->getCrawler()->filter('[data-error-summary] a[target="_blank"]');
         self::assertCount(2, $links);
+        $hrefs = [];
         foreach ($links as $link) {
             self::assertInstanceOf(\DOMElement::class, $link);
-            self::assertStringEndsWith('/settings/firms/'.$this->firm->id().'/edit', $link->getAttribute('href'));
+            $hrefs[] = $link->getAttribute('href');
             self::assertSame('noopener', $link->getAttribute('rel'));
         }
+        // The register entry is fixed in the firm's details, the missing account on its bank tab.
+        sort($hrefs);
+        self::assertSame(['/settings/firms/'.$this->firm->id().'/bank', '/settings/firms/'.$this->firm->id().'/edit'], $hrefs);
     }
 
     public function testAFirmWithoutAnAccountSaysSoBeforeTheSave(): void
@@ -948,7 +953,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->client->request('GET', '/invoices/new');
 
         self::assertSelectorTextContains('[data-bank-note]', $this->text('invoice.field.bankAccount_none'));
-        self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firms/'.$this->firm->id().'/edit"]');
+        self::assertSelectorExists('#bank-account-settings[target="_blank"][href$="/settings/firms/'.$this->firm->id().'/bank"]');
     }
 
     public function testAnAccountAddedInAnotherTabIsUsedByTheOpenForm(): void

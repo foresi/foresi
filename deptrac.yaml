@@ -456,6 +456,8 @@ deptrac:
       - InvoicingApplication
       # The secret token of an inbound address names its tenant: looked up across tenants.
       - TenantFilterBypass
+      # The bank settings of a firm are for its owner.
+      - IdentityApplication
     BankingImap:
       - BankingDomain
       - BankingApplication

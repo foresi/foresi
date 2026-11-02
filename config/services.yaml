@@ -91,9 +91,13 @@ services:
         arguments:
             $authservIds: '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%'
             $arcSealers: '%env(csv:BANK_INBOX_TRUSTED_ARC)%'
-    # Every firm gets the default switches until the pairing settings are stored.
+    # A firm's stored switches, or the defaults while it has none.
     App\Banking\Application\FirmPairingRules:
-        alias: App\Banking\Application\DefaultPairingRules
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineFirmPairings
+    # The inbound address of a bank account; empty means bank mail is not set up here.
+    App\Banking\Application\InboundAddresses:
+        arguments:
+            $template: '%env(string:BANK_INBOX_ADDRESS)%'
 
     App\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:

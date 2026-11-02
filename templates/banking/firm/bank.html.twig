@@ -1,0 +1,75 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The bank settings of a firm, one tab of the firm: its accounts, and how payments pair with
+    invoices, with the inbound address of each account. Adding and editing an account and the setup
+    steps of an address open as dialogs; their URLs are pages too.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'bank.account.title'|trans}] %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'bank.account.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% for message in app.flashes('success') %}
+        <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <twig:Ui:Alert tone="error" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'bank'} only %}</div>
+
+    <div class="grid max-w-4xl grid-cols-1 gap-4">
+        <twig:Ui:Tabs :label="'bank.account.sections'|trans" :items="tabs" />
+
+        {% if tab == 'accounts' %}
+            <twig:Ui:Card :title="'bank.account.card.accounts'|trans" icon="landmark">
+                <twig:block name="actions">
+                    {% if rows is not empty %}
+                        <twig:Ui:Button :href="newUrl" size="sm" icon="plus" id="bank-account-add" data-dialog aria-haspopup="dialog">{{ 'bank.account.add'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                </twig:block>
+                {% if rows is empty %}
+                    <twig:Ui:EmptyState icon="landmark" :title="'bank.account.empty.title'|trans" :text="'bank.account.empty.text'|trans" class="py-10">
+                        <twig:Ui:Button :href="newUrl" variant="primary" icon="plus" id="bank-account-add" data-dialog aria-haspopup="dialog">{{ 'bank.account.add'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <p class="m-0 mb-3 text-small text-muted">{{ 'bank.account.intro'|trans }}</p>
+                    <twig:Ui:DataTable :caption="'bank.account.card.accounts'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ACTION_TOKEN'))" />
+                {% endif %}
+            </twig:Ui:Card>
+        {% else %}
+            <form id="bank-pairing" method="post" action="{{ pairingAction }}" class="grid grid-cols-1 gap-4" novalidate>
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::PAIRING_TOKEN')) }}">
+                <twig:Ui:Card :title="'bank.account.pairing.card'|trans" icon="link-2">
+                    <div class="grid gap-4">
+                        <twig:Ui:Checkbox name="autoPairing" id="autoPairing" value="1" :checked="autoPairing" :label="'bank.account.pairing.auto'|trans" :help="'bank.account.pairing.auto_help'|trans" />
+                        <twig:Ui:Checkbox name="smallDifference" id="smallDifference" value="1" :checked="smallDifference" :label="'bank.account.pairing.small'|trans" :help="'bank.account.pairing.small_help'|trans" />
+                    </div>
+                </twig:Ui:Card>
+                <twig:Ui:ActionBar>
+                    <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+                </twig:Ui:ActionBar>
+            </form>
+
+            <twig:Ui:Card :title="'bank.account.address.card'|trans" icon="inbox">
+                <p class="m-0 mb-3 text-small text-muted">{{ 'bank.account.address.intro'|trans }}</p>
+                {% if unavailable %}
+                    <twig:Ui:Alert tone="warning" class="mb-3" id="bank-address-unavailable">{{ unavailable }}</twig:Ui:Alert>
+                {% endif %}
+                {% if feeds is empty %}
+                    <p class="m-0 text-small text-muted">{{ 'bank.account.address.no_accounts'|trans }} <a href="{{ path('app_firm_bank', {id: firm.id}) }}" class="font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'bank.account.address.no_accounts_link'|trans }}</a></p>
+                {% else %}
+                    <ul class="m-0 grid list-none gap-0 p-0">
+                        {% for feed in feeds %}
+                            {% include 'banking/firm/_feed.html.twig' with {feed: feed, unavailable: unavailable, first: loop.first} only %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </twig:Ui:Card>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -233,6 +233,8 @@ final class LegalEntityController extends AbstractController
             'countries' => CountryOptions::options($request->getLocale()),
             'action' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_edit', ['id' => $firm->id()]) : $this->generateUrl('app_firm_new'),
             'cancel' => $this->generateUrl('app_firm_index'),
+            // A new firm gets its accounts once it is saved, on its bank tab.
+            'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null,
         ], new Response(status: $status));
     }
 

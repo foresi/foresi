@@ -402,6 +402,7 @@ firm:
     details: Údaje
     invoicing: Fakturace
     mail: E-maily
+    bank: Banka
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Vaše vlastní firmy, které vystavují doklady.
@@ -590,6 +591,122 @@ bank:
       currency_locked: Účet už má bankovní pohyby, proto jeho měna zůstává.
       archived_primary: Archivovaný účet nemůže být hlavní. Nejdřív ho obnovte.
       unknown_currency: Vyberte jednu z nabízených měn.
+    title: Banka
+    sections: Části nastavení banky
+    tab:
+      accounts: Účty
+      pairing: Párování plateb
+    card:
+      accounts: Bankovní účty
+    intro: Účty, na které vám zákazníci platí. Hlavní účet dostanou nové faktury.
+    add: Přidat účet
+    new: Nový bankovní účet
+    edit: Upravit bankovní účet
+    empty:
+      title: Zatím tu nejsou žádné účty
+      text: Přidejte účet, na který vám zákazníci platí. První účet bude hlavní a dostanou ho nové faktury.
+    column:
+      name: Účet
+      iban: IBAN
+      currency: Měna
+      state: Stav
+      address: Adresa pro banku
+    state:
+      primary: Hlavní
+      active: Aktivní
+      archived: Archivovaný
+    action:
+      edit: Upravit
+      primary: Nastavit jako hlavní
+      address: Adresa pro banku
+      archive: Archivovat
+      restore: Obnovit
+    confirm:
+      archive: 'Archivovat účet {name}?'
+      archive_text: Nové faktury ho už nenabídnou. Vystavené faktury zůstanou beze změny a účet půjde obnovit.
+      archive_accept: Archivovat účet
+      archive_cancel: Ponechat účet
+    field:
+      number: Číslo účtu
+      number_help: 'Číslo s kódem banky, třeba 19-2000145399/0800, nebo IBAN'
+      iban_value: 'IBAN {iban}'
+      number_locked_help: Číslo účtu nejde změnit. Jiný účet přidejte jako nový.
+      currency: Měna
+      currency_locked_help: Účet už má bankovní pohyby, proto jeho měna zůstává.
+      label: Název
+      label_help: 'Jen pro vás, třeba Provozní účet'
+      primary: Hlavní účet
+      primary_help: Nové faktury dostanou tento účet.
+      primary_kept_help: Změníte to, když nastavíte jako hlavní jiný účet.
+    submit:
+      create: Přidat účet
+    flash:
+      created: 'Účet {name} je přidaný.'
+      updated: 'Změny účtu {name} jsou uložené.'
+      primary: '{name} je teď hlavní účet.'
+      archived: 'Účet {name} je archivovaný.'
+      restored: 'Účet {name} je obnovený.'
+    error:
+      number_required: Zadejte číslo účtu nebo IBAN.
+      label: Název může mít nejvýš 100 znaků.
+      save_failed: Účet se nepodařilo uložit. Zkuste to znovu.
+    pairing:
+      card: Párování plateb s fakturami
+      auto: Automatické párování plateb
+      auto_help: Ověřená platba uhradí jedinou odpovídající fakturu sama.
+      small: Haléřové vyrovnání
+      small_help: Vyrovná rozdíl do 1 Kč na celkovou částku faktury.
+      saved: Nastavení párování je uložené.
+      save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+    address:
+      card: Adresy pro e-maily z banky
+      intro: Banka posílá oznámení o platbách na adresu účtu. Z nich Foresi pozná, které faktury jsou zaplacené.
+      no_accounts: Firma zatím nemá žádný aktivní účet.
+      no_accounts_link: Přidat účet
+      title: 'Adresa pro banku: {name}'
+      field: Adresa pro e-maily z banky
+      none: Účet zatím nemá adresu.
+      hidden: Adresu teď nejde zobrazit, protože se změnilo nastavení serveru. Vygenerujte novou.
+      first: Vygenerujte adresu a zadejte ji v bance jako příjemce oznámení o platbách.
+      generate: Vygenerovat adresu
+      regenerate: Vygenerovat novou
+      copy: Kopírovat
+      copied: Zkopírováno
+      copy_failed: Adresu se nepodařilo zkopírovat. Je označená, zkopírujte ji ručně.
+      howto: Jak nastavit banku
+      close: Zavřít
+      back: Zpět na nastavení banky
+      secret: Adresu zadejte jen v bance nebo v pravidle pro přeposílání. Kdo ji zná, může na ni posílat zprávy.
+      date_format: 'j. n. Y H:i'
+      last: 'Poslední zpráva přišla {date}'
+      last_none: Zatím nepřišla žádná zpráva.
+      state:
+        set: Nastavená
+        none: Bez adresy
+      confirm:
+        regenerate: 'Vygenerovat novou adresu pro {name}?'
+        regenerate_text: Stará adresa přestane hned fungovat. Novou zadejte v bance nebo v pravidle pro přeposílání.
+        regenerate_accept: Vygenerovat novou
+        regenerate_cancel: Ponechat adresu
+      flash:
+        generated: 'Adresa pro {name} je připravená. Zadejte ji v bance.'
+      refused:
+        not_configured: E-maily z banky nejsou na tomto serveru nastavené. Správce je zapne proměnnou BANK_INBOX_ADDRESS.
+        no_key: 'Adresu nejde uložit: na serveru chybí klíč MAIL_SECRET_KEYS.'
+        archived: Archivovaný účet adresu nedostane. Nejdřív ho obnovte.
+        conflict: Adresa se mezitím vygenerovala jinde. Zkontrolujte ji a případně vygenerujte novou.
+      steps:
+        business_title: MojeBanka Business
+        business_1: V Adresáři příjemců oznámení přidejte příjemce s adresou výše.
+        business_2: V Oznámení otevřete Oznámení o platbách a vyberte tento účet.
+        business_3: Zvolte příchozí platby a kanál e-mail.
+        business_4: Jako příjemce vyberte adresu výše a nastavení potvrďte.
+        kbplus_title: KB+
+        kbplus_1: KB+ posílá oznámení jen na jednu adresu, proto tam nechte svou vlastní.
+        kbplus_2: V Nastavení, Oznámení zapněte u příchozích plateb volbu E-mailem.
+        kbplus_3: Ve své poštovní schránce nastavte přeposílání těchto e-mailů na adresu výše.
+        guide_text: Další banky a přeposílání popisuje
+        guide: návod k párování plateb
 
 series:
   title: Číselné řady
@@ -1029,7 +1146,7 @@ invoice:
     paymentMethod: Platba
     bankAccount: Bankovní účet
     bankAccount_none: Firma zatím nemá bankovní účet.
-    bankAccount_add: Doplnit v nastavení firmy
+    bankAccount_add: Přidat v nastavení banky
     currency: Měna
   field_label:
     form: Formulář

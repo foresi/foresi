@@ -29,6 +29,15 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.getByRole('link', { name: 'Example Company s.r.o.' }).first().click();
   await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
   const firm = /\/settings\/firms\/([0-9a-f-]+)\//.exec(page.url())?.[1];
+  // The firm's details lead to its bank tab, where the first account is added in a dialog.
+  await page.locator('#bank-accounts-note a').click();
+  await expect(page).toHaveURL(/\/bank$/);
+  await page.locator('#bank-account-add').click();
+  const accountDialog = page.getByRole('dialog', { name: 'Nový bankovní účet' });
+  await accountDialog.locator('#number').fill('CZ65 0800 0000 1920 0014 5399');
+  await accountDialog.getByRole('button', { name: 'Přidat účet' }).click();
+  await expect(accountDialog).toBeHidden();
+  await expect(page.locator('tbody tr')).toContainText('Hlavní');
   await page.goto(`/settings/firms/${firm}/invoicing/series/new`);
   await page.locator('#name').fill('Faktury');
   await page.locator('#format').fill('F{YYYY}{NNN}');
@@ -51,8 +60,9 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await expect(dialog).toBeHidden();
   await expect(page.locator('#customer')).toHaveValue('Example First Customer s.r.o.');
 
-  // A new firm has no bank account yet, so the first invoice is paid in cash.
-  await page.locator('#paymentMethod').selectOption('cash');
+  // Paid by bank transfer to the account just added, the firm's primary one.
+  await expect(page.locator('#paymentMethod')).toHaveValue('bank_transfer');
+  await expect(page.locator('[data-bank-note]')).toHaveCount(0);
   await page.locator('#lines-0-text').fill('První práce');
   await page.locator('#lines-0-price').fill('1000');
   await page.locator('#invoice-more').click();
