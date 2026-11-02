@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
 use App\Party\Application\TransactionalWork;
@@ -35,7 +36,10 @@ use Psr\Log\LoggerInterface;
  * template runs. A refused issue keeps the next date, so the next run tries again;
  * a template that runs clean again clears its failure. A send that breaks on
  * anything else is logged and recorded the same way (UNEXPECTED): its invoice is
- * issued and waits to be sent, and the other templates still run. Anything else
+ * issued and waits to be sent, and the other templates still run. Once the
+ * firm's sending budget refuses a send, the firm's later templates of the run are
+ * issued and held for review without trying again, and the firm hears of all of
+ * them in one mail at the end of the run (RecurringAlerts). Anything else
  * while issuing is thrown, so the scheduler gives the day back and the next tick
  * retries it; what was issued stays issued and is not issued twice.
  *
@@ -51,6 +55,8 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     public const int MAX_PER_RUN = 24;
     /** The failure of a send that broke on something no rule foresaw. */
     public const string UNEXPECTED = 'send.unexpected';
+    /** The failure of a send the firm's budget refused; the firm's later templates of the run are held with it. */
+    public const string RATE_LIMITED = 'send.'.SendRefused::RATE_LIMITED;
 
     public function __construct(
         private RecurringInvoices $templates,
@@ -82,16 +88,35 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     {
         // The day of the period, so a run given back and retried after midnight still works for its own day.
         $today = new \DateTimeImmutable($this->period($this->now(), $this->tenantClock->timezone()));
-        foreach ($this->templates->due($today) as $id) {
-            $this->runTemplate($id, $today);
+        /** @var array<string, true> $spent firms whose sending budget ran out in this run */
+        $spent = [];
+        /** @var array<string, string> $failures the code of each template refused in this run */
+        $failures = [];
+        try {
+            foreach ($this->templates->due($today) as $id) {
+                $failure = $this->runTemplate($id, $today, $spent);
+                if (null !== $failure) {
+                    $failures[$id] = $failure;
+                }
+            }
+        } finally {
+            // One mail per firm for the whole run, also when it is given back halfway.
+            $this->alerts->alertAll($failures, $today);
         }
     }
 
-    private function runTemplate(string $id, \DateTimeImmutable $today): void
+    /**
+     * @param array<string, true> $spent firms out of their budget; a refusal for the budget adds the template's
+     *
+     * @return string|null the failure recorded on the template, if any
+     */
+    private function runTemplate(string $id, \DateTimeImmutable $today, array &$spent): ?string
     {
         $failure = null;
         for ($issued = 0; $issued < self::MAX_PER_RUN; ++$issued) {
-            $occurrence = $this->dueOccurrence($this->templates->current($id), $today);
+            $current = $this->templates->current($id);
+            $firmId = $current->firm()->id();
+            $occurrence = $this->dueOccurrence($current, $today);
             if (!$occurrence instanceof \DateTimeImmutable) {
                 break;
             }
@@ -108,9 +133,16 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
                 // Taken meanwhile, by "issue now" or another worker; the next round reads where it stands.
                 continue;
             }
+            $template = $this->templates->get($id);
+            $late = $this->isLate($occurrence, $today);
+            if (isset($spent[$firmId]) && !$late && RecurringDelivery::Send === $template->delivery()) {
+                // The firm's budget ran out earlier in this run: held without asking again, until someone sends it.
+                $failure = self::RATE_LIMITED;
+                continue;
+            }
             $invoiceId = $invoice->id();
             try {
-                $outcome = $this->delivery->deliver($invoice, $this->templates->get($id), $this->isLate($occurrence, $today));
+                $outcome = $this->delivery->deliver($invoice, $template, $late);
             } catch (\Throwable $error) {
                 // The invoice is issued and stays so; it waits to be sent like a refused one, and the next template runs.
                 $this->logger->error('Sending invoice {invoice} of recurring invoice {template} failed unexpectedly.', ['invoice' => $invoiceId, 'template' => $id, 'exception' => $error]);
@@ -119,9 +151,14 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
             }
             if ($outcome->isRefused()) {
                 $failure = $outcome->code;
+                if (self::RATE_LIMITED === $failure) {
+                    $spent[$firmId] = true;
+                }
             }
         }
-        $this->settle($id, $failure, $today);
+        $this->settle($id, $failure);
+
+        return $failure;
     }
 
     private function dueOccurrence(RecurringInvoice $template, \DateTimeImmutable $today): ?\DateTimeImmutable
@@ -141,7 +178,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
         return $days > self::LATE_DAYS;
     }
 
-    private function settle(string $id, ?string $failure, \DateTimeImmutable $today): void
+    private function settle(string $id, ?string $failure): void
     {
         if (null === $failure) {
             if (null !== $this->templates->current($id)->lastFailureCode()) {
@@ -154,13 +191,9 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
         }
         $this->logger->warning('The recurring invoice {template} was refused: {code}.', ['template' => $id, 'code' => $failure]);
         $at = $this->now();
-        $template = $this->work->run(function () use ($id, $failure, $at): RecurringInvoice {
-            $template = $this->templates->lock($id);
-            $template->recordFailure($at, $failure);
-
-            return $template;
+        $this->work->run(function () use ($id, $failure, $at): void {
+            $this->templates->lock($id)->recordFailure($at, $failure);
         });
-        $this->alerts->alert($template, $failure, $today);
     }
 
     private function now(): \DateTimeImmutable

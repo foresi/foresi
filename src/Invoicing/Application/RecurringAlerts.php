@@ -17,10 +17,13 @@ use App\Party\Domain\PartyEmail;
 use Psr\Log\LoggerInterface;
 
 /**
- * Tells the firm by e-mail that a recurring template could not issue or send its
- * invoice: to the firm's contact address, else to the template's owner, through
- * the firm's own server, in the language of the template's documents, with a
- * built-in text. At most once per template and day, however often the day runs.
+ * Tells the firm by e-mail which recurring templates could not issue or send
+ * their invoice in a run: to the firm's contact address, else to the template's
+ * owner, through the firm's own server, in the language of the template's
+ * documents, with a built-in text. One mail per firm, address and language for
+ * the whole run, naming each template, so a day of refusals is one mail and not
+ * one per template. Each template is told at most once a day, however often the
+ * day runs: the day is checked and marked under the template's lock.
  *
  * Without a server or an address nothing can leave; the shell notice of failing
  * templates tells instead, so this is the one case the mail is skipped. The day
@@ -72,6 +75,26 @@ final readonly class RecurringAlerts
 
     private const array OTHER_REASON = ['cs' => 'Pravidla to nedovolila (kód %s).', 'en' => 'The rules refused it (code %s).'];
 
+    private const array DIGEST_SUBJECT = [
+        'cs' => '%d pravidelných faktur se nepodařilo vystavit nebo odeslat',
+        'en' => '%d recurring invoices could not be issued or sent',
+    ];
+
+    private const array DIGEST_SEND_SUBJECT = [
+        'cs' => '%d pravidelných faktur se vystavilo, ale neodeslalo',
+        'en' => '%d recurring invoices were issued but not sent',
+    ];
+
+    private const array DIGEST_OPENING = [
+        'cs' => 'Pravidelné faktury firmy %s se %s nepodařilo vystavit nebo odeslat:',
+        'en' => 'Recurring invoices of %s could not be issued or sent on %s:',
+    ];
+
+    private const array DIGEST_CLOSING = [
+        'cs' => 'Vystavené faktury čekají mezi fakturami k odeslání. Nevystavené zkusí další běh znovu zítra v 5:00. Příčinu opravte ve Foresi v pravidelných fakturách.',
+        'en' => 'The issued invoices wait among the invoices to send. The next run tries the others again tomorrow at 05:00. Fix the cause in Foresi under recurring invoices.',
+    ];
+
     public function __construct(
         private RecurringInvoices $templates,
         private MailServers $servers,
@@ -84,32 +107,60 @@ final readonly class RecurringAlerts
     }
 
     /**
-     * @param string             $code  what was refused: a problem key of IssueRefused, or "send." and a reason of SendRefused
-     * @param \DateTimeImmutable $today the tenant's day of the run
+     * @param array<string, string> $failures what was refused, by template id: a problem key of IssueRefused, or
+     *                                        "send." and a reason of SendRefused
+     * @param \DateTimeImmutable    $today    the tenant's day of the run
      */
-    public function alert(RecurringInvoice $template, string $code, \DateTimeImmutable $today): void
+    public function alertAll(array $failures, \DateTimeImmutable $today): void
     {
-        $day = $today->format('Y-m-d');
-        if ($template->lastAlertOn()?->format('Y-m-d') === $day) {
-            return;
+        $groups = [];
+        foreach ($failures as $id => $code) {
+            $template = $this->templates->current($id);
+            $server = $this->servers->for($template->firm());
+            $to = $this->recipient($template);
+            if (!$server instanceof FirmMailServer || null === $to) {
+                continue;
+            }
+            $key = $template->firm()->id().' '.$to.' '.$template->language()->value;
+            $groups[$key] ??= ['server' => $server, 'to' => $to, 'language' => $template->language(), 'firm' => $template->firm()->name(), 'firmId' => $template->firm()->id(), 'codes' => []];
+            $groups[$key]['codes'][$id] = $code;
         }
-        $firm = $template->firm();
-        $server = $this->servers->for($firm);
-        $to = $this->recipient($template);
-        if (!$server instanceof FirmMailServer || null === $to) {
-            return;
+        foreach ($groups as $group) {
+            $told = [];
+            foreach ($group['codes'] as $id => $code) {
+                $customer = $this->markAlerted($id, $today);
+                if (null !== $customer) {
+                    $told[] = ['id' => $id, 'customer' => $customer, 'code' => $code];
+                }
+            }
+            if ([] === $told) {
+                continue;
+            }
+            $message = $this->message($group['firm'], $group['firmId'], $group['language'], $told, $today, $group['server'], $group['to']);
+            try {
+                $this->gateway->send($message, $group['server']);
+            } catch (MailRefused $refused) {
+                $this->logger->warning('The alert about recurring invoices {templates} was not sent: {reason}.', ['templates' => implode(', ', array_column($told, 'id')), 'reason' => $refused->getMessage()]);
+            }
         }
-        $message = $this->message($template, $code, $today, $server, $to);
-        $id = $template->id();
+    }
 
-        $this->work->run(function () use ($id, $today): void {
-            $this->templates->lock($id)->markAlerted($today);
+    /**
+     * Marks the day under the template's lock, so two runs of a day never both tell.
+     *
+     * @return string|null the customer's name, or null when the template was already told today
+     */
+    private function markAlerted(string $id, \DateTimeImmutable $today): ?string
+    {
+        return $this->work->run(function () use ($id, $today): ?string {
+            $template = $this->templates->lock($id);
+            if ($template->lastAlertOn()?->format('Y-m-d') === $today->format('Y-m-d')) {
+                return null;
+            }
+            $template->markAlerted($today);
+
+            return $template->customer()->displayName();
         });
-        try {
-            $this->gateway->send($message, $server);
-        } catch (MailRefused $refused) {
-            $this->logger->warning('The alert about recurring invoice {template} was not sent: {reason}.', ['template' => $id, 'reason' => $refused->getMessage()]);
-        }
     }
 
     private function recipient(RecurringInvoice $template): ?string
@@ -124,17 +175,35 @@ final readonly class RecurringAlerts
         return null !== $email && PartyEmail::isValid($email) ? $email : null;
     }
 
-    private function message(RecurringInvoice $template, string $code, \DateTimeImmutable $today, FirmMailServer $server, string $to): MailMessage
+    /**
+     * @param non-empty-list<array{id: string, customer: string, code: string}> $told
+     */
+    private function message(string $firm, string $firmId, DocumentLanguage $documentLanguage, array $told, \DateTimeImmutable $today, FirmMailServer $server, string $to): MailMessage
     {
-        $language = $template->language()->value;
-        $stage = str_starts_with($code, 'send.') ? 'send' : 'issue';
-        $date = DocumentLanguage::Czech === $template->language() ? $today->format('j. n. Y') : $today->format('Y-m-d');
-        $reason = isset(self::REASONS[$code]) ? self::REASONS[$code][$language] : \sprintf(self::OTHER_REASON[$language], $code);
-        $text = implode("\n\n", [
-            \sprintf(self::OPENING[$stage][$language], $template->firm()->name(), $template->customer()->displayName(), $date),
-            $reason,
-            self::CLOSING[$stage][$language],
-        ]);
+        $language = $documentLanguage->value;
+        $date = DocumentLanguage::Czech === $documentLanguage ? $today->format('j. n. Y') : $today->format('Y-m-d');
+        if (1 === \count($told)) {
+            $code = $told[0]['code'];
+            $stage = $this->stage($code);
+            $subject = self::SUBJECT[$stage][$language];
+            $text = implode("\n\n", [
+                \sprintf(self::OPENING[$stage][$language], $firm, $told[0]['customer'], $date),
+                $this->reason($code, $language),
+                self::CLOSING[$stage][$language],
+            ]);
+            // The same for every try of the day, so a repeat is recognisable.
+            $reference = $told[0]['id'];
+        } else {
+            $onlySends = [] === array_filter($told, fn (array $one): bool => 'send' !== $this->stage($one['code']));
+            $subject = \sprintf(($onlySends ? self::DIGEST_SEND_SUBJECT : self::DIGEST_SUBJECT)[$language], \count($told));
+            $lines = array_map(fn (array $one): string => '- '.$one['customer'].': '.$this->reason($one['code'], $language), $told);
+            $text = implode("\n\n", [
+                \sprintf(self::DIGEST_OPENING[$language], $firm, $date),
+                implode("\n", $lines),
+                self::DIGEST_CLOSING[$language],
+            ]);
+            $reference = $firmId;
+        }
         $from = $server->fromAddress();
         $domain = substr($from, (int) strrpos($from, '@') + 1);
 
@@ -144,11 +213,20 @@ final readonly class RecurringAlerts
             null,
             [$to],
             [],
-            self::SUBJECT[$stage][$language],
+            $subject,
             $text,
             nl2br(htmlspecialchars($text, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), false),
-            // The same for every try of the day, so a repeat is recognisable.
-            \sprintf('<recurring-alert.%s.%s@%s>', $template->id(), $today->format('Ymd'), $domain),
+            \sprintf('<recurring-alert.%s.%s@%s>', $reference, $today->format('Ymd'), $domain),
         );
+    }
+
+    private function stage(string $code): string
+    {
+        return str_starts_with($code, 'send.') ? 'send' : 'issue';
+    }
+
+    private function reason(string $code, string $language): string
+    {
+        return isset(self::REASONS[$code]) ? self::REASONS[$code][$language] : \sprintf(self::OTHER_REASON[$language], $code);
     }
 }

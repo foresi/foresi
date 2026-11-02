@@ -23,6 +23,7 @@ use App\Invoicing\Application\RecurringInput;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringOverview;
 use App\Invoicing\Application\SaveRecurringInvoice;
+use App\Invoicing\Application\SendLimits;
 use App\Invoicing\Domain\Recurrence;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurrenceUnit;
@@ -389,6 +390,39 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
 
         $this->runOn('2026-12-02 05:30:00');
         self::assertCount(2, $this->gateway->messages(), 'the next day tells again');
+    }
+
+    public function testASpentBudgetHoldsTheFirmsOtherTemplatesWithOneAlert(): void
+    {
+        $this->contactEmail('office@example.com');
+        $templates = [];
+        for ($i = 0; $i < 5; ++$i) {
+            $templates[] = $this->template();
+        }
+        // The system's share of the day is spent; what is left belongs to people.
+        $limiter = self::getContainer()->get('test.invoice_send_firm_limiter');
+        $limiter->create($this->firm->id())->consume(400);
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        self::assertSame(0, $this->sendCount(), 'nothing was sent');
+        self::assertSame(100, $limiter->create($this->firm->id())->consume(0)->getRemainingTokens(), 'the run took none of the rest');
+        foreach ($templates as $template) {
+            self::assertCount(1, $this->invoicesOf($template), 'each still issued');
+            self::assertSame('send.rate_limited', $this->templateRow($template->id())['last_failure_code']);
+            self::assertSame('2026-12-01', $this->templateRow($template->id())['last_alert_on']);
+        }
+        self::assertSame(5, $this->templates->inReview(), 'all wait to be sent');
+        $messages = $this->gateway->messages();
+        self::assertCount(1, $messages, 'one alert for the firm, not one per template');
+        self::assertSame(['office@example.com'], $messages[0]->to);
+        self::assertSame('5 pravidelných faktur se vystavilo, ale neodeslalo', $messages[0]->subject);
+        self::assertSame(5, substr_count($messages[0]->text, 'Example Customer a.s.'), 'each held template is named');
+        self::assertTrue(self::getContainer()->get(SendLimits::class)->take('019a0000-0000-7000-8000-00000000002a', $this->firm->id()), 'a person can still send');
+
+        // The same day again tells nothing new.
+        $this->runOn('2026-12-01 09:00:00');
+        self::assertCount(1, $this->gateway->messages());
     }
 
     public function testTheAlertFallsBackToTheOwnerInEnglish(): void

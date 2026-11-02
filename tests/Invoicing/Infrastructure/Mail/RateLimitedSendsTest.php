@@ -53,6 +53,17 @@ final class RateLimitedSendsTest extends KernelTestCase
         self::assertTrue($this->limits->take(null, 'firm-b'), 'a firm of another tenant still sends');
     }
 
+    public function testTheSystemLeavesAFifthOfTheFirmsDayToPeople(): void
+    {
+        $firm = self::getContainer()->get('test.invoice_send_firm_limiter');
+        $firm->create('firm-a')->consume(399);
+
+        self::assertTrue($this->limits->take(null, 'firm-a'), 'the 400th of 500 is still the system\'s');
+        self::assertFalse($this->limits->take(null, 'firm-a'), 'the last 100 are left to people');
+        self::assertSame(100, $firm->create('firm-a')->consume(0)->getRemainingTokens(), 'a refused system send spends nothing');
+        self::assertTrue($this->limits->take('user-1', 'firm-a'), 'a person still sends');
+    }
+
     public function testASystemSendDoesNotSpendAPersonsBudget(): void
     {
         for ($i = 0; $i < 30; ++$i) {
