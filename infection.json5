@@ -3,8 +3,10 @@
     //
     // The timeout is raised from the default of 10 seconds on purpose. With the default, Infection
     // skips every mutant whose covering tests take longer than that (most of them for code that many
-    // integration tests touch) and leaves them out of the score. At 120 seconds none is skipped, so
-    // the run is slow but the score counts every mutant.
+    // integration tests touch) and leaves them out of the score. 120 seconds stopped being enough
+    // once the invoicing tests arrived, so the limit is 30 minutes. A mutant's own time limit still
+    // follows from how long its tests take, so a looping mutant stops long before that. The CI
+    // merge of the shards fails when any mutant is skipped, which shows when this needs raising again.
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": ["src"],
@@ -13,7 +15,7 @@
     "phpUnit": {
         "configDir": "."
     },
-    "timeout": 120,
+    "timeout": 1800,
     // Not the shared system temp directory: two runs at once (two checkouts) would overwrite each other's coverage files.
     "tmpDir": "var/infection",
     "logs": {
