@@ -25,6 +25,8 @@ final readonly class TrustVerdict
     public const string UNSIGNED = 'unsigned';
     /** The trusted results contradict themselves: two DMARC results, or a pass and a fail for one signer. */
     public const string AMBIGUOUS = 'ambiguous';
+    /** A results header below the topmost carries a trusted id, so someone planted it or the server misplaced it. */
+    public const string PLANTED = 'planted-results';
     /** The sender is not the bank's, or an aligned signature failed. */
     public const string SENDER = 'sender';
     public const string DKIM_FAIL = 'dkim-fail';
@@ -33,7 +35,7 @@ final readonly class TrustVerdict
     public const string ACCEPTED_BY_USER = 'accepted-by-user';
 
     private const array BASES = [
-        self::DMARC, self::DKIM, self::ARC, self::NO_RESULTS, self::UNSIGNED, self::AMBIGUOUS,
+        self::DMARC, self::DKIM, self::ARC, self::NO_RESULTS, self::UNSIGNED, self::AMBIGUOUS, self::PLANTED,
         self::SENDER, self::DKIM_FAIL, self::DMARC_FAIL, self::ACCEPTED_BY_USER,
     ];
 

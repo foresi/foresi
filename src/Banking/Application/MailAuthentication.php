@@ -17,7 +17,7 @@ use App\Banking\Domain\MessageTrust;
  * Anyone can write an Authentication-Results header into the mail they send, so
  * only the topmost one is read: the receiving server adds its own above every
  * header the message arrived with. It counts only when its authserv-id is a
- * trusted one; anything below it is ignored, whatever it claims.
+ * trusted one; what any header below it claims is ignored.
  *
  * The bank publishes a DMARC policy, so the receiving server always gives its
  * mail a DMARC result, and only that verifies: the header must hold exactly one
@@ -28,6 +28,9 @@ use App\Banking\Domain\MessageTrust;
  * header seem to hold results the server never reached; a second DMARC result,
  * or a pass and a fail for one signing domain, shows that, and nothing then
  * verifies. An aligned DMARC or DKIM fail is Failed whatever else the header says.
+ * The receiving server removes or renames headers that carry its own id (RFC
+ * 8601 §5), so a trusted id on any header below the topmost was planted or
+ * misplaced, and the message is not verified.
  *
  * An ARC pass rescues a signature broken by a forwarder only when the newest
  * ARC set was sealed by a trusted forwarder whose own results show an aligned
@@ -52,8 +55,8 @@ final readonly class MailAuthentication
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER);
         }
 
-        $topmost = $mail->headers('Authentication-Results')[0] ?? null;
-        $header = null === $topmost ? null : $this->parser->parse($topmost);
+        $all = $mail->headers('Authentication-Results');
+        $header = [] === $all ? null : $this->parser->parse($all[0]);
         if (null === $header || !$this->settings->trustsAuthserv($header['authserv'])) {
             return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
         }
@@ -72,14 +75,14 @@ final readonly class MailAuthentication
         if (\count($dmarc) > 1 || [] !== $contested) {
             return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::AMBIGUOUS);
         }
-        if ($rescued) {
-            return new TrustVerdict(MessageTrust::Verified, TrustVerdict::ARC);
+        if (!$rescued && !$this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $banks)) {
+            return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED);
         }
-        if ($this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $banks)) {
-            return new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
+        if (array_any(\array_slice($all, 1), fn (string $lower): bool => $this->settings->trustsAuthserv($this->parser->parse($lower)['authserv']))) {
+            return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::PLANTED);
         }
 
-        return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED);
+        return new TrustVerdict(MessageTrust::Verified, $rescued ? TrustVerdict::ARC : TrustVerdict::DMARC);
     }
 
     /**

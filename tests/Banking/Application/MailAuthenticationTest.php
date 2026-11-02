@@ -197,6 +197,17 @@ final class MailAuthenticationTest extends TestCase
         $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED, 'planted-below-none');
     }
 
+    public function testATrustedIdOnALowerResultsHeaderIsUnverified(): void
+    {
+        // RFC 8601 §5: the receiving server removes or renames headers carrying its id, so one below its own was planted or misplaced.
+        $this->assertVerdict(MessageTrust::Unverified, TrustVerdict::PLANTED, 'planted-below-pass');
+    }
+
+    public function testAnUntrustedLowerResultsHeaderIsIgnored(): void
+    {
+        $this->assertVerdict(MessageTrust::Verified, TrustVerdict::DMARC, 'untrusted-below-pass');
+    }
+
     public function testAnUntrustedAuthservIdIsIgnored(): void
     {
         // The topmost header is the relay's; the trusted-looking one below it may be anyone's.
