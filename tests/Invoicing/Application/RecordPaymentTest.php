@@ -381,7 +381,12 @@ final class RecordPaymentTest extends InvoiceTestCase
         }
 
         // Once the first is cancelled, the movement may pay again.
-        $this->em->getConnection()->executeStatement("UPDATE payment SET cancelled_at = '2026-11-20 10:00:00' WHERE id = ?", [$first->id()]);
+        $this->em->clear();
+        $cancelled = $this->em->find(Payment::class, $first->id());
+        self::assertInstanceOf(Payment::class, $cancelled);
+        $cancelled->cancel(new \DateTimeImmutable('2026-11-20 10:00:00'), null);
+        $this->em->flush();
+        self::assertNull($this->em->getConnection()->fetchOne('SELECT live_bank_movement_id FROM payment WHERE id = ?', [$first->id()]));
         $bank();
         self::assertEquals(2, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM payment WHERE bank_movement_id = ?', [self::MOVEMENT]));
     }

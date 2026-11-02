@@ -24,7 +24,10 @@ use Doctrine\ORM\Mapping as ORM;
  * cancelling it removes its allocations and keeps the row, with who and when, so a
  * bank movement it came from can be paired again and the log stays whole.
  *
- * The movement is named by its id only: invoicing knows nothing of banking.
+ * The movement is named by its id only: invoicing knows nothing of banking. It
+ * pays through one payment that is not cancelled: live_bank_movement_id is the
+ * movement while the payment is live and NULL once it is cancelled, and a plain
+ * unique index over it keeps the rule, as primary_flag does for FirmBankAccount.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'payment')]
@@ -32,8 +35,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_payment_firm_received', columns: ['tenant_id', 'legal_entity_id', 'received_on'])]
 #[ORM\Index(name: 'idx_payment_bank_movement', columns: ['bank_movement_id'])]
 #[ORM\Index(name: 'idx_payment_firm', columns: ['legal_entity_id'])]
-// A bank movement pays through one payment not cancelled; SQLite and PostgreSQL both keep a partial index.
-#[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['bank_movement_id'], options: ['where' => '(cancelled_at IS NULL)'])]
+#[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['live_bank_movement_id'])]
 class Payment implements TenantOwned, Audited
 {
     public const int MAX_NOTE = 500;
@@ -56,6 +58,10 @@ class Payment implements TenantOwned, Audited
 
     #[ORM\Column(name: 'cancelled_by', type: 'guid', nullable: true)]
     private ?string $cancelledBy = null;
+
+    /** The movement while the payment is live, NULL once it is cancelled: what the unique index holds. */
+    #[ORM\Column(name: 'live_bank_movement_id', type: 'guid', nullable: true)]
+    private ?string $liveBankMovementId;
 
     /**
      * @throws \InvalidArgumentException for an amount that is not positive, a note past MAX_NOTE, or a movement
@@ -91,6 +97,7 @@ class Payment implements TenantOwned, Audited
             throw new \InvalidArgumentException('A payment from a bank movement names it, and only such a payment does.');
         }
         $this->id = Id::generate();
+        $this->liveBankMovementId = $bankMovementId;
         $this->amountMinor = $amount->minor();
         $this->currency = $amount->currency();
     }
@@ -105,6 +112,7 @@ class Payment implements TenantOwned, Audited
         }
         $this->cancelledAt = $at;
         $this->cancelledBy = $userId;
+        $this->liveBankMovementId = null;
     }
 
     public function isCancelled(): bool

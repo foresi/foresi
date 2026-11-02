@@ -25,8 +25,10 @@ use Doctrine\Migrations\Version\Version;
 use PHPUnit\Framework\TestCase;
 
 /**
- * A bank movement pays through one payment that is not cancelled: a scratch
- * database on SQLite, or a schema of its own in the test database on PostgreSQL.
+ * A bank movement pays through one payment that is not cancelled, held by a plain
+ * unique index over live_bank_movement_id, which a live payment fills with its
+ * movement and a cancelled one leaves NULL: a scratch database on SQLite, or a
+ * schema of its own in the test database on PostgreSQL.
  */
 final class PaymentMovementIndexMigrationTest extends TestCase
 {
@@ -98,14 +100,19 @@ final class PaymentMovementIndexMigrationTest extends TestCase
     {
         $this->migrateTo(self::BEFORE);
 
-        $this->payment(self::MOVEMENT);
-        $this->payment(self::MOVEMENT);
+        self::assertNotContains('live_bank_movement_id', array_keys($this->db->createSchemaManager()->introspectTableColumnsByUnquotedName('payment')));
+        $this->payment(self::MOVEMENT, live: false);
+        $this->payment(self::MOVEMENT, live: false);
         self::assertEquals(2, $this->db->fetchOne('SELECT COUNT(*) FROM payment'));
     }
 
-    private function payment(?string $movement, ?string $cancelledAt = null): void
+    /**
+     * As Payment stores it: the movement a second time while the payment is live.
+     */
+    private function payment(?string $movement, ?string $cancelledAt = null, bool $live = true): void
     {
-        $this->db->insert('payment', [
+        $live = $live ? ['live_bank_movement_id' => null === $cancelledAt ? $movement : null] : [];
+        $this->db->insert('payment', $live + [
             'id' => Id::generate(),
             'tenant_id' => self::TENANT,
             'legal_entity_id' => $this->firm,
