@@ -10,7 +10,6 @@ namespace App\Shared\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
-use Doctrine\DBAL\Schema\SQLiteSchemaManager;
 
 /**
  * SQLite as it is: it writes the WHERE of a partial index, and its schema
@@ -23,7 +22,7 @@ final class SqlitePlatformWithPartialIndexes extends SQLitePlatform
         return true;
     }
 
-    public function createSchemaManager(Connection $connection): SQLiteSchemaManager
+    public function createSchemaManager(Connection $connection): SqliteSchemaManagerWithPartialIndexes
     {
         return new SqliteSchemaManagerWithPartialIndexes($connection, $this);
     }

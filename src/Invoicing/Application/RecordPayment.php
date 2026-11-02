@@ -34,7 +34,6 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class RecordPayment
 {
-
     public function __construct(
         private InvoiceStore $store,
         private InvoicePayments $payments,
@@ -118,7 +117,7 @@ final readonly class RecordPayment
 
     private function settles(AllocationRequest $allocation): bool
     {
-        return null !== $allocation->settlement && !$allocation->settlement->isZero();
+        return $allocation->settlement instanceof Money && !$allocation->settlement->isZero();
     }
 
     private function positive(Money $amount): bool
@@ -128,7 +127,7 @@ final readonly class RecordPayment
 
     private function checkSettlement(LegalEntity $firm, Invoice $invoice, AllocationRequest $allocation): void
     {
-        if (null === $allocation->settlement || !$this->settles($allocation)) {
+        if (!$allocation->settlement instanceof Money || !$this->settles($allocation)) {
             return;
         }
         $settlement = $allocation->settlement->minor();
