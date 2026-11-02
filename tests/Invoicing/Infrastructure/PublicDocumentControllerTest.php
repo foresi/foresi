@@ -463,6 +463,12 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->client->request('GET', '/d/'.$sent['token'].'/pdf');
         self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/d/'.$sent['token'].'/open', server: self::CLICK);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/d/'.$sent['token'].'/download', server: self::CLICK);
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/d/'.$sent['token'].'/x/y');
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testNoAuditEntryIsWritten(): void

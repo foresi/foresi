@@ -14,14 +14,84 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # SQLite leg. The test environment uses an in-memory database (.env.test),
-  # which every parallel Infection process gets for itself, so no DATABASE_URL
-  # is set here. The migrations run against the dev database, var/data.db.
-  quality:
-    name: Quality gate (sqlite)
+  # The quality gate is split in jobs that run side by side, and the job named
+  # "Quality gate (sqlite)" below puts them together. Static checks, migrations and the
+  # production build need no tests. The tests run once, with coverage. Mutation testing,
+  # which skips no mutant and dominated the run time, then runs in parallel shards on
+  # that coverage.
+  static:
+    name: Static analysis and build
     runs-on: ubuntu-latest
-    # Mutation testing skips no mutant and dominates the run time.
-    timeout-minutes: 90
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # The migrations run against the dev database, var/data.db.
+      - name: Migrations match the mapping
+        run: |
+          bin/console doctrine:migrations:migrate --no-interaction
+          bin/console doctrine:schema:validate
+
+      # Every reversible migration goes down and up again; see the script for
+      # the migrations that are irreversible by design.
+      - name: Migration round trip
+        run: bin/migration-roundtrip
+
+      - name: Static checks
+        run: composer qa:static
+
+      # A production build must fail on any missing asset or import. Strict
+      # missing_import_mode makes asset-map:compile throw; the output is also
+      # checked for warnings.
+      - name: Frontend build (prod)
+        shell: bash
+        env:
+          APP_ENV: prod
+          APP_SECRET: ci-build-only
+        run: |
+          set -euo pipefail
+          for step in "importmap:install" "tailwind:build --minify" "asset-map:compile"; do
+            log="build-${step%% *}.log"
+            # shellcheck disable=SC2086
+            bin/console $step > "$log" 2>&1 || { cat "$log"; exit 1; }
+            cat "$log"
+            if grep -iE 'warning|unable to find|could not be found' "$log"; then exit 1; fi
+          done
+
+      - name: Security audit
+        run: composer audit
+
+  # The full test suite on the in-memory SQLite database of the test environment
+  # (.env.test), once, with the coverage that every mutation shard reuses.
+  coverage:
+    name: Tests with coverage (sqlite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -37,7 +107,8 @@ jobs:
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
-          ini-values: upload_max_filesize=64M, post_max_size=64M
+          # No execution time limit: a long run must not die on one.
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -99,46 +170,188 @@ jobs:
       - name: Fetch the ISDOC schema
         run: composer isdoc:schema
 
-      - name: Migrations match the mapping
-        run: |
-          bin/console doctrine:migrations:migrate --no-interaction
-          bin/console doctrine:schema:validate
-
-      # Every reversible migration goes down and up again; see the script for
-      # the migrations that are irreversible by design.
-      - name: Migration round trip
-        run: bin/migration-roundtrip
-
-      - name: Quality gate
+      - name: Tests
         env:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
           REQUIRE_POPPLER: '1'
-        run: composer qa
+        run: composer phpunit:coverage
 
-      - name: Mutation testing
-        run: composer infection
+      - name: Upload the coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage
+          path: var/coverage/
+          if-no-files-found: error
+          retention-days: 1
 
-      # A production build must fail on any missing asset or import. Strict
-      # missing_import_mode makes asset-map:compile throw; the output is also
-      # checked for warnings.
-      - name: Frontend build (prod)
-        shell: bash
+  # Mutation testing in parallel shards. Infection has no sharding of its own, so a shard is
+  # a set of source files (bin/infection-shard), balanced by size. Every shard reuses the
+  # coverage above, skips the initial test run, and leaves the minimum scores to the
+  # quality gate, which judges the total of all shards. Keep SHARD_COUNT and the matrix in
+  # step; a shard that is missing fails the gate.
+  mutation:
+    name: Mutation testing (shard ${{ matrix.shard }})
+    needs: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    env:
+      SHARD_COUNT: '6'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # The mutants run the same tests as the coverage run, with the same tools.
+      # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
+      # by SHA-256, and a missing binary fails the tests instead of skipping them.
+      - name: Set up Java for veraPDF
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install veraPDF
         env:
-          APP_ENV: prod
-          APP_SECRET: ci-build-only
+          VERAPDF_VERSION: 1.30.3
+          VERAPDF_SHA256: b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59
         run: |
           set -euo pipefail
-          for step in "importmap:install" "tailwind:build --minify" "asset-map:compile"; do
-            log="build-${step%% *}.log"
-            # shellcheck disable=SC2086
-            bin/console $step > "$log" 2>&1 || { cat "$log"; exit 1; }
-            cat "$log"
-            if grep -iE 'warning|unable to find|could not be found' "$log"; then exit 1; fi
+          mkdir -p "$RUNNER_TEMP/verapdf-installer"
+          cd "$RUNNER_TEMP/verapdf-installer"
+          curl -fsSL -o installer.zip "https://software.verapdf.org/releases/${VERAPDF_VERSION%.*}/verapdf-greenfield-${VERAPDF_VERSION}-installer.zip"
+          echo "${VERAPDF_SHA256}  installer.zip" | sha256sum --check
+          unzip -q installer.zip
+          cat > auto-install.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <AutomatedInstallation langpack="eng">
+          <com.izforge.izpack.panels.htmlhello.HTMLHelloPanel id="welcome"/>
+          <com.izforge.izpack.panels.target.TargetPanel id="install_dir"><installpath>${RUNNER_TEMP}/verapdf</installpath></com.izforge.izpack.panels.target.TargetPanel>
+          <com.izforge.izpack.panels.packs.PacksPanel id="sdk_pack_select"><pack index="0" name="veraPDF Runtime" selected="true"/><pack index="1" name="veraPDF Mac and *nix Scripts" selected="true"/></com.izforge.izpack.panels.packs.PacksPanel>
+          <com.izforge.izpack.panels.install.InstallPanel id="install"/>
+          <com.izforge.izpack.panels.finish.FinishPanel id="finish"/>
+          </AutomatedInstallation>
+          EOF
+          java -jar "verapdf-greenfield-${VERAPDF_VERSION}/verapdf-izpack-installer-${VERAPDF_VERSION}.jar" auto-install.xml
+          echo "${RUNNER_TEMP}/verapdf" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/verapdf/verapdf" --version
+
+      # The invoice PDF tests read the file with Poppler, as a person's tools would.
+      - name: Install Poppler
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/isdoc-schema
+          key: isdoc-schema-${{ hashFiles('bin/fetch-isdoc-schema') }}
+
+      - name: Fetch the ISDOC schema
+        run: composer isdoc:schema
+
+      - name: Download the coverage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage
+          path: var/coverage/
+
+      - name: Mutation testing
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          mkdir -p var/shard
+          INFECTION_SHARD_MANIFEST="var/shard/shard-${SHARD}.files.json" php bin/infection-shard files "$SHARD" "$SHARD_COUNT" > "var/shard/files-${SHARD}.txt"
+          mapfile -t files < "var/shard/files-${SHARD}.txt"
+          echo "Shard ${SHARD} of ${SHARD_COUNT}: ${#files[@]} files"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
+            --coverage=var/coverage --skip-initial-tests \
+            --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
+            --min-msi=0 --min-covered-msi=0 \
+            --logger-summary-json="var/shard/shard-${SHARD}.json" \
+            --show-mutations --no-progress \
+            "${files[@]}"
+
+      - name: Upload the result of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: infection-shard-${{ matrix.shard }}
+          path: |
+            var/shard/
+            var/infection/infection.log
+          if-no-files-found: error
+          retention-days: 7
+
+  # The required check. It stays named "Quality gate (sqlite)" and passes only when the
+  # static checks, the tests and every mutation shard pass, and when the mutation score
+  # of all shards together reaches the minimums (80 MSI, 90 covered MSI) with no mutant
+  # skipped. It runs even when a job before it failed, and then fails on that.
+  quality:
+    name: Quality gate (sqlite)
+    needs: [static, coverage, mutation]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: The jobs before it passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: ${RESULTS}"
+          for result in ${RESULTS}; do
+            [ "${result}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
           done
 
-      - name: Security audit
-        run: composer audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Download the results of the shards
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: infection-shard-*
+          path: var/shards/
+          merge-multiple: true
+
+      - name: Mutation score of all shards
+        run: php bin/infection-shard merge var/shards
 
   # PostgreSQL leg. Static analysis does not depend on the database, so only
   # migrations, mapping and the test suite run here. Infection is not run:

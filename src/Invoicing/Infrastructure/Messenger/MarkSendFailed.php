@@ -28,9 +28,17 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
  * The worker has no tenant of its own here, so the one of the message is made
  * active for the change. Only the server's own reason is kept, never the text of
  * another error.
+ *
+ * The send's own tries decide, not the message that ran out: RequeueStuckSends
+ * may have queued a second message for the same send, each with retries of its
+ * own, and the first to run out must not cut the other short. A send with tries
+ * left stays queued; the other message retries it, or, when none is left, the
+ * job hands it back.
  */
 final readonly class MarkSendFailed
 {
+    /** The first try and the five retries of the mail transport (config/packages/messenger.yaml). */
+    public const int ATTEMPTS = 6;
     private const string GAVE_UP = 'The message could not be delivered.';
 
     public function __construct(
@@ -57,7 +65,11 @@ final readonly class MarkSendFailed
         $this->context->switchTo($tenant);
         try {
             $this->retry->run(fn (): null => $this->work->run(function () use ($message, $refused): null {
-                $this->sends->lock($message->sendId)->fail(
+                $send = $this->sends->lock($message->sendId);
+                if ($send->attempts() < self::ATTEMPTS) {
+                    return null;
+                }
+                $send->fail(
                     \DateTimeImmutable::createFromInterface($this->clock->now()),
                     $refused->safeReason ?? self::GAVE_UP,
                     $refused->settingsProblem ?? false,

@@ -48,10 +48,9 @@ use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * What send-race.php runs: sending, delivering and trashing in parallel
@@ -177,18 +176,17 @@ abstract class SendWorker extends KernelTestCase
     private static function deliver(MessageBusInterface $bus, RecordingMailGateway $gateway, string $tenant, string $send): string
     {
         $before = \count($gateway->attempts());
-        try {
-            $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
-        } catch (HandlerFailedException $failed) {
-            // The other worker holds the claim: the message comes back when its lease ends.
-            if (!$failed->getPrevious() instanceof RecoverableMessageHandlingException) {
-                throw $failed;
-            }
-
-            return \count($gateway->attempts()) > $before ? 'mailed and waiting' : 'waiting';
+        $queue = self::getContainer()->get('messenger.transport.mail');
+        \PHPUnit\Framework\Assert::assertInstanceOf(InMemoryTransport::class, $queue);
+        $queued = \count($queue->getSent());
+        $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
+        $mailed = \count($gateway->attempts()) > $before;
+        // The other worker holds the claim: the message is put back for when its lease ends.
+        if (\count($queue->getSent()) > $queued) {
+            return $mailed ? 'mailed and waiting' : 'waiting';
         }
 
-        return \count($gateway->attempts()) > $before ? 'mailed' : 'left alone';
+        return $mailed ? 'mailed' : 'left alone';
     }
 
     private static function request(string $invoice): SendRequest

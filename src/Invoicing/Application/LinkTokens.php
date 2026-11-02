@@ -12,10 +12,12 @@ use App\Invoicing\Domain\LinkAudience;
 
 /**
  * The secret part of a link to a sent document: 43 characters, 256 bits, derived
- * from the installation secret, the send and the audience. Derived rather than
- * stored, so no link sits in a table, a queue or a log; the row keeps only its
- * hash. Changing the secret ends every link, and the links of queued sends then
- * go out new.
+ * from the installation secret, the send and the audience when the send is
+ * queued. Derived rather than stored, so no link sits in a table, a queue or a
+ * log; the row keeps only its hash, and a link is looked up by that hash. A link
+ * that was delivered keeps working when the secret changes, as ADR 0015 says. A
+ * send still queued then fails rather than mail a link that leads nowhere: the
+ * worker derives the link again and checks it against the stored hash.
  */
 final readonly class LinkTokens
 {

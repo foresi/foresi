@@ -10,9 +10,12 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\MailMessage;
+use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\RequeueStuckSends;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
+use App\Invoicing\Infrastructure\Messenger\MarkSendFailed;
+use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
@@ -22,11 +25,12 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
+use Symfony\Component\Yaml\Yaml;
 
 final class DeliverInvoiceSendTest extends SendingTestCase
 {
@@ -161,7 +165,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $send = $this->sent($invoice);
-        $this->gateway->failNext(1, false);
+        $this->gateway->failNext(MarkSendFailed::ATTEMPTS, false);
         $failure = $this->deliveryFailure();
         self::assertSame('queued', $this->row($send->id())['status']);
 
@@ -169,7 +173,11 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last(), 'mail', $failure));
         self::assertSame('queued', $this->row($send->id())['status'], 'a retry is still to come');
 
-        // After the fifth retry the queue gives up.
+        // The five retries fail too, and then the queue gives up.
+        for ($retry = 1; $retry < MarkSendFailed::ATTEMPTS; ++$retry) {
+            $failure = $this->deliveryFailure(redeliver: true);
+        }
+        self::assertSame(MarkSendFailed::ATTEMPTS, self::integer($this->row($send->id()), 'attempts'));
         self::mockTime('2026-11-03 15:00:00');
         $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last()->with(new RedeliveryStamp(5)), 'mail', $failure));
 
@@ -179,6 +187,52 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertSame('SMTP 451: the mail server asks to try again later.', $row['last_error']);
         self::assertNull($this->invoiceRow($invoice)['delivered_at']);
         self::assertSame([], $this->gateway->messages());
+    }
+
+    public function testTheTriesOfTheSendDecideNotTheMessageThatRunsOutFirst(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $failure = $this->deliveryFailure();
+
+        // A second message for the same send, from the job during a backlog, runs out of retries first.
+        $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last()->with(new RedeliveryStamp(5)), 'mail', $failure));
+
+        $row = $this->row($send->id());
+        self::assertSame('queued', $row['status'], 'one try of six: the other message still retries');
+        self::assertSame(1, self::integer($row, 'attempts'));
+        self::assertNull($row['failed_at']);
+    }
+
+    public function testTheTriesOfASendAreTheMailTransportsTries(): void
+    {
+        /** @var array{framework: array{messenger: array{transports: array{mail: array{retry_strategy: array{max_retries: int}}}}}} $config */
+        $config = Yaml::parseFile(\dirname(__DIR__, 3).'/config/packages/messenger.yaml');
+
+        self::assertSame(MarkSendFailed::ATTEMPTS, 1 + $config['framework']['messenger']['transports']['mail']['retry_strategy']['max_retries']);
+    }
+
+    public function testASendWhoseRetriesEndedWithTriesLeftIsHandedBack(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $this->deliveryFailure();
+        $this->mailQueue->reset();
+        $job = self::getContainer()->get(RequeueStuckSends::class);
+
+        // The longest wait between two retries is 256 minutes: until then a retry may still come.
+        self::mockTime('2026-11-03 14:00:00');
+        $job->run(null);
+        self::assertSame([], [...$this->mailQueue->getSent()]);
+
+        // Past it, no message comes back to the send: the job hands it back.
+        self::mockTime('2026-11-03 16:30:00');
+        $job->run(null);
+        self::assertCount(1, [...$this->mailQueue->getSent()]);
+        $this->worker->run();
+        self::assertSame('sent', $this->row($send->id())['status']);
     }
 
     public function testRedeliveryOfASentRowSendsNothing(): void
@@ -198,14 +252,24 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $send = $this->sent($invoice);
         $this->connection->executeStatement('UPDATE invoice_send SET claimed_at = ? WHERE id = ?', ['2026-11-03 09:58:00', $send->id()]);
 
-        $waiting = $this->deliveryFailure();
-        self::assertInstanceOf(RecoverableMessageHandlingException::class, $waiting, 'the queue brings it back');
-        self::assertSame(185_000, $waiting->getRetryDelay(), 'when the lease of 09:58 ends, and a little after');
+        $this->worker->run(1);
         self::assertSame([], $this->gateway->attempts(), 'another worker has it');
+        $waiting = $this->onlyWaiting(1);
+        self::assertSame(185_000, $waiting->last(DelayStamp::class)?->getDelay(), 'back when the lease of 09:58 ends, and a little after');
+        self::assertNull($waiting->last(RedeliveryStamp::class), 'waiting uses no retry');
+        self::assertSame($this->tenant->toString(), $waiting->last(TenantStamp::class)?->tenantId);
+        self::assertSame('queued', $this->row($send->id())['status']);
 
-        // A claim older than the lease belongs to a worker that died.
+        // A retry that has to wait keeps the count it had.
+        $this->mailQueue->reset();
+        $this->worker->redeliver($this->worker->last()->with(new RedeliveryStamp(2)));
+        $waiting = $this->onlyWaiting();
+        self::assertSame([2], array_map(static fn (RedeliveryStamp $stamp): int => $stamp->getRetryCount(), $waiting->all(RedeliveryStamp::class)));
+        self::assertNull($waiting->last(ReceivedStamp::class));
+
+        // When it is due, the claim is older than the lease: its worker died.
         self::mockTime('2026-11-03 10:04:00');
-        $this->worker->redeliver($this->worker->last());
+        self::assertSame(1, $this->worker->run());
         self::assertCount(1, $this->gateway->messages());
         self::assertSame('sent', $this->row($send->id())['status']);
     }
@@ -276,6 +340,40 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertNull($row['claimed_at']);
     }
 
+    public function testASendWhoseLinkNoLongerMatchesFailsWithoutMailing(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        // Queued under another application secret: the link derived now would lead nowhere.
+        $this->connection->executeStatement('UPDATE invoice_send SET token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $send->id()]);
+
+        $failure = $this->deliveryFailure();
+
+        self::assertInstanceOf(UnrecoverableMessageHandlingException::class, $failure);
+        self::assertSame([], $this->gateway->attempts());
+        $row = $this->row($send->id());
+        self::assertSame('failed', $row['status']);
+        self::assertSame(MailRefused::LINK_CHANGED, $row['last_error_code']);
+        self::assertNull($this->invoiceRow($invoice)['delivered_at']);
+    }
+
+    public function testACopyWhoseLinkNoLongerMatchesIsNotMailed(): void
+    {
+        $this->contactEmail('office@example.com');
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice, ['copyToMe' => true]);
+        $this->connection->executeStatement('UPDATE invoice_send SET copy_token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $send->id()]);
+
+        $this->worker->run();
+
+        self::assertCount(1, $this->gateway->attempts(), 'the customer only');
+        $row = $this->row($send->id());
+        self::assertSame('sent', $row['status']);
+        self::assertNull($row['copy_sent_at']);
+        self::assertSame(MailRefused::LINK_CHANGED, $row['copy_error_code']);
+        self::assertNull($row['claimed_at']);
+    }
+
     public function testAMessageWithoutATenantIsRejected(): void
     {
         $invoice = $this->issue->issue($this->input());
@@ -335,7 +433,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $failure = $this->deliveryFailure(redeliver: true);
         $this->showAgain('invoice', $invoice->id());
 
-        self::assertNotInstanceOf(RecoverableMessageHandlingException::class, $failure);
+        self::assertNotInstanceOf(SendLeaseHeld::class, $failure);
         $row = $this->row($send->id());
         self::assertSame(['sent', '2026-11-03 10:05:00'], [$row['status'], self::moment($row, 'claimed_at')], 'accepted, and still claimed for the rest');
         self::assertNull($this->invoiceRow($invoice)['delivered_at']);
@@ -343,7 +441,9 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
         // The queue's retry a minute later waits for the lease; the next one finishes the bookkeeping.
         self::mockTime('2026-11-03 10:06:00');
-        self::assertInstanceOf(RecoverableMessageHandlingException::class, $this->deliveryFailure(redeliver: true));
+        $this->mailQueue->reset();
+        $this->worker->redeliver($this->worker->last());
+        self::assertSame(245_000, $this->onlyWaiting()->last(DelayStamp::class)?->getDelay());
         self::mockTime('2026-11-03 10:10:05');
         $this->worker->redeliver($this->worker->last());
 
@@ -469,6 +569,18 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     {
         $this->connection->executeStatement(\sprintf('UPDATE %s SET tenant_id = ? WHERE id = ?', $table), [$this->tenant->toString(), $id]);
         $this->em->clear();
+    }
+
+    /**
+     * The one message the queue got after the first $before, not due before its delay.
+     */
+    private function onlyWaiting(int $before = 0): Envelope
+    {
+        $waiting = \array_slice([...$this->mailQueue->getSent()], $before);
+        self::assertCount(1, $waiting);
+        self::assertSame([], [...$this->mailQueue->get()], 'not due yet');
+
+        return $waiting[0];
     }
 
     private function onlyMessage(): MailMessage

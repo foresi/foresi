@@ -53,20 +53,50 @@ final class FirmMailServerTest extends TestCase
         $server->markVerified(new \DateTimeImmutable('2026-11-02 10:00:00'));
         self::assertEquals(new \DateTimeImmutable('2026-11-02 10:00:00'), $server->verifiedAt());
 
-        $server->change('mail.example.com', 465, MailEncryption::Tls, 'billing@example.com', null, 'billing@example.com', 'Billing');
+        $server->change('SMTP.example.com.', 587, MailEncryption::Starttls, 'invoices@example.com', null, 'billing@example.com', 'Billing');
 
         self::assertSame('k1:sealed', $server->sealedSecret());
-        self::assertSame('mail.example.com', $server->host());
-        self::assertSame(465, $server->port());
-        self::assertSame(MailEncryption::Tls, $server->encryption());
-        self::assertSame('billing@example.com', $server->username());
+        self::assertSame('smtp.example.com', $server->host());
         self::assertSame('billing@example.com', $server->fromAddress());
         self::assertSame('Billing', $server->fromName());
         self::assertNull($server->verifiedAt());
 
         $server->change('mail.example.com', 2525, MailEncryption::Tls, 'billing@example.com', 'k2:other', 'billing@example.com', 'Billing');
         self::assertSame('k2:other', $server->sealedSecret());
+        self::assertSame('mail.example.com', $server->host());
         self::assertSame(2525, $server->port());
+        self::assertSame(MailEncryption::Tls, $server->encryption());
+        self::assertSame('billing@example.com', $server->username());
+    }
+
+    /**
+     * @param array{0: string, 1: int, 2: MailEncryption, 3: string} $connection
+     */
+    #[DataProvider('otherConnections')]
+    public function testANewConnectionNeedsTheSecretAgain(array $connection): void
+    {
+        $server = $this->server();
+        self::assertTrue($server->needsSecretFor(...$connection));
+        self::assertFalse($server->needsSecretFor('SMTP.example.com.', 587, MailEncryption::Starttls, ' invoices@example.com '));
+
+        try {
+            $server->change(...[...$connection, null, 'invoices@example.com', 'Example Firm']);
+            self::fail('A new connection kept the stored secret.');
+        } catch (InvalidMailServer) {
+            self::assertSame('smtp.example.com', $server->host());
+            self::assertSame('k1:sealed', $server->sealedSecret());
+        }
+    }
+
+    /**
+     * @return iterable<string, array{array{0: string, 1: int, 2: MailEncryption, 3: string}}>
+     */
+    public static function otherConnections(): iterable
+    {
+        yield 'host' => [['mail.example.com', 587, MailEncryption::Starttls, 'invoices@example.com']];
+        yield 'port' => [['smtp.example.com', 465, MailEncryption::Starttls, 'invoices@example.com']];
+        yield 'encryption' => [['smtp.example.com', 587, MailEncryption::Tls, 'invoices@example.com']];
+        yield 'username' => [['smtp.example.com', 587, MailEncryption::Starttls, 'other@example.com']];
     }
 
     #[DataProvider('ports')]

@@ -95,7 +95,20 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
     }
 
     /**
-     * A null secret keeps the stored one, so a form need not show it again. Any
+     * Whether these connection settings differ from the stored ones, so the
+     * stored secret must not go along: it would reach another server or account.
+     */
+    public function needsSecretFor(string $host, int $port, MailEncryption $encryption, string $username): bool
+    {
+        return (self::normalHost($host) ?? $host) !== $this->host
+            || $port !== $this->port
+            || $encryption !== $this->encryption
+            || trim($username) !== $this->username;
+    }
+
+    /**
+     * A null secret keeps the stored one, so a form need not show it again, but
+     * only while the host, port, encryption and user name stay the same. Any
      * change asks for a fresh check of the connection.
      */
     public function change(string $host, int $port, MailEncryption $encryption, string $username, ?string $sealedSecret, string $fromAddress, string $fromName): void
@@ -120,6 +133,9 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
         }
         if ('' === $sealedSecret) {
             throw new InvalidMailServer('The mail server needs a password.');
+        }
+        if (null === $sealedSecret && $this->needsSecretFor($host, $port, $encryption, $username)) {
+            throw new InvalidMailServer('A new host, port, encryption or user name needs the password again.');
         }
 
         $this->host = $host;

@@ -513,7 +513,7 @@ firm:
       encryption: Encryption
       username: Username
       password: Password
-      password_kept: Leave blank to keep the stored password.
+      password_kept: Leave blank to keep the stored password, unless you change the server, port, encryption or user name.
       fromAddress: Sender e-mail
       fromAddress_help: Undelivered mail comes back here too.
       fromName: Sender name
@@ -550,6 +550,7 @@ firm:
       port: 'The port must be one of: {ports}.'
       encryption: Choose the encryption.
       line_break: The value cannot hold a line break.
+      password_again: The server, port, encryption or user name changed. Enter the password again.
       save_failed: Saving failed. Try it again.
   invoicing:
     title: Invoicing
@@ -798,6 +799,7 @@ invoice:
     bad_address: An address of the message is not valid.
     login_refused: '{smtp, select, none {The mail server refused the login.} other {The mail server refused the login (SMTP {smtp}).}}'
     message_refused: '{smtp, select, none {The mail server refused the message.} other {The mail server refused the message (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {The mail server refused the recipient {recipient}.} other {The mail server refused the recipient {recipient} (SMTP {smtp}).}}'
     try_later: '{smtp, select, none {The mail server asks to try again later.} other {The mail server asks to try again later (SMTP {smtp}).}}'
     unexpected_answer: The mail server gave an unexpected answer.
     secure_connection: 'The secure connection to the mail server failed: check the encryption, the port and the host name.'
@@ -809,6 +811,7 @@ invoice:
     not_handed_over: The message could not be handed to the mail server.
     copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
     gave_up: The message could not be delivered.
+    link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
   sends:
     title: Sent e-mails
     views: Send states
@@ -1335,6 +1338,7 @@ invoice:
     number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
     number_locked: Series and number cannot change once the document is delivered.
     number_locked_sending: Series and number cannot change while the document is being sent.
+    number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
     numbers_exhausted: This series has no numbers left.
