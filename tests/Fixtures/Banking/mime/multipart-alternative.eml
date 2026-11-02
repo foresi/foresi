@@ -1,0 +1,21 @@
+From: notices@bank.example.com
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <alternative-1@bank.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="alt-boundary"
+
+--alt-boundary
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Amount: 1=C2=A0234,50 CZK
+
+--alt-boundary
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<p>Amount: <b>1=C2=A0234,50 CZK</b></p>
+
+--alt-boundary--

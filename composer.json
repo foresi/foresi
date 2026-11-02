@@ -46,7 +46,8 @@
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
-        "tecnickcom/tc-lib-pdf": "^8.82.2"
+        "tecnickcom/tc-lib-pdf": "^8.82.2",
+        "zbateson/mail-mime-parser": "^4.0.8"
     },
     "config": {
         "allow-plugins": {

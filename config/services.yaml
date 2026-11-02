@@ -57,6 +57,9 @@ services:
         # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
         App\Tenancy\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
+        # A country module plugs into banking with the parsers of its banks' mail.
+        App\Banking\Application\BankMessageParser:
+            tags: ['app.bank_message_parser']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -69,6 +72,16 @@ services:
     App\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
+
+    App\Banking\Application\BankMessageParsers:
+        arguments:
+            $parsers: !tagged_iterator app.bank_message_parser
+
+    App\Banking\Application\MailReader:
+        alias: App\Banking\Infrastructure\Mime\ZbatesonMailReader
+    # Every firm gets the default switches until the pairing settings are stored.
+    App\Banking\Application\FirmPairingRules:
+        alias: App\Banking\Application\DefaultPairingRules
 
     App\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:
