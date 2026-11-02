@@ -106,7 +106,7 @@
         "deptrac": "deptrac analyse --no-progress --ansi",
         "phpunit": [
             "Composer\\Config::disableProcessTimeout",
-            "phpunit"
+            "@php -d max_execution_time=0 vendor/bin/phpunit"
         ],
         "isdoc:schema": "@php bin/fetch-isdoc-schema",
         "infection": [
