@@ -278,7 +278,7 @@ final class FirmBankControllerTest extends WebTestCase
 
         self::assertNotNull($crawler->filter('#autoPairing')->attr('checked'));
         self::assertNull($crawler->filter('#smallDifference')->attr('checked'));
-        self::assertStringContainsString('Settles a difference under 1 CZK onto the invoice total', $crawler->filter('#smallDifference-help')->text());
+        self::assertStringContainsString('Settles a difference up to 0.99 Kč onto the invoice total', $crawler->filter('#smallDifference-help')->text());
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_pairing')));
     }
 

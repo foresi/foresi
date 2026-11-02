@@ -655,7 +655,7 @@ bank:
       auto: Automatic payment pairing
       auto_help: A verified payment pays its one matching invoice itself.
       small: Small-difference settlement
-      small_help: Settles a difference under 1 CZK onto the invoice total.
+      small_help: Settles a difference up to 0.99 Kč onto the invoice total.
       saved: The pairing settings are saved.
       save_failed: The settings could not be saved. Try again.
     address:

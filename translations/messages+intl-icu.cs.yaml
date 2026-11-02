@@ -655,7 +655,7 @@ bank:
       auto: Automatické párování plateb
       auto_help: Ověřená platba uhradí jedinou odpovídající fakturu sama.
       small: Haléřové vyrovnání
-      small_help: Vyrovná rozdíl do 1 Kč na celkovou částku faktury.
+      small_help: Vyrovná rozdíl do 0,99 Kč na celkovou částku faktury.
       saved: Nastavení párování je uložené.
       save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
     address:
