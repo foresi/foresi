@@ -41,14 +41,14 @@
                                         <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="history" name="reset" :value="code" formnovalidate>{{ 'firm.mail.reset'|trans }}</twig:Ui:Button>
                                     {% endif %}
                                 </div>
-                                <twig:Ui:TextInput :name="'subject[' ~ code ~ ']'" :id="'subject-' ~ code" :label="'firm.mail.field.subject'|trans" :value="templates[code].subject" :error="errors['subject-' ~ code]|default(null)" maxlength="255" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
-                                <twig:Ui:Textarea :name="'body[' ~ code ~ ']'" :id="'body-' ~ code" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: '{link}'})" :value="templates[code].body" :error="errors['body-' ~ code]|default(null)" :rows="9" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                                <twig:Ui:TextInput :name="'subject[' ~ code ~ ']'" :id="'subject-' ~ code" :label="'firm.mail.field.subject'|trans" :value="templates[code].subject" :error="errors['subject-' ~ code]|default(null)" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                                <twig:Ui:Textarea :name="'body[' ~ code ~ ']'" :id="'body-' ~ code" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: language.link})" :value="templates[code].body" :error="errors['body-' ~ code]|default(null)" :rows="9" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
                                 <div role="group" aria-labelledby="variables-{{ code }}" aria-describedby="variables-{{ code }}-help" class="grid gap-1.5">
                                     <p id="variables-{{ code }}" class="m-0 text-small font-medium text-ink">{{ 'firm.mail.variables'|trans }}</p>
                                     <p id="variables-{{ code }}-help" class="m-0 text-caption text-muted">{{ 'firm.mail.variables_help'|trans }}</p>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        {% for variable in variables %}
-                                            <button type="button" draggable="true" data-token="{{ variable.token }}" title="{{ variable.token }}" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
+                                    <div class="flex flex-wrap gap-1.5" lang="{{ code }}">
+                                        {% for variable in language.variables %}
+                                            <button type="button" draggable="true" data-token="{{ variable.token }}" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
                                         {% endfor %}
                                     </div>
                                 </div>

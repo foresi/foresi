@@ -26,16 +26,16 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await expect(chip).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(body).toHaveValue('Zasílám fakturu {number}.');
+    await expect(body).toHaveValue('Zasílám fakturu {Číslo dokladu}.');
     await expect(chip).toBeFocused();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
-    await expect(body).toHaveValue('Zasílám fakturu {number}{order_number}.');
+    await expect(body).toHaveValue('Zasílám fakturu {Číslo dokladu}{Číslo objednávky}.');
     await page.locator('[data-action-bar]').getByRole('button', { name: 'Uložit' }).click();
     await expect(page.getByText('E-mailové šablony jsou uložené.')).toBeVisible();
 
     await page.reload();
-    await expect(page.locator('#body-cs')).toHaveValue('Zasílám fakturu {number}{order_number}.');
+    await expect(page.locator('#body-cs')).toHaveValue('Zasílám fakturu {Číslo dokladu}{Číslo objednávky}.');
     await expect(page.getByRole('button', { name: 'Obnovit výchozí text' })).toBeVisible();
   });
 
@@ -53,7 +53,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await page.getByRole('button', { name: 'Obnovit výchozí text' }).click();
 
     await expect(page.getByText('Šablona má zase výchozí text.')).toBeVisible();
-    await expect(page.locator('#subject-cs')).toHaveValue('Faktura {number}');
+    await expect(page.locator('#subject-cs')).toHaveValue('Faktura {Číslo dokladu}');
     await expect(page.locator('#body-cs')).toHaveValue(/^Na základě Vaší objednávky/);
   });
 

@@ -80,7 +80,7 @@ test.describe('e-mail settings', () => {
 
   test('templates have no serious accessibility violations and no sideways scroll @a11y @layout', async ({ page }) => {
     await open(page, 'Šablony');
-    await expect(page.locator('#body-cs')).toHaveValue(/\{number\}/);
+    await expect(page.locator('#body-cs')).toHaveValue(/\{Číslo dokladu\}/);
     // At load on a phone the floating action bar covers the first chips, which axe counts
     // against their target size; a keyboard or touch user reaches them scrolled clear of it.
     await page.getByRole('group', { name: 'Proměnné' }).first().scrollIntoViewIfNeeded();

@@ -31,50 +31,54 @@ final readonly class FirmMailSubmission
 
     /**
      * @param array<string, string>                                      $values server fields, without the password
-     * @param array<string, array{subject: string, body: string}>        $texts  document language => template text
+     * @param array<string, array{subject: string, body: string}>        $texts  document language => template text, stored form
+     * @param array<string, array{subject: string, body: string}>        $typed  document language => template text, as typed
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors field id => translation key and its parameters
      */
-    private function __construct(public array $values, public array $texts, public array $errors, public string $password = '')
+    private function __construct(public array $values, public array $texts, public array $typed, public array $errors, public string $password = '')
     {
     }
 
     /**
-     * Fields subject[cs], body[cs] and so on, one pair per document language.
+     * Fields subject[cs], body[cs] and so on, one pair per document language. The
+     * tokens come as readable labels of that language and are stored by name.
      */
-    public static function templates(Request $request, MailVariables $variables): self
+    public static function templates(Request $request, MailTokenLabels $labels): self
     {
         $subjects = $request->request->all('subject');
         $bodies = $request->request->all('body');
         $texts = [];
+        $typed = [];
         $errors = [];
         foreach (DocumentLanguage::cases() as $language) {
             $code = $language->value;
             $subject = trim(\is_string($subjects[$code] ?? null) ? $subjects[$code] : '');
             $body = trim(str_replace(["\r\n", "\r"], "\n", \is_string($bodies[$code] ?? null) ? $bodies[$code] : ''));
-            $texts[$code] = ['subject' => $subject, 'body' => $body];
+            $typed[$code] = ['subject' => $subject, 'body' => $body];
+            $storedSubject = $labels->fromEditor($subject, $language);
+            $storedBody = $labels->fromEditor($body, $language);
+            $texts[$code] = ['subject' => $storedSubject['text'], 'body' => $storedBody['text']];
 
-            $inSubject = $variables->unknownIn($subject);
             if ('' === $subject) {
                 $errors['subject-'.$code] = ['party.error.required'];
-            } elseif (mb_strlen($subject) > MailTemplate::MAX_SUBJECT) {
+            } elseif (mb_strlen($storedSubject['text']) > MailTemplate::MAX_SUBJECT) {
                 $errors['subject-'.$code] = ['party.error.too_long'];
-            } elseif ([] !== $inSubject) {
-                $errors['subject-'.$code] = ['firm.mail.error.unknown_variables', ['names' => self::tokens($inSubject)]];
-            } elseif (str_contains($subject, '{'.MailVariables::LINK.'}')) {
-                $errors['subject-'.$code] = ['firm.mail.error.link_in_subject', ['link' => '{'.MailVariables::LINK.'}']];
+            } elseif ([] !== $storedSubject['unknown']) {
+                $errors['subject-'.$code] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedSubject['unknown'])]];
+            } elseif (str_contains($storedSubject['text'], '{'.MailVariables::LINK.'}')) {
+                $errors['subject-'.$code] = ['firm.mail.error.link_in_subject', ['link' => $labels->token(MailVariables::LINK, $language)]];
             }
 
-            $inBody = $variables->unknownIn($body);
             if ('' === $body) {
                 $errors['body-'.$code] = ['party.error.required'];
-            } elseif (mb_strlen($body) > MailTemplate::MAX_BODY) {
+            } elseif (mb_strlen($storedBody['text']) > MailTemplate::MAX_BODY) {
                 $errors['body-'.$code] = ['party.error.too_long'];
-            } elseif ([] !== $inBody) {
-                $errors['body-'.$code] = ['firm.mail.error.unknown_variables', ['names' => self::tokens($inBody)]];
+            } elseif ([] !== $storedBody['unknown']) {
+                $errors['body-'.$code] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedBody['unknown'])]];
             }
         }
 
-        return new self([], $texts, $errors);
+        return new self([], $texts, $typed, $errors);
     }
 
     /**
@@ -123,7 +127,7 @@ final readonly class FirmMailSubmission
             $errors['password'] = ['firm.mail.error.line_break'];
         }
 
-        return new self($values, [], $errors, $password);
+        return new self($values, [], [], $errors, $password);
     }
 
     /**
@@ -132,13 +136,5 @@ final readonly class FirmMailSubmission
     public static function sameText(RenderedMail $builtIn, string $subject, string $body): bool
     {
         return trim($builtIn->subject) === $subject && trim(str_replace(["\r\n", "\r"], "\n", $builtIn->body)) === $body;
-    }
-
-    /**
-     * @param list<string> $names
-     */
-    private static function tokens(array $names): string
-    {
-        return implode(', ', array_map(static fn (string $name): string => '{'.$name.'}', $names));
     }
 }

@@ -24,6 +24,7 @@ use App\Invoicing\Domain\InvalidMailTemplate;
 use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\MailTemplateKind;
 use App\Invoicing\Infrastructure\Form\FirmMailSubmission;
+use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownLegalEntity;
@@ -65,7 +66,7 @@ final class FirmMailController extends AbstractController
         private readonly MailSecrets $secrets,
         private readonly MailHostPolicy $hosts,
         private readonly MailTemplates $templates,
-        private readonly MailVariables $variables,
+        private readonly MailTokenLabels $labels,
         private readonly MailGateway $gateway,
         private readonly TransactionalWork $transaction,
         private readonly OwnerCheck $owner,
@@ -142,12 +143,13 @@ final class FirmMailController extends AbstractController
             return $this->redirectToRoute('app_firm_mail', ['id' => $firm->id()]);
         }
 
-        $submission = FirmMailSubmission::templates($request, $this->variables);
+        $submission = FirmMailSubmission::templates($request, $this->labels);
         if ([] !== $submission->errors) {
-            return $this->page($firm, self::TEMPLATES, $submission->texts, $this->storedServer($firm), $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $submission->typed, $this->storedServer($firm), $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $values = $submission->texts;
+        $typed = $submission->typed;
         try {
             $this->transaction->run(function () use ($firm, $values): void {
                 foreach (DocumentLanguage::cases() as $language) {
@@ -156,7 +158,7 @@ final class FirmMailController extends AbstractController
             });
         } catch (InvalidMailTemplate|UniqueConstraintViolationException) {
             // A control character the form let through, or another request storing the same text meanwhile.
-            return $this->page($firm, self::TEMPLATES, $values, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($firm, self::TEMPLATES, $typed, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.mail.flash.saved'));
 
@@ -255,9 +257,10 @@ final class FirmMailController extends AbstractController
                 'code' => $language->value,
                 'label' => $this->translator->trans('firm.mail.language.'.$language->value),
                 'custom' => $this->templates->isCustom($firm, MailTemplateKind::Invoice, $language),
+                'variables' => array_map(static fn (string $label): array => ['token' => '{'.$label.'}', 'label' => $label], array_values($this->labels->labels($language))),
+                'link' => $this->labels->token(MailVariables::LINK, $language),
             ], DocumentLanguage::cases()),
             'templates' => $templates,
-            'variables' => array_map(fn (string $name): array => ['token' => '{'.$name.'}', 'label' => $this->translator->trans('firm.mail.variable.'.$name)], $this->variables->names()),
             'server' => $server,
             'hasServer' => $stored instanceof FirmMailServer,
             'verifiedAt' => $stored?->verifiedAt(),
@@ -276,6 +279,8 @@ final class FirmMailController extends AbstractController
     }
 
     /**
+     * In the editor's form, with readable labels for the tokens.
+     *
      * @return array<string, array{subject: string, body: string}>
      */
     private function storedTemplates(LegalEntity $firm): array
@@ -283,7 +288,7 @@ final class FirmMailController extends AbstractController
         $texts = [];
         foreach (DocumentLanguage::cases() as $language) {
             $text = $this->templates->textFor($firm, MailTemplateKind::Invoice, $language);
-            $texts[$language->value] = ['subject' => $text->subject, 'body' => $text->body];
+            $texts[$language->value] = ['subject' => $this->labels->toEditor($text->subject, $language), 'body' => $this->labels->toEditor($text->body, $language)];
         }
 
         return $texts;

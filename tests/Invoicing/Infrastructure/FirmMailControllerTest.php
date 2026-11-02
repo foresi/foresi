@@ -71,10 +71,16 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSelectorExists('main [data-action-bar]');
         self::assertCount(2, $crawler->filter('main nav[aria-label="E-mail settings sections"] a'));
         self::assertSame('page', $crawler->filter('main nav[aria-label="Firm sections"] a[href$="/mail"]')->attr('aria-current'));
-        self::assertSame('Invoice {number}', $crawler->filter('#subject-en')->attr('value'));
-        self::assertStringContainsString('{amount_total}', $crawler->filter('#body-en')->text());
+        // The editor shows each token as a label in the template's own language.
+        self::assertSame('Invoice {Document number}', $crawler->filter('#subject-en')->attr('value'));
+        self::assertSame('Faktura {Číslo dokladu}', $crawler->filter('#subject-cs')->attr('value'));
+        self::assertStringContainsString('for {Amount to pay}, due on {Due date}.', $crawler->filter('#body-en')->text(null, false));
+        self::assertStringContainsString('na částku {Částka k úhradě} se splatností {Datum splatnosti}.', $crawler->filter('#body-cs')->text());
+        self::assertStringNotContainsString('{amount_total}', (string) $this->client->getResponse()->getContent());
+        self::assertSelectorTextContains('#body-cs-help', '{Odkaz na doklad}');
+        self::assertSelectorTextContains('#body-en-help', '{Link to the document}');
         $chips = $crawler->filter('[role="group"][aria-labelledby] button[type="button"][data-token]');
-        self::assertSame(['{number}', '{link}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token')]);
+        self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
     }
 
     public function testSavingStoresServerAndTemplate(): void
@@ -93,6 +99,35 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame(self::PASSWORD, $this->storedPassword());
         // The English text was left as built in, so only the Czech one is stored.
         self::assertSame([['language' => 'cs', 'subject' => 'Faktura {number} od nás', 'body' => "Dobrý den,\n{link}"]], $this->connection()->fetchAllAssociative('SELECT language, subject, body FROM mail_template'));
+    }
+
+    public function testLabelsAreStoredAsStableNamesAndShownAgain(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, [
+            'subject' => ['cs' => 'Faktura {číslo  dokladu} pro {Název odběratele}', 'en' => 'Invoice {Document number}'],
+            'body' => ['cs' => "Splatnost {Datum splatnosti}.\n{Odkaz na doklad}", 'en' => "Due {due_date}.\n{Link to the document}"],
+        ]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(['cs' => 'Faktura {number} pro {customer_name}', 'en' => 'Invoice {number}'], $this->connection()->fetchAllKeyValue('SELECT language, subject FROM mail_template ORDER BY language'));
+        self::assertSame(['cs' => "Splatnost {due_date}.\n{link}", 'en' => "Due {due_date}.\n{link}"], $this->connection()->fetchAllKeyValue('SELECT language, body FROM mail_template ORDER BY language'));
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertSame('Faktura {Číslo dokladu} pro {Název odběratele}', $crawler->filter('#subject-cs')->attr('value'));
+        self::assertSame("Due {Due date}.\n{Link to the document}", $crawler->filter('#body-en')->text(null, false));
+    }
+
+    public function testALabelOfTheOtherLanguageIsUnknown(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, ['subject' => ['en' => 'Invoice {Číslo dokladu}']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#subject-en-error', 'Unknown variable: {Číslo dokladu}.');
+        self::assertSame('Invoice {Číslo dokladu}', $this->client->getCrawler()->filter('#subject-en')->attr('value'));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
 
     public function testResetGivesTheBuiltInTextBack(): void
@@ -182,7 +217,7 @@ final class FirmMailControllerTest extends WebTestCase
         $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {link}']]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#subject-cs-error', '{link}');
+        self::assertSelectorTextContains('#subject-cs-error', '{Odkaz na doklad}');
     }
 
     public function testAMissingKeyExplainsItself(): void
