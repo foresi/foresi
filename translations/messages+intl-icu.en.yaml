@@ -619,6 +619,50 @@ invoice:
         {sender_name}
 
         {link}
+  send:
+    title: 'Send invoice {number}'
+    card: E-mail
+    back: Back
+    submit: Send
+    errors_title: The e-mail has not been sent
+    sent_before: 'This invoice was sent on {date}. Sending it again gives the recipient a new link.'
+    from_document: The contact has no e-mail for invoices, so the address on the document is offered.
+    no_address: The contact has no e-mail. Type an address under other recipients.
+    others_help: 'Up to {max} addresses, separated by commas.'
+    copy_to_me: 'Send a copy to me at {address}'
+    body_help: '{token} marks the link. Without it, the link goes last.'
+    trashed: 'Invoice {number} is in the trash, so it cannot be sent.'
+    no_server_title: The firm has no mail server
+    no_server_text: 'Invoices of {firm} leave through its own mail server. Until the firm has one, nothing can be sent.'
+    no_server_open: Set up the mail server
+    no_server_owner: The owner of the organisation sets up the server in the firm's e-mail settings.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (copy)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: From
+      recipients: To
+      others: Other recipients
+      subject: Subject
+      body: E-mail text
+    flash:
+      queued: 'Invoice {number} is queued for sending to {recipients}.'
+      already_queued: 'Invoice {number} is already queued for sending.'
+    error:
+      no_recipient: Tick or type at least one recipient.
+      too_many_recipients: 'There can be at most {max} recipients.'
+      too_many_others: 'There can be at most {max} other recipients.'
+      bad_address: '{address} is not a valid e-mail address.'
+      bad_subject: The subject cannot be empty, longer than 255 characters or hold the link.
+      bad_body: The e-mail text is too long.
+      unknown_variables: 'Unknown variable: {names}. Correct it or delete it.'
+      trashed: The invoice has been moved to the trash meanwhile.
+      no_server: The firm has lost its mail server meanwhile.
+      local_link_base: The link would lead to this computer. The administrator sets the public address of the installation in DEFAULT_URI.
+      rate_limited: Too many sends in a short time. Try again in a moment.
+      undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -717,6 +761,7 @@ invoice:
       trashed: In the trash
     action:
       edit: Edit
+      send: Send
       pdf: PDF
       copy: Copy
       delivered: Mark as delivered
@@ -782,6 +827,7 @@ invoice:
   reload: Reload the invoice
   cancel: Cancel
   save: Save
+  save_send: Send and save
   save_pdf: PDF and save
   more_actions: More actions
   more: More details

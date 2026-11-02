@@ -619,6 +619,50 @@ invoice:
         {sender_name}
 
         {link}
+  send:
+    title: 'Odeslat fakturu {number}'
+    card: E-mail
+    back: Zpět
+    submit: Odeslat
+    errors_title: E-mail zatím neodešel
+    sent_before: 'Faktura už odešla {date}. Když ji pošlete znovu, příjemce dostane nový odkaz.'
+    from_document: Kontakt nemá e-mail pro faktury, proto se nabízí adresa z dokladu.
+    no_address: Kontakt nemá žádný e-mail. Napište adresu do dalších příjemců.
+    others_help: 'Nejvýše {max} adres oddělených čárkou.'
+    copy_to_me: 'Poslat kopii i mně na {address}'
+    body_help: '{token} je místo pro odkaz. Bez něj bude odkaz na konci.'
+    trashed: 'Faktura {number} je v koši, takže ji nejde odeslat.'
+    no_server_title: Firma nemá poštovní server
+    no_server_text: 'Faktury firmy {firm} odcházejí přes její vlastní poštovní server. Dokud ho firma nemá, nejde nic odeslat.'
+    no_server_open: Nastavit poštovní server
+    no_server_owner: Server nastaví vlastník organizace v e-mailech firmy.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (kopie)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: Od
+      recipients: Komu
+      others: Další příjemci
+      subject: Předmět
+      body: Text e-mailu
+    flash:
+      queued: 'Faktura {number} je zařazená k odeslání na {recipients}.'
+      already_queued: 'Faktura {number} už je zařazená k odeslání.'
+    error:
+      no_recipient: Zaškrtněte nebo napište aspoň jednoho příjemce.
+      too_many_recipients: 'Příjemců může být nejvýše {max}.'
+      too_many_others: 'Dalších příjemců může být nejvýše {max}.'
+      bad_address: '{address} není platná e-mailová adresa.'
+      bad_subject: Předmět nesmí být prázdný, delší než 255 znaků ani obsahovat odkaz.
+      bad_body: Text e-mailu je příliš dlouhý.
+      unknown_variables: 'Neznámá proměnná: {names}. Opravte ji, nebo ji smažte.'
+      trashed: Faktura je mezitím v koši.
+      no_server: Firma mezitím přišla o poštovní server.
+      local_link_base: Odkaz by vedl na tento počítač. Správce nastaví veřejnou adresu instalace v DEFAULT_URI.
+      rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
+      undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -717,6 +761,7 @@ invoice:
       trashed: V koši
     action:
       edit: Upravit
+      send: Odeslat
       pdf: PDF
       copy: Kopírovat
       delivered: Označit jako doručené
@@ -782,6 +827,7 @@ invoice:
   reload: Načíst fakturu znovu
   cancel: Zrušit
   save: Uložit
+  save_send: Odeslat a uložit
   save_pdf: PDF a uložit
   more_actions: Další akce
   more: Další údaje

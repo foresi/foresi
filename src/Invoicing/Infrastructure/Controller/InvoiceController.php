@@ -80,7 +80,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceController extends AbstractController
 {
     public const string FORM_TOKEN = 'invoice_form';
-    private const array SAVING = ['save', 'save_pdf'];
+    private const array SAVING = ['save', 'save_send', 'save_pdf'];
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
@@ -339,7 +339,11 @@ final class InvoiceController extends AbstractController
         $this->tokens->complete($token, $saved->id());
         $this->flashSaved($saved, $submission, $ownNumber);
 
-        return 'save_pdf' === $action ? $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]) : $this->redirectToRoute('app_invoices');
+        return match ($action) {
+            'save_pdf' => $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]),
+            'save_send' => $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
+            default => $this->redirectToRoute('app_invoices'),
+        };
     }
 
     /**

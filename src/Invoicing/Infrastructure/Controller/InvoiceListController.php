@@ -50,7 +50,8 @@ final class InvoiceListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
-    private const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
+    /** The parts of the list's query an action carries back to it. */
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -364,7 +365,8 @@ final class InvoiceListController extends AbstractController
             ];
         }
 
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $copy];
+        $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET'];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send, $copy];
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]), 'fields' => $fields];
         }

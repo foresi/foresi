@@ -56,7 +56,7 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.locator('#invoice-more').click();
   const [pdf] = await Promise.all([
     page.waitForResponse((response) => /\/invoices\/[0-9a-f-]+\/pdf$/.test(response.url())),
-    page.getByRole('menuitem').first().click(),
+    page.getByRole('menuitem', { name: 'PDF a uložit' }).click(),
   ]);
   expect(pdf.status()).toBe(200);
   expect(pdf.headers()['content-type']).toContain('application/pdf');

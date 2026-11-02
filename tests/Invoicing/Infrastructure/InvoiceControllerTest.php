@@ -1415,6 +1415,35 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');
     }
 
+    public function testSendAndSaveSavesThenOpensTheDialog(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        self::assertSelectorTextContains('#invoice-more-menu button[value="save_send"][role="menuitem"]', 'Send and save');
+        // Above "PDF and save", as in iDoklad.
+        self::assertSame(['save_send', 'save_pdf'], $this->client->getCrawler()->filter('#invoice-more-menu button')->extract(['value']));
+
+        $this->save(array_merge($values, ['_action' => 'save_send']));
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame('Consulting', $this->stored($invoice)->description());
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/send');
+        $this->client->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertAnySelectorTextContains('[role="status"]', $invoice->number());
+    }
+
+    public function testARefusedSaveDoesNotOpenTheDialog(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(['customerId' => '', 'customerQuery' => '']), ['_action' => 'save_send']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        self::assertSelectorExists('[data-error-summary]');
+    }
+
     public function testAFormCutOffIsRefusedWholeAndAButtonOfItDoesNothing(): void
     {
         $this->signedIn();
