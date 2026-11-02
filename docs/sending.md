@@ -11,6 +11,10 @@ Foresi sends an invoice as a link to its PDF, through the firm's own mail server
    The server takes or refuses a send as a whole. If it refuses one recipient (a 5xx answer to `RCPT TO`, for example an unknown Cc address), the whole send fails and no recipient gets it, the customer included. The reason names the refused address: correct or remove it and send again.
 4. The invoice list marks each invoice as sending, sent, read or failed. The invoice's history shows every send with its text and the PDF as it was sent, and **Sales › Sent e-mails** lists all sends with a filter by firm and state.
 
+Every send has a purpose: an invoice, or a reminder with its step number. **Sales › Sent e-mails** filters by it, and the invoice's history names the reminder step. Sends made by the daily runs, recurring invoices and automatic reminders, are the system's: they skip the per-user minute limit and take at most 80% of the firm's daily budget, so people keep room to send by hand. See [recurring.md](recurring.md) and [reminders.md](reminders.md).
+
+A reminder can lose its reason while it waits in the queue. Just before it leaves, Foresi locks the invoice and cancels the reminder when the invoice was paid or moved to the trash meanwhile; an automatic one is also cancelled when the firm switched reminders off or the contact is no longer reminded. A cancelled reminder shows the state Cancelled. An invoice send is never cancelled this way.
+
 "Copy to me" sends a second message, with a link of its own, to the firm's contact e-mail (or the signed-in user's), so opening your own copy never marks the customer's link as read.
 
 ## Setting up the mail server
@@ -95,6 +99,7 @@ The send id is in the address of the "PDF as sent" link on the invoice's history
 | Sent | The firm's mail server accepted the message. The invoice is then marked delivered | That it reached an inbox. A later bounce goes to the firm's own mailbox, as the envelope sender is the firm's address; Foresi does not read it |
 | Read | Someone opened or downloaded the PDF from the customer's link, by a click | That the customer read it. Opening the page, a mail filter following the link, the firm's own copy and a signed-in member of the firm never count |
 | Failed | The server refused the message for good, or the retries ran out. The reason is shown in the user's language, with the SMTP code | Anything about the recipient beyond that answer |
+| Cancelled | The send did not leave: the invoice went to the trash before it did, or, for a reminder, it was paid meanwhile or is no longer to be reminded | That anything reached the customer |
 
 There is no tracking pixel and no IP address is stored.
 
@@ -103,7 +108,7 @@ There is no tracking pixel and no IP address is stored.
 | Limit | Value |
 |---|---|
 | Sends per signed-in user | 30 a minute |
-| Sends per firm | 500 a day |
+| Sends per firm | 500 a day, of which the system's daily runs take at most 400 (80%) |
 | Test e-mails per user | 5 a minute |
 | Public link (page and PDF) per client IP address, see [the public link](#the-public-link) | 60 a minute |
 | Recipients per send (To and Cc) | 15 |
