@@ -38,6 +38,9 @@ final class DeadlineSocketStream extends AbstractStream
 
     private readonly SocketStream $socket;
     private float $endsAt = \INF;
+    // Whether the last wait was cut to the deadline rather than set by the read timeout: a socket
+    // can give up a few microseconds before the clock reaches the deadline.
+    private bool $waitEndsAtDeadline = false;
     private string $buffer = '';
 
     /**
@@ -106,7 +109,7 @@ final class DeadlineSocketStream extends AbstractStream
             $chunk = @fread($out, self::CHUNK);
             if (false === $chunk || '' === $chunk) {
                 if (stream_get_meta_data($out)['timed_out']) {
-                    throw new TransportException($this->now() >= $this->endsAt ? self::PAST_DEADLINE : \sprintf('Connection to "%s" timed out.', $this->getReadConnectionDescription()));
+                    throw new TransportException($this->waitEndsAtDeadline ? self::PAST_DEADLINE : \sprintf('Connection to "%s" timed out.', $this->getReadConnectionDescription()));
                 }
                 if (feof($out)) {
                     continue;
@@ -237,6 +240,7 @@ final class DeadlineSocketStream extends AbstractStream
             return;
         }
         $wait = min($left, $this->socket->getTimeout());
+        $this->waitEndsAtDeadline = $left <= $this->socket->getTimeout();
         stream_set_timeout($this->stream, (int) $wait, (int) (($wait - (int) $wait) * 1_000_000));
     }
 
