@@ -18,7 +18,7 @@ use Symfony\Component\Process\Process;
  * on a file SQLite database, as SendRaceTest does. Each slot has one invoice of
  * 1,210.00 CZK and two verified notices of that amount.
  *
- * @phpstan-type Stored array{paid: int, allocations: int, movements: list<array{state: string, reason: ?string, payments: int}>}
+ * @phpstan-type Stored array{paid: int, allocations: int, movements: list<array{state: string, reason: ?string, payments: int, cancelled: int}>}
  */
 #[Group('race')]
 final class PairingRaceTest extends KernelTestCase
@@ -93,6 +93,30 @@ final class PairingRaceTest extends KernelTestCase
         }
     }
 
+    /**
+     * Unpairing on the bank tab and removing the payment on the invoice take the
+     * movement and the invoice in one order, so neither waits on the other in a
+     * deadlock that a retry would only hide.
+     */
+    #[DataProvider('databases')]
+    public function testUnpairingAndCancellingOnePaymentCancelItOnceWithoutADeadlock(string $kind): void
+    {
+        [$url, $ids] = $this->seeded($kind, paired: true);
+        $deadlocks = $this->deadlocks($url);
+
+        [$unpair, $cancel] = $this->race($url, $ids, ['unpair-first', 'cancel-first']);
+
+        self::assertSame($deadlocks, $this->deadlocks($url), 'PostgreSQL found no deadlock');
+        foreach ($this->stored($url, $ids) as $round => $invoice) {
+            self::assertContains($unpair[$round], ['unpaired', 'refused:not_paired']);
+            self::assertSame('cancelled', $cancel[$round]);
+            self::assertSame(0, $invoice['paid']);
+            self::assertSame(0, $invoice['allocations']);
+            $first = $invoice['movements'][0];
+            self::assertSame(['unmatched', 'blocked', 0, 1], [$first['state'], $first['reason'], $first['payments'], $first['cancelled']], 'one cancelled payment and the movement blocked');
+        }
+    }
+
     private static function suiteUrl(): string
     {
         $url = $_SERVER['DATABASE_URL'] ?? '';
@@ -103,17 +127,27 @@ final class PairingRaceTest extends KernelTestCase
     /**
      * @return array{string, string} the database URL and the ids as JSON
      */
-    private function seeded(string $kind): array
+    private function seeded(string $kind, bool $paired = false): array
     {
         $url = self::suiteUrl();
         if ('sqlite' === $kind) {
             $this->sqliteFile = sys_get_temp_dir().'/foresi-pairing-race-'.bin2hex(random_bytes(4)).'.db';
             $url = 'sqlite:///'.$this->sqliteFile;
         }
-        $seed = $this->process($url, ['seed', (string) self::ROUNDS]);
+        $seed = $this->process($url, ['seed', (string) self::ROUNDS, ...($paired ? ['paired'] : [])]);
         $seed->mustRun();
 
         return [$url, $seed->getOutput()];
+    }
+
+    private function deadlocks(string $url): ?int
+    {
+        $count = $this->process($url, ['deadlocks']);
+        $count->mustRun();
+        $deadlocks = json_decode($count->getOutput(), true, 8, \JSON_THROW_ON_ERROR);
+        \assert(null === $deadlocks || \is_int($deadlocks));
+
+        return $deadlocks;
     }
 
     /**

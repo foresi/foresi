@@ -25,6 +25,19 @@ final readonly class ReleaseMovement implements PaymentSourceRelease
     {
     }
 
+    public function lockSource(Payment $payment): void
+    {
+        $id = $payment->bankMovementId();
+        if (null === $id) {
+            return;
+        }
+        try {
+            $this->movements->lock($id);
+        } catch (UnknownBankMovement) {
+            // Nothing recorded to lock; the payment is cancelled all the same.
+        }
+    }
+
     public function released(Payment $payment): void
     {
         $id = $payment->bankMovementId();

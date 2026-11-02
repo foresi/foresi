@@ -334,12 +334,17 @@ final class RecordPaymentTest extends InvoiceTestCase
         $bank = $this->record->record($this->request('1210.00', [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], source: PaymentSource::BankMovement, movement: self::MOVEMENT));
         $manual = $this->pay($invoice, '10.00');
         $release = new class implements PaymentSourceRelease {
-            /** @var list<array{string, ?string, bool}> */
-            public array $released = [];
+            /** @var list<array{string, string, ?string, bool}> */
+            public array $calls = [];
+
+            public function lockSource(Payment $payment): void
+            {
+                $this->calls[] = ['lock', $payment->id(), $payment->bankMovementId(), $payment->isCancelled()];
+            }
 
             public function released(Payment $payment): void
             {
-                $this->released[] = [$payment->id(), $payment->bankMovementId(), $payment->isCancelled()];
+                $this->calls[] = ['released', $payment->id(), $payment->bankMovementId(), $payment->isCancelled()];
             }
         };
         $container = self::getContainer();
@@ -349,7 +354,12 @@ final class RecordPaymentTest extends InvoiceTestCase
         $cancel->cancel($bank->id());
         $cancel->cancel($bank->id());
 
-        self::assertSame([[$bank->id(), self::MOVEMENT, true]], $release->released);
+        self::assertSame([
+            ['lock', $manual->id(), null, false],
+            ['lock', $bank->id(), self::MOVEMENT, false],
+            ['released', $bank->id(), self::MOVEMENT, true],
+            ['lock', $bank->id(), self::MOVEMENT, true],
+        ], $release->calls, 'the source is locked first on every call, and only a bank payment cancelled now is released');
         $this->em->clear();
         self::assertSame(PaymentSource::BankMovement, $this->payments->get($bank->id())->source());
         self::assertSame([], $this->payments->linesOf($this->store->get($invoice->id())));

@@ -20,8 +20,12 @@ use Psr\Clock\ClockInterface;
  * payment being recorded. Cancelling twice is cancelling once: the second call
  * changes nothing and tells nobody.
  *
- * The invoices are read before the transaction, so the locks come first in it; a
- * payment cannot gain allocations, so the locked ones cover what is there.
+ * The source of the payment, a bank movement, is locked first, then the invoices:
+ * the order of pairing and unpairing, so cancelling on the invoice and unpairing on
+ * the bank tab wait for each other instead of deadlocking. Both are read before the
+ * transaction, so the locks come first in it (on SQLite a read before the first write
+ * lock would refuse to wait); neither the source nor the invoices of a payment ever
+ * change, so what was read still holds under the locks.
  */
 final readonly class CancelPayment
 {
@@ -42,8 +46,10 @@ final readonly class CancelPayment
     public function cancel(string $paymentId): void
     {
         $this->retry->run(function () use ($paymentId): void {
+            $source = $this->payments->get($paymentId);
             $ids = $this->payments->invoiceIdsOf($paymentId);
-            $this->work->run(function () use ($paymentId, $ids): void {
+            $this->work->run(function () use ($paymentId, $source, $ids): void {
+                $this->release->lockSource($source);
                 foreach ($ids as $id) {
                     $this->store->lock($id);
                 }
