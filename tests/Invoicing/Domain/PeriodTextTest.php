@@ -22,33 +22,51 @@ final class PeriodTextTest extends TestCase
         );
     }
 
-    public function testPeriodTextOffsetsCarry(): void
+    public function testPeriodTextOffsetsAreIndependent(): void
     {
-        self::assertSame('1/2027', PeriodText::resolve('{month+1}/{year}', new \DateTimeImmutable('2026-12-01')));
-        self::assertSame('2027-1', PeriodText::resolve('{year}-{month+1}', new \DateTimeImmutable('2026-12-01')));
+        self::assertSame('1/2026', PeriodText::resolve('{month+1}/{year}', new \DateTimeImmutable('2026-12-01')));
+        self::assertSame('2026-1', PeriodText::resolve('{year}-{month+1}', new \DateTimeImmutable('2026-12-01')));
         self::assertSame('11/2026', PeriodText::resolve('{month-1}/{year}', new \DateTimeImmutable('2026-12-01')));
-        self::assertSame('12/2026', PeriodText::resolve('{month-1}/{year}', new \DateTimeImmutable('2027-01-15')));
-        self::assertSame('12/2025', PeriodText::resolve('{month-13}/{year}', new \DateTimeImmutable('2027-01-15')));
-        self::assertSame('1/2028', PeriodText::resolve('{month+25}/{year}', new \DateTimeImmutable('2025-12-31')));
+        self::assertSame('12/2027', PeriodText::resolve('{month-1}/{year}', new \DateTimeImmutable('2027-01-15')));
+        self::assertSame('12/2027', PeriodText::resolve('{month-13}/{year}', new \DateTimeImmutable('2027-01-15')));
+        self::assertSame('1/2025', PeriodText::resolve('{month+25}/{year}', new \DateTimeImmutable('2025-12-31')));
     }
 
-    public function testEachOffsetCarriesOnlyItsOwnCoarserNeighbours(): void
+    public function testEachTokenMovesOnlyByItsOwnOffset(): void
     {
         self::assertSame(
-            'from 11/2026 to 1/2027',
+            'from 11/2026 to 1/2026',
             PeriodText::resolve('from {month-1}/{year} to {month+1}/{year}', new \DateTimeImmutable('2026-12-01')),
         );
         self::assertSame(
-            '12 and 1/2027',
+            '12 and 1/2026',
             PeriodText::resolve('{month} and {month+1}/{year}', new \DateTimeImmutable('2026-12-01')),
         );
+        self::assertSame('1/2027', PeriodText::resolve('{month+1}/{year+1}', new \DateTimeImmutable('2026-12-01')));
     }
 
-    public function testDayOffsetCarriesIntoMonthAndYear(): void
+    public function testDayOffsetMovesOnlyTheDay(): void
     {
-        self::assertSame('1. 1. 2027', PeriodText::resolve('{day+1}. {month}. {year}', new \DateTimeImmutable('2026-12-31')));
-        self::assertSame('29. 2. 2028', PeriodText::resolve('{day-1}. {month}. {year}', new \DateTimeImmutable('2028-03-01')));
+        self::assertSame('1. 12. 2026', PeriodText::resolve('{day+1}. {month}. {year}', new \DateTimeImmutable('2026-12-31')));
+        self::assertSame('29. 3. 2028', PeriodText::resolve('{day-1}. {month}. {year}', new \DateTimeImmutable('2028-03-01')));
         self::assertSame('1', PeriodText::resolve('{day+1}', new \DateTimeImmutable('2027-02-28')));
+    }
+
+    public function testMultiTokenTextWithADistantOffset(): void
+    {
+        self::assertSame(
+            'Services 1/2027, due 3.1.2027',
+            PeriodText::resolve('Services {month}/{year}, due {day+14}.{month}.{year}', new \DateTimeImmutable('2027-01-20')),
+        );
+        self::assertSame(
+            'Hosting 12/2026, next 3/2027, Q4 2026',
+            PeriodText::resolve('Hosting {month}/{year}, next {month/year+3}, Q{quarter} {year}', new \DateTimeImmutable('2026-12-15')),
+        );
+        self::assertSame(
+            'Q1 12/2026 2027',
+            PeriodText::resolve('Q{quarter+1} {month}/{year} {year+1}', new \DateTimeImmutable('2026-12-15')),
+        );
+        self::assertSame('16. 12. 2026', PeriodText::resolve('{day+400}. {month}. {year}', new \DateTimeImmutable('2026-12-12')));
     }
 
     public function testYearOffset(): void
@@ -62,7 +80,7 @@ final class PeriodTextTest extends TestCase
         self::assertSame('3/2027', PeriodText::resolve('{month/year}', new \DateTimeImmutable('2027-03-01')));
         self::assertSame('1/2027', PeriodText::resolve('{month/year+1}', new \DateTimeImmutable('2026-12-31')));
         self::assertSame('12/2026', PeriodText::resolve('{month/year-1}', new \DateTimeImmutable('2027-01-31')));
-        self::assertSame('Q1 1/2027', PeriodText::resolve('Q{quarter} {month/year+1}', new \DateTimeImmutable('2026-12-31')));
+        self::assertSame('Q4 1/2027', PeriodText::resolve('Q{quarter} {month/year+1}', new \DateTimeImmutable('2026-12-31')));
     }
 
     public function testQuarterAndDay(): void
@@ -70,15 +88,15 @@ final class PeriodTextTest extends TestCase
         self::assertSame('1', PeriodText::resolve('{quarter}', new \DateTimeImmutable('2027-03-31')));
         self::assertSame('2', PeriodText::resolve('{quarter}', new \DateTimeImmutable('2027-04-01')));
         self::assertSame('4', PeriodText::resolve('{quarter}', new \DateTimeImmutable('2027-12-31')));
-        self::assertSame('Q1/2027', PeriodText::resolve('Q{quarter+1}/{year}', new \DateTimeImmutable('2026-11-30')));
-        self::assertSame('Q4/2026', PeriodText::resolve('Q{quarter-1}/{year}', new \DateTimeImmutable('2027-02-28')));
+        self::assertSame('Q1/2026', PeriodText::resolve('Q{quarter+1}/{year}', new \DateTimeImmutable('2026-11-30')));
+        self::assertSame('Q4/2027', PeriodText::resolve('Q{quarter-1}/{year}', new \DateTimeImmutable('2027-02-28')));
         self::assertSame('31', PeriodText::resolve('{day}', new \DateTimeImmutable('2027-01-31')));
         self::assertSame('Q1', PeriodText::resolve('Q{quarter}', new \DateTimeImmutable('2027-01-01')));
     }
 
-    public function testMonthOffsetCarriesIntoQuarter(): void
+    public function testMonthOffsetLeavesQuarterAlone(): void
     {
-        self::assertSame('1 Q1/2027', PeriodText::resolve('{month+1} Q{quarter}/{year}', new \DateTimeImmutable('2026-12-01')));
+        self::assertSame('1 Q4/2026', PeriodText::resolve('{month+1} Q{quarter}/{year}', new \DateTimeImmutable('2026-12-01')));
         self::assertSame('Q4/2026', PeriodText::resolve('Q{quarter}/{year}', new \DateTimeImmutable('2026-12-01')));
     }
 
