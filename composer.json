@@ -16,6 +16,7 @@
         "ext-zip": "*",
         "brick/math": "^1.0",
         "brick/money": "^0.15.2",
+        "directorytree/imapengine": "^1.25.7",
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",

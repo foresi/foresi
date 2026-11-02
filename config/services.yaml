@@ -24,6 +24,8 @@ parameters:
     app.mail.allow_local_links: false
     # The PDFs exactly as they were sent; never below public/. Back it up with the database.
     app.sent_documents_dir: '%kernel.share_dir%/sent-documents'
+    # Raw bank mail as it arrived; never below public/. Back it up with the database.
+    app.inbound_mail_dir: '%kernel.share_dir%/inbound-mail'
 
 services:
     # default configuration for services in *this* file
@@ -57,6 +59,9 @@ services:
         # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
         App\Tenancy\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
+        # Timed work of the installation, with no tenant; see App\Tenancy\Application\Schedule\OperatorTask.
+        App\Tenancy\Application\Schedule\OperatorTask:
+            tags: ['app.operator_task']
         # A country module plugs into banking with the parsers of its banks' mail.
         App\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
@@ -102,6 +107,25 @@ services:
         alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
     App\Banking\Application\Candidates:
         alias: App\Banking\Infrastructure\Doctrine\DoctrineCandidates
+    # The operator mailbox bank mail is polled from; none when BANK_INBOX_HOST is empty.
+    App\Banking\Application\InboundMailbox:
+        factory: ['App\Banking\Infrastructure\Imap\ImapInboundMailbox', 'fromSettings']
+        arguments:
+            $host: '%env(string:BANK_INBOX_HOST)%'
+            $port: '%env(int:BANK_INBOX_PORT)%'
+            $encryption: '%env(string:BANK_INBOX_ENCRYPTION)%'
+            $user: '%env(string:BANK_INBOX_USER)%'
+            $password: '%env(string:BANK_INBOX_PASSWORD)%'
+            $folder: '%env(string:BANK_INBOX_FOLDER)%'
+    App\Banking\Application\InboundMessages:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
+    App\Banking\Application\InboundFiles:
+        alias: App\Banking\Infrastructure\Files\DiskInboundFiles
+    App\Banking\Application\InboundProcessing:
+        alias: App\Banking\Infrastructure\Messenger\MessengerInboundProcessing
+    App\Banking\Infrastructure\Files\DiskInboundFiles:
+        arguments:
+            $root: '%app.inbound_mail_dir%'
 
     App\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:
@@ -135,6 +159,8 @@ services:
         alias: limiter.invoice_send_firm
     test.document_link_limiter:
         alias: limiter.document_link
+    test.inbound_mail_limiter:
+        alias: limiter.inbound_mail
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -279,6 +305,7 @@ when@test:
         # Inside the test cache, so a test never writes to the real share directory.
         app.firm_image_dir: '%kernel.cache_dir%/firm-images'
         app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
+        app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
         app.mail.allow_local_links: true
 
     services:
@@ -311,12 +338,18 @@ when@test:
         test.document_link_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.inbound_mail_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         # Lets a test spend the budget of a firm.
         test.invoice_send_firm_limiter:
             alias: limiter.invoice_send_firm
             public: true
         test.document_link_limiter:
             alias: limiter.document_link
+            public: true
+        test.inbound_mail_limiter:
+            alias: limiter.inbound_mail
             public: true
 
         # The generic audit query; the fake import target answers changedSince()
@@ -390,6 +423,16 @@ when@test:
         # A scheduled job that counts its runs, and the run records it is claimed through.
         App\Tests\Tenancy\Support\CountingJob:
             tags: ['app.scheduled_job']
+        App\Tests\Tenancy\Support\CountingOperatorTask:
+            tags: ['app.operator_task']
+
+        # The operator mailbox in memory, and an inbound file store a test can make fail.
+        App\Tests\Support\Mail\FakeInboundMailbox: ~
+        App\Banking\Application\InboundMailbox:
+            alias: App\Tests\Support\Mail\FakeInboundMailbox
+            public: true
+        App\Tests\Banking\Support\FailingInboundFiles:
+            decorates: App\Banking\Application\InboundFiles
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
