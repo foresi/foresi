@@ -93,8 +93,8 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
      */
     public function change(string $host, int $port, MailEncryption $encryption, string $username, ?string $sealedSecret, string $fromAddress, string $fromName): void
     {
-        $host = rtrim(strtolower(trim($host)), '.');
-        if (!$this->isHost($host)) {
+        $host = $this->normalHost($host);
+        if (null === $host) {
             throw new InvalidMailServer('The mail server needs a host name or an IP address, without a port.');
         }
         if (!\in_array($port, self::PORTS, true)) {
@@ -193,8 +193,21 @@ class FirmMailServer implements TenantOwned, Audited, AuditRooted
         return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
-    private function isHost(string $host): bool
+    /**
+     * The host in its stored form: a lower-case name, an IPv4 address, or an IPv6
+     * address in brackets, as in a URL; null when it is none of these.
+     */
+    private function normalHost(string $host): ?string
     {
-        return 1 === preg_match(self::HOST_NAME, $host) || false !== filter_var(trim($host, '[]'), \FILTER_VALIDATE_IP);
+        $host = rtrim(strtolower(trim($host)), '.');
+        $literal = trim($host, '[]');
+        if (false !== filter_var($literal, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
+            return '['.$literal.']';
+        }
+        if (false !== filter_var($host, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4) || 1 === preg_match(self::HOST_NAME, $host)) {
+            return $host;
+        }
+
+        return null;
     }
 }

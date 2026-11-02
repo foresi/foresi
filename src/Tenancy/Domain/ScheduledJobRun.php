@@ -12,7 +12,8 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * The state of one scheduled job in one tenant: the last period that finished,
- * the run in progress and the error of the last failed run. Mapped so the schema
+ * the run in progress, the error of the last failed run and the period queued
+ * for a worker. Mapped so the schema
  * is validated and the tenant filter applies, but only the atomic statements of
  * the DoctrineScheduledJobRuns write it and the ORM never loads a row. A
  * technical value, so not audited, like the series counter.
@@ -40,6 +41,10 @@ class ScheduledJobRun implements TenantOwned
         public readonly ?\DateTimeImmutable $finishedAt = null,
         #[ORM\Column(name: 'last_error', type: 'text', nullable: true)]
         public readonly ?string $lastError = null,
+        #[ORM\Column(name: 'queued_period', type: 'string', length: 32, nullable: true)]
+        public readonly ?string $queuedPeriod = null,
+        #[ORM\Column(name: 'queued_at', type: 'datetime_immutable', nullable: true)]
+        public readonly ?\DateTimeImmutable $queuedAt = null,
     ) {
     }
 

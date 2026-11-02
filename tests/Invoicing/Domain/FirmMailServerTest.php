@@ -38,6 +38,15 @@ final class FirmMailServerTest extends TestCase
         self::assertSame(36, \strlen($server->id()));
     }
 
+    public function testAnIpv6LiteralIsStoredInBrackets(): void
+    {
+        foreach (['2606:2800:21F:CB07::1', '[2606:2800:21f:cb07::1]'] as $typed) {
+            $server = FirmMailServer::define($this->firm(), $typed, 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
+            self::assertSame('[2606:2800:21f:cb07::1]', $server->host());
+        }
+        self::assertSame('93.184.215.14', FirmMailServer::define($this->firm(), '93.184.215.14', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm')->host());
+    }
+
     public function testAChangeWithoutASecretKeepsTheOldOneAndNeedsAFreshCheck(): void
     {
         $server = $this->server();
@@ -119,6 +128,7 @@ final class FirmMailServerTest extends TestCase
         yield 'host with a space' => [['host' => 'smtp example.com']];
         yield 'host with a path' => [['host' => 'smtp.example.com/x']];
         yield 'host with a port' => [['host' => 'smtp.example.com:25']];
+        yield 'IPv4 in brackets' => [['host' => '[93.184.215.14]']];
         yield 'empty secret' => [['secret' => '']];
     }
 

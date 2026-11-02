@@ -15,5 +15,17 @@ namespace App\Invoicing\Application;
  */
 interface MailHostPolicy
 {
+    /**
+     * Resolves the host once and returns the vetted address to connect to, so the
+     * connection cannot be pointed elsewhere by a second lookup.
+     *
+     * @throws MailRefused permanent when an address of the host is not allowed;
+     *                     temporary when the name does not resolve now
+     */
+    public function vet(string $host): string;
+
+    /**
+     * Whether vet() would give an address now, for a check when saving.
+     */
     public function allows(string $host): bool;
 }

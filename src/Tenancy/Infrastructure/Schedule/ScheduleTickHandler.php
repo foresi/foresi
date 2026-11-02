@@ -22,7 +22,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 /**
  * Fans a tick out: one RunScheduledJob per tenant and job whose period has not
  * run yet, stamped with that tenant. No tenant is ever activated here, and a
- * period that has run sends nothing, so a tick stays cheap.
+ * period that has run, or is queued already, sends nothing, so a tick stays cheap
+ * and a busy worker is not handed the same period twice.
  */
 #[AsMessageHandler]
 final readonly class ScheduleTickHandler
@@ -42,11 +43,11 @@ final readonly class ScheduleTickHandler
 
     public function __invoke(ScheduleTick $tick): void
     {
-        $now = $this->clock->now();
+        $now = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'));
         foreach ($this->tenants->ids() as $tenant) {
             foreach ($this->jobs as $job) {
                 $period = $job->period($now);
-                if ($this->runs->isDue($tenant, $job->name(), $period)) {
+                if ($this->runs->queue($tenant, $job->name(), $period)) {
                     $this->bus->dispatch(new Envelope(new RunScheduledJob($job->name(), $period), [new TenantStamp($tenant->toString())]));
                 }
             }

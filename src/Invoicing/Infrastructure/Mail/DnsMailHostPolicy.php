@@ -9,20 +9,25 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Mail;
 
 use App\Invoicing\Application\MailHostPolicy;
+use App\Invoicing\Application\MailRefused;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Allows a host only when every address it resolves to is a public one: no
  * loopback, private, shared, link-local (cloud metadata) or other reserved range,
- * in IPv4 or IPv6. A name that does not resolve is refused too. An installation
- * whose mail server sits in its own network sets app.mail.allow_private_hosts.
- *
- * The check runs before connecting, and the connection resolves the name again;
- * a name that changes in between (DNS rebinding) is not caught here.
+ * in IPv4 or IPv6, and never a multicast, site-local, NAT64, 6to4 or IPv4-embedding
+ * IPv6 address, which could lead to any IPv4 host. The address vetted is the one
+ * connected to, so a name that changes between check and connection (DNS
+ * rebinding) changes nothing. An installation whose mail server sits in its own
+ * network sets app.mail.allow_private_hosts; the embedding and multicast ranges
+ * stay refused even then.
  */
 final readonly class DnsMailHostPolicy implements MailHostPolicy
 {
     private const string HOST_NAME = '/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/';
+
+    /** Refused always: multicast, IPv6 site-local, NAT64, 6to4, IPv4-compatible and IPv4-mapped IPv6. */
+    private const array ALWAYS_REFUSED = ['224.0.0.0/4', 'ff00::/8', 'fec0::/10', '64:ff9b::/96', '64:ff9b:1::/48', '2002::/16', '::/96', '::ffff:0:0/96'];
 
     /** @var \Closure(string): list<string> */
     private \Closure $resolve;
@@ -38,30 +43,77 @@ final readonly class DnsMailHostPolicy implements MailHostPolicy
         $this->resolve = $resolver ?? $this->lookUp(...);
     }
 
-    public function allows(string $host): bool
+    public function vet(string $host): string
     {
         $host = rtrim(strtolower(trim($host)), '.');
         $literal = trim($host, '[]');
         if (false !== filter_var($literal, \FILTER_VALIDATE_IP)) {
-            return $this->allowsAddress($literal);
+            return $this->allowsAddress($literal) ? $literal : throw $this->forbidden();
         }
         if (1 !== preg_match(self::HOST_NAME, $host) || 'localhost' === $host || str_ends_with($host, '.localhost')) {
-            return false;
+            throw $this->forbidden();
         }
 
         $addresses = ($this->resolve)($host);
         foreach ($addresses as $address) {
             if (!$this->allowsAddress($address)) {
-                return false;
+                throw $this->forbidden();
             }
         }
 
-        return [] !== $addresses;
+        return $addresses[0] ?? throw new MailRefused(false, 'The mail server name could not be resolved.');
+    }
+
+    public function allows(string $host): bool
+    {
+        try {
+            $this->vet($host);
+
+            return true;
+        } catch (MailRefused) {
+            return false;
+        }
+    }
+
+    private function forbidden(): MailRefused
+    {
+        return new MailRefused(true, 'The mail server address is not allowed.', true);
     }
 
     private function allowsAddress(string $address): bool
     {
+        $binary = @inet_pton($address);
+        if (false === $binary) {
+            return false;
+        }
+        foreach (self::ALWAYS_REFUSED as $range) {
+            if ($this->inRange($binary, $range)) {
+                return false;
+            }
+        }
+
         return $this->allowPrivateHosts || false !== filter_var($address, \FILTER_VALIDATE_IP, \FILTER_FLAG_GLOBAL_RANGE);
+    }
+
+    private function inRange(string $binary, string $range): bool
+    {
+        [$network, $bits] = explode('/', $range);
+        $prefix = (string) inet_pton($network);
+        if (\strlen($prefix) !== \strlen($binary)) {
+            return false;
+        }
+        $bits = (int) $bits;
+        $bytes = intdiv($bits, 8);
+        if (0 !== strncmp($binary, $prefix, $bytes)) {
+            return false;
+        }
+        $rest = $bits % 8;
+        if (0 === $rest) {
+            return true;
+        }
+        $mask = (0xFF << (8 - $rest)) & 0xFF;
+
+        return (\ord($binary[$bytes]) & $mask) === (\ord($prefix[$bytes]) & $mask);
     }
 
     /**

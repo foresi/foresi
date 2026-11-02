@@ -33,6 +33,8 @@ final class Version20261102000003 extends AbstractMigration
         $run->addColumn('started_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $run->addColumn('finished_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $run->addColumn('last_error', Types::TEXT, ['notnull' => false]);
+        $run->addColumn('queued_period', Types::STRING, ['length' => 32, 'notnull' => false]);
+        $run->addColumn('queued_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $run->setPrimaryKey(['id']);
         $run->addIndex(['tenant_id'], 'idx_scheduled_job_run_tenant');
         $run->addUniqueIndex(['tenant_id', 'job'], 'uniq_scheduled_job_run');
