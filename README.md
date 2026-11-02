@@ -52,10 +52,10 @@ Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`,
 
 ## Background worker
 
-Long-running work (imports, register re-checks) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) and every message is handled inside the tenant it was dispatched in. Run migrations, then start one worker; it consumes `async` first and `registry` (low priority) after it:
+Long-running work (imports, register re-checks, sending e-mail, timed jobs) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) and every message is handled inside the tenant it was dispatched in. Run migrations, then start one worker; it consumes the schedule's ticks (`scheduler_foresi`) and the outgoing mail (`mail`) first, then `async`, and `registry` (low priority) last:
 
 ```bash
-php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+php bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
 ```
 
 The worker exits after an hour or at the memory limit, so run it under a supervisor that restarts it. With systemd:
@@ -63,13 +63,13 @@ The worker exits after an hour or at the memory limit, so run it under a supervi
 ```ini
 [Service]
 WorkingDirectory=/var/www/foresi
-ExecStart=/usr/bin/php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
 Restart=always
 RestartSec=5
 User=www-data
 ```
 
-With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=3600`. On SQLite run exactly one worker (SQLite allows a single writer). Failed messages are retried three times (2 s, 8 s, 32 s) and then kept in the `failed` queue: inspect them with `bin/console messenger:failed:show` and retry with `messenger:failed:retry`. A message is redelivered if its handler runs longer than two hours (`redeliver_timeout: 7200`). The `e2e` environment has no worker and handles messages inline. Imports need the worker and two scheduled commands (`app:import:purge`, `app:import:health`); see [docs/import.md](docs/import.md).
+With supervisor, use the same command with `autorestart=true` and `stopwaitsecs=3600`. On SQLite run exactly one worker (SQLite allows a single writer). Failed messages are retried three times (2 s, 8 s, 32 s) and then kept in the `failed` queue: inspect them with `bin/console messenger:failed:show` and retry with `messenger:failed:retry`. A message is redelivered if its handler runs longer than two hours (`redeliver_timeout: 7200`). The `e2e` environment has no worker and handles messages inline. Imports need the worker and two scheduled commands (`app:import:purge`, `app:import:health`); see [docs/import.md](docs/import.md). Sending invoices needs the `mail` and `scheduler_foresi` transports in the worker and `MAIL_SECRET_KEYS`; see [docs/sending.md](docs/sending.md).
 
 ## End-to-end tests
 

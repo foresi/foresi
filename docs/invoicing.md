@@ -34,7 +34,7 @@ Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own wri
 - A number has at most 40 characters and no `*` or `%`, or its QR code could not be made. A series whose numbers could be longer cannot be saved.
 - The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
 - A document in the trash prints with a mark, without the QR code and without the ISDOC file.
-- Sending by e-mail, payments, reminders, recurring invoices and foreign tax regimes are not included.
+- Payments, reminders, recurring invoices and foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md).
 - The rounding rules, the reverse charge and the numbering are implemented as described in the ADRs; whether they are right for your situation is for your adviser to confirm.
 
 ## Bulk download and time limits

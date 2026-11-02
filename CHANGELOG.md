@@ -14,6 +14,9 @@ Planned as 0.5.0: the first release with invoices.
 - Install the PHP extensions `gd` (the QR code and images), `dom` (the ISDOC file) and `zip` (the bulk download), which are now required, and run `composer install` to get the new PDF library, `tecnickcom/tc-lib-pdf` (LGPL-3.0-or-later). The PDF fonts (Inter, SIL Open Font License) are part of the repository.
 - Images of a firm are kept in the `firm-images` directory of the application's share directory (`var/share/<env>/firm-images`), set by the new parameter `app.firm_image_dir`. They are outside the web root and outside the database, so include the directory in backups.
 - SQLite must be 3.35 or newer.
+- Sending by e-mail adds `symfony/mailer` and `symfony/scheduler`, and requires the PHP extension `sodium`. Set `MAIL_SECRET_KEYS` (keys that seal the firms' mail server passwords) and `DEFAULT_URI` (the public https address that links in mail lead to). See [docs/sending.md](docs/sending.md).
+- The worker command is now `messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600`: it delivers mail and runs the timed jobs. Update your systemd or supervisor unit.
+- PDFs as sent are kept in `var/share/<env>/sent-documents`. Include that directory in backups, together with the database.
 - The tests of the PDF and of the ISDOC file use veraPDF, Poppler and the ISDOC schema when they are installed (see CONTRIBUTING.md); CI requires them.
 
 ### Added
@@ -34,6 +37,9 @@ Planned as 0.5.0: the first release with invoices.
 - Number series per firm under the new Invoicing tab of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers. Deleted invoices go to a trash that keeps their number, and a number an edit gave up stays taken. See [docs/adr/0013-invoice-numbers-and-trash.md](docs/adr/0013-invoice-numbers-and-trash.md).
 - Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.
 - A logo and an image with stamp and signature on the firm form. PNG or JPEG in RGB, up to 1 MB and 3000 x 3000 pixels. Both stay outside the web root in `var/share/prod/firm-images`, so include that directory in backups.
+- Sending invoices by e-mail as a link to the PDF, through each firm's own SMTP server: a send dialog with the contact's invoicing addresses, a copy to the sender and the text filled in from the firm's template in the document's language; "Send and save" on the form; retries with a visible failure; a public link page with the document and its payment details; read state; marks on the invoice list, sends on the invoice's history with the PDF as sent, a send log under Sales, and notices for failed and waiting sends. See [docs/sending.md](docs/sending.md), [docs/adr/0015-sending-and-public-links.md](docs/adr/0015-sending-and-public-links.md) and [docs/adr/0016-scheduled-jobs.md](docs/adr/0016-scheduled-jobs.md).
+- E-mail settings of a firm: templates per document language with readable variables, the mail server and a test e-mail.
+- Timed jobs per organisation on one schedule, run by the worker.
 
 ### Changed
 
@@ -42,7 +48,8 @@ Planned as 0.5.0: the first release with invoices.
 - The sidebar is grouped around documents and settings. Invoices are under Sales (Prodej), the address book under Contacts (Adresář), and Settings at the bottom holds Firms and the new item Import and export, which opens the history of imports. A group without items is not shown. The firm page has two tabs, Details and Invoicing, in place of a button; the invoicing tab holds the settings and the series. All addresses stay as they were.
 - Firms is now My firms (Moje firmy) in the interface, and its empty text says these are your own companies that issue documents.
 - An error about the firm links to the firm's settings in a new tab, and a firm without a bank account says so in the payment section before the save. Every link in the error list lands on a field that takes the focus.
-- The lines of the invoice form: a discount is a sub-row of its line with its own deduction, moving and removing a line are in a row menu, and the total reads with VAT for a payer. Amounts on screen show Kč for CZK; the PDF is unchanged.
+- The lines of the invoice form: a discount is a sub-row of its line with its own deduction, moving and removing a line are in a row menu, and the total reads with VAT for a payer. Amounts on screen show Kč for CZK.
+- A Czech document writes crowns as Kč in its PDF, on its link page and in its mail; an English one keeps CZK, and ISDOC keeps the ISO code.
 - The order number and the description moved into More details, which opens when it holds something other than the defaults, or a mistake.
 - An identified person cannot issue invoices yet; the save is refused until the rules for it are reviewed.
 - Text that the PDF font cannot print is refused when an invoice is saved, with the field and the characters named, so that the PDF and the ISDOC file never differ. Text in scripts such as Chinese or Arabic cannot be used in invoices yet.

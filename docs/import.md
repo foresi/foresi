@@ -56,10 +56,10 @@ The address book exports all or the filtered contacts as CSV (UTF-8 with a byte 
 
 ## Running the worker
 
-Reading, checking, running and undoing happen in a worker, not in the web request. Without a running worker an import stays in its current step. Messages are stored in the database. The worker consumes the `async` transport (and `registry`, at low priority, for the register re-checks):
+Reading, checking, running and undoing happen in a worker, not in the web request. Without a running worker an import stays in its current step. Messages are stored in the database. The worker consumes the schedule's ticks (`scheduler_foresi`), the outgoing mail (`mail`, see [sending.md](sending.md)), the `async` transport and `registry`, at low priority, for the register re-checks:
 
 ```bash
-php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+php bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
 ```
 
 The worker exits after an hour or at the memory limit, so run it under a supervisor that restarts it. With systemd (`/etc/systemd/system/foresi-worker@.service`):
@@ -72,7 +72,7 @@ After=network.target
 [Service]
 WorkingDirectory=/var/www/foresi
 Environment=APP_ENV=prod
-ExecStart=/usr/bin/php bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
 Restart=always
 RestartSec=5
 User=www-data
@@ -85,7 +85,7 @@ Start one instance with `systemctl enable --now foresi-worker@1`. With superviso
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /var/www/foresi/bin/console messenger:consume async registry --memory-limit=256M --time-limit=3600
+command=/usr/bin/php /var/www/foresi/bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
 directory=/var/www/foresi
 user=www-data
 environment=APP_ENV="prod"
@@ -105,7 +105,7 @@ stopwaitsecs=3600
 
 Only one import per organisation and target (contacts, for example) runs or undoes at a time. The others wait with the state "queued" and start by themselves, the longest-waiting first. The decision is made under a lock.
 
-By default the lock is a file lock (`LOCK_DSN=flock` in `.env`), which works on a **single host**: the web server and all workers must run on the same machine. If they run on several hosts, two of them could decide at the same moment and start two imports into one target. Set a lock store that all hosts share, in `.env.local`, for example PostgreSQL advisory locks or Redis:
+By default the lock is a file lock (`LOCK_DSN=flock` in `.env`), which works on a **single host** (the schedule of timed jobs uses the same lock store): the web server and all workers must run on the same machine. If they run on several hosts, two of them could decide at the same moment and start two imports into one target. Set a lock store that all hosts share, in `.env.local`, for example PostgreSQL advisory locks or Redis:
 
 ```
 LOCK_DSN=postgresql+advisory://user:password@db.example.com:5432/foresi
