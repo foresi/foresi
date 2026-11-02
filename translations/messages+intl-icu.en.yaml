@@ -38,6 +38,7 @@ nav:
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
+    bank: Bank
 ui:
   dialog:
     close: Close
@@ -709,9 +710,200 @@ bank:
         guide_text: Other banks and forwarding are covered in
         guide: the payment pairing guide
   movement:
+    title: Bank
+    views: Bank views
+    cancel: Cancel
+    tab:
+      incoming: Incoming
+      outgoing: Outgoing
+      unmatched: Unmatched
+      messages: Messages
+    column:
+      date: Date
+      firm: Firm
+      account: Account
+      amount: Amount
+      vs: VS
+      partner: Partner
+      message: Message
+      matched: Paired with
+      received: Received
+      from: From
+      subject: Subject
+      status: Status
+      reason: Why
+    list:
+      all_firms: All firms
+      all_accounts: All accounts
+      firm: Firm
+      account: Account
+      search_label: Search movements
+      search_placeholder: Partner, VS or amount
+      paired_with: 'Paired with {numbers}'
+      search: Search
+      show: Show
+      summary: '{total, plural, one {# movement} other {# movements}}'
+    empty:
+      no_accounts_title: No bank account yet
+      no_accounts_text: Add the firm's bank account in its bank settings. Payments from bank e-mails then show up here.
+      no_accounts_link: Open the firms
+      filtered_title: Nothing matches the filter
+      filtered_text: Try another search, firm or account.
+      reset: Clear the filter
+      incoming_title: No incoming payments yet
+      incoming_text: Payments from the bank's e-mails show up here.
+      outgoing_title: No outgoing payments yet
+      outgoing_text: Payments out of the account show up here, for the record.
+      unmatched_title: Every incoming payment is paired
+      unmatched_text: Nothing waits for a pairing.
+      messages_title: No bank e-mails yet
+      messages_text: E-mails that come to the bank address of an account show up here.
+    state:
+      recorded: Recorded
+      unmatched: Unmatched
+      paired: Paired
+      own_transfer: Own transfer
+      possible_duplicate: Possible duplicate
     reason:
+      no_symbol: No variable symbol
+      no_invoice: No invoice has its symbol
+      ambiguous: Several invoices fit
+      currency_mismatch: The invoice is in another currency
+      auto_pairing_off: Pairing by hand
+      unverified: Not verified, pair by hand
+      blocked: Unpaired, pair by hand
+      rejected: Rejected, never paired
       refused: The invoice refused the payment. Pair it by hand.
       account_currency: The movement is in another currency than its account. Check the account's currency.
+    action:
+      pair: Pair
+      unpair: Unpair
+      message: Show the e-mail
+    refused:
+      not_incoming: 'This payment cannot be paired: it went out of the account.'
+      already_paired: 'This payment cannot be paired: it is paired already.'
+      rejected: 'This payment cannot be paired: its e-mail failed its checks.'
+      possible_duplicate: 'This payment cannot be paired: it came in another e-mail already.'
+      own_transfer: 'This payment cannot be paired: it came from another account of the firm.'
+      not_paired: The payment is not paired, or not any more.
+    flash:
+      paired: 'Paired with {numbers}.'
+      undo: Undo
+      undo_gone: Only the pairing just made can be undone. Unpair it from its row.
+      unpaired: '{count, plural, one {The pairing is undone. Invoice {numbers} is unpaid again.} other {The pairing is undone. Invoices {numbers} are unpaid again.}}'
+    pair:
+      crumb: Pair
+      title: 'Pair the payment of {amount}'
+      suggested: Suggested invoices
+      none_suggested: No invoice has its symbol, its amount or its customer.
+      others: Other unpaid invoices
+      found: Found invoices
+      search_label: Search unpaid invoices
+      search_placeholder: Number, customer or VS
+      search: Search
+      nothing_found: No unpaid invoice in this currency matches the search.
+      no_others: No other unpaid invoice in this currency.
+      due: 'due {date}'
+      remaining: 'left {amount}'
+      amount_label: 'Part for invoice {number}'
+      reason:
+        symbol: Same variable symbol
+        amount: Same amount
+        customer: Same customer
+      settle: Write off the difference
+      settle_help: 'Up to {limit}, so the invoice closes exactly.'
+      sum: Split
+      left: '{amount} left to split'
+      over: '{amount} more than the payment'
+      submit: Pair
+      error:
+        none: Tick the invoices the payment pays.
+        amount: Enter an amount above zero.
+        sum: 'The parts add up to {sum}, the payment is {amount}.'
+        settle: A difference is written off only on one invoice, up to the limit, when the firm allows it.
+        unknown_invoice: The invoice is gone. Pick another one.
+    unpair:
+      crumb: Unpair
+      title: 'Unpair the payment of {amount}?'
+      text: '{count, plural, one {Invoice {numbers} will be unpaid again} other {Invoices {numbers} will be unpaid again}}, and this payment will not be paired automatically any more.'
+      keep: Keep the pairing
+      submit: Unpair
+  message:
+    list:
+      summary: '{total, plural, one {# e-mail} other {# e-mails}}'
+    status:
+      received: Waiting
+      processing: Processing
+      processed: Processed
+      ignored: Ignored
+      notbankmail: Not bank mail
+      failed: Failed
+      rejected: Rejected
+      dismissed: Dismissed
+      stuck: Stuck
+    reason:
+      stuck: Waiting to be processed for over an hour. Try it again.
+      not_bank_mail: Not an e-mail from a bank, such as a forwarding confirmation.
+      ignored: The bank has not booked the payment yet.
+      unknown: The e-mail could not be processed.
+      raw_changed: The stored e-mail changed since it came.
+      unreadable: The stored e-mail cannot be read.
+      untrusted: The sender could not be verified. Check the payment in your bank.
+      account_mismatch: The account in the e-mail is not an account of the firm.
+      unknown_layout: The bank changed the layout of its e-mail. A later version may read it.
+      missing_field: Something the payment needs is missing in the e-mail.
+      invalid_value: A value in the e-mail cannot be read.
+      inconsistent: The parts of the e-mail disagree, so nothing was recorded.
+      ambiguous: More than one bank's format fits the e-mail.
+    action:
+      view: Show
+      retry: Try again
+      accept: Record anyway
+      dismiss: Dismiss
+    flash:
+      queued: The e-mail is still in the queue. Give it a moment.
+      processed: The e-mail is processed.
+      still: 'It did not work this time either: {reason}'
+      now: 'The e-mail is now: {status}.'
+      accepted: The payment is recorded unpaired. Pair it by hand.
+      dismissed: The e-mail is dismissed. It stays stored.
+      dismissed_already: The e-mail is dismissed already.
+    refused:
+      account_mismatch: The account in the e-mail is not the firm's, so it cannot be recorded.
+      not_rejected: Only an e-mail whose sender could not be verified can be recorded anyway.
+      not_dismissable: This e-mail cannot be dismissed.
+    trust:
+      verified: Verified sender
+      unverified: Sender not verified
+      failed: Failed the checks
+    accept:
+      crumb: Record anyway
+      title: Record the payment anyway?
+      warning_title: Check the payment in your bank first
+      warning: Check in your bank that the payment really came. The e-mail failed the checks of its sender, so it may be forged.
+      text: The payment is recorded unpaired and is never paired automatically.
+      submit: Record anyway
+    dismiss:
+      crumb: Dismiss
+      title: Dismiss the e-mail?
+      text: It stops asking for attention and is never processed again. It stays stored as it came.
+      keep: Keep it
+      submit: Dismiss
+    view:
+      crumb: E-mail
+      title: Bank e-mail
+      subject: Subject
+      from: From
+      received: Received
+      account: Account
+      status: Status
+      trust: Verification
+      parser: Read by
+      attempts: Attempts
+      unreadable: The stored e-mail cannot be shown.
+      text: Text of the e-mail
+      close: Close
+      back: Back to the e-mails
   inbox:
     notice:
       failed: '{count, plural, one {A bank e-mail could not be processed.} other {# bank e-mails could not be processed.}} Check them and try again.'
@@ -1262,6 +1454,7 @@ invoice:
     left: '{amount} left to pay'
     panel:
       title: Payments
+      movement: Show the bank movement
       pay: Pay
       empty: No payments yet.
       paid: Paid

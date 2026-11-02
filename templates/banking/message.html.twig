@@ -1,0 +1,46 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One bank mail as it came: who sent it, what became of it, and its text, escaped: a body is shown
+    as text, never as markup. The parser is named only when one read it.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.view.crumb'|trans}] %}
+{% set dialog_size = 'lg' %}
+{% set dialog_fields = false %}
+
+{% block title %}{{ 'bank.message.view.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-4">
+        <dl class="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-small">
+            <dt class="text-muted">{{ 'bank.message.view.subject'|trans }}</dt><dd class="m-0 font-medium text-ink [overflow-wrap:anywhere]" data-message-subject>{{ subject }}</dd>
+            <dt class="text-muted">{{ 'bank.message.view.from'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{{ from ?: "—" }}</dd>
+            <dt class="text-muted">{{ 'bank.message.view.received'|trans }}</dt><dd class="num m-0 text-ink">{{ received }}</dd>
+            <dt class="text-muted">{{ 'bank.message.view.account'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{{ account }}</dd>
+            <dt class="text-muted">{{ 'bank.message.view.status'|trans }}</dt><dd class="m-0"><twig:Ui:Badge :tone="status.tone">{{ status.text }}</twig:Ui:Badge>{% if reason %} <span class="text-muted">{{ reason }}</span>{% endif %}</dd>
+            {% if trust %}<dt class="text-muted">{{ 'bank.message.view.trust'|trans }}</dt><dd class="m-0 text-ink">{{ trust }}</dd>{% endif %}
+            {% if parser %}<dt class="text-muted">{{ 'bank.message.view.parser'|trans }}</dt><dd class="m-0 font-mono text-caption text-ink">{{ parser }}</dd>{% endif %}
+            <dt class="text-muted">{{ 'bank.message.view.attempts'|trans }}</dt><dd class="num m-0 text-ink">{{ attempts }}</dd>
+        </dl>
+        {% if body is null %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert">{{ 'bank.message.view.unreadable'|trans }}</twig:Ui:Alert>
+        {% else %}
+            <pre class="m-0 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-panel border border-divider bg-head p-3 font-mono text-caption text-text" data-message-text tabindex="0" aria-label="{{ 'bank.message.view.text'|trans }}">{{ body }}</pre>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="true">{{ 'bank.message.view.close'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'bank.message.view.title'|trans" icon="inbox" class="max-w-3xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'bank.message.view.back'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

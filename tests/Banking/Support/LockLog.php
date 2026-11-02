@@ -10,6 +10,7 @@ namespace App\Tests\Banking\Support;
 
 use App\Banking\Application\Candidate;
 use App\Banking\Application\Candidates;
+use App\Shared\Domain\Currency;
 
 /**
  * What a pairing read and locked, in order: "read:" with the ids of the candidates
@@ -40,6 +41,11 @@ final class LockLog implements Candidates
         $this->entries[] = 'read:'.implode(',', array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $found));
 
         return $found;
+    }
+
+    public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array
+    {
+        return $this->candidates->open($firmId, $currency, $text, $ids, $limit);
     }
 
     public function locked(string $invoiceId): void

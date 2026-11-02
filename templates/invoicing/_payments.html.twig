@@ -16,7 +16,7 @@
                         <time datetime="{{ line.datetime }}" class="num text-muted">{{ line.date }}</time>
                         <span class="min-w-0 text-text">
                             <span class="num font-medium text-ink">{{ line.amount }}</span>
-                            <span class="text-muted"> · {{ line.method }}</span>
+                            <span class="text-muted"> · {% if line.movement %}<a href="{{ line.movement }}" data-payment-movement title="{{ 'invoice.payment.panel.movement'|trans }}" class="text-muted underline hover:text-ink {{ focus }}">{{ line.method }}</a>{% else %}{{ line.method }}{% endif %}</span>
                             {% if line.settlement %}<span class="block text-caption text-muted">{{ line.settlement }}</span>{% endif %}
                         </span>
                         <form method="post" action="{{ path('app_invoice_payment_cancel', {id: invoice.id, paymentId: line.id}) }}"

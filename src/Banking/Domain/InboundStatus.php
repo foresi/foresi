@@ -27,4 +27,6 @@ enum InboundStatus: string
     case Failed = 'failed';
     /** Refused: forged, or about an account that is not the firm's. */
     case Rejected = 'rejected';
+    /** A person looked at it and set it aside; the raw message stays stored. */
+    case Dismissed = 'dismissed';
 }

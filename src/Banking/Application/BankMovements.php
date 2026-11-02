@@ -63,4 +63,25 @@ interface BankMovements
      * How many incoming movements wait for a pairing.
      */
     public function unmatchedIncoming(): int;
+
+    /**
+     * Every bank account of the firms of the tenant, archived ones too, by firm name
+     * and then as the firm orders them.
+     *
+     * @return array<string, array{firmId: string, firmName: string, label: string, iban: string}> by account id
+     */
+    public function accounts(): array;
+
+    /**
+     * How many movements the filter finds; the Messages tab finds none.
+     */
+    public function count(MovementFilter $filter): int;
+
+    /**
+     * The movements the filter finds, newest booked first, each with the numbers of
+     * the invoices its payment pays, read for the whole page at once.
+     *
+     * @return list<MovementRow>
+     */
+    public function rows(MovementFilter $filter, int $offset, int $limit): array;
 }

@@ -8,19 +8,28 @@ declare(strict_types=1);
 
 namespace App\Banking\Infrastructure\Doctrine;
 
+use App\Audit\Application\AuditActor;
+use App\Audit\Application\AuditCorrelation;
+use App\Audit\Domain\AuditAction;
+use App\Audit\Domain\AuditEntry;
 use App\Banking\Application\BankMessageParsers;
 use App\Banking\Application\ClaimedMessage;
 use App\Banking\Application\InboundMessages;
+use App\Banking\Application\MessageRow;
+use App\Banking\Application\MovementFilter;
 use App\Banking\Application\ProcessingResult;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
+use App\Banking\Domain\MessageTrust;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Psr\Clock\ClockInterface;
 
 /**
  * Plain statements in the active tenant, the same on SQLite and PostgreSQL. The
@@ -28,7 +37,8 @@ use Doctrine\ORM\Query;
  * of one mail at the same moment exactly one is stored, and no failed insert
  * leaves the persistence session broken. Processing writes by plain statements
  * too: the processing of a message starts the session over on the way, and the
- * row is a log no person edits.
+ * row is a log no person edits. Setting a message aside is the one change a person
+ * makes, so it writes its own line to the audit log.
  */
 final readonly class DoctrineInboundMessages implements InboundMessages
 {
@@ -54,8 +64,19 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     private const string FAILED_ATTEMPT = 'UPDATE inbound_message SET attempts = attempts + 1 WHERE id = :id AND tenant_id = :tenant';
 
-    public function __construct(private Connection $connection, private TenantContext $context, private EntityManagerInterface $em)
-    {
+    /** The account and firm a message came to, through its feed, all of the tenant. */
+    private const string FEED = 'JOIN bank_feed f ON f.id = m.bank_feed_id AND f.tenant_id = m.tenant_id '
+        .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id AND a.tenant_id = m.tenant_id '
+        .'JOIN legal_entity e ON e.id = a.legal_entity_id AND e.tenant_id = m.tenant_id';
+
+    public function __construct(
+        private Connection $connection,
+        private TenantContext $context,
+        private EntityManagerInterface $em,
+        private AuditActor $actor,
+        private AuditCorrelation $correlation,
+        private ClockInterface $clock,
+    ) {
     }
 
     public function has(string $dedupKey): bool
@@ -159,15 +180,140 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         return array_map($this->text(...), $query->executeQuery()->fetchFirstColumn());
     }
 
-    public function needingAttention(): int
+    public function needingAttention(\DateTimeImmutable $stuckBefore, ?string $firmId = null, ?string $accountId = null): int
     {
+        [$where, $parameters] = $this->narrowed($firmId, $accountId);
         $count = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM inbound_message WHERE tenant_id = :tenant AND status IN (:statuses)',
-            ['tenant' => $this->context->current()->toString(), 'statuses' => [InboundStatus::Failed->value, InboundStatus::Rejected->value]],
-            ['statuses' => ArrayParameterType::STRING],
+            'SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where.' AND (m.status IN (:waiting) OR (m.status = :received AND m.received_at < :before))',
+            $parameters + ['waiting' => [InboundStatus::Failed->value, InboundStatus::Rejected->value], 'received' => InboundStatus::Received->value, 'before' => $stuckBefore],
+            ['waiting' => ArrayParameterType::STRING, 'before' => Types::DATETIME_IMMUTABLE],
         );
 
         return is_numeric($count) ? (int) $count : 0;
+    }
+
+    public function count(MovementFilter $filter): int
+    {
+        [$where, $parameters] = $this->narrowed($filter->firmId, $filter->accountId);
+        $count = $this->connection->fetchOne('SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where, $parameters);
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    public function row(string $id, \DateTimeImmutable $stuckBefore): ?MessageRow
+    {
+        return $this->listed('m.tenant_id = :tenant AND m.id = :id', ['tenant' => $this->context->current()->toString(), 'id' => $id], $stuckBefore, 0, 1)[0] ?? null;
+    }
+
+    public function rows(MovementFilter $filter, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array
+    {
+        [$where, $parameters] = $this->narrowed($filter->firmId, $filter->accountId);
+
+        return $this->listed($where, $parameters, $stuckBefore, $offset, $limit);
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     *
+     * @return list<MessageRow>
+     */
+    private function listed(string $where, array $parameters, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array
+    {
+        $sql = 'SELECT m.id, m.received_at, m.from_address, m.subject, m.status, m.failure, m.failure_detail, m.trust, m.trust_basis, m.parser_id, m.parser_version, m.attempts, '
+            .'a.label AS account_label, a.iban AS account_iban, e.name AS firm_name, e.address_country_code AS firm_country FROM inbound_message m '.self::FEED.' WHERE '.$where
+            .' ORDER BY m.received_at DESC, m.id DESC LIMIT '.max(1, $limit).' OFFSET '.max(0, $offset);
+        $type = Type::getType(Types::DATETIME_IMMUTABLE);
+        $platform = $this->connection->getDatabasePlatform();
+
+        return array_map(function (array $row) use ($type, $platform, $stuckBefore): MessageRow {
+            $receivedAt = $type->convertToPHPValue($row['received_at'], $platform);
+            \assert($receivedAt instanceof \DateTimeImmutable);
+            $status = InboundStatus::from($this->text($row['status']));
+            $parserId = $this->optional($row['parser_id']);
+
+            return new MessageRow(
+                $this->text($row['id']),
+                $receivedAt,
+                $this->optional($row['from_address']),
+                $this->text($row['subject']),
+                $status,
+                $this->optional($row['failure']),
+                $this->optional($row['failure_detail']),
+                null === $row['trust'] ? null : MessageTrust::from($this->text($row['trust'])),
+                $this->optional($row['trust_basis']),
+                // The signature of the parser set is no parser's name.
+                null !== $parserId && str_starts_with($parserId, BankMessageParsers::SIGNATURE_PREFIX) ? null : $parserId,
+                is_numeric($row['parser_version']) ? (int) $row['parser_version'] : null,
+                is_numeric($row['attempts']) ? (int) $row['attempts'] : 0,
+                $this->text($row['firm_name']),
+                $this->text($row['firm_country']),
+                $this->text($row['account_label']),
+                $this->text($row['account_iban']),
+                InboundStatus::Received === $status && $receivedAt < $stuckBefore,
+            );
+        }, $this->connection->fetchAllAssociative($sql, $parameters));
+    }
+
+    public function dismiss(string $id, array $from, ?\DateTimeImmutable $receivedBefore): ?InboundStatus
+    {
+        $tenant = $this->context->current()->toString();
+        $status = $this->connection->fetchOne('SELECT status FROM inbound_message WHERE id = :id AND tenant_id = :tenant', ['id' => $id, 'tenant' => $tenant]);
+        $was = \is_string($status) ? InboundStatus::tryFrom($status) : null;
+        if (!$was instanceof InboundStatus || !\in_array($was, $from, true)) {
+            return null;
+        }
+        $sql = 'UPDATE inbound_message SET status = :dismissed WHERE id = :id AND tenant_id = :tenant AND status = :was';
+        $parameters = ['dismissed' => InboundStatus::Dismissed->value, 'id' => $id, 'tenant' => $tenant, 'was' => $was->value];
+        $types = [];
+        if (InboundStatus::Received === $was) {
+            if (!$receivedBefore instanceof \DateTimeImmutable) {
+                return null;
+            }
+            // Still in the queue: the worker may take it any moment, so it is left to it.
+            $sql .= ' AND received_at < :before';
+            $parameters['before'] = $receivedBefore;
+            $types['before'] = Types::DATETIME_IMMUTABLE;
+        }
+        if (1 !== $this->connection->executeStatement($sql, $parameters, $types)) {
+            return null;
+        }
+        $this->em->persist(new AuditEntry(
+            InboundMessage::class,
+            $id,
+            AuditAction::Updated,
+            ['status' => [$was->value, InboundStatus::Dismissed->value]],
+            $this->actor->userId(),
+            \DateTimeImmutable::createFromInterface($this->clock->now()),
+            $this->correlation->current(),
+        ));
+
+        return $was;
+    }
+
+    /**
+     * The messages of the tenant, of one firm or account when named.
+     *
+     * @return array{string, array<string, string>}
+     */
+    private function narrowed(?string $firmId, ?string $accountId): array
+    {
+        $where = 'm.tenant_id = :tenant';
+        $parameters = ['tenant' => $this->context->current()->toString()];
+        if (null !== $firmId) {
+            $where .= ' AND a.legal_entity_id = :firm';
+            $parameters['firm'] = $firmId;
+        }
+        if (null !== $accountId) {
+            $where .= ' AND a.id = :account';
+            $parameters['account'] = $accountId;
+        }
+
+        return [$where, $parameters];
+    }
+
+    private function optional(mixed $value): ?string
+    {
+        return null === $value ? null : $this->text($value);
     }
 
     private function text(mixed $value): string

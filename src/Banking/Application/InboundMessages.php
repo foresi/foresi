@@ -71,7 +71,37 @@ interface InboundMessages
     public function due(array $parserVersions, string $signature, int $limit): array;
 
     /**
-     * How many messages failed or were rejected and wait for someone.
+     * How many messages wait for someone: failed or rejected ones, and ones still
+     * waiting for processing since before the moment given, which the queue gave up on.
      */
-    public function needingAttention(): int;
+    public function needingAttention(\DateTimeImmutable $stuckBefore, ?string $firmId = null, ?string $accountId = null): int;
+
+    /**
+     * How many messages came to the accounts the filter names.
+     */
+    public function count(MovementFilter $filter): int;
+
+    /**
+     * The messages that came to the accounts the filter names, newest first.
+     *
+     * @return list<MessageRow>
+     */
+    public function rows(MovementFilter $filter, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array;
+
+    /**
+     * The message as the Messages tab lists it, or null for none in the active tenant.
+     */
+    public function row(string $id, \DateTimeImmutable $stuckBefore): ?MessageRow;
+
+    /**
+     * Sets the message aside by a single statement when it stands in one of the
+     * statuses, and writes who did it to the audit log in the same transaction. Call
+     * it inside TransactionalWork. The raw message stays stored.
+     *
+     * @param non-empty-list<InboundStatus> $from
+     * @param \DateTimeImmutable|null       $receivedBefore a message still waiting is set aside only when it came before this
+     *
+     * @return InboundStatus|null the status it stood in, or null when it stood elsewhere
+     */
+    public function dismiss(string $id, array $from, ?\DateTimeImmutable $receivedBefore): ?InboundStatus;
 }

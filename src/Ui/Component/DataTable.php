@@ -12,11 +12,11 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, plain: bool, icon: ?string, iconClass: string}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string}
- * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool}
+ * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -24,12 +24,20 @@ final class DataTable
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
     private const array ALIGNS = ['left', 'right', 'center'];
+    /**
+     * The share of the room left by the other columns that each truncating column takes, by
+     * how many there are. The browser scales the shares down to the room there is.
+     */
+    private const array SHARES = [1 => 'sm:w-full', 2 => 'sm:w-1/2', 3 => 'sm:w-1/3', 4 => 'sm:w-1/4', 5 => 'sm:w-1/5', 6 => 'sm:w-1/6'];
     /** The colour of the icon of an icon cell, by tone; its text says the same, so colour is never alone. */
     private const array ICON_TONES = ['gray' => 'text-muted', 'green' => 'text-green', 'amber' => 'text-badge-amber-text', 'red' => 'text-badge-red-text'];
 
     /**
-     * @var list<array<string, mixed>> each with a string key and label, optional align, sortable, sort (asc|desc), href and
-     *                                 phone (false leaves the column out on a phone)
+     * @var list<array<string, mixed>> each with a string key and label, optional align, sortable, sort (asc|desc), href,
+     *                                 phone (false leaves the column out on a phone), wide (true shows the column on a wide
+     *                                 screen only, for one of low value) and truncate (true lets a column of long text give
+     *                                 way, cut with an ellipsis and its full text in a title, so the table fits its frame;
+     *                                 numbers, badges and the actions never give way)
      */
     public array $columns = [];
 
@@ -106,6 +114,17 @@ final class DataTable
         return $cells;
     }
 
+    /**
+     * The width of a truncating column: an even share of what the columns that keep their
+     * width leave. With no width of its own it could not be narrower than its text.
+     */
+    public function shareClass(): string
+    {
+        $count = \count(array_filter($this->columnViews, static fn (array $column): bool => $column['truncate']));
+
+        return self::SHARES[min(max($count, 1), \count(self::SHARES))];
+    }
+
     public function alignClass(string $align): string
     {
         return match ($align) {
@@ -154,6 +173,8 @@ final class DataTable
             'href' => $href,
             'sortable' => $sortable,
             'phone' => false !== ($column['phone'] ?? true),
+            'wide' => true === ($column['wide'] ?? false),
+            'truncate' => true === ($column['truncate'] ?? false),
         ];
     }
 
@@ -275,7 +296,13 @@ final class DataTable
         $hint = null;
         $icon = null;
         $iconClass = '';
-        if (is_array($value) && isset($value['icon'])) {
+        $links = [];
+        if (is_array($value) && isset($value['links'])) {
+            // Several links in one cell, such as the invoices a payment paid; plain leaves Turbo.
+            $links = $this->links($value['links']);
+            $plain = true === ($value['plain'] ?? false);
+            $text = implode(', ', array_column($links, 'text'));
+        } elseif (is_array($value) && isset($value['icon'])) {
             // A label with an icon in front and its explanation as a tooltip, such as how an invoice was sent.
             $icon = is_string($value['icon']) ? $value['icon'] : throw new \InvalidArgumentException('A cell icon must be a string.');
             Style::icon($icon);
@@ -302,13 +329,38 @@ final class DataTable
             'numeric' => 'right' === $column['align'],
             'text' => $text,
             'tone' => $tone,
-            'title' => null === $icon && mb_strlen($text) > self::TITLE_FROM_LENGTH ? $text : null,
+            // A truncating column can be cut short at any length, so its text is always in a title.
+            'title' => null === $icon && ($column['truncate'] ? '' !== $text : mb_strlen($text) > self::TITLE_FROM_LENGTH) ? $text : null,
             'link' => $link,
             'hint' => $hint,
             'phone' => $column['phone'],
+            'wide' => $column['wide'],
+            'truncate' => $column['truncate'],
             'plain' => $plain,
             'icon' => $icon,
             'iconClass' => $iconClass,
+            'links' => $links,
         ];
+    }
+
+    /**
+     * @return list<array{text: string, href: string}>
+     */
+    private function links(mixed $links): array
+    {
+        if (!is_array($links) || [] === $links) {
+            throw new \InvalidArgumentException('A links cell needs a list of links.');
+        }
+        $views = [];
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                throw new \InvalidArgumentException('A link of a cell must be an array.');
+            }
+            $href = Style::requireString($link, 'href', 'A link of a cell');
+            Style::href($href);
+            $views[] = ['text' => Style::requireString($link, 'text', 'A link of a cell'), 'href' => $href];
+        }
+
+        return $views;
     }
 }

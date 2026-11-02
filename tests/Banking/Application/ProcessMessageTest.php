@@ -38,6 +38,7 @@ use App\Tests\Banking\Support\InboundTestCase;
 use App\Tests\Banking\Support\Scalars;
 use App\Tests\Party\Support\FirmAccounts;
 use App\Ui\Notice\ShellNotice;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
@@ -295,13 +296,10 @@ final class ProcessMessageTest extends InboundTestCase
             ['info', 'An incoming payment is not paired with an invoice.', '/bank?tab=unmatched'],
         ], array_map(static fn (ShellNotice $notice): array => [$notice->tone, $notice->text, $notice->href], $notices));
         self::assertSame([], $this->notices(staff: false));
-        // Until the bank screen exists there is nowhere to lead.
-        self::assertSame([], iterator_to_array($this->bankNotices(true, self::getContainer()->get(UrlGeneratorInterface::class))->notices(), false));
+        // The real routes lead to the bank screen.
+        self::assertSame(['/bank?tab=messages', '/bank?tab=unmatched'], array_map(static fn (ShellNotice $notice): string => $notice->href, iterator_to_array($this->bankNotices(true, self::getContainer()->get(UrlGeneratorInterface::class))->notices(), false)));
     }
 
-    /**
-     * Built here: until the bank screen uses it, the container keeps no such service.
-     */
     private function accept(): AcceptRejectedMessage
     {
         return new AcceptRejectedMessage(self::getContainer()->get(InboundMessages::class), $this->process);
@@ -362,6 +360,6 @@ final class ProcessMessageTest extends InboundTestCase
         $translator = $container->get(TranslatorInterface::class);
         $translator->setLocale('en');
 
-        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $context, $actor), $urls, $translator, new RequestStack());
+        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $context, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class));
     }
 }

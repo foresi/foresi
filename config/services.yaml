@@ -241,6 +241,8 @@ when@dev:
 when@e2e:
     parameters:
         app.mail.allow_local_links: true
+        # The bank mail of the seed, gone with the e2e cache that serve.sh starts from.
+        app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
 
     services:
         _defaults:
@@ -300,6 +302,18 @@ when@e2e:
             public: true
         e2e.record_payment:
             alias: App\Invoicing\Application\RecordPayment
+            public: true
+        e2e.record_movement:
+            alias: App\Banking\Application\RecordMovement
+            public: true
+        e2e.pair_movement:
+            alias: App\Banking\Application\PairMovement
+            public: true
+        e2e.generate_address:
+            alias: App\Banking\Application\GenerateAddress
+            public: true
+        e2e.receive_inbound_mail:
+            alias: App\Banking\Application\ReceiveInboundMail
             public: true
 
 when@test:

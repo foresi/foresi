@@ -132,6 +132,57 @@ final class DataTableTest extends KernelTestCase
         self::assertSame(3, substr_count($html, 'max-sm:hidden'), 'The header and both cells of the column.');
     }
 
+    public function testATruncatingColumnSharesTheRoomLeftAndAlwaysHasATitle(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name', 'truncate' => true], ['key' => 'email', 'label' => 'E-mail', 'truncate' => true], ['key' => 'balance', 'label' => 'Balance', 'align' => 'right']];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(6, substr_count($html, 'sm:max-w-0 sm:w-1/2'), 'The headers and all cells of both columns.');
+        self::assertStringContainsString('title="Second Ltd"', $html, 'A short text can be cut short too.');
+        self::assertStringContainsString('title="info@example.com"', $html);
+        self::assertStringNotContainsString('title="1 200"', $html, 'Numbers keep their width.');
+        self::assertStringNotContainsString('max-w-[32ch]', $html, 'A truncating column is cut by its share, not a fixed cap.');
+    }
+
+    public function testAOneTruncatingColumnTakesAllTheRoomLeft(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name', 'truncate' => true], ['key' => 'email', 'label' => 'E-mail']];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(3, substr_count($html, 'sm:max-w-0 sm:w-full'));
+        self::assertStringNotContainsString('title="Second Ltd"', $this->render());
+    }
+
+    public function testAWideColumnIsLeftOutOnANarrowerScreen(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'email', 'label' => 'E-mail', 'wide' => true]];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(3, substr_count($html, 'max-xl:hidden'), 'The header and both cells of the column.');
+        self::assertStringNotContainsString('max-xl:hidden', $this->render());
+    }
+
+    public function testALinksCellLinksEachOfItsValues(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'paid', 'label' => 'Paid with']];
+        $rows = [['id' => 'a1', 'cells' => ['name' => 'Payment', 'paid' => ['links' => [['text' => '20260001', 'href' => '/invoices/1/edit'], ['text' => '20260002', 'href' => '/invoices/2/edit']], 'plain' => true]]]];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $rows]);
+
+        self::assertMatchesRegularExpression('~<a href="/invoices/1/edit" data-turbo="false"[^>]*>20260001</a>, <a href="/invoices/2/edit" data-turbo="false"[^>]*>20260002</a>~', $html);
+        self::assertStringNotContainsString('data-row-link', $html, 'The links are the cell, not a link of the row.');
+    }
+
+    public function testALinkOfACellNeedsASafeHref(): void
+    {
+        $this->expectExceptionMessageIsOrContains('Unsupported URL in href.');
+
+        $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid']], 'rows' => [['cells' => ['paid' => ['links' => [['text' => 'x', 'href' => 'javascript:alert(1)']]]]]]]);
+    }
+
     public function testARowActionGoesByGetOrPost(): void
     {
         $this->expectExceptionMessageIsOrContains('A row action goes by GET or POST.');

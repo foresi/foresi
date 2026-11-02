@@ -1,0 +1,36 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Unpairing from a row asks first, as Fakturoid's "Zrušit zaplacení": the invoice is unpaid again
+    and the movement never pairs by itself again. The safe answer has the focus.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.movement.unpair.crumb'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = false %}
+
+{% block title %}{{ 'bank.movement.unpair.title'|trans({amount: amount}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="unpair-form" action="{{ path('app_bank_movement_unpair', {id: movement.id}) }}" class="grid gap-3" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        <p class="m-0 text-text">{{ 'bank.movement.unpair.text'|trans({count: numbers|length, numbers: numbers|join(', ')}) }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="true">{{ 'bank.movement.unpair.keep'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="unpair-form" variant="danger" icon="banknote-x">{{ 'bank.movement.unpair.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'bank.movement.unpair.title'|trans({amount: amount})" icon="banknote-x" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'bank.movement.unpair.keep'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="unpair-form" variant="danger" icon="banknote-x">{{ 'bank.movement.unpair.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

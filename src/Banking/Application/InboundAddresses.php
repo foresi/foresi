@@ -47,6 +47,22 @@ final readonly class InboundAddresses
     }
 
     /**
+     * The text with the token of every address made from the template cut out, as
+     * "bank+…@example.com": a mail may quote its own address, such as a forwarding
+     * confirmation does, and only the owner of a firm sees the address.
+     */
+    public function masked(string $text): string
+    {
+        if (!$this->isConfigured()) {
+            return $text;
+        }
+        [$before, $after] = explode(self::PLACEHOLDER, $this->template, 2);
+        $pattern = '/('.preg_quote($before, '/').')['.InboundToken::ALPHABET.']{'.InboundToken::LENGTH.'}('.preg_quote($after, '/').')/i';
+
+        return preg_replace($pattern, "\$1\u{2026}\$2", $text) ?? $text;
+    }
+
+    /**
      * The token of an address made from the template, in lower case; null when
      * the address is not one of them. Case does not matter, as mail systems
      * often change it; surrounding blanks and angle brackets are ignored.

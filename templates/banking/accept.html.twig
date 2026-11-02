@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    "Record anyway" for a message rejected because its sender could not be trusted. It warns to check
+    the payment in the bank first; the movement it records never pairs by itself.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.accept.crumb'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = false %}
+
+{% block title %}{{ 'bank.message.accept.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="accept-form" action="{{ path('app_bank_message_accept', {id: message.id}) }}" class="grid gap-3" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        <p class="m-0 min-w-0 truncate text-text" title="{{ subject }}">{{ subject }}</p>
+        <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'bank.message.accept.warning_title'|trans">{{ 'bank.message.accept.warning'|trans }}</twig:Ui:Alert>
+        <p class="m-0 text-small text-muted">{{ 'bank.message.accept.text'|trans }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="true">{{ 'bank.movement.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="accept-form" variant="primary">{{ 'bank.message.accept.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'bank.message.accept.title'|trans" icon="inbox" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'bank.movement.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="accept-form" variant="primary">{{ 'bank.message.accept.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

@@ -38,6 +38,7 @@ nav:
     firms: Moje firmy
     import: Import a export
     sent_mail: Odeslané e-maily
+    bank: Banka
 ui:
   dialog:
     close: Zavřít
@@ -709,9 +710,200 @@ bank:
         guide_text: Další banky a přeposílání popisuje
         guide: návod k párování plateb
   movement:
+    title: Banka
+    views: Pohledy na banku
+    cancel: Zrušit
+    tab:
+      incoming: Příchozí
+      outgoing: Odchozí
+      unmatched: Nespárované
+      messages: Zprávy
+    column:
+      date: Datum
+      firm: Firma
+      account: Účet
+      amount: Částka
+      vs: VS
+      partner: Partner
+      message: Zpráva
+      matched: Spárováno
+      received: Přijato
+      from: Odesílatel
+      subject: Předmět
+      status: Stav
+      reason: Proč
+    list:
+      all_firms: Všechny firmy
+      all_accounts: Všechny účty
+      firm: Firma
+      account: Účet
+      search_label: Hledat pohyby
+      search_placeholder: Partner, VS nebo částka
+      paired_with: 'Spárováno s {numbers}'
+      search: Hledat
+      show: Zobrazit
+      summary: '{total, plural, one {# pohyb} few {# pohyby} other {# pohybů}}'
+    empty:
+      no_accounts_title: Zatím tu není žádný bankovní účet
+      no_accounts_text: Přidejte bankovní účet firmy v jejím nastavení banky. Platby z e-mailů banky se pak ukážou tady.
+      no_accounts_link: Otevřít firmy
+      filtered_title: Filtru nic neodpovídá
+      filtered_text: Zkuste jiné hledání, firmu nebo účet.
+      reset: Zrušit filtr
+      incoming_title: Zatím žádné příchozí platby
+      incoming_text: Platby z e-mailů banky se ukážou tady.
+      outgoing_title: Zatím žádné odchozí platby
+      outgoing_text: Platby z účtu se tu ukážou pro přehled.
+      unmatched_title: Všechny příchozí platby jsou spárované
+      unmatched_text: Nic nečeká na spárování.
+      messages_title: Zatím žádné e-maily z banky
+      messages_text: E-maily, které přijdou na adresu účtu pro banku, se ukážou tady.
+    state:
+      recorded: Zaznamenáno
+      unmatched: Nespárováno
+      paired: Spárováno
+      own_transfer: Převod mezi účty
+      possible_duplicate: Možná duplicita
     reason:
+      no_symbol: Bez variabilního symbolu
+      no_invoice: Žádná faktura s tímto VS
+      ambiguous: Hodí se víc faktur
+      currency_mismatch: Faktura je v jiné měně
+      auto_pairing_off: Párování ručně
+      unverified: Neověřeno, spárujte ručně
+      blocked: Zrušené spárování, spárujte ručně
+      rejected: Odmítnuto, nikdy se nespáruje
       refused: Faktura platbu nepřijala. Spárujte ji ručně.
       account_currency: Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.
+    action:
+      pair: Spárovat
+      unpair: Zrušit spárování
+      message: Zobrazit e-mail
+    refused:
+      not_incoming: 'Tuto platbu nejde spárovat: odešla z účtu.'
+      already_paired: 'Tuto platbu nejde spárovat: už je spárovaná.'
+      rejected: 'Tuto platbu nejde spárovat: její e-mail neprošel kontrolou.'
+      possible_duplicate: 'Tuto platbu nejde spárovat: přišla už v jiném e-mailu.'
+      own_transfer: 'Tuto platbu nejde spárovat: přišla z jiného účtu firmy.'
+      not_paired: Platba není spárovaná, nebo už ne.
+    flash:
+      paired: 'Spárováno s {numbers}.'
+      undo: Vrátit zpět
+      undo_gone: Zpět jde vrátit jen právě provedené spárování. Zrušte ho v jeho řádku.
+      unpaired: '{count, plural, one {Spárování je zrušené. Faktura {numbers} je znovu neuhrazená.} other {Spárování je zrušené. Faktury {numbers} jsou znovu neuhrazené.}}'
+    pair:
+      crumb: Spárovat
+      title: 'Spárovat platbu {amount}'
+      suggested: Navržené faktury
+      none_suggested: Žádná faktura nemá její VS, částku ani zákazníka.
+      others: Další neuhrazené faktury
+      found: Nalezené faktury
+      search_label: Hledat neuhrazené faktury
+      search_placeholder: Číslo, zákazník nebo VS
+      search: Hledat
+      nothing_found: Hledání neodpovídá žádná neuhrazená faktura v této měně.
+      no_others: Jiná neuhrazená faktura v této měně není.
+      due: 'splatnost {date}'
+      remaining: 'zbývá {amount}'
+      amount_label: 'Část pro fakturu {number}'
+      reason:
+        symbol: Stejný variabilní symbol
+        amount: Stejná částka
+        customer: Stejný zákazník
+      settle: Odepsat rozdíl
+      settle_help: 'Do {limit}, aby byla faktura uhrazená přesně.'
+      sum: Rozděleno
+      left: 'Zbývá rozdělit {amount}'
+      over: 'O {amount} víc než platba'
+      submit: Spárovat
+      error:
+        none: Zaškrtněte faktury, které platba hradí.
+        amount: Zadejte částku větší než nula.
+        sum: 'Části dávají dohromady {sum}, platba je {amount}.'
+        settle: Rozdíl jde odepsat jen u jedné faktury, do limitu a jen když to firma dovoluje.
+        unknown_invoice: Faktura už není k dispozici. Vyberte jinou.
+    unpair:
+      crumb: Zrušit spárování
+      title: 'Zrušit spárování platby {amount}?'
+      text: '{count, plural, one {Faktura {numbers} bude znovu neuhrazená} other {Faktury {numbers} budou znovu neuhrazené}} a tato platba se už nespáruje automaticky.'
+      keep: Ponechat spárování
+      submit: Zrušit spárování
+  message:
+    list:
+      summary: '{total, plural, one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    status:
+      received: Čeká
+      processing: Zpracovává se
+      processed: Zpracováno
+      ignored: Přeskočeno
+      notbankmail: Není z banky
+      failed: Nezpracováno
+      rejected: Odmítnuto
+      dismissed: Zahozeno
+      stuck: Zaseknuto
+    reason:
+      stuck: Čeká na zpracování déle než hodinu. Zkuste to znovu.
+      not_bank_mail: Není to e-mail z banky, třeba potvrzení přeposílání.
+      ignored: Banka platbu ještě nezaúčtovala.
+      unknown: E-mail se nepodařilo zpracovat.
+      raw_changed: Uložený e-mail se od přijetí změnil.
+      unreadable: Uložený e-mail nejde přečíst.
+      untrusted: Odesílatele se nepodařilo ověřit. Zkontrolujte platbu v bance.
+      account_mismatch: Účet v e-mailu není účet firmy.
+      unknown_layout: Banka změnila podobu e-mailu. Novější verze ho možná přečte.
+      missing_field: V e-mailu chybí údaj, který platba potřebuje.
+      invalid_value: Údaj v e-mailu nejde přečíst.
+      inconsistent: Části e-mailu si odporují, proto se nic nezaznamenalo.
+      ambiguous: E-mailu odpovídá formát víc bank.
+    action:
+      view: Zobrazit
+      retry: Zkusit znovu
+      accept: Přesto zaznamenat
+      dismiss: Zahodit
+    flash:
+      queued: E-mail ještě čeká ve frontě. Chvíli vydržte.
+      processed: E-mail je zpracovaný.
+      still: 'Ani tentokrát to nevyšlo: {reason}'
+      now: 'E-mail je teď: {status}.'
+      accepted: Platba je zaznamenaná nespárovaná. Spárujte ji ručně.
+      dismissed: E-mail je zahozený. Zůstává uložený.
+      dismissed_already: E-mail už je zahozený.
+    refused:
+      account_mismatch: Účet v e-mailu nepatří firmě, proto ho nejde zaznamenat.
+      not_rejected: Přesto zaznamenat jde jen e-mail, jehož odesílatele se nepodařilo ověřit.
+      not_dismissable: Tento e-mail nejde zahodit.
+    trust:
+      verified: Ověřený odesílatel
+      unverified: Neověřený odesílatel
+      failed: Neprošel kontrolou
+    accept:
+      crumb: Přesto zaznamenat
+      title: Přesto platbu zaznamenat?
+      warning_title: Nejdřív zkontrolujte platbu v bance
+      warning: Ověřte v bance, že platba opravdu přišla. E-mail neprošel kontrolou odesílatele, takže může být podvržený.
+      text: Platba se zaznamená nespárovaná a nikdy se nespáruje automaticky.
+      submit: Přesto zaznamenat
+    dismiss:
+      crumb: Zahodit
+      title: Zahodit e-mail?
+      text: Přestane upozorňovat a už se nikdy nezpracuje. Zůstane uložený tak, jak přišel.
+      keep: Ponechat
+      submit: Zahodit
+    view:
+      crumb: E-mail
+      title: E-mail z banky
+      subject: Předmět
+      from: Odesílatel
+      received: Přijato
+      account: Účet
+      status: Stav
+      trust: Ověření
+      parser: Přečetl
+      attempts: Pokusy
+      unreadable: Uložený e-mail nejde zobrazit.
+      text: Text e-mailu
+      close: Zavřít
+      back: Zpět na e-maily
   inbox:
     notice:
       failed: '{count, plural, one {E-mail z banky se nepodařilo zpracovat.} few {# e-maily z banky se nepodařilo zpracovat.} other {# e-mailů z banky se nepodařilo zpracovat.}} Zkontrolujte je a zkuste to znovu.'
@@ -1262,6 +1454,7 @@ invoice:
     left: 'zbývá {amount}'
     panel:
       title: Úhrady
+      movement: Zobrazit bankovní pohyb
       pay: Uhradit
       empty: Zatím žádné úhrady.
       paid: Uhrazeno
