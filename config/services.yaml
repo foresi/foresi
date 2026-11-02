@@ -72,9 +72,9 @@ services:
     App\Party\Application\ManageFirmBankAccounts:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
-    # No account has bank movements until banking records them.
+    # Banking records the movements that fix an account's currency.
     App\Party\Application\BankAccountUsage:
-        alias: App\Party\Application\NoBankAccountUsage
+        alias: App\Banking\Infrastructure\MovementUsage
 
     App\Invoicing\Application\InvoicingCountries:
         arguments:
@@ -94,6 +94,10 @@ services:
     # Every firm gets the default switches until the pairing settings are stored.
     App\Banking\Application\FirmPairingRules:
         alias: App\Banking\Application\DefaultPairingRules
+    App\Banking\Application\BankMovements:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+    App\Banking\Application\Candidates:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineCandidates
 
     App\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:
@@ -164,9 +168,9 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
     App\Invoicing\Application\InvoicePayments:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
-    # Nothing to take back until banking records where payments come from.
+    # A cancelled bank payment returns its movement to the unmatched ones.
     App\Invoicing\Application\PaymentSourceRelease:
-        alias: App\Invoicing\Application\NoPaymentSourceRelease
+        alias: App\Banking\Infrastructure\ReleaseMovement
 
     # Links to sent documents are derived from the application secret, never stored.
     App\Invoicing\Application\LinkTokens:
@@ -425,6 +429,18 @@ when@test:
             public: true
         App\Invoicing\Application\RecordPayment: { public: true }
         App\Invoicing\Application\CancelPayment: { public: true }
+
+        # Public for the banking tests and the worker of the pairing race, which drive them directly.
+        App\Banking\Application\BankMovements:
+            alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+            public: true
+        App\Banking\Application\RecordMovement: { public: true }
+        App\Banking\Application\PairMovement: { public: true }
+        App\Banking\Application\UnpairMovement: { public: true }
+        App\Banking\Application\Matcher: { public: true }
+        App\Party\Application\BankAccountUsage:
+            alias: App\Banking\Infrastructure\MovementUsage
+            public: true
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~
