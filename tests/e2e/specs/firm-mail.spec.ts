@@ -134,7 +134,7 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await expect(page.locator('#host')).toHaveValue('mail.example.com');
     await expect(page.locator('#port')).toHaveValue('465');
     await expect(page.locator('#password')).toHaveValue('');
-    await expect(page.getByText('Prázdné pole ponechá uložené heslo.')).toBeVisible();
+    await expect(page.getByText('Prázdné pole ponechá uložené heslo, pokud nezměníte server, port, šifrování ani uživatelské jméno.')).toBeVisible();
 
     // Saved again with the password left blank: accepted, and the stored one still sends.
     await page.locator('#fromName').fill('Example Small Trader, invoices');
@@ -143,6 +143,13 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await expect(page.locator('#password-error')).toHaveCount(0);
     await expect(page.locator('#fromName')).toHaveValue('Example Small Trader, invoices');
     await expect(page.getByText('Nastavení zatím nebylo ověřeno.')).toBeVisible();
+
+    // A new host with the password left blank asks for it again, so it never goes to another server.
+    await page.locator('#host').fill('smtp.example.com');
+    await save(page);
+    await expect(page.locator('#password-error')).toContainText('Zadejte heslo znovu.');
+    await page.reload();
+    await expect(page.locator('#host')).toHaveValue('mail.example.com');
 
     await page.getByRole('button', { name: 'Poslat zkušební e-mail' }).click();
     await expect(page.getByText('Zkušební e-mail odešel na invoicing@example.com.')).toBeVisible();
