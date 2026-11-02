@@ -1,0 +1,38 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Tenancy\Application\Schedule;
+
+/**
+ * Timed work done once per tenant and period. A tick of the schedule asks each
+ * job for the period of now; the job runs inside its tenant when that period has
+ * not run yet. A failed run gives its period back, so the next tick tries again.
+ *
+ * A daily job computes its period from the country's today, not from UTC.
+ * Implementations are tagged app.scheduled_job.
+ */
+interface ScheduledJob
+{
+    /**
+     * A stable name, at most 64 characters: runs are recorded under it.
+     */
+    public function name(): string;
+
+    /**
+     * The period now falls in. Periods of one job must sort as strings in time
+     * order, such as "2026-11-01".
+     */
+    public function period(\DateTimeImmutable $now): string;
+
+    /**
+     * Does the work of the current period in the active tenant.
+     *
+     * @param string|null $lastPeriod the last period that finished, so a job can catch up; null on the first run
+     */
+    public function run(?string $lastPeriod): void;
+}

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Foresi sends only through each firm's own server, built per message by the
+# mail gateway. The framework's own mailer is never used, so it sends nowhere.
+framework:
+    mailer:
+        dsn: 'null://null'

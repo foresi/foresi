@@ -46,6 +46,9 @@ services:
         # ...and contribute presets of the known sources they can read.
         App\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
+        # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
+        App\Tenancy\Application\Schedule\ScheduledJob:
+            tags: ['app.scheduled_job']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -243,6 +246,13 @@ when@test:
         App\Invoicing\Application\CustomerCopies: { public: true }
         App\Invoicing\Application\LinePricing: { public: true }
         App\Invoicing\Application\NumberAllocator: { public: true }
+
+        # A scheduled job that counts its runs, and the run records it is claimed through.
+        App\Tests\Tenancy\Support\CountingJob:
+            tags: ['app.scheduled_job']
+        App\Tenancy\Application\Schedule\ScheduledJobRuns:
+            alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
+            public: true
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

@@ -30,6 +30,7 @@ use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
+use App\Tenancy\Domain\ScheduledJobRun;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -75,7 +76,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, Invoice::class, InvoiceLine::class, AbandonedNumber::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, Invoice::class, InvoiceLine::class, AbandonedNumber::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
             yield $class => [$class];
         }
     }
