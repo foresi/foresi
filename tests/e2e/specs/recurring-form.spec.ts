@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import { DIALOGS_OWNER_STATE } from '../support/session';
+
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+const PHONE = { width: 390, height: 844 };
+const DESKTOP = { width: 1440, height: 960 };
+const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
+
+async function expectNoSeriousViolations(page: Page): Promise<void> {
+  // On a phone the action bar floats over whatever field the scroll leaves below it; in flow for the check.
+  const style = await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+  await style.evaluate((element) => element.remove());
+  const blocking = violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(blocking.map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`)).toEqual([]);
+}
+
+async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+}
+
+// Each Tab must land on the next id: a date field takes several presses, nothing else does.
+async function tabThrough(page: Page, ids: string[]): Promise<void> {
+  let current = await page.evaluate(() => document.activeElement?.id ?? '');
+  for (const id of ids) {
+    for (let press = 0; press < 5; press += 1) {
+      await page.keyboard.press('Tab');
+      const now = await page.evaluate(() => document.activeElement?.id ?? '');
+      if (now !== current || now === id) {
+        current = now;
+        break;
+      }
+    }
+    expect(current).toBe(id);
+  }
+}
+
+const preview = (page: Page) => page.locator('turbo-frame#recurring-preview');
+
+// Any invoice of the list will do: the dialog specs before this one send and trash some of them.
+async function openFromInvoice(page: Page): Promise<void> {
+  await page.goto('/invoices');
+  const row = page.locator('tbody tr').first();
+  await row.getByRole('button', { name: /Další akce/ }).click();
+  await row.getByRole('menuitem', { name: 'Pravidelná faktura' }).click();
+  await expect(page).toHaveURL(/\/invoices\/recurring\/new\?from=[0-9a-f-]+$/);
+  await expect(page.locator('form#recurring-form')).toBeVisible();
+}
+
+test.describe.serial('a recurring invoice', () => {
+  test.use({ storageState: DIALOGS_OWNER_STATE });
+
+  test('starts from an invoice, previews the next issues and saves', async ({ page }) => {
+    await openFromInvoice(page);
+    await expect(page.locator('#customer')).toHaveValue('Example Buyer a.s.');
+    const text = await page.locator('#lines-0-text').inputValue();
+    expect(['Support', 'Hosting', 'Licence']).toContain(text);
+    await expect(page.locator('#description')).toHaveValue(text);
+    await expect(page.locator('[data-first-issue-today]')).toBeVisible();
+
+    await page.locator('#firstIssueOn').fill('2027-01-31');
+    await expect(preview(page).locator('[data-preview-issue]')).toHaveText(['31. 1. 2027', '28. 2. 2027', '31. 3. 2027', '30. 4. 2027', '31. 5. 2027']);
+    await expect(page.locator('[data-first-issue-today]')).toHaveCount(0);
+
+    await page.locator('#unit').selectOption('year');
+    await expect(preview(page).locator('[data-preview-issue]').nth(1)).toHaveText('31. 1. 2028');
+
+    await page.locator('#description').fill('Hosting ');
+    await page.locator('#description').press('End');
+    await page.getByRole('toolbar', { name: 'Proměnné' }).getByRole('button', { name: 'Měsíc/rok' }).click();
+    await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');
+    await expect(preview(page).locator('[data-preview-description]').first()).toHaveText('Hosting 1/2027');
+
+    await page.locator('#end').selectOption('after_count');
+    await expect(page.locator('#endAfter')).toBeVisible();
+    await page.locator('#endAfter').fill('2');
+    await expect(preview(page).locator('[data-preview-issue]')).toHaveCount(2);
+    await expect(preview(page).locator('[data-preview-end]')).toBeVisible();
+
+    await page.locator('#recurring-save').click();
+    await expect(page).toHaveURL(/\/invoices\/recurring\/[0-9a-f-]+\/edit$/);
+    await expect(page.locator('[role=status]').filter({ hasText: 'Pravidelná faktura je uložená. Další faktura se vystaví 31. 1. 2027.' })).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('#unit')).toHaveValue('year');
+    await expect(page.locator('#firstIssueOn')).toHaveValue('2027-01-31');
+    await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');
+    await expect(page.locator('#endAfter')).toHaveValue('2');
+    await expect(page.locator('#customer')).toHaveValue('Example Buyer a.s.');
+  });
+
+  test('goes through the schedule card in order with the keyboard', async ({ page }) => {
+    await page.goto('/invoices/recurring/new');
+    await expect(page.locator('#onLastDayOfMonth')).toBeVisible();
+    await page.locator('#unit').focus();
+    await tabThrough(page, ['firstIssueOn', 'every', 'taxPoint', 'onLastDayOfMonth', 'end']);
+
+    await page.locator('#unit').selectOption('week');
+    await expect(page.locator('#onLastDayOfMonth')).toBeHidden();
+    await page.locator('#end').focus();
+    await page.locator('#end').selectOption('on_date');
+    await tabThrough(page, ['endOn']);
+  });
+
+  test('says what is wrong and keeps what was typed', async ({ page }) => {
+    await page.goto('/invoices/recurring/new');
+    await page.locator('#every').fill('0');
+    await expect(preview(page).locator('[data-preview-problem]')).toContainText('Opakovat každý');
+    await page.locator('#recurring-save').click();
+    await expect(page.locator('[data-error-summary]')).toBeVisible();
+    await expect(page.locator('#every')).toHaveValue('0');
+    await expect(page.locator('#every')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
+    test(`is accessible and fits the ${name}`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await openFromInvoice(page);
+      await page.locator('#firstIssueOn').fill('2026-12-31');
+      await page.locator('#onLastDayOfMonth').check();
+      await expect(preview(page).locator('[data-preview-issue]').nth(1)).toHaveText('31. 1. 2027');
+      await expectNoSidewaysScroll(page);
+      await expectNoSeriousViolations(page);
+      await page.screenshot({ path: `${SHOTS}/recurring-form-${name}.png`, fullPage: true });
+    });
+  }
+});

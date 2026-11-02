@@ -280,7 +280,7 @@
                         <button type="submit" name="_action" value="save_pdf" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_pdf'|trans }}</button>
                     </div>
                 </div>
-                <twig:Ui:Button type="submit" id="invoice-save" name="_action" value="save" variant="primary">{{ 'invoice.save'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" id="invoice-save" name="_action" value="save" variant="primary" data-save>{{ 'invoice.save'|trans }}</twig:Ui:Button>
             </twig:Ui:ActionBar>
             {# Last on purpose: PHP cuts a form at max_input_vars, and without this field the server knows. #}
             <input type="hidden" name="_complete" value="1">

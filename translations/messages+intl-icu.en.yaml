@@ -1169,6 +1169,81 @@ recurring:
     first_issue_past: The first invoice cannot be issued in the past.
     issued: This recurring invoice has issued invoices, so it can only be ended.
     no_occurrence_left: With this schedule no invoice is left to issue.
+    choice_invalid: Choose one of the options.
+    first_issue_missing: Enter the date of the first issue.
+    every_invalid: Enter a whole number from 1 to 99.
+    end_on_missing: Enter the date of the last issue.
+    end_on_before_first: The last issue cannot come before the first.
+    end_after_invalid: Enter a number from 1 to 999.
+  form:
+    new_title: New recurring invoice
+    edit_title: Recurring invoice
+    save: Save
+    apply: Update the preview
+    from_invoice: Recurring invoice
+  card:
+    schedule: Recurring issue
+    delivery: Delivery
+  field:
+    firstIssueOn: First issue
+    unit: Repeat
+    every: Repeat every
+    every_help: For example 3 means every third day, week, month or year.
+    onLastDayOfMonth: Issue on the last day of the month
+    taxPoint: Tax point
+    dueDays: Due (days)
+    dueDays_help: Days from the issue date.
+    end: End repeating
+    endOn: Last issue
+    endAfter: Number of issues
+    delivery: After the issue
+    series_help: Each invoice takes the next number of this series.
+    state: State
+  unit:
+    day: Daily
+    week: Weekly
+    month: Monthly
+    year: Yearly
+  tax_point:
+    issue_date: Issue date
+    last_day_of_month: Last day of the issue month
+  supply_point:
+    issue_date: Issue date
+    last_day_of_month: Last day of the issue month
+  end:
+    never: Never
+    on_date: On a date
+    after_count: After a number of issues
+  delivery:
+    send:
+      label: Send to the customer
+      text: The invoice goes to the customer by e-mail, with a copy to you.
+    review:
+      label: Hold for my review
+      text: The invoice is issued and waits until you check and send it.
+  variables:
+    title: Variables
+    help: Inserted into the field you were in last.
+  variable:
+    day: Day
+    month: Month
+    year: Year
+    quarter: Quarter
+    month_year: Month/year
+    document_number: Invoice number
+  preview:
+    title: Next issues
+    unknown: 'The preview cannot be worked out yet:'
+    today_send: The first invoice is issued and sent within a few minutes of saving.
+    today_review: The first invoice is issued within a few minutes of saving and waits for your review.
+    tax_point: 'tax point {date}'
+    supply_point: 'supply {date}'
+    due: 'due {date}'
+    ends: Repeating ends here.
+    document_number: '[invoice number]'
+  flash:
+    saved: 'The recurring invoice is saved. The next invoice is issued on {date}.'
+    already_saved: This recurring invoice is saved already.
 import:
   number: '{value, number}'
   new: New import

@@ -1169,6 +1169,81 @@ recurring:
     first_issue_past: První fakturu nejde vystavit v minulosti.
     issued: Z této pravidelné faktury už vznikly faktury, dá se jen ukončit.
     no_occurrence_left: S tímto rozvrhem nezbývá žádná faktura k vystavení.
+    choice_invalid: Vyberte jednu z možností.
+    first_issue_missing: Zadejte datum prvního vystavení.
+    every_invalid: Zadejte celé číslo od 1 do 99.
+    end_on_missing: Zadejte datum posledního vystavení.
+    end_on_before_first: Poslední vystavení nemůže být před prvním.
+    end_after_invalid: Zadejte počet od 1 do 999.
+  form:
+    new_title: Nová pravidelná faktura
+    edit_title: Pravidelná faktura
+    save: Uložit
+    apply: Přepočítat náhled
+    from_invoice: Pravidelná faktura
+  card:
+    schedule: Pravidelné vystavení
+    delivery: Odeslání
+  field:
+    firstIssueOn: První vystavení
+    unit: Opakování
+    every: Opakovat každý
+    every_help: Např. 3 znamená každý třetí den, týden, měsíc či rok.
+    onLastDayOfMonth: Vystavovat poslední den v měsíci
+    taxPoint: Datum zdanitelného plnění
+    dueDays: Splatnost (dny)
+    dueDays_help: Počet dní od vystavení faktury.
+    end: Ukončit opakování
+    endOn: Poslední vystavení
+    endAfter: Počet vystavení
+    delivery: Po vystavení
+    series_help: Každá faktura dostane další číslo této řady.
+    state: Stav
+  unit:
+    day: Denně
+    week: Týdně
+    month: Měsíčně
+    year: Ročně
+  tax_point:
+    issue_date: Den vystavení
+    last_day_of_month: Poslední den měsíce vystavení
+  supply_point:
+    issue_date: Den vystavení
+    last_day_of_month: Poslední den měsíce vystavení
+  end:
+    never: Nikdy
+    on_date: K datu
+    after_count: Po počtu vystavení
+  delivery:
+    send:
+      label: Odeslat odběrateli
+      text: Faktura odejde e-mailem odběrateli a kopie vám.
+    review:
+      label: Nechat ke kontrole
+      text: Faktura se vystaví a počká, až ji zkontrolujete a odešlete.
+  variables:
+    title: Proměnné
+    help: Vloží se do pole, ve kterém jste byli naposledy.
+  variable:
+    day: Den
+    month: Měsíc
+    year: Rok
+    quarter: Čtvrtletí
+    month_year: Měsíc/rok
+    document_number: Číslo faktury
+  preview:
+    title: Příští vystavení
+    unknown: 'Náhled zatím nejde spočítat:'
+    today_send: První faktura se vystaví a odešle během několika minut po uložení.
+    today_review: První faktura se vystaví během několika minut po uložení a počká na vaši kontrolu.
+    tax_point: 'DUZP {date}'
+    supply_point: 'plnění {date}'
+    due: 'splatnost {date}'
+    ends: Tím opakování končí.
+    document_number: '[číslo faktury]'
+  flash:
+    saved: 'Pravidelná faktura je uložená. Další faktura se vystaví {date}.'
+    already_saved: Tato pravidelná faktura už je uložená.
 import:
   number: '{value, number}'
   new: Nový import
