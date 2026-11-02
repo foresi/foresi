@@ -102,6 +102,8 @@ services:
         alias: limiter.invoice_send_firm
     test.document_link_limiter:
         alias: limiter.document_link
+    test.invoice_balances:
+        alias: App\Invoicing\Application\InvoiceBalances
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -129,6 +131,10 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
     App\Invoicing\Application\SentFiles:
         alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+    # What is still owed on invoices. The payments module rebinds this to an
+    # authoritative implementation that passes InvoiceBalancesContractTest.
+    App\Invoicing\Application\InvoiceBalances:
+        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
     App\Invoicing\Application\DocumentLinks:
         alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
     App\Invoicing\Application\SendLimits:
@@ -329,6 +335,12 @@ when@test:
             public: true
         App\Invoicing\Application\InvoiceStore:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
+            public: true
+        App\Invoicing\Application\InvoiceBalances:
+            alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+            public: true
+        test.invoice_balances:
+            alias: App\Invoicing\Application\InvoiceBalances
             public: true
         App\Invoicing\Application\ConflictRetry:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
