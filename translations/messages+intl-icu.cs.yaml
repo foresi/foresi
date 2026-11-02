@@ -768,6 +768,8 @@ invoice:
       qr: Naskenujte v aplikaci banky (QR Platba)
     open: Otevřít PDF
     download: Stáhnout
+    download_paid: Stáhnout fakturu (uhrazená)
+    paid_note: 'Uhrazeno {date}, není co platit'
     viewer: 'Faktura {number} jako PDF'
     fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
     notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'

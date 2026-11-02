@@ -768,6 +768,8 @@ invoice:
       qr: Scan in your banking app (QR Platba)
     open: Open PDF
     download: Download
+    download_paid: Download invoice (paid)
+    paid_note: 'Paid {date}, nothing to pay'
     viewer: 'Invoice {number} as PDF'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'

@@ -50,7 +50,11 @@
 
         <div class="flex flex-col gap-2 border-t border-divider bg-head p-4 sm:flex-row sm:items-center sm:px-6">
             <twig:Ui:Button variant="primary" icon="receipt-text" :href="open" class="w-full sm:w-auto">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
-            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ 'invoice.public.download'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            {# The PDF is the one sent, payment details and all. #}
+            {% if paidOn %}
+                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.paid_note'|trans({date: paidOn}, 'messages', locale) }}</p>
+            {% endif %}
         </div>
     </section>
 

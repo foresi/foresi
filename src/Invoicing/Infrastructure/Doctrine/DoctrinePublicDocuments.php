@@ -33,7 +33,9 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             payment_method, bank_account, domestic_account, variable_symbol, payment_code,
             (SELECT i.payable_minor FROM invoice i WHERE i.id = s.invoice_id) AS payable_minor,
             (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
-                WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor
+                WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor,
+            (SELECT MAX(p.received_on) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
+                WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS last_paid_on
         FROM invoice_send s
         WHERE (token_hash = :hash OR copy_token_hash = :hash) AND revoked_at IS NULL AND status <> :cancelled
         SQL;
@@ -56,6 +58,7 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         $currency = Currency::from($this->text($row, 'currency'));
         $payable = (int) $this->text($row, 'payable_minor');
         $paid = (int) $this->text($row, 'paid_minor');
+        $lastPaidOn = $this->optional($row, 'last_paid_on');
 
         return new PublicDocument(
             $this->text($row, 'id'),
@@ -78,6 +81,7 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             // The invoice in the currency it was sent in: a document keeps its currency.
             PaymentState::of(Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency)),
             max(0, $payable - $paid),
+            null === $lastPaidOn ? null : new \DateTimeImmutable(substr($lastPaidOn, 0, 10)),
         );
     }
 

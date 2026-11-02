@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
@@ -355,6 +356,35 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSelectorNotExists('figure svg', 'overpaid: no QR code');
     }
 
+    /**
+     * The PDF still shows the payment details it was sent with, so the page says,
+     * next to the download, that there is nothing left to pay.
+     */
+    public function testAPaidInvoiceSaysWhenItWasPaidNextToTheUnchangedPdf(): void
+    {
+        $sent = $this->sentDocument();
+        $stored = $this->storedPdf($sent['send']);
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-note]');
+        self::assertSame('Stáhnout', $crawler->filter('a[href$="/download"]')->text());
+
+        $this->paid($sent['invoice'], '500.00', '2026-11-01');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-note]', 'a part payment leaves something to pay');
+
+        $this->paid($sent['invoice'], '710.00', '2026-11-02');
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        $date = self::getContainer()->get(DocumentFormat::class)->date(new \DateTimeImmutable('2026-11-02'), DocumentLanguage::Czech);
+        self::assertSame('Uhrazeno '.$date.', není co platit', $crawler->filter('[data-paid-note]')->text(), 'the day the last payment settled it');
+        self::assertSame('Stáhnout fakturu (uhrazená)', $crawler->filter('a[href$="/download"]')->text());
+        foreach (['/pdf', '/open', '/download'] as $suffix) {
+            $this->client->request('GET', '/d/'.$sent['token'].$suffix);
+            self::assertSame($stored, $this->client->getInternalResponse()->getContent(), 'the PDF is the one sent');
+        }
+    }
+
     public function testAPartPaymentShowsWhatRemainsWithoutTheQrCode(): void
     {
         $sent = $this->sentDocument();
@@ -555,11 +585,11 @@ final class PublicDocumentControllerTest extends WebTestCase
         });
     }
 
-    private function paid(string $invoiceId, string $amount): void
+    private function paid(string $invoiceId, string $amount, string $on = '2026-11-03'): void
     {
-        $this->inTenant(function () use ($invoiceId, $amount): void {
+        $this->inTenant(function () use ($invoiceId, $amount, $on): void {
             $money = Money::of($amount, Currency::CZK);
-            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm[0] ?? '', new \DateTimeImmutable('2026-11-03'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm[0] ?? '', new \DateTimeImmutable($on), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
         });
     }
 

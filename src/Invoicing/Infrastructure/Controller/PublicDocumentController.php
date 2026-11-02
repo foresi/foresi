@@ -46,7 +46,8 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * A paid or overpaid invoice shows neither the payment instructions nor the QR
  * code; a part payment shows what remains and asks for that, without the code,
- * which asks for the whole amount. The PDF is the one sent and stays as it was.
+ * which asks for the whole amount. The PDF is the one sent and stays as it was, so
+ * next to its download a paid invoice says when it was paid and that nothing is due.
  */
 final class PublicDocumentController extends AbstractController
 {
@@ -112,6 +113,8 @@ final class PublicDocumentController extends AbstractController
             'download' => $this->generateUrl(self::DOWNLOAD, ['token' => $token]),
             'transfer' => null !== $iban,
             'paid' => $settled,
+            // The PDF still shows how to pay, so the page says there is nothing to.
+            'paidOn' => $settled && $document->lastPaidOn instanceof \DateTimeImmutable ? $this->format->date($document->lastPaidOn, $document->language) : null,
             'remaining' => $remaining,
             'iban' => null === $iban ? null : trim(chunk_split($iban, 4, ' ')),
             // The stored code asks for the whole amount and none other can be built

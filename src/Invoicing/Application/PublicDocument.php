@@ -41,6 +41,8 @@ final readonly class PublicDocument
         public PaymentState $payment = PaymentState::Unpaid,
         /** What is still to pay in minor units, never below zero. */
         public int $remainingMinor = 0,
+        /** The day the last payment not cancelled came in, or null without one. */
+        public ?\DateTimeImmutable $lastPaidOn = null,
     ) {
     }
 }
