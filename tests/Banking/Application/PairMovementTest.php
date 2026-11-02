@@ -159,6 +159,21 @@ final class PairMovementTest extends BankingTestCase
         self::assertSame(1, $this->paymentCount());
     }
 
+    /**
+     * A failed trust is refused for itself, as an application rule, not only for
+     * the reason the matcher stored, which another change may replace.
+     */
+    public function testAFailedTrustIsRefusedWhateverReasonTheMovementStands(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $failed = $this->recordMovement->record($this->incoming('1210.00'), new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL));
+        $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'no_invoice' WHERE id = ?", [$failed->id()]);
+        $this->em->clear();
+
+        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($failed->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
+        self::assertSame(0, $this->paymentCount());
+    }
+
     public function testUnpairableMovementsAreRefused(): void
     {
         $invoice = $this->issue->issue($this->input());

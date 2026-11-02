@@ -226,7 +226,8 @@ final readonly class PairMovement
             MovementState::Paired === $movement->state(), $this->movements->hasLivePayment($movement->id()) => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
-            UnmatchedReason::Rejected === $movement->unmatchedReason() => PairingRefused::REJECTED,
+            // A failed message is never paid, whatever reason the movement stands for now; recorded anyway, it is unverified.
+            UnmatchedReason::Rejected === $movement->unmatchedReason(), MessageTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
             MessageTrust::Verified !== $movement->trust() && !$checkedInBank => PairingRefused::NOT_CHECKED_IN_BANK,
             default => null,
         };
