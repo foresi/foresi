@@ -874,9 +874,7 @@ final class PipelineTest extends KernelTestCase
 
         self::assertSame(SourceFormat::Csv, $format);
         self::assertStringStartsWith("\xEF\xBB\xBF", (string) file_get_contents($path));
-        $options = new CsvReaderOptions();
-        $options->FIELD_DELIMITER = ';';
-        $reader = new CsvReader($options);
+        $reader = new CsvReader(new CsvReaderOptions(FIELD_DELIMITER: ';'));
         $reader->open($path);
         $rows = [];
         foreach ($reader->getSheetIterator() as $sheet) {

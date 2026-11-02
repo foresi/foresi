@@ -87,6 +87,6 @@ $writer->addRow(Row::fromValues(['Id', 'Amount', 'Date']));
 $writer->addRow(new Row([
     Cell::fromValue(1234567),
     Cell::fromValue(0.5),
-    Cell::fromValue(new DateTimeImmutable('2026-10-01'), new Style()->setFormat('yyyy-mm-dd')),
+    Cell::fromValue(new DateTimeImmutable('2026-10-01'), new Style()->withFormat('yyyy-mm-dd')),
 ]));
 $writer->close();

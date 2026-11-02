@@ -43,6 +43,39 @@ final class OpenSpoutExportWriterTest extends TestCase
         self::assertStringContainsString("\"Example Company\";Prague\n", $csv);
     }
 
+    public function testCsvIsWrittenByteForByte(): void
+    {
+        $this->write(SourceFormat::Csv);
+
+        self::assertSame(
+            "\xEF\xBB\xBFlabel.name;label.city\n\"Example Company\";Prague\n\"'=SUM(1;2)\";\n'@cmd;'+1\n",
+            (string) file_get_contents($this->path),
+        );
+    }
+
+    public function testXlsxCellsAreTypedStringsWrittenAsTheyAre(): void
+    {
+        $this->write(SourceFormat::Xlsx);
+
+        self::assertSame([
+            'A1' => 'label.name', 'B1' => 'label.city',
+            'A2' => 'Example Company', 'B2' => 'Prague',
+            'A3' => '=SUM(1;2)', 'B3' => '',
+            'A4' => '@cmd', 'B4' => '+1',
+        ], XlsxSheet::textCells($this->path));
+        XlsxSheet::assertOneWrappedTextStyle($this->path);
+    }
+
+    public function testManyMultiLineCellsShareOneStyle(): void
+    {
+        $fields = [new FieldDefinition('note', 'label.note', FieldType::Text)];
+        $rows = array_fill(0, 500, ['note' => "first line\nsecond line"]);
+
+        new OpenSpoutExportWriter(new IdentityTranslator())->write($fields, $rows, SourceFormat::Xlsx, $this->path);
+
+        XlsxSheet::assertOneWrappedTextStyle($this->path);
+    }
+
     public function testXlsxHoldsTheSameRows(): void
     {
         $this->write(SourceFormat::Xlsx);
