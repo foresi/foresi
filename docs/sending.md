@@ -77,7 +77,7 @@ See [import.md](import.md#running-the-worker) for systemd and supervisor units.
 
 The link is `https://<DEFAULT_URI>/d/<token>`. The token has 256 bits; the database keeps only its SHA-256 hash, so a copy of the database cannot open links. The page and the PDF need no sign-in, start no session, run no script and set `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer` and `Cache-Control: private, no-store`. An unknown, revoked or cancelled link gets the same answer.
 
-The link page is limited to 60 requests a minute per client address. Behind a reverse proxy or a load balancer, configure Symfony's trusted proxies (`SYMFONY_TRUSTED_PROXIES` or `framework.trusted_proxies`, with `trusted_headers`), or every customer shares the proxy's address and one busy hour blocks them all.
+The public link is limited to 60 requests a minute per client IP address, counted together for the page, the PDF, "Open PDF", "Download" and any other address under `/d/`. The client IP is the one Symfony gives (`Request::getClientIp()`), so behind a reverse proxy or a load balancer `trusted_proxies` must be set: `SYMFONY_TRUSTED_PROXIES` (or `framework.trusted_proxies`) to the proxy's addresses, and `framework.trusted_headers` to the headers it sets, such as `x-forwarded-for`, if they are not Symfony's defaults. Without it every request comes from the proxy's address, all customers share one limit, and one busy minute answers them all with 429.
 
 A link keeps showing the PDF that was sent, also after the invoice is edited; the invoice form warns that the invoice changed since it was sent, so you can send it again. Trash cancels sends that have not gone out and revokes their links. A delivered invoice cannot be trashed, so to end a link that went to a wrong address, the operator runs:
 
@@ -105,7 +105,7 @@ There is no tracking pixel and no IP address is stored.
 | Sends per signed-in user | 30 a minute |
 | Sends per firm | 500 a day |
 | Test e-mails per user | 5 a minute |
-| Link page and PDF per client address | 60 a minute |
+| Public link (page and PDF) per client IP address, see [the public link](#the-public-link) | 60 a minute |
 | Recipients per send (To and Cc) | 15 |
 | Other recipients typed in the dialog | 5 |
 | Subject | 255 characters |
