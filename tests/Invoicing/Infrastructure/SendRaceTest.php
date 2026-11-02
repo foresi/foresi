@@ -167,7 +167,7 @@ final class SendRaceTest extends KernelTestCase
         }
         $met = 0;
         foreach (array_keys($results[0]) as $slot) {
-            $met += max($began[0][$slot], $began[1][$slot]) < max($ended[0][$slot], $ended[1][$slot]) && abs($began[0][$slot] - $began[1][$slot]) < 0.2 ? 1 : 0;
+            $met += max($began[0][$slot], $began[1][$slot]) < min($ended[0][$slot], $ended[1][$slot]) && abs($began[0][$slot] - $began[1][$slot]) < 0.2 ? 1 : 0;
         }
         self::assertGreaterThanOrEqual((int) ceil(\count($results[0]) / 2), $met, 'the processes did not meet on the invoices');
 
