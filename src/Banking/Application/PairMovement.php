@@ -1,0 +1,177 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Banking\Application;
+
+use App\Banking\Domain\BankMovement;
+use App\Banking\Domain\MovementState;
+use App\Banking\Domain\UnmatchedReason;
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\PaymentRefused;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
+use App\Invoicing\Application\UnknownInvoice;
+use App\Invoicing\Domain\Payment;
+use App\Invoicing\Domain\PaymentSource;
+use App\Party\Application\TransactionalWork;
+use App\Party\Domain\PaymentMethod;
+
+/**
+ * Pays invoices from an incoming movement: as a person split it, or by itself when
+ * the matcher has one answer. The payment and the paired movement are stored
+ * together or not at all.
+ *
+ * The locks go in one order everywhere: the movement first, then its invoices by
+ * ascending id, as RecordPayment takes them. The candidates and the decision are
+ * worked out again under the locks, so of two movements for one invoice the second
+ * sees what the first paid, and of a person and the matcher on one movement only
+ * the first pairs it.
+ */
+final readonly class PairMovement
+{
+    public function __construct(
+        private BankMovements $movements,
+        private Matcher $matcher,
+        private FirmPairingRules $rules,
+        private RecordPayment $record,
+        private InvoiceStore $store,
+        private TransactionalWork $work,
+        private ConflictRetry $retry,
+    ) {
+    }
+
+    /**
+     * Pays the invoices a person chose. The parts must add up to the movement.
+     *
+     * @param non-empty-list<AllocationRequest> $allocations
+     *
+     * @throws PairingRefused      nothing is stored
+     * @throws PaymentRefused      nothing is stored; the parts do not add up to the movement, say
+     * @throws UnknownBankMovement also for a movement of another tenant
+     * @throws UnknownInvoice      also for an invoice of another tenant
+     */
+    public function pair(string $movementId, array $allocations): Payment
+    {
+        try {
+            return $this->retry->run(fn (): Payment => $this->work->run(function () use ($movementId, $allocations): Payment {
+                $this->refuseUnpairable($this->movements->lock($movementId));
+                $this->lockInvoices(array_map(static fn (AllocationRequest $allocation): string => $allocation->invoiceId, $allocations));
+
+                return $this->paid($movementId, $allocations);
+            }));
+        } catch (PairingRefused|PaymentRefused|UnknownBankMovement|UnknownInvoice $refused) {
+            throw $refused;
+        } catch (\Throwable $failure) {
+            // One live payment per movement is a unique index: losing to it means paid already.
+            throw $this->movements->hasLivePayment($movementId) ? new PairingRefused(PairingRefused::ALREADY_PAIRED) : $failure;
+        }
+    }
+
+    /**
+     * Pairs an unmatched incoming movement when the rules leave one answer, and
+     * otherwise stores why it stays unmatched. Anything else is left as it is, so a
+     * second call, or a call after a person paired it, does nothing.
+     *
+     * @return Payment|null the payment, or null when it was not paired now
+     *
+     * @throws UnknownBankMovement also for a movement of another tenant
+     */
+    public function auto(string $movementId): ?Payment
+    {
+        try {
+            return $this->retry->run(fn (): ?Payment => $this->work->run(fn (): ?Payment => $this->autoUnderLocks($movementId)));
+        } catch (UnknownBankMovement $unknown) {
+            throw $unknown;
+        } catch (\Throwable $failure) {
+            // One live payment per movement is a unique index: losing to it means paid already.
+            if ($this->movements->hasLivePayment($movementId)) {
+                return null;
+            }
+
+            throw $failure;
+        }
+    }
+
+    /**
+     * The decision that pays, and any settlement in it, is made from amounts read
+     * under the locks of the invoices, the same locks RecordPayment then takes in this
+     * transaction: never from what was read before them.
+     */
+    private function autoUnderLocks(string $movementId): ?Payment
+    {
+        $movement = $this->movements->lock($movementId);
+        if (!$movement->isIncoming() || MovementState::Unmatched !== $movement->state() || $this->movements->hasLivePayment($movementId)) {
+            return null;
+        }
+        $candidates = $this->matcher->candidates($movement);
+        $decision = $this->matcher->decide($movement, $candidates, $this->rules->for($movement->firm()));
+        if ($decision->pairs()) {
+            $this->lockInvoices(array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates));
+            $movement = $this->movements->get($movementId);
+            $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($movement->firm()));
+        }
+        if (!$decision->pairs()) {
+            $movement->stayUnmatched($decision->reason ?? UnmatchedReason::NoInvoice);
+
+            return null;
+        }
+
+        return $this->paid($movementId, $decision->allocations);
+    }
+
+    /**
+     * @param list<AllocationRequest> $allocations
+     */
+    private function paid(string $movementId, array $allocations): Payment
+    {
+        $movement = $this->movements->get($movementId);
+        $payment = $this->record->record(new PaymentRequest(
+            $movement->firm()->id(),
+            $movement->bookedOn(),
+            $movement->amount(),
+            PaymentMethod::BankTransfer,
+            PaymentSource::BankMovement,
+            $movement->id(),
+            '',
+            $allocations,
+        ));
+        // Recording started the session over: the movement is read again to be changed.
+        $this->movements->get($movementId)->pairWith($payment->id());
+
+        return $payment;
+    }
+
+    /**
+     * @param list<string> $ids
+     */
+    private function lockInvoices(array $ids): void
+    {
+        $ids = array_values(array_unique($ids));
+        sort($ids, \SORT_STRING);
+        foreach ($ids as $id) {
+            $this->store->lock($id);
+        }
+    }
+
+    private function refuseUnpairable(BankMovement $movement): void
+    {
+        $refusal = match (true) {
+            !$movement->isIncoming() => PairingRefused::NOT_INCOMING,
+            MovementState::Paired === $movement->state(), $this->movements->hasLivePayment($movement->id()) => PairingRefused::ALREADY_PAIRED,
+            MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
+            MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
+            UnmatchedReason::Rejected === $movement->unmatchedReason() => PairingRefused::REJECTED,
+            default => null,
+        };
+        if (null !== $refusal) {
+            throw new PairingRefused($refusal);
+        }
+    }
+}

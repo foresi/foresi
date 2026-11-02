@@ -10,6 +10,7 @@ namespace App\Tests\Tenancy;
 
 use App\Audit\Domain\AuditEntry;
 use App\Banking\Domain\BankFeed;
+use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\FirmPairing;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
@@ -84,7 +85,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, Payment::class, PaymentAllocation::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class] as $class) {
             yield $class => [$class];
         }
     }
