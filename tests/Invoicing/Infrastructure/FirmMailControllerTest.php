@@ -310,11 +310,27 @@ final class FirmMailControllerTest extends WebTestCase
         $firm = $this->signedInFirm();
         $this->saveServer($firm, self::SERVER);
 
-        $this->saveServer($firm, ['host' => 'mail.example.com', 'password' => ''] + self::SERVER);
+        $this->saveServer($firm, ['fromName' => 'Example Billing', 'password' => ''] + self::SERVER);
 
         self::assertResponseRedirects($this->url($firm, 'server'));
-        self::assertSame('mail.example.com', $this->connection()->fetchOne('SELECT host FROM firm_mail_server'));
+        self::assertSame('Example Billing', $this->connection()->fetchOne('SELECT from_name FROM firm_mail_server'));
         self::assertSame(self::PASSWORD, $this->storedPassword());
+    }
+
+    public function testABlankPasswordIsRefusedWhenTheConnectionChanges(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveServer($firm, self::SERVER);
+        $row = $this->connection()->fetchAssociative('SELECT * FROM firm_mail_server');
+
+        foreach ([['host' => 'mail.example.com'], ['port' => '465'], ['encryption' => 'tls'], ['username' => 'other@example.com']] as $change) {
+            $this->saveServer($firm, $change + ['password' => ''] + self::SERVER);
+
+            self::assertResponseStatusCodeSame(422, array_key_first($change));
+            self::assertSelectorTextContains('#password-error', 'Enter the password again', array_key_first($change));
+            self::assertSame($row, $this->connection()->fetchAssociative('SELECT * FROM firm_mail_server'));
+            self::assertSame(self::PASSWORD, $this->storedPassword());
+        }
     }
 
     public function testAFirstServerNeedsAPassword(): void

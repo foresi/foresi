@@ -515,7 +515,7 @@ firm:
       encryption: Šifrování
       username: Uživatelské jméno
       password: Heslo
-      password_kept: Prázdné pole ponechá uložené heslo.
+      password_kept: Prázdné pole ponechá uložené heslo, pokud nezměníte server, port, šifrování ani uživatelské jméno.
       fromAddress: E-mail odesílatele
       fromAddress_help: Sem se vrátí i nedoručené zprávy.
       fromName: Jméno odesílatele
@@ -552,6 +552,7 @@ firm:
       port: 'Port musí být jeden z: {ports}.'
       encryption: Vyberte šifrování.
       line_break: Hodnota nesmí obsahovat zalomení řádku.
+      password_again: Server, port, šifrování nebo uživatelské jméno se změnily. Zadejte heslo znovu.
       save_failed: Uložení se nepovedlo. Zkuste to znovu.
   invoicing:
     title: Fakturace
@@ -669,6 +670,7 @@ invoice:
     bad_address: Některá adresa zprávy není platná.
     login_refused: '{smtp, select, none {Poštovní server odmítl přihlášení.} other {Poštovní server odmítl přihlášení (SMTP {smtp}).}}'
     message_refused: '{smtp, select, none {Poštovní server zprávu odmítl.} other {Poštovní server zprávu odmítl (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {Poštovní server odmítl adresáta {recipient}.} other {Poštovní server odmítl adresáta {recipient} (SMTP {smtp}).}}'
     try_later: '{smtp, select, none {Poštovní server žádá zkusit to později.} other {Poštovní server žádá zkusit to později (SMTP {smtp}).}}'
     unexpected_answer: Poštovní server odpověděl neočekávaně.
     secure_connection: 'Zabezpečené spojení se serverem selhalo: zkontrolujte šifrování, port a název serveru.'
@@ -680,6 +682,7 @@ invoice:
     not_handed_over: Zprávu se nepodařilo předat poštovnímu serveru.
     copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
     gave_up: Zprávu se nepodařilo doručit.
+    link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
@@ -1135,6 +1138,7 @@ invoice:
     number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
     number_locked: Řadu a číslo nelze po doručení dokladu změnit.
     number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
+    number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
     number_taken: Toto číslo už bylo v této firmě použito.
     numbers_exhausted: V této řadě už nezbývají čísla.

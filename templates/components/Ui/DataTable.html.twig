@@ -79,7 +79,7 @@
                                                         <twig:Ui:IconButton type="submit" :icon="action.icon" :label="action.label" variant="ghost" size="sm" />
                                                     </form>
                                                 {% else %}
-                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" />
+                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" :data-dialog="action.dialog ? true : false" :aria-haspopup="action.dialog ? 'dialog' : false" />
                                                 {% endif %}
                                             {% endfor %}
                                             <div class="relative{{ inMenu is empty ? ' sm:hidden' : '' }}" data-controller="dropdown" data-dropdown-float-value="true">

@@ -174,6 +174,14 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             ->getSingleScalarResult() > 0;
     }
 
+    public function hasGoneOut(Invoice $invoice): bool
+    {
+        return (int) $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.invoice = :invoice AND s.status = :sent')
+            ->setParameter('invoice', $invoice->id())
+            ->setParameter('sent', SendStatus::Sent->value)
+            ->getSingleScalarResult() > 0;
+    }
+
     public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void
     {
         foreach ($this->ofInvoice($invoice) as $send) {
@@ -188,19 +196,21 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
         }
     }
 
-    public function stuck(\DateTimeImmutable $before, int $limit): array
+    public function stuck(\DateTimeImmutable $before, \DateTimeImmutable $retriesOver, int $limit): array
     {
         /** @var list<string> $ids */
         $ids = $this->em->createQuery(
             'SELECT s.id FROM '.InvoiceSend::class.' s'
             .' WHERE (s.requeuedAt IS NULL OR s.requeuedAt < :before) AND ('
             .' (s.status = :queued AND s.attempts = 0 AND s.claimedAt IS NULL AND s.createdAt < :before)'
+            .' OR (s.status = :queued AND s.attempts > 0 AND s.claimedAt IS NULL AND s.lastAttemptAt < :retriesOver)'
             .' OR (s.status IN (:open) AND s.claimedAt < :before AND (s.lastAttemptAt IS NULL OR s.lastAttemptAt < :before)))'
             .' ORDER BY s.createdAt, s.id',
         )
             ->setParameter('queued', SendStatus::Queued->value)
             ->setParameter('open', [SendStatus::Queued->value, SendStatus::Sent->value])
             ->setParameter('before', $before, 'datetime_immutable')
+            ->setParameter('retriesOver', $retriesOver, 'datetime_immutable')
             ->setMaxResults($limit)
             ->getSingleColumnResult();
 

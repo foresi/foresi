@@ -51,7 +51,7 @@
                         <li><a href="{{ match.url }}" class="font-medium text-badge-amber-text underline" target="_blank" rel="noopener">{{ match.name }}</a>{% if match.archived %} ({{ 'party.archived'|trans }}){% endif %}</li>
                     {% endfor %}
                 </ul>
-                <twig:Ui:Button type="submit" variant="primary" name="confirm_duplicate" value="1">{{ 'party.duplicate.confirm'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary" name="confirm_duplicate" value="1" :autofocus="true">{{ 'party.duplicate.confirm'|trans }}</twig:Ui:Button>
             </twig:Ui:Alert>
         {% endif %}
 

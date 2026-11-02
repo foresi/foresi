@@ -12,6 +12,7 @@ use App\Invoicing\Application\MailMessage;
 use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Infrastructure\Mail\DeadlineSocketStream;
 use App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy;
 use App\Invoicing\Infrastructure\Mail\SodiumMailSecrets;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
@@ -23,8 +24,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
-use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 use Symfony\Component\Mime\Exception\RfcComplianceException;
+use Symfony\Component\Process\Process;
 
 final class SymfonyMailGatewayTest extends TestCase
 {
@@ -46,14 +47,46 @@ final class SymfonyMailGatewayTest extends TestCase
         self::assertTrue($transport->isTlsRequired());
         self::assertTrue($transport->isAutoTls());
         $stream = $transport->getStream();
-        self::assertInstanceOf(SocketStream::class, $stream);
+        self::assertInstanceOf(DeadlineSocketStream::class, $stream);
         self::assertFalse($stream->isTLS(), 'STARTTLS upgrades a plain connection.');
         self::assertSame(self::ADDRESS, $stream->getHost(), 'The vetted address, not the name a second lookup could change.');
         self::assertSame(587, $stream->getPort());
         self::assertSame(self::USERNAME, $transport->getUsername());
         self::assertSame(self::PASSWORD, $transport->getPassword());
         self::assertSame(30.0, $stream->getTimeout());
+        self::assertSame(SymfonyMailGateway::DEADLINE_SECONDS, $stream->deadline(), 'the whole conversation, not only each read');
         self::assertSame(['ssl' => ['peer_name' => 'smtp.example.com']], $stream->getStreamOptions(), 'The certificate and SNI use the name; verification keeps its defaults.');
+    }
+
+    public function testTheTransportTalksSmtpOverTheDeadlineStream(): void
+    {
+        // A server without STARTTLS: the conversation runs up to the point where TLS is required.
+        $server = new Process([\PHP_BINARY, '-r', <<<'PHP'
+            $server = stream_socket_server('tcp://127.0.0.1:0');
+            echo stream_socket_get_name($server, false), "\n";
+            $peer = stream_socket_accept($server, 10);
+            fwrite($peer, "220 smtp.example.com ESMTP\r\n");
+            while (false !== ($line = fgets($peer))) {
+                fwrite($peer, str_starts_with($line, 'EHLO') ? "250-smtp.example.com\r\n250 8BITMIME\r\n" : "221 bye\r\n");
+            }
+            PHP]);
+        $server->start();
+        $server->waitUntil(static fn (string $type, string $output): bool => str_contains($output, "\n"));
+        [$host, $port] = explode(':', trim($server->getOutput()));
+        $transport = $this->gateway()->transport($this->server(MailEncryption::Starttls, 587), $host);
+        $stream = $transport->getStream();
+        self::assertInstanceOf(DeadlineSocketStream::class, $stream);
+        $stream->setPort((int) $port);
+
+        try {
+            $transport->send($this->gateway()->email($this->message()));
+            self::fail('A server without STARTTLS must not get the message.');
+        } catch (TransportException $refused) {
+            self::assertStringContainsString('TLS required', $refused->getMessage());
+        } finally {
+            $transport->stop();
+            $server->stop(0);
+        }
     }
 
     public function testTlsTransportIsSmtps(): void
@@ -61,7 +94,7 @@ final class SymfonyMailGatewayTest extends TestCase
         $transport = $this->gateway()->transport($this->server(MailEncryption::Tls, 465), self::ADDRESS);
 
         $stream = $transport->getStream();
-        self::assertInstanceOf(SocketStream::class, $stream);
+        self::assertInstanceOf(DeadlineSocketStream::class, $stream);
         self::assertTrue($stream->isTLS());
         self::assertSame(self::ADDRESS, $stream->getHost());
         self::assertSame(465, $stream->getPort());
@@ -74,7 +107,7 @@ final class SymfonyMailGatewayTest extends TestCase
 
         $stream = $this->gateway()->transport($server, '2606:2800:21f:cb07::1')->getStream();
 
-        self::assertInstanceOf(SocketStream::class, $stream);
+        self::assertInstanceOf(DeadlineSocketStream::class, $stream);
         self::assertSame('[2606:2800:21f:cb07::1]', $stream->getHost());
         self::assertSame(['ssl' => ['peer_name' => '2606:2800:21f:cb07::1']], $stream->getStreamOptions());
     }

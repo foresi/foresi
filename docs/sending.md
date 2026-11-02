@@ -7,6 +7,8 @@ Foresi sends an invoice as a link to its PDF, through the firm's own mail server
 1. The send dialog opens over the page it starts from: the invoice list, the history of an invoice, or the invoice form after "Send and save". It shows the recipients and the message at a glance, with Send ready for one click or Enter; "Edit text" opens the subject, the text and other recipients in the same dialog. Everything is filled in from the firm's template in the document's language. Without JavaScript the same address is a page of its own. `{Link to the document}` marks where the link goes; it is the only placeholder left, and any other brace in the text is sent as written.
 2. On Send, Foresi draws the PDF and keeps it, together with the subject, the text, the recipients and the payment details, exactly as they will be sent. A later edit of the invoice changes none of this.
 3. The send waits in the `mail` queue. A worker hands it to the firm's mail server. A temporary refusal is retried after 1, 4, 16, 64 and 256 minutes (about 5.7 hours, which outlasts greylisting); a permanent refusal (a 5xx answer, a refused login) fails at once.
+
+   The server takes or refuses a send as a whole. If it refuses one recipient (a 5xx answer to `RCPT TO`, for example an unknown Cc address), the whole send fails and no recipient gets it, the customer included. The reason names the refused address: correct or remove it and send again.
 4. The invoice list marks each invoice as sending, sent, read or failed. The invoice's history shows every send with its text and the PDF as it was sent, and **Sales › Sent e-mails** lists all sends with a filter by firm and state.
 
 "Copy to me" sends a second message, with a link of its own, to the firm's contact e-mail (or the signed-in user's), so opening your own copy never marks the customer's link as read.
@@ -66,6 +68,7 @@ php bin/console messenger:consume scheduler_foresi mail async registry --memory-
 
 - `scheduler_foresi` ticks every five minutes and runs the timed jobs of each organisation, such as handing back sends whose queue message was lost. Without it, a send whose web request died after storing it is never retried.
 - `mail` delivers the sends. Without it nothing leaves; after 15 minutes the application shows a notice that sends are waiting.
+- A worker claims a send for five minutes while it delivers it, so no second worker mails the same send meanwhile. A conversation with the mail server is cut off after 90 seconds in all, and each wait for the server after 30, so the customer's mail and the firm's copy both end well inside the claim, however slowly the server answers. A cut-off conversation counts as a temporary failure and is retried.
 - The schedule's state is kept in the application cache and its lock in `LOCK_DSN`. The default file lock (`flock`) suits one host; with several hosts set a shared lock store, as for imports (see [import.md](import.md)).
 
 See [import.md](import.md#running-the-worker) for systemd and supervisor units.
@@ -74,7 +77,7 @@ See [import.md](import.md#running-the-worker) for systemd and supervisor units.
 
 The link is `https://<DEFAULT_URI>/d/<token>`. The token has 256 bits; the database keeps only its SHA-256 hash, so a copy of the database cannot open links. The page and the PDF need no sign-in, start no session, run no script and set `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer` and `Cache-Control: private, no-store`. An unknown, revoked or cancelled link gets the same answer.
 
-The link page is limited to 60 requests a minute per client address. Behind a reverse proxy or a load balancer, configure Symfony's trusted proxies (`SYMFONY_TRUSTED_PROXIES` or `framework.trusted_proxies`, with `trusted_headers`), or every customer shares the proxy's address and one busy hour blocks them all.
+The public link is limited to 60 requests a minute per client IP address, counted together for the page, the PDF, "Open PDF", "Download" and any other address under `/d/`. The client IP is the one Symfony gives (`Request::getClientIp()`), so behind a reverse proxy or a load balancer `trusted_proxies` must be set: `SYMFONY_TRUSTED_PROXIES` (or `framework.trusted_proxies`) to the proxy's addresses, and `framework.trusted_headers` to the headers it sets, such as `x-forwarded-for`, if they are not Symfony's defaults. Without it every request comes from the proxy's address, all customers share one limit, and one busy minute answers them all with 429.
 
 A link keeps showing the PDF that was sent, also after the invoice is edited; the invoice form warns that the invoice changed since it was sent, so you can send it again. Trash cancels sends that have not gone out and revokes their links. A delivered invoice cannot be trashed, so to end a link that went to a wrong address, the operator runs:
 
@@ -102,7 +105,7 @@ There is no tracking pixel and no IP address is stored.
 | Sends per signed-in user | 30 a minute |
 | Sends per firm | 500 a day |
 | Test e-mails per user | 5 a minute |
-| Link page and PDF per client address | 60 a minute |
+| Public link (page and PDF) per client IP address, see [the public link](#the-public-link) | 60 a minute |
 | Recipients per send (To and Cc) | 15 |
 | Other recipients typed in the dialog | 5 |
 | Subject | 255 characters |

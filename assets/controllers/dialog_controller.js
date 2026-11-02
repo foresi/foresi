@@ -93,7 +93,13 @@ export default class extends Controller {
         }
         this.loading = true;
         try {
-            const response = await fetch(url, { headers: { [HEADER]: '1', Accept: 'text/html' }, credentials: 'same-origin' });
+            const response = await fetch(url, { headers: { [HEADER]: '1', Accept: 'text/html, application/json' }, credentials: 'same-origin' });
+            if (response.ok && isType(response, 'application/json')) {
+                // Nothing to ask (a trashed invoice, say): go where the server sends, its message waits there.
+                const { location } = await response.json();
+                this.go(location || url);
+                return;
+            }
             if (!response.ok || !isType(response, 'text/html')) {
                 throw new Error(`The dialog answered ${response.status}.`);
             }
@@ -132,7 +138,8 @@ export default class extends Controller {
 
     // Puts the dialog of a server answer into this host, which may be open already.
     fill(html) {
-        const source = new DOMParser().parseFromString(html, 'text/html').querySelector('dialog');
+        const page = new DOMParser().parseFromString(html, 'text/html');
+        const source = page.querySelector('dialog#dialog-page') || page.querySelector('dialog');
         if (source === null) {
             throw new Error('The answer holds no dialog.');
         }
@@ -175,7 +182,10 @@ export default class extends Controller {
         });
     }
 
-    // Escape, or the Back gesture on Android.
+    // Escape, or the Back gesture on Android. Chrome fires cancel only when the user did
+    // something since the last prevented one (CloseWatcher): a second Escape in a row, or a
+    // third after "Keep editing" by keyboard alone, closes the dialog without asking. A guard
+    // can stop the first close request after typing; it cannot trap anyone, by design.
     cancelled(event) {
         if (event.target !== this.element) {
             return;
@@ -335,8 +345,12 @@ export default class extends Controller {
         this.navigating = true;
         this.close();
         await this.popHistory();
+        this.go(then);
+    }
+
+    go(url) {
         const drive = document.body.dataset.turbo !== 'false';
-        drive ? visit(then, { action: 'replace' }) : window.location.replace(then);
+        drive ? visit(url, { action: 'replace' }) : window.location.replace(url);
     }
 
     fail() {
@@ -372,6 +386,10 @@ export default class extends Controller {
         this.pushed = true;
         // While the entry is there, a step back out of it is the dialog's, not a Turbo
         // restoration visit, which would render the page again and lose the focus.
+        this.pauseTurbo();
+    }
+
+    pauseTurbo() {
         const turbo = session && session.history;
         if (turbo && turbo.started) {
             turbo.stop();
@@ -401,13 +419,26 @@ export default class extends Controller {
             };
             const timer = setTimeout(done, HISTORY_WAIT);
             this.popping = done;
+            // The entry stays ahead as a forward step. Without Turbo's state it is no visit, and
+            // the host steps over it if Forward lands there.
+            history.replaceState({ foresiDialog: 'closed' }, '');
             history.back();
         });
     }
 
-    popped() {
+    popped(event) {
         if (this.popping) {
             this.popping();
+            return;
+        }
+        if (this.remoteValue && event.state && event.state.foresiDialog === 'closed' && current === null) {
+            // Forward onto the step a closed dialog left: go back to the page's own entry quietly.
+            this.pauseTurbo();
+            this.popping = () => {
+                this.popping = null;
+                this.resumeTurbo();
+            };
+            history.back();
             return;
         }
         if (!this.pushed || !this.element.open) {

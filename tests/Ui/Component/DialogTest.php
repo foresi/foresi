@@ -91,6 +91,8 @@ final class DialogTest extends KernelTestCase
         $dialog = $this->render(['variant' => 'confirm', 'size' => 'sm'])->filter('dialog');
 
         self::assertSame('alertdialog', $dialog->attr('role'));
+        // The question is the name, the consequence its description (APG alert dialog).
+        self::assertSame('test-dialog-text', $dialog->attr('aria-describedby'));
         self::assertSame('true', $dialog->attr('data-dialog-confirm-value'));
         self::assertStringContainsString('dialog:confirm@document->dialog#ask', (string) $dialog->attr('data-action'));
         self::assertNull($this->render([])->filter('dialog')->attr('role'));

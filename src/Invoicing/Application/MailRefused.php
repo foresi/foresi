@@ -24,6 +24,7 @@ final class MailRefused extends \RuntimeException
     public const string BAD_ADDRESS = 'bad_address';
     public const string LOGIN_REFUSED = 'login_refused';
     public const string MESSAGE_REFUSED = 'message_refused';
+    public const string RECIPIENT_REFUSED = 'recipient_refused';
     public const string TRY_LATER = 'try_later';
     public const string UNEXPECTED_ANSWER = 'unexpected_answer';
     public const string SECURE_CONNECTION = 'secure_connection';
@@ -35,6 +36,7 @@ final class MailRefused extends \RuntimeException
     public const string NOT_HANDED_OVER = 'not_handed_over';
     public const string COPY_UNKNOWN = 'copy_unknown';
     public const string GAVE_UP = 'gave_up';
+    public const string LINK_CHANGED = 'link_changed';
 
     /**
      * @param string   $reasonCode one of the constants: what the screen translates, beside the English reason kept for logs and old rows

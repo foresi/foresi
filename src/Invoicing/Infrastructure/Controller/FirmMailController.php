@@ -252,6 +252,11 @@ final class FirmMailController extends AbstractController
         if (!$this->secrets->isConfigured()) {
             $errors = ['form' => ['firm.mail.error.no_key']] + $errors;
         }
+        if ('' === $submission->password && $stored instanceof FirmMailServer && !isset($errors['host']) && !isset($errors['port']) && !isset($errors['encryption'])
+            && $stored->needsSecretFor($submission->values['host'], (int) $submission->values['port'], MailEncryption::from($submission->values['encryption']), $submission->values['username'])) {
+            // The stored password must not go to another server or account.
+            $errors['password'] = ['firm.mail.error.password_again'];
+        }
         if (!isset($errors['host'])) {
             try {
                 $this->hosts->vet($submission->values['host']);

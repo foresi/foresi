@@ -58,6 +58,11 @@ final class NewCustomerDialogTest extends WebTestCase
         // The address the lookup fills waits behind its own disclosure.
         self::assertNull($form->filter('details[data-quick-address]')->attr('open'));
         self::assertCount(1, $form->filter('details[data-quick-address] #street[required]'));
+        // What the registry lookup fills: the register country, the VAT ID and the summary of the seat.
+        self::assertSame('CZ', $form->filter('input[type="hidden"][name="registrationCountry"][data-party-lookup-target="registrationCountry"]')->attr('value'));
+        self::assertCount(1, $form->filter('input[type="hidden"][name="vatId"][data-party-lookup-target="vatId"]'));
+        self::assertCount(1, $form->filter('details[data-quick-address] summary [data-party-lookup-target="seat"]'));
+        self::assertSame('email', $form->filter('#email')->attr('name'));
         $full = $crawler->filter('a[href="/contacts/new"][target="_blank"]');
         self::assertSame('dialog#discard', $full->attr('data-action'));
         self::assertSame('Create customer', trim($crawler->filter('footer button[type="submit"][form="contact-quick-form"]')->text()));
@@ -65,7 +70,7 @@ final class NewCustomerDialogTest extends WebTestCase
 
     public function testCreatingStoresTheCustomerAndHandsItsIdToThePage(): void
     {
-        $this->post(['displayName' => 'Example Customer s.r.o.', 'registrationNumber' => '12345687', 'email' => 'billing@example.com', 'street' => 'Example Street 1', 'city' => 'Example City', 'postalCode' => '100 00']);
+        $this->post(['displayName' => 'Example Customer s.r.o.', 'registrationNumber' => '12345687', 'vatId' => 'CZ12345687', 'email' => 'billing@example.com', 'street' => 'Example Street 1', 'city' => 'Example City', 'postalCode' => '100 00']);
 
         self::assertResponseIsSuccessful();
         $result = json_decode((string) $this->client->getResponse()->getContent(), true);
@@ -80,11 +85,16 @@ final class NewCustomerDialogTest extends WebTestCase
         self::assertSame('Example Customer s.r.o.', $party->displayName());
         self::assertSame('12345687', $party->registrationNumber()?->value);
         self::assertSame([PartyRole::Customer], $party->roles());
+        self::assertSame('CZ12345687', $party->vatId()?->toString());
+        self::assertSame('CZ', $party->registrationNumber()->countryCode);
         $this->context->switchTo($this->tenant);
         $details = self::getContainer()->get(PartyDetails::class);
         self::assertSame('billing@example.com', $details->generalEmail($party)?->address());
         self::assertSame('Example City', $details->billingAddress($party)?->address()->city);
         $this->context->reset();
+        // The invoice form picks it with this address for invoices.
+        $this->client->request('GET', '/contacts/'.$id);
+        self::assertSelectorTextContains('main', 'billing@example.com');
         // Nothing waits for another page: the invoice form picked the customer itself.
         $this->client->request('GET', '/contacts');
         self::assertSelectorNotExists('[data-controller="contact-created"]');
@@ -104,6 +114,28 @@ final class NewCustomerDialogTest extends WebTestCase
         self::assertSame('#street', $crawler->filter('[data-error-summary] a')->first()->attr('href'));
         self::assertNull($crawler->filter('[data-error-summary]')->attr('autofocus'));
         self::assertSame(0, $this->partyCount());
+    }
+
+    public function testASecondCustomerWithTheSameNumberIsWarnedInTheDialogAndCanBeSavedAnyway(): void
+    {
+        $typed = ['displayName' => 'Example Twin s.r.o.', 'registrationNumber' => '12345687', 'street' => 'Example Street 1', 'city' => 'Example City', 'postalCode' => '100 00'];
+        $this->post($typed);
+        self::assertResponseIsSuccessful();
+
+        $this->post($typed);
+
+        self::assertResponseStatusCodeSame(422);
+        $crawler = new Crawler((string) $this->client->getResponse()->getContent(), 'http://localhost/');
+        $warning = $crawler->filter('dialog form#contact-quick-form [data-duplicate-warning]');
+        self::assertStringContainsString('Example Twin s.r.o.', $warning->text());
+        // The decision takes the focus: save anyway, or Cancel in the footer.
+        self::assertNotNull($warning->filter('button[name="confirm_duplicate"]')->attr('autofocus'));
+        self::assertSame(1, $this->partyCount());
+
+        $values = $crawler->filter('form#contact-quick-form')->form()->getPhpValues();
+        $this->client->request('POST', '/contacts/new', $values + ['confirm_duplicate' => '1'], server: self::DIALOG);
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $this->partyCount());
     }
 
     public function testTheFullFormStaysThePage(): void

@@ -238,6 +238,10 @@ test.describe.serial('dialogs', () => {
         await expect(dialog).toBeHidden();
         await expect(page).toHaveURL(/\/invoices\/new$/);
         await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
+        // Forward onto the step the dialog left reopens nothing and keeps the form.
+        await page.goForward();
+        await expect(page.locator('dialog[open]')).toHaveCount(0);
+        await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
         continue;
       }
       await dialog.locator('#lookup').fill('12345687');
@@ -252,6 +256,22 @@ test.describe.serial('dialogs', () => {
       await expect(page.locator('[data-customer-summary]')).toContainText('12345687');
       await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
       await expect(page).toHaveURL(/\/invoices\/new$/);
+      // The same company again: the dialog warns in place and the decision takes the focus.
+      await page.locator('#customer-add').click();
+      await dialog.locator('#lookup').fill('12345687');
+      await dialog.getByRole('button', { name: /Example Company s\.r\.o\./ }).first().click();
+      await dialog.getByRole('button', { name: 'Vytvořit zákazníka' }).click();
+      const warning = dialog.locator('[data-duplicate-warning]');
+      await expect(warning).toContainText('Example Company s.r.o.');
+      await expect(warning.getByRole('button', { name: 'Uložit i tak' })).toBeFocused();
+      await expectNoSeriousViolations(page);
+      await settled(dialog);
+      await page.screenshot({ path: `${SHOTS}/dialog-customer-duplicate-${name}.png` });
+      await dialog.getByRole('button', { name: 'Zrušit' }).click();
+      await dialog.getByRole('button', { name: 'Zahodit', exact: true }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.locator('#customer')).toHaveValue('Example Company s.r.o.');
+
       await page.getByRole('button', { name: 'Uložit' }).click();
       await expect(page).toHaveURL(/\/invoices$/);
       await expect(row(page, '20260004')).toContainText('Example Company s.r.o.');

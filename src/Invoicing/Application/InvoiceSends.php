@@ -68,6 +68,12 @@ interface InvoiceSends
     public function hasQueued(Invoice $invoice): bool;
 
     /**
+     * Whether the mail server took a send of the invoice, even one whose invoice
+     * went to the trash meanwhile and so was never marked delivered.
+     */
+    public function hasGoneOut(Invoice $invoice): bool;
+
+    /**
      * Ends every link of the invoice.
      */
     public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void;
@@ -87,11 +93,17 @@ interface InvoiceSends
      *    is still at it comes back when its lease ends, well before.
      *
      * A send whose last try failed and released its claim has its retries in the
-     * queue already, so taking it would start a second chain.
+     * queue already, so taking it would start a second chain; unless that try is
+     * older than the moment the retries are over, so no retry comes any more:
+     *
+     *  - queued, tried, unclaimed and last tried before that moment: its message
+     *    ran out of retries with tries of the send left.
+     *
+     * @param \DateTimeImmutable $retriesOver a last try before it has no retry to come
      *
      * @return list<string> ids, oldest first
      */
-    public function stuck(\DateTimeImmutable $before, int $limit): array;
+    public function stuck(\DateTimeImmutable $before, \DateTimeImmutable $retriesOver, int $limit): array;
 
     /**
      * Remembers that the sends were queued again now.

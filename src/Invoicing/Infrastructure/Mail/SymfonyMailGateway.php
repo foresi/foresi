@@ -18,24 +18,27 @@ use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\MailEncryption;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
-use Symfony\Component\Mailer\Transport\Dsn;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransportFactory;
-use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Exception\ExceptionInterface as MimeException;
 
 /**
  * Sends through the firm's own server, one connection per message. The transport
- * is built from a Dsn object, never a URL string, so a password needs no encoding;
+ * is built from its parts, never a URL string, so a password needs no encoding;
  * STARTTLS is required, or TLS from the start, and peer verification is never
  * turned off. The host is resolved once, by the host policy, and the connection
  * goes to that address. No event dispatcher and no logger are given to the transport, so
  * nothing of the SMTP conversation is logged.
+ *
+ * Each read waits at most 30 seconds, and the whole conversation at most 90: past
+ * that the stream fails as a timeout does. A worker's claim on a send lasts five
+ * minutes and covers the customer's mail and the firm's copy, so two full
+ * conversations end well before another worker may take the send.
  */
 final readonly class SymfonyMailGateway implements MailGateway
 {
+    public const float DEADLINE_SECONDS = 90.0;
     private const float TIMEOUT_SECONDS = 30.0;
 
     /** Authentication required, too weak, or failed. */
@@ -44,7 +47,7 @@ final readonly class SymfonyMailGateway implements MailGateway
     /** What Symfony and PHP's OpenSSL say when STARTTLS, the handshake or the certificate fails. */
     private const string SECURE_CONNECTION_FAILURE = '/STARTTLS|TLS required|certificate|SSL operation failed|crypto|handshake/i';
 
-    public function __construct(private MailSecrets $secrets, private MailHostPolicy $hosts)
+    public function __construct(private MailSecrets $secrets, private MailHostPolicy $hosts, private float $deadlineSeconds = self::DEADLINE_SECONDS)
     {
     }
 
@@ -77,26 +80,15 @@ final readonly class SymfonyMailGateway implements MailGateway
     public function transport(FirmMailServer $server, string $address): EsmtpTransport
     {
         $tls = MailEncryption::Tls === $server->encryption();
-        $transport = new EsmtpTransportFactory()->create(new Dsn(
-            $tls ? 'smtps' : 'smtp',
-            str_contains($address, ':') ? '['.$address.']' : $address,
-            $server->username(),
-            $this->secrets->open($server->sealedSecret()),
-            $server->port(),
-            $tls ? [] : ['require_tls' => 'true'],
-        ));
-        if (!$transport instanceof EsmtpTransport) {
-            throw new \LogicException('The SMTP factory builds an ESMTP transport.');
-        }
-        $stream = $transport->getStream();
-        if ($stream instanceof SocketStream) {
-            $stream->setTimeout(self::TIMEOUT_SECONDS);
-            $options = $stream->getStreamOptions();
-            $ssl = \is_array($options['ssl'] ?? null) ? $options['ssl'] : [];
-            $ssl['peer_name'] = trim($server->host(), '[]');
-            $options['ssl'] = $ssl;
-            $stream->setStreamOptions($options);
-        }
+        $stream = new DeadlineSocketStream($this->deadlineSeconds);
+        $stream->setTimeout(self::TIMEOUT_SECONDS);
+        $stream->setStreamOptions(['ssl' => ['peer_name' => trim($server->host(), '[]')]]);
+        $transport = new RecipientNamingEsmtpTransport(str_contains($address, ':') ? '['.$address.']' : $address, $server->port(), $tls, stream: $stream);
+        $transport->setAutoTls(true);
+        // Without TLS from the start, STARTTLS is required, never optional.
+        $transport->setRequireTls(!$tls);
+        $transport->setUsername($server->username());
+        $transport->setPassword($this->secrets->open($server->sealedSecret()));
 
         return $transport;
     }
@@ -123,7 +115,7 @@ final readonly class SymfonyMailGateway implements MailGateway
     /**
      * Maps a failure to a reason that is safe to keep: a 5xx answer, such as a
      * refused login, is permanent, and so is a message that cannot be built;
-     * anything else is worth another try.
+     * anything else is worth another try. A refused recipient is named.
      */
     public static function refusal(\Throwable $failure): MailRefused
     {
@@ -134,6 +126,10 @@ final readonly class SymfonyMailGateway implements MailGateway
         $code = $failure->getCode();
         if (\in_array($code, self::LOGIN_CODES, true)) {
             return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the login.', $code), true, MailRefused::LOGIN_REFUSED, $code);
+        }
+        if ($code >= 500 && $code <= 599 && $failure instanceof RecipientRefused) {
+            // The address is the one sent in RCPT TO, not the server's text.
+            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the recipient <%s>.', $code, $failure->recipient), reasonCode: MailRefused::RECIPIENT_REFUSED, smtpCode: $code);
         }
         if ($code >= 500 && $code <= 599) {
             return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the message.', $code), reasonCode: MailRefused::MESSAGE_REFUSED, smtpCode: $code);

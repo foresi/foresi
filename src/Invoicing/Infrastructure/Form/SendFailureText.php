@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Form;
 
+use App\Invoicing\Application\MailRefused;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -29,7 +30,15 @@ final readonly class SendFailureText
             return $stored;
         }
         $key = self::PREFIX.$code;
-        $text = $this->translator->trans($key, ['smtp' => null === $smtp ? 'none' : (string) $smtp]);
+        $parameters = ['smtp' => null === $smtp ? 'none' : (string) $smtp];
+        if (MailRefused::RECIPIENT_REFUSED === $code) {
+            // The refused address is kept only in the stored reason, between angle brackets.
+            if (1 !== preg_match('/<([^<>]+)>/', $stored ?? '', $recipient)) {
+                return $stored;
+            }
+            $parameters['recipient'] = $recipient[1];
+        }
+        $text = $this->translator->trans($key, $parameters);
 
         // A missing translation comes back as its key.
         return $key === $text ? $stored : $text;

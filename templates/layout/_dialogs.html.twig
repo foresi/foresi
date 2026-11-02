@@ -6,7 +6,8 @@
 #}
 <twig:Ui:Dialog id="dialog" remote data-dialog-failed-value="{{ 'ui.dialog.failed'|trans }}" />
 <twig:Ui:Dialog id="confirm-dialog" variant="confirm" size="sm" :title="'ui.confirm.accept'|trans">
-    <p data-dialog-target="text" class="m-0 text-text"></p>
+    {# Its consequence: the description of the alert dialog. #}
+    <p id="confirm-dialog-text" data-dialog-target="text" class="m-0 text-text"></p>
     <twig:block name="footer">
         <twig:Ui:Button data-dialog-target="reject" data-label="{{ 'ui.confirm.cancel'|trans }}" data-action="dialog#answerNo">{{ 'ui.confirm.cancel'|trans }}</twig:Ui:Button>
         <twig:Ui:Button variant="primary" data-dialog-target="accept" data-tone="default" data-label="{{ 'ui.confirm.accept'|trans }}" data-action="dialog#answerYes">{{ 'ui.confirm.accept'|trans }}</twig:Ui:Button>

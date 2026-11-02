@@ -30,7 +30,6 @@ use App\Party\Domain\PartyEmail;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
@@ -39,7 +38,8 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * mail the server accepted is never sent again:
  *
  *  1. A short unit claims the send. A claim younger than the lease belongs to a
- *     worker still at it: the message comes back when the lease ends.
+ *     worker still at it: the message comes back when the lease ends, without
+ *     using a retry (WaitForLeaseMiddleware).
  *  2. The server is called outside any transaction.
  *  3. Its acceptance is recorded on the send alone, at once.
  *  4. The invoice is marked delivered. If that fails, the send stays claimed and
@@ -50,8 +50,12 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * Only a worker dying between steps 2 and 3 can repeat the customer's mail, once,
  * with the same Message-ID. A temporary refusal is counted and thrown again for
  * the queue to retry; a permanent one fails the send at once. MarkSendFailed
- * fails a queued send when the retries run out; RequeueStuckSends picks up a
- * claim that no worker came back to.
+ * fails a queued send when the retries run out and the send has used its tries;
+ * RequeueStuckSends picks up a claim that no worker came back to.
+ *
+ * The lease outlasts the work it guards: the gateway ends each conversation with
+ * the mail server within SymfonyMailGateway::DEADLINE_SECONDS, and one claim
+ * covers at most two, the customer's mail and the copy.
  */
 #[AsMessageHandler]
 final readonly class DeliverInvoiceSendHandler
@@ -61,6 +65,7 @@ final readonly class DeliverInvoiceSendHandler
     private const string UNBUILDABLE = 'The message could not be built from the stored send.';
     private const string UNEXPECTED = 'The message could not be handed to the mail server.';
     private const string COPY_UNKNOWN = 'The copy was handed to the mail server, but its answer was not recorded.';
+    private const string LINK_CHANGED = 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.';
     /** Seconds past the end of a lease before a waiting message tries again. */
     private const int GRACE = 5;
 
@@ -105,8 +110,8 @@ final readonly class DeliverInvoiceSendHandler
     /**
      * @return InvoiceSend|null the send, claimed, when something is owed
      *
-     * @throws RecoverableMessageHandlingException while another worker holds the claim
-     * @throws UnknownInvoiceSend                  for a send of another tenant
+     * @throws SendLeaseHeld      while another worker holds the claim
+     * @throws UnknownInvoiceSend for a send of another tenant
      */
     private function claim(string $id): ?InvoiceSend
     {
@@ -121,7 +126,7 @@ final readonly class DeliverInvoiceSendHandler
             }
             $leaseEnds = $send->claimedAt()?->modify('+'.self::LEASE);
             if ($leaseEnds instanceof \DateTimeImmutable && $leaseEnds > $now) {
-                throw new RecoverableMessageHandlingException('Another worker is delivering this send.', 0, null, ($leaseEnds->getTimestamp() - $now->getTimestamp() + self::GRACE) * 1000);
+                throw new SendLeaseHeld(($leaseEnds->getTimestamp() - $now->getTimestamp() + self::GRACE) * 1000);
             }
             $send->claim($now);
 
@@ -229,13 +234,21 @@ final readonly class DeliverInvoiceSendHandler
      * @param list<string> $to
      * @param list<string> $cc
      *
-     * @throws MailRefused when the stored send cannot make a message, which no retry changes
+     * @throws MailRefused when the stored send cannot make a message, or its link no
+     *                     longer matches the application secret, which no retry changes
      */
     private function message(InvoiceSend $send, FirmMailServer $server, LinkAudience $audience, array $to, array $cc): MailMessage
     {
         $from = $server->fromAddress();
         $domain = substr($from, (int) strrpos($from, '@') + 1);
-        $body = new LinkedMailBody($send->body(), $this->links->url($this->tokens->token($send->id(), $audience)));
+        $token = $this->tokens->token($send->id(), $audience);
+        // Derived again from the application secret: if that changed since the send
+        // was queued, the link would lead nowhere while the invoice counts as delivered.
+        $stored = LinkAudience::Copy === $audience ? $send->copyTokenHash() : $send->tokenHash();
+        if (null === $stored || !hash_equals($stored, $this->tokens->hash($token))) {
+            throw new MailRefused(true, self::LINK_CHANGED, reasonCode: MailRefused::LINK_CHANGED);
+        }
+        $body = new LinkedMailBody($send->body(), $this->links->url($token));
         $replyTo = trim($this->settings->for($send->invoice()->firm())->contactEmail());
 
         try {

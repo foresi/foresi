@@ -87,6 +87,17 @@ final class DataTableTest extends KernelTestCase
         self::assertNull($crawler->filter('a[role="menuitem"][href="/invoices/a1/history"]')->attr('data-dialog'));
     }
 
+    public function testAnIconActionOpensItsDialogInPlaceToo(): void
+    {
+        $crawler = new Crawler($this->render(['rows' => $this->rowsWith([
+            ['label' => 'Send again', 'href' => '/invoices/a1/send', 'method' => 'GET', 'icon' => 'send', 'dialog' => true],
+        ])]));
+
+        $icon = $crawler->filter('a[aria-label="Send again"]');
+        self::assertNotNull($icon->attr('data-dialog'));
+        self::assertSame('dialog', $icon->attr('aria-haspopup'));
+    }
+
     public function testAConfirmationWithoutTitleThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
