@@ -33,12 +33,15 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 final readonly class ActiveTenantSubscriber
 {
     /**
-     * Pages that must stay reachable while the user has not chosen an organisation;
-     * the public links to sent documents belong to no organisation of the viewer.
+     * Pages that must stay reachable while the user has not chosen an organisation.
      */
-    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE, 'app_document_link', 'app_document_link_pdf'];
+    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE];
 
-    private const string ASSET_PATHS = '#^/(assets|_profiler|_wdt|build)(/|$)#';
+    /**
+     * Static assets, and every public link to a sent document: those belong to
+     * no organisation of the viewer, whatever route under /d/ serves them.
+     */
+    private const string EXEMPT_PATHS = '#^/(assets|_profiler|_wdt|build|d)(/|$)#';
 
     public function __construct(
         private TokenStorageInterface $tokens,
@@ -102,7 +105,7 @@ final readonly class ActiveTenantSubscriber
 
     /**
      * HTML pages only: JSON and other API calls are left alone, as are the
-     * login, logout and choice pages and the static assets.
+     * login, logout and choice pages, the public document links and the static assets.
      */
     private function isPageRequest(Request $request): bool
     {
@@ -114,6 +117,6 @@ final readonly class ActiveTenantSubscriber
             return false;
         }
 
-        return 1 !== preg_match(self::ASSET_PATHS, $request->getPathInfo());
+        return 1 !== preg_match(self::EXEMPT_PATHS, $request->getPathInfo());
     }
 }
