@@ -18,12 +18,16 @@ namespace App\Banking\Application;
 interface InboundMailbox
 {
     /**
-     * The oldest messages of the inbox, oldest first, whole and unchanged.
-     * Each call opens a fresh session; the marks below apply to its messages.
+     * The oldest messages of the inbox, oldest first, whole and unchanged,
+     * leaving out the UIDs given, which the poller gave up on: they stay in the
+     * inbox for the operator and never fill a batch again. Each call opens a
+     * fresh session; the marks below apply to its messages.
+     *
+     * @param list<string> $skip UIDs to leave out
      *
      * @return list<MailboxItem>
      */
-    public function fetch(int $limit): array;
+    public function fetch(int $limit, array $skip = []): array;
 
     /** Stored, or stored before: the message is done with. */
     public function markDone(string $uid): void;

@@ -16,7 +16,7 @@ use App\Banking\Application\InboundMailbox;
  */
 final readonly class DisabledInboundMailbox implements InboundMailbox
 {
-    public function fetch(int $limit): array
+    public function fetch(int $limit, array $skip = []): array
     {
         return [];
     }

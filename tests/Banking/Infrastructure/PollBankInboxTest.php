@@ -11,7 +11,9 @@ namespace App\Tests\Banking\Infrastructure;
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundMailbox;
 use App\Banking\Application\PollBankInbox;
+use App\Banking\Application\PollFailures;
 use App\Banking\Application\ReceiveInboundMail;
+use App\Banking\Infrastructure\CachePollFailures;
 use App\Banking\Infrastructure\Imap\DisabledInboundMailbox;
 use App\Banking\Infrastructure\Imap\ImapInboundMailbox;
 use App\Tenancy\Application\TenantContext;
@@ -23,6 +25,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -40,9 +43,11 @@ final class PollBankInboxTest extends KernelTestCase
     private Connection $connection;
     /** @var \ArrayObject<int, array{level: string, message: string, context: string}> */
     private \ArrayObject $logged;
+    private PollFailures $failures;
 
     protected function setUp(): void
     {
+        $this->failures = new CachePollFailures(new ArrayAdapter());
         self::bootKernel();
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
         $container = self::getContainer();
@@ -127,6 +132,60 @@ final class PollBankInboxTest extends KernelTestCase
         self::assertSame(1, Scalars::int($this->connection->fetchOne("SELECT COUNT(*) FROM inbound_message WHERE status = 'received'")));
     }
 
+    public function testAMessageThatKeepsFailingIsMovedToRejectedAfterFiveTries(): void
+    {
+        $failing = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address, 'failing@mail.example.com', ['X-Test' => 'fail-storage']));
+
+        for ($run = 1; $run < PollBankInbox::MAX_FAILURES; ++$run) {
+            $this->poll(failOn: 'fail-storage')->run();
+            self::assertSame([$failing], $this->mailbox->inbox(), 'run '.$run);
+        }
+        $this->poll(failOn: 'fail-storage')->run();
+
+        self::assertSame([$failing], $this->mailbox->movedTo(FakeInboundMailbox::REJECTED));
+        self::assertSame([], $this->mailbox->inbox());
+        self::assertSame(0, $this->rowCount());
+        self::assertSame([], $this->failures->atLeast(1), 'Moved away, so forgotten.');
+        $last = $this->logged[\count($this->logged) - 1];
+        self::assertIsArray($last);
+        self::assertStringContainsString('moved to Rejected', $last['message']);
+    }
+
+    public function testASuccessForgetsTheFailures(): void
+    {
+        $uid = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address));
+        $this->mailbox->failNextMoveOf($uid);
+        $this->poll()->run();
+        self::assertSame([(string) $uid], $this->failures->atLeast(1));
+
+        $this->poll()->run();
+
+        self::assertSame([], $this->failures->atLeast(1));
+    }
+
+    /**
+     * Fifty messages the server will not move, ahead of a good one, fill every
+     * batch: once given up on, they are left out, and the good one is read.
+     */
+    public function testFiftyUnmovableMessagesDoNotStallTheGoodOneBehindThem(): void
+    {
+        foreach (range(1, PollBankInbox::BATCH) as $n) {
+            $this->mailbox->failEveryMoveOf($this->mailbox->deliver(InboundMailKit::mail($this->kit->unknownAddress(), $n.'@mail.example.com')));
+        }
+        $good = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address, 'good@mail.example.com'));
+
+        for ($run = 1; $run <= PollBankInbox::MAX_FAILURES; ++$run) {
+            $this->poll()->run();
+            self::assertSame(0, $this->rowCount(), 'run '.$run);
+        }
+        $this->poll()->run();
+
+        self::assertSame([$good], $this->mailbox->movedTo(FakeInboundMailbox::DONE));
+        self::assertSame(1, $this->rowCount());
+        self::assertCount(PollBankInbox::BATCH, $this->mailbox->inbox(), 'The unmovable ones stay for the operator.');
+        self::assertCount(PollBankInbox::BATCH, $this->failures->atLeast(PollBankInbox::MAX_FAILURES));
+    }
+
     public function testAnEmptyHostDisablesPolling(): void
     {
         $mailbox = ImapInboundMailbox::fromSettings('', 993, 'ssl', '', '', 'INBOX');
@@ -134,7 +193,7 @@ final class PollBankInboxTest extends KernelTestCase
         self::assertSame([], $mailbox->fetch(PollBankInbox::BATCH));
         self::assertInstanceOf(ImapInboundMailbox::class, ImapInboundMailbox::fromSettings(' imap.example.com ', 993, 'ssl', 'bank@example.com', 'password', 'INBOX'));
 
-        new PollBankInbox($mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger())->run();
+        new PollBankInbox($mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger(), $this->failures)->run();
         self::assertCount(0, $this->logged);
     }
 
@@ -146,7 +205,7 @@ final class PollBankInboxTest extends KernelTestCase
     {
         FailingInboundFiles::failOn($failOn);
 
-        return new PollBankInbox($this->mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger());
+        return new PollBankInbox($this->mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger(), $this->failures);
     }
 
     private function logger(): AbstractLogger

@@ -37,6 +37,9 @@ final class FakeInboundMailbox implements InboundMailbox
     /** @var array<int, true> */
     private array $failMove = [];
 
+    /** @var array<int, true> */
+    private array $failEveryMove = [];
+
     public function deliver(string $raw): int
     {
         $uid = $this->nextUid++;
@@ -59,10 +62,18 @@ final class FakeInboundMailbox implements InboundMailbox
         $this->failMove[$uid] = true;
     }
 
-    public function fetch(int $limit): array
+    /**
+     * Every move of the message fails, as on a server that refuses it.
+     */
+    public function failEveryMoveOf(int $uid): void
+    {
+        $this->failEveryMove[$uid] = true;
+    }
+
+    public function fetch(int $limit, array $skip = []): array
     {
         $this->limits[] = $limit;
-        $uids = array_keys($this->inbox);
+        $uids = array_values(array_diff(array_keys($this->inbox), array_map(intval(...), $skip)));
         sort($uids);
 
         return array_map(fn (int $uid): MailboxItem => new MailboxItem((string) $uid, $this->inbox[$uid]), \array_slice($uids, 0, $limit));
@@ -120,6 +131,9 @@ final class FakeInboundMailbox implements InboundMailbox
             unset($this->failMove[$key]);
 
             throw new \RuntimeException('The connection dropped.');
+        }
+        if (isset($this->failEveryMove[$key])) {
+            throw new \RuntimeException('The server refused the move.');
         }
         unset($this->inbox[$key]);
         $this->moved[$folder][] = $key;

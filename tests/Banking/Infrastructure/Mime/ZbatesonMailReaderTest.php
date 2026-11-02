@@ -12,6 +12,8 @@ use App\Banking\Application\InboundMail;
 use App\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ZBateson\MailMimeParser\IMessage;
+use ZBateson\MailMimeParser\MailMimeParser;
 
 final class ZbatesonMailReaderTest extends TestCase
 {
@@ -126,6 +128,36 @@ final class ZbatesonMailReaderTest extends TestCase
         // RFC 5322 §2.2.3: only a header can be folded, so a message cannot start with a continuation line.
         yield 'a folded first line' => [" ; dkim=pass header.d=kb.cz\r\nFrom: info@kb.cz\r\n\r\nAmount: 100,00 CZK\r\n"];
         yield 'a tab-folded first line' => ["\t; dmarc=pass header.from=kb.cz\nFrom: info@kb.cz\n\nAmount: 100,00 CZK\n"];
+    }
+
+    /**
+     * The library reads parts lazily: the text, the headers and the attachments
+     * are decoded only when asked for, after parse() returned. A failure there
+     * is an unreadable mail too, never an error that stops the worker.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function lazyParts(): iterable
+    {
+        yield 'raw headers' => ['getRawHeaders'];
+        yield 'the text' => ['getTextContent'];
+        yield 'the HTML' => ['getHtmlContent'];
+        yield 'the attachments' => ['getAllAttachmentParts'];
+        yield 'the subject' => ['getSubject'];
+    }
+
+    #[DataProvider('lazyParts')]
+    public function testAFailureReadingAPartLaterIsAnUnreadableMail(string $method): void
+    {
+        $message = self::createStub(IMessage::class);
+        $message->method('getRawHeaders')->willReturn([['From', 'info@kb.cz']]);
+        $message->method('getAllAttachmentParts')->willReturn([]);
+        $message->method($method)->willThrowException(new \RuntimeException('A stream of the library broke.'));
+        $parser = self::createStub(MailMimeParser::class);
+        $parser->method('parse')->willReturn($message);
+
+        $this->expectException(\InvalidArgumentException::class);
+        new ZbatesonMailReader($parser)->read("From: info@kb.cz\r\n\r\nBody\r\n");
     }
 
     private function read(string $fixture): InboundMail

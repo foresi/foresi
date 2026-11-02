@@ -10,7 +10,9 @@ namespace App\Banking\Infrastructure\Imap;
 
 use App\Banking\Application\InboundMailbox;
 use App\Banking\Application\MailboxItem;
+use DirectoryTree\ImapEngine\Connection\RawQueryValue;
 use DirectoryTree\ImapEngine\Connection\Streams\ImapStream;
+use DirectoryTree\ImapEngine\Enums\ImapSearchKey;
 use DirectoryTree\ImapEngine\Mailbox;
 use DirectoryTree\ImapEngine\Message;
 
@@ -22,9 +24,11 @@ use DirectoryTree\ImapEngine\Message;
  * the last run does no harm. It makes sure the three folders exist, in the
  * user's personal namespace when the server names one (below "INBOX." on
  * Courier and Cyrus) and under the server's own hierarchy delimiter, then reads the oldest messages that are not
- * marked deleted, by UID, whole and peeked, so they stay unread. A message is
- * moved with MOVE, or with COPY and a deleted flag on servers without it; the
- * inbox is never expunged, which would remove what an operator deleted.
+ * marked deleted and not given up on, by UID, whole and peeked, so they stay
+ * unread. A message is moved with MOVE, or by the library's COPY and deleted flag
+ * on a server with UIDPLUS, or by a plain COPY and a deleted flag here on a server
+ * with neither; the inbox is never expunged, which would remove what an operator
+ * deleted.
  *
  * The password stays out of dumps and stack traces.
  */
@@ -95,7 +99,7 @@ final class ImapInboundMailbox implements InboundMailbox
         ]);
     }
 
-    public function fetch(int $limit): array
+    public function fetch(int $limit, array $skip = []): array
     {
         $this->close();
         if ($limit < 1) {
@@ -117,6 +121,10 @@ final class ImapInboundMailbox implements InboundMailbox
 
         $query = $inbox->messages();
         $query->undeleted();
+        $skipped = array_values(array_filter($skip, static fn (string $uid): bool => 1 === preg_match('/^[1-9][0-9]*$/D', $uid)));
+        if ([] !== $skipped) {
+            $query->whereNot(ImapSearchKey::Uid, new RawQueryValue(implode(',', $skipped)));
+        }
         $items = [];
         foreach ($query->oldest()->limit($limit)->withHeaders()->withBody()->get() as $message) {
             if (!$message instanceof Message) {
@@ -205,7 +213,15 @@ final class ImapInboundMailbox implements InboundMailbox
         if (!$message instanceof Message) {
             throw new \LogicException(\sprintf('The message %s was not fetched in this run.', $uid));
         }
-        $message->move($this->folders[$folder]);
+        $path = $this->folders[$folder];
+        $capabilities = $this->mailbox?->capabilities() ?? [];
+        if (\in_array('MOVE', $capabilities, true) || \in_array('UIDPLUS', $capabilities, true)) {
+            $message->move($path);
+        } else {
+            // RFC 3501 alone: copy, then flag the original deleted; the inbox is never expunged.
+            $this->mailbox?->connection()->copy($path, $message->uid());
+            $message->markDeleted();
+        }
         unset($this->fetched[$message->uid()]);
     }
 

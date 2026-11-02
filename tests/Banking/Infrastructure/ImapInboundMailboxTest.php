@@ -188,6 +188,74 @@ final class ImapInboundMailboxTest extends TestCase
         $stream->assertWritten('TAG15 UID MOVE 5 "INBOX.Foresi.Unknown"');
     }
 
+    /**
+     * A server of RFC 3501 alone knows neither MOVE nor UIDPLUS: the message is
+     * copied and flagged deleted, and the inbox is never expunged.
+     */
+    public function testAServerWithoutMoveGetsACopyAndADeletedFlag(): void
+    {
+        $raw = InboundMailKit::mail('bank+abcdefghijklmnopqrstuvwxyz@example.com', 'first@mail.example.com');
+        $stream = new FakeStream();
+        $stream->feed([
+            '* OK IMAP ready',
+            'TAG1 OK LOGIN completed',
+            '* LIST (\HasChildren) "/" "INBOX"',
+            'TAG2 OK LIST completed',
+            'TAG3 BAD Unknown command',
+            '* LIST () "/" "Foresi/Done"',
+            'TAG4 OK LIST completed',
+            '* LIST () "/" "Foresi/Unknown"',
+            'TAG5 OK LIST completed',
+            '* LIST () "/" "Foresi/Rejected"',
+            'TAG6 OK LIST completed',
+            '* 1 EXISTS',
+            'TAG7 OK [READ-WRITE] SELECT completed',
+            '* SEARCH 8',
+            'TAG8 OK SEARCH completed',
+        ]);
+        $stream->feedRaw($this->fetched(1, 8, $raw));
+        $stream->feed([
+            'TAG9 OK FETCH completed',
+            '* CAPABILITY IMAP4rev1',
+            'TAG10 OK CAPABILITY completed',
+            'TAG11 OK COPY completed',
+            'TAG12 OK STORE completed',
+        ]);
+        $adapter = new ImapInboundMailbox('imap.example.com', 993, 'ssl', 'bank@example.com', self::PASSWORD, 'INBOX', new NamespacedImapConnection($stream));
+
+        self::assertEquals([new MailboxItem('8', $raw)], $adapter->fetch(50));
+        $adapter->markDone('8');
+
+        $stream->assertWritten('TAG11 UID COPY 8 "Foresi/Done"');
+        $stream->assertWritten('TAG12 UID STORE 8 +FLAGS.SILENT (\Deleted)');
+    }
+
+    public function testMessagesGivenUpOnAreLeftOutOfTheSearch(): void
+    {
+        $stream = new FakeStream();
+        $stream->feed([
+            '* OK IMAP ready',
+            'TAG1 OK LOGIN completed',
+            '* LIST (\HasChildren) "/" "INBOX"',
+            'TAG2 OK LIST completed',
+            'TAG3 BAD Unknown command',
+            '* LIST () "/" "Foresi/Done"',
+            'TAG4 OK LIST completed',
+            '* LIST () "/" "Foresi/Unknown"',
+            'TAG5 OK LIST completed',
+            '* LIST () "/" "Foresi/Rejected"',
+            'TAG6 OK LIST completed',
+            'TAG7 OK SELECT completed',
+            '* SEARCH',
+            'TAG8 OK SEARCH completed',
+        ]);
+        $adapter = new ImapInboundMailbox('imap.example.com', 993, 'ssl', 'bank@example.com', self::PASSWORD, 'INBOX', new NamespacedImapConnection($stream));
+
+        self::assertSame([], $adapter->fetch(50, ['3', '7', 'not-a-uid']));
+
+        $stream->assertWritten('TAG8 UID SEARCH UNDELETED NOT UID 3,7');
+    }
+
     public function testAFailedLoginNeverShowsThePasswordEvenWithArgumentsInTraces(): void
     {
         $previous = ini_set('zend.exception_ignore_args', '0');

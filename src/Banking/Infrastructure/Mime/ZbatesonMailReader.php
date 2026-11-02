@@ -12,6 +12,7 @@ use App\Banking\Application\InboundMail;
 use App\Banking\Application\MailReader;
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\DateHeader;
+use ZBateson\MailMimeParser\IMessage;
 use ZBateson\MailMimeParser\MailMimeParser;
 
 /**
@@ -21,12 +22,22 @@ use ZBateson\MailMimeParser\MailMimeParser;
  *
  * The library reads almost any bytes as a message. A message is refused unless
  * its first line is a header field, which is how every RFC 5322 message starts.
+ *
+ * The library decodes the headers, the text and the attachments lazily, when
+ * they are asked for after parsing, so the whole reading is guarded: whatever
+ * the library throws, there or later, the mail is unreadable, never an error that
+ * stops the worker or the poller.
  */
 final class ZbatesonMailReader implements MailReader
 {
     private const string FIRST_HEADER = '/\A[\x21-\x39\x3B-\x7E]+[ \t]*:/';
 
-    private ?MailMimeParser $parser = null;
+    /**
+     * @param MailMimeParser|null $parser a parser to use in place of a new one, for a test
+     */
+    public function __construct(private ?MailMimeParser $parser = null)
+    {
+    }
 
     public function read(string $raw): InboundMail
     {
@@ -35,11 +46,16 @@ final class ZbatesonMailReader implements MailReader
         }
 
         try {
-            $message = ($this->parser ??= new MailMimeParser())->parse($raw, false);
+            return $this->mail(($this->parser ??= new MailMimeParser())->parse($raw, false), $raw);
+        } catch (\InvalidArgumentException $unreadable) {
+            throw $unreadable;
         } catch (\Throwable $error) {
             throw new \InvalidArgumentException('The mail could not be read.', 0, $error);
         }
+    }
 
+    private function mail(IMessage $message, string $raw): InboundMail
+    {
         $headers = [];
         foreach ($message->getRawHeaders() as [$name, $value]) {
             // The obsolete syntax allows white space before the colon (RFC 5322 §4.5.1), so "From :" is a From.

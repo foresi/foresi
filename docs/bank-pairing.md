@@ -78,11 +78,11 @@ The task `bank-inbox` runs every five minutes on the existing schedule, under a 
 |---|---|
 | `Foresi/Done` | Stored, or stored before (a duplicate) |
 | `Foresi/Unknown` | For no known address, or an address that was replaced |
-| `Foresi/Rejected` | Above 10 MiB, or not readable as mail |
+| `Foresi/Rejected` | Above 10 MiB, or not readable as mail, or its handling failed five times |
 
-A message whose handling failed stays in the inbox and is taken again on the next run. The folders are created on the first run, under the server's personal namespace when it names one (below `INBOX.` on Courier and Cyrus, for example) and with the server's own hierarchy delimiter.
+A message whose handling failed stays in the inbox and is taken again on the next run. After five failures it is moved to `Foresi/Rejected`, and the log says so. One the server will not even move there stays in the inbox for the operator and is left out of every later run, so bad messages at the head of the inbox never keep the good ones behind them from being read. The counts are kept in the application cache for a week; a lost count only starts over. The folders are created on the first run, under the server's personal namespace when it names one (below `INBOX.` on Courier and Cyrus, for example) and with the server's own hierarchy delimiter.
 
-Messages are moved, never deleted, and the inbox is never expunged. Moving rather than marking read means an operator who opens the mailbox loses nothing, and every message stays where a person can find it again. On a server without the IMAP `MOVE` command, Foresi copies the message and flags the original deleted; as Foresi never expunges, the original stays until the operator's own client or the server does.
+Messages are moved, never deleted, and the inbox is never expunged. Moving rather than marking read means an operator who opens the mailbox loses nothing, and every message stays where a person can find it again. On a server without the IMAP `MOVE` command, with or without `UIDPLUS`, Foresi copies the message and flags the original deleted; as Foresi never expunges, the original stays until the operator's own client or the server does.
 
 Polling needs the worker, which consumes `async` and `scheduler_foresi` already; the worker command is unchanged (see [sending.md](sending.md#the-running-worker)).
 

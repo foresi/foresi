@@ -121,6 +121,9 @@ services:
         alias: App\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
     App\Banking\Application\Ownership:
         alias: App\Banking\Infrastructure\IdentityOwnership
+    # How often a message of the operator mailbox failed, across polls.
+    App\Banking\Application\PollFailures:
+        alias: App\Banking\Infrastructure\CachePollFailures
     App\Banking\Application\InboundFiles:
         alias: App\Banking\Infrastructure\Files\DiskInboundFiles
     App\Banking\Application\InboundProcessing:
@@ -459,6 +462,10 @@ when@test:
             public: true
         App\Tests\Banking\Support\FailingInboundFiles:
             decorates: App\Banking\Application\InboundFiles
+        # The poller's failure counts in memory, so no test leaves them for the next.
+        App\Banking\Infrastructure\CachePollFailures:
+            arguments:
+                $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
