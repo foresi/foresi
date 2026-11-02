@@ -21,7 +21,7 @@ use App\Party\Domain\EmailPurpose;
  * What the send dialog of an invoice opens with. The recipients are the contact's
  * invoicing addresses for the invoice's firm, its own or the shared ones: those for
  * invoices go to To, those for a copy to Cc, both ticked. A contact without one
- * offers the address the document copied. The text is the firm's template in the
+ * for invoices offers the address the document copied, in To. The text is the firm's template in the
  * document's language, filled in as SendInvoice would fill it, so what the dialog
  * shows is what the customer gets.
  */
@@ -46,9 +46,12 @@ final readonly class SendDraft
         $server = $this->servers->for($firm);
         $recipients = $this->recipients($invoice);
         $fromDocument = false;
-        $copied = $invoice->customer()->email;
-        if ([] === $recipients && null !== $copied && '' !== trim($copied)) {
-            $recipients = [new SendRecipient(trim($copied), null, SendRecipient::TO, true)];
+        $copied = trim($invoice->customer()->email ?? '');
+        $hasTo = array_any($recipients, static fn (SendRecipient $recipient): bool => SendRecipient::TO === $recipient->field);
+        if (!$hasTo && '' !== $copied) {
+            // Without an address for invoices the mail goes to the one the document holds; a copy address it holds moves to To.
+            $others = array_values(array_filter($recipients, static fn (SendRecipient $recipient): bool => mb_strtolower($recipient->address) !== mb_strtolower($copied)));
+            $recipients = [new SendRecipient($copied, null, SendRecipient::TO, true), ...$others];
             $fromDocument = true;
         }
 

@@ -133,6 +133,28 @@ final class SendLogControllerTest extends WebTestCase
         self::assertCount(25, $crawler->filter('tbody tr'));
     }
 
+    public function testAFailureReadsInTheLanguageOfTheUser(): void
+    {
+        $this->signedIn(locale: 'cs');
+        $invoice = $this->issued();
+        $send = $this->sent($invoice, ['refuse@example.com']);
+        $this->deliver();
+
+        $crawler = $this->client->request('GET', '/invoices/sent');
+        self::assertStringContainsString('Poštovní server zprávu odmítl (SMTP 550).', $crawler->filter('tbody tr')->text());
+        $stored = $this->connection()->fetchAssociative('SELECT last_error_code, last_error_smtp FROM invoice_send WHERE id = ?', [$send]);
+        self::assertIsArray($stored);
+        self::assertSame('message_refused', $stored['last_error_code']);
+        self::assertEquals(550, $stored['last_error_smtp']);
+        $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
+        self::assertStringContainsString('Poštovní server zprávu odmítl (SMTP 550).', $crawler->filter('[data-send-entry]')->text());
+
+        // A row from before codes shows the English text it kept.
+        $this->connection()->executeStatement('UPDATE invoice_send SET last_error_code = NULL, last_error_smtp = NULL WHERE id = ?', [$send]);
+        $crawler = $this->client->request('GET', '/invoices/sent');
+        self::assertStringContainsString('SMTP 550: the mail server refused the message.', $crawler->filter('tbody tr')->text());
+    }
+
     public function testTheLogIsTenantIsolated(): void
     {
         $this->signedIn();
@@ -171,7 +193,7 @@ final class SendLogControllerTest extends WebTestCase
     {
         $this->signedIn();
         $invoice = $this->issued();
-        $first = $this->sent($invoice, ['billing@example.com'], ['accounts@example.com'], 'Invoice {number}', "Dear customer,\n{link}");
+        $first = $this->sent($invoice, ['billing@example.com'], ['accounts@example.com'], 'Invoice 20260001', "Dear customer,\n{link}");
         $this->deliver();
         $this->opened($first);
         self::mockTime('2026-11-04 08:00:00');
@@ -233,6 +255,19 @@ final class SendLogControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-changed-after-send]', 'This invoice changed after it was sent on 2026-11-03 11:00.');
     }
 
+    public function testAChangeInTheSecondOfTheSendStillWarns(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->sent($invoice);
+        $this->deliver();
+        $this->savedWithDescription($invoice, 'Changed');
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
+
+        self::assertSelectorExists('[data-changed-after-send]');
+    }
+
     public function testNoWarningWhenUnchanged(): void
     {
         $this->signedIn();
@@ -291,6 +326,35 @@ final class SendLogControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-shell-notices]', 'waiting to be sent for more than 15 minutes');
     }
 
+    public function testARetryingSendShowsItsOwnNoteNotTheStuckOne(): void
+    {
+        $this->signedIn();
+        $send = $this->sent($this->issued());
+        $this->connection()->executeStatement("UPDATE invoice_send SET attempts = 1, last_error = 'SMTP 451: the mail server asks to try again later.', last_error_code = 'try_later', last_error_smtp = 451 WHERE id = ?", [$send]);
+
+        self::mockTime('2026-11-03 10:30:00');
+        $crawler = $this->client->request('GET', '/contacts');
+
+        $notices = $crawler->filter('[data-shell-notices]')->text();
+        self::assertStringNotContainsString('more than 15 minutes', $notices);
+        self::assertStringContainsString('An e-mail is being tried again: the mail server has not taken it yet.', $notices);
+        self::assertSame('/invoices/sent?status=queued', $crawler->filter('[data-shell-notices] a')->attr('href'));
+    }
+
+    public function testTheLogShowsWhenASendWasRead(): void
+    {
+        $this->signedIn();
+        $send = $this->sent($this->issued());
+        $this->deliver();
+        $this->opened($send);
+
+        $crawler = $this->client->request('GET', '/invoices/sent');
+
+        // In the badge itself, not only for a screen reader.
+        self::assertSame('Read 2026-11-03 13:30', $crawler->filter('tbody tr td span.rounded-sm')->text());
+        self::assertCount(0, $crawler->filter('tbody tr td span.rounded-sm .sr-only'));
+    }
+
     public function testTheNoticeLinksToTheLog(): void
     {
         $this->signedIn();
@@ -312,7 +376,7 @@ final class SendLogControllerTest extends WebTestCase
      * @param list<string> $to
      * @param list<string> $cc
      */
-    private function sent(Invoice $invoice, array $to = ['billing@example.com'], array $cc = [], string $subject = 'Invoice {number}', string $body = '{link}'): string
+    private function sent(Invoice $invoice, array $to = ['billing@example.com'], array $cc = [], string $subject = 'Invoice', string $body = '{link}'): string
     {
         return $this->scoped(static fn (): string => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, $cc, false, $subject, $body))->id());
     }
@@ -378,7 +442,7 @@ final class SendLogControllerTest extends WebTestCase
             $day = new \DateTimeImmutable('2026-11-01');
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $invoice = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm->id(), $series->id(), null, $customer->id(), null, $day, $day, new \DateTimeImmutable('2026-12-01'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Foreign', '', '', DocumentLanguage::Czech, [$line]));
-            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['foreign@example.com'], [], false, 'Foreign {number}', '{link}'));
+            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['foreign@example.com'], [], false, 'Foreign invoice', '{link}'));
 
             return [$invoice->id(), $send->id()];
         } finally {
@@ -386,9 +450,9 @@ final class SendLogControllerTest extends WebTestCase
         }
     }
 
-    private function signedIn(Role $role = Role::Owner): void
+    private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
+        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
         $this->scoped(function (): void {
             [$this->firm, $this->series] = $this->firmWithServer('Example Firm s.r.o.', '12345695');
             $this->customer = $this->newCustomer('Example Customer a.s.');

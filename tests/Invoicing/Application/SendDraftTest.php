@@ -58,6 +58,30 @@ final class SendDraftTest extends SendingTestCase
         self::assertTrue($draft->fromDocument);
     }
 
+    public function testACopyOnlyContactSendsToTheDocumentsAddress(): void
+    {
+        $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
+        $this->em->persist(new PartyEmail($this->customer, 'office@example.com', EmailPurpose::General));
+        $this->em->persist(new PartyEmail($this->customer, 'accounts@example.com', EmailPurpose::Copy));
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input());
+
+        // The document copied the copy address, the first invoicing one; the general one stays out.
+        self::assertSame([['accounts@example.com', 'to', true]], $this->recipientsOf($invoice));
+        self::assertTrue($this->draft()->for($invoice)->fromDocument);
+    }
+
+    public function testACopyOnlyContactKeepsItsCopyBesideTheDocumentsAddress(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
+        $this->em->persist(new PartyEmail($this->customer, 'accounts@example.com', EmailPurpose::Copy));
+        $this->em->flush();
+
+        // The document still holds the address it was issued with.
+        self::assertSame([['billing@example.com', 'to', true], ['accounts@example.com', 'cc', true]], $this->recipientsOf($invoice));
+    }
+
     public function testNoAddressAnywhereLeavesTheRecipientsEmpty(): void
     {
         $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();

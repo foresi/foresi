@@ -144,16 +144,16 @@ final readonly class DeliverInvoiceSendHandler
         $id = $send->id();
         try {
             if (!$server instanceof FirmMailServer) {
-                throw new MailRefused(true, self::NO_SERVER, true);
+                throw new MailRefused(true, self::NO_SERVER, true, MailRefused::NO_SERVER);
             }
             $mail = $this->message($send, $server, LinkAudience::Customer, $send->to(), $send->cc());
             $this->gateway->send($mail, $server);
         } catch (MailRefused $refused) {
             $this->unit(function () use ($id, $refused): void {
                 $send = $this->sends->lock($id);
-                $send->recordAttempt($this->now(), $refused->safeReason, $refused->settingsProblem);
+                $send->recordAttempt($this->now(), $refused->safeReason, $refused->settingsProblem, $refused->reasonCode, $refused->smtpCode);
                 if ($refused->permanent) {
-                    $send->fail($this->now(), $refused->safeReason, $refused->settingsProblem);
+                    $send->fail($this->now(), $refused->safeReason, $refused->settingsProblem, $refused->reasonCode, $refused->smtpCode);
                 }
             });
 
@@ -161,7 +161,7 @@ final readonly class DeliverInvoiceSendHandler
         } catch (\Throwable $failure) {
             // Not the server's answer: release the claim, so the retry may try.
             $this->unit(function () use ($id): void {
-                $this->sends->lock($id)->recordAttempt($this->now(), self::UNEXPECTED);
+                $this->sends->lock($id)->recordAttempt($this->now(), self::UNEXPECTED, code: MailRefused::NOT_HANDED_OVER);
             });
 
             throw $failure;
@@ -206,16 +206,16 @@ final readonly class DeliverInvoiceSendHandler
         $copyTo = $send->copyTo() ?? throw new \LogicException('Only a send with a copy owes one.');
         // Unknown until the server answers, so no later worker sends it a second time.
         $this->unit(function () use ($id): void {
-            $this->sends->lock($id)->startCopy(self::COPY_UNKNOWN);
+            $this->sends->lock($id)->startCopy(self::COPY_UNKNOWN, MailRefused::COPY_UNKNOWN);
         });
         try {
             if (!$server instanceof FirmMailServer) {
-                throw new MailRefused(true, self::NO_SERVER, true);
+                throw new MailRefused(true, self::NO_SERVER, true, MailRefused::NO_SERVER);
             }
             $this->gateway->send($this->message($send, $server, LinkAudience::Copy, [$copyTo], []), $server);
         } catch (MailRefused $refused) {
             $this->unit(function () use ($id, $refused): void {
-                $this->sends->lock($id)->recordCopyFailure($refused->safeReason);
+                $this->sends->lock($id)->recordCopyFailure($refused->safeReason, $refused->reasonCode, $refused->smtpCode);
             });
 
             return;
@@ -251,7 +251,7 @@ final readonly class DeliverInvoiceSendHandler
                 \sprintf('<%s%s@%s>', $send->id(), LinkAudience::Copy === $audience ? '.copy' : '', $domain),
             );
         } catch (\InvalidArgumentException) {
-            throw new MailRefused(true, self::UNBUILDABLE);
+            throw new MailRefused(true, self::UNBUILDABLE, reasonCode: MailRefused::UNBUILDABLE);
         }
     }
 

@@ -228,7 +228,7 @@ $senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $sende
     new LineInput('Website redesign', Quantity::fromString('1'), 'ks', Money::of('12500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
 ]));
 // Delivered at once: the mail queue of the e2e environment is synchronous.
-$senderSend = $sendInvoice->send(new SendRequest($senderInvoice->id(), ['billing@example.com'], [], true, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
+$senderSend = $sendInvoice->send(new SendRequest($senderInvoice->id(), ['billing@example.com'], [], true, 'Faktura '.$senderInvoice->number(), "Dobrý den,\nposíláme fakturu ".$senderInvoice->number().".\n\n{link}"));
 $context->reset();
 file_put_contents(dirname(__DIR__, 2).'/var/e2e-links.json', json_encode([
     'customer' => $linkTokens->token($senderSend->id(), LinkAudience::Customer),
@@ -263,8 +263,11 @@ $sendingInvoice($sendingFirm, $sendingSeries, 'Annual support', '24000.00');
 $sendingInvoice($quietFirm, $quietSeries, 'Logo design', '8000.00');
 // Delivered at once by the synchronous e2e queue: one refused by the recipient's server,
 // one sent and opened, so the list, the log and the notice have each state to show.
-$failedSend = $sendInvoice->send(new SendRequest($sendingInvoice($sendingFirm, $sendingSeries, 'Hosting', '3600.00')->id(), [RecordingMailGateway::REFUSING_RECIPIENT], [], false, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
-$readSend = $sendInvoice->send(new SendRequest($sendingInvoice($sendingFirm, $sendingSeries, 'Domain renewal', '450.00')->id(), ['billing@example.com'], ['accounts@example.com'], true, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
+$sendingText = static fn (Invoice $invoice): array => ['Faktura '.$invoice->number(), "Dobrý den,\nposíláme fakturu ".$invoice->number().".\n\n{link}"];
+$hosting = $sendingInvoice($sendingFirm, $sendingSeries, 'Hosting', '3600.00');
+$failedSend = $sendInvoice->send(new SendRequest($hosting->id(), [RecordingMailGateway::REFUSING_RECIPIENT], [], false, ...$sendingText($hosting)));
+$renewal = $sendingInvoice($sendingFirm, $sendingSeries, 'Domain renewal', '450.00');
+$readSend = $sendInvoice->send(new SendRequest($renewal->id(), ['billing@example.com'], ['accounts@example.com'], true, ...$sendingText($renewal)));
 $entityManager->getConnection()->executeStatement('UPDATE invoice_send SET first_read_at = created_at, read_count = 1 WHERE id = ?', [$readSend->id()]);
 $context->reset();
 

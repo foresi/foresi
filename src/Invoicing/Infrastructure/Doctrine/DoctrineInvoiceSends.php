@@ -135,6 +135,8 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             $send->status(),
             $send->firstReadAt(),
             $send->lastError(),
+            $send->lastErrorCode(),
+            $send->lastErrorSmtp(),
         ), $sends), $total, $page, $pages, $firms);
     }
 
@@ -149,11 +151,18 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             ->getSingleScalarResult();
     }
 
-    public function queuedBefore(\DateTimeImmutable $before): int
+    public function untriedBefore(\DateTimeImmutable $before): int
     {
-        return (int) $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.status = :queued AND s.createdAt < :before')
+        return (int) $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.status = :queued AND s.attempts = 0 AND s.createdAt < :before')
             ->setParameter('queued', SendStatus::Queued->value)
             ->setParameter('before', $before, 'datetime_immutable')
+            ->getSingleScalarResult();
+    }
+
+    public function retrying(): int
+    {
+        return (int) $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.status = :queued AND s.attempts > 0')
+            ->setParameter('queued', SendStatus::Queued->value)
             ->getSingleScalarResult();
     }
 

@@ -80,7 +80,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testABodyWithoutLinkGetsItAppended(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $send = $this->sent($invoice, ['body' => 'Dear customer, here is invoice {number}.']);
+        $send = $this->sent($invoice, ['body' => 'Dear customer, here is invoice 20260001.']);
 
         $this->worker->run();
 

@@ -15,6 +15,7 @@ use App\Invoicing\Application\SendLogFilter;
 use App\Invoicing\Application\SendLogRow;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\SendStatus;
+use App\Invoicing\Infrastructure\Form\SendFailureText;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +39,7 @@ final class SendLogController extends AbstractController
     public function __construct(
         private readonly InvoiceSends $sends,
         private readonly InvoicingCountries $countries,
+        private readonly SendFailureText $failures,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
     ) {
@@ -114,18 +116,19 @@ final class SendLogController extends AbstractController
         $format = $this->translator->trans('format.datetime');
         $when = $row->createdAt->setTimezone($timezone)->format($format);
         $read = $row->readAt?->setTimezone($timezone)->format($format);
-        // An opened send says so in its status, with the moment in the tooltip, as the list's mark does.
+        // An opened send says so in its status, with the moment it was first opened.
         $status = null === $read
             ? ['text' => $this->translator->trans('invoice.sends.status.'.$row->status->value), 'tone' => self::TONES[$row->status->value]]
-            : ['text' => $this->translator->trans('invoice.mark.read'), 'tone' => 'green', 'hint' => $this->translator->trans('invoice.history.send_read', ['date' => $read])];
+            : ['text' => $this->translator->trans('invoice.history.send_read', ['date' => $read]), 'tone' => 'green'];
         $recipients = implode(', ', $row->recipients);
+        $error = $this->failures->of($row->errorCode, $row->errorSmtp, $row->error);
         $cells = [
             'number' => $row->documentNumber,
             'when' => $when,
             'customer' => $row->customerName,
             'recipients' => $recipients,
             'status' => $status,
-            'error' => $row->error ?? '',
+            'error' => $error ?? '',
         ];
         if ($severalFirms) {
             $cells['firm'] = $row->firmName;
@@ -136,7 +139,7 @@ final class SendLogController extends AbstractController
             'id' => $row->sendId,
             'href' => $this->generateUrl('app_invoice_history', $id),
             'label' => $row->documentNumber,
-            'secondary' => implode(' · ', array_filter([$when, $recipients, $row->error], static fn (?string $part): bool => null !== $part && '' !== $part)),
+            'secondary' => implode(' · ', array_filter([$when, $recipients, $error], static fn (?string $part): bool => null !== $part && '' !== $part)),
             'cells' => $cells,
             'actions' => [
                 ['label' => $this->translator->trans('invoice.sends.action.again'), 'href' => $this->generateUrl('app_invoice_send', $id), 'method' => 'GET', 'icon' => 'send'],

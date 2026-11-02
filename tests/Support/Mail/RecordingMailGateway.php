@@ -48,15 +48,15 @@ final class RecordingMailGateway implements MailGateway
             $during();
         }
         if (\in_array(self::REFUSING_RECIPIENT, [...$message->to, ...$message->cc], true)) {
-            throw new MailRefused(true, 'SMTP 550: the mail server refused the message.');
+            throw new MailRefused(true, 'SMTP 550: the mail server refused the message.', reasonCode: MailRefused::MESSAGE_REFUSED, smtpCode: 550);
         }
         if (self::$failures > 0) {
             --self::$failures;
 
             throw match (true) {
-                self::$settingsProblem => new MailRefused(self::$permanent, 'SMTP 535: the mail server refused the login.', true),
-                self::$permanent => new MailRefused(true, 'SMTP 550: the mail server refused the message.'),
-                default => new MailRefused(false, 'SMTP 451: the mail server asks to try again later.'),
+                self::$settingsProblem => new MailRefused(self::$permanent, 'SMTP 535: the mail server refused the login.', true, MailRefused::LOGIN_REFUSED, 535),
+                self::$permanent => new MailRefused(true, 'SMTP 550: the mail server refused the message.', reasonCode: MailRefused::MESSAGE_REFUSED, smtpCode: 550),
+                default => new MailRefused(false, 'SMTP 451: the mail server asks to try again later.', reasonCode: MailRefused::TRY_LATER, smtpCode: 451),
             };
         }
 

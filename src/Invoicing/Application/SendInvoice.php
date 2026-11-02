@@ -23,8 +23,10 @@ use Psr\Clock\ClockInterface;
 /**
  * Queues an invoice for sending. Everything the customer will get is decided here,
  * in the request, so a refusal shows at once and the mail is what the dialog
- * showed: the PDF is drawn and kept, the variables are filled in, the recipients
- * are fixed. The worker only delivers.
+ * showed: the PDF is drawn and kept, the recipients are fixed. The subject and body
+ * come filled in, as the dialog showed them, so the only token left is {link},
+ * where the worker puts the link; braces in a customer's name or a description
+ * stay as they are. The worker only delivers.
  *
  * The PDF is drawn outside the transaction; inside, under the lock of the invoice,
  * the invoice must still be the one drawn and not in the trash, and the file and
@@ -47,7 +49,6 @@ final readonly class SendInvoice
         private DocumentLinks $links,
         private SendLimits $limits,
         private InvoiceSendQueue $queue,
-        private MailVariables $variables,
         private InvoicingCountries $countries,
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
@@ -100,17 +101,10 @@ final readonly class SendInvoice
             }
             $payment = [null === $document->bankAccount ? null : $country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
             $user = null === $userId ? null : $this->users->findById($userId);
-            $values = $this->variables->valuesFor($document, $user?->displayName() ?? $firm->name());
+            // Nothing is filled in: no value is passed, so every token stays as written.
             $text = new MailText();
-            $subject = $text->render($request->subject, $values, true);
-            $body = $text->render($request->body, $values, false);
-            // A long customer name can push a filled-in text past its limit.
-            if ('' === $subject || mb_strlen($subject) > InvoiceSend::MAX_SUBJECT) {
-                throw new SendRefused(SendRefused::BAD_SUBJECT);
-            }
-            if (mb_strlen($body) > InvoiceSend::MAX_BODY) {
-                throw new SendRefused(SendRefused::BAD_BODY);
-            }
+            $subject = $text->render($request->subject, [], true);
+            $body = $text->render($request->body, [], false);
             $contact = trim($this->settings->for($firm)->contactEmail());
             $copyTo = $request->copyToMe ? ('' !== $contact ? $contact : $user?->email()) : null;
             if (null !== $copyTo && !$this->isAddress($copyTo)) {
@@ -244,10 +238,6 @@ final readonly class SendInvoice
         }
         if (mb_strlen($request->body) > InvoiceSend::MAX_BODY) {
             throw new SendRefused(SendRefused::BAD_BODY);
-        }
-        $unknown = $this->variables->unknownIn($request->subject.' '.$request->body);
-        if ([] !== $unknown) {
-            throw new SendRefused(SendRefused::UNKNOWN_VARIABLE, array_map(static fn (string $name): string => '{'.$name.'}', $unknown));
         }
     }
 

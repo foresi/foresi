@@ -1444,6 +1444,23 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('[data-error-summary]');
     }
 
+    public function testAStaleSendAndSaveAsksToReloadAndOpensNoDialog(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $stale = $this->openEdit($invoice);
+        $newer = $this->openEdit($invoice);
+        $newer['description'] = 'First save';
+        $this->saveEdit($invoice, $newer);
+
+        $stale['description'] = 'Second save';
+        $this->saveEdit($invoice, array_merge($stale, ['_action' => 'save_send']));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSelectorExists('[data-reload-prompt]');
+        self::assertSame('First save', $this->stored($invoice)->description());
+    }
+
     public function testAFormCutOffIsRefusedWholeAndAButtonOfItDoesNothing(): void
     {
         $this->signedIn();

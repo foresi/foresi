@@ -14,11 +14,14 @@ use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\MailTemplates;
+use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\MailTemplateKind;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -54,6 +57,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @phpstan-type Dialog array{_token: string, _submission: string, return: string, to?: list<string>, cc?: list<string>, others: string, copyToMe?: string, subject: string, body: string}
@@ -148,7 +152,7 @@ final class InvoiceSendControllerTest extends WebTestCase
         $invoice = $this->issued();
         $values = $this->dialog($invoice);
         $values['others'] = 'boss@example.com; second@example.com';
-        $values['subject'] = 'Faktura {Číslo dokladu} k úhradě';
+        $values['subject'] = 'Faktura 20260001 k úhradě';
         $values['body'] = "Dobrý den,\nposílám fakturu.\n\n{Odkaz na doklad}";
 
         $this->post($invoice, $values);
@@ -236,18 +240,43 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame(0, $this->sendCount());
     }
 
-    public function testAnUnknownVariableIsNamed(): void
+    /**
+     * The dialog's text is filled in, so braces in a customer's name or a
+     * description are text; only the link's label is a token.
+     */
+    public function testBracesInCustomerDataAreSentAsTyped(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $customer = $this->em()->find(Party::class, $this->customer->id()) ?? throw new \LogicException('Customer.');
+            $customer->rename('Projekt {Alfa} a.s.');
+            $firm = $this->em()->find(LegalEntity::class, $this->firm->id()) ?? throw new \LogicException('Firm.');
+            self::getContainer()->get(MailTemplates::class)->save($firm, MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Faktura {number} pro {customer_name}', "{description}\n{link}");
+            $this->em()->flush();
+        });
+        $invoice = $this->issued(description: 'Ref {number}');
+        $values = $this->dialog($invoice);
+        self::assertSame('Faktura 20260001 pro Projekt {Alfa} a.s.', $values['subject']);
+        self::assertSame("Ref {number}\n{Odkaz na doklad}", $values['body']);
+
+        $this->post($invoice, $values);
+
+        self::assertResponseRedirects('/invoices');
+        $row = $this->onlySend();
+        self::assertSame('Faktura 20260001 pro Projekt {Alfa} a.s.', $row['subject']);
+        self::assertSame("Ref {number}\n{link}", $row['body']);
+    }
+
+    public function testTheLinkLabelIsReadInAnySpelling(): void
     {
         $this->signedIn();
         $invoice = $this->issued();
         $values = $this->dialog($invoice);
-        $values['body'] = 'Pay {amount} now {Odkaz na doklad}';
+        $values['body'] = 'Odkaz: {odkaz na DOKLAD} a {link}, ne {Číslo dokladu}';
 
         $this->post($invoice, $values);
 
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#body-error', 'Unknown variable: {amount}.');
-        self::assertSame(0, $this->sendCount());
+        self::assertSame('Odkaz: {link} a {link}, ne {Číslo dokladu}', $this->onlySend()['body']);
     }
 
     public function testTheLinkCannotGoInTheSubject(): void
@@ -337,6 +366,22 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('a[href*="/mail"]');
         self::assertSelectorTextContains('main', 'The owner of the organisation sets up the server');
+    }
+
+    /**
+     * A refusal that names no field shows its reason as "invoice.send.error.{reason}".
+     */
+    public function testEveryRefusalHasATranslationInBothLanguages(): void
+    {
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $reasons = array_values(array_filter(new \ReflectionClass(SendRefused::class)->getConstants(), \is_string(...)));
+        self::assertNotEmpty($reasons);
+        foreach (['cs', 'en'] as $locale) {
+            $catalogue = $translator->getCatalogue($locale);
+            foreach ($reasons as $reason) {
+                self::assertTrue($catalogue->defines('invoice.send.error.'.$reason, 'messages+intl-icu'), $locale.': '.$reason);
+            }
+        }
     }
 
     public function testStaffOnly(): void
@@ -472,13 +517,13 @@ final class InvoiceSendControllerTest extends WebTestCase
         return $value;
     }
 
-    private function issued(DocumentLanguage $language = DocumentLanguage::Czech): Invoice
+    private function issued(DocumentLanguage $language = DocumentLanguage::Czech, string $description = 'Consulting'): Invoice
     {
-        return $this->scoped(function () use ($language): Invoice {
+        return $this->scoped(function () use ($language, $description): Invoice {
             $day = new \DateTimeImmutable('2026-11-01');
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', $language, [$line]));
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), $this->series->id(), null, $this->customer->id(), null, $day, $day, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', $description, '', '', $language, [$line]));
         });
     }
 

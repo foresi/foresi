@@ -36,7 +36,7 @@ final class SendInvoiceTest extends SendingTestCase
     {
         $invoice = $this->issue->issue($this->input());
 
-        $send = $this->sent($invoice, ['cc' => ['accounts@example.com'], 'subject' => 'Invoice {number}', 'body' => "Invoice {number}, due {due_date}.\n{link}"]);
+        $send = $this->sent($invoice, ['cc' => ['accounts@example.com'], 'subject' => 'Invoice 20260001', 'body' => "Invoice 20260001, due 15. 11. 2026.\n{link}"]);
         $this->em->clear();
 
         $row = $this->row($send->id());
@@ -45,7 +45,7 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(['accounts@example.com'], json_decode(self::text($row, 'recipients_cc'), true));
         self::assertNull($row['copy_to']);
         self::assertSame('Invoice 20260001', $row['subject']);
-        // Filled in at the request, all but the link, which only the worker knows.
+        // As the dialog showed it, with the link left to the worker.
         self::assertSame("Invoice 20260001, due 15. 11. 2026.\n{link}", $row['body']);
         self::assertSame('cs', $row['language']);
         self::assertSame(1, self::integer($row, 'invoice_version'));
@@ -143,20 +143,21 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame(SendRefused::BAD_SUBJECT, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['subject' => "Invoice\r\nBcc: other@example.com"])));
         self::assertSame(SendRefused::BAD_SUBJECT, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['subject' => '   '])));
         self::assertSame(SendRefused::BAD_SUBJECT, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['subject' => 'Your link {link}'])));
-        self::assertSame(SendRefused::UNKNOWN_VARIABLE, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['body' => 'Pay {amount} now'])));
         $this->assertNothingStoredOrQueued();
     }
 
-    public function testAValueHoldingATokenIsNotExpandedAgain(): void
+    /**
+     * The dialog sends its text filled in: a brace there is text, only {link} is a token.
+     */
+    public function testBracesOtherThanTheLinkAreSentAsTyped(): void
     {
-        $customer = $this->customer();
-        $customer->rename('Example {link} a.s.');
-        $this->em->flush();
-        $invoice = $this->issue->issue($this->input(overrides: ['customerId' => $customer->id()]));
+        $invoice = $this->issue->issue($this->input(overrides: ['description' => 'Ref {number}']));
 
-        $send = $this->sent($invoice, ['subject' => 'Invoice for {customer_name}', 'body' => 'Dear {customer_name}']);
+        $send = $this->sent($invoice, ['subject' => 'Projekt {Alfa}: Ref {number}', 'body' => "Ref {number}, {amount}\n{link}"]);
 
-        self::assertSame('Invoice for Example {link} a.s.', $this->row($send->id())['subject']);
+        $row = $this->row($send->id());
+        self::assertSame('Projekt {Alfa}: Ref {number}', $row['subject']);
+        self::assertSame("Ref {number}, {amount}\n{link}", $row['body']);
     }
 
     public function testAnUndrawableDocumentIsRefusedBeforeAnythingIsStored(): void

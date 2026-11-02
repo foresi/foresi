@@ -99,8 +99,8 @@ abstract class SendingTestCase extends InvoiceTestCase
             'to' => ['billing@example.com'],
             'cc' => [],
             'copyToMe' => false,
-            'subject' => 'Invoice {number}',
-            'body' => "Dear customer,\nplease find invoice {number} for {amount_total}.\n\n{link}",
+            'subject' => 'Invoice 20260001',
+            'body' => "Dear customer,\nplease find invoice 20260001.\n\n{link}",
         ], $overrides));
     }
 

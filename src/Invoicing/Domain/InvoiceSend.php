@@ -44,6 +44,7 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public const int MAX_SUBJECT = 255;
     public const int MAX_BODY = 10000;
     public const int MAX_ERROR = 500;
+    public const int MAX_CODE = 32;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
@@ -69,6 +70,14 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'last_error', type: 'string', length: self::MAX_ERROR, nullable: true)]
     private ?string $lastError = null;
 
+    /** A stable name of the last failure, which the screen translates; null on rows from before codes. */
+    #[ORM\Column(name: 'last_error_code', type: 'string', length: self::MAX_CODE, nullable: true)]
+    private ?string $lastErrorCode = null;
+
+    /** The SMTP code of the last failure, when the server answered with one. */
+    #[ORM\Column(name: 'last_error_smtp', type: 'smallint', nullable: true)]
+    private ?int $lastErrorSmtp = null;
+
     /** Whether the last failure most likely needs a change of the e-mail settings. */
     #[ORM\Column(name: 'settings_problem', type: 'boolean')]
     private bool $settingsProblem = false;
@@ -86,6 +95,12 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
 
     #[ORM\Column(name: 'copy_error', type: 'string', length: self::MAX_ERROR, nullable: true)]
     private ?string $copyError = null;
+
+    #[ORM\Column(name: 'copy_error_code', type: 'string', length: self::MAX_CODE, nullable: true)]
+    private ?string $copyErrorCode = null;
+
+    #[ORM\Column(name: 'copy_error_smtp', type: 'smallint', nullable: true)]
+    private ?int $copyErrorSmtp = null;
 
     #[ORM\Column(name: 'revoked_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $revokedAt = null;
@@ -267,6 +282,8 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         $this->sentAt = $at;
         $this->messageId = $messageId;
         $this->lastError = null;
+        $this->lastErrorCode = null;
+        $this->lastErrorSmtp = null;
         $this->settingsProblem = false;
     }
 
@@ -281,11 +298,13 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     /**
      * A try that did not go through and may be tried again.
      */
-    public function recordAttempt(\DateTimeImmutable $at, string $reason, bool $settingsProblem = false): void
+    public function recordAttempt(\DateTimeImmutable $at, string $reason, bool $settingsProblem = false, ?string $code = null, ?int $smtp = null): void
     {
         ++$this->attempts;
         $this->lastAttemptAt = $at;
         $this->lastError = $this->shortened($reason);
+        $this->lastErrorCode = null === $code ? null : mb_substr($code, 0, self::MAX_CODE);
+        $this->lastErrorSmtp = $smtp;
         $this->settingsProblem = $settingsProblem;
         $this->claimedAt = null;
     }
@@ -293,7 +312,7 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     /**
      * Given up: refused for good, or out of tries. A send that went out stays sent.
      */
-    public function fail(\DateTimeImmutable $at, string $reason, bool $settingsProblem = false): void
+    public function fail(\DateTimeImmutable $at, string $reason, bool $settingsProblem = false, ?string $code = null, ?int $smtp = null): void
     {
         if (SendStatus::Queued !== $this->status) {
             return;
@@ -301,6 +320,8 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         $this->status = SendStatus::Failed;
         $this->failedAt = $at;
         $this->lastError = $this->shortened($reason);
+        $this->lastErrorCode = null === $code ? null : mb_substr($code, 0, self::MAX_CODE);
+        $this->lastErrorSmtp = $smtp;
         $this->settingsProblem = $settingsProblem;
         $this->claimedAt = null;
     }
@@ -328,24 +349,30 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
      * The copy is about to leave. Until the server answers its outcome counts as
      * unknown, so a worker that dies meanwhile never leads to a second copy.
      */
-    public function startCopy(string $unknown): void
+    public function startCopy(string $unknown, ?string $code = null): void
     {
         $this->copyError = self::shortened($unknown);
+        $this->copyErrorCode = $code;
+        $this->copyErrorSmtp = null;
     }
 
     public function markCopySent(\DateTimeImmutable $at): void
     {
         $this->copySentAt = $at;
         $this->copyError = null;
+        $this->copyErrorCode = null;
+        $this->copyErrorSmtp = null;
         $this->claimedAt = null;
     }
 
     /**
      * The copy did not go; the send to the customer stands.
      */
-    public function recordCopyFailure(string $reason): void
+    public function recordCopyFailure(string $reason, ?string $code = null, ?int $smtp = null): void
     {
         $this->copyError = $this->shortened($reason);
+        $this->copyErrorCode = null === $code ? null : mb_substr($code, 0, self::MAX_CODE);
+        $this->copyErrorSmtp = $smtp;
         $this->claimedAt = null;
     }
 
@@ -461,6 +488,16 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         return $this->lastError;
     }
 
+    public function lastErrorCode(): ?string
+    {
+        return $this->lastErrorCode;
+    }
+
+    public function lastErrorSmtp(): ?int
+    {
+        return $this->lastErrorSmtp;
+    }
+
     public function isSettingsProblem(): bool
     {
         return $this->settingsProblem;
@@ -494,6 +531,16 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public function copyError(): ?string
     {
         return $this->copyError;
+    }
+
+    public function copyErrorCode(): ?string
+    {
+        return $this->copyErrorCode;
+    }
+
+    public function copyErrorSmtp(): ?int
+    {
+        return $this->copyErrorSmtp;
     }
 
     public function revokedAt(): ?\DateTimeImmutable

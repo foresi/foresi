@@ -1058,7 +1058,7 @@ final class InvoiceListControllerTest extends WebTestCase
     private function sendOf(Invoice $invoice, array $to = ['billing@example.com'], bool $deliver = false): string
     {
         return $this->scoped(static function () use ($invoice, $to, $deliver): string {
-            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Invoice {number}', '{link}'));
+            $send = self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Invoice', '{link}'));
             if ($deliver) {
                 $mail = self::getContainer()->get('messenger.transport.mail');
                 self::assertInstanceOf(InMemoryTransport::class, $mail);

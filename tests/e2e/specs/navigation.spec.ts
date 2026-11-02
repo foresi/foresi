@@ -74,7 +74,7 @@ test.describe('navigation', () => {
     await page.getByRole('link', { name: 'Example Payer s.r.o.' }).first().click();
 
     const tabs = page.getByRole('navigation', { name: 'Části firmy' });
-    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace']);
+    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily']);
     await expect(tabs.locator('[aria-current="page"]')).toHaveText('Údaje');
     await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
     await expectNoSeriousViolations(page);

@@ -20,9 +20,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Tells staff on every page that sending needs them: an invoice whose newest send
- * failed, until a later one goes out or the invoice goes to the trash, and a send
- * still queued after 15 minutes, which most likely means no worker runs. Both
- * lead to the send log, filtered to what is wrong.
+ * failed, until a later one goes out or the invoice goes to the trash; a send no
+ * worker tried within 15 minutes, which most likely means no worker runs; and a
+ * send being tried again after the server put it off. All lead to the send log,
+ * filtered to what is wrong.
  */
 final readonly class SendNotices implements ShellNoticeProvider
 {
@@ -54,11 +55,21 @@ final readonly class SendNotices implements ShellNoticeProvider
             );
         }
         $before = \DateTimeImmutable::createFromInterface($this->clock->now())->modify(\sprintf('-%d minutes', self::STUCK_AFTER_MINUTES));
-        $waiting = $this->sends->queuedBefore($before);
+        $waiting = $this->sends->untriedBefore($before);
         if ($waiting > 0) {
             yield new ShellNotice(
                 'warning',
                 $this->translator->trans('invoice.sends.notice.stuck', ['count' => $waiting, 'minutes' => self::STUCK_AFTER_MINUTES]),
+                $this->translator->trans('invoice.sends.notice.link'),
+                $this->urls->generate('app_invoice_sends', ['status' => SendStatus::Queued->value]),
+            );
+        }
+        // Tried and refused for now: the retries are running, which is no sign of a missing worker.
+        $retrying = $this->sends->retrying();
+        if ($retrying > 0) {
+            yield new ShellNotice(
+                'info',
+                $this->translator->trans('invoice.sends.notice.retrying', ['count' => $retrying]),
                 $this->translator->trans('invoice.sends.notice.link'),
                 $this->urls->generate('app_invoice_sends', ['status' => SendStatus::Queued->value]),
             );

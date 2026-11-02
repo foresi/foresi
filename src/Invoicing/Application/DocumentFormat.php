@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Party\Domain\DocumentLanguage;
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
 /**
@@ -18,8 +19,10 @@ use App\Shared\Domain\Money;
 final readonly class DocumentFormat
 {
     /**
-     * "1 210,50 CZK" in Czech, "1,210.50 CZK" in English, from integer minor units:
-     * no float ever holds the amount.
+     * "1 210,50 Kč" in Czech, "1,210.50 CZK" in English, from integer minor units:
+     * no float ever holds the amount. Crowns are "Kč" on a Czech document, as a
+     * Czech reader writes them; every other currency, and crowns in English, keep
+     * the ISO code. Machine formats such as ISDOC never come through here.
      */
     public function money(Money $money, DocumentLanguage $language): string
     {
@@ -27,7 +30,12 @@ final readonly class DocumentFormat
         $formatter = new \NumberFormatter($language->value, \NumberFormatter::DECIMAL);
         $whole = (string) $formatter->format(intdiv($minor, 100), \NumberFormatter::TYPE_INT64);
 
-        return \sprintf("%s%s%s%02d\u{a0}%s", $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100, $money->currency()->value);
+        return \sprintf("%s%s%s%02d\u{a0}%s", $money->isNegative() ? '-' : '', $whole, $formatter->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL), $minor % 100, $this->currency($money->currency(), $language));
+    }
+
+    private function currency(Currency $currency, DocumentLanguage $language): string
+    {
+        return Currency::CZK === $currency && DocumentLanguage::Czech === $language ? 'Kč' : $currency->value;
     }
 
     /**

@@ -52,9 +52,15 @@ interface InvoiceSends
     public function failing(): int;
 
     /**
-     * How many sends were queued before the moment and still wait.
+     * How many sends were queued before the moment and no worker has tried yet,
+     * which most likely means no worker runs.
      */
-    public function queuedBefore(\DateTimeImmutable $before): int;
+    public function untriedBefore(\DateTimeImmutable $before): int;
+
+    /**
+     * How many sends still wait after a try the mail server did not take.
+     */
+    public function retrying(): int;
 
     /**
      * Whether a send of the invoice still waits to go out.

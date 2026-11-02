@@ -191,7 +191,7 @@ abstract class SendWorker extends KernelTestCase
 
     private static function request(string $invoice): SendRequest
     {
-        return new SendRequest($invoice, ['billing@example.com'], [], false, 'Invoice {number}', "Invoice {number}\n{link}");
+        return new SendRequest($invoice, ['billing@example.com'], [], false, 'Invoice 20260001', "Invoice 20260001\n{link}");
     }
 
     /**

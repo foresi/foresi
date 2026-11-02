@@ -637,6 +637,22 @@ invoice:
       read: Odběratel otevřel doklad
       failed: E-mail se nepodařilo odeslat
   changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
+  send_failure:
+    password_unreadable: Heslo k poštovnímu serveru nejde s nastavenými klíči otevřít. Zadejte ho v nastavení e-mailů znovu.
+    bad_address: Některá adresa zprávy není platná.
+    login_refused: '{smtp, select, none {Poštovní server odmítl přihlášení.} other {Poštovní server odmítl přihlášení (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {Poštovní server zprávu odmítl.} other {Poštovní server zprávu odmítl (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {Poštovní server žádá zkusit to později.} other {Poštovní server žádá zkusit to později (SMTP {smtp}).}}'
+    unexpected_answer: Poštovní server odpověděl neočekávaně.
+    secure_connection: 'Zabezpečené spojení se serverem selhalo: zkontrolujte šifrování, port a název serveru.'
+    unreachable: Poštovní server nejde zastihnout, nebo se spojení přerušilo.
+    unresolved: Název poštovního serveru nejde přeložit na adresu.
+    host_not_allowed: Adresa poštovního serveru není povolená.
+    no_server: Firma nemá poštovní server. Přidejte ho v nastavení e-mailů.
+    unbuildable: Z uložených údajů nejde zprávu sestavit.
+    not_handed_over: Zprávu se nepodařilo předat poštovnímu serveru.
+    copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
+    gave_up: Zprávu se nepodařilo doručit.
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
@@ -670,6 +686,7 @@ invoice:
     notice:
       failed: '{count, plural, one {Fakturu se nepodařilo odeslat.} few {# faktury se nepodařilo odeslat.} other {# faktur se nepodařilo odeslat.}}'
       stuck: '{count, plural, one {E-mail čeká} few {# e-maily čekají} other {# e-mailů čeká}} na odeslání déle než {minutes} minut. Zkontrolujte, že na serveru běží zpracování fronty.'
+      retrying: '{count, plural, one {E-mail se zkouší odeslat znovu: poštovní server ho zatím nepřevzal.} few {# e-maily se zkoušejí odeslat znovu: poštovní server je zatím nepřevzal.} other {# e-mailů se zkouší odeslat znovu: poštovní server je zatím nepřevzal.}}'
       link: Zobrazit
   send:
     title: 'Odeslat fakturu {number}'
@@ -709,10 +726,10 @@ invoice:
       bad_address: '{address} není platná e-mailová adresa.'
       bad_subject: Předmět nesmí být prázdný, delší než 255 znaků ani obsahovat odkaz.
       bad_body: Text e-mailu je příliš dlouhý.
-      unknown_variables: 'Neznámá proměnná: {names}. Opravte ji, nebo ji smažte.'
       trashed: Faktura je mezitím v koši.
       no_server: Firma mezitím přišla o poštovní server.
       local_link_base: Odkaz by vedl na tento počítač. Správce nastaví veřejnou adresu instalace v DEFAULT_URI.
+      insecure_link_base: Odkaz by vedl přes nešifrované http. Správce nastaví v DEFAULT_URI adresu s https.
       rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
       undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
   export:

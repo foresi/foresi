@@ -87,6 +87,27 @@ final readonly class MailTokenLabels
     }
 
     /**
+     * Filled-in text to the send dialog: only {link} shows as its label, since any
+     * other brace is the customer's or the writer's own text.
+     */
+    public function linkToEditor(string $text, DocumentLanguage $language): string
+    {
+        return str_replace('{'.MailVariables::LINK.'}', $this->token(MailVariables::LINK, $language), $text);
+    }
+
+    /**
+     * Text of the send dialog to what is sent: only the link's label, in any
+     * spelling, or {link} itself, becomes the link token. The text is filled in
+     * already, so every other brace is the customer's or the writer's own text.
+     */
+    public function linkFromEditor(string $text, DocumentLanguage $language): string
+    {
+        $link = $this->key($this->labels($language)[MailVariables::LINK] ?? MailVariables::LINK);
+
+        return (string) preg_replace_callback('/\{([^{}\r\n]+)\}/u', fn (array $token): string => \in_array($this->key($token[1]), [$link, MailVariables::LINK], true) ? '{'.MailVariables::LINK.'}' : $token[0], $text);
+    }
+
+    /**
      * The form two spellings of one label share: NFC, no diacritics, lower case,
      * single spaces.
      */

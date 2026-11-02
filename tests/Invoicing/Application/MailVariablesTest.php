@@ -58,9 +58,9 @@ final class MailVariablesTest extends InvoiceTestCase
             'currency' => 'CZK',
             'document_type' => 'Faktura - daňový doklad',
             'customer_name' => 'Example Customer a.s.',
-            'amount_vat' => "210,00\u{a0}CZK",
-            'amount_total' => "1\u{a0}210,00\u{a0}CZK",
-            'amount_net' => "1\u{a0}000,00\u{a0}CZK",
+            'amount_vat' => "210,00\u{a0}Kč",
+            'amount_total' => "1\u{a0}210,00\u{a0}Kč",
+            'amount_net' => "1\u{a0}000,00\u{a0}Kč",
             'firm_name' => 'Example Firm s.r.o.',
             'iban' => self::IBAN,
             'firm_email' => 'office@example.com',
@@ -79,7 +79,7 @@ final class MailVariablesTest extends InvoiceTestCase
         $values = $this->variables->valuesFor($document, 'Sender Example');
 
         self::assertSame(1258, $document->gross->minor());
-        self::assertSame("13,00\u{a0}CZK", $values['amount_total']);
+        self::assertSame("13,00\u{a0}Kč", $values['amount_total']);
     }
 
     public function testAmountsAndDatesEqualThePdf(): void

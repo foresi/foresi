@@ -62,7 +62,7 @@ final readonly class DnsMailHostPolicy implements MailHostPolicy
             }
         }
 
-        return $addresses[0] ?? throw new MailRefused(false, 'The mail server name could not be resolved.');
+        return $addresses[0] ?? throw new MailRefused(false, 'The mail server name could not be resolved.', reasonCode: MailRefused::UNRESOLVED);
     }
 
     public function allows(string $host): bool
@@ -78,7 +78,7 @@ final readonly class DnsMailHostPolicy implements MailHostPolicy
 
     private function forbidden(): MailRefused
     {
-        return new MailRefused(true, 'The mail server address is not allowed.', true);
+        return new MailRefused(true, 'The mail server address is not allowed.', true, MailRefused::HOST_NOT_ALLOWED);
     }
 
     private function allowsAddress(string $address): bool

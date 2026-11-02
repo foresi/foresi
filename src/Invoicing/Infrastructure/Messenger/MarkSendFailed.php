@@ -61,6 +61,8 @@ final readonly class MarkSendFailed
                     \DateTimeImmutable::createFromInterface($this->clock->now()),
                     $refused->safeReason ?? self::GAVE_UP,
                     $refused->settingsProblem ?? false,
+                    $refused->reasonCode ?? MailRefused::GAVE_UP,
+                    $refused?->smtpCode,
                 );
 
                 return null;

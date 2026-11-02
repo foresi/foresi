@@ -31,6 +31,8 @@ final readonly class SendLogRow
         public SendStatus $status,
         public ?\DateTimeImmutable $readAt,
         public ?string $error,
+        public ?string $errorCode = null,
+        public ?int $errorSmtp = null,
     ) {
     }
 }

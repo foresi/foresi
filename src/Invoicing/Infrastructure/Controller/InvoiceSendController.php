@@ -116,8 +116,8 @@ final class InvoiceSendController extends AbstractController
 
         $problems = [];
         $others = $this->others($values['others'], $problems);
-        $subject = $this->fromEditor($values['subject'], $draft, self::SUBJECT, $problems);
-        $body = $this->fromEditor($values['body'], $draft, self::BODY, $problems);
+        $subject = $this->labels->linkFromEditor($values['subject'], $draft->language);
+        $body = $this->labels->linkFromEditor($values['body'], $draft->language);
         if (str_contains($subject, '{'.MailVariables::LINK.'}')) {
             $problems[self::SUBJECT] ??= $this->problem(self::SUBJECT, 'firm.mail.error.link_in_subject', ['link' => $this->labels->token(MailVariables::LINK, $draft->language)]);
         }
@@ -176,8 +176,8 @@ final class InvoiceSendController extends AbstractController
             'cc' => $checked(SendRecipient::CC),
             'others' => '',
             'copyToMe' => null !== $draft->copyAddress,
-            'subject' => $this->labels->toEditor($draft->subject, $draft->language),
-            'body' => $this->labels->toEditor($draft->body, $draft->language),
+            'subject' => $draft->subject,
+            'body' => $this->labels->linkToEditor($draft->body, $draft->language),
         ];
     }
 
@@ -226,19 +226,6 @@ final class InvoiceSendController extends AbstractController
     }
 
     /**
-     * @param array<string, Problem> $problems
-     */
-    private function fromEditor(string $text, SendDraftValues $draft, string $field, array &$problems): string
-    {
-        $stored = $this->labels->fromEditor($text, $draft->language);
-        if ([] !== $stored['unknown']) {
-            $problems[$field] = $this->problem($field, 'invoice.send.error.unknown_variables', ['names' => implode(', ', $stored['unknown'])]);
-        }
-
-        return $stored['text'];
-    }
-
-    /**
      * @param list<string> $others
      *
      * @return Problem
@@ -253,7 +240,6 @@ final class InvoiceSendController extends AbstractController
             SendRefused::BAD_ADDRESS => $this->problem(\in_array($detail, $others, true) ? self::OTHERS : self::RECIPIENTS, 'invoice.send.error.bad_address', ['address' => $detail]),
             SendRefused::BAD_SUBJECT => $this->problem(self::SUBJECT, 'invoice.send.error.bad_subject'),
             SendRefused::BAD_BODY => $this->problem(self::BODY, 'invoice.send.error.bad_body'),
-            SendRefused::UNKNOWN_VARIABLE => $this->problem(self::BODY, 'invoice.send.error.unknown_variables', ['names' => implode(', ', $refused->details)]),
             default => $this->problem(self::FORM, 'invoice.send.error.'.$refused->reason),
         };
     }

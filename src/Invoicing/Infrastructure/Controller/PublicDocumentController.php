@@ -20,7 +20,6 @@ use App\Invoicing\Application\SentFileUnreadable;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Infrastructure\Pdf\QrSvg;
 use App\Party\Domain\PaymentMethod;
-use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -168,13 +167,11 @@ final class PublicDocumentController extends AbstractController
     }
 
     /**
-     * The amount as the customer reads it: Czech crowns as "Kč", as the PDF does not.
+     * The amount as the PDF shows it: crowns as "Kč" on a Czech document.
      */
     private function amount(PublicDocument $document): string
     {
-        $amount = $this->format->money(Money::ofMinor($document->amountMinor, $document->currency), $document->language);
-
-        return Currency::CZK === $document->currency ? (string) preg_replace('/\x{a0}CZK$/u', "\u{a0}Kč", $amount) : $amount;
+        return $this->format->money(Money::ofMinor($document->amountMinor, $document->currency), $document->language);
     }
 
     /**

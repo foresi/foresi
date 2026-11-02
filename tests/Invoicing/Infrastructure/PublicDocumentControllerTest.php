@@ -478,7 +478,7 @@ final class PublicDocumentControllerTest extends WebTestCase
             $day = new \DateTimeImmutable('2026-11-01');
             $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
             $invoice = $container->get(IssueInvoice::class)->issue(new InvoiceInput($firm, $series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-15'), $method, PaymentMethod::BankTransfer === $method ? self::IBAN : null, '20260001', '', '', 'Consulting', '', '', $language, [$line]));
-            $send = $container->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], $copy, 'Invoice {number}', "Invoice {number}\n{link}"));
+            $send = $container->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], $copy, 'Invoice 20260001', "Invoice 20260001\n{link}"));
             $tokens = $container->get(LinkTokens::class);
 
             return [

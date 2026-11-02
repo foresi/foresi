@@ -10,7 +10,8 @@ namespace App\Invoicing\Application;
 
 /**
  * What the send dialog asks for: the addresses as typed, and the subject and body
- * as shown, with any variable still a token. {link} marks where the link goes.
+ * as shown, already filled in. {link} marks where the link goes, and it is the
+ * only token: any other brace is text.
  */
 final readonly class SendRequest
 {

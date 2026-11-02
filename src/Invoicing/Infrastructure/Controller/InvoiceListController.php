@@ -31,6 +31,7 @@ use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
+use App\Invoicing\Infrastructure\Form\SendFailureText;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -74,6 +75,7 @@ final class InvoiceListController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
+        private readonly SendFailureText $failures,
     ) {
     }
 
@@ -482,10 +484,10 @@ final class InvoiceListController extends AbstractController
                     default => 'gray',
                 },
                 'read' => null === $send->firstReadAt() ? null : $this->translator->trans('invoice.history.send_read', ['date' => $send->firstReadAt()->setTimezone($timezone)->format($format)]),
-                'error' => SendStatus::Sent === $send->status() ? null : $send->lastError(),
-                'copyError' => $send->copyError(),
+                'error' => SendStatus::Sent === $send->status() ? null : $this->failures->of($send->lastErrorCode(), $send->lastErrorSmtp(), $send->lastError()),
+                'copyError' => $this->failures->of($send->copyErrorCode(), $send->copyErrorSmtp(), $send->copyError()),
                 'subject' => $send->subject(),
-                'body' => $this->labels->toEditor($send->body(), $send->language()),
+                'body' => $this->labels->linkToEditor($send->body(), $send->language()),
                 'language' => $send->language()->value,
                 'pdf' => $this->generateUrl('app_invoice_sent_pdf', ['id' => $invoice->id(), 'sendId' => $send->id()]),
                 'again' => $index === array_key_last($sends) && !$invoice->isTrashed() ? $this->generateUrl('app_invoice_send', ['id' => $invoice->id()]) : null,

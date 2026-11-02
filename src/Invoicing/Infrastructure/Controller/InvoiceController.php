@@ -576,7 +576,9 @@ final class InvoiceController extends AbstractController
     /**
      * When the invoice was changed after the last send that went out, or is about
      * to: the customer's link shows what was sent, not what is stored. Changed means
-     * a change in its history; the delivery a send records is none.
+     * a newer version than the send carried and a change in its history from the
+     * second of the send on, as the log keeps whole seconds; the delivery a send
+     * records is no change.
      *
      * @return string|null the moment of that send, as shown
      */
@@ -596,7 +598,7 @@ final class InvoiceController extends AbstractController
             return null;
         }
         $after = $last->createdAt();
-        if (!array_any($this->history->of($invoice), static fn (InvoiceHistoryEntry $entry): bool => InvoiceHistoryEntry::CHANGED === $entry->event && $entry->occurredAt > $after)) {
+        if (!array_any($this->history->of($invoice), static fn (InvoiceHistoryEntry $entry): bool => InvoiceHistoryEntry::CHANGED === $entry->event && $entry->occurredAt >= $after)) {
             return null;
         }
 

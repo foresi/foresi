@@ -62,7 +62,7 @@ final readonly class SymfonyMailGateway implements MailGateway
                 $transport->stop();
             }
         } catch (MailSecretsUnavailable) {
-            throw new MailRefused(true, 'The mail server password cannot be opened with the configured keys: enter it again in the e-mail settings.', true);
+            throw new MailRefused(true, 'The mail server password cannot be opened with the configured keys: enter it again in the e-mail settings.', true, MailRefused::PASSWORD_UNREADABLE);
         } catch (TransportExceptionInterface|MimeException $failure) {
             throw self::refusal($failure);
         }
@@ -128,27 +128,27 @@ final readonly class SymfonyMailGateway implements MailGateway
     public static function refusal(\Throwable $failure): MailRefused
     {
         if ($failure instanceof MimeException) {
-            return new MailRefused(true, 'An address of the message is not valid.');
+            return new MailRefused(true, 'An address of the message is not valid.', reasonCode: MailRefused::BAD_ADDRESS);
         }
         // Symfony keeps the SMTP code of an answer, and of a failed login, on the exception.
         $code = $failure->getCode();
         if (\in_array($code, self::LOGIN_CODES, true)) {
-            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the login.', $code), true);
+            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the login.', $code), true, MailRefused::LOGIN_REFUSED, $code);
         }
         if ($code >= 500 && $code <= 599) {
-            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the message.', $code));
+            return new MailRefused(true, \sprintf('SMTP %d: the mail server refused the message.', $code), reasonCode: MailRefused::MESSAGE_REFUSED, smtpCode: $code);
         }
         if ($code >= 400 && $code <= 499) {
-            return new MailRefused(false, \sprintf('SMTP %d: the mail server asks to try again later.', $code));
+            return new MailRefused(false, \sprintf('SMTP %d: the mail server asks to try again later.', $code), reasonCode: MailRefused::TRY_LATER, smtpCode: $code);
         }
         if ($failure instanceof UnexpectedResponseException) {
-            return new MailRefused(false, 'The mail server gave an unexpected answer.');
+            return new MailRefused(false, 'The mail server gave an unexpected answer.', reasonCode: MailRefused::UNEXPECTED_ANSWER);
         }
         // Read only to sort the failure: the text itself is never kept.
         if (1 === preg_match(self::SECURE_CONNECTION_FAILURE, $failure->getMessage())) {
-            return new MailRefused(false, 'The secure connection to the mail server failed: check the encryption, the port and the host name.', true);
+            return new MailRefused(false, 'The secure connection to the mail server failed: check the encryption, the port and the host name.', true, MailRefused::SECURE_CONNECTION);
         }
 
-        return new MailRefused(false, 'The mail server could not be reached or the connection broke.');
+        return new MailRefused(false, 'The mail server could not be reached or the connection broke.', reasonCode: MailRefused::UNREACHABLE);
     }
 }

@@ -637,6 +637,22 @@ invoice:
       read: The customer opened the document
       failed: The e-mail could not be sent
   changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  send_failure:
+    password_unreadable: The mail server password cannot be opened with the configured keys. Enter it again in the e-mail settings.
+    bad_address: An address of the message is not valid.
+    login_refused: '{smtp, select, none {The mail server refused the login.} other {The mail server refused the login (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {The mail server refused the message.} other {The mail server refused the message (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {The mail server asks to try again later.} other {The mail server asks to try again later (SMTP {smtp}).}}'
+    unexpected_answer: The mail server gave an unexpected answer.
+    secure_connection: 'The secure connection to the mail server failed: check the encryption, the port and the host name.'
+    unreachable: The mail server could not be reached or the connection broke.
+    unresolved: The mail server name could not be resolved.
+    host_not_allowed: The mail server address is not allowed.
+    no_server: The firm has no mail server. Add one in the e-mail settings.
+    unbuildable: The message could not be built from the stored send.
+    not_handed_over: The message could not be handed to the mail server.
+    copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
+    gave_up: The message could not be delivered.
   sends:
     title: Sent e-mails
     views: Send states
@@ -670,6 +686,7 @@ invoice:
     notice:
       failed: '{count, plural, one {An invoice could not be sent.} other {# invoices could not be sent.}}'
       stuck: '{count, plural, one {An e-mail has} other {# e-mails have}} been waiting to be sent for more than {minutes} minutes. Check that the queue worker runs on the server.'
+      retrying: '{count, plural, one {An e-mail is being tried again: the mail server has not taken it yet.} other {# e-mails are being tried again: the mail server has not taken them yet.}}'
       link: Show
   send:
     title: 'Send invoice {number}'
@@ -709,10 +726,10 @@ invoice:
       bad_address: '{address} is not a valid e-mail address.'
       bad_subject: The subject cannot be empty, longer than 255 characters or hold the link.
       bad_body: The e-mail text is too long.
-      unknown_variables: 'Unknown variable: {names}. Correct it or delete it.'
       trashed: The invoice has been moved to the trash meanwhile.
       no_server: The firm has lost its mail server meanwhile.
       local_link_base: The link would lead to this computer. The administrator sets the public address of the installation in DEFAULT_URI.
+      insecure_link_base: The link would go over unencrypted http. The administrator sets an https address in DEFAULT_URI.
       rate_limited: Too many sends in a short time. Try again in a moment.
       undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
   export:
