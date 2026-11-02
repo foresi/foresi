@@ -16,6 +16,7 @@ use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\UnknownInvoiceSend;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
@@ -91,6 +92,27 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
         return $marks;
     }
 
+    public function remindersFor(array $invoiceIds): array
+    {
+        if ([] === $invoiceIds) {
+            return [];
+        }
+        /** @var list<array{invoice: string, reminders: int|string, lastAt: \DateTimeImmutable|string}> $rows */
+        $rows = $this->em->createQuery('SELECT IDENTITY(s.invoice) AS invoice, COUNT(s.id) AS reminders, MAX(s.createdAt) AS lastAt FROM '.InvoiceSend::class.' s WHERE s.invoice IN (:ids) AND s.purpose = :reminder AND s.status IN (:counted) GROUP BY s.invoice')
+            ->setParameter('ids', $invoiceIds)
+            ->setParameter('reminder', SendPurpose::Reminder->value)
+            ->setParameter('counted', [SendStatus::Queued->value, SendStatus::Sent->value])
+            ->getArrayResult();
+        $reminders = [];
+        foreach ($rows as $row) {
+            // An aggregate comes back as the database wrote it, in the server's zone.
+            $lastAt = $row['lastAt'] instanceof \DateTimeImmutable ? $row['lastAt'] : new \DateTimeImmutable($row['lastAt']);
+            $reminders[$row['invoice']] = ['count' => (int) $row['reminders'], 'lastAt' => $lastAt];
+        }
+
+        return $reminders;
+    }
+
     public function page(SendLogFilter $filter): SendLogPage
     {
         /** @var list<array{id: string, name: string}> $firmRows */
@@ -106,6 +128,10 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
         if ($filter->status instanceof SendStatus) {
             $where .= ' AND s.status = :status';
             $parameters['status'] = $filter->status->value;
+        }
+        if ($filter->purpose instanceof SendPurpose) {
+            $where .= ' AND s.purpose = :purpose';
+            $parameters['purpose'] = $filter->purpose->value;
         }
         $count = $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s JOIN s.invoice i WHERE '.$where);
         foreach ($parameters as $name => $value) {
@@ -137,6 +163,8 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
             $send->lastError(),
             $send->lastErrorCode(),
             $send->lastErrorSmtp(),
+            $send->purpose(),
+            $send->reminderStep(),
         ), $sends), $total, $page, $pages, $firms);
     }
 

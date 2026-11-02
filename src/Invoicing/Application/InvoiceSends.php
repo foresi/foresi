@@ -42,6 +42,17 @@ interface InvoiceSends
     public function marksFor(array $invoiceIds): array;
 
     /**
+     * How many reminders of each invoice went out or wait to, and when the newest
+     * was queued, in one query. An invoice without one is left out; cancelled and
+     * failed reminders never reached the customer, so they do not count.
+     *
+     * @param list<string> $invoiceIds
+     *
+     * @return array<string, array{count: int, lastAt: \DateTimeImmutable}> by invoice id
+     */
+    public function remindersFor(array $invoiceIds): array;
+
+    /**
      * The send log: newest first.
      */
     public function page(SendLogFilter $filter): SendLogPage;

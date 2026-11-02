@@ -1,0 +1,182 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Splits one Infection run into shards and puts the scores of the shards back together.
+ * Infection has no option for sharding, so a shard is a set of source files.
+ *
+ *   bin/infection-shard files INDEX COUNT [PATH...]
+ *       Prints the source files of shard INDEX (1 to COUNT), one per line. The files are
+ *       the ones Infection mutates (infection.json5, including its excludes), spread over
+ *       the shards by size so that they take about as long. PATH limits the files, to try it.
+ *       With INFECTION_SHARD_MANIFEST set, the split is also written to that file as JSON.
+ *
+ *   bin/infection-shard merge DIRECTORY...
+ *       Reads shard-INDEX.json (the Infection summary of a shard, from --logger-summary-json)
+ *       and shard-INDEX.files.json (the manifest) from the directories, checks that every
+ *       shard of the run is there, and enforces the two minimum scores over the total.
+ */
+
+const MIN_MSI = 80.0;
+const MIN_COVERED_MSI = 90.0;
+const PRECISION = 2;
+
+$root = dirname(__DIR__);
+$arguments = $_SERVER['argv'];
+array_shift($arguments);
+$command = array_shift($arguments);
+
+exit(match ($command) {
+    'files' => files($root, $arguments),
+    'merge' => merge($arguments),
+    default => fail("Usage: bin/infection-shard files INDEX COUNT [PATH...] | merge DIRECTORY...\n"),
+});
+
+function fail(string $message): int
+{
+    fwrite(\STDERR, $message);
+
+    return 1;
+}
+
+/**
+ * @param list<string> $arguments
+ */
+function files(string $root, array $arguments): int
+{
+    $index = (int) ($arguments[0] ?? 0);
+    $count = (int) ($arguments[1] ?? 0);
+    if ($count < 1 || $index < 1 || $index > $count) {
+        return fail("INDEX must be from 1 to COUNT.\n");
+    }
+
+    $command = array_merge(
+        [\PHP_BINARY, $root.'/vendor/bin/infection', 'config:list-sources', '--no-interaction'],
+        array_slice($arguments, 2),
+    );
+    $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $root);
+    if (!\is_resource($process)) {
+        return fail("Infection cannot be started.\n");
+    }
+    $output = (string) stream_get_contents($pipes[1]);
+    $errors = (string) stream_get_contents($pipes[2]);
+    if (0 !== proc_close($process)) {
+        return fail("Infection cannot list the source files.\n$output$errors");
+    }
+
+    $paths = array_values(array_filter(array_map('trim', explode("\n", $output)), static fn (string $line): bool => '' !== $line));
+    if ([] === $paths) {
+        return fail("Infection lists no source file.\n");
+    }
+
+    // Longest processing time first: each file goes to the shard with the least so far. The size
+    // of a file stands in for its number of mutants. Ties are broken by path, so every job that
+    // runs this on the same checkout gets the same split.
+    $sizes = [];
+    foreach ($paths as $path) {
+        $sizes[$path] = (int) filesize($root.'/'.$path);
+    }
+    uksort($sizes, static fn (string $a, string $b): int => [$sizes[$b], $a] <=> [$sizes[$a], $b]);
+
+    $load = array_fill(1, $count, 0);
+    $shards = array_fill(1, $count, []);
+    foreach ($sizes as $path => $size) {
+        $target = array_search(min($load), $load, true);
+        $load[$target] += $size;
+        $shards[$target][] = $path;
+    }
+
+    $mine = $shards[$index];
+    sort($mine);
+    echo implode("\n", $mine), "\n";
+
+    $manifest = getenv('INFECTION_SHARD_MANIFEST');
+    if (false !== $manifest && '' !== $manifest) {
+        file_put_contents($manifest, json_encode(['index' => $index, 'count' => $count, 'files' => $mine], \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT)."\n");
+    }
+
+    return 0;
+}
+
+/**
+ * @param list<string> $directories
+ */
+function merge(array $directories): int
+{
+    $summaries = [];
+    $manifests = [];
+    foreach ($directories as $directory) {
+        foreach (glob(rtrim($directory, '/').'/{,*/}shard-*.json', \GLOB_BRACE) ?: [] as $file) {
+            $data = json_decode((string) file_get_contents($file), true, 512, \JSON_THROW_ON_ERROR);
+            $index = (int) preg_replace('/\D/', '', basename($file));
+            if (str_ends_with($file, '.files.json')) {
+                $manifests[$index] = $data;
+            } else {
+                $summaries[$index] = $data['stats'];
+            }
+        }
+    }
+
+    if ([] === $manifests) {
+        return fail("No shard found.\n");
+    }
+    $counts = array_values(array_unique(array_column($manifests, 'count')));
+    if (1 !== \count($counts)) {
+        return fail("The shards disagree on how many there are.\n");
+    }
+    $count = (int) $counts[0];
+
+    // A shard that is missing would leave its files out of the score, so every shard from 1
+    // to COUNT must be there. This also catches a job matrix that is smaller than the count.
+    for ($index = 1; $index <= $count; ++$index) {
+        if (!isset($manifests[$index], $summaries[$index])) {
+            return fail("Shard $index of $count is missing.\n");
+        }
+    }
+
+    $files = [];
+    foreach ($manifests as $manifest) {
+        foreach ($manifest['files'] as $file) {
+            if (isset($files[$file])) {
+                return fail("$file is in more than one shard.\n");
+            }
+            $files[$file] = true;
+        }
+    }
+
+    $total = array_fill_keys(['totalMutantsCount', 'killedCount', 'notCoveredCount', 'escapedCount', 'errorCount', 'syntaxErrorCount', 'skippedCount', 'ignoredCount', 'timeOutCount'], 0);
+    ksort($summaries);
+    foreach ($summaries as $index => $stats) {
+        printf("Shard %d: %d mutants, MSI %s%%, covered MSI %s%%\n", $index, $stats['totalMutantsCount'], $stats['msi'], $stats['coveredCodeMsi']);
+        foreach ($total as $key => $value) {
+            $total[$key] = $value + $stats[$key];
+        }
+    }
+
+    // The same arithmetic as Infection's own: errors and timeouts count as killed, and skipped
+    // and ignored mutants are left out.
+    $tested = $total['totalMutantsCount'] - $total['skippedCount'] - $total['ignoredCount'];
+    $covered = $tested - $total['notCoveredCount'];
+    $detected = $total['killedCount'] + $total['errorCount'] + $total['syntaxErrorCount'] + $total['timeOutCount'];
+    $msi = $tested > 0 ? round(100 * $detected / $tested, PRECISION) : 0.0;
+    $coveredMsi = $covered > 0 ? round(100 * $detected / $covered, PRECISION) : 0.0;
+
+    printf("Total of %d shards, %d files: %d mutants, %d skipped, %d escaped, %d not covered\n", $count, \count($files), $total['totalMutantsCount'], $total['skippedCount'], $total['escapedCount'], $total['notCoveredCount']);
+    printf("Mutation Score Indicator (MSI): %s%% (minimum %s%%)\n", $msi, MIN_MSI);
+    printf("Covered Code MSI: %s%% (minimum %s%%)\n", $coveredMsi, MIN_COVERED_MSI);
+
+    if ($total['skippedCount'] > 0) {
+        return fail("{$total['skippedCount']} mutants were skipped; none may be.\n");
+    }
+    if ($msi < MIN_MSI) {
+        return fail("The MSI is below the minimum.\n");
+    }
+    if ($coveredMsi < MIN_COVERED_MSI) {
+        return fail("The covered code MSI is below the minimum.\n");
+    }
+
+    return 0;
+}

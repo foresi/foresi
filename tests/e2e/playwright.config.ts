@@ -7,7 +7,7 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 // Specs that only read data run on both viewports; the ones that change data run on the desktop only.
 const READ_ONLY = /@visual|@a11y|@layout/;
-const WRITES_DATA = /(contact-(lifecycle|duplicate)|dialogs|import|firms|firm-scope|firm-mail|first-run|invoice(-list|-send)?|recurring-(form|list))\.spec\.ts/;
+const WRITES_DATA = /(contact-(lifecycle|duplicate)|dialogs|import|firms|firm-scope|firm-mail|first-run|invoice(-list|-send|-reminder)?|recurring-(form|list))\.spec\.ts/;
 
 export default defineConfig({
   testDir: './specs',

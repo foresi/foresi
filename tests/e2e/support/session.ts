@@ -12,6 +12,7 @@ export const FIRST_RUN_OWNER = 'first-run@example.com';
 export const SENDING_OWNER = 'sending@example.com';
 export const DIALOGS_OWNER = 'dialogs@example.com';
 export const RECURRING_OWNER = 'recurring@example.com';
+export const REMINDERS_OWNER = 'reminders@example.com';
 
 // Written once by specs/auth.setup.ts. Signing in on every test would trip the
 // per-address login throttle (25 attempts a minute), so most specs reuse a session.
@@ -23,6 +24,7 @@ export const FIRST_RUN_OWNER_STATE = '.auth/first-run-owner.json';
 export const SENDING_OWNER_STATE = '.auth/sending-owner.json';
 export const DIALOGS_OWNER_STATE = '.auth/dialogs-owner.json';
 export const RECURRING_OWNER_STATE = '.auth/recurring-owner.json';
+export const REMINDERS_OWNER_STATE = '.auth/reminders-owner.json';
 
 export async function signIn(page: Page, email: string = OWNER): Promise<void> {
   await page.goto('/login');

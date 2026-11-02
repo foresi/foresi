@@ -1,8 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# One send on the history of an invoice: who sent it to whom and how it went, then what went out. #}
+{# One send on the history of an invoice, a reminder with its bell: who sent it to whom and how it went, then what went out. #}
 {% set link_class = 'font-medium text-ink underline underline-offset-2 ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
-<li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]" data-send-entry>
-    {{ ux_icon('lucide:send', {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
+<li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]" data-send-entry="{{ item.icon }}">
+    {{ ux_icon('lucide:' ~ item.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
     <time datetime="{{ item.datetime }}" class="num text-muted">{{ item.time }}</time>
     <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-text [overflow-wrap:anywhere] max-sm:col-start-2">
         <span>{{ item.text }}</span>
@@ -21,7 +21,7 @@
         </details>
         <p class="m-0 flex flex-wrap gap-x-4 gap-y-1 text-small">
             <a href="{{ item.pdf }}" data-turbo="false" class="{{ link_class }}">{{ 'invoice.history.send_pdf'|trans }}</a>
-            {% if item.again %}<a href="{{ item.again }}" data-dialog aria-haspopup="dialog" class="{{ link_class }}">{{ 'invoice.history.send_again'|trans }}</a>{% endif %}
+            {% if item.again %}<a href="{{ item.again }}" data-dialog aria-haspopup="dialog" class="{{ link_class }}">{{ item.againLabel }}</a>{% endif %}
         </p>
     </div>
 </li>
