@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Banking\Infrastructure;
 
+use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundAddresses;
 use App\Banking\Application\InboundToken;
 use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
@@ -331,6 +332,45 @@ final class FirmBankControllerTest extends WebTestCase
         $this->client->request('POST', $this->url($firm).'/pairing');
         self::assertResponseStatusCodeSame(403);
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_feed')));
+    }
+
+    /**
+     * Staff who are not the owner work with the firm but do not set up its bank:
+     * the address takes in payment mail, so who knows it can feed the books.
+     */
+    public function testAMemberGets403AndNeverSeesTheAddress(): void
+    {
+        $tenant = $this->browser->seed(['Tenant A'], role: Role::Member)[0];
+        $firm = $this->firm($tenant);
+        $account = $this->withAccount($firm);
+        $other = $this->withAccount($firm, self::OTHER_IBAN);
+        $this->context->switchTo($tenant);
+        $address = self::getContainer()->get(GenerateAddress::class)->generate($account);
+        $this->context->reset();
+        $token = Scalars::text($this->addresses()->tokenIn($address));
+        $this->browser->signIn();
+        $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
+
+        $bodies = [];
+        foreach (['', '?tab=pairing', '/accounts/'.$account.'/address', '/accounts/'.$other.'/address'] as $path) {
+            foreach ([[], $dialog] as $server) {
+                $this->client->request('GET', $this->url($firm).$path, server: $server);
+                self::assertResponseStatusCodeSame(403, 'GET '.$path);
+                $bodies[] = Scalars::text($this->client->getResponse()->getContent());
+            }
+        }
+        foreach (['/accounts/'.$account.'/address', '/accounts/'.$other.'/address', '/pairing', '/accounts/'.$account.'/archive'] as $path) {
+            $this->client->request('POST', $this->url($firm).$path, ['_token' => 'any', 'autoPairing' => '0']);
+            self::assertResponseStatusCodeSame(403, 'POST '.$path);
+            $bodies[] = Scalars::text($this->client->getResponse()->getContent());
+        }
+
+        self::assertSame([[$account, 1]], array_map(static fn (array $row): array => [$row['firm_bank_account_id'], Scalars::int($row['generation'])], $this->connection()->fetchAllAssociative('SELECT firm_bank_account_id, generation FROM bank_feed')), 'no address is made or replaced');
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_pairing')), 'the switches stay as they were');
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_account WHERE archived_at IS NOT NULL')));
+        foreach ($bodies as $body) {
+            self::assertStringNotContainsStringIgnoringCase($token, $body);
+        }
     }
 
     private function boot(): void
