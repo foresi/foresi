@@ -68,6 +68,12 @@ interface InvoiceSends
     public function hasQueued(Invoice $invoice): bool;
 
     /**
+     * Whether the mail server took a send of the invoice, even one whose invoice
+     * went to the trash meanwhile and so was never marked delivered.
+     */
+    public function hasGoneOut(Invoice $invoice): bool;
+
+    /**
      * Ends every link of the invoice.
      */
     public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void;

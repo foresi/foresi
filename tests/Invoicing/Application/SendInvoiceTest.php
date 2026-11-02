@@ -252,6 +252,26 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame('Changed while queued', $this->reloaded($invoice)->description());
     }
 
+    public function testASendThatWentOutDuringTrashLocksTheNumberAfterRestore(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        RecordingMailGateway::whileSending(function () use ($invoice): void {
+            $this->trash->trash($invoice->id(), 'Wrong customer');
+        });
+        $this->worker->run();
+        $this->em->clear();
+        self::assertSame('sent', $this->row($send->id())['status']);
+        self::assertNull($this->invoiceRow($invoice)['delivered_at']);
+
+        $this->trash->restore($invoice->id());
+        $this->em->clear();
+
+        // The customer has this number already.
+        $this->assertRefusedFor('invoice.problem.number_locked_sent', fn () => $this->edited($invoice, $this->input(overrides: ['typedNumber' => '20260050'])));
+        self::assertSame('20260001', $this->reloaded($invoice)->number());
+    }
+
     public function testAFailedSendLocksNothingAndAllowsDelete(): void
     {
         $invoice = $this->issue->issue($this->input());

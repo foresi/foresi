@@ -1137,6 +1137,7 @@ invoice:
     number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
     number_locked: Řadu a číslo nelze po doručení dokladu změnit.
     number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
+    number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
     number_taken: Toto číslo už bylo v této firmě použito.
     numbers_exhausted: V této řadě už nezbývají čísla.
