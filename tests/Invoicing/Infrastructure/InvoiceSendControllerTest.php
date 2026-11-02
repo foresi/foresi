@@ -121,6 +121,113 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSelectorNotExists('[data-sent-before]');
     }
 
+    public function testInADialogTheMessageShowsAtAGlanceWithSendReadyForOneClick(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+
+        $crawler = $this->openDialog($invoice, 'tab=unpaid');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('<dialog', ltrim((string) $this->client->getResponse()->getContent()));
+        self::assertSame('Send invoice 20260001', $crawler->filter('dialog h2')->text());
+        self::assertStringContainsString('max-w-[560px]', (string) $crawler->filter('dialog')->attr('class'));
+        // Send has the focus: one click or Enter sends what the dialog shows.
+        $send = $crawler->filter('footer button#send-submit[type="submit"][form="send-form"]');
+        self::assertNotNull($send->attr('autofocus'));
+        self::assertSame('dialog#dismiss', $crawler->filter('footer button')->first()->attr('data-action'));
+        self::assertSame(['billing@example.com'], $this->checked($crawler, 'to[]'));
+        // Subject, text and other recipients wait behind "Edit text", in the same dialog.
+        $edit = $crawler->filter('details[data-send-edit]');
+        self::assertNull($edit->attr('open'));
+        self::assertSame('Edit text', $edit->filter('summary')->text());
+        self::assertCount(1, $edit->filter('#subject'));
+        self::assertCount(1, $edit->filter('#body'));
+        self::assertCount(1, $edit->filter('#others'));
+        $preview = $crawler->filter('[data-send-preview]');
+        self::assertStringContainsString('Faktura 20260001', $preview->filter('[data-send-preview-subject]')->text());
+        self::assertStringStartsWith('Na základě Vaší objednávky', $preview->filter('[data-send-preview-body]')->text());
+        self::assertSame('Odkaz na doklad', trim($preview->filter('[data-link-token]')->text()));
+        self::assertSame('tab=unpaid', $crawler->filter('input[name="return"]')->attr('value'));
+    }
+
+    public function testOneClickInTheDialogStoresOneSendAndLeadsBackToTheList(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $values = $this->dialogValues($invoice, 'tab=unpaid');
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/send', $values, server: ['HTTP_X_FORESI_DIALOG' => '1']);
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/send', $values, server: ['HTTP_X_FORESI_DIALOG' => '1']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/invoices?tab=unpaid'], json_decode((string) $this->client->getResponse()->getContent(), true));
+        $row = $this->onlySend();
+        self::assertSame('queued', $row['status']);
+        self::assertSame(['billing@example.com'], json_decode($this->string($row['recipients_to']), true));
+        self::assertSame('Faktura 20260001', $row['subject']);
+        $this->client->request('GET', '/invoices?tab=unpaid');
+        self::assertAnySelectorTextContains('[role="status"]', 'Invoice 20260001 is queued for sending to billing@example.com.');
+    }
+
+    public function testAfterADialogOverTheHistoryTheHistoryShowsTheMessage(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/send', $this->dialogValues($invoice), server: ['HTTP_X_FORESI_DIALOG' => '1']);
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
+
+        self::assertAnySelectorTextContains('[role="status"]', 'Invoice 20260001 is queued for sending to billing@example.com.');
+        self::assertSame(1, $this->sendCount());
+    }
+
+    public function testARefusalInTheDialogOpensTheTextAndKeepsWhatWasTyped(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $values = $this->dialogValues($invoice);
+        $values['others'] = 'boss@example.com, not-an-address';
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/send', $values, server: ['HTTP_X_FORESI_DIALOG' => '1']);
+
+        self::assertResponseStatusCodeSame(422);
+        $crawler = new Crawler((string) $this->client->getResponse()->getContent());
+        self::assertNotNull($crawler->filter('details[data-send-edit]')->attr('open'));
+        self::assertStringContainsString('not-an-address', $crawler->filter('[data-error-summary]')->text());
+        self::assertSame('boss@example.com, not-an-address', $crawler->filter('#others')->attr('value'));
+        self::assertNull($crawler->filter('#send-submit')->attr('autofocus'));
+        self::assertSame(0, $this->sendCount());
+    }
+
+    public function testInADialogAContactWithoutAddressOpensTheTextToTypeOne(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $this->connection()->executeStatement('DELETE FROM party_email');
+        });
+        $invoice = $this->issued();
+
+        $crawler = $this->openDialog($invoice);
+
+        self::assertNotNull($crawler->filter('details[data-send-edit]')->attr('open'));
+        self::assertNull($crawler->filter('#send-submit')->attr('autofocus'));
+    }
+
+    public function testInADialogWithoutAServerItExplainsAndClosesOrLeadsToTheSettings(): void
+    {
+        $this->signedIn(server: false);
+        $invoice = $this->issued();
+
+        $crawler = $this->openDialog($invoice);
+
+        self::assertCount(0, $crawler->filter('form'));
+        self::assertSame('false', $crawler->filter('dialog')->attr('data-dialog-fields-value'));
+        self::assertStringContainsString('The firm has no mail server', $crawler->filter('dialog')->text());
+        self::assertSame('dialog#dismiss', $crawler->filter('footer button')->attr('data-action'));
+        self::assertSame('/settings/firms/'.$this->firm->id().'/mail?tab=server', $crawler->filter('footer a')->attr('href'));
+    }
+
     public function testADraftIsInTheDocumentLanguage(): void
     {
         $this->signedIn(locale: 'cs');
@@ -459,6 +566,26 @@ final class InvoiceSendControllerTest extends WebTestCase
     private function open(Invoice $invoice, string $return = ''): Crawler
     {
         return $this->client->request('GET', '/invoices/'.$invoice->id().'/send'.('' === $return ? '' : '?return='.rawurlencode($return)));
+    }
+
+    private function openDialog(Invoice $invoice, string $return = ''): Crawler
+    {
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/send'.('' === $return ? '' : '?return='.rawurlencode($return)), server: ['HTTP_X_FORESI_DIALOG' => '1']);
+
+        return new Crawler((string) $this->client->getResponse()->getContent(), 'http://localhost/');
+    }
+
+    /**
+     * What the dialog would post as it opens.
+     *
+     * @return Dialog
+     */
+    private function dialogValues(Invoice $invoice, string $return = ''): array
+    {
+        /** @var Dialog $values */
+        $values = $this->openDialog($invoice, $return)->filter('form#send-form')->form()->getPhpValues();
+
+        return $values;
     }
 
     /**

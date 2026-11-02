@@ -20,13 +20,13 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-// The dialog of a seeded invoice, reached from the row menu of the list.
+// The dialog of a seeded invoice, opened over the list from the row menu.
 async function openFromList(page: Page, number: string): Promise<void> {
   await page.goto('/invoices');
   const target = row(page, number);
   await target.getByRole('button', { name: /Další akce/ }).click();
   await target.getByRole('menuitem', { name: 'Odeslat' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: `Odeslat fakturu ${number}` })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: `Odeslat fakturu ${number}` })).toBeVisible();
 }
 
 function row(page: Page, number: string) {
@@ -84,6 +84,7 @@ test.describe.serial('sending an invoice', () => {
       await page.setViewportSize(DESKTOP);
       await openFromList(page, '20260001');
       await page.setViewportSize(size);
+      await page.getByRole('dialog').getByText('Upravit text').click();
       await page.locator('#others').fill('boss@example.com, not-an-address');
       await page.locator('#body').fill('Upravený text {Odkaz na doklad}');
 
@@ -93,7 +94,7 @@ test.describe.serial('sending an invoice', () => {
       await expect(page.locator('#others')).toBeFocused();
       await expect(page.locator('#others')).toHaveValue('boss@example.com, not-an-address');
       await expect(page.locator('#body')).toHaveValue('Upravený text {Odkaz na doklad}');
-      await expect(page).toHaveTitle(/^Chyba:/);
+      await expect(page).toHaveURL(/\/invoices$/);
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/send-refused-${name}.png`, fullPage: true });
@@ -161,7 +162,8 @@ test.describe.serial('sending an invoice', () => {
     await page.goto(history);
 
     await page.locator('[data-send-entry]').getByRole('link', { name: 'Odeslat znovu' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Odeslat fakturu 20260002' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Odeslat fakturu 20260002' })).toBeVisible();
+    await expect(page).toHaveURL(history);
   });
 
   test('send and save from the form, then send from the keyboard', async ({ page }) => {
@@ -183,14 +185,19 @@ test.describe.serial('sending an invoice', () => {
     await expect(page.getByRole('menuitem').first()).toHaveText('Odeslat a uložit');
     await page.getByRole('menuitem', { name: 'Odeslat a uložit' }).click();
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Odeslat fakturu 20260004' })).toBeVisible();
+    // The send dialog over the saved form, with Send focused.
+    const dialog = page.getByRole('dialog', { name: 'Odeslat fakturu 20260004' });
+    await expect(dialog).toBeVisible();
     await expect(page.getByText('Faktura 20260004 je uložená.')).toBeVisible();
+    await expect(page.locator('#send-submit')).toBeFocused();
 
-    // Recipients, the copy, subject, body, then Back and Send.
+    // Recipients, the copy, "Edit text", then Cancel and Send.
     await page.locator('#recipient-1').focus();
-    await tabThrough(page, ['recipient-2', 'others', 'copyToMe', 'subject', 'body']);
+    await tabThrough(page, ['recipient-2', 'copyToMe']);
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: 'Zpět' })).toBeFocused();
+    await expect(dialog.getByText('Upravit text')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(dialog.getByRole('button', { name: 'Zrušit' })).toBeFocused();
     await tabThrough(page, ['send-submit']);
     await page.keyboard.press('Enter');
 

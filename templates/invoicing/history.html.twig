@@ -7,6 +7,13 @@
 {% block title %}{{ 'invoice.history.title'|trans({number: invoice.number}) }}{% endblock %}
 
 {% block content %}
+    {# A send from the dialog over this page comes back here with its message. #}
+    {% set flashes %}
+        {% for type, tone in {success: 'success', warning: 'warning', error: 'error'} %}
+            {% for message in app.flashes(type) %}<twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% endfor %}
+    {% endset %}
+    {% if flashes|trim %}<div class="mb-4 grid gap-2">{{ flashes }}</div>{% endif %}
     <twig:Ui:Card :title="'invoice.history.card'|trans" icon="history">
         {# The Timeline's own rows, with the sends among them in time; a send shows what went out. #}
         <ol class="m-0 list-none p-0" data-invoice-history>

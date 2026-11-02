@@ -47,10 +47,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The invoice list, its trash and the history of a document, for staff. An action on a
  * row comes back to the list it started from. Links into the form leave Turbo: the form
- * is a plain page. A delete asks for its reason on a page of its own, which works with
- * the keyboard, on a phone and without JavaScript.
+ * is a plain page. Send and delete open in a dialog over the list; each is also a page of
+ * its own, which works without JavaScript.
  *
- * @phpstan-type Action array{label: string, href: string, method: string, confirm?: string, icon?: string, plain?: bool, fields?: array<string, string>}
+ * @phpstan-type Action array{label: string, href: string, method: string, confirm?: array{title: string, text: string, accept: string}, icon?: string, plain?: bool, dialog?: bool, fields?: array<string, string>}
  */
 final class InvoiceListController extends AbstractController
 {
@@ -385,14 +385,18 @@ final class InvoiceListController extends AbstractController
             ];
         }
 
-        $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET'];
+        $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send, $copy];
         if (!$row->delivered) {
-            $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]), 'fields' => $fields];
+            $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
+                'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),
+                'text' => $this->translator->trans('invoice.list.delivered_confirm_text'),
+                'accept' => $this->translator->trans('invoice.list.delivered_confirm_accept'),
+            ], 'fields' => $fields];
         }
         $actions[] = $history;
         if (!$row->delivered) {
-            $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET'];
+            $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
 
         return $actions;

@@ -486,6 +486,66 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame('Wrong customer', $stored->deletedReason());
     }
 
+    public function testSendAndDeleteOpenInADialogAndMarkingDeliveredNamesItsOutcome(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $row = $this->client->request('GET', '/invoices')->filter('tbody tr')->first();
+
+        foreach (['send', 'trash'] as $action) {
+            $item = $row->filter('a[role="menuitem"][href^="/invoices/'.$invoice->id().'/'.$action.'"]');
+            self::assertNotNull($item->attr('data-dialog'), $action.' opens in place.');
+            self::assertSame('dialog', $item->attr('aria-haspopup'));
+        }
+        self::assertNull($row->filter('a[role="menuitem"][href="/invoices/'.$invoice->id().'/history"]')->attr('data-dialog'));
+        $delivered = $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"]')->first();
+        self::assertSame('Mark invoice 20260001 as delivered?', $delivered->attr('data-turbo-confirm'));
+        self::assertSame('A delivered invoice can no longer be deleted.', $delivered->attr('data-confirm-text'));
+        self::assertSame('Mark as delivered', $delivered->attr('data-confirm-accept'));
+    }
+
+    public function testTrashInADialogAsksForTheReasonAndMovesItToTheTrash(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+        $token = $this->token();
+        $dialog = ['HTTP_X_FORESI_DIALOG' => '1'];
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/trash?return=tab%3Dunpaid', server: $dialog);
+        self::assertResponseIsSuccessful();
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringStartsWith('<dialog', ltrim($html));
+        self::assertStringNotContainsString('<html', $html);
+        $crawler = new Crawler($html);
+        self::assertSame('Delete invoice 20260001', $crawler->filter('dialog h2')->text());
+        self::assertCount(1, $crawler->filter('dialog form#trash-form textarea[name="reason"][required]'));
+        // A danger dialog: Cancel has the focus; the verb sits last and submits the form from the footer.
+        $cancel = $crawler->filter('footer button[data-action="dialog#dismiss"]');
+        self::assertNotNull($cancel->attr('autofocus'));
+        $submit = $crawler->filter('footer button[type="submit"][form="trash-form"]');
+        self::assertSame('Move to the trash', trim($submit->text()));
+        self::assertStringContainsString('badge-red-text', (string) $submit->attr('class'));
+        self::assertStringContainsString('max-w-[400px]', (string) $crawler->filter('dialog')->attr('class'));
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/trash', ['_token' => $token, 'reason' => ' ', 'return' => 'tab=unpaid'], server: $dialog);
+        self::assertResponseStatusCodeSame(422);
+        $refused = new Crawler((string) $this->client->getResponse()->getContent());
+        self::assertSame('true', $refused->filter('textarea[name="reason"]')->attr('aria-invalid'));
+        self::assertStringContainsString('Say why', $refused->filter('dialog')->text());
+        self::assertFalse($this->stored($invoice)->isTrashed());
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/trash', ['_token' => $token, 'reason' => 'Wrong customer', 'return' => 'tab=unpaid'], server: $dialog);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/invoices?tab=unpaid'], json_decode((string) $this->client->getResponse()->getContent(), true));
+        $stored = $this->stored($invoice);
+        self::assertTrue($stored->isTrashed());
+        self::assertSame('Wrong customer', $stored->deletedReason());
+        // The message waits for the page the dialog leads to.
+        $this->client->request('GET', '/invoices?tab=unpaid');
+        self::assertSelectorTextContains('main', 'Invoice 20260001 is in the trash.');
+    }
+
     public function testAReasonTooLongIsRefused(): void
     {
         $this->signedIn();

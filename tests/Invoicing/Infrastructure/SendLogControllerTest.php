@@ -216,7 +216,11 @@ final class SendLogControllerTest extends WebTestCase
         $two = $sends->eq(1);
         self::assertStringContainsString('Failed', $two->text());
         self::assertStringContainsString('SMTP 550', $two->text());
-        self::assertSame('/invoices/'.$invoice->id().'/send', $two->filter('a')->reduce(static fn (Crawler $link): bool => 'Send again' === trim($link->text()))->attr('href'));
+        $again = $two->filter('a')->reduce(static fn (Crawler $link): bool => 'Send again' === trim($link->text()));
+        self::assertSame('/invoices/'.$invoice->id().'/send', $again->attr('href'));
+        // Opens over the history, which it then shows again with the message.
+        self::assertNotNull($again->attr('data-dialog'));
+        self::assertSame('dialog', $again->attr('aria-haspopup'));
 
         $pdf = $one->filter('a')->reduce(static fn (Crawler $link): bool => str_contains($link->text(), 'PDF'))->attr('href');
         self::assertSame('/invoices/'.$invoice->id().'/sends/'.$first.'/pdf', $pdf);

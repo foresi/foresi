@@ -4,7 +4,7 @@ Foresi sends an invoice as a link to its PDF, through the firm's own mail server
 
 ## What happens when you send
 
-1. The send dialog (from the invoice list, or "Send and save" on the invoice form) shows the recipients, the subject and the text, already filled in from the firm's template in the document's language. `{Link to the document}` marks where the link goes; it is the only placeholder left, and any other brace in the text is sent as written.
+1. The send dialog opens over the page it starts from: the invoice list, the history of an invoice, or the invoice form after "Send and save". It shows the recipients and the message at a glance, with Send ready for one click or Enter; "Edit text" opens the subject, the text and other recipients in the same dialog. Everything is filled in from the firm's template in the document's language. Without JavaScript the same address is a page of its own. `{Link to the document}` marks where the link goes; it is the only placeholder left, and any other brace in the text is sent as written.
 2. On Send, Foresi draws the PDF and keeps it, together with the subject, the text, the recipients and the payment details, exactly as they will be sent. A later edit of the invoice changes none of this.
 3. The send waits in the `mail` queue. A worker hands it to the firm's mail server. A temporary refusal is retried after 1, 4, 16, 64 and 256 minutes (about 5.7 hours, which outlasts greylisting); a permanent refusal (a 5xx answer, a refused login) fails at once.
 4. The invoice list marks each invoice as sending, sent, read or failed. The invoice's history shows every send with its text and the PDF as it was sent, and **Sales › Sent e-mails** lists all sends with a filter by firm and state.
