@@ -34,6 +34,8 @@ use App\Invoicing\Domain\PriceType;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\BankingTestCase;
@@ -225,6 +227,39 @@ final class PairMovementTest extends BankingTestCase
 
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Ambiguous], [$stored->state(), $stored->unmatchedReason()]);
+        self::assertSame(0, $this->paymentCount());
+    }
+
+    public function testAPaymentTheInvoiceRefusesLeavesTheMovementUnmatchedWithTheReason(): void
+    {
+        $this->issue->issue($this->input());
+        // Booked tomorrow, as a bank in another time zone may date it: no payment is received in the future.
+        $movement = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-21'), self::verified());
+
+        self::assertNull($this->pairing->auto($movement->id()));
+
+        $stored = $this->storedMovement($movement->id());
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::Refused, null], [$stored->state(), $stored->unmatchedReason(), $stored->paymentId()]);
+        self::assertSame(0, $this->paymentCount());
+        self::assertNull($this->pairing->auto($movement->id()), 'a second look refuses the same and changes nothing');
+        self::assertSame(UnmatchedReason::Refused, $this->storedMovement($movement->id())->unmatchedReason());
+        self::assertSame('Faktura platbu nepřijala. Spárujte ji ručně.', self::getContainer()->get('translator')->getCatalogue('cs')->get('bank.movement.reason.'.UnmatchedReason::Refused->value, 'messages+intl-icu'));
+    }
+
+    public function testARefusedCurrencyKeepsItsOwnReason(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        // The matcher saw a CZK invoice; by the time it pays, the invoice says EUR.
+        $this->em->getConnection()->update('invoice', ['currency' => 'EUR'], ['id' => $invoice->id()]);
+        $log = new LockLog(self::getContainer()->get(Candidates::class), static fn (int $read, array $found): array => array_map(
+            static fn (Candidate $candidate): Candidate => new Candidate($candidate->invoiceId, $candidate->number, $candidate->dueDate, Money::ofMinor($candidate->remaining->minor(), Currency::CZK), $candidate->customerName, $candidate->issueDate),
+            $found,
+        ));
+
+        self::assertNull($this->pairingWith($log)->auto($movement->id()));
+
+        self::assertSame(UnmatchedReason::CurrencyMismatch, $this->storedMovement($movement->id())->unmatchedReason());
         self::assertSame(0, $this->paymentCount());
     }
 

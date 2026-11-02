@@ -708,6 +708,9 @@ bank:
         kbplus_3: Ve své poštovní schránce nastavte přeposílání těchto e-mailů na adresu výše.
         guide_text: Další banky a přeposílání popisuje
         guide: návod k párování plateb
+  movement:
+    reason:
+      refused: Faktura platbu nepřijala. Spárujte ji ručně.
 
 series:
   title: Číselné řady

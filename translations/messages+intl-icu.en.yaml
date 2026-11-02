@@ -708,6 +708,9 @@ bank:
         kbplus_3: In your own mailbox, forward these e-mails to the address above.
         guide_text: Other banks and forwarding are covered in
         guide: the payment pairing guide
+  movement:
+    reason:
+      refused: The invoice refused the payment. Pair it by hand.
 
 series:
   title: Number series

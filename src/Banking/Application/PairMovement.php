@@ -95,6 +95,10 @@ final readonly class PairMovement
             return $this->retry->run(fn (): ?Payment => $this->work->run(fn (): ?Payment => $this->autoUnderLocks($movementId)));
         } catch (UnknownBankMovement $unknown) {
             throw $unknown;
+        } catch (PaymentRefused $refused) {
+            $this->stayUnmatchedAfter($movementId, $refused);
+
+            return null;
         } catch (\Throwable $failure) {
             // One live payment per movement is a unique index: losing to it means paid already.
             if ($this->movements->hasLivePayment($movementId)) {
@@ -146,6 +150,28 @@ final readonly class PairMovement
         }
 
         return $this->paid($movementId, $decision->allocations);
+    }
+
+    /**
+     * The invoice refused what the matcher chose, so nothing was stored: in a unit of
+     * its own the movement stays unmatched, with the reason in words a person acts on.
+     * Should a person or another notice have paired it meanwhile, that stands.
+     */
+    private function stayUnmatchedAfter(string $movementId, PaymentRefused $refused): void
+    {
+        $reason = match ($refused->reason) {
+            PaymentRefused::CURRENCY_MISMATCH => UnmatchedReason::CurrencyMismatch,
+            PaymentRefused::TRASHED => UnmatchedReason::NoInvoice,
+            default => UnmatchedReason::Refused,
+        };
+        $this->retry->run(fn (): mixed => $this->work->run(function () use ($movementId, $reason): null {
+            $movement = $this->movements->lock($movementId);
+            if (MovementState::Unmatched === $movement->state() && !$this->movements->hasLivePayment($movementId)) {
+                $movement->stayUnmatched($reason);
+            }
+
+            return null;
+        }));
     }
 
     /**

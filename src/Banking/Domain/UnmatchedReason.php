@@ -29,4 +29,6 @@ enum UnmatchedReason: string
     case Blocked = 'blocked';
     /** The message it came in failed its checks: it is never paired. */
     case Rejected = 'rejected';
+    /** The invoice refused the payment the matcher chose, a received date in the future, say. */
+    case Refused = 'refused';
 }
