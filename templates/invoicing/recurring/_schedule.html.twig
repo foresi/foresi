@@ -1,0 +1,27 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The schedule card, in iDoklad's order: repeat, first issue, last day of the month, every N, end. The preview of the next issues follows and moves with every change. #}
+{% set monthly = values.unit in ['month', 'year'] %}
+<twig:Ui:Card :title="'recurring.card.schedule'|trans" icon="refresh-cw">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <twig:Ui:Select name="unit" id="unit" :label="'recurring.field.unit'|trans" :options="units" :value="values.unit" :error="errorFields.unit|default(null)" data-recurring-schedule-target="unit" data-action="change->recurring-schedule#unitChanged" />
+        <twig:Ui:TextInput name="firstIssueOn" id="firstIssueOn" type="date" :label="'recurring.field.firstIssueOn'|trans" :value="values.firstIssueOn" :error="errorFields.firstIssueOn|default(null)" :required="true" />
+        <twig:Ui:TextInput name="every" id="every" :label="'recurring.field.every'|trans" :help="'recurring.field.every_help'|trans" :value="values.every" :error="errorFields.every|default(null)" inputmode="numeric" autocomplete="off" maxlength="2" />
+        <twig:Ui:Select name="taxPoint" id="taxPoint" :label="(payer ? 'invoice.field.taxPointDate' : 'invoice.field.supplyDate')|trans" :options="taxPoints" :value="values.taxPoint" :error="errorFields.taxPoint|default(null)" />
+        <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2"{% if not monthly %} hidden{% endif %} data-recurring-schedule-target="lastDay">
+            <twig:Ui:Checkbox name="onLastDayOfMonth" id="onLastDayOfMonth" :label="'recurring.field.onLastDayOfMonth'|trans" value="1" :checked="values.onLastDayOfMonth == '1'" :error="errorFields.onLastDayOfMonth|default(null)" />
+        </div>
+        <twig:Ui:Select name="end" id="end" :label="'recurring.field.end'|trans" :options="ends" :value="values.end" :error="errorFields.end|default(null)" data-recurring-schedule-target="end" data-action="change->recurring-schedule#endChanged" />
+        <div{% if values.end != 'on_date' %} hidden{% endif %} data-recurring-schedule-target="endOn">
+            <twig:Ui:TextInput name="endOn" id="endOn" type="date" :label="'recurring.field.endOn'|trans" :value="values.endOn" :error="errorFields.endOn|default(null)" />
+        </div>
+        <div{% if values.end != 'after_count' %} hidden{% endif %} data-recurring-schedule-target="endAfter">
+            <twig:Ui:TextInput name="endAfter" id="endAfter" :label="'recurring.field.endAfter'|trans" :value="values.endAfter" :error="errorFields.endAfter|default(null)" inputmode="numeric" autocomplete="off" maxlength="3" />
+        </div>
+        <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2" data-invoice-form-target="noScript">
+            <twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'recurring.form.apply'|trans }}</twig:Ui:Button>
+        </div>
+    </div>
+    <div class="mt-4 border-t border-divider pt-3">
+        {{ include('invoicing/recurring/_preview.html.twig', {frame: false}) }}
+    </div>
+</twig:Ui:Card>

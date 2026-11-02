@@ -1,0 +1,32 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The next issues of the form: in the schedule card, and on its own as the answer of the preview, which the form puts in place of this frame. #}
+<turbo-frame id="recurring-preview" class="grid gap-2" aria-live="polite" data-recurring-schedule-target="frame">
+    <h4 class="m-0 text-small font-semibold text-ink">{{ 'recurring.preview.title'|trans }}</h4>
+    {% if preview.problems is not empty %}
+        <div class="rounded-control bg-head px-3 py-2 text-small text-text" data-preview-problem>
+            <p class="m-0">{{ 'recurring.preview.unknown'|trans }}</p>
+            <ul class="m-0 mt-1 list-disc pl-5">
+                {% for problem in preview.problems %}<li>{{ problem }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        {% if preview.today %}
+            <twig:Ui:Alert tone="info" role="status" data-first-issue-today>{{ ('recurring.preview.today_' ~ preview.delivery)|trans }}</twig:Ui:Alert>
+        {% endif %}
+        <ol class="m-0 grid list-none gap-1.5 p-0">
+            {% for row in preview.rows %}
+                <li class="grid gap-0.5 rounded-control border border-divider px-3 py-2">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-small">
+                        <span class="num font-semibold text-ink" data-preview-issue>{{ row.issue }}</span>
+                        <span class="text-muted">
+                            {%- if row.taxPoint %}{{ (payer|default(true) ? 'recurring.preview.tax_point' : 'recurring.preview.supply_point')|trans({date: row.taxPoint}) }} · {% endif -%}
+                            {{- 'recurring.preview.due'|trans({date: row.due}) -}}
+                        </span>
+                    </div>
+                    {% if row.description %}<p class="m-0 truncate text-small text-text" title="{{ row.description }}" data-preview-description>{{ row.description }}</p>{% endif %}
+                </li>
+            {% endfor %}
+        </ol>
+        {% if preview.end %}<p class="m-0 text-caption text-muted" data-preview-end>{{ preview.end }}</p>{% endif %}
+    {% endif %}
+</turbo-frame>
