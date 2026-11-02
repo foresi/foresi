@@ -165,6 +165,8 @@ services:
         alias: limiter.document_link
     test.inbound_mail_limiter:
         alias: limiter.inbound_mail
+    test.inbound_mail_relay_limiter:
+        alias: limiter.inbound_mail_relay
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -359,6 +361,9 @@ when@test:
         test.inbound_mail_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.inbound_mail_relay_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         # Lets a test spend the budget of a firm.
         test.invoice_send_firm_limiter:
             alias: limiter.invoice_send_firm
@@ -368,6 +373,9 @@ when@test:
             public: true
         test.inbound_mail_limiter:
             alias: limiter.inbound_mail
+            public: true
+        test.inbound_mail_relay_limiter:
+            alias: limiter.inbound_mail_relay
             public: true
 
         # The generic audit query; the fake import target answers changedSince()

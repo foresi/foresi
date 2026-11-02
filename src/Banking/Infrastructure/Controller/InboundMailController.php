@@ -25,8 +25,12 @@ use Symfony\Component\Routing\Attribute\Route;
  * X-Foresi-Recipient names the recipient the relay saw.
  *
  * Stored, duplicate and unknown recipient all answer 202, so the answer tells
- * nothing about which addresses exist. Requests are counted per address before
- * the secret is checked, so it cannot be guessed at speed. Stateless: no
+ * nothing about which addresses exist. The secret is checked first, in constant
+ * time. A failed check is counted per client address and answered 429 once the
+ * budget is spent, which keeps guessing slow; it is never what stops the real
+ * relay, which often shares its address with strangers, so a request with the
+ * secret only counts against a budget of its own, per client address, high enough
+ * for any bank. A secret of 256 random bits is not guessed anyway. Stateless: no
  * session, no user and no tenant of a request. Never log the secret or the
  * recipient.
  */
@@ -41,7 +45,9 @@ final readonly class InboundMailController
         #[Autowire('%env(string:INBOUND_WEBHOOK_SECRET)%')]
         private string $secret,
         #[Autowire(service: 'limiter.inbound_mail')]
-        private RateLimiterFactoryInterface $limiter,
+        private RateLimiterFactoryInterface $failures,
+        #[Autowire(service: 'limiter.inbound_mail_relay')]
+        private RateLimiterFactoryInterface $relay,
     ) {
     }
 
@@ -51,11 +57,14 @@ final readonly class InboundMailController
         if ('' === $this->secret) {
             return new Response('', Response::HTTP_NOT_FOUND);
         }
-        if (!$this->limiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {
-            return new Response('', Response::HTTP_TOO_MANY_REQUESTS);
-        }
+        $client = $request->getClientIp() ?? 'unknown';
         if (!$this->authorised($request)) {
-            return new Response('', Response::HTTP_UNAUTHORIZED, ['WWW-Authenticate' => 'Bearer']);
+            return $this->failures->create($client)->consume()->isAccepted()
+                ? new Response('', Response::HTTP_UNAUTHORIZED, ['WWW-Authenticate' => 'Bearer'])
+                : new Response('', Response::HTTP_TOO_MANY_REQUESTS);
+        }
+        if (!$this->relay->create($client)->consume()->isAccepted()) {
+            return new Response('', Response::HTTP_TOO_MANY_REQUESTS);
         }
         $length = $request->headers->get('Content-Length');
         if (null !== $length && is_numeric($length) && (int) $length > ReceiveInboundMail::MAX_BYTES) {

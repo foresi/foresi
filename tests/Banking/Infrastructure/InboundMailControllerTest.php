@@ -92,14 +92,45 @@ final class InboundMailControllerTest extends WebTestCase
         self::assertSame($this->kit->feedId, $this->connection()->fetchOne('SELECT bank_feed_id FROM inbound_message'));
     }
 
-    public function testWebhookIsRateLimited(): void
+    public function testFailedAuthenticationIsRateLimited(): void
+    {
+        for ($attempt = 1; $attempt <= 120; ++$attempt) {
+            $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+            self::assertResponseStatusCodeSame(401);
+        }
+
+        $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+
+        self::assertResponseStatusCodeSame(429);
+        self::assertSame(0, $this->rowCount());
+    }
+
+    /**
+     * A relay often shares its address with strangers, such as other workers of one
+     * provider: their bad bearers must not lock the real relay out.
+     */
+    public function testAFloodOfBadBearersDoesNotBlockTheRealRelay(): void
     {
         self::getContainer()->get('test.inbound_mail_limiter')->create('127.0.0.1')->consume(120);
+        $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+        self::assertResponseStatusCodeSame(429);
+
+        $this->post(InboundMailKit::mail($this->kit->address));
+
+        self::assertResponseStatusCodeSame(202);
+        self::assertSame(1, $this->rowCount());
+    }
+
+    public function testTheRealRelayHasALimitOfItsOwn(): void
+    {
+        self::getContainer()->get('test.inbound_mail_relay_limiter')->create('127.0.0.1')->consume(600);
 
         $this->post(InboundMailKit::mail($this->kit->address));
 
         self::assertResponseStatusCodeSame(429);
         self::assertSame(0, $this->rowCount());
+        // Its own budget: the one of failed attempts is untouched.
+        self::assertSame(120, self::getContainer()->get('test.inbound_mail_limiter')->create('127.0.0.1')->consume(0)->getRemainingTokens());
     }
 
     public function testWebhookAbove10MiBIs413(): void

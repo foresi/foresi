@@ -48,7 +48,7 @@ One address per organisation was rejected: a firm with two accounts would have n
 
 One operator mailbox, set by `BANK_INBOX_*`, is polled by an operator task (`bank-inbox`, every five minutes, under a lock, no tenant) on the existing `foresi` schedule: the 50 oldest messages, read without marking them read, then **moved** to `Foresi/Done`, `Foresi/Unknown` or `Foresi/Rejected` under the server's personal namespace, never deleted and never expunged. A message whose handling failed stays and is taken again; a crash between storing and moving costs nothing, as the stored message is found again by its dedup key, the SHA-256 of its `Message-ID` or else of its bytes.
 
-An optional webhook, `POST /inbound/mail`, takes the raw message from a relay, with `INBOUND_WEBHOOK_SECRET` as a bearer token compared in constant time, a rate limit of 120 a minute per IP counted before the secret, a 10 MiB limit, and 202 for stored, duplicate and unknown recipient alike, so it is no oracle for addresses. An empty secret answers 404.
+An optional webhook, `POST /inbound/mail`, takes the raw message from a relay, with `INBOUND_WEBHOOK_SECRET` as a bearer token compared in constant time, the secret checked first, failed checks limited to 120 a minute per IP and requests with the secret to 600 a minute per IP, so strangers sharing the relay's address cannot lock it out, a 10 MiB limit, and 202 for stored, duplicate and unknown recipient alike, so it is no oracle for addresses. An empty secret answers 404.
 
 Raw mail is kept under `inbound-mail/{tenant}/{id}.eml` in the share directory, with its SHA-256 checked on every read, and processed in the `async` queue, one transaction per message that starts by claiming it.
 

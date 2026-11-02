@@ -111,9 +111,9 @@ php -r 'echo bin2hex(random_bytes(32)), "\n";'
 | 401 | The bearer token is missing or wrong |
 | 404 | `INBOUND_WEBHOOK_SECRET` is empty: the webhook is off |
 | 413 | The body is above 10 MiB |
-| 429 | More than 120 requests a minute from one client IP address |
+| 429 | More than 120 requests a minute with a wrong or missing secret from one client IP address, or more than 600 a minute with the secret |
 
-The limit is counted before the secret is checked, so the secret cannot be guessed at speed. It counts the client IP that Symfony gives, so behind a reverse proxy set `trusted_proxies` as described in [sending.md](sending.md#the-public-link). The route keeps no session and needs no sign-in.
+The secret is checked first, in constant time. Failed checks have a budget of their own per client IP, which keeps guessing slow; requests with the secret count against a separate, higher budget, so a flood of bad bearers from a shared address, such as other workers of the same provider, never locks the real relay out. A secret of 256 random bits cannot be guessed anyway. Both limits count the client IP that Symfony gives, so behind a reverse proxy set `trusted_proxies` as described in [sending.md](sending.md#the-public-link). The route keeps no session and needs no sign-in.
 
 An example relay, a Cloudflare Email Worker that posts every mail it receives:
 
@@ -324,7 +324,7 @@ The hourly job `bank-reparse` reads again, by itself, the failed messages whose 
 | Trusted authentication results | Only your own receiving server's topmost header counts, only a single aligned `dmarc=pass` or the strict ARC rescue verifies, and anything unclear verifies nothing |
 | The account check | A notice about an account that is not the firm's is rejected and cannot be recorded |
 | The gate | An unverified message is recorded and suggested, never paid by itself; a person pairs it only after confirming it in the bank, and only the owner records a failed one anyway |
-| The webhook secret and limit | Bearer token compared in constant time, 120 requests a minute per IP counted before it, 10 MiB at most, and the same answer whether an address exists |
+| The webhook secret and limit | Bearer token compared in constant time first, 120 failed attempts a minute per IP, a separate 600 a minute for the relay, 10 MiB at most, and the same answer whether an address exists |
 | Undo | Every pairing, automatic or by hand, can be undone, and the movement then waits for a person |
 
 Every write goes through one application path and is staff only, except `POST /inbound/mail`. The raw file is checked against its SHA-256 before it is read. Logs name the message, never the address.
