@@ -1264,6 +1264,7 @@ recurring:
     issued_review: 'Invoice {number} is issued and waits under To send.'
     issued_refused: 'Invoice {number} is issued but could not be sent: {reason} It waits under To send.'
     already_issued: This date is already issued; nothing more was issued.
+    not_active: The recurring invoice is not active, so nothing was issued.
     changed_meanwhile: The recurring invoice changed meanwhile. Please try again.
     issue_refused: 'The invoice cannot be issued: {problems}'
   to_send:

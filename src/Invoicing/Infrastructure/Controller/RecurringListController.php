@@ -191,7 +191,9 @@ final class RecurringListController extends AbstractController
                 return;
             }
             if (!$invoice instanceof Invoice) {
-                $this->addFlash('warning', $this->translator->trans('recurring.flash.already_issued'));
+                // Nothing issued: paused or ended meanwhile, or the date was taken by the run or another click.
+                $active = RecurringState::Active === $this->templates->current($template->id())->state();
+                $this->addFlash('warning', $this->translator->trans($active ? 'recurring.flash.already_issued' : 'recurring.flash.not_active'));
 
                 return;
             }

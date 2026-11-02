@@ -100,7 +100,8 @@ final class InvoiceListController extends AbstractController
         $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend));
         $firm = isset($page->firms[$firm]) ? $firm : '';
         $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
-        $toSendCount = $this->recurring->inReview();
+        // Within the firm the list is filtered by, so the chip counts what pressing it shows.
+        $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $here = 1 === $page->page ? $query : $query + ['page' => (string) $page->page];
         $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];

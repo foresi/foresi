@@ -195,15 +195,16 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         return (int) $query->getSingleScalarResult();
     }
 
-    public function inReview(): int
+    public function inReview(?string $firmId = null): int
     {
         // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here,
         // which also lets the key of occurrences, led by tenant and template, find the invoices.
         // To send, as the list's filter has it: neither marked delivered nor on its way, and not in the trash.
         $count = $this->em->getConnection()->fetchOne(
             'SELECT COUNT(*) FROM invoice i WHERE i.tenant_id = :tenant AND i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL AND i.delivered_at IS NULL'
+            .(null === $firmId ? '' : ' AND i.legal_entity_id = :firm')
             .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.tenant_id = :tenant AND s.invoice_id = i.id AND s.purpose = :purpose AND s.status IN (:queued, :sent))',
-            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value],
+            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value, 'queued' => SendStatus::Queued->value, 'sent' => SendStatus::Sent->value] + (null === $firmId ? [] : ['firm' => $firmId]),
         );
 
         return is_numeric($count) ? (int) $count : 0;

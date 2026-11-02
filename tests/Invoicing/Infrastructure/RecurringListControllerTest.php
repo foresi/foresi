@@ -386,6 +386,36 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('form[role="search"] input[name="toSend"][value="1"]'), 'a search keeps the filter');
     }
 
+    public function testTheToSendCountFollowsTheFirmFilter(): void
+    {
+        $this->signedIn();
+        $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
+        $this->post($this->template(delivery: RecurringDelivery::Review), 'issue_now', ['occurrence' => '2026-12-01']);
+        $second = $this->secondFirm();
+        $this->post($this->template(delivery: RecurringDelivery::Review, firm: $second, series: false), 'issue_now', ['occurrence' => '2026-12-01']);
+
+        self::assertStringContainsString('3', $this->client->request('GET', '/invoices')->filter('[data-to-send] a')->text());
+        self::assertStringContainsString('2', $this->client->request('GET', '/invoices?firm='.$this->firm->id())->filter('[data-to-send] a')->text());
+        $crawler = $this->client->request('GET', '/invoices?firm='.$second->id().'&toSend=1');
+        self::assertStringContainsString('1', $crawler->filter('[data-to-send] a')->text(), 'the count says what the list shows');
+        self::assertCount(1, $crawler->filter('tbody tr'));
+    }
+
+    public function testIssueNowOnAPausedTemplateSaysItIsNotActive(): void
+    {
+        $this->signedIn();
+        $template = $this->template();
+        $token = $this->token($template);
+        $this->scoped(fn () => self::getContainer()->get(RecurringLifecycle::class)->pause($template->id()));
+
+        $this->client->request('POST', '/invoices/recurring/'.$template->id().'/issue_now', ['_token' => $token, 'occurrence' => '2026-12-01'], server: self::DIALOG);
+
+        $flashes = $this->flashes($this->client->request('GET', '/invoices/recurring?tab=paused'));
+        self::assertStringContainsString('The recurring invoice is not active, so nothing was issued.', $flashes);
+        self::assertStringNotContainsString('already issued', $flashes);
+        self::assertFalse($this->em()->getConnection()->fetchOne('SELECT id FROM invoice'), 'nothing was issued');
+    }
+
     public function testEveryDialogWorksAsAPage(): void
     {
         $this->signedIn();

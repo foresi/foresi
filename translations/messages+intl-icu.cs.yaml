@@ -1264,6 +1264,7 @@ recurring:
     issued_review: 'Faktura {number} je vystavená a čeká v seznamu K odeslání.'
     issued_refused: 'Faktura {number} je vystavená, ale nešla odeslat: {reason} Čeká v seznamu K odeslání.'
     already_issued: Tento termín už je vystavený, nic dalšího se nevystavilo.
+    not_active: Pravidelná faktura není aktivní, proto se nic nevystavilo.
     changed_meanwhile: Pravidelná faktura se mezitím změnila. Zkuste to prosím znovu.
     issue_refused: 'Fakturu nejde vystavit: {problems}'
   to_send:
