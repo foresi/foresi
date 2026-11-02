@@ -87,10 +87,15 @@ final class InboundMailControllerTest extends WebTestCase
         foreach ([InboundMailKit::mail($this->kit->address), InboundMailKit::mail($this->kit->address), InboundMailKit::mail($this->kit->unknownAddress(), 'unknown@mail.example.com')] as $raw) {
             $this->post($raw);
             self::assertResponseStatusCodeSame(202);
-            $answers[] = (string) $this->client->getResponse()->getContent();
+            $response = $this->client->getResponse();
+            // Every header, too: a cookie, a length or a cache header that differed would tell.
+            $headers = $response->headers->all();
+            unset($headers['date']);
+            ksort($headers);
+            $answers[] = json_encode([$response->getStatusCode(), $response->getContent(), $headers, $response->headers->getCookies()], \JSON_THROW_ON_ERROR);
         }
 
-        self::assertCount(1, array_unique($answers));
+        self::assertCount(1, array_unique($answers), implode("\n", $answers));
         self::assertSame(1, $this->rowCount());
         self::assertSame('webhook', $this->connection()->fetchOne('SELECT channel FROM inbound_message'));
         self::assertFalse(self::getContainer()->get(TenantContext::class)->has());

@@ -17,6 +17,7 @@ use App\Banking\Domain\InboundChannel;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Tests\Banking\Support\FailingInboundFiles;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;
@@ -237,6 +238,26 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive(InboundMailKit::mail($this->kit->address), InboundChannel::Imap));
 
         self::assertTrue($context->current()->equals($own));
+    }
+
+    public function testATenantActiveBeforeIsActiveAgainWhenStoringFails(): void
+    {
+        $context = self::getContainer()->get(TenantContext::class);
+        $own = TenantId::generate();
+        $context->switchTo($own);
+        FailingInboundFiles::failOn('fail-storage');
+
+        try {
+            $this->receive->receive(InboundMailKit::mail($this->kit->address, headers: ['X-Test' => 'fail-storage']), InboundChannel::Imap);
+            self::fail('A full disk fails the store.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('The disk is full.', $failure->getMessage());
+        } finally {
+            FailingInboundFiles::failOn(null);
+        }
+
+        self::assertTrue($context->current()->equals($own), 'Not the tenant of the address.');
+        self::assertSame(0, $this->rowCount());
     }
 
     public function testAFailedStoreLeavesNoFileBehind(): void
