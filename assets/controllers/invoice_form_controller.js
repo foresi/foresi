@@ -5,6 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 
 const RECOUNT_DELAY = 250;
 const MAX_SYMBOL_DIGITS = 10;
+const CONTACT_CHANNEL = 'foresi-contact-created';
 
 /**
  * The live part of the invoice form, which works without it through the server's
@@ -23,7 +24,7 @@ export default class extends Controller {
     ];
 
     static values = {
-        recountUrl: String, numberUrl: String, contactUrl: String, firm: String, editing: Boolean, payer: Boolean,
+        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, firm: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
         registrationLabel: String, vatLabel: String, unsaved: Boolean,
         maxLines: Number, newLineVat: String, dueDateSet: Boolean,
@@ -38,6 +39,8 @@ export default class extends Controller {
         this.dueDateFollows = !this.dueDateSetValue;
         this.symbolFollows = this.hasVariableSymbolTarget && this.variableSymbolTarget.value === this.symbolOf(this.numberPeekTarget.value);
         this.showSupplyCodes();
+        this.contacts = new BroadcastChannel(CONTACT_CHANNEL);
+        this.contacts.onmessage = (event) => this.contactCreated(event.data);
         if (this.hasErrorsTarget) {
             // After the form-errors controller has placed the first invalid field.
             requestAnimationFrame(() => requestAnimationFrame(() => this.clearOfErrors(document.activeElement)));
@@ -47,6 +50,7 @@ export default class extends Controller {
     disconnect() {
         clearTimeout(this.timer);
         this.request?.abort();
+        this.contacts.close();
     }
 
     // Changes
@@ -82,6 +86,7 @@ export default class extends Controller {
     show(figures) {
         this.lineTargets.forEach((row, index) => {
             row.querySelector('[data-line-total]').textContent = figures.lines[index]?.total ?? '';
+            row.querySelector('[data-line-discount]').textContent = figures.lines[index]?.discount ?? '';
         });
         if (this.hasNetTarget) {
             this.netTarget.textContent = figures.net;
@@ -270,6 +275,29 @@ export default class extends Controller {
         this.changed();
     }
 
+    // The plus opens the contact form in a new tab, which keeps this form. The first contact
+    // saved there comes back here; a contact saved in some other tab does not.
+    awaitContact() {
+        this.awaitingContact = true;
+    }
+
+    async contactCreated(id) {
+        if (!this.awaitingContact) {
+            return;
+        }
+        this.awaitingContact = false;
+        const url = new URL(this.customersUrlValue, window.location.origin);
+        url.searchParams.set('id', id);
+        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        const customer = response.ok ? (await response.json()).results[0] : undefined;
+        if (customer !== undefined) {
+            this.field('customerId').value = customer.id;
+            this.field('customerQuery').value = customer.label;
+            this.element.querySelector('[data-customer-candidates]')?.remove();
+            this.customerPicked({ detail: customer });
+        }
+    }
+
     customerCleared() {
         if (this.payerValue) {
             this.newLineVatValue = 'base';
@@ -344,7 +372,7 @@ export default class extends Controller {
     }
 
     removeLine(event) {
-        const row = event.currentTarget.closest('tr');
+        const row = event.currentTarget.closest('tbody');
         const index = this.lineTargets.indexOf(row);
         if (this.lineTargets.length === 1) {
             this.newRow();
@@ -365,9 +393,34 @@ export default class extends Controller {
         this.move(event.currentTarget, 1);
     }
 
+    // A discount is a sub-row of its line: the tag opens it, its own button empties and closes it.
+    addDiscount(event) {
+        const group = event.currentTarget.closest('tbody');
+        const box = group.querySelector('[data-discount]');
+        box.hidden = false;
+        event.currentTarget.setAttribute('aria-expanded', 'true');
+        box.querySelector('input').select();
+    }
+
+    removeDiscount(event) {
+        const group = event.currentTarget.closest('tbody');
+        const box = group.querySelector('[data-discount]');
+        const add = group.querySelector('[id$="-discount-add"]');
+        box.querySelector('input').value = '';
+        box.hidden = true;
+        add.setAttribute('aria-expanded', 'false');
+        add.focus();
+        this.changed();
+    }
+
     move(button, step) {
-        const row = button.closest('tr');
-        const neighbour = step < 0 ? row.previousElementSibling : row.nextElementSibling;
+        const row = button.closest('tbody');
+        const trigger = row.querySelector('[data-dropdown-target=button]');
+        row.querySelector('[data-dropdown-target=menu]').hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        const sibling = step < 0 ? row.previousElementSibling : row.nextElementSibling;
+        const neighbour = sibling?.matches('tbody') ? sibling : null;
+        trigger.focus();
         if (neighbour === null) {
             return;
         }
@@ -377,14 +430,14 @@ export default class extends Controller {
             neighbour.after(row);
         }
         this.renumber();
-        button.focus();
+        trigger.focus();
         this.changed();
     }
 
     // Dragging: a row can be dragged only from its grip, and only while the button is down.
 
     armDrag(event) {
-        event.currentTarget.closest('tr').draggable = true;
+        event.currentTarget.closest('tbody').draggable = true;
     }
 
     disarmDrag() {
@@ -394,7 +447,7 @@ export default class extends Controller {
     }
 
     dragStart(event) {
-        this.dragged = event.target.closest('tr');
+        this.dragged = event.target.closest('tbody');
     }
 
     dragOver(event) {
@@ -402,7 +455,7 @@ export default class extends Controller {
             return;
         }
         event.preventDefault();
-        const target = event.target.closest('tr');
+        const target = event.target.closest('tbody');
         if (target !== null && target !== this.dragged) {
             const below = event.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2;
             target[below ? 'after' : 'before'](this.dragged);
@@ -426,8 +479,8 @@ export default class extends Controller {
     // Names, ids and buttons follow the order on screen.
     renumber() {
         this.lineTargets.forEach((row, index) => {
-            row.querySelectorAll('[name], [id], [for], [aria-describedby], button[value]').forEach((element) => {
-                for (const attribute of ['name', 'id', 'for', 'aria-describedby']) {
+            row.querySelectorAll('[name], [id], [for], [aria-describedby], [aria-controls], [aria-labelledby], button[value]').forEach((element) => {
+                for (const attribute of ['name', 'id', 'for', 'aria-describedby', 'aria-controls', 'aria-labelledby']) {
                     if (element.hasAttribute(attribute)) {
                         element.setAttribute(attribute, element.getAttribute(attribute).replace(/lines\[[^\]]+\]/, `lines[${index}]`).replace(/lines-[^-]+-/, `lines-${index}-`));
                     }
@@ -454,6 +507,10 @@ export default class extends Controller {
         const field = document.getElementById(event.currentTarget.hash.slice(1));
         if (field === null) {
             return;
+        }
+        // A copy field of the customer shows only with the box ticked.
+        if (field.id.startsWith('customer-')) {
+            document.getElementById('customerEdit').checked = true;
         }
         for (let box = field.closest('details'); box !== null; box = box.parentElement.closest('details')) {
             box.open = true;
@@ -482,10 +539,15 @@ export default class extends Controller {
             return;
         }
         event.preventDefault();
-        const row = field.closest('tr');
-        if (row !== null && field.dataset.cell === 'discount' && row === this.lineTargets.at(-1)) {
+        const row = field.closest('tbody');
+        if (row !== null && row === this.lineTargets.at(-1) && field === this.lastCell(row)) {
             this.addLine();
         }
+    }
+
+    // The discount shows on some rows only, so the last cell depends on the row.
+    lastCell(row) {
+        return Array.from(row.querySelectorAll('[data-cell]')).filter((cell) => cell.getClientRects().length > 0).at(-1);
     }
 
     // Leaving

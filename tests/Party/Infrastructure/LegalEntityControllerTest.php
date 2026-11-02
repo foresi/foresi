@@ -59,7 +59,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client->request('GET', '/settings/firms');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Firms');
+        self::assertSelectorTextContains('h1', 'My firms');
         self::assertSelectorTextContains('main table', 'Example Firm s.r.o.');
         self::assertSelectorTextContains('main table', '12345695');
         self::assertSelectorTextNotContains('body', 'Foreign Firm');
@@ -82,7 +82,7 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $this->client->request('GET', '/');
 
-        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firms');
+        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'My firms');
     }
 
     public function testTheSettingsGroupHoldsFirmsAndTheImportHistory(): void
@@ -92,7 +92,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/firms Firms', '/imports Import and export'], $links);
+        self::assertSame(['/settings/firms My firms', '/imports Import and export'], $links);
     }
 
     public function testTheFirmPageHasTabsForDetailsAndInvoicingAndKeepsFirmsMarkedInTheSidebar(): void
@@ -139,8 +139,8 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $this->client->request('GET', '/settings/firms');
 
-        self::assertSelectorTextContains('h1', 'Firmy');
-        self::assertSelectorTextContains('#sidebar', 'Firmy');
+        self::assertSelectorTextContains('h1', 'Moje firmy');
+        self::assertSelectorTextContains('#sidebar', 'Moje firmy');
     }
 
     public function testTheFormOffersTheRegistryLookupOfTheContactForm(): void

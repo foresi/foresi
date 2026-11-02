@@ -56,7 +56,7 @@ final readonly class CopyInvoice
         }
 
         $party = $source->customerParty();
-        $customer = $this->contacts->isCustomerOf($party, $firm);
+        $customer = !$this->contacts->isArchivedFor($party, $firm);
         if (!$customer) {
             $notices[] = 'invoice.copy.customer_archived';
         }

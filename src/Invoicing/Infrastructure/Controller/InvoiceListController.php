@@ -16,6 +16,7 @@ use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoiceHistoryLine;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
@@ -25,6 +26,7 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Infrastructure\Form\AmountText;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,6 +62,7 @@ final class InvoiceListController extends AbstractController
         private readonly AmountText $amounts,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -165,6 +168,7 @@ final class InvoiceListController extends AbstractController
 
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
+            'badge' => $this->badge($invoice),
             'timeline' => array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $this->timezoneOf($invoice)), $this->history->of($invoice)),
         ]);
     }
@@ -184,7 +188,7 @@ final class InvoiceListController extends AbstractController
             'error' => $error,
             'return' => $return,
             'cancel' => $this->listUrl($return),
-            'payable' => $this->amounts->money($invoice->payable()),
+            'payable' => $this->amounts->shown($invoice->payable()),
             'maxReason' => Invoice::MAX_REASON_LENGTH,
         ], new Response(status: $status));
     }
@@ -257,9 +261,7 @@ final class InvoiceListController extends AbstractController
             $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false);
         }
         $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
-        if (!$trash) {
-            $columns[] = $this->column('status', $sort, $query, phone: false);
-        }
+        $columns[] = $this->column('status', $sort, $query, phone: false);
 
         return $columns;
     }
@@ -292,7 +294,9 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return): array
     {
         $date = $this->translator->trans('format.date');
-        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->money($row->payable)];
+        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed);
+        $badge = $this->translator->trans('invoice.list.status.'.$status->value);
+        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()]];
         if ($severalFirms) {
             $cells['firm'] = $row->firmName;
         }
@@ -303,14 +307,12 @@ final class InvoiceListController extends AbstractController
             $secondary = $this->joined([$row->customerName, $who, $when, $row->deletedReason]);
         } else {
             $due = $row->dueDate->format($date);
-            $status = $this->translator->trans('invoice.list.status.delivered');
             $overdue = $this->translator->trans('invoice.list.status.overdue');
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
                 'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
-                'status' => $row->delivered ? ['text' => $status, 'tone' => 'green'] : null,
             ];
-            $secondary = $this->joined([$row->customerName, $due, $row->overdue ? $overdue : null, $row->delivered ? $status : null]);
+            $secondary = $this->joined([$row->customerName, $due, $badge]);
         }
 
         return [
@@ -322,6 +324,17 @@ final class InvoiceListController extends AbstractController
             'cells' => $cells,
             'actions' => $this->actions($row, $return),
         ];
+    }
+
+    /**
+     * @return array{label: string, tone: string}
+     */
+    private function badge(Invoice $invoice): array
+    {
+        $today = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->timezoneOf($invoice));
+        $status = InvoiceStatus::ofInvoice($invoice, $today);
+
+        return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
 
     /**

@@ -738,6 +738,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(\App\Invoicing\Application\ConflictRetry::class),
             $container->get(\App\Audit\Application\AuditActor::class),
             $container->get(\Psr\Clock\ClockInterface::class),
+            $container->get(ContactSettingsForFirm::class),
         );
 
         try {
