@@ -73,8 +73,8 @@ final class WaitForLeaseMiddlewareTest extends TestCase
 
     private function throwing(\Throwable $failure): StackInterface
     {
-        return new StackMiddleware(new class($failure) implements MiddlewareInterface {
-            public function __construct(private readonly \Throwable $failure)
+        return new StackMiddleware(new readonly class($failure) implements MiddlewareInterface {
+            public function __construct(private \Throwable $failure)
             {
             }
 

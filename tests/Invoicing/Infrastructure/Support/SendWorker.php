@@ -175,7 +175,7 @@ abstract class SendWorker extends KernelTestCase
     {
         $before = \count($gateway->attempts());
         $queue = self::getContainer()->get('messenger.transport.mail');
-        \assert($queue instanceof InMemoryTransport);
+        \PHPUnit\Framework\Assert::assertInstanceOf(InMemoryTransport::class, $queue);
         $queued = \count($queue->getSent());
         $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
         $mailed = \count($gateway->attempts()) > $before;
