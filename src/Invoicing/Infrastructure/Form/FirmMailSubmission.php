@@ -107,7 +107,7 @@ final readonly class FirmMailSubmission
                 $errors[$field] = ['firm.mail.error.line_break'];
             }
         }
-        if (!isset($errors['host']) && (str_contains($values['host'], ':') && false === filter_var(trim($values['host'], '[]'), \FILTER_VALIDATE_IP) || str_contains($values['host'], '/'))) {
+        if (!isset($errors['host']) && null === FirmMailServer::normalHost($values['host'])) {
             $errors['host'] = ['firm.mail.error.host'];
         }
         if (!\in_array((int) $values['port'], FirmMailServer::PORTS, true) || (string) (int) $values['port'] !== $values['port']) {

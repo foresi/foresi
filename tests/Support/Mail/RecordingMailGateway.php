@@ -29,11 +29,17 @@ final class RecordingMailGateway implements MailGateway
     private static int $failures = 0;
 
     private static bool $permanent = false;
+    private static bool $login = false;
 
     public function send(MailMessage $message, FirmMailServer $server): void
     {
         if (\in_array(self::REFUSING_RECIPIENT, [...$message->to, ...$message->cc], true)) {
             throw new MailRefused(true, 'SMTP 550: the mail server refused the message.');
+        }
+        if (self::$login) {
+            self::$login = false;
+
+            throw new MailRefused(true, 'SMTP 535: the mail server refused the login.', true);
         }
         if (self::$failures > 0) {
             --self::$failures;
@@ -58,8 +64,17 @@ final class RecordingMailGateway implements MailGateway
         self::$permanent = $permanent;
     }
 
+    /**
+     * The next message fails as a refused login: a settings problem.
+     */
+    public function failNextAsSettingsProblem(): void
+    {
+        self::$login = true;
+    }
+
     public static function reset(): void
     {
+        self::$login = false;
         self::$messages = [];
         self::$failures = 0;
         self::$permanent = false;

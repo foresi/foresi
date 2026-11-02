@@ -141,4 +141,21 @@ final class FirmMailServerTest extends TestCase
     {
         return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
     }
+
+    public function testOnlyASettingsProblemTakesTheVerificationAway(): void
+    {
+        $server = $this->server();
+        $server->markVerified(new \DateTimeImmutable('2026-11-02 10:00'));
+
+        $server->markTestFailed(new \DateTimeImmutable('2026-11-02 11:00'), 'SMTP 550: the mail server refused the message.', false);
+        self::assertSame('2026-11-02 10:00', $server->verifiedAt()?->format('Y-m-d H:i'));
+        self::assertSame('SMTP 550: the mail server refused the message.', $server->lastTestError());
+
+        $server->markTestFailed(new \DateTimeImmutable('2026-11-02 12:00'), 'SMTP 535: the mail server refused the login.', true);
+        self::assertNull($server->verifiedAt());
+        self::assertSame('2026-11-02 12:00', $server->lastTestAt()?->format('Y-m-d H:i'));
+
+        $server->markVerified(new \DateTimeImmutable('2026-11-02 13:00'));
+        self::assertNull($server->lastTestError());
+    }
 }

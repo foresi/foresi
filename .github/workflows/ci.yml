@@ -261,6 +261,12 @@ jobs:
           REQUIRE_POPPLER: '1'
         run: composer phpunit
 
+      # Real worker processes claiming one period at once, left out of the suite
+      # for their run time. In this job they race on a file SQLite database and
+      # on this PostgreSQL, so both databases are covered by one run.
+      - name: Claim race (SQLite and PostgreSQL)
+        run: vendor/bin/phpunit --group claim-race
+
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
   # runs on it too, on the in-memory SQLite database of the test environment.
   php85:

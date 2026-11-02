@@ -18,6 +18,7 @@ use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailServers;
 use App\Invoicing\Application\MailTemplates;
 use App\Invoicing\Application\MailVariables;
+use App\Invoicing\Application\UnknownMailVariables;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\InvalidMailServer;
 use App\Invoicing\Domain\InvalidMailTemplate;
@@ -120,6 +121,8 @@ final class FirmMailController extends AbstractController
         try {
             $this->gateway->send($this->testMessage($server, $recipient), $server);
         } catch (MailRefused $refused) {
+            $at = \DateTimeImmutable::createFromInterface($this->clock->now());
+            $this->transaction->run(static fn () => $server->markTestFailed($at, $refused->safeReason, $refused->settingsProblem));
             $this->addFlash('error', $this->translator->trans('firm.mail.flash.test_refused', ['reason' => $refused->safeReason]));
 
             return $back;
@@ -156,6 +159,9 @@ final class FirmMailController extends AbstractController
                     $this->storeTemplate($firm, $language, $values[$language->value]['subject'], $values[$language->value]['body']);
                 }
             });
+        } catch (UnknownMailVariables) {
+            // The form checks the tokens first; this is the store's own check agreeing.
+            return $this->page($firm, self::TEMPLATES, $typed, $this->storedServer($firm), ['form' => ['firm.mail.error.unknown_token']], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (InvalidMailTemplate|UniqueConstraintViolationException) {
             // A control character the form let through, or another request storing the same text meanwhile.
             return $this->page($firm, self::TEMPLATES, $typed, $this->storedServer($firm), ['form' => ['firm.mail.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -188,8 +194,13 @@ final class FirmMailController extends AbstractController
         if (!$this->secrets->isConfigured()) {
             $errors = ['form' => ['firm.mail.error.no_key']] + $errors;
         }
-        if (!isset($errors['host']) && !$this->hosts->allows($submission->values['host'])) {
-            $errors['host'] = ['firm.mail.error.host_refused'];
+        if (!isset($errors['host'])) {
+            try {
+                $this->hosts->vet($submission->values['host']);
+            } catch (MailRefused $refused) {
+                // Not allowed for good, or a name that does not resolve now.
+                $errors['host'] = [$refused->permanent ? 'firm.mail.error.host_refused' : 'firm.mail.error.host_unresolved'];
+            }
         }
         if ([] !== $errors) {
             return $this->page($firm, self::SERVER, $this->storedTemplates($firm), $submission->values, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -264,12 +275,16 @@ final class FirmMailController extends AbstractController
             'server' => $server,
             'hasServer' => $stored instanceof FirmMailServer,
             'verifiedAt' => $stored?->verifiedAt(),
+            'lastTestAt' => $stored?->lastTestAt(),
+            'lastTestError' => $stored?->lastTestError(),
             'keyConfigured' => $this->secrets->isConfigured(),
             'ports' => array_combine(array_map(strval(...), FirmMailServer::PORTS), array_map(strval(...), FirmMailServer::PORTS)),
             'encryptions' => array_combine(
                 array_map(static fn (MailEncryption $encryption): string => $encryption->value, MailEncryption::cases()),
                 array_map(fn (MailEncryption $encryption): string => $this->translator->trans('firm.mail.encryption.'.$encryption->value), MailEncryption::cases()),
             ),
+            // The port each encryption usually runs on, preset when the encryption changes.
+            'encryptionPorts' => [MailEncryption::Starttls->value => '587', MailEncryption::Tls->value => '465'],
             'recipient' => $this->getUser()?->getUserIdentifier() ?? '',
             'errors' => array_map(fn (array $error): string => $this->translator->trans($error[0], $error[1] ?? []), $errors),
             'action' => $url,

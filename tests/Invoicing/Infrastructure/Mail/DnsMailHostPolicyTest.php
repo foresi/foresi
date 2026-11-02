@@ -27,6 +27,8 @@ final class DnsMailHostPolicyTest extends TestCase
         'nat64.example.com' => ['64:ff9b::a00:1'],
         'multicast.example.com' => ['239.1.1.1'],
         'nothing.example.com' => [],
+        'localhost' => ['127.0.0.1', '::1'],
+        'mail.localhost' => ['127.0.0.1'],
     ];
 
     #[DataProvider('refused')]
@@ -118,6 +120,17 @@ final class DnsMailHostPolicyTest extends TestCase
         self::assertFalse($policy->allows('nothing.example.com'), 'A name that does not resolve is still refused.');
         self::assertFalse($policy->allows('nat64.example.com'), 'An address that can lead anywhere stays refused.');
         self::assertFalse($policy->allows('multicast.example.com'));
+    }
+
+    public function testLocalhostIsTreatedLikeItsLoopbackAddresses(): void
+    {
+        $open = new DnsMailHostPolicy(true, $this->resolve(...));
+        $closed = $this->policy();
+
+        foreach (['localhost', 'mail.localhost', '127.0.0.1', '::1', '[::1]'] as $host) {
+            self::assertTrue($open->allows($host), $host.' is allowed with private hosts');
+            self::assertFalse($closed->allows($host), $host.' is refused without them');
+        }
     }
 
     private function policy(): DnsMailHostPolicy

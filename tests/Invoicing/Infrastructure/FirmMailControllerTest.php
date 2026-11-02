@@ -79,7 +79,10 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertStringNotContainsString('{amount_total}', (string) $this->client->getResponse()->getContent());
         self::assertSelectorTextContains('#body-cs-help', '{Odkaz na doklad}');
         self::assertSelectorTextContains('#body-en-help', '{Link to the document}');
-        $chips = $crawler->filter('[role="group"][aria-labelledby] button[type="button"][data-token]');
+        // One toolbar per language, named with it, and one Tab stop in each.
+        self::assertSame(['variables-cs language-cs', 'variables-en language-en'], $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')));
+        self::assertSame(['0', '0'], $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
+        $chips = $crawler->filter('[role="toolbar"][aria-labelledby] button[type="button"][data-token]');
         self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
     }
 
@@ -116,6 +119,28 @@ final class FirmMailControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', $this->url($firm));
         self::assertSame('Faktura {Číslo dokladu} pro {Název odběratele}', $crawler->filter('#subject-cs')->attr('value'));
         self::assertSame("Due {Due date}.\n{Link to the document}", $crawler->filter('#body-en')->text(null, false));
+    }
+
+    public function testAVeryLongTokenIsRefusedWithAMessage(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, ['subject' => ['cs' => 'Faktura {'.str_repeat('a', 120).'}'], 'body' => ['cs' => '{'.str_repeat('b', 300).'} {Odkaz na doklad}']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#subject-cs-error', '{aaaa');
+        self::assertSelectorTextContains('#body-cs-error', '…');
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
+    }
+
+    public function testAnUnknownStableNameIsRefusedNotA500(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveTemplates($firm, ['subject' => ['en' => 'Invoice {number_'.str_repeat('x', 90).'}']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#subject-en-error');
     }
 
     public function testALabelOfTheOtherLanguageIsUnknown(): void
@@ -301,6 +326,69 @@ final class FirmMailControllerTest extends WebTestCase
 
         self::assertSelectorTextContains('main', 'SMTP 550: the mail server refused the message.');
         self::assertNull($this->connection()->fetchOne('SELECT verified_at FROM firm_mail_server'));
+    }
+
+    public function testASettingsProblemClearsTheVerificationAndShowsTheLastResult(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveServer($firm, self::SERVER);
+        $this->sendTest($firm);
+        self::assertNotNull($this->connection()->fetchOne('SELECT verified_at FROM firm_mail_server'));
+        Clock::set(new MockClock('2026-11-02 12:30:00'));
+        $this->gateway()->failNextAsSettingsProblem();
+
+        $this->sendTest($firm);
+        $this->client->followRedirect();
+
+        self::assertNull($this->connection()->fetchOne('SELECT verified_at FROM firm_mail_server'));
+        self::assertSame(['last_test_at' => '2026-11-02 12:30:00', 'last_test_error' => 'SMTP 535: the mail server refused the login.'], $this->connection()->fetchAssociative('SELECT last_test_at, last_test_error FROM firm_mail_server'));
+        self::assertSelectorTextNotContains('main', 'Verified on');
+        self::assertSelectorTextContains('#mail-test-result', 'Last test on 2 Nov 2026 at 12:30 failed: SMTP 535: the mail server refused the login.');
+    }
+
+    public function testAPassingTestShowsItsTime(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveServer($firm, self::SERVER);
+
+        $this->sendTest($firm);
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('#mail-test-result', 'Verified on 2 Nov 2026 at 12:00.');
+    }
+
+    public function testAHostNotFoundAndAMalformedHostHaveTheirOwnMessages(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveServer($firm, ['host' => 'nowhere.invalid'] + self::SERVER);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#host-error', 'No server of this name was found');
+
+        $this->saveServer($firm, ['host' => 'smtp_example.com'] + self::SERVER);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#host-error', 'Enter a host name or an IP address');
+
+        $this->saveServer($firm, ['host' => 'internal.example.com'] + self::SERVER);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#host-error', 'cannot be reached from here');
+    }
+
+    public function testResetIsAFormOfItsOwnAndAsksFirst(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveTemplates($firm, ['subject' => ['cs' => 'Vlastní {Číslo dokladu}']]);
+
+        $crawler = $this->client->request('GET', $this->url($firm));
+
+        self::assertCount(0, $crawler->filter('#mail-templates button[name="reset"]'), 'no reset button inside the save form');
+        $reset = $crawler->filter('form#mail-reset-cs');
+        self::assertCount(1, $reset);
+        self::assertNotSame('', (string) $reset->attr('data-turbo-confirm'));
+        self::assertCount(1, $crawler->filter('button[type="submit"][form="mail-reset-cs"]'));
+        $this->client->request('POST', $this->url($firm), $reset->form()->getPhpValues());
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame([], $this->connection()->fetchFirstColumn('SELECT id FROM mail_template'));
     }
 
     public function testATestWithoutAServerSendsNothing(): void
