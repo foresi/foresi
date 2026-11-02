@@ -1,0 +1,50 @@
+From: Komercni banka <info@kb.cz>
+To: bank+token@example.com
+Subject: =?utf-8?B?T3puw6FtZW7DrSBvIHBsYXRiw6FjaA==?=
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <layout-divs-inline@kb.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="kb-mixed"
+
+--kb-mixed
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body>
+<div class=3D"payment"><div><strong>P=C5=99=C3=ADchoz=C3=AD platba</strong>=
+</div>
+<div>Stav platby: Za=C3=BA=C4=8Dtov=C3=A1no</div>
+<div>Variabiln=C3=AD symbol: 2026001</div>
+<div>Kan=C3=A1l: Internetov=C3=A9 bankovnictv=C3=AD</div>
+<div>=C4=8C=C3=ADslo proti=C3=BA=C4=8Dtu: 123-4567890123/0100</div>
+<div>=C4=8C=C3=A1stka a m=C4=9Bna: 150,00 CZK</div>
+<div>Jm=C3=A9no proti=C3=BA=C4=8Dtu: Example Buyer Ltd</div>
+<div>Specifick=C3=BD symbol: 0</div>
+<div>Datum splatnosti: 2026-11-02</div>
+<div>Konstantn=C3=AD symbol: 0308</div>
+<div>=C4=8C=C3=ADslo va=C5=A1eho =C3=BA=C4=8Dtu: CZ65 0800 0000 1920 0014 5=
+399</div>
+</div>
+<hr>
+<div class=3D"payment"><div><strong>Incoming payment</strong></div>
+<div>Your account number: 19-2000145399/0800</div>
+<div>Amount and currency: 150,00 CZK</div>
+<div>Channel: Internet banking</div>
+<div>Status of the payment: Booked</div>
+<div>Due date: 2.11.2026</div>
+<div>Counteraccount name: Example Buyer Ltd</div>
+<div>Counteraccount number: 123-4567890123/0100</div>
+<div>Variable symbol: 2026001</div>
+<div>Constant symbol: 0308</div>
+<div>Specific symbol: </div>
+</div>
+</body></html>
+
+--kb-mixed
+Content-Type: application/pdf; name="Oznameni.pdf"
+Content-Disposition: attachment; filename="Oznameni.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKU1lOVEhFVElDIEFUVEFDSE1FTlQKJSVFT0YK
+
+--kb-mixed--

@@ -1,0 +1,69 @@
+From: Komercni banka <info@kb.cz>
+To: bank+token@example.com
+Subject: =?utf-8?B?T3puw6FtZW7DrSBvIHBsYXRiw6FjaA==?=
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <incoming-not-booked@kb.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="kb-mixed"
+
+--kb-mixed
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html><head><meta http-equiv=3D"Content-Type" content=3D"text/html; charset=
+=3Dutf-8"><title>Notice</title></head>
+<body>
+<p>V=C3=A1=C5=BEen=C3=BD kliente,</p>
+<p>zas=C3=ADl=C3=A1me V=C3=A1m ozn=C3=A1men=C3=AD o platb=C3=A1ch na Va=
+=C5=A1em =C3=BA=C4=8Dtu.</p>
+<table>
+<tr><td colspan=3D"2" style=3D"font-weight:bold;padding-top:16px">P=C5=
+=99=C3=ADchoz=C3=AD platba</td></tr>
+<tr><td style=3D"color:#555">=C4=8C=C3=A1stka a m=C4=9Bna</td><td>150,00 CZ=
+K</td></tr>
+<tr><td style=3D"color:#555">=C4=8C=C3=ADslo va=C5=A1eho =C3=BA=C4=8Dtu</td=
+><td>19-2000145399/0800</td></tr>
+<tr><td style=3D"color:#555">=C4=8C=C3=ADslo proti=C3=BA=C4=8Dtu</td><td>12=
+3-4567890123/0100</td></tr>
+<tr><td style=3D"color:#555">Jm=C3=A9no proti=C3=BA=C4=8Dtu</td><td>Example=
+ Buyer Ltd</td></tr>
+<tr><td style=3D"color:#555">Datum splatnosti</td><td>02.11.2026</td></tr>
+<tr><td style=3D"color:#555">Stav platby</td><td>Zam=C3=ADtnuto</td></tr>
+<tr><td style=3D"color:#555">Variabiln=C3=AD symbol</td><td>2026001</td></t=
+r>
+<tr><td style=3D"color:#555">Konstantn=C3=AD symbol</td><td>0308</td></tr>
+<tr><td style=3D"color:#555">Specifick=C3=BD symbol</td><td>0</td></tr>
+</table>
+<hr>
+<p>Dear client,</p>
+<p>we send you a notice of payments on your account.</p>
+<table>
+<tr><td colspan=3D"2" style=3D"font-weight:bold;padding-top:16px">Incoming =
+payment</td></tr>
+<tr><td style=3D"color:#555">Amount and currency</td><td>150,00 CZK</td></t=
+r>
+<tr><td style=3D"color:#555">Your account number</td><td>19-2000145399/0800=
+</td></tr>
+<tr><td style=3D"color:#555">Counteraccount number</td><td>123-4567890123/0=
+100</td></tr>
+<tr><td style=3D"color:#555">Counteraccount name</td><td>Example Buyer Ltd<=
+/td></tr>
+<tr><td style=3D"color:#555">Due date</td><td>02.11.2026</td></tr>
+<tr><td style=3D"color:#555">Status of the payment</td><td>Rejected</td></t=
+r>
+<tr><td style=3D"color:#555">Variable symbol</td><td>2026001</td></tr>
+<tr><td style=3D"color:#555">Constant symbol</td><td>0308</td></tr>
+<tr><td style=3D"color:#555">Specific symbol</td><td>0</td></tr>
+</table>
+<p>Example footer, example.com</p>
+</body></html>
+
+--kb-mixed
+Content-Type: application/pdf; name="Oznameni.pdf"
+Content-Disposition: attachment; filename="Oznameni.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKU1lOVEhFVElDIEFUVEFDSE1FTlQKJSVFT0YK
+
+--kb-mixed--
