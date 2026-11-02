@@ -47,6 +47,8 @@ final class MatcherTest extends BankingTestCase
         yield 'small difference below settles' => ['999.01', [['A', '1000.00', '2026-11-15']], self::SMALL, [['A', '999.01', '0.99']]];
         yield 'small difference above settles' => ['1000.50', [['A', '1000.00', '2026-11-15']], self::SMALL, [['A', '1000.50', '-0.50']]];
         yield 'a difference past 99 minor is partial' => ['998.99', [['A', '1000.00', '2026-11-15']], self::SMALL, [['A', '998.99', null]]];
+        yield 'a difference of exactly 100 minor is partial' => ['999.00', [['A', '1000.00', '2026-11-15']], self::SMALL, [['A', '999.00', null]]];
+        yield 'an overpayment of exactly 100 minor is not settled' => ['1001.00', [['A', '1000.00', '2026-11-15']], self::SMALL, [['A', '1001.00', null]]];
         yield 'small difference off is partial' => ['999.01', [['A', '1000.00', '2026-11-15']], self::ON, [['A', '999.01', null]]];
         yield 'several: the one with the equal remaining' => ['300.00', [['A', '500.00', '2026-11-01'], ['B', '300.00', '2026-11-10']], self::ON, [['B', '300.00', null]]];
         yield 'several: within the small difference' => ['299.50', [['A', '500.00', '2026-11-01'], ['B', '300.00', '2026-11-10']], self::SMALL, [['B', '299.50', '0.50']]];
