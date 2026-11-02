@@ -29,6 +29,8 @@ use App\Shared\Domain\Money;
  * may carry an HTML and a text body. Each statement is read on its own and all
  * of them must agree, or the mail fails as inconsistent: a payment is recorded
  * from what the bank said in every place, never from a guess at one of them.
+ * A payment whose status is on the closed not-booked list is ignored; a status
+ * on neither list fails as an unknown layout.
  *
  * @phpstan-type Reading array{direction: MovementDirection, status: string, booked: bool, values: array<string, string|null>}
  */
@@ -258,7 +260,12 @@ final readonly class KbNotificationParser implements BankMessageParser
             $values[KbLabels::DATE] = $this->date($raw[KbLabels::DATE]);
         }
 
-        return ['direction' => $direction, 'status' => $status, 'booked' => KbLabels::isBooked($status), 'values' => $values];
+        $booked = KbLabels::booked($status);
+        if (null === $booked) {
+            throw new ParseFailed(ParseFailure::UnknownLayout, \sprintf('The payment status "%s" is not known.', $status));
+        }
+
+        return ['direction' => $direction, 'status' => $status, 'booked' => $booked, 'values' => $values];
     }
 
     /**
