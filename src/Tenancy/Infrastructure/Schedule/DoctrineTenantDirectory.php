@@ -12,17 +12,20 @@ use App\Tenancy\Application\Schedule\TenantDirectory;
 use App\Tenancy\Application\TenantZoneFallback;
 use App\Tenancy\Domain\TenantId;
 use Doctrine\DBAL\Connection;
+use Psr\Log\LoggerInterface;
 
 /**
  * Reads the tenants with their stored zones in one query and asks the fallback
  * once for those without, so a tick costs two queries however many tenants
- * there are. A stored zone this PHP no longer knows counts as none.
+ * there are. A stored zone this PHP no longer knows counts as none, with a
+ * warning, so the operator can set it again.
  */
 final readonly class DoctrineTenantDirectory implements TenantDirectory
 {
     public function __construct(
         private Connection $connection,
         private TenantZoneFallback $fallback,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -57,7 +60,7 @@ final readonly class DoctrineTenantDirectory implements TenantDirectory
         $missing = [];
         foreach ($stored as $id => $name) {
             $id = (string) $id;
-            $zone = $this->named($name);
+            $zone = $this->named($id, $name);
             $zones[$id] = $zone;
             if (!$zone instanceof \DateTimeZone) {
                 $missing[] = TenantId::fromString($id);
@@ -74,7 +77,7 @@ final readonly class DoctrineTenantDirectory implements TenantDirectory
         return $resolved;
     }
 
-    private function named(mixed $name): ?\DateTimeZone
+    private function named(string $tenant, mixed $name): ?\DateTimeZone
     {
         if (!\is_string($name) || '' === $name) {
             return null;
@@ -82,6 +85,8 @@ final readonly class DoctrineTenantDirectory implements TenantDirectory
         try {
             return new \DateTimeZone($name);
         } catch (\Exception) {
+            $this->logger->warning('The stored time zone {zone} of tenant {tenant} is unknown to this PHP; its days follow its firm\'s country until the zone is set again.', ['zone' => $name, 'tenant' => $tenant]);
+
             return null;
         }
     }

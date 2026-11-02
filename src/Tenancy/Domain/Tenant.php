@@ -67,7 +67,7 @@ class Tenant
     /**
      * Null goes back to the zone of the first active firm's country.
      *
-     * @throws \InvalidArgumentException when the zone is an offset or an abbreviation, not a zone of the tz database
+     * @throws \InvalidArgumentException when the zone is not a canonical name of the tz database: an offset, an abbreviation or an old alias such as US/Eastern
      */
     public function changeTimezone(?\DateTimeZone $zone): void
     {
@@ -79,6 +79,6 @@ class Tenant
 
     public static function isNamed(\DateTimeZone $zone): bool
     {
-        return \in_array($zone->getName(), \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true);
+        return \in_array($zone->getName(), \DateTimeZone::listIdentifiers(), true);
     }
 }

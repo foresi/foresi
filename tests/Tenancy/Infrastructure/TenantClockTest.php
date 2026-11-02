@@ -15,8 +15,12 @@ use App\Party\Domain\VatStatus;
 use App\Tenancy\Application\Schedule\TenantDirectory;
 use App\Tenancy\Application\TenantClock;
 use App\Tenancy\Application\TenantContext;
+use App\Tenancy\Application\TenantZoneFallback;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
+use App\Tenancy\Infrastructure\Console\TenantTimezoneCommand;
+use App\Tenancy\Infrastructure\Schedule\DoctrineTenantDirectory;
+use App\Tests\Support\Registry\RecordingLogger;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -24,6 +28,9 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class TenantClockTest extends KernelTestCase
@@ -156,6 +163,39 @@ final class TenantClockTest extends KernelTestCase
 
         self::assertSame(Command::FAILURE, $tester->execute(['tenant' => $tenant->toString()]));
         self::assertNull($this->storedZone($tenant));
+    }
+
+    public function testAStoredZoneThisPhpNoLongerKnowsFallsBackWithAWarning(): void
+    {
+        $tenant = $this->tenant(null);
+        $this->firm($tenant, 'CZ');
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE tenant SET timezone = 'Europe/Atlantis' WHERE id = :id", ['id' => $tenant->toString()]);
+        $logger = new RecordingLogger();
+        $directory = new DoctrineTenantDirectory(self::getContainer()->get(Connection::class), self::getContainer()->get(TenantZoneFallback::class), $logger);
+
+        self::assertSame('Europe/Prague', $directory->zones()[$tenant->toString()]->getName());
+        self::assertSame('Europe/Prague', $directory->zone($tenant)->getName());
+        self::assertSame(2, $logger->warnings());
+        self::assertStringContainsString('zone', $logger->records[0]['message']);
+    }
+
+    public function testTheCommandTakesCanonicalNamesOnlyAndLogsTheChange(): void
+    {
+        $tenant = $this->tenant(null);
+        $logger = new RecordingLogger();
+        $command = new TenantTimezoneCommand($this->em, $this->directory(), $logger);
+        $io = new SymfonyStyle(new ArrayInput([]), new BufferedOutput());
+
+        self::assertSame(Command::FAILURE, $command($io, $tenant->toString(), 'US/Eastern'), 'A backward-compatible alias is not stored.');
+        self::assertNull($this->storedZone($tenant));
+        self::assertSame(Command::SUCCESS, $command($io, $tenant->toString(), 'America/New_York'));
+        self::assertSame(Command::SUCCESS, $command($io, $tenant->toString(), null, true));
+
+        // Only the two changes are logged, not the refused alias.
+        $levels = array_column($logger->records, 'level');
+        $messages = array_column($logger->records, 'message');
+        self::assertSame(['notice', 'notice'], $levels);
+        self::assertStringContainsString('time zone', implode("\n", $messages));
     }
 
     public function testTheTenantRefusesAnOffsetZone(): void
