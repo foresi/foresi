@@ -27,6 +27,15 @@ abstract class InvoiceBalancesContractTest extends InvoiceTestCase
      */
     abstract protected function settle(string $invoiceId): void;
 
+    /**
+     * Moves the invoice to the trash. Every implementation must then answer zero
+     * for it, whatever it knows about payments.
+     */
+    protected function trashInvoice(string $invoiceId): void
+    {
+        $this->trash->trash($invoiceId, 'Wrong customer');
+    }
+
     public function testEveryIdIsAnswered(): void
     {
         $first = $this->issue->issue($this->input());
@@ -59,6 +68,21 @@ abstract class InvoiceBalancesContractTest extends InvoiceTestCase
         self::assertArrayHasKey($settled->id(), $outstanding);
         self::assertSame(0, $outstanding[$settled->id()]->minor());
         self::assertSame(Currency::CZK, $outstanding[$settled->id()]->currency());
+    }
+
+    public function testATrashedInvoiceIsZero(): void
+    {
+        $open = $this->issue->issue($this->input());
+        $trashed = $this->issue->issue($this->input([$this->line('250.00')]));
+        $this->trashInvoice($trashed->id());
+        $this->em->clear();
+
+        $outstanding = $this->balances()->outstanding([$open->id(), $trashed->id()]);
+
+        self::assertSame(121000, $outstanding[$open->id()]->minor());
+        self::assertArrayHasKey($trashed->id(), $outstanding);
+        self::assertSame(0, $outstanding[$trashed->id()]->minor());
+        self::assertSame(Currency::CZK, $outstanding[$trashed->id()]->currency());
     }
 
     public function testOneQueryForManyIds(): void

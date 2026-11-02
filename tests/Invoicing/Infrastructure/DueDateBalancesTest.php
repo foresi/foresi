@@ -20,7 +20,8 @@ final class DueDateBalancesTest extends InvoiceBalancesContractTest
 
     protected function settle(string $invoiceId): void
     {
-        $this->trash->trash($invoiceId, 'Wrong customer');
+        // Without payments, the trash is the only way an invoice stops being owed.
+        $this->trashInvoice($invoiceId);
     }
 
     public function testItIsNotAuthoritative(): void
