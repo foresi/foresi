@@ -238,6 +238,15 @@ when@e2e:
         e2e.link_tokens:
             alias: App\Invoicing\Application\LinkTokens
             public: true
+        e2e.save_recurring:
+            alias: App\Invoicing\Application\SaveRecurringInvoice
+            public: true
+        e2e.recurring_lifecycle:
+            alias: App\Invoicing\Application\RecurringLifecycle
+            public: true
+        e2e.issue_recurring:
+            alias: App\Invoicing\Application\IssueRecurringOccurrence
+            public: true
 
 when@test:
     parameters:

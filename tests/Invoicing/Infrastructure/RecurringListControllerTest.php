@@ -121,20 +121,19 @@ final class RecurringListControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(['Active 3', 'Paused 0', 'Ended 0', 'Failing 0'], $this->tabs($crawler));
-        self::assertSame(['Customer', 'Description', 'Repeats', 'Next issue', 'Ends', 'After issue', 'Amount', 'State'], $this->headers($crawler));
+        self::assertSame(['Customer', 'Description', 'Repeats', 'Next issue', 'After issue', 'Amount'], $this->headers($crawler));
         $rows = $this->rowTexts($crawler);
         self::assertCount(3, $rows);
         self::assertStringContainsString('Hosting 12/2026', $rows[0], 'the description as the next invoice has it');
         self::assertStringContainsString('Monthly', $rows[0]);
         self::assertStringContainsString('2026-12-01', $rows[0]);
-        self::assertStringContainsString('Never', $rows[0]);
-        self::assertStringContainsString('Send to the customer', $rows[0]);
+        self::assertStringContainsString('Monthly · no end', $rows[0]);
+        self::assertStringContainsString('Send', $rows[0]);
         self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $rows[0]);
-        self::assertStringContainsString('Active', $rows[0]);
         self::assertStringContainsString('Yearly', $rows[1]);
         self::assertStringContainsString('Every 12 months', $rows[2]);
-        self::assertStringContainsString('3 more invoices', $rows[2]);
-        self::assertStringContainsString('Hold for review', $rows[2]);
+        self::assertStringContainsString('Every 12 months · 3 more', $rows[2]);
+        self::assertStringContainsString('Review', $rows[2]);
     }
 
     public function testTheListTakesNoQueryPerRow(): void

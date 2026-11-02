@@ -16,7 +16,8 @@ declare(strict_types=1);
  * to var/e2e-links.json for the public link specs. A sixth, "Example Sending" with
  * sending@example.com, holds the invoices of the send dialog specs, one of them refused
  * by the recipient's server and one opened. "Example Dialogs" with dialogs@example.com
- * holds three invoices for the dialog specs. Run it after the migrations, in the e2e
+ * holds three invoices for the dialog specs, and "Example Recurring" with recurring@example.com
+ * recurring templates in each state for the recurring list specs. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -31,9 +32,13 @@ use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\RecurringInput;
+use App\Invoicing\Application\RecurringLifecycle;
+use App\Invoicing\Application\SaveRecurringInvoice;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Domain\DocumentKind;
@@ -44,8 +49,14 @@ use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\Recurrence;
+use App\Invoicing\Domain\RecurrenceEnd;
+use App\Invoicing\Domain\RecurrenceUnit;
+use App\Invoicing\Domain\RecurringDelivery;
+use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Kernel;
@@ -291,6 +302,60 @@ foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'
         new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
     ]));
 }
+$context->reset();
+
+// The tenant of the recurring list specs: a firm with a mail server and templates in each
+// state, one failing, and an invoice one of them issued that waits to be sent. Dates count
+// from the real today: a template cannot start in the past.
+$recurringTenant = $tenantWithOwner('Example Recurring', 'recurring@example.com', 'Recurring Example');
+$context->switchTo($recurringTenant);
+$recurringFirm = new LegalEntity('Example Recurring s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890', ['CZ6508000000192000145399']);
+$entityManager->persist($recurringFirm);
+$recurringSeries = new Series($recurringFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$recurringSeries->markDefault();
+$entityManager->persist($recurringSeries);
+$entityManager->persist(FirmMailServer::define($recurringFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Recurring s.r.o.'));
+$entityManager->flush();
+$client = $createParty->createFrom($party(PartyKind::Company, 'Example Client a.s.', [PartyRole::Customer], '', 10, '12345679', 'CZ12345679'));
+$entityManager->persist(new PartyEmail($client, 'client@example.com', EmailPurpose::Invoices));
+$entityManager->flush();
+$saveRecurring = $container->get('e2e.save_recurring');
+$recurringLifecycle = $container->get('e2e.recurring_lifecycle');
+$issueRecurring = $container->get('e2e.issue_recurring');
+\assert($saveRecurring instanceof SaveRecurringInvoice);
+\assert($recurringLifecycle instanceof RecurringLifecycle);
+\assert($issueRecurring instanceof IssueRecurringOccurrence);
+$today = new DateTimeImmutable('today');
+$firstOfNextMonth = $today->modify('first day of next month');
+$recurring = static fn (string $description, string $price, Recurrence $recurrence, RecurringDelivery $delivery = RecurringDelivery::Send): RecurringInvoice => $saveRecurring->create(new RecurringInput(
+    $recurringFirm->id(),
+    $recurringSeries->id(),
+    $client->id(),
+    PaymentMethod::BankTransfer,
+    'CZ6508000000192000145399',
+    '',
+    '',
+    $description,
+    '',
+    '',
+    DocumentLanguage::Czech,
+    [new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+    $recurrence,
+    TaxPointRule::IssueDate,
+    14,
+    $delivery,
+));
+$every = static fn (RecurrenceUnit $unit, int $every = 1, ?DateTimeImmutable $first = null, RecurrenceEnd $end = RecurrenceEnd::Never, ?int $endAfter = null): Recurrence => new Recurrence($first ?? $firstOfNextMonth, $unit, $every, false, $end, null, $endAfter);
+$recurring('Hosting {month/year}', '1200.00', $every(RecurrenceUnit::Month));
+$recurring('Domain renewal', '450.00', $every(RecurrenceUnit::Year), RecurringDelivery::Review);
+$recurring('Support licence', '24000.00', $every(RecurrenceUnit::Month, 12, end: RecurrenceEnd::AfterCount, endAfter: 3));
+$recurringLifecycle->pause($recurring('Backup storage', '300.00', $every(RecurrenceUnit::Month))->id());
+$recurringLifecycle->end($recurring('Old maintenance', '900.00', $every(RecurrenceUnit::Month))->id());
+$failing = $recurring('Monitoring', '600.00', $every(RecurrenceUnit::Month));
+$entityManager->getConnection()->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'send.rate_limited', last_failure_at = CURRENT_TIMESTAMP WHERE id = ?", [$failing->id()]);
+// Issued today for review, so it waits under "To send".
+$held = $recurring('Consulting {month/year}', '5000.00', $every(RecurrenceUnit::Month, first: $today), RecurringDelivery::Review);
+$issueRecurring->issue($held->id(), $today, $today);
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

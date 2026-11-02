@@ -1278,6 +1278,7 @@ recurring:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur
     filter: Zobrazit
+    failed: 'Selhalo: {reason}'
     summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
     tab:
       active: Aktivní
@@ -1294,13 +1295,8 @@ recurring:
       delivery: Po vystavení
       amount: Částka
       state: Stav
-    state:
-      active: Aktivní
-      paused: Pozastavená
-      ended: Ukončená
-      failing: Selhala
     delivery:
-      send: Odeslat odběrateli
+      send: Odeslat
       review: Ke kontrole
     interval:
       day: '{every, plural, one {Denně} few {Každé # dny} other {Každých # dní}}'
@@ -1309,10 +1305,10 @@ recurring:
       year: '{every, plural, one {Ročně} few {Každé # roky} other {Každých # let}}'
       last_day: ', poslední den v měsíci'
     end:
-      never: Bez konce
-      on_date: 'Do {date}'
-      after_count: '{left, plural, =0 {Žádná další} one {Ještě # faktura} few {Ještě # faktury} other {Ještě # faktur}}'
-      ended: 'Ukončeno {date}'
+      never: bez konce
+      on_date: 'do {date}'
+      after_count: '{left, plural, =0 {žádná další} other {ještě #×}}'
+      ended: 'ukončeno {date}'
     action:
       edit: Upravit
       issue_now: Vystavit nyní

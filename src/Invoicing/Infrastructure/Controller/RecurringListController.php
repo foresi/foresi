@@ -55,7 +55,6 @@ final class RecurringListController extends AbstractController
     public const string ACTION_TOKEN = 'recurring_action';
     /** The parts of the list's query an action carries back to it. */
     private const array LIST_QUERY = ['tab', 'firm', 'page'];
-    private const array STATE_TONES = ['active' => 'green', 'paused' => 'amber', 'ended' => 'gray'];
 
     public function __construct(
         private readonly RecurringInvoices $templates,
@@ -320,7 +319,8 @@ final class RecurringListController extends AbstractController
         if ($severalFirms) {
             $keys['firm'] = false;
         }
-        $keys += ['interval' => false, 'next' => true, 'end' => false, 'delivery' => false, 'amount' => true, 'state' => false];
+        // No state column: the tabs say it, and a failing row says why in its description.
+        $keys += ['interval' => false, 'next' => false, 'delivery' => false, 'amount' => true];
         $columns = [];
         foreach ($keys as $key => $phone) {
             $columns[] = ['key' => $key, 'label' => $this->translator->trans('recurring.list.column.'.$key), 'align' => 'amount' === $key ? 'right' : 'left', 'phone' => $phone];
@@ -339,18 +339,15 @@ final class RecurringListController extends AbstractController
         $next = $template->nextOccurrence();
         $customer = $template->customer()->displayName();
         $failure = $failing ? $this->failureText($template->lastFailureCode()) : null;
-        $stateText = $this->translator->trans('recurring.list.state.'.($failing ? 'failing' : $state->value));
         $description = $this->description($template, $next ?? $today);
         $nextText = RecurringState::Active === $state && $next instanceof \DateTimeImmutable ? $this->date($next) : '';
         $cells = [
             'customer' => $customer,
-            'description' => null === $failure ? $description : ['text' => $failure, 'icon' => 'triangle-alert', 'hint' => $failure],
-            'interval' => $this->interval($template),
+            'description' => null === $failure ? $description : $this->translator->trans('recurring.list.failed', ['reason' => $failure]),
+            'interval' => $this->schedule($template),
             'next' => $nextText,
-            'end' => $this->endText($template),
             'delivery' => $this->translator->trans('recurring.list.delivery.'.$template->delivery()->value),
             'amount' => $amount instanceof Money ? $this->amountText->shown($amount) : '',
-            'state' => ['text' => $stateText, 'tone' => $failing ? 'red' : self::STATE_TONES[$state->value], 'hint' => $failure],
         ];
         if ($severalFirms) {
             $cells['firm'] = $template->firm()->name();
@@ -361,7 +358,7 @@ final class RecurringListController extends AbstractController
             'href' => $this->generateUrl('app_recurring_edit', ['id' => $template->id()]),
             'plain' => true,
             'label' => $customer,
-            'secondary' => implode(' · ', array_filter([$failure ?? $description, $this->interval($template), $nextText, $stateText], static fn (string $part): bool => '' !== $part)),
+            'secondary' => implode(' · ', array_filter([null === $failure ? $description : $this->translator->trans('recurring.list.failed', ['reason' => $failure]), $this->schedule($template), $nextText], static fn (string $part): bool => '' !== $part)),
             'cells' => $cells,
             'actions' => $this->actions($template, $return),
         ];
@@ -405,12 +402,20 @@ final class RecurringListController extends AbstractController
         return $recurrence->onLastDayOfMonth() ? $text.$this->translator->trans('recurring.list.interval.last_day') : $text;
     }
 
+    /**
+     * How often, and until when: one column, so the list fits a laptop.
+     */
+    private function schedule(RecurringInvoice $template): string
+    {
+        return $this->interval($template).' · '.$this->endText($template);
+    }
+
     private function endText(RecurringInvoice $template): string
     {
         if (RecurringState::Ended === $template->state()) {
             $ended = $template->endedAt();
 
-            return $ended instanceof \DateTimeImmutable ? $this->translator->trans('recurring.list.end.ended', ['date' => $this->date($ended)]) : $this->translator->trans('recurring.list.state.ended');
+            return trim($this->translator->trans('recurring.list.end.ended', ['date' => $ended instanceof \DateTimeImmutable ? $this->date($ended) : '']));
         }
         $recurrence = $template->recurrence();
 

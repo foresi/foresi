@@ -1278,6 +1278,7 @@ recurring:
     title: Recurring invoices
     views: Recurring invoice lists
     filter: Show
+    failed: 'Failed: {reason}'
     summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
     tab:
       active: Active
@@ -1294,14 +1295,9 @@ recurring:
       delivery: After issue
       amount: Amount
       state: State
-    state:
-      active: Active
-      paused: Paused
-      ended: Ended
-      failing: Failed
     delivery:
-      send: Send to the customer
-      review: Hold for review
+      send: Send
+      review: Review
     interval:
       day: '{every, plural, one {Daily} other {Every # days}}'
       week: '{every, plural, one {Weekly} other {Every # weeks}}'
@@ -1309,10 +1305,10 @@ recurring:
       year: '{every, plural, one {Yearly} other {Every # years}}'
       last_day: ', on the last day of the month'
     end:
-      never: Never
-      on_date: 'On {date}'
-      after_count: '{left, plural, =0 {No more} one {# more invoice} other {# more invoices}}'
-      ended: 'Ended {date}'
+      never: no end
+      on_date: 'until {date}'
+      after_count: '{left, plural, =0 {no more} other {# more}}'
+      ended: 'ended {date}'
     action:
       edit: Edit
       issue_now: Issue now
