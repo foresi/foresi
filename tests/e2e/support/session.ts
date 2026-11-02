@@ -8,6 +8,7 @@ export const OWNER = 'testing@example.com';
 export const EMPTY_OWNER = 'empty@example.com';
 export const GROUP_OWNER = 'group@example.com';
 export const INVOICING_OWNER = 'invoicing@example.com';
+export const FIRST_RUN_OWNER = 'first-run@example.com';
 
 // Written once by specs/auth.setup.ts. Signing in on every test would trip the
 // per-address login throttle (25 attempts a minute), so most specs reuse a session.
@@ -15,6 +16,7 @@ export const OWNER_STATE = '.auth/owner.json';
 export const EMPTY_OWNER_STATE = '.auth/empty-owner.json';
 export const GROUP_OWNER_STATE = '.auth/group-owner.json';
 export const INVOICING_OWNER_STATE = '.auth/invoicing-owner.json';
+export const FIRST_RUN_OWNER_STATE = '.auth/first-run-owner.json';
 
 export async function signIn(page: Page, email: string = OWNER): Promise<void> {
   await page.goto('/login');

@@ -17,9 +17,10 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 
 /**
- * The customers a firm can invoice, found by name, identifier or e-mail. What a
- * contact is to the firm decides, through ContactSettingsForFirm, so the roles, the
- * archive state, the defaults and the e-mails are those of that firm.
+ * The contacts a firm can invoice, found by name, identifier or e-mail: everyone not
+ * archived for it, the customers of the firm first. What a contact is to the firm
+ * decides, through ContactSettingsForFirm, so the roles, the archive state, the
+ * defaults and the e-mails are those of that firm.
  */
 final readonly class CustomerPicker
 {
@@ -36,7 +37,7 @@ final readonly class CustomerPicker
     }
 
     /**
-     * @return list<CustomerOption> in name order
+     * @return list<CustomerOption> customers, then other contacts, each in name order
      */
     public function search(string $text, LegalEntity $firm): array
     {
@@ -45,19 +46,35 @@ final readonly class CustomerPicker
             return [];
         }
 
-        $options = [];
+        $customers = [];
+        $others = [];
         $page = 1;
         do {
             $found = $this->parties->search($text, null, false, 'name', $page);
             foreach ($this->partiesOf($found->rows) as $party) {
-                if (\count($options) < self::LIMIT && $this->contacts->isCustomerOf($party, $firm)) {
-                    $options[] = $this->option($party, $firm);
+                if ($this->contacts->isArchivedFor($party, $firm)) {
+                    continue;
+                }
+                if ($this->contacts->isCustomer($party, $firm)) {
+                    $customers[] = $party;
+                } else {
+                    $others[] = $party;
                 }
             }
             ++$page;
-        } while (\count($options) < self::LIMIT && $page <= min($found->pages, self::MAX_PAGES));
+        } while (\count($customers) < self::LIMIT && $page <= min($found->pages, self::MAX_PAGES));
 
-        return $options;
+        return array_map(fn (Party $party): CustomerOption => $this->option($party, $firm), \array_slice([...$customers, ...$others], 0, self::LIMIT));
+    }
+
+    /**
+     * One contact the firm can invoice, for a form that just created it.
+     */
+    public function find(string $id, LegalEntity $firm): ?CustomerOption
+    {
+        $party = $this->parties->find($id);
+
+        return $party instanceof Party && !$this->contacts->isArchivedFor($party, $firm) ? $this->option($party, $firm) : null;
     }
 
     public function option(Party $party, LegalEntity $firm): CustomerOption

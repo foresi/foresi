@@ -24,13 +24,15 @@ use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Countries;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * Reads the invoice form before anything is written: an expected mistake is a form
- * error, never an exception out of a write. People write a decimal comma and spaces
- * between thousands. What is too long is refused, here or by IssueRules, and never
+ * error, never an exception out of a write. Numbers come as TypedNumber reads them.
+ * What is too long is refused, here or by IssueRules, and never
  * cut, and an amount is never rounded to fit.
  */
 final readonly class InvoiceFormReader
@@ -117,6 +119,10 @@ final readonly class InvoiceFormReader
         $version = $this->text($post, 'version');
 
         return new InvoiceSubmission($values, $errors, $input, ctype_digit($version) ? (int) $version : 0);
+    }
+
+    public function __construct(private LocaleSwitcher $locales)
+    {
     }
 
     /**
@@ -321,7 +327,7 @@ final readonly class InvoiceFormReader
 
     private function decimal(string $typed): string
     {
-        return str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], $typed);
+        return TypedNumber::decimal($typed, $this->locales->getLocale());
     }
 
     /**

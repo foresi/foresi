@@ -330,7 +330,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringContainsString('Example Customer a.s.', $row->text());
         self::assertStringContainsString('2026-11-01', $row->text());
         self::assertStringContainsString('2026-12-01', $row->text());
-        self::assertStringContainsString($this->nbsp('1,210.00 CZK'), $row->text());
+        self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $row->text());
     }
 
     public function testAnotherTenantSeesNothing(): void

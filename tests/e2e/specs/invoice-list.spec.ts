@@ -23,6 +23,18 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(table).toBeLessThanOrEqual(0);
 }
 
+// The description lives in "More details", closed on a new form.
+async function openMore(page: Page): Promise<void> {
+  if (await page.locator('details[data-more-details]').getAttribute('open') === null) {
+    await page.locator('#invoice-details').click();
+  }
+}
+
+async function describe(page: Page, text: string): Promise<void> {
+  await openMore(page);
+  await page.locator('#description').fill(text);
+}
+
 async function issue(page: Page, description: string, dueDate?: string): Promise<void> {
   await page.goto('/invoices/new');
   await expect(page.locator('form#invoice-form')).toBeVisible();
@@ -34,7 +46,7 @@ async function issue(page: Page, description: string, dueDate?: string): Promise
   await page.locator('#customer').fill('Example Dome');
   await page.getByRole('option', { name: 'Example Domestic a.s.' }).click();
   await expect(page.locator('[data-customer-summary]')).toBeVisible();
-  await page.locator('#description').fill(description);
+  await describe(page, description);
   await page.locator('#lines-0-text').fill('Práce');
   await page.locator('#lines-0-price').fill('500');
   if (dueDate !== undefined) {
@@ -83,6 +95,7 @@ test.describe.serial('the invoice list', () => {
 
     await page.goto('/invoices');
     await page.getByRole('link', { name: /Po splatnosti/ }).click();
+    await expect(page.locator('tbody tr').first()).toContainText('Po splatnosti');
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(page.locator('tbody tr')).toContainText('19. 1. 2026');
     await expectNoSeriousViolations(page);
@@ -119,6 +132,7 @@ test.describe.serial('the invoice list', () => {
     await expect(page.getByText(/je v koši\./)).toBeVisible();
 
     await page.getByRole('link', { name: /Koš/ }).click();
+    await expect(page.locator('tbody tr').first()).toContainText('V koši');
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(page.locator('tbody tr')).toContainText('Špatný zákazník');
     await expect(page.locator('tbody tr')).toContainText('Invoicing Example');
@@ -140,6 +154,9 @@ test.describe.serial('the invoice list', () => {
 
     const delivered = page.locator('tbody tr').first();
     await expect(delivered).toContainText('Doručeno');
+    await delivered.getByRole('link').first().click();
+    await expect(page.locator('main')).toContainText('Doručeno');
+    await page.goto('/invoices');
     await delivered.getByRole('button', { name: /Další akce/ }).click();
     await expect(delivered.getByRole('menuitem', { name: 'Smazat' })).toHaveCount(0);
   });
@@ -149,7 +166,7 @@ test.describe.serial('the invoice list', () => {
     const first = page.locator('tbody tr').first();
     await first.getByRole('link', { name: 'Upravit' }).click();
     await expect(page).toHaveURL(/\/edit$/);
-    await page.locator('#description').fill('Jiný popis');
+    await describe(page, 'Jiný popis');
     await page.locator('#lines-0-price').fill('700');
     await page.waitForTimeout(1100);
     await page.locator('#invoice-save').click();

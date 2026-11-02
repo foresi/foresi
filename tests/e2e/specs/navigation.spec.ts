@@ -50,7 +50,7 @@ test.describe('navigation', () => {
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
     const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');
-    await expect(settings).toHaveText(['Firmy', 'Import a export']);
+    await expect(settings).toHaveText(['Moje firmy', 'Import a export']);
     await shot(page, 'sidebar');
   });
 
@@ -69,7 +69,7 @@ test.describe('navigation', () => {
   test('opens the settings of a firm as tabs on the firm page @layout @a11y', async ({ page }) => {
     await page.goto('/settings/firms');
     await openMenuOnPhone(page);
-    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Firmy/);
+    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Moje firmy/);
     await page.goto('/settings/firms');
     await page.getByRole('link', { name: 'Example Payer s.r.o.' }).first().click();
 
@@ -92,6 +92,6 @@ test.describe('navigation', () => {
     await shot(page, 'firm-invoicing-tab');
 
     await openMenuOnPhone(page);
-    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Firmy/);
+    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Moje firmy/);
   });
 });

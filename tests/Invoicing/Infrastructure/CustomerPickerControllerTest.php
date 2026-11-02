@@ -65,6 +65,25 @@ final class CustomerPickerControllerTest extends WebTestCase
         self::assertSame(['street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ'], $option['billing']);
     }
 
+    public function testAskedByIdItAnswersThatOneContact(): void
+    {
+        [$tenant] = $this->browser->seed(['Example Company']);
+        $firm = $this->firm($tenant);
+        $this->browser->signIn();
+        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'q' => 'Example Customer']);
+        /** @var array{results: list<array{id: string}>} $found */
+        $found = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'id' => $found['results'][0]['id']]);
+        /** @var array{results: list<array{name: string, dueDays: int}>} $data */
+        $data = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame('Example Customer a.s.', $data['results'][0]['name']);
+        self::assertSame(14, $data['results'][0]['dueDays']);
+
+        $this->client->request('GET', '/invoices/customers', ['firm' => $firm->id(), 'id' => 'nonsense']);
+        self::assertSame('{"results":[]}', $this->client->getResponse()->getContent());
+    }
+
     public function testAForeignFirmAnswers404(): void
     {
         [$mine] = $this->browser->seed(['Example Company']);
