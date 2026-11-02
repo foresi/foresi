@@ -1,0 +1,58 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Invoicing\Application;
+
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceSend;
+
+/**
+ * Port: the sends of the active tenant. Call the writing methods inside
+ * TransactionalWork, which flushes.
+ */
+interface InvoiceSends
+{
+    public function add(InvoiceSend $send): void;
+
+    /**
+     * Takes the row of the send for this transaction and gives it as stored now.
+     * Lock the invoice first when both are needed, as trash does.
+     *
+     * @throws UnknownInvoiceSend also for a send of another tenant
+     */
+    public function lock(string $id): InvoiceSend;
+
+    /**
+     * @return list<InvoiceSend> oldest first
+     */
+    public function ofInvoice(Invoice $invoice): array;
+
+    /**
+     * Whether a send of the invoice still waits to go out.
+     */
+    public function hasQueued(Invoice $invoice): bool;
+
+    /**
+     * Ends every link of the invoice.
+     */
+    public function revokeAll(Invoice $invoice, \DateTimeImmutable $at): void;
+
+    /**
+     * Stops every send of the invoice that has not gone out.
+     */
+    public function cancelQueued(Invoice $invoice, \DateTimeImmutable $at): void;
+
+    /**
+     * Sends queued before the moment that no worker ever tried, nor holds now: their
+     * message was lost between the commit and the queue. A send with a try behind it
+     * has its retries in the queue already.
+     *
+     * @return list<string> ids, oldest first
+     */
+    public function stuck(\DateTimeImmutable $before, int $limit): array;
+}

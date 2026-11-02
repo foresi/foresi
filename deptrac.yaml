@@ -39,11 +39,18 @@ deptrac:
           must_not:
             - type: classLike
               value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+            - type: classLike
+              value: ^App\\Tenancy\\Infrastructure\\Messenger\\TenantStamp$
     # The sanctioned cross-tenant read; the only Tenancy infrastructure other modules may use.
     - name: TenantFilterBypass
       collectors:
         - type: classLike
           value: ^App\\Tenancy\\Infrastructure\\Doctrine\\TenantFilterBypass$
+    # The tenant a queued message belongs to, which a listener outside the handler reads.
+    - name: TenantStamp
+      collectors:
+        - type: classLike
+          value: ^App\\Tenancy\\Infrastructure\\Messenger\\TenantStamp$
     - name: PartyDomain
       collectors:
         - type: directory
@@ -194,9 +201,12 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
+      - TenantStamp
     TenantFilterBypass:
       - VendorDoctrine
       - TenancyInfrastructure
+    TenantStamp:
+      - VendorSymfony
     PartyDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain
@@ -364,6 +374,9 @@ deptrac:
       - PartyDomain
       - Ui
       - VendorTecnick
+      # A failed delivery is recorded in the tenant of its message.
+      - TenancyDomain
+      - TenantStamp
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers.

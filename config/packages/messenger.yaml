@@ -62,6 +62,8 @@ framework:
             App\Party\Application\RecheckRegistry: registry
             # Timed work: the schedule ticks, and each due job runs in its tenant.
             App\Tenancy\Application\Schedule\RunScheduledJob: async
+            # Sending documents by e-mail, on its own queue.
+            App\Invoicing\Application\DeliverInvoiceSend: mail
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:

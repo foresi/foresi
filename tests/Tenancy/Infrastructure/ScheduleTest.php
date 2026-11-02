@@ -177,12 +177,12 @@ final class ScheduleTest extends KernelTestCase
         $bus->dispatch(new ScheduleTick());
         self::mockTime('2026-11-01 08:05:00');
         $bus->dispatch(new ScheduleTick());
-        self::assertCount(2, $this->queue->getSent(), 'A busy worker is not handed the period again.');
+        self::assertCount(2, $this->countingSent(), 'A busy worker is not handed the period again.');
         self::assertSame('2026-11-01', $this->stored($this->first)['queued_period'] ?? null);
 
         self::mockTime('2026-11-01 09:01:00');
         $bus->dispatch(new ScheduleTick());
-        self::assertCount(4, $this->queue->getSent(), 'A queued message lost for an hour is sent again.');
+        self::assertCount(4, $this->countingSent(), 'A queued message lost for an hour is sent again.');
 
         $this->worker->run();
         self::assertCount(2, CountingJob::runs(), 'The second copy finds the period done.');
@@ -239,7 +239,7 @@ final class ScheduleTest extends KernelTestCase
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
 
-        $sent = $this->queue->getSent();
+        $sent = $this->countingSent();
         self::assertCount(2, $sent);
         $tenants = [];
         foreach ($sent as $envelope) {
@@ -277,6 +277,16 @@ final class ScheduleTest extends KernelTestCase
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
         $this->worker->run();
+    }
+
+    /**
+     * The messages of the counting job: the application's own jobs tick too.
+     *
+     * @return list<\Symfony\Component\Messenger\Envelope>
+     */
+    private function countingSent(): array
+    {
+        return array_values(array_filter([...$this->queue->getSent()], static fn (\Symfony\Component\Messenger\Envelope $envelope): bool => !$envelope->getMessage() instanceof RunScheduledJob || CountingJob::NAME === $envelope->getMessage()->job));
     }
 
     private function runs(): ScheduledJobRuns

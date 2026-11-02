@@ -25,20 +25,39 @@ final class RecordingMailGateway implements MailGateway
 
     /** @var list<MailMessage> */
     private static array $messages = [];
+    /** @var list<MailMessage> */
+    private static array $attempts = [];
+    /** @var (\Closure(): void)|null */
+    private static ?\Closure $whileSending = null;
+    private static int $delayMicroseconds = 0;
 
     private static int $failures = 0;
 
     private static bool $permanent = false;
+    private static bool $settingsProblem = false;
 
     public function send(MailMessage $message, FirmMailServer $server): void
     {
+        self::$attempts[] = $message;
+        if (self::$delayMicroseconds > 0) {
+            usleep(self::$delayMicroseconds);
+        }
+        if (self::$whileSending instanceof \Closure) {
+            $during = self::$whileSending;
+            self::$whileSending = null;
+            $during();
+        }
         if (\in_array(self::REFUSING_RECIPIENT, [...$message->to, ...$message->cc], true)) {
             throw new MailRefused(true, 'SMTP 550: the mail server refused the message.');
         }
         if (self::$failures > 0) {
             --self::$failures;
 
-            throw self::$permanent ? new MailRefused(true, 'SMTP 550: the mail server refused the message.') : new MailRefused(false, 'SMTP 451: the mail server asks to try again later.');
+            throw match (true) {
+                self::$settingsProblem => new MailRefused(self::$permanent, 'SMTP 535: the mail server refused the login.', true),
+                self::$permanent => new MailRefused(true, 'SMTP 550: the mail server refused the message.'),
+                default => new MailRefused(false, 'SMTP 451: the mail server asks to try again later.'),
+            };
         }
 
         self::$messages[] = $message;
@@ -52,16 +71,50 @@ final class RecordingMailGateway implements MailGateway
         return self::$messages;
     }
 
-    public function failNext(int $times, bool $permanent): void
+    /**
+     * @return list<MailMessage> every message handed over, accepted or not, oldest first
+     */
+    public function attempts(): array
+    {
+        return self::$attempts;
+    }
+
+    /**
+     * Runs once inside the next send, as if something happened while the server talked.
+     *
+     * @param \Closure(): void $during
+     */
+    public static function whileSending(\Closure $during): void
+    {
+        self::$whileSending = $during;
+    }
+
+    /**
+     * Makes every send take this long, so parallel workers overlap.
+     */
+    public static function slowDown(int $microseconds): void
+    {
+        self::$delayMicroseconds = $microseconds;
+    }
+
+    /**
+     * @param bool $settingsProblem a refused login, which the firm fixes in its settings
+     */
+    public function failNext(int $times, bool $permanent, bool $settingsProblem = false): void
     {
         self::$failures = $times;
         self::$permanent = $permanent;
+        self::$settingsProblem = $settingsProblem;
     }
 
     public static function reset(): void
     {
         self::$messages = [];
+        self::$attempts = [];
+        self::$whileSending = null;
+        self::$delayMicroseconds = 0;
         self::$failures = 0;
         self::$permanent = false;
+        self::$settingsProblem = false;
     }
 }

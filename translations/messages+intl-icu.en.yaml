@@ -957,6 +957,7 @@ invoice:
     no_lines: Add at least one line.
     number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
     number_locked: Series and number cannot change once the document is delivered.
+    number_locked_sending: Series and number cannot change while the document is being sent.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
     numbers_exhausted: This series has no numbers left.
