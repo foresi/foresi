@@ -77,8 +77,8 @@
         </td>
         <td class="align-top xl:table-cell xl:p-1">
             <div class="relative">
-                <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">%</span>
-                <input type="text" id="{{ discountId }}" name="lines[{{ index }}][discount]" value="{{ line.discount }}" data-cell="discount" autocomplete="off" inputmode="decimal"{% if discountError %} aria-invalid="true" aria-describedby="{{ discountId }}-error"{% endif %} class="h-control num text-right {{ _self.classes(discountError is not null) }}">
+                <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">%</span>
+                <input type="text" id="{{ discountId }}" name="lines[{{ index }}][discount]" value="{{ line.discount }}" data-cell="discount" autocomplete="off" inputmode="decimal"{% if discountError %} aria-invalid="true" aria-describedby="{{ discountId }}-error"{% endif %} class="h-control num text-right {{ _self.classes(discountError is not null) }} !pr-7">
             </div>
             {% if discountError %}<span id="{{ discountId }}-error" class="sr-only">{{ discountError }}</span>{% endif %}
         </td>

@@ -661,7 +661,6 @@ test.describe.serial('an invoice', () => {
     const rights = [...await edges('[data-line-total]'), ...await edges('tbody tr:not([hidden]) [data-line-discount]')];
     expect(new Set(rights).size).toBe(1);
     const prices = await page.locator('#lines-0-price').evaluate((field) => getComputedStyle(field).paddingRight);
-    expect(await page.locator('#lines-0-discount').evaluate((field) => getComputedStyle(field).paddingRight)).toBe(prices);
     expect((await box('#lines-0-discount')).x + (await box('#lines-0-discount')).width).toBe((await box('#lines-0-price')).x + (await box('#lines-0-price')).width);
     await expectNoSidewaysScroll(page);
 
