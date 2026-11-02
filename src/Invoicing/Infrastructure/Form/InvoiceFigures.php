@@ -60,7 +60,7 @@ final readonly class InvoiceFigures
      */
     private function lines(array $priced, array $lines, InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array
     {
-        $full = $this->pricing->priced(array_map(self::withoutDiscount(...), $lines), $context->regime, $context->country, $taxPoint);
+        $full = $this->pricing->priced(array_map($this->withoutDiscount(...), $lines), $context->regime, $context->country, $taxPoint);
         $rows = [];
         foreach ($priced as $index => $line) {
             $before = $full[$index]->amounts->gross;
@@ -71,7 +71,7 @@ final readonly class InvoiceFigures
         return $rows;
     }
 
-    private static function withoutDiscount(LineInput $line): LineInput
+    private function withoutDiscount(LineInput $line): LineInput
     {
         return new LineInput($line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $line->treatment, $line->rateKind, $line->supplyCode, Percent::fromString('0'));
     }
