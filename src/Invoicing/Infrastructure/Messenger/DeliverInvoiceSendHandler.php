@@ -30,31 +30,39 @@ use App\Party\Domain\PartyEmail;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
- * Delivers what the request froze, in the tenant of the message. A short unit
- * claims the send; the mail server is called outside any transaction, so a slow
- * server holds no lock; a second unit records the outcome.
+ * Delivers what the request froze, in the tenant of the message, in steps that
+ * each leave a record, so a delivery that stops anywhere is finished later and a
+ * mail the server accepted is never sent again:
  *
- * A send that is not queued sends nothing, so a redelivered message never mails
- * the customer twice. Only a worker that dies after the server accepted the mail
- * and before the second unit can repeat it once, with the same Message-ID. While
- * a worker holds the claim, a second message for the send leaves it alone; a
- * claim older than the lease belongs to a worker that died.
+ *  1. A short unit claims the send. A claim younger than the lease belongs to a
+ *     worker still at it: the message comes back when the lease ends.
+ *  2. The server is called outside any transaction.
+ *  3. Its acceptance is recorded on the send alone, at once.
+ *  4. The invoice is marked delivered. If that fails, the send stays claimed and
+ *     sent, and the retry only finishes this step.
+ *  5. The firm's copy goes last, once: its outcome counts as unknown before it
+ *     leaves, so a worker dying after the server took it never sends it twice.
  *
- * A temporary refusal is counted and thrown again, so the queue retries it; a
- * permanent one fails the send at once and skips the retries. MarkSendFailed
- * fails the send when the retries run out. The copy to the firm goes after the
- * customer's mail, once: its failure is recorded and leaves the send as sent.
+ * Only a worker dying between steps 2 and 3 can repeat the customer's mail, once,
+ * with the same Message-ID. A temporary refusal is counted and thrown again for
+ * the queue to retry; a permanent one fails the send at once. MarkSendFailed
+ * fails a queued send when the retries run out; RequeueStuckSends picks up a
+ * claim that no worker came back to.
  */
 #[AsMessageHandler]
 final readonly class DeliverInvoiceSendHandler
 {
-    private const string LEASE = '-5 minutes';
+    public const string LEASE = '5 minutes';
     private const string NO_SERVER = 'The firm has no mail server: add one in the e-mail settings.';
     private const string UNBUILDABLE = 'The message could not be built from the stored send.';
     private const string UNEXPECTED = 'The message could not be handed to the mail server.';
+    private const string COPY_UNKNOWN = 'The copy was handed to the mail server, but its answer was not recorded.';
+    /** Seconds past the end of a lease before a waiting message tries again. */
+    private const int GRACE = 5;
 
     public function __construct(
         private InvoiceSends $sends,
@@ -81,52 +89,59 @@ final readonly class DeliverInvoiceSendHandler
 
             return;
         }
-        if (null === $owed) {
+        if (!$owed instanceof InvoiceSend) {
             return;
         }
-        [$send, $audience] = $owed;
-        $server = $this->servers->for($send->invoice()->firm());
-        if (LinkAudience::Customer === $audience) {
-            $send = $this->deliver($send, $server);
-            if (!$send->isCopyOwed()) {
-                return;
-            }
+        $server = $this->servers->for($owed->invoice()->firm());
+        if (SendStatus::Queued === $owed->status()) {
+            $this->deliver($owed, $server);
         }
-        $this->deliverCopy($send, $server);
+        $send = $this->recordDelivered($id, $owed->invoice()->id());
+        if ($send->isCopyOwed()) {
+            $this->deliverCopy($send, $server);
+        }
     }
 
     /**
-     * @return array{InvoiceSend, LinkAudience}|null what is owed now, claimed; null when nothing is
+     * @return InvoiceSend|null the send, claimed, when something is owed
+     *
+     * @throws RecoverableMessageHandlingException while another worker holds the claim
+     * @throws UnknownInvoiceSend                  for a send of another tenant
      */
-    private function claim(string $id): ?array
+    private function claim(string $id): ?InvoiceSend
     {
-        return $this->retry->run(fn (): ?array => $this->work->run(function () use ($id): ?array {
+        return $this->unit(function () use ($id): ?InvoiceSend {
             $send = $this->sends->lock($id);
             $now = $this->now();
-            if ($send->isClaimedSince($now->modify(self::LEASE))) {
+            $owed = SendStatus::Queued === $send->status() || (SendStatus::Sent === $send->status() && ($this->deliveryOwed($send) || $send->isCopyOwed()));
+            if (!$owed) {
+                $send->release();
+
                 return null;
             }
-            $audience = match (true) {
-                SendStatus::Queued === $send->status() => LinkAudience::Customer,
-                SendStatus::Sent === $send->status() && $send->isCopyOwed() => LinkAudience::Copy,
-                default => null,
-            };
-            if (null === $audience) {
-                return null;
+            $leaseEnds = $send->claimedAt()?->modify('+'.self::LEASE);
+            if ($leaseEnds instanceof \DateTimeImmutable && $leaseEnds > $now) {
+                throw new RecoverableMessageHandlingException('Another worker is delivering this send.', 0, null, ($leaseEnds->getTimestamp() - $now->getTimestamp() + self::GRACE) * 1000);
             }
             $send->claim($now);
 
-            return [$send, $audience];
-        }));
+            return $send;
+        });
     }
 
     /**
-     * @return InvoiceSend the send as recorded sent
+     * Sent, but the invoice does not know it yet.
      */
-    private function deliver(InvoiceSend $send, ?FirmMailServer $server): InvoiceSend
+    private function deliveryOwed(InvoiceSend $send): bool
+    {
+        $invoice = $send->invoice();
+
+        return !$invoice->isDelivered() && !$invoice->isTrashed();
+    }
+
+    private function deliver(InvoiceSend $send, ?FirmMailServer $server): void
     {
         $id = $send->id();
-        $invoiceId = $send->invoice()->id();
         try {
             if (!$server instanceof FirmMailServer) {
                 throw new MailRefused(true, self::NO_SERVER, true);
@@ -152,17 +167,34 @@ final readonly class DeliverInvoiceSendHandler
             throw $failure;
         }
 
-        return $this->unit(function () use ($id, $invoiceId, $mail): InvoiceSend {
+        // The acceptance first, on the send alone: from here on no retry mails the customer.
+        $this->unit(function () use ($id, $mail): void {
+            $this->sends->lock($id)->markSent($this->now(), $mail->messageId);
+        });
+    }
+
+    /**
+     * Marks the invoice delivered by a send the server accepted, unless it is
+     * delivered already or went to the trash meanwhile.
+     *
+     * @return InvoiceSend the send as stored now
+     */
+    private function recordDelivered(string $id, string $invoiceId): InvoiceSend
+    {
+        return $this->unit(function () use ($id, $invoiceId): InvoiceSend {
             // The invoice first, in the order trash takes them.
             $invoice = $this->invoices->lock($invoiceId);
             $send = $this->sends->lock($id);
-            $send->markSent($this->now(), $mail->messageId);
             if ($invoice->isTrashed()) {
-                $this->logger->warning('The send {send} went out while its invoice {invoice} went to the trash; the invoice stays there, not delivered.', ['send' => $id, 'invoice' => $invoiceId]);
-
-                return $send;
+                if (!$invoice->isDelivered()) {
+                    $this->logger->warning('The send {send} went out while its invoice {invoice} went to the trash; the invoice stays there, not delivered.', ['send' => $id, 'invoice' => $invoiceId]);
+                }
+            } else {
+                $invoice->markDelivered($send->sentAt() ?? $this->now());
             }
-            $invoice->markDelivered($this->now());
+            if (!$send->isCopyOwed()) {
+                $send->release();
+            }
 
             return $send;
         });
@@ -172,6 +204,10 @@ final readonly class DeliverInvoiceSendHandler
     {
         $id = $send->id();
         $copyTo = $send->copyTo() ?? throw new \LogicException('Only a send with a copy owes one.');
+        // Unknown until the server answers, so no later worker sends it a second time.
+        $this->unit(function () use ($id): void {
+            $this->sends->lock($id)->startCopy(self::COPY_UNKNOWN);
+        });
         try {
             if (!$server instanceof FirmMailServer) {
                 throw new MailRefused(true, self::NO_SERVER, true);

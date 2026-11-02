@@ -10,6 +10,7 @@ namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\LinkAudience;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 
 /**
@@ -31,6 +32,11 @@ final readonly class PublicDocument
         public DocumentLanguage $language,
         public string $pdfKey,
         public string $pdfSha256,
+        public PaymentMethod $paymentMethod,
+        public ?string $bankAccount,
+        public ?string $domesticAccount,
+        public string $variableSymbol,
+        public ?string $paymentCode,
     ) {
     }
 }

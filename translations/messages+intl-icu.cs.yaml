@@ -598,7 +598,13 @@ invoice:
     for: 'Pro {customer}'
     amount: K úhradě
     due: Splatnost
-    number: Číslo dokladu
+    payment:
+      title: Platba převodem
+      account: Číslo účtu
+      iban: IBAN
+      variable_symbol: Variabilní symbol
+      amount: Částka
+      qr: Naskenujte v aplikaci banky (QR Platba)
     open: Otevřít PDF
     download: Stáhnout
     viewer: 'Faktura {number} jako PDF'

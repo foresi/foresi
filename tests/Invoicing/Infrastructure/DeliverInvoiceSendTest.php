@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\MailMessage;
+use App\Invoicing\Application\RequeueStuckSends;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use App\Tenancy\Application\TenantContext;
@@ -21,6 +22,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
@@ -196,7 +198,9 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $send = $this->sent($invoice);
         $this->connection->executeStatement('UPDATE invoice_send SET claimed_at = ? WHERE id = ?', ['2026-11-03 09:58:00', $send->id()]);
 
-        $this->worker->run();
+        $waiting = $this->deliveryFailure();
+        self::assertInstanceOf(RecoverableMessageHandlingException::class, $waiting, 'the queue brings it back');
+        self::assertSame(185_000, $waiting->getRetryDelay(), 'when the lease of 09:58 ends, and a little after');
         self::assertSame([], $this->gateway->attempts(), 'another worker has it');
 
         // A claim older than the lease belongs to a worker that died.
@@ -318,6 +322,155 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertCount(1, $this->gateway->messages());
     }
 
+    public function testAnAcceptedMailWhoseRecordFailedIsFinishedNotSentAgain(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $this->deliveryFailure();
+        // While the server takes the mail, the invoice drops out of reach, so marking it delivered fails.
+        $this->hideWhileSending('invoice', $invoice->id());
+
+        self::mockTime('2026-11-03 10:05:00');
+        $failure = $this->deliveryFailure(redeliver: true);
+        $this->showAgain('invoice', $invoice->id());
+
+        self::assertNotInstanceOf(RecoverableMessageHandlingException::class, $failure);
+        $row = $this->row($send->id());
+        self::assertSame(['sent', '2026-11-03 10:05:00'], [$row['status'], self::moment($row, 'claimed_at')], 'accepted, and still claimed for the rest');
+        self::assertNull($this->invoiceRow($invoice)['delivered_at']);
+        self::assertCount(1, $this->gateway->messages());
+
+        // The queue's retry a minute later waits for the lease; the next one finishes the bookkeeping.
+        self::mockTime('2026-11-03 10:06:00');
+        self::assertInstanceOf(RecoverableMessageHandlingException::class, $this->deliveryFailure(redeliver: true));
+        self::mockTime('2026-11-03 10:10:05');
+        $this->worker->redeliver($this->worker->last());
+
+        $row = $this->row($send->id());
+        self::assertSame('sent', $row['status']);
+        self::assertNull($row['claimed_at']);
+        self::assertSame('2026-11-03 10:05:00', self::moment($this->invoiceRow($invoice), 'delivered_at'), 'delivered when the server took it');
+        self::assertCount(1, $this->gateway->messages(), 'the customer got it once');
+    }
+
+    public function testRetriesRunningOutAfterAcceptanceNeitherFailNorStrandTheSend(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->hideWhileSending('invoice', $invoice->id());
+        $failure = $this->deliveryFailure();
+        $this->showAgain('invoice', $invoice->id());
+
+        // The queue gives up.
+        self::mockTime('2026-11-03 15:00:00');
+        $this->events()->dispatch(new WorkerMessageFailedEvent($this->worker->last()->with(new RedeliveryStamp(5)), 'mail', $failure));
+        self::assertSame('sent', $this->row($send->id())['status'], 'an accepted mail never fails');
+
+        // The job hands it back once; delivery finishes the bookkeeping without mailing.
+        $this->mailQueue->reset();
+        self::getContainer()->get(RequeueStuckSends::class)->run(null);
+        self::getContainer()->get(RequeueStuckSends::class)->run(null);
+        self::assertCount(1, [...$this->mailQueue->getSent()], 'not twice in a row');
+        $this->worker->run();
+
+        self::assertNull($this->row($send->id())['claimed_at']);
+        self::assertNotNull($this->invoiceRow($invoice)['delivered_at']);
+        self::assertCount(1, $this->gateway->messages());
+    }
+
+    public function testACopyWhoseRecordFailedIsNeverSentTwice(): void
+    {
+        $this->contactEmail('office@example.com');
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice, ['copyToMe' => true]);
+        // The customer's mail goes through; while the copy goes, the send drops out of reach.
+        RecordingMailGateway::whileSending(function () use ($send): void {
+            RecordingMailGateway::whileSending(function () use ($send): void {
+                $this->hideWhileSending('invoice_send', $send->id());
+            });
+        });
+
+        $this->deliveryFailure();
+        $this->showAgain('invoice_send', $send->id());
+        self::mockTime('2026-11-03 10:06:00');
+        $this->worker->redeliver($this->worker->last());
+
+        self::assertCount(2, $this->gateway->attempts(), 'the customer once, the copy once');
+        $row = $this->row($send->id());
+        self::assertSame('sent', $row['status']);
+        self::assertNull($row['copy_sent_at']);
+        self::assertSame('The copy was handed to the mail server, but its answer was not recorded.', $row['copy_error']);
+        self::assertNull($row['claimed_at']);
+        self::assertNotNull($this->invoiceRow($invoice)['delivered_at']);
+    }
+
+    public function testAWorkerThatDiedHoldingTheClaimIsHandedBack(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $this->deliveryFailure();
+        // A later try claimed it at 10:20 and its worker died; its retries are gone with it.
+        $this->connection->executeStatement('UPDATE invoice_send SET claimed_at = ? WHERE id = ?', ['2026-11-03 10:20:00', $send->id()]);
+        $this->mailQueue->reset();
+        $job = self::getContainer()->get(RequeueStuckSends::class);
+
+        self::mockTime('2026-11-03 10:30:00');
+        $job->run(null);
+        self::assertSame([], [...$this->mailQueue->getSent()], 'a worker may still come back within the lease');
+
+        self::mockTime('2026-11-03 10:36:00');
+        $job->run(null);
+        self::assertCount(1, [...$this->mailQueue->getSent()]);
+        self::mockTime('2026-11-03 10:41:00');
+        $job->run(null);
+        self::assertCount(1, [...$this->mailQueue->getSent()], 'queued again at most once in fifteen minutes');
+
+        $this->worker->run();
+        self::assertSame('sent', $this->row($send->id())['status']);
+        self::assertCount(1, $this->gateway->messages());
+    }
+
+    public function testASendInItsRetriesIsNotHandedBack(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->sent($invoice);
+        $this->gateway->failNext(1, false);
+        $this->deliveryFailure();
+        $this->mailQueue->reset();
+
+        // Its retry waits up to four hours in the queue already.
+        self::mockTime('2026-11-03 12:00:00');
+        self::getContainer()->get(RequeueStuckSends::class)->run(null);
+
+        self::assertSame([], [...$this->mailQueue->getSent()]);
+    }
+
+    /**
+     * Moves a row to another tenant during the next send, so whatever is written
+     * about it next fails.
+     */
+    private function hideWhileSending(string $table, string $id): void
+    {
+        $connection = $this->connection;
+        $move = static function () use ($connection, $table, $id): void {
+            $connection->executeStatement(\sprintf("UPDATE %s SET tenant_id = '00000000-0000-0000-0000-000000000000' WHERE id = ?", $table), [$id]);
+        };
+        if ('invoice_send' === $table) {
+            $move();
+
+            return;
+        }
+        RecordingMailGateway::whileSending($move);
+    }
+
+    private function showAgain(string $table, string $id): void
+    {
+        $this->connection->executeStatement(\sprintf('UPDATE %s SET tenant_id = ? WHERE id = ?', $table), [$this->tenant->toString(), $id]);
+        $this->em->clear();
+    }
+
     private function onlyMessage(): MailMessage
     {
         $messages = $this->gateway->messages();
@@ -326,10 +479,10 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         return $messages[0];
     }
 
-    private function deliveryFailure(): \Throwable
+    private function deliveryFailure(bool $redeliver = false): \Throwable
     {
         try {
-            $this->worker->run();
+            $redeliver ? $this->worker->redeliver($this->worker->last()) : $this->worker->run();
         } catch (HandlerFailedException $failed) {
             return $failed->getPrevious() ?? $failed;
         }

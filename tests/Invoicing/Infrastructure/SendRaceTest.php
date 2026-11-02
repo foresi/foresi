@@ -68,7 +68,7 @@ final class SendRaceTest extends KernelTestCase
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             $outcome = [$first[$round], $second[$round]];
             sort($outcome);
-            self::assertSame(['left alone', 'mailed'], $outcome, 'one worker talked to the server, the other left the send alone');
+            self::assertSame(['mailed', 'waiting'], $outcome, 'one worker talked to the server, the other waits for its lease to end');
             self::assertSame([['status' => 'sent', 'revoked' => false]], $invoice['sends']);
             self::assertTrue($invoice['delivered']);
         }

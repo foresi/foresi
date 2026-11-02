@@ -12,11 +12,13 @@ use App\Tenancy\Application\Schedule\ScheduledJob;
 use Psr\Clock\ClockInterface;
 
 /**
- * Hands sends to the worker again whose message was lost: a process that died
- * after committing the send and before queueing it leaves it waiting for good.
- * Every five minutes, sends older than fifteen, a hundred at a time. A second
- * message for a send that turns out to be on its way is harmless: delivery
- * claims the send, and a sent one sends nothing.
+ * Hands sends to the worker again that no message will come back to: a process
+ * that died after committing the send and before queueing it, a worker that died
+ * holding the claim, or retries that ran out after the server took the mail and
+ * the invoice was not yet marked. Every five minutes, a hundred at a time, each
+ * at most once in fifteen minutes. A message for a send that turns out to be on
+ * its way is harmless: delivery waits for the claim, and a mail the server took
+ * is never sent again.
  */
 final readonly class RequeueStuckSends implements ScheduledJob
 {
@@ -47,8 +49,10 @@ final readonly class RequeueStuckSends implements ScheduledJob
 
     public function run(?string $lastPeriod): void
     {
-        $before = \DateTimeImmutable::createFromInterface($this->clock->now())->modify(self::AGE);
-        foreach ($this->sends->stuck($before, self::LIMIT) as $id) {
+        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $ids = $this->sends->stuck($now->modify(self::AGE), self::LIMIT);
+        $this->sends->markRequeued($ids, $now);
+        foreach ($ids as $id) {
             $this->queue->deliver($id);
         }
     }

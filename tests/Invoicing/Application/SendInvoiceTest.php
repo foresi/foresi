@@ -186,6 +186,20 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertTrue(new RouterDocumentLinks($container->get(UrlGeneratorInterface::class), 'http://localhost', true)->allowed());
     }
 
+    public function testAPlainHttpBaseIsRefusedInProduction(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $container = self::getContainer();
+        $urls = $container->get(UrlGeneratorInterface::class);
+        $container->set(DocumentLinks::class, new RouterDocumentLinks($urls, 'http://invoices.example.com', false, 'prod'));
+
+        self::assertSame(SendRefused::INSECURE_LINK_BASE, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice)));
+        $this->assertNothingStoredOrQueued();
+
+        self::assertTrue(new RouterDocumentLinks($urls, 'https://invoices.example.com', false, 'prod')->secure());
+        self::assertTrue(new RouterDocumentLinks($urls, 'http://invoices.example.com', false, 'dev')->secure(), 'elsewhere it only warns');
+    }
+
     public function testMailLinksUseTheConfiguredBase(): void
     {
         $links = new RouterDocumentLinks(self::getContainer()->get(UrlGeneratorInterface::class), 'https://invoices.example.com/app', false);

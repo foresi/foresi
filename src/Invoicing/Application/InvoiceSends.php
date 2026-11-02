@@ -72,11 +72,25 @@ interface InvoiceSends
     public function cancelQueued(Invoice $invoice, \DateTimeImmutable $at): void;
 
     /**
-     * Sends queued before the moment that no worker ever tried, nor holds now: their
-     * message was lost between the commit and the queue. A send with a try behind it
-     * has its retries in the queue already.
+     * Sends no message will come back to, not queued again since the moment:
+     *
+     *  - queued and never tried or claimed before the moment: their message was lost
+     *    between the commit and the queue;
+     *  - claimed before the moment and not tried since: the worker died, or the
+     *    message ran out of retries after the server took the mail. A worker that
+     *    is still at it comes back when its lease ends, well before.
+     *
+     * A send whose last try failed and released its claim has its retries in the
+     * queue already, so taking it would start a second chain.
      *
      * @return list<string> ids, oldest first
      */
     public function stuck(\DateTimeImmutable $before, int $limit): array;
+
+    /**
+     * Remembers that the sends were queued again now.
+     *
+     * @param list<string> $ids
+     */
+    public function markRequeued(array $ids, \DateTimeImmutable $at): void;
 }

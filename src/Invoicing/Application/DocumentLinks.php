@@ -22,4 +22,9 @@ interface DocumentLinks
      * not open, unless the installation allows that, as tests do.
      */
     public function allowed(): bool;
+
+    /**
+     * False for a base that is not https where the installation runs for real.
+     */
+    public function secure(): bool;
 }

@@ -598,7 +598,13 @@ invoice:
     for: 'For {customer}'
     amount: Amount to pay
     due: Due date
-    number: Document number
+    payment:
+      title: Pay by bank transfer
+      account: Account number
+      iban: IBAN
+      variable_symbol: Variable symbol
+      amount: Amount
+      qr: Scan in your banking app (QR Platba)
     open: Open PDF
     download: Download
     viewer: 'Invoice {number} as PDF'

@@ -18,6 +18,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\SendStatus;
 use App\Tenancy\Application\TenantContext;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -181,12 +182,32 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
     public function stuck(\DateTimeImmutable $before, int $limit): array
     {
         /** @var list<string> $ids */
-        $ids = $this->em->createQuery('SELECT s.id FROM '.InvoiceSend::class.' s WHERE s.status = :queued AND s.attempts = 0 AND s.createdAt < :before AND (s.claimedAt IS NULL OR s.claimedAt < :before) ORDER BY s.createdAt, s.id')
+        $ids = $this->em->createQuery(
+            'SELECT s.id FROM '.InvoiceSend::class.' s'
+            .' WHERE (s.requeuedAt IS NULL OR s.requeuedAt < :before) AND ('
+            .' (s.status = :queued AND s.attempts = 0 AND s.claimedAt IS NULL AND s.createdAt < :before)'
+            .' OR (s.status IN (:open) AND s.claimedAt < :before AND (s.lastAttemptAt IS NULL OR s.lastAttemptAt < :before)))'
+            .' ORDER BY s.createdAt, s.id',
+        )
             ->setParameter('queued', SendStatus::Queued->value)
+            ->setParameter('open', [SendStatus::Queued->value, SendStatus::Sent->value])
             ->setParameter('before', $before, 'datetime_immutable')
             ->setMaxResults($limit)
             ->getSingleColumnResult();
 
         return $ids;
+    }
+
+    public function markRequeued(array $ids, \DateTimeImmutable $at): void
+    {
+        if ([] === $ids) {
+            return;
+        }
+        // Bookkeeping of the job, past the audit log.
+        $this->em->getConnection()->executeStatement(
+            'UPDATE invoice_send SET requeued_at = :at WHERE tenant_id = :tenant AND id IN (:ids)',
+            ['at' => $at, 'tenant' => $this->context->current()->toString(), 'ids' => $ids],
+            ['at' => 'datetime_immutable', 'ids' => ArrayParameterType::STRING],
+        );
     }
 }
