@@ -182,7 +182,7 @@ final class RecurringFormController extends AbstractController
         }
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
 
-        return $this->render('invoicing/recurring/_preview.html.twig', ['preview' => $preview, 'payer' => $context->isPayer()], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        return $this->render('invoicing/recurring/_preview.html.twig', ['preview' => $preview], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     private function submitNew(Request $request): Response
@@ -494,10 +494,13 @@ final class RecurringFormController extends AbstractController
     }
 
     /**
-     * What the preview frame shows: the next issues, or what keeps them from being
-     * known; whether the first is issued today; and why the list ends early.
+     * What the preview frame shows, as iDoklad does: the next issue in one line,
+     * and the dates after it on request. When the next date is due by today, the
+     * line says when it is issued instead (IssueAfterTodaysRun): right after the
+     * save, or by the run at its hour. Each date carries its description only when
+     * the descriptions differ, so the list never repeats the description field.
      *
-     * @return array{rows: list<array{issue: string, taxPoint: ?string, due: string, description: string}>, problems: list<string>, today: bool, delivery: string, end: ?string}
+     * @return array{rows: list<array{issue: string, description: ?string}>, problems: list<string>, when: ?string, delivery: string, end: ?string}
      */
     private function previewOf(RecurringSubmission $submission, ?RecurringInvoice $template): array
     {
@@ -507,29 +510,40 @@ final class RecurringFormController extends AbstractController
         }
         $delivery = $submission->input->delivery->value;
         if ([] !== $problems) {
-            return ['rows' => [], 'problems' => $problems, 'today' => false, 'when' => 'morning', 'delivery' => $delivery, 'end' => null];
+            return ['rows' => [], 'problems' => $problems, 'when' => null, 'delivery' => $delivery, 'end' => null];
         }
 
         $today = $this->today();
         $rows = $this->preview->next($submission->input, $template?->issuedCount() ?? 0, $today);
-        $shown = array_map(fn (PreviewRow $row): array => [
+        $descriptions = array_map(fn (PreviewRow $row): string => str_replace(self::DOCUMENT_NUMBER, $this->translator->trans('recurring.preview.document_number'), $row->description), $rows);
+        $varies = \count(array_unique($descriptions)) > 1;
+        $shown = array_map(fn (PreviewRow $row, string $description): array => [
             'issue' => $this->date($row->issue),
-            'taxPoint' => $row->taxPoint->format('Y-m-d') === $row->issue->format('Y-m-d') ? null : $this->date($row->taxPoint),
-            'due' => $this->date($row->due),
-            'description' => str_replace(self::DOCUMENT_NUMBER, $this->translator->trans('recurring.preview.document_number'), $row->description),
-        ], $rows);
+            'description' => $varies ? $description : null,
+        ], $rows, $descriptions);
         $recurrence = $submission->input->recurrence;
         $end = \count($rows) < RecurringPreview::COUNT && RecurrenceEnd::Never !== $recurrence->end() ? $this->translator->trans('recurring.preview.ends') : null;
 
         return [
             'rows' => $shown,
             'problems' => [],
-            'today' => [] !== $rows && $rows[0]->issue->format('Y-m-d') <= $today->format('Y-m-d'),
-            // Before the run's hour the run issues it; after it, run or not, the save hands it to the worker.
-            'when' => [] !== $rows && $this->afterTodaysRun->issuesOnSave($rows[0]->issue) ? 'now' : 'morning',
+            'when' => [] === $rows ? null : $this->when($rows[0]->issue, $today),
             'delivery' => $delivery,
             'end' => $end,
         ];
+    }
+
+    /**
+     * "now" when a save issues the date at once, "morning" when the run issues it
+     * today at its hour, "date" for a later day.
+     */
+    private function when(\DateTimeImmutable $next, \DateTimeImmutable $today): string
+    {
+        return match (true) {
+            $this->afterTodaysRun->issuesOnSave($next) => 'now',
+            $next->format('Y-m-d') <= $today->format('Y-m-d') => 'morning',
+            default => 'date',
+        };
     }
 
     /**

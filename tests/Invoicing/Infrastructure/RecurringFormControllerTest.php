@@ -107,7 +107,25 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSame('send', $values['delivery']);
         self::assertSame($this->series->id(), $values['seriesId']);
         self::assertCount(1, $values['lines']);
-        self::assertSelectorExists('[data-first-issue-today]');
+        self::assertSelectorExists('[data-preview-next][data-preview-when="now"]');
+    }
+
+    public function testTheCardShowsTheNextIssueInOneLineAndTheRestOnRequest(): void
+    {
+        $this->signedIn();
+
+        // The Update button of a form without JavaScript renders the form again.
+        $this->client->request('POST', '/invoices/recurring/new', array_merge($this->filled(['firstIssueOn' => '2026-12-01']), ['_action' => 'refresh']));
+
+        $frame = $this->client->getCrawler()->filter('turbo-frame#recurring-preview');
+        self::assertCount(1, $frame->filter('[data-preview-next]'));
+        self::assertSame('The next invoice will be issued on 2026-12-01', trim($frame->filter('[data-preview-next]')->text()));
+        self::assertSame('Overview of future issues', trim($frame->filter('[data-preview-all] > summary')->text()));
+        self::assertCount(5, $frame->filter('[data-preview-all] [data-preview-issue]'), 'the five dates, in the disclosure without JavaScript');
+        self::assertCount(0, $frame->filter('[data-preview-description]'), 'the same description on every date is not repeated');
+        self::assertSelectorExists('dialog#recurring-all[aria-labelledby]');
+        self::assertSelectorTextContains('#recurring-all-title', 'Overview of future issues');
+        self::assertSelectorTextContains('dialog#recurring-all footer', 'Close');
     }
 
     public function testAFirstIssueTodayBeforeFiveSaysTheMorningRunIssuesIt(): void
@@ -118,7 +136,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextContains('[data-first-issue-today]', 'today at 5:00');
+        self::assertSelectorTextContains('[data-preview-next][data-preview-when="morning"]', 'The next invoice will be issued today at 5:00');
         $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
         self::assertSame([], $this->asyncQueue()->getSent(), 'the run of the day picks it up');
     }
@@ -130,7 +148,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextContains('[data-first-issue-today]', 'right after saving');
+        self::assertSelectorTextContains('[data-preview-next][data-preview-when="now"]', 'The next invoice will be issued right after saving');
         $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
         $this->assertHandedToTheWorker();
     }
@@ -145,7 +163,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextContains('[data-first-issue-today]', 'right after saving');
+        self::assertSelectorTextContains('[data-preview-next][data-preview-when="now"]', 'The next invoice will be issued right after saving');
         $this->save($this->filled(['firstIssueOn' => '2026-11-02']));
         $this->assertHandedToTheWorker();
     }
@@ -156,7 +174,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->preview($this->filled(['firstIssueOn' => '2026-11-02', 'delivery' => 'review']));
 
-        self::assertSelectorTextContains('[data-first-issue-today]', 'held for review right after saving');
+        self::assertSelectorTextContains('[data-preview-next]', 'right after saving and will wait for your review');
     }
 
     public function testAFutureFirstIssueShowsNoNotice(): void
@@ -166,7 +184,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->preview($this->filled(['firstIssueOn' => '2026-11-03']));
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('[data-first-issue-today]');
+        self::assertSelectorTextSame('[data-preview-next][data-preview-when="date"]', 'The next invoice will be issued on 2026-11-03');
         $this->save($this->filled(['firstIssueOn' => '2026-11-03']));
         self::assertSame([], $this->asyncQueue()->getSent());
     }

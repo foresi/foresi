@@ -12,9 +12,15 @@ const PREVIEW_DELAY = 300;
  * and posts the form to the preview frame, 300 ms after the last change. The
  * server reads the whole form for the preview and writes nothing; without
  * JavaScript the Apply button re-renders the form with a fresh preview.
+ *
+ * The preview is one line with the next issue and a link to the dates after
+ * it. The link is the summary of a disclosure that holds them; here it opens
+ * them in the card's dialog instead, which a refresh keeps up to date.
  */
 export default class extends Controller {
-    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet'];
+    static targets = ['frame', 'unit', 'lastDay', 'end', 'endOn', 'endAfter', 'dueDays', 'dueDaysSet', 'list', 'dialogList'];
+
+    static outlets = ['dialog'];
 
     static values = { previewUrl: String };
 
@@ -53,6 +59,20 @@ export default class extends Controller {
         this.timer = setTimeout(() => this.refresh(), PREVIEW_DELAY);
     }
 
+    showAll(event) {
+        if (!this.hasDialogOutlet || !this.hasListTarget) {
+            return;
+        }
+        event.preventDefault();
+        this.fillDialog();
+        this.dialogOutlet.open(event.currentTarget);
+    }
+
+    fillDialog() {
+        const nodes = this.hasListTarget ? Array.from(this.listTarget.childNodes, (node) => node.cloneNode(true)) : [];
+        this.dialogListTarget.replaceChildren(...nodes);
+    }
+
     async refresh() {
         this.request?.abort();
         this.request = new AbortController();
@@ -69,6 +89,9 @@ export default class extends Controller {
                 const frame = page.getElementById(this.frameTarget.id);
                 if (frame !== null) {
                     this.frameTarget.replaceChildren(...frame.childNodes);
+                    if (this.hasDialogOutlet && this.dialogOutlet.element.open) {
+                        this.hasListTarget ? this.fillDialog() : this.dialogOutlet.close();
+                    }
                 }
             }
         } catch (error) {

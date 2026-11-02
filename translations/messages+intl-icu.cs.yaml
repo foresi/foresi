@@ -1239,15 +1239,13 @@ recurring:
     month_year: Měsíc/rok
     document_number: Číslo faktury
   preview:
-    title: Příští vystavení
-    unknown: 'Náhled zatím nejde spočítat:'
-    today_send: Vystaví se a odešle hned po uložení.
-    today_review: Vystaví se a nechá ke kontrole hned po uložení.
-    today_send_morning: Vystaví se dnes v 5:00.
-    today_review_morning: Vystaví se dnes v 5:00 a počká na vaši kontrolu.
-    tax_point: 'DUZP {date}'
-    supply_point: 'plnění {date}'
-    due: 'splatnost {date}'
+    unknown: 'Další vystavení zatím nejde spočítat:'
+    next: 'Další faktura bude vystavena {date}'
+    next_now: Další faktura bude vystavena hned po uložení
+    next_now_review: Další faktura bude vystavena hned po uložení a počká na vaši kontrolu
+    next_morning: Další faktura bude vystavena dnes v 5:00
+    next_morning_review: Další faktura bude vystavena dnes v 5:00 a počká na vaši kontrolu
+    all: Přehled budoucích vystavení
     ends: Tím opakování končí.
     document_number: '[číslo faktury]'
   flash:

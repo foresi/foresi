@@ -48,6 +48,7 @@
             data-controller="invoice-form recurring-schedule mail-chips"
             data-action="contact:created@document->invoice-form#contactFromDialog combobox:pick->invoice-form#customerPicked combobox:pick->recurring-schedule#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input->recurring-schedule#changed change->recurring-schedule#changed submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload pageshow@window->invoice-form#shown mouseup@window->invoice-form#disarmDrag"
             data-recurring-schedule-preview-url-value="{{ path('app_recurring_preview') }}"
+            data-recurring-schedule-dialog-outlet="#recurring-all"
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
             data-invoice-form-customers-url-value="{{ path('app_invoice_customers', {firm: firm.id}) }}"

@@ -1239,15 +1239,13 @@ recurring:
     month_year: Month/year
     document_number: Invoice number
   preview:
-    title: Next issues
-    unknown: 'The preview cannot be worked out yet:'
-    today_send: It is issued and sent right after saving.
-    today_review: It is issued and held for review right after saving.
-    today_send_morning: It is issued today at 5:00.
-    today_review_morning: It is issued today at 5:00 and waits for your review.
-    tax_point: 'tax point {date}'
-    supply_point: 'supply {date}'
-    due: 'due {date}'
+    unknown: 'The next issue cannot be worked out yet:'
+    next: 'The next invoice will be issued on {date}'
+    next_now: The next invoice will be issued right after saving
+    next_now_review: The next invoice will be issued right after saving and will wait for your review
+    next_morning: The next invoice will be issued today at 5:00
+    next_morning_review: The next invoice will be issued today at 5:00 and will wait for your review
+    all: Overview of future issues
     ends: Repeating ends here.
     document_number: '[invoice number]'
   flash:

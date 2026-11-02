@@ -1,32 +1,40 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The next issues of the form: in the schedule card, and on its own as the answer of the preview, which the form puts in place of this frame. #}
-<turbo-frame id="recurring-preview" class="grid gap-2" aria-live="polite" data-recurring-schedule-target="frame">
-    <h4 class="m-0 text-small font-semibold text-ink">{{ 'recurring.preview.title'|trans }}</h4>
+{#
+    The next issue of the form, in iDoklad's shape: one line under the schedule fields and a link to
+    the dates after it. In the schedule card, and on its own as the answer of the preview, which the
+    form puts in place of this frame. With JavaScript the link opens the dates in a dialog of the card
+    (recurring-schedule#showAll); without it, it is a disclosure that shows them here.
+#}
+<turbo-frame id="recurring-preview" class="grid gap-1" aria-live="polite" data-recurring-schedule-target="frame">
     {% if preview.problems is not empty %}
-        <div class="rounded-control bg-head px-3 py-2 text-small text-text" data-preview-problem>
-            <p class="m-0">{{ 'recurring.preview.unknown'|trans }}</p>
-            <ul class="m-0 mt-1 list-disc pl-5">
+        <div class="text-small text-badge-red-text" data-preview-problem>
+            <p class="m-0 font-medium">{{ 'recurring.preview.unknown'|trans }}</p>
+            <ul class="m-0 mt-0.5 list-disc pl-5">
                 {% for problem in preview.problems %}<li>{{ problem }}</li>{% endfor %}
             </ul>
         </div>
-    {% else %}
-        {% if preview.today %}
-            <twig:Ui:Alert tone="info" role="status" data-first-issue-today>{{ ('recurring.preview.today_' ~ preview.delivery ~ ('morning' == preview.when ? '_morning' : ''))|trans }}</twig:Ui:Alert>
-        {% endif %}
-        <ol class="m-0 grid list-none gap-1.5 p-0">
-            {% for row in preview.rows %}
-                <li class="grid gap-0.5 rounded-control border border-divider px-3 py-2">
-                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-small">
-                        <span class="num font-semibold text-ink" data-preview-issue>{{ row.issue }}</span>
-                        <span class="text-muted">
-                            {%- if row.taxPoint %}{{ (payer|default(true) ? 'recurring.preview.tax_point' : 'recurring.preview.supply_point')|trans({date: row.taxPoint}) }} · {% endif -%}
-                            {{- 'recurring.preview.due'|trans({date: row.due}) -}}
-                        </span>
-                    </div>
-                    {% if row.description %}<p class="m-0 truncate text-small text-text" title="{{ row.description }}" data-preview-description>{{ row.description }}</p>{% endif %}
-                </li>
-            {% endfor %}
-        </ol>
-        {% if preview.end %}<p class="m-0 text-caption text-muted" data-preview-end>{{ preview.end }}</p>{% endif %}
+    {% elseif preview.rows is not empty %}
+        {% set review = preview.delivery == 'review' %}
+        <p class="m-0 text-body text-ink" data-preview-next data-preview-when="{{ preview.when }}">
+            {%- if preview.when == 'date' -%}
+                {{ 'recurring.preview.next'|trans({date: preview.rows[0].issue}) }}
+            {%- else -%}
+                {{ ('recurring.preview.next_' ~ preview.when ~ (review ? '_review' : ''))|trans }}
+            {%- endif -%}
+        </p>
+        <details data-preview-all>
+            <summary class="w-fit cursor-pointer list-none text-small font-medium text-ink underline underline-offset-2 hover:text-green [&::-webkit-details-marker]:hidden {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-action="click->recurring-schedule#showAll">{{ 'recurring.preview.all'|trans }}</summary>
+            <div class="mt-2" data-recurring-schedule-target="list">
+                <ol class="m-0 grid list-none gap-1 p-0">
+                    {% for row in preview.rows %}
+                        <li class="flex min-w-0 items-baseline gap-x-3 text-body">
+                            <span class="num shrink-0 text-ink" data-preview-issue>{{ row.issue }}</span>
+                            {% if row.description %}<span class="min-w-0 truncate text-small text-muted" title="{{ row.description }}" data-preview-description>{{ row.description }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+                {% if preview.end %}<p class="m-0 mt-2 text-small text-muted" data-preview-end>{{ preview.end }}</p>{% endif %}
+            </div>
+        </details>
     {% endif %}
 </turbo-frame>

@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The schedule card, in iDoklad's order: repeat, first issue, last day of the month, every N, end. The preview of the next issues follows and moves with every change. #}
+{# The schedule card, in iDoklad's order: repeat, first issue, last day of the month, every N, end. The next issue follows in one line and moves with every change; the dates after it open in a dialog. #}
 {% set monthly = values.unit in ['month', 'year'] %}
 <twig:Ui:Card :title="'recurring.card.schedule'|trans" icon="refresh-cw">
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -21,7 +21,14 @@
             <twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'recurring.form.apply'|trans }}</twig:Ui:Button>
         </div>
     </div>
-    <div class="mt-4 border-t border-divider pt-3">
+    <div class="mt-4">
         {{ include('invoicing/recurring/_preview.html.twig', {frame: false}) }}
     </div>
+    {# Outside the frame, so a refresh of the preview never closes it; the controller copies the dates in. #}
+    <twig:Ui:Dialog id="recurring-all" :title="'recurring.preview.all'|trans" size="sm">
+        <div data-recurring-schedule-target="dialogList"></div>
+        <twig:block name="footer">
+            <twig:Ui:Button data-action="dialog#close">{{ 'ui.dialog.close'|trans }}</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
 </twig:Ui:Card>

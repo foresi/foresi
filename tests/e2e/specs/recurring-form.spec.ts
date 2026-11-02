@@ -40,6 +40,16 @@ async function tabThrough(page: Page, ids: string[]): Promise<void> {
 }
 
 const preview = (page: Page) => page.locator('turbo-frame#recurring-preview');
+const allDates = (page: Page) => page.getByRole('dialog', { name: 'Přehled budoucích vystavení' });
+
+// The dates after the next one: the link opens them in a dialog, Zavřít closes it.
+async function expectAllDates(page: Page, dates: string[]): Promise<void> {
+  await preview(page).getByText('Přehled budoucích vystavení').click();
+  await expect(allDates(page)).toBeVisible();
+  await expect(allDates(page).locator('[data-preview-issue]')).toHaveText(dates);
+  await allDates(page).getByRole('button', { name: 'Zavřít' }).last().click();
+  await expect(allDates(page)).toBeHidden();
+}
 
 // Any invoice of the list will do: the dialog specs before this one send and trash some of them.
 async function openFromInvoice(page: Page): Promise<void> {
@@ -60,26 +70,34 @@ test.describe.serial('a recurring invoice', () => {
     const text = await page.locator('#lines-0-text').inputValue();
     expect(['Support', 'Hosting', 'Licence']).toContain(text);
     await expect(page.locator('#description')).toHaveValue(text);
-    await expect(page.locator('[data-first-issue-today]')).toBeVisible();
+    // A first issue today: issued on save after 5:00, by the run before it.
+    await expect(preview(page).locator('[data-preview-next]')).toHaveText(/^Další faktura bude vystavena (hned po uložení|dnes v 5:00)$/);
 
     await page.locator('#firstIssueOn').fill('2027-01-31');
-    await expect(preview(page).locator('[data-preview-issue]')).toHaveText(['31. 1. 2027', '28. 2. 2027', '31. 3. 2027', '30. 4. 2027', '31. 5. 2027']);
-    await expect(page.locator('[data-first-issue-today]')).toHaveCount(0);
+    await expect(preview(page).locator('[data-preview-next]')).toHaveText('Další faktura bude vystavena 31. 1. 2027');
+    await expect(preview(page).locator('[data-preview-next]')).toHaveCount(1);
+    await expectAllDates(page, ['31. 1. 2027', '28. 2. 2027', '31. 3. 2027', '30. 4. 2027', '31. 5. 2027']);
 
     await page.locator('#unit').selectOption('year');
     await expect(preview(page).locator('[data-preview-issue]').nth(1)).toHaveText('31. 1. 2028');
+    await expect(preview(page).locator('[data-preview-description]')).toHaveCount(0);
 
     await page.locator('#description').fill('Hosting ');
     await page.locator('#description').press('End');
     await page.getByRole('toolbar', { name: 'Proměnné' }).getByRole('button', { name: 'Měsíc/rok' }).click();
     await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');
     await expect(preview(page).locator('[data-preview-description]').first()).toHaveText('Hosting 1/2027');
+    await preview(page).getByText('Přehled budoucích vystavení').click();
+    await expect(allDates(page).locator('[data-preview-description]').nth(1)).toHaveText('Hosting 1/2028');
+    await allDates(page).getByRole('button', { name: 'Zavřít' }).last().click();
 
     await page.locator('#end').selectOption('after_count');
     await expect(page.locator('#endAfter')).toBeVisible();
     await page.locator('#endAfter').fill('2');
     await expect(preview(page).locator('[data-preview-issue]')).toHaveCount(2);
-    await expect(preview(page).locator('[data-preview-end]')).toBeVisible();
+    await preview(page).getByText('Přehled budoucích vystavení').click();
+    await expect(allDates(page).locator('[data-preview-end]')).toBeVisible();
+    await allDates(page).getByRole('button', { name: 'Zavřít' }).last().click();
 
     await page.locator('#recurring-save').click();
     await expect(page).toHaveURL(/\/invoices\/recurring$/);
@@ -127,6 +145,12 @@ test.describe.serial('a recurring invoice', () => {
       await expectNoSidewaysScroll(page);
       await expectNoSeriousViolations(page);
       await page.screenshot({ path: `${SHOTS}/recurring-form-${name}.png`, fullPage: true });
+      await page.locator('section').filter({ has: page.locator('#unit') }).screenshot({ path: `${SHOTS}/recurring-schedule-${name}.png` });
+
+      await preview(page).getByText('Přehled budoucích vystavení').click();
+      await expect(allDates(page).locator('[data-preview-issue]')).toHaveCount(5);
+      await expectNoSeriousViolations(page);
+      await page.screenshot({ path: `${SHOTS}/recurring-all-dates-${name}.png` });
     });
   }
 });
