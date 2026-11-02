@@ -15,6 +15,7 @@ use App\Invoicing\Application\UnknownRecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
+use App\Invoicing\Domain\SendPurpose;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -177,6 +178,19 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         return (int) $this->em->createQuery('SELECT COUNT(r.id) FROM '.RecurringInvoice::class.' r WHERE r.lastFailureCode IS NOT NULL AND r.state <> :ended')
             ->setParameter('ended', RecurringState::Ended->value)
             ->getSingleScalarResult();
+    }
+
+    public function inReview(): int
+    {
+        // Plain SQL: the tenant filter covers only queries of the ORM, so the tenant is named here,
+        // which also lets the key of occurrences, led by tenant and template, find the invoices.
+        $count = $this->em->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM invoice i WHERE i.tenant_id = :tenant AND i.recurring_invoice_id IS NOT NULL AND i.deleted_at IS NULL'
+            .' AND NOT EXISTS (SELECT 1 FROM invoice_send s WHERE s.invoice_id = i.id AND s.purpose = :purpose)',
+            ['tenant' => $this->context->current()->toString(), 'purpose' => SendPurpose::Invoice->value],
+        );
+
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     private function refusePendingChanges(): void

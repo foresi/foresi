@@ -100,7 +100,8 @@ final readonly class SendInvoice
                 throw new SendRefused(SendRefused::UNDRAWABLE);
             }
             $payment = [null === $document->bankAccount ? null : $country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
-            $user = null === $userId ? null : $this->users->findById($userId);
+            $copyUser = $userId ?? $request->onBehalfOf;
+            $user = null === $copyUser ? null : $this->users->findById($copyUser);
             // Nothing is filled in: no value is passed, so every token stays as written.
             $text = new MailText();
             $subject = $text->render($request->subject, [], true);

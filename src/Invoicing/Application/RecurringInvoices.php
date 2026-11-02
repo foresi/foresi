@@ -92,4 +92,10 @@ interface RecurringInvoices
      * How many templates that have not ended failed on their last run.
      */
     public function failing(): int;
+
+    /**
+     * How many invoices issued from a template were never sent and are not in the
+     * trash: those held for review, and those whose send was refused.
+     */
+    public function inReview(): int;
 }
