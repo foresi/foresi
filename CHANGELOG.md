@@ -42,7 +42,7 @@ Planned as 0.5.0: the first release with invoices.
 - The sidebar is grouped around documents and settings. Invoices are under Sales (Prodej), the address book under Contacts (Adresář), and Settings at the bottom holds Firms and the new item Import and export, which opens the history of imports. A group without items is not shown. The firm page has two tabs, Details and Invoicing, in place of a button; the invoicing tab holds the settings and the series. All addresses stay as they were.
 - Firms is now My firms (Moje firmy) in the interface, and its empty text says these are your own companies that issue documents.
 - An error about the firm links to the firm's settings in a new tab, and a firm without a bank account says so in the payment section before the save. Every link in the error list lands on a field that takes the focus.
-- The lines of the invoice form: the discount opens per line, moving and removing a line are in a row menu, and the total reads with VAT for a payer. Amounts on screen show Kč for CZK; the PDF is unchanged.
+- The lines of the invoice form: a discount is a sub-row of its line with its own deduction, moving and removing a line are in a row menu, and the total reads with VAT for a payer. Amounts on screen show Kč for CZK; the PDF is unchanged.
 - The order number and the description moved into More details, which opens when it holds something other than the defaults, or a mistake.
 - An identified person cannot issue invoices yet; the save is refused until the rules for it are reviewed.
 - Text that the PDF font cannot print is refused when an invoice is saved, with the field and the characters named, so that the PDF and the ISDOC file never differ. Text in scripts such as Chinese or Arabic cannot be used in invoices yet.

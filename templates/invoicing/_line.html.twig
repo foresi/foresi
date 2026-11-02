@@ -24,52 +24,74 @@
     {% if error %}<span id="{{ id }}-error" class="sr-only">{{ error }}</span>{% endif %}
 {% endmacro %}
 {% set cell = 'block align-top xl:table-cell xl:p-1' %}
-<tr data-invoice-form-target="line" class="relative grid grid-cols-2 gap-2 rounded-panel border border-container p-3 xl:table-row xl:border-0 xl:p-0 max-xl:mb-3">
-    <td class="col-span-2 {{ cell }}">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, '', false) }}</td>
-    <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, 'data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
-    <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, 'data-controller="number-input" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
-    <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>
-    {% if payer %}
-        <td class="{{ cell }}">{{ _self.select(index, 'priceType', 'invoice.line.priceType'|trans, line.priceType, priceTypes, errorFields, null) }}</td>
-        <td class="{{ cell }}">
-            {{ _self.select(index, 'vat', 'invoice.line.vat'|trans, line.vat, vatOptions, errorFields, 'change->invoice-form#vatChanged') }}
-            <div class="mt-1"{% if not (line.vat == 'reverse_charge' and domestic) %} hidden{% endif %} data-supply-code>
-                {{ _self.select(index, 'supplyCode', 'invoice.line.supplyCode'|trans, line.supplyCode, supplyCodes, errorFields, null) }}
+{% set discountId = 'lines-' ~ index ~ '-discount' %}
+{% set discountError = errorFields[discountId]|default(null) %}
+{% set discounted = line.discount != '' or discountError is not null %}
+{% set totalLabel = (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans %}
+<tbody data-invoice-form-target="line" class="block rounded-panel border border-container p-3 xl:table-row-group xl:border-0 xl:p-0 max-xl:mb-3">
+    <tr class="grid grid-cols-2 gap-2 xl:table-row">
+        <td class="col-span-2 {{ cell }}">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, '', false) }}</td>
+        <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, 'data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
+        <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, 'data-controller="number-input" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
+        <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>
+        {% if payer %}
+            <td class="{{ cell }}">{{ _self.select(index, 'priceType', 'invoice.line.priceType'|trans, line.priceType, priceTypes, errorFields, null) }}</td>
+            <td class="{{ cell }}">
+                {{ _self.select(index, 'vat', 'invoice.line.vat'|trans, line.vat, vatOptions, errorFields, 'change->invoice-form#vatChanged') }}
+                <div class="mt-1"{% if not (line.vat == 'reverse_charge' and domestic) %} hidden{% endif %} data-supply-code>
+                    {{ _self.select(index, 'supplyCode', 'invoice.line.supplyCode'|trans, line.supplyCode, supplyCodes, errorFields, null) }}
+                </div>
+            </td>
+        {% else %}
+            <td class="hidden">
+                <input type="hidden" name="lines[{{ index }}][priceType]" value="{{ line.priceType }}">
+                <input type="hidden" name="lines[{{ index }}][vat]" value="{{ line.vat }}">
+                <input type="hidden" name="lines[{{ index }}][supplyCode]" value="">
+            </td>
+        {% endif %}
+        <td class="col-span-2 align-top xl:table-cell xl:p-1">
+            <div class="flex items-center justify-between gap-2 xl:h-control xl:justify-end">
+                <span class="text-small font-medium text-ink xl:hidden">{{ totalLabel }}</span>
+                <output class="num whitespace-nowrap font-medium text-ink" data-line-total>{{ total }}</output>
             </div>
         </td>
-    {% else %}
-        <td class="hidden">
-            <input type="hidden" name="lines[{{ index }}][priceType]" value="{{ line.priceType }}">
-            <input type="hidden" name="lines[{{ index }}][vat]" value="{{ line.vat }}">
-            <input type="hidden" name="lines[{{ index }}][supplyCode]" value="">
-        </td>
-    {% endif %}
-    {% set discountId = 'lines-' ~ index ~ '-discount' %}
-    {% set discounted = line.discount matches '/[^0.,\\s]/' or errorFields[discountId] is defined %}
-    <td class="col-span-2 grid justify-items-stretch gap-2 xl:table-cell xl:p-1 xl:text-right xl:align-middle">
-        <div class="flex items-center justify-between gap-2 xl:block">
-            <span class="text-small font-medium text-ink xl:hidden">{{ (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans }}</span>
-            <output class="num whitespace-nowrap font-medium text-ink" data-line-total>{{ total }}</output>
-        </div>
-        <div id="{{ discountId }}-box" class="flex items-center justify-end gap-2 xl:mt-1"{% if not discounted %} hidden{% endif %} data-discount>
-            <label for="{{ discountId }}" class="whitespace-nowrap text-small font-medium text-ink">{{ 'invoice.line.discount'|trans }}</label>
-            <input type="text" id="{{ discountId }}" name="lines[{{ index }}][discount]" value="{{ line.discount }}" data-cell="discount" autocomplete="off" inputmode="decimal"{% if errorFields[discountId] is defined %} aria-invalid="true" aria-describedby="{{ discountId }}-error"{% endif %} class="h-control w-16 num text-right {{ _self.classes(errorFields[discountId] is defined) }}">
-            {% if errorFields[discountId] is defined %}<span id="{{ discountId }}-error" class="sr-only">{{ errorFields[discountId] }}</span>{% endif %}
-        </div>
-    </td>
-    <td class="col-span-2 xl:table-cell xl:p-1 xl:align-middle">
-        <div class="flex items-center justify-end gap-1">
-            <span class="hidden cursor-grab text-muted xl:inline" data-action="mousedown->invoice-form#armDrag" title="{{ 'invoice.line.drag'|trans }}">{{ ux_icon('lucide:grip-vertical', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
-            <twig:Ui:IconButton id="{{ discountId }}-toggle" icon="percent" :label="'invoice.line.discount_toggle'|trans" variant="ghost" size="sm" aria-expanded="{{ discounted ? 'true' : 'false' }}" aria-controls="{{ discountId }}-box" data-action="invoice-form#toggleDiscount" />
-            <div class="relative" data-controller="dropdown" data-dropdown-float-value="true">
-                <twig:Ui:IconButton id="lines-{{ index }}-menu" icon="ellipsis" :label="'invoice.line.actions'|trans" variant="ghost" size="sm" aria-haspopup="menu" aria-expanded="false" aria-controls="lines-{{ index }}-actions" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
-                <div id="lines-{{ index }}-actions" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="lines-{{ index }}-menu" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
-                    {% set item = 'block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head ' ~ focus %}
-                    <button type="submit" id="lines-{{ index }}-up" name="_action" value="move_up:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveUp:prevent">{{ 'invoice.line.up'|trans }}</button>
-                    <button type="submit" id="lines-{{ index }}-down" name="_action" value="move_down:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveDown:prevent">{{ 'invoice.line.down'|trans }}</button>
-                    <button type="submit" id="lines-{{ index }}-remove" name="_action" value="remove_line:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#removeLine:prevent">{{ 'invoice.line.remove'|trans }}</button>
+        <td class="col-span-2 align-top xl:table-cell xl:p-1">
+            <div class="flex items-center justify-end gap-1 xl:h-control">
+                <span class="hidden cursor-grab text-muted xl:inline" data-action="mousedown->invoice-form#armDrag" title="{{ 'invoice.line.drag'|trans }}">{{ ux_icon('lucide:grip-vertical', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                <twig:Ui:IconButton id="{{ discountId }}-add" icon="tag" :label="'invoice.line.discount_add'|trans" variant="ghost" size="sm" type="submit" name="_action" value="discount_add:{{ index }}" aria-expanded="{{ discounted ? 'true' : 'false' }}" aria-controls="{{ discountId }}-box" data-action="invoice-form#addDiscount:prevent" />
+                <div class="relative" data-controller="dropdown" data-dropdown-float-value="true">
+                    <twig:Ui:IconButton id="lines-{{ index }}-menu" icon="ellipsis" :label="'invoice.line.actions'|trans" variant="ghost" size="sm" aria-haspopup="menu" aria-expanded="false" aria-controls="lines-{{ index }}-actions" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+                    <div id="lines-{{ index }}-actions" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="lines-{{ index }}-menu" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
+                        {% set item = 'block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head ' ~ focus %}
+                        <button type="submit" id="lines-{{ index }}-up" name="_action" value="move_up:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveUp:prevent">{{ 'invoice.line.up'|trans }}</button>
+                        <button type="submit" id="lines-{{ index }}-down" name="_action" value="move_down:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#moveDown:prevent">{{ 'invoice.line.down'|trans }}</button>
+                        <button type="submit" id="lines-{{ index }}-remove" name="_action" value="remove_line:{{ index }}" role="menuitem" tabindex="-1" class="{{ item }}" data-action="invoice-form#removeLine:prevent">{{ 'invoice.line.remove'|trans }}</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </td>
-</tr>
+        </td>
+    </tr>
+    <tr id="{{ discountId }}-box" class="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 border-t border-divider pt-2 xl:mt-0 xl:table-row xl:border-0 xl:pt-0"{% if not discounted %} hidden{% endif %} data-discount>
+        <td class="align-top xl:table-cell xl:p-1">
+            <label for="{{ discountId }}" class="flex h-control items-center gap-2 px-2.5 font-medium text-ink">{{ ux_icon('lucide:tag', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}<span>{{ 'invoice.line.discount'|trans }}</span></label>
+        </td>
+        <td class="align-top xl:table-cell xl:p-1">
+            <div class="relative">
+                <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">%</span>
+                <input type="text" id="{{ discountId }}" name="lines[{{ index }}][discount]" value="{{ line.discount }}" data-cell="discount" autocomplete="off" inputmode="decimal"{% if discountError %} aria-invalid="true" aria-describedby="{{ discountId }}-error"{% endif %} class="h-control num text-right {{ _self.classes(discountError is not null) }}">
+            </div>
+            {% if discountError %}<span id="{{ discountId }}-error" class="sr-only">{{ discountError }}</span>{% endif %}
+        </td>
+        <td class="hidden xl:table-cell" colspan="{{ payer ? 4 : 2 }}"></td>
+        <td class="order-last col-span-3 align-top xl:order-none xl:table-cell xl:p-1">
+            <div class="flex items-center justify-end xl:h-control">
+                <output class="num whitespace-nowrap font-medium text-ink" data-line-discount>{{ discount }}</output>
+            </div>
+        </td>
+        <td class="align-top xl:table-cell xl:p-1">
+            <div class="flex items-center justify-end gap-1 xl:h-control">
+                <twig:Ui:IconButton id="{{ discountId }}-remove" icon="x" :label="'invoice.line.discount_remove'|trans" variant="ghost" size="sm" type="submit" name="_action" value="discount_remove:{{ index }}" data-action="invoice-form#removeDiscount:prevent" />
+            </div>
+        </td>
+    </tr>
+</tbody>

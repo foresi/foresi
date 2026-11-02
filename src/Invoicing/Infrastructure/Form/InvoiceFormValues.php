@@ -150,6 +150,10 @@ final readonly class InvoiceFormValues
             $rows[] = $this->emptyLine($regime, $reverseCharge);
         } elseif ('remove_line' === $name) {
             array_splice($rows, $index, 1);
+        } elseif ('discount_add' === $name && isset($rows[$index]) && '' === $rows[$index]['discount']) {
+            $rows[$index]['discount'] = '0';
+        } elseif ('discount_remove' === $name && isset($rows[$index])) {
+            $rows[$index]['discount'] = '';
         } elseif ('move_up' === $name && $index > 0) {
             [$rows[$index - 1], $rows[$index]] = [$rows[$index], $rows[$index - 1]];
         } elseif ('move_down' === $name && $index < \count($rows) - 1) {

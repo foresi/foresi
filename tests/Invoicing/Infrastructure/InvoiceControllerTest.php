@@ -64,7 +64,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
- * @phpstan-type Figures array{lines: list<array{total: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
+ * @phpstan-type Figures array{lines: list<array{total: string, discount: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
 {
@@ -1068,6 +1068,30 @@ final class InvoiceControllerTest extends WebTestCase
         $this->save($this->filled(['lines' => [$this->lineValues(['discount' => '10'])], '_action' => 'refresh']));
 
         self::assertNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+    }
+
+    public function testADiscountOpensAndClosesWithoutJavaScript(): void
+    {
+        $this->signedIn();
+
+        $this->save($this->filled(['_action' => 'discount_add:0']));
+        self::assertNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+
+        $this->save($this->filled(['lines' => [$this->lineValues(['discount' => '10'])], '_action' => 'discount_remove:0']));
+        self::assertNotNull($this->client->getCrawler()->filter('#lines-0-discount-box')->attr('hidden'));
+        self::assertSame('', $this->currentValues()['lines'][0]['discount']);
+    }
+
+    public function testRecountGivesTheFullAmountAndTheDeductionOfALine(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('POST', '/invoices/recount', $this->filled(['lines' => [$this->lineValues(['price' => '1000,00', 'discount' => '10', 'vat' => 'base'])]]));
+
+        $line = $this->json()['lines'][0];
+        self::assertSame('1,210.00 Kč', $this->nbsp($line['total']));
+        self::assertSame('-121.00 Kč', $this->nbsp($line['discount']));
+        self::assertSame('1,089.00 Kč', $this->nbsp($this->json()['payable']));
     }
 
     public function testAStoredDocumentShowsItsStatus(): void

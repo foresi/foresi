@@ -193,7 +193,7 @@ test.describe.serial('an invoice', () => {
     await page.keyboard.type('2');
     await tabThrough(page, ['lines-0-unit']);
     await page.keyboard.type('h');
-    await tabThrough(page, ['lines-0-priceType', 'lines-0-vat', 'lines-0-discount-toggle']);
+    await tabThrough(page, ['lines-0-priceType', 'lines-0-vat', 'lines-0-discount-add']);
     await expect(page.locator('[data-total=payable]')).toHaveText(/2\s420,00\sKč/);
     await tabThrough(page, ['lines-0-menu', 'invoice-new-line', 'invoice-cancel', 'invoice-more', 'invoice-save']);
     await page.keyboard.press('Enter');
@@ -363,34 +363,34 @@ test.describe.serial('an invoice', () => {
     await page.locator('#lines-0-text').fill('První');
     await page.locator('#invoice-new-line').click();
     await page.locator('#lines-1-text').fill('Druhá');
-    const grip = page.locator('tr[data-invoice-form-target=line] [data-action*=armDrag]');
+    const grip = page.locator('tbody[data-invoice-form-target=line] [data-action*=armDrag]');
 
     await grip.first().click();
-    await expect(page.locator('tr[data-invoice-form-target=line][draggable=true]')).toHaveCount(0);
+    await expect(page.locator('tbody[data-invoice-form-target=line][draggable=true]')).toHaveCount(0);
 
     await grip.nth(1).dragTo(page.locator('#lines-0-text'), { targetPosition: { x: 10, y: 2 } });
     await expect(page.locator('#lines-0-text')).toHaveValue('Druhá');
     await expect(page.locator('#lines-1-text')).toHaveValue('První');
     await expect(page.locator('input[name="lines[0][text]"]')).toHaveValue('Druhá');
-    await expect(page.locator('tr[data-invoice-form-target=line][draggable=true]')).toHaveCount(0);
+    await expect(page.locator('tbody[data-invoice-form-target=line][draggable=true]')).toHaveCount(0);
   });
 
   test('stops at 100 lines, and they all arrive', async ({ page }) => {
     await openPayerForm(page);
     await pickCustomer(page, 'Example Domestic a.s.');
     await page.evaluate(() => { const add = document.querySelector<HTMLButtonElement>('#invoice-new-line')!; for (let row = 1; row < 105; row += 1) { add.click(); } });
-    await expect(page.locator('tr[data-invoice-form-target=line]')).toHaveCount(100);
+    await expect(page.locator('tbody[data-invoice-form-target=line]')).toHaveCount(100);
     await expect(page.locator('#invoice-new-line')).toBeDisabled();
     await expect(page.getByText('Faktura má nejvýše 100 řádků.')).toBeVisible();
     await page.evaluate(() => {
-      document.querySelectorAll<HTMLTableRowElement>('tr[data-invoice-form-target=line]').forEach((row, index) => {
+      document.querySelectorAll<HTMLTableRowElement>('tbody[data-invoice-form-target=line]').forEach((row, index) => {
         row.querySelector<HTMLInputElement>('[data-cell=text]')!.value = `Řádek ${index + 1}`;
         row.querySelector<HTMLInputElement>('[data-cell=price]')!.value = '10';
       });
     });
     await save(page);
     await openSaved(page);
-    await expect(page.locator('tr[data-invoice-form-target=line]')).toHaveCount(100);
+    await expect(page.locator('tbody[data-invoice-form-target=line]')).toHaveCount(100);
     await expect(page.locator('#lines-99-text')).toHaveValue('Řádek 100');
   });
 
@@ -400,7 +400,7 @@ test.describe.serial('an invoice', () => {
     await fillLine(page);
     // More rows than the buttons allow, so PHP really drops the end of the post.
     await page.evaluate(() => {
-      const row = document.querySelector('tr[data-invoice-form-target=line]')!;
+      const row = document.querySelector('tbody[data-invoice-form-target=line]')!;
       for (let index = 1; index < 130; index += 1) {
         const copy = row.cloneNode(true) as HTMLElement;
         copy.querySelectorAll('[name]').forEach((field) => field.setAttribute('name', (field.getAttribute('name') ?? '').replace('lines[0]', `lines[${index}]`)));
@@ -592,19 +592,105 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#customer')).toHaveValue('');
   });
 
-  test('reveals the discount of a line by its icon and keeps it visible with a value', async ({ page }) => {
+  test('a discount is a sub-row: the line keeps its full amount and the deduction stands below', async ({ page }) => {
     await openPayerForm(page);
     await fillLine(page, 'Práce', '1000');
     await expect(page.locator('#lines-0-discount')).toBeHidden();
-    await page.locator('#lines-0-discount-toggle').click();
+    await page.locator('#lines-0-discount-add').click();
     await expect(page.locator('#lines-0-discount')).toBeFocused();
     await page.keyboard.type('10');
-    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s089,00\sKč/);
-    await page.locator('#lines-0-discount').press('Tab');
-    await page.screenshot({ path: `${SHOTS}/line-discount-desktop.png`, fullPage: true });
-    await page.locator('#lines-0-discount-toggle').click();
-    await expect(page.locator('#lines-0-discount')).toBeHidden();
     await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s210,00\sKč/);
+    await expect(page.locator('[data-line-discount]').first()).toHaveText(/-121,00\sKč/);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/1\s089,00\sKč/);
+    await page.locator('#lines-0-discount-remove').click();
+    await expect(page.locator('#lines-0-discount')).toBeHidden();
+    await expect(page.locator('#lines-0-discount-add')).toBeFocused();
+    await expect(page.locator('[data-total=payable]')).toHaveText(/1\s210,00\sKč/);
+  });
+
+  test('a dragged line takes its discount along', async ({ page }) => {
+    await openPayerForm(page);
+    await fillLine(page, 'První', '100');
+    await page.locator('#lines-0-discount-add').click();
+    await page.keyboard.type('5');
+    await page.getByRole('button', { name: 'Nový řádek' }).click();
+    await page.locator('#lines-1-text').fill('Druhá');
+    await page.locator('tbody[data-invoice-form-target=line] [data-action*=armDrag]').nth(1).dragTo(page.locator('#lines-0-text'), { targetPosition: { x: 10, y: 2 } });
+    await expect(page.locator('#lines-1-text')).toHaveValue('První');
+    await expect(page.locator('#lines-1-discount')).toHaveValue('5');
+    await expect(page.locator('#lines-0-discount')).toBeHidden();
+  });
+
+  test('keeps numbers on one edge and rows at one height, with and without a discount', async ({ page }) => {
+    const box = async (selector: string) => (await page.locator(selector).boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+    const edges = async (selector: string) => Promise.all((await page.locator(selector).all()).map(async (element) => {
+      const measured = (await element.boundingBox()) ?? { x: 0, width: 0 };
+      return Math.round(measured.x + measured.width);
+    }));
+    await openPayerForm(page);
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await fillLine(page, 'Jedna položka', '1000');
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s210,00/);
+    await page.screenshot({ path: `${SHOTS}/discount-one-line.png`, fullPage: true });
+    const plain = (await box('#lines-0-text')).height;
+    const rowPlain = await page.locator('tbody[data-invoice-form-target=line] > tr').first().evaluate((row) => row.getBoundingClientRect().height);
+    const totalY = (await box('[data-line-total]')).y;
+
+    await page.locator('#lines-0-discount-add').click();
+    await page.keyboard.type('10');
+    await expect(page.locator('[data-line-discount]').first()).not.toHaveText('');
+    await page.screenshot({ path: `${SHOTS}/discount-with-discount.png`, fullPage: true });
+    expect((await box('#lines-0-text')).height).toBe(plain);
+    expect((await box('#lines-0-discount')).height).toBe(plain);
+    expect(await page.locator('tbody[data-invoice-form-target=line] > tr').first().evaluate((row) => row.getBoundingClientRect().height)).toBe(rowPlain);
+    expect((await box('[data-line-total]')).y).toBe(totalY);
+    const discountRow = await page.locator('#lines-0-discount-box').evaluate((row) => row.getBoundingClientRect().height);
+    expect(discountRow).toBe(rowPlain);
+
+    await page.getByRole('button', { name: 'Nový řádek' }).click();
+    await page.locator('#lines-1-text').fill('Velmi dlouhý text položky, který se do pole nevejde celý a musí v něm zůstat na jednom řádku bez přetečení');
+    await page.locator('#lines-1-price').fill('123456,78');
+    await page.getByRole('button', { name: 'Nový řádek' }).click();
+    await page.locator('#lines-2-text').fill('Třetí');
+    await page.locator('#lines-2-price').fill('50');
+    await page.locator('#lines-2-discount-add').click();
+    await page.keyboard.type('12,5');
+    await expect(page.locator('[data-line-discount]').nth(2)).not.toHaveText('');
+    await page.locator('#lines-1-text').click();
+    await page.screenshot({ path: `${SHOTS}/discount-mixed-lines.png`, fullPage: true });
+    const rights = [...await edges('[data-line-total]'), ...await edges('tbody tr:not([hidden]) [data-line-discount]')];
+    expect(new Set(rights).size).toBe(1);
+    const prices = await page.locator('#lines-0-price').evaluate((field) => getComputedStyle(field).paddingRight);
+    expect(await page.locator('#lines-0-discount').evaluate((field) => getComputedStyle(field).paddingRight)).toBe(prices);
+    expect((await box('#lines-0-discount')).x + (await box('#lines-0-discount')).width).toBe((await box('#lines-0-price')).x + (await box('#lines-0-price')).width);
+    await expectNoSidewaysScroll(page);
+
+    await page.locator('#lines-0-vat').selectOption('reverse_charge');
+    await page.locator('#lines-0-supplyCode').selectOption({ index: 1 });
+    await page.locator('#lines-1-text').click();
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s000,00\sKč/);
+    await expect(page.locator('[data-line-discount]').first()).toHaveText(/-100,00\sKč/);
+    await page.screenshot({ path: `${SHOTS}/discount-reverse-charge.png`, fullPage: true });
+    expect(new Set([...await edges('[data-line-total]'), ...await edges('tbody tr:not([hidden]) [data-line-discount]')]).size).toBe(1);
+  });
+
+  test('a discount stacks under its card on a phone', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await openPayerForm(page);
+    await fillLine(page, 'Práce', '1000');
+    await page.locator('#lines-0-discount-add').click();
+    await page.keyboard.type('10');
+    await expect(page.locator('[data-line-discount]').first()).not.toHaveText('');
+    await expectNoSidewaysScroll(page);
+    await page.locator('#lines-0-discount').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${SHOTS}/discount-phone.png` });
+    const card = await page.locator('tbody[data-invoice-form-target=line]').first().boundingBox();
+    const sub = await page.locator('#lines-0-discount-box').boundingBox();
+    const total = await page.locator('[data-line-total]').first().boundingBox();
+    const deduction = await page.locator('[data-line-discount]').first().boundingBox();
+    expect(Math.round((deduction?.x ?? 0) + (deduction?.width ?? 0))).toBe(Math.round((total?.x ?? 0) + (total?.width ?? 0)));
+    expect(sub?.y ?? 0).toBeGreaterThan(card?.y ?? 0);
+    expect((sub?.y ?? 0) + (sub?.height ?? 0)).toBeLessThanOrEqual((card?.y ?? 0) + (card?.height ?? 0));
   });
 
   test('moves a line from its menu with the keyboard', async ({ page }) => {
@@ -899,7 +985,7 @@ test.describe.serial('an invoice', () => {
     await openPayerForm(page);
     await expectNoSidewaysScroll(page);
     await expectNoSeriousViolationsWithoutTheFloatingBar(page);
-    await page.locator('#lines-0-discount-toggle').click();
+    await page.locator('#lines-0-discount-add').click();
     await page.locator('#lines-0-menu').click();
     await expectNoSidewaysScroll(page);
     await page.screenshot({ path: `${SHOTS}/lines-phone.png`, fullPage: true });

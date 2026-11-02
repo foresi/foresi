@@ -86,6 +86,7 @@ export default class extends Controller {
     show(figures) {
         this.lineTargets.forEach((row, index) => {
             row.querySelector('[data-line-total]').textContent = figures.lines[index]?.total ?? '';
+            row.querySelector('[data-line-discount]').textContent = figures.lines[index]?.discount ?? '';
         });
         if (this.hasNetTarget) {
             this.netTarget.textContent = figures.net;
@@ -371,7 +372,7 @@ export default class extends Controller {
     }
 
     removeLine(event) {
-        const row = event.currentTarget.closest('tr');
+        const row = event.currentTarget.closest('tbody');
         const index = this.lineTargets.indexOf(row);
         if (this.lineTargets.length === 1) {
             this.newRow();
@@ -392,27 +393,33 @@ export default class extends Controller {
         this.move(event.currentTarget, 1);
     }
 
-    // Hidden with a zero behind it, so a hidden field never changes the price.
-    toggleDiscount(event) {
-        const toggle = event.currentTarget;
-        const box = toggle.closest('tr').querySelector('[data-discount]');
-        const field = box.querySelector('input');
-        box.hidden = !box.hidden;
-        toggle.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
-        if (box.hidden) {
-            field.value = '';
-            this.changed();
-        } else {
-            field.select();
-        }
+    // A discount is a sub-row of its line: the tag opens it, its own button empties and closes it.
+    addDiscount(event) {
+        const group = event.currentTarget.closest('tbody');
+        const box = group.querySelector('[data-discount]');
+        box.hidden = false;
+        event.currentTarget.setAttribute('aria-expanded', 'true');
+        box.querySelector('input').select();
+    }
+
+    removeDiscount(event) {
+        const group = event.currentTarget.closest('tbody');
+        const box = group.querySelector('[data-discount]');
+        const add = group.querySelector('[id$="-discount-add"]');
+        box.querySelector('input').value = '';
+        box.hidden = true;
+        add.setAttribute('aria-expanded', 'false');
+        add.focus();
+        this.changed();
     }
 
     move(button, step) {
-        const row = button.closest('tr');
+        const row = button.closest('tbody');
         const trigger = row.querySelector('[data-dropdown-target=button]');
         row.querySelector('[data-dropdown-target=menu]').hidden = true;
         trigger.setAttribute('aria-expanded', 'false');
-        const neighbour = step < 0 ? row.previousElementSibling : row.nextElementSibling;
+        const sibling = step < 0 ? row.previousElementSibling : row.nextElementSibling;
+        const neighbour = sibling?.matches('tbody') ? sibling : null;
         trigger.focus();
         if (neighbour === null) {
             return;
@@ -430,7 +437,7 @@ export default class extends Controller {
     // Dragging: a row can be dragged only from its grip, and only while the button is down.
 
     armDrag(event) {
-        event.currentTarget.closest('tr').draggable = true;
+        event.currentTarget.closest('tbody').draggable = true;
     }
 
     disarmDrag() {
@@ -440,7 +447,7 @@ export default class extends Controller {
     }
 
     dragStart(event) {
-        this.dragged = event.target.closest('tr');
+        this.dragged = event.target.closest('tbody');
     }
 
     dragOver(event) {
@@ -448,7 +455,7 @@ export default class extends Controller {
             return;
         }
         event.preventDefault();
-        const target = event.target.closest('tr');
+        const target = event.target.closest('tbody');
         if (target !== null && target !== this.dragged) {
             const below = event.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2;
             target[below ? 'after' : 'before'](this.dragged);
@@ -532,7 +539,7 @@ export default class extends Controller {
             return;
         }
         event.preventDefault();
-        const row = field.closest('tr');
+        const row = field.closest('tbody');
         if (row !== null && row === this.lineTargets.at(-1) && field === this.lastCell(row)) {
             this.addLine();
         }

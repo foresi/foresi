@@ -775,10 +775,11 @@ invoice:
     treatment: VAT
     supplyCode: Supply code
     supplyCode_choose: Choose a code
-    discount: Discount %
+    discount: Discount
     total: Total
     total_with_vat: Total with VAT
-    discount_toggle: Discount on this line
+    discount_add: Add a discount
+    discount_remove: Remove the discount
     actions: Actions
     add: New line
     drag: Drag to reorder

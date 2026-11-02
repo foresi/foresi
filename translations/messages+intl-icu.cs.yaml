@@ -775,10 +775,11 @@ invoice:
     treatment: DPH
     supplyCode: Kód plnění
     supplyCode_choose: Vyberte kód
-    discount: Sleva %
+    discount: Sleva
     total: Celkem
     total_with_vat: Celkem s DPH
-    discount_toggle: Sleva na tomto řádku
+    discount_add: Přidat slevu
+    discount_remove: Odebrat slevu
     actions: Akce
     add: Nový řádek
     drag: Přetažením změníte pořadí
