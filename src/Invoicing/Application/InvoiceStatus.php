@@ -31,7 +31,7 @@ enum InvoiceStatus: string
     /**
      * @param bool $overdue past its due date; a settled payment state outranks it
      */
-    public static function of(bool $delivered, bool $overdue, bool $trashed, PaymentState $payment = PaymentState::Unpaid): self
+    public static function of(bool $delivered, bool $overdue, bool $trashed, PaymentState $payment): self
     {
         return match (true) {
             $trashed => self::Trashed,
