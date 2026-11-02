@@ -1,0 +1,91 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Shown open in the page flow, without the controller, so every state can be seen at once. In the app
+    a dialog opens with showModal() in the top layer, over a dimmed page; with fields it fills a phone.
+#}
+{# Rendered outside the state embeds: a component block inside an embed would render in place. #}
+{% set preview = {open: true, 'data-dialog-preview': true, class: 'static'} %}
+{% set sample_open %}
+<div class="w-full">
+    <twig:Ui:Dialog id="cat-dialog-send" title="Odeslat fakturu 20260001" size="md" :fields="true" {{ ...preview }}>
+        <div class="grid gap-4">
+            <dl class="m-0 grid gap-1"><dt class="text-small font-medium text-ink">Od</dt><dd class="m-0 text-text">Example s.r.o. <span class="text-muted">&lt;invoices@example.com&gt;</span></dd></dl>
+            <twig:Ui:Checkbox name="cat-to" id="cat-dialog-to" label="billing@example.com" :checked="true" />
+            <twig:Ui:Checkbox name="cat-copy" id="cat-dialog-copy" label="Poslat kopii i mně na office@example.com" :checked="true" />
+        </div>
+        <twig:block name="footer">
+            <twig:Ui:Button>Zrušit</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" icon="send">Odeslat</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+</div>
+{% endset %}
+{% set sample_error %}
+<div class="w-full">
+    <twig:Ui:Dialog id="cat-dialog-error" title="Nový zákazník" description="Krátký formulář; vše ostatní doplníte v kontaktu." size="md" :fields="true" {{ ...preview }}>
+        <div class="grid gap-4">
+            <twig:Ui:Alert tone="error" data-error-summary role="note">
+                <p class="m-0 mb-1 font-semibold">Opravte prosím:</p>
+                <ul class="m-0 list-none p-0"><li>Název: Vyplňte název.</li></ul>
+            </twig:Ui:Alert>
+            <twig:Ui:TextInput name="cat-name" id="cat-dialog-name" label="Název" error="Vyplňte název." :required="true" />
+            <twig:Ui:TextInput name="cat-mail" id="cat-dialog-mail" type="email" label="E-mail" value="billing@example.com" />
+        </div>
+        <twig:block name="footer">
+            <twig:Ui:Button>Zrušit</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">Vytvořit zákazníka</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+</div>
+{% endset %}
+{% set sample_unsaved %}
+<div class="w-full">
+    <twig:Ui:Dialog id="cat-dialog-unsaved" title="Smazat fakturu 20260001" size="sm" :fields="true" :asking="true" {{ ...preview }}>
+        <twig:Ui:Textarea name="cat-reason" id="cat-dialog-reason" label="Důvod smazání" value="Vystaveno omylem" :rows="3" :required="true" />
+        <twig:block name="footer">
+            <twig:Ui:Button>Zrušit</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="danger" icon="trash-2">Přesunout do koše</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+</div>
+{% endset %}
+{% set sample_confirm %}
+<div class="w-full">
+    <twig:Ui:Dialog id="cat-dialog-confirm" title="Archivovat firmu Example s.r.o.?" variant="confirm" size="sm" {{ ...preview }}>
+        <p class="m-0 text-text">Archivovanou firmu nelze obnovit.</p>
+        <twig:block name="footer">
+            <twig:Ui:Button>Ponechat firmu</twig:Ui:Button>
+            <twig:Ui:Button variant="danger">Archivovat firmu</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+</div>
+{% endset %}
+{% set sample_sizes %}
+<div class="grid w-full gap-4">
+    {% for size, width in {sm: '400 px', md: '560 px', lg: '720 px'} %}
+        <twig:Ui:Dialog id="cat-dialog-{{ size }}" :title="size|upper ~ ' · ' ~ width" :size="size" {{ ...preview }}>
+            <p class="m-0 text-text">Bez polí: klik mimo dialog ho zavře.</p>
+            <twig:block name="footer"><twig:Ui:Button variant="primary">Hotovo</twig:Ui:Button></twig:block>
+        </twig:Ui:Dialog>
+    {% endfor %}
+</div>
+{% endset %}
+{% set sample_long %}
+<div class="w-full">
+    <twig:Ui:Dialog id="cat-dialog-long" title="Odeslat fakturu 2026-EXAMPLE-COMPANY-HOLDING-OF-CENTRAL-EUROPEAN-TRADING-0042" size="md" {{ ...preview }}>
+        <p class="m-0 text-text">Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy. Příliš žluťoučký kůň úpěl ďábelské ódy.</p>
+        <twig:block name="footer">
+            <twig:Ui:Button>Zrušit</twig:Ui:Button>
+            <twig:Ui:Button variant="primary" icon="send">Odeslat</twig:Ui:Button>
+        </twig:block>
+    </twig:Ui:Dialog>
+</div>
+{% endset %}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'open'} %}{% block sample %}{{ sample_open }}{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}{{ sample_error }}{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'unsaved'} %}{% block sample %}{{ sample_unsaved }}{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'confirm'} %}{% block sample %}{{ sample_confirm }}{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'sizes'} %}{% block sample %}{{ sample_sizes }}{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}{{ sample_long }}{% endblock %}{% endembed %}
+</div>

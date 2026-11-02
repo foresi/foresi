@@ -13,7 +13,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, plain: bool, icon: ?string, iconClass: string}
- * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?string, icon: ?string, plain: bool, fields: array<string, string>}
+ * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
+ * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string}
  * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool}
  */
@@ -216,7 +217,6 @@ final class DataTable
         Style::href($href);
         $icon = isset($action['icon']) && is_string($action['icon']) ? $action['icon'] : null;
         Style::icon($icon);
-        $confirm = $action['confirm'] ?? null;
         $fields = [];
         foreach (is_array($action['fields'] ?? null) ? $action['fields'] : [] as $name => $value) {
             if (is_scalar($value)) {
@@ -228,10 +228,39 @@ final class DataTable
             'label' => Style::requireString($action, 'label', 'A row action'),
             'href' => $href,
             'method' => $method,
-            'confirm' => is_string($confirm) ? $confirm : null,
+            'confirm' => $this->confirm($action['confirm'] ?? null),
             'icon' => $icon,
             'plain' => true === ($action['plain'] ?? false),
+            'dialog' => 'GET' === $method && true === ($action['dialog'] ?? false),
             'fields' => $fields,
+        ];
+    }
+
+    /**
+     * A confirmation is the question alone, or the question with its consequence,
+     * the labels of the two answers and the danger tone.
+     *
+     * @return Confirm|null
+     */
+    private function confirm(mixed $confirm): ?array
+    {
+        if (null === $confirm) {
+            return null;
+        }
+        if (is_string($confirm)) {
+            $confirm = ['title' => $confirm];
+        }
+        if (!is_array($confirm)) {
+            throw new \InvalidArgumentException('A confirmation is a question or an array with a title.');
+        }
+        $optional = static fn (string $key): ?string => isset($confirm[$key]) && is_string($confirm[$key]) && '' !== $confirm[$key] ? $confirm[$key] : null;
+
+        return [
+            'title' => Style::requireString($confirm, 'title', 'A confirmation'),
+            'text' => $optional('text'),
+            'accept' => $optional('accept'),
+            'cancel' => $optional('cancel'),
+            'tone' => $optional('tone'),
         ];
     }
 

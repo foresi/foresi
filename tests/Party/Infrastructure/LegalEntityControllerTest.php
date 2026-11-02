@@ -402,14 +402,19 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('main table', 'Other Firm');
     }
 
-    public function testTheArchiveButtonAsksForConfirmation(): void
+    public function testTheArchiveButtonAsksForConfirmationNamingTheOutcome(): void
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', $this->tenant, '12345695');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
 
-        self::assertSame('Archive this firm? It cannot be restored.', $crawler->filter('form[action$="/archive"]')->attr('data-turbo-confirm'));
+        $form = $crawler->filter('form[action$="/archive"]');
+        self::assertSame('Archive firm Example Firm?', $form->attr('data-turbo-confirm'));
+        self::assertSame('An archived firm cannot be restored.', $form->attr('data-confirm-text'));
+        self::assertSame('Archive firm', $form->attr('data-confirm-accept'));
+        self::assertSame('Keep firm', $form->attr('data-confirm-cancel'));
+        self::assertSame('danger', $form->attr('data-confirm-tone'));
     }
 
     public function testTheLastActiveFirmCannotBeArchived(): void

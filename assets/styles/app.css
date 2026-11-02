@@ -168,6 +168,33 @@ html:has([data-table-selection-target~="bar"]:not([hidden])) {
     }
 }
 
+/*
+ * Dialogs: a dialog fades and rises in; the global reduced-motion rule below turns
+ * the motion off. On a phone, where a dialog with fields fills the screen, the page
+ * behind does not scroll; on a wide screen it keeps its scrollbar, so nothing moves.
+ */
+@media (max-width: 639px) {
+    html:has(dialog:modal) {
+        overflow: hidden;
+    }
+}
+
+dialog[data-controller~="dialog"] {
+    transition: opacity 150ms ease-out, translate 150ms ease-out, overlay 150ms allow-discrete, display 150ms allow-discrete;
+}
+
+dialog[data-controller~="dialog"]:not([open]) {
+    opacity: 0;
+    translate: 0 6px;
+}
+
+@starting-style {
+    dialog[data-controller~="dialog"][open] {
+        opacity: 0;
+        translate: 0 6px;
+    }
+}
+
 .num {
     font-variant-numeric: tabular-nums;
 }

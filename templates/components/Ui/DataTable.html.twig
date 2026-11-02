@@ -3,6 +3,7 @@
 {% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
 {% set bulkSlot %}{% block bulk %}{% endblock %}{% endset %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
     {% if this.rowViews is empty %}
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
@@ -72,7 +73,7 @@
                                             {% set inMenu = row.actions|filter(action => action.icon is null) %}
                                             {% for action in row.actions|filter(action => action.icon is not null) %}
                                                 {% if action.method == 'POST' %}
-                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}>
+                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{{ _self.confirm(action.confirm) }}>
                                                         <input type="hidden" name="_token" value="{{ actionToken }}">
                                                         {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                                                         <twig:Ui:IconButton type="submit" :icon="action.icon" :label="action.label" variant="ghost" size="sm" />
@@ -87,13 +88,13 @@
                                                     {% for action in row.actions %}
                                                         {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus ~ (action.icon ? ' sm:hidden' : '') %}
                                                         {% if action.method == 'POST' %}
-                                                            <form method="post" action="{{ action.href }}"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}{% if action.icon %} class="sm:hidden" {% endif %}>
+                                                            <form method="post" action="{{ action.href }}"{{ _self.confirm(action.confirm) }}{% if action.icon %} class="sm:hidden" {% endif %}>
                                                                 <input type="hidden" name="_token" value="{{ actionToken }}">
                                                                 {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                                                                 <button type="submit" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %} class="{{ itemClass }}">{{ action.label }}</button>
                                                             </form>
                                                         {% else %}
-                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
+                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %}{% if action.dialog %} data-dialog aria-haspopup="dialog"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
                                                         {% endif %}
                                                     {% endfor %}
                                                 </div>

@@ -57,12 +57,14 @@ test.describe.serial('the e-mail settings of a firm', () => {
       page.on('dialog', (dialog) => {
         throw new Error(`Enter asked to confirm: ${dialog.message()}`);
       });
+      const confirm = page.getByRole('alertdialog');
       const subject = page.locator(`#subject-${code}`);
       await subject.fill(code === 'cs' ? 'Faktura {Číslo dokladu} k úhradě' : 'Invoice {Document number} to pay');
 
       await subject.press('Enter');
 
       await expect(page.getByText('E-mailové šablony jsou uložené.')).toBeVisible();
+      await expect(confirm).toBeHidden();
       await expect(page.locator(`#subject-${code}`)).toHaveValue(code === 'cs' ? 'Faktura {Číslo dokladu} k úhradě' : 'Invoice {Document number} to pay');
       await expect(page.locator('#body-cs')).toHaveValue('Zasílám fakturu {Číslo dokladu}.');
     });
@@ -81,12 +83,15 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await openMailSettings(page, 'Example Small Trader');
     const reset = page.getByRole('button', { name: 'Obnovit výchozí text' }).first();
 
-    page.once('dialog', (dialog) => dialog.dismiss());
+    const confirm = page.getByRole('alertdialog', { name: 'Vrátit text pro Čeština na výchozí?' });
     await reset.click();
+    await expect(confirm).toContainText('Vlastní text se smaže.');
+    await confirm.getByRole('button', { name: 'Ponechat vlastní text' }).click();
+    await expect(confirm).toBeHidden();
     await expect(page.locator('#body-cs')).toHaveValue('Zasílám fakturu {Číslo dokladu}.');
 
-    page.once('dialog', (dialog) => dialog.accept());
     await reset.click();
+    await confirm.getByRole('button', { name: 'Obnovit výchozí text' }).click();
     await expect(page.getByText('Šablona má zase výchozí text.')).toBeVisible();
     await expect(page.locator('#subject-cs')).toHaveValue('Faktura {Číslo dokladu}');
     await expect(page.locator('#body-cs')).toHaveValue(/^Na základě Vaší objednávky/);

@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A page as a dialog: what the dialog controller loads into the page it opened from. The page
+    template keeps its URL and its full-page layout; for a dialog request it extends this one and fills
+    the blocks "title" (plain text), "dialog_body" and "dialog_footer". Top-level variables set the
+    shape: dialog_size (sm, md, lg), dialog_fields (true when it holds inputs), dialog_description and
+    dialog_class (extra classes, such as a wider size while a disclosure is open).
+    Flash messages stay for the page the dialog leads to.
+#}
+{% set dialogTitle %}{% block title %}{% endblock %}{% endset %}
+{% set dialogBody %}{% block dialog_body %}{% endblock %}{% endset %}
+{% set dialogFooter %}{% block dialog_footer %}{% endblock %}{% endset %}
+<twig:Ui:Dialog id="dialog-page" :title="dialogTitle|striptags|html_decode|trim" :size="dialog_size|default('md')" :fields="dialog_fields ?? true" :description="dialog_description|default(null)" class="{{ dialog_class|default('') }}">
+    {{ dialogBody }}
+    <twig:block name="footer">{{ dialogFooter }}</twig:block>
+</twig:Ui:Dialog>

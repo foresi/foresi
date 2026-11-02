@@ -66,7 +66,7 @@
                 </twig:Ui:ActionBar>
             </form>
             {% for language in languages|filter(language => language.custom) %}
-                <form id="mail-reset-{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" hidden>
+                <form id="mail-reset-{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
                     <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
                     <input type="hidden" name="section" value="templates">
                     <input type="hidden" name="reset" value="{{ language.code }}">

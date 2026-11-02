@@ -9,7 +9,7 @@
 {% set menuId = 'scope-' ~ panel.key ~ '-menu' %}
 {% set buttonId = 'scope-' ~ panel.key ~ '-button' %}
 {% set activeScope = panel.scopes|filter(s => s.id == panel.active)|first %}
-<twig:Ui:Card :title="title" :icon="icon" class="min-w-0" data-firm-panel="{{ panel.key }}" data-controller="firm-scope" data-firm-scope-active-value="{{ panel.active }}" data-firm-scope-confirm-value="{{ 'party.scope.reset_confirm'|trans }}">
+<twig:Ui:Card :title="title" :icon="icon" class="min-w-0" data-firm-panel="{{ panel.key }}" data-controller="firm-scope" data-firm-scope-active-value="{{ panel.active }}" data-firm-scope-confirm-value="{{ {title: 'party.scope.reset_confirm'|trans, text: 'party.scope.reset_confirm_text'|trans, accept: 'party.scope.reset_confirm_accept'|trans, cancel: 'party.scope.reset_confirm_cancel'|trans, tone: 'danger'}|json_encode }}">
     <twig:block name="actions">
         <input type="hidden" name="panelScope[{{ panel.key }}]" value="{{ panel.active }}" data-firm-scope-target="current">
         <div class="relative" data-controller="dropdown">

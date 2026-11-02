@@ -134,19 +134,19 @@ test.describe.serial('an owner of two firms', () => {
     await choose(roles, FIRM);
     const pane = roles.locator('[data-firm-scope-target="pane"]:visible');
 
-    page.once('dialog', (dialog) => dialog.dismiss());
+    // The shared confirm dialog asks, naming both outcomes; keeping is the safe answer.
+    const confirm = page.getByRole('alertdialog', { name: 'Vrátit na společné hodnoty?' });
     await pane.getByRole('button', { name: 'Vrátit na společné' }).click();
+    await expect(confirm).toContainText('smažou');
+    await expect(confirm.getByRole('button', { name: 'Ponechat vlastní' })).toBeFocused();
+    await confirm.getByRole('button', { name: 'Ponechat vlastní' }).click();
+    await expect(confirm).toBeHidden();
     await expect(pane.getByRole('checkbox', { name: 'Dodavatel' })).toBeEnabled();
 
-    let message = '';
-    page.once('dialog', (dialog) => {
-      message = dialog.message();
-      void dialog.accept();
-    });
     await pane.getByRole('button', { name: 'Vrátit na společné' }).click();
+    await confirm.getByRole('button', { name: 'Vrátit na společné' }).click();
     await expect(pane.getByRole('button', { name: 'Nastavit pro tuto firmu' })).toBeVisible();
     await expect(pane.getByRole('checkbox', { name: 'Dodavatel' })).toBeDisabled();
-    expect(message).toContain('smažou');
 
     await page.getByRole('button', { name: 'Uložit' }).click();
     await expect(page.getByText('Změny jsou uloženy.')).toBeVisible();

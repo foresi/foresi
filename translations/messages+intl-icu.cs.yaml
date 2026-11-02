@@ -39,6 +39,15 @@ nav:
     import: Import a export
     sent_mail: Odeslané e-maily
 ui:
+  dialog:
+    close: Zavřít
+    discard_question: Zahodit neuložené změny?
+    keep_editing: Pokračovat v úpravách
+    discard: Zahodit
+    failed: Něco se nepovedlo. Zkuste to prosím znovu.
+  confirm:
+    accept: Potvrdit
+    cancel: Zrušit
   combobox:
     found: 'Nalezeno: {count}'
   mapping_row:
@@ -136,11 +145,20 @@ catalogue:
     type: Písmo
     border: Okraje
     elevation: Stíny
+    unsaved: Neuložené změny
+    confirm: Potvrzení
+    open: Otevřený
 
 format:
   date: "j.\u00A0n.\u00A0Y"
   datetime: 'j. n. Y H:i'
 party:
+  quick:
+    title: Nový zákazník
+    intro: Stačí název a sídlo, ostatní doplníte později.
+    full: Otevřít celý formulář
+    create: Vytvořit zákazníka
+    errors_title: Zákazník zatím není uložený
   header:
     import: Importovat
     export: Exportovat
@@ -314,7 +332,10 @@ party:
     applies_to: Platí pro
     set: Nastavit pro tuto firmu
     reset: Vrátit na společné
-    reset_confirm: 'Vlastní hodnoty této firmy se po uložení smažou. Pokračovat?'
+    reset_confirm: Vrátit na společné hodnoty?
+    reset_confirm_text: Vlastní hodnoty této firmy se po uložení smažou.
+    reset_confirm_accept: Vrátit na společné
+    reset_confirm_cancel: Ponechat vlastní
     emails: Fakturační e-maily
     archive: Stav archivace
     invoice_emails: E-maily pro faktury
@@ -421,7 +442,10 @@ firm:
     not_registered: Neplátce DPH
     identified_person: Identifikovaná osoba
   confirm:
-    archive: Archivovat tuto firmu? Obnovit ji nelze.
+    archive: 'Archivovat firmu {name}?'
+    archive_text: Archivovanou firmu už nepůjde obnovit.
+    archive_accept: Archivovat firmu
+    archive_cancel: Ponechat firmu
   flash:
     created: Firma je uložená.
     updated: Změny jsou uložené.
@@ -453,7 +477,10 @@ firm:
       cs: Čeština
       en: Angličtina
     reset: Obnovit výchozí text
-    reset_confirm: 'Vrátit text pro {language} na výchozí? Vlastní text se smaže.'
+    reset_confirm: 'Vrátit text pro {language} na výchozí?'
+    reset_confirm_text: Vlastní text se smaže.
+    reset_confirm_accept: Obnovit výchozí text
+    reset_confirm_cancel: Ponechat vlastní text
     inserted: 'Vloženo: {name}'
     variables: Proměnné
     variables_help: Kliknutím nebo přetažením vložíte do textu.
@@ -693,6 +720,9 @@ invoice:
     card: E-mail
     back: Zpět
     submit: Odeslat
+    edit: Upravit text
+    message: Zpráva
+    close: Zavřít
     errors_title: E-mail zatím neodešel
     sent_before: 'Faktura už odešla {date}. Když ji pošlete znovu, příjemce dostane nový odkaz.'
     from_document: Kontakt nemá e-mail pro faktury, proto se nabízí adresa z dokladu.
@@ -807,7 +837,9 @@ invoice:
     not_in_trash: Tato faktura v koši není.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
-    delivered_confirm: 'Označit fakturu {number} jako doručenou? Pak už ji nepůjde smazat.'
+    delivered_confirm: 'Označit fakturu {number} jako doručenou?'
+    delivered_confirm_text: Doručenou fakturu už nepůjde smazat.
+    delivered_confirm_accept: Označit jako doručenou
     tab:
       all: Vše
       overdue: Po splatnosti
@@ -1191,7 +1223,10 @@ import:
     too_large: Soubor je větší než 50 MB. Rozdělte ho na menší části.
   cancel:
     button: Zrušit import
-    confirm: Opravdu chcete import zrušit? Nic se nezapíše.
+    confirm: Zrušit import?
+    confirm_text: Nic se nezapíše.
+    confirm_accept: Zrušit import
+    confirm_cancel: Pokračovat v importu
   file:
     title: Soubor
     change: Změnit
@@ -1365,7 +1400,10 @@ import:
       text: Vytvořené záznamy se archivují, aktualizované dostanou původní hodnoty a archivované se obnoví. Záznamy, které někdo mezitím změnil, zůstanou beze změny.
       deadline: 'Import jde vrátit do {date}.'
       button: Vrátit import
-      confirm: Opravdu chcete import vrátit?
+      confirm: Vrátit import?
+      confirm_text: Vytvořené záznamy se archivují a změněné dostanou původní hodnoty.
+      confirm_accept: Vrátit import
+      confirm_cancel: Ponechat import
     done: Hotovo
   notice:
     finished: 'Import souboru {name} je hotový.'

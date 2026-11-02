@@ -39,6 +39,15 @@ nav:
     import: Import and export
     sent_mail: Sent e-mails
 ui:
+  dialog:
+    close: Close
+    discard_question: Discard unsaved changes?
+    keep_editing: Keep editing
+    discard: Discard
+    failed: Something went wrong. Please try again.
+  confirm:
+    accept: Confirm
+    cancel: Cancel
   combobox:
     found: 'Found: {count}'
   mapping_row:
@@ -136,11 +145,20 @@ catalogue:
     type: Type
     border: Borders
     elevation: Elevation
+    unsaved: Unsaved changes
+    confirm: Confirmation
+    open: Open
 
 format:
   date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 party:
+  quick:
+    title: New customer
+    intro: A name and a seat are enough; the rest can follow later.
+    full: Open the full form
+    create: Create customer
+    errors_title: The customer is not saved yet
   header:
     import: Import
     export: Export
@@ -314,7 +332,10 @@ party:
     applies_to: Applies to
     set: Set for this firm
     reset: Back to shared
-    reset_confirm: "This firm's own values will be deleted when you save. Continue?"
+    reset_confirm: Go back to the shared values?
+    reset_confirm_text: "This firm's own values are deleted when you save."
+    reset_confirm_accept: Go back to shared
+    reset_confirm_cancel: Keep own values
     emails: Invoicing e-mails
     archive: Archive state
     invoice_emails: E-mails for invoices
@@ -421,7 +442,10 @@ firm:
     not_registered: Non-payer
     identified_person: Identified person
   confirm:
-    archive: Archive this firm? It cannot be restored.
+    archive: 'Archive firm {name}?'
+    archive_text: An archived firm cannot be restored.
+    archive_accept: Archive firm
+    archive_cancel: Keep firm
   flash:
     created: The firm is saved.
     updated: The changes are saved.
@@ -453,7 +477,10 @@ firm:
       cs: Czech
       en: English
     reset: Restore the built-in text
-    reset_confirm: 'Restore the built-in text for {language}? Your own text is deleted.'
+    reset_confirm: 'Restore the built-in text for {language}?'
+    reset_confirm_text: Your own text is deleted.
+    reset_confirm_accept: Restore built-in text
+    reset_confirm_cancel: Keep own text
     inserted: 'Inserted: {name}'
     variables: Variables
     variables_help: Click or drag to insert into the text.
@@ -693,6 +720,9 @@ invoice:
     card: E-mail
     back: Back
     submit: Send
+    edit: Edit text
+    message: Message
+    close: Close
     errors_title: The e-mail has not been sent
     sent_before: 'This invoice was sent on {date}. Sending it again gives the recipient a new link.'
     from_document: The contact has no e-mail for invoices, so the address on the document is offered.
@@ -807,7 +837,9 @@ invoice:
     not_in_trash: This invoice is not in the trash.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
-    delivered_confirm: 'Mark invoice {number} as delivered? It can no longer be deleted then.'
+    delivered_confirm: 'Mark invoice {number} as delivered?'
+    delivered_confirm_text: A delivered invoice can no longer be deleted.
+    delivered_confirm_accept: Mark as delivered
     tab:
       all: All
       overdue: Overdue
@@ -1191,7 +1223,10 @@ import:
     too_large: The file is larger than 50 MB. Split it into smaller parts.
   cancel:
     button: Cancel import
-    confirm: Do you really want to cancel the import? Nothing will be written.
+    confirm: Cancel the import?
+    confirm_text: Nothing will be written.
+    confirm_accept: Cancel import
+    confirm_cancel: Continue the import
   file:
     title: File
     change: Change
@@ -1365,7 +1400,10 @@ import:
       text: Created records are archived, updated ones get their previous values back and archived ones are restored. Records someone changed in the meantime stay as they are.
       deadline: 'The import can be undone until {date}.'
       button: Undo import
-      confirm: Do you really want to undo the import?
+      confirm: Undo the import?
+      confirm_text: Created records are archived and changed ones get their previous values.
+      confirm_accept: Undo import
+      confirm_cancel: Keep import
     done: Done
   notice:
     finished: 'The import of {name} is done.'
