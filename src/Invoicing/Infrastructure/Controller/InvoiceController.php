@@ -50,6 +50,7 @@ use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\UnknownLegalEntity;
@@ -117,6 +118,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoicePdf $pdf,
         private readonly InvoiceSends $sends,
         private readonly InvoiceHistory $history,
+        private readonly FirmBankAccounts $accounts,
     ) {
     }
 
@@ -304,7 +306,7 @@ final class InvoiceController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         // The firm got its first account in another tab while this form was open.
         if (!$context->invoice instanceof Invoice && '' === $request->request->getString('bankAccount')) {
-            $request->request->set('bankAccount', $context->firm->bankAccounts()[0] ?? '');
+            $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
         }
         $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
@@ -874,13 +876,13 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * The accounts of the firm, and the one on the document, which the firm may have dropped.
+     * The active accounts of the firm, and the one on the document, which the firm may have archived.
      *
      * @return array<string, string>
      */
     private function bankAccounts(InvoiceFormContext $context): array
     {
-        $accounts = $context->firm->bankAccounts();
+        $accounts = $this->accounts->ibansOf($context->firm);
         $own = $context->invoice?->bankAccount();
         if (null !== $own && !\in_array($own, $accounts, true)) {
             $accounts[] = $own;

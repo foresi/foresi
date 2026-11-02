@@ -12,8 +12,6 @@ use App\Party\Application\FirmImageType;
 use App\Party\Application\LegalEntityInput;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
-use App\Party\Domain\Iban;
-use App\Party\Domain\InvalidIban;
 use App\Party\Domain\InvalidRegistrationNumber;
 use App\Party\Domain\InvalidVatId;
 use App\Party\Domain\RegistrationNumber;
@@ -51,7 +49,6 @@ final readonly class LegalEntitySubmissionReader
             'postalCode' => trim($post->getString('postalCode')),
             'countryCode' => $this->country($post->getString('countryCode')),
             'registerEntry' => trim($post->getString('registerEntry')),
-            'bankAccounts' => trim($post->getString('bankAccounts')),
             'removeLogo' => $post->has('removeLogo') ? '1' : '',
             'removeStamp' => $post->has('removeStamp') ? '1' : '',
         ];
@@ -77,7 +74,6 @@ final readonly class LegalEntitySubmissionReader
 
         $registrationNumber = $this->registrationNumber($values, $errors);
         $vatId = $this->vatId($values, $status, $errors);
-        $accounts = $this->bankAccounts($values['bankAccounts'], $errors);
         $logo = $this->image($request, 'logo', $errors);
         $stamp = $this->image($request, 'stamp', $errors);
 
@@ -92,7 +88,6 @@ final readonly class LegalEntitySubmissionReader
             new Address($values['street'], $values['city'], $values['postalCode'], $values['countryCode']),
             $status,
             $values['registerEntry'],
-            $accounts,
         ), $logo, $stamp);
     }
 
@@ -186,31 +181,5 @@ final readonly class LegalEntitySubmissionReader
 
             return null;
         }
-    }
-
-    /**
-     * @param array<string, array{0: string, 1?: array<string, string>}> $errors
-     *
-     * @return list<string>
-     */
-    private function bankAccounts(string $text, array &$errors): array
-    {
-        $accounts = [];
-        foreach (explode("\n", $text) as $line) {
-            $line = trim($line);
-            if ('' === $line) {
-                continue;
-            }
-
-            try {
-                $accounts[] = Iban::fromString($line)->toString();
-            } catch (InvalidIban) {
-                $errors['bankAccounts'] = ['firm.error.iban', ['iban' => $line]];
-
-                return [];
-            }
-        }
-
-        return $accounts;
     }
 }

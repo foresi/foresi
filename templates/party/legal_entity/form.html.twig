@@ -62,7 +62,13 @@
         <twig:Ui:Card :title="'firm.card.documents'|trans" icon="file-pen-line">
             <div class="grid gap-3">
                 <twig:Ui:TextInput name="registerEntry" id="registerEntry" :label="'firm.field.registerEntry'|trans" :help="'firm.field.registerEntry_help'|trans" :value="values.registerEntry" :error="errors.registerEntry|default(null)" maxlength="255" />
-                <twig:Ui:Textarea name="bankAccounts" id="bankAccounts" :label="'firm.field.bankAccounts'|trans" :help="'firm.field.bankAccounts_help'|trans" :value="values.bankAccounts" :error="errors.bankAccounts|default(null)" :rows="3" />
+                <div id="bank-accounts-note">
+                    <p class="m-0 text-small font-medium text-ink">{{ 'bank.account.firm_form.label'|trans }}</p>
+                    <p class="m-0 mt-1 text-small text-muted">
+                        {{- 'bank.account.firm_form.text'|trans -}}
+                        {% if bankUrl|default(null) %} <a href="{{ bankUrl }}" class="font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'bank.account.firm_form.link'|trans }}</a>{% endif %}
+                    </p>
+                </div>
             </div>
         </twig:Ui:Card>
 

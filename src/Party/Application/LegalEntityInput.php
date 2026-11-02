@@ -18,9 +18,6 @@ use App\Party\Domain\VatStatus;
  */
 final readonly class LegalEntityInput
 {
-    /**
-     * @param list<string> $bankAccounts IBANs
-     */
     public function __construct(
         public string $name,
         public RegistrationNumber $registrationNumber,
@@ -28,7 +25,6 @@ final readonly class LegalEntityInput
         public Address $address,
         public VatStatus $vatStatus,
         public string $registerEntry,
-        public array $bankAccounts,
     ) {
     }
 }

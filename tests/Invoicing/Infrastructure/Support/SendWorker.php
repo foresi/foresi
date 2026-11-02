@@ -43,6 +43,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -82,8 +83,9 @@ abstract class SendWorker extends KernelTestCase
         $tool->createSchema($metadata);
         $tenant = TenantId::generate();
         $container->get(TenantContext::class)->switchTo($tenant);
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register', [self::IBAN]);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
+        FirmAccounts::add($em, $firm, self::IBAN);
         $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

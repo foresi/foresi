@@ -242,7 +242,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
     public function testASeriesOfAnotherFirmIsRefusedOnTheAggregate(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $other = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register', []);
+        $other = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
         $this->em->persist($other);
         $series = $this->seriesOf($other);
 

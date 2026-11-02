@@ -18,6 +18,7 @@ Planned as 0.5.0: the first release with invoices.
 - The worker command is now `messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600`: it delivers mail and runs the timed jobs. Update your systemd or supervisor unit.
 - PDFs as sent are kept in `var/share/<env>/sent-documents`. Include that directory in backups, together with the database.
 - The tests of the PDF and of the ISDOC file use veraPDF, Poppler and the ISDOC schema when they are installed (see CONTRIBUTING.md); CI requires them.
+- A firm's bank accounts move from the list on the firm into records of their own. The migration keeps their order, makes the first one the primary account and sets every account to CZK, as the list held no currency: set the currency of each EUR or USD account in the firm's bank settings.
 
 ### Added
 
@@ -54,6 +55,7 @@ Planned as 0.5.0: the first release with invoices.
 - An identified person cannot issue invoices yet; the save is refused until the rules for it are reviewed.
 - Text that the PDF font cannot print is refused when an invoice is saved, with the field and the characters named, so that the PDF and the ISDOC file never differ. Text in scripts such as Chinese or Arabic cannot be used in invoices yet.
 - All firms now edits the document defaults, invoicing e-mails and archive state a contact shares, which the form did not offer before.
+- A firm's bank accounts are records: each has a currency and a label, one is the primary account that new invoices get, and an account is archived instead of deleted, so documents keep it. The firm form no longer lists them.
 
 ## [0.4.0] - 2026-11-01
 

@@ -53,7 +53,7 @@ final class NumberCounterTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
         self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);
         $this->em->flush();
     }

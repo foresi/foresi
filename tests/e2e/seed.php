@@ -55,6 +55,8 @@ use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
+use App\Party\Domain\FirmBankAccount;
+use App\Party\Domain\Iban;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -134,6 +136,14 @@ $sending = $tenantWithOwner('Example Sending', 'sending@example.com', 'Sending E
 $dialogs = $tenantWithOwner('Example Dialogs', 'dialogs@example.com', 'Dialogs Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
+// The firm's one bank account, the primary one; the firm itself is persisted by the caller.
+$firmAccount = static function (LegalEntity $firm) use ($entityManager): LegalEntity {
+    $account = FirmBankAccount::open($firm, Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
+    $account->markPrimary(true);
+    $entityManager->persist($account);
+
+    return $firm;
+};
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
 $party = static fn (PartyKind $kind, string $name, array $roles, string $email, int $n, ?string $registration = null, ?string $vat = null): PartyInput => new PartyInput(
     $kind,
@@ -178,17 +188,17 @@ $context->reset();
 
 $context->switchTo($group);
 foreach (['Example Trading s.r.o.' => '12345695', 'Example International Services and Holding s.r.o.' => '12345687'] as $name => $number) {
-    $entityManager->persist(new LegalEntity($name, new RegistrationNumber('CZ', $number), null, $address(1), VatStatus::NotRegistered, '', []));
+    $entityManager->persist(new LegalEntity($name, new RegistrationNumber('CZ', $number), null, $address(1), VatStatus::NotRegistered, ''));
 }
 $entityManager->flush();
 $createParty->createFrom($party(PartyKind::Company, 'Example Partner s.r.o.', [PartyRole::Customer], 'partner@example.com', 1, '12345679'));
 $context->reset();
 
 $context->switchTo($invoicing);
-$entityManager->persist(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234', ['CZ6508000000192000145399']));
-$entityManager->persist(new LegalEntity('Example Small Trader', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register', ['CZ6508000000192000145399']));
+$entityManager->persist($firmAccount(new LegalEntity('Example Payer s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 1234')));
+$entityManager->persist($firmAccount(new LegalEntity('Example Small Trader', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register')));
 $entityManager->flush();
-$entityManager->persist(new LegalEntity('Example No Account s.r.o.', new RegistrationNumber('CZ', '12345679'), null, $address(3), VatStatus::NotRegistered, '', []));
+$entityManager->persist(new LegalEntity('Example No Account s.r.o.', new RegistrationNumber('CZ', '12345679'), null, $address(3), VatStatus::NotRegistered, ''));
 $payerFirm = $entityManager->getRepository(LegalEntity::class)->findOneBy(['name' => 'Example Payer s.r.o.']) ?? throw new LogicException('The payer firm is missing.');
 $standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $standard->markDefault();
@@ -217,8 +227,9 @@ $sender = new Tenant(TenantId::generate(), 'Example Sender', new DateTimeImmutab
 $entityManager->persist($sender);
 $entityManager->flush();
 $context->switchTo($sender->id());
-$senderFirm = new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 5678', ['CZ6508000000192000145399']);
+$senderFirm = new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 5678');
 $entityManager->persist($senderFirm);
+$firmAccount($senderFirm);
 $senderSeries = new Series($senderFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $senderSeries->markDefault();
 $entityManager->persist($senderSeries);
@@ -242,14 +253,16 @@ file_put_contents(dirname(__DIR__, 2).'/var/e2e-links.json', json_encode([
 // and a customer with an address for invoices and one for a copy. Its invoices are
 // issued here, so the specs of the other tenants see nothing of them.
 $context->switchTo($sending);
-$sendingFirm = new LegalEntity('Example Sending s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 9012', ['CZ6508000000192000145399']);
+$sendingFirm = new LegalEntity('Example Sending s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 9012');
 $entityManager->persist($sendingFirm);
+$firmAccount($sendingFirm);
 $sendingSeries = new Series($sendingFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $sendingSeries->markDefault();
 $entityManager->persist($sendingSeries);
 $entityManager->persist(FirmMailServer::define($sendingFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Sending s.r.o.'));
-$quietFirm = new LegalEntity('Example Quiet s.r.o.', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register', ['CZ6508000000192000145399']);
+$quietFirm = new LegalEntity('Example Quiet s.r.o.', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register');
 $entityManager->persist($quietFirm);
+$firmAccount($quietFirm);
 $quietSeries = new Series($quietFirm, Series::STANDARD, SeriesFormat::fromString('Q{YYYY}{NNNN}'), DocumentKind::Invoice);
 $quietSeries->markDefault();
 $entityManager->persist($quietSeries);
@@ -276,8 +289,9 @@ $context->reset();
 // The tenant of the dialog specs: a firm with a mail server and a customer, and three
 // invoices to send, to move to the trash and to mark delivered in dialogs.
 $context->switchTo($dialogs);
-$dialogFirm = new LegalEntity('Example Dialogs s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(3), VatStatus::Registered, 'Example register, entry C 3456', ['CZ6508000000192000145399']);
+$dialogFirm = new LegalEntity('Example Dialogs s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(3), VatStatus::Registered, 'Example register, entry C 3456');
 $entityManager->persist($dialogFirm);
+$firmAccount($dialogFirm);
 $dialogSeries = new Series($dialogFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
 $dialogSeries->markDefault();
 $entityManager->persist($dialogSeries);

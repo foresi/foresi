@@ -46,6 +46,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -470,8 +471,9 @@ final class SendLogControllerTest extends WebTestCase
     private function firmWithServer(string $name, string $registrationNumber): array
     {
         $em = $this->em();
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $registrationNumber), VatId::fromString('CZ'.$registrationNumber), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $registrationNumber), VatId::fromString('CZ'.$registrationNumber), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $em->persist($firm);
+        FirmAccounts::add($em, $firm, self::IBAN);
         $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $series->markDefault();
         $em->persist($series);

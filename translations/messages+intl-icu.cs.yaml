@@ -427,8 +427,6 @@ firm:
     vatStatus: Vztah k DPH
     registerEntry: Zápis v rejstříku
     registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
-    bankAccounts: Bankovní účty
-    bankAccounts_help: 'IBAN, každý na samostatný řádek'
     logo: Logo
     logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
     logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
@@ -454,7 +452,6 @@ firm:
     registration_taken: Toto IČO už má jiná firma.
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
-    iban: 'Zkontrolujte IBAN: {iban}'
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
     image_type: Nahrajte obrázek PNG nebo JPEG.
@@ -581,6 +578,19 @@ firm:
       constant_symbol: Zadejte nejvýš 10 číslic.
       email: Zadejte platný e-mail.
       save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+bank:
+  account:
+    firm_form:
+      label: Bankovní účty
+      text: Bankovní účty firmy jsou v jejím nastavení banky.
+      link: Otevřít nastavení banky
+    refused:
+      invalid_iban: Zadejte IBAN nebo tuzemské číslo účtu s kódem banky.
+      duplicate: Firma už tento účet má, možná archivovaný.
+      currency_locked: Účet už má bankovní pohyby, proto jeho měna zůstává.
+      archived_primary: Archivovaný účet nemůže být hlavní. Nejdřív ho obnovte.
+      unknown_currency: Vyberte jednu z nabízených měn.
+
 series:
   title: Číselné řady
   new: Nová číselná řada

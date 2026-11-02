@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
@@ -18,6 +19,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Party\Infrastructure\Support\RacingLegalEntities;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\TransactionRequiredException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -168,7 +170,6 @@ final class LegalEntityControllerTest extends WebTestCase
             'registrationNumber' => '1234 5687',
             'vatId' => 'cz 12345687',
             'registerEntry' => 'Register entry C 1234',
-            'bankAccounts' => self::IBAN."\n\n",
         ]);
 
         self::assertResponseRedirects('/settings/firms');
@@ -181,8 +182,9 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame('CZ12345687', $firm->vatId()?->toString());
         self::assertSame(VatStatus::Registered, $firm->vatStatus());
         self::assertSame('Register entry C 1234', $firm->registerEntry());
-        self::assertSame([self::IBAN_STORED], $firm->bankAccounts());
         self::assertSame('Example City', $firm->address()->city);
+        $this->context->switchTo($this->tenant);
+        self::assertSame([], $this->accounts()->of($firm), 'the firm form opens no bank account');
     }
 
     public function testANonPayerFirmSavesWithoutAVatNumber(): void
@@ -214,13 +216,12 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->signIn();
 
-        $this->submitNew(['name' => '', 'registrationNumber' => '', 'vatId' => '123', 'street' => '', 'bankAccounts' => 'CZ00 nonsense', 'vatStatus' => 'nonsense']);
+        $this->submitNew(['name' => '', 'registrationNumber' => '', 'vatId' => '123', 'street' => '', 'vatStatus' => 'nonsense']);
 
         self::assertResponseStatusCodeSame(422);
-        foreach (['name', 'registrationNumber', 'vatId', 'street', 'bankAccounts', 'vatStatus'] as $field) {
+        foreach (['name', 'registrationNumber', 'vatId', 'street', 'vatStatus'] as $field) {
             self::assertSelectorExists('#'.$field.'[aria-invalid="true"]');
         }
-        self::assertSelectorTextContains('#bankAccounts', 'CZ00 nonsense');
         self::assertSame(0, $this->firmCount());
     }
 
@@ -262,20 +263,27 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', $this->tenant, '12345695');
+        $this->context->switchTo($this->tenant);
+        FirmAccounts::add($this->em(), self::getContainer()->get(LegalEntities::class)->get($firm->id()), self::IBAN);
+        $this->em()->flush();
+        $this->context->reset();
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('#lookup');
         self::assertSame('12345695', $crawler->filter('#registrationNumber')->attr('value'));
+        self::assertSelectorNotExists('#bankAccounts');
+        self::assertSelectorTextContains('#bank-accounts-note', 'The firm\'s bank accounts are kept in its bank settings.');
 
-        $this->client->submit($crawler->filter('main form[data-controller]')->form(['name' => 'Renamed Firm', 'vatStatus' => 'not_registered', 'vatId' => '', 'bankAccounts' => self::IBAN]));
+        $this->client->submit($crawler->filter('main form[data-controller]')->form(['name' => 'Renamed Firm', 'vatStatus' => 'not_registered', 'vatId' => '']));
 
         self::assertResponseRedirects('/settings/firms');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The changes are saved.');
         $stored = $this->storedFirm();
         self::assertSame('Renamed Firm', $stored->name());
-        self::assertSame([self::IBAN_STORED], $stored->bankAccounts());
+        $this->context->switchTo($this->tenant);
+        self::assertSame([self::IBAN_STORED], $this->accounts()->ibansOf($stored), 'saving the firm keeps its accounts');
         self::assertSame('12345695', $stored->registrationNumber()->value);
     }
 
@@ -532,7 +540,7 @@ final class LegalEntityControllerTest extends WebTestCase
     {
         $em = $this->em();
         $this->context->switchTo($tenant);
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
         $em->flush();
         $this->context->reset();
@@ -606,6 +614,11 @@ final class LegalEntityControllerTest extends WebTestCase
     private function firmCount(): int
     {
         return \count($this->em()->getConnection()->fetchFirstColumn('SELECT id FROM legal_entity'));
+    }
+
+    private function accounts(): FirmBankAccounts
+    {
+        return self::getContainer()->get(FirmBankAccounts::class);
     }
 
     private function em(): EntityManagerInterface

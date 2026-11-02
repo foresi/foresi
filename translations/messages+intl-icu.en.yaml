@@ -427,8 +427,6 @@ firm:
     vatStatus: VAT status
     registerEntry: Register entry
     registerEntry_help: The register and file number, as printed on documents
-    bankAccounts: Bank accounts
-    bankAccounts_help: 'IBAN, one per line'
     logo: Logo
     logo_help: 'PNG or JPEG, up to 1 MB'
     logo_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
@@ -454,7 +452,6 @@ firm:
     registration_taken: Another firm already has this registration number.
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
-    iban: 'Check the IBAN: {iban}'
     save_failed: The firm could not be saved. Check the details and try again.
     last_active: The last active firm cannot be archived. Add another firm first.
     image_type: Upload a PNG or JPEG image.
@@ -581,6 +578,19 @@ firm:
       constant_symbol: Enter up to 10 digits.
       email: Enter a valid e-mail address.
       save_failed: The settings could not be saved. Try it again.
+bank:
+  account:
+    firm_form:
+      label: Bank accounts
+      text: The firm's bank accounts are kept in its bank settings.
+      link: Open the bank settings
+    refused:
+      invalid_iban: Enter an IBAN or a domestic account number with its bank code.
+      duplicate: The firm already has this account, maybe archived.
+      currency_locked: The account already has bank movements, so its currency stays.
+      archived_primary: An archived account cannot be the primary one. Restore it first.
+      unknown_currency: Choose one of the offered currencies.
+
 series:
   title: Number series
   new: New series

@@ -23,7 +23,6 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await page.locator('#postalCode').fill('100 00');
   await page.locator('#vatStatus').selectOption('registered');
   await page.locator('#registerEntry').fill('Example register, entry C 7');
-  await page.locator('#bankAccounts').fill('CZ65 0800 0000 1920 0014 5399');
   await page.locator('button[type=submit]').last().click();
   await expect(page).toHaveURL(/\/settings\/firms$/);
 
@@ -52,6 +51,8 @@ test('an empty organisation gets from nothing to the first invoice and its PDF',
   await expect(dialog).toBeHidden();
   await expect(page.locator('#customer')).toHaveValue('Example First Customer s.r.o.');
 
+  // A new firm has no bank account yet, so the first invoice is paid in cash.
+  await page.locator('#paymentMethod').selectOption('cash');
   await page.locator('#lines-0-text').fill('První práce');
   await page.locator('#lines-0-price').fill('1000');
   await page.locator('#invoice-more').click();

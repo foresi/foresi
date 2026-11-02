@@ -27,6 +27,7 @@ use App\Party\Domain\VatStatus;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Invoicing\Application\InvoiceTestCase;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Driver\Exception as DriverFailure;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
@@ -372,8 +373,9 @@ final class InvoicePersistenceTest extends InvoiceTestCase
 
     private function secondFirm(): LegalEntity
     {
-        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), VatId::fromString('CZ27074358'), $this->firm->address(), VatStatus::Registered, 'Register', [self::IBAN]);
+        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), VatId::fromString('CZ27074358'), $this->firm->address(), VatStatus::Registered, 'Register');
         $this->em->persist($firm);
+        FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();
 
         return $firm;

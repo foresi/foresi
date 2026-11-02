@@ -52,6 +52,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -376,7 +377,7 @@ final class InvoiceControllerTest extends WebTestCase
         $source = $this->issued();
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), new Address('Street 1', 'City', '100 00', 'DE'), $firm->vatStatus(), $firm->registerEntry(), $firm->bankAccounts());
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), new Address('Street 1', 'City', '100 00', 'DE'), $firm->vatStatus(), $firm->registerEntry());
             $this->em()->flush();
         });
 
@@ -760,7 +761,7 @@ final class InvoiceControllerTest extends WebTestCase
         $values = $this->openEdit($invoice);
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry(), $firm->bankAccounts());
+            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry());
             $this->em()->flush();
         });
 
@@ -922,7 +923,8 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), '', []);
+            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), '');
+            FirmAccounts::archiveAll($this->em(), $firm);
             $this->em()->flush();
         });
 
@@ -1623,7 +1625,7 @@ final class InvoiceControllerTest extends WebTestCase
         $invoice = $this->issued();
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry(), $firm->bankAccounts());
+            $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry());
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
             $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
             $this->em()->flush();
@@ -1640,7 +1642,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $values = $this->openNew();
         $foreign = $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Slovak s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register', []);
+            $firm = new LegalEntity('Example Slovak s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register');
             $this->em()->persist($firm);
             $this->em()->flush();
 
@@ -2045,8 +2047,9 @@ final class InvoiceControllerTest extends WebTestCase
         $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
         $this->context->switchTo($tenant);
         try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register', [self::IBAN]);
+            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
             $this->em()->persist($firm);
+            FirmAccounts::add($this->em(), $firm, self::IBAN);
             $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $series->markDefault();
             $this->em()->persist($series);
@@ -2192,8 +2195,9 @@ final class InvoiceControllerTest extends WebTestCase
         [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
         $this->context->switchTo($this->tenant);
         $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345695') : null;
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 1', [self::IBAN]);
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $vatId, $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
+        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
         if ($series) {
             $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $this->series->markDefault();
@@ -2212,7 +2216,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $this->scoped(function (): void {
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
-            $firm->update($firm->name(), $firm->registrationNumber(), $firm->vatId(), $firm->address(), $firm->vatStatus(), $firm->registerEntry(), []);
+            FirmAccounts::archiveAll($this->em(), $firm);
             $this->em()->flush();
         });
     }
@@ -2259,8 +2263,9 @@ final class InvoiceControllerTest extends WebTestCase
     {
         return $this->scoped(function () use ($status): LegalEntity {
             $vatId = VatStatus::Registered === $status ? VatId::fromString('CZ12345687') : null;
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), $vatId, new Address('Example Street 2', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 2', [self::OTHER_IBAN]);
+            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), $vatId, new Address('Example Street 2', 'Example City', '100 00', 'CZ'), $status, 'Example register, entry C 2');
             $this->em()->persist($firm);
+            FirmAccounts::add($this->em(), $firm, self::OTHER_IBAN);
             $this->em()->flush();
 
             return $firm;
@@ -2271,7 +2276,7 @@ final class InvoiceControllerTest extends WebTestCase
     {
         $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
         $this->context->switchTo($tenant);
-        $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+        $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em()->persist($firm);
         $this->em()->flush();
         $this->context->reset();

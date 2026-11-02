@@ -40,6 +40,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\PdfTools;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -374,8 +375,9 @@ final class InvoiceExportControllerTest extends WebTestCase
     private function otherFirm(): LegalEntity
     {
         return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Other s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2', [self::IBAN]);
+            $firm = new LegalEntity('Example Other s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
             $this->em()->persist($firm);
+            FirmAccounts::add($this->em(), $firm, self::IBAN);
             $this->em()->flush();
 
             return $firm;
@@ -387,7 +389,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
         $this->context->switchTo($tenant);
         try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
             $this->em()->persist($firm);
             $this->em()->flush();
 
@@ -401,8 +403,9 @@ final class InvoiceExportControllerTest extends WebTestCase
     {
         [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
         $this->context->switchTo($this->tenant);
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
+        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
         $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);

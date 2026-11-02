@@ -113,7 +113,7 @@ final class MailWiringTest extends KernelTestCase
 
     private function server(): FirmMailServer
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
 
         return FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'user', 'k1:sealed', 'invoices@example.com', 'Example Firm');
     }

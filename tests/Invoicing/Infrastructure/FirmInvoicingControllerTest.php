@@ -558,7 +558,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
     private function firm(TenantId $tenant, string $number = '12345695'): LegalEntity
     {
         $this->context->switchTo($tenant);
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em()->persist($firm);
         $this->em()->flush();
         $this->context->reset();

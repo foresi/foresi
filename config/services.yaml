@@ -69,6 +69,13 @@ services:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
 
+    App\Party\Application\ManageFirmBankAccounts:
+        arguments:
+            $domesticAccounts: !tagged_iterator app.domestic_bank_account
+    # No account has bank movements until banking records them.
+    App\Party\Application\BankAccountUsage:
+        alias: App\Party\Application\NoBankAccountUsage
+
     App\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country

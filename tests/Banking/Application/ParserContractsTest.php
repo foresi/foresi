@@ -104,7 +104,7 @@ final class ParserContractsTest extends TestCase
 
     public function testEveryFirmPairsAutomaticallyAndSettlesNoDifferenceByDefault(): void
     {
-        $firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
 
         $rules = new DefaultPairingRules()->for($firm);
 

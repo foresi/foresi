@@ -132,7 +132,7 @@ final class CustomerPickerControllerTest extends WebTestCase
     private function firm(TenantId $tenant): LegalEntity
     {
         $this->context->switchTo($tenant);
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em()->persist($firm);
         $party = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), null, '');
         $this->em()->persist($party);

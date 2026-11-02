@@ -24,12 +24,14 @@ use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -134,7 +136,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
         self::assertSame(['invoice.copy.series_archived'], $draft->notices);
     }
 
-    public function testAKeptAccountStaysUntilTheFirmDropsIt(): void
+    public function testAKeptAccountStaysUntilTheFirmArchivesIt(): void
     {
         $source = $this->source(['bankAccount' => self::SECOND_IBAN, 'paymentMethod' => PaymentMethod::BankTransfer]);
         self::assertSame(self::SECOND_IBAN, $this->copy->valuesFrom($source)->bankAccount);
@@ -308,12 +310,24 @@ final class CopyInvoiceTest extends InvoiceTestCase
     }
 
     /**
-     * @param list<string> $accounts
+     * @param list<string> $accounts the active accounts the firm has afterwards; the others are archived
      */
     private function firmChanged(VatStatus $status, array $accounts, ?string $vatId = 'CZ12345695'): void
     {
         $firm = $this->firm;
-        $firm->update($firm->name(), $firm->registrationNumber(), VatStatus::Registered === $status ? \App\Party\Domain\VatId::fromString($vatId ?? '') : null, $firm->address(), $status, $firm->registerEntry(), $accounts);
+        $firm->update($firm->name(), $firm->registrationNumber(), VatStatus::Registered === $status ? \App\Party\Domain\VatId::fromString($vatId ?? '') : null, $firm->address(), $status, $firm->registerEntry());
+        $kept = [];
+        foreach (self::getContainer()->get(FirmBankAccounts::class)->of($firm, withArchived: true) as $account) {
+            if (\in_array($account->iban(), $accounts, true)) {
+                $account->restore();
+                $kept[] = $account->iban();
+            } else {
+                $account->archive(new \DateTimeImmutable('2027-01-01'));
+            }
+        }
+        foreach (array_diff($accounts, $kept) as $iban) {
+            FirmAccounts::add($this->em, $firm, $iban);
+        }
         $this->em->flush();
     }
 

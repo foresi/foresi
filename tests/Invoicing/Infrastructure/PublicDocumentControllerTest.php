@@ -47,6 +47,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -500,8 +501,9 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $container = self::getContainer();
         $em = $this->browser->em();
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $em->persist($firm);
+        FirmAccounts::add($em, $firm, self::IBAN);
         $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

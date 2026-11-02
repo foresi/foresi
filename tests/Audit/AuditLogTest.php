@@ -16,6 +16,8 @@ use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\FirmBankAccount;
+use App\Party\Domain\Iban;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -236,15 +238,16 @@ final class AuditLogTest extends KernelTestCase
         $user = new User('testing@example.com', 'hash-that-must-not-matter', 'Example Company');
         $this->em->persist($user);
         $this->em->persist($party);
-        $this->em->persist(new LegalEntity(
+        $firm = new LegalEntity(
             'Example Company',
             new RegistrationNumber('CZ', '12345695'),
             null,
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             VatStatus::IdentifiedPerson,
             'Register entry 1',
-            ['DE89370400440532013000'],
-        ));
+        );
+        $this->em->persist($firm);
+        $this->em->persist(FirmBankAccount::open($firm, Iban::fromString('DE89 3704 0044 0532 0130 00'), Currency::EUR, '', 0));
         $this->em->persist(new Membership($user, Role::Owner, $party));
         $this->em->flush();
 
@@ -252,7 +255,9 @@ final class AuditLogTest extends KernelTestCase
         foreach ($this->entries() as $entry) {
             $byClass[$entry->entityClass()] = $entry->changes();
         }
-        self::assertSame([null, ['DE89370400440532013000']], $byClass[LegalEntity::class]['bankAccounts']);
+        self::assertSame([null, 'DE89370400440532013000'], $byClass[FirmBankAccount::class]['iban']);
+        self::assertSame([null, 'EUR'], $byClass[FirmBankAccount::class]['currency']);
+        self::assertSame([null, $firm->id()], $byClass[FirmBankAccount::class]['firm']);
         self::assertSame([null, 'identified_person'], $byClass[LegalEntity::class]['vatStatus']);
         self::assertSame([null, '12345695'], $byClass[LegalEntity::class]['registrationNumber.value']);
         self::assertSame([null, $this->partyId($party)], $byClass[Membership::class]['party']);
