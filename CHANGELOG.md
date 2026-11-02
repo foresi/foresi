@@ -27,6 +27,10 @@ Planned as 0.5.0: the first release with invoices.
 - The invoice list with the tabs All, Overdue and Trash, search, a firm filter and row actions. A deletion asks for a reason, the trash shows who deleted a document, when and why, and each invoice has a history of who changed what, its lines included.
 - Copying an invoice: the form opens unsaved with the customer as the contact reads now, today's dates and the next number, and says when the lines hold a date or when the firm, series or customer can no longer be used.
 - The invoice form: save issues the document, with live totals from the server, a customer picker per firm, reverse charge with its supply code, and a form without VAT for a non-payer firm.
+- Any active contact can be invoiced, whatever its role; contacts archived for the firm cannot. Customers come first in the picker, and a saved invoice makes the contact a customer of that firm.
+- A contact created with the plus on the invoice form comes back picked, with its defaults, while the form keeps what was typed.
+- Numbers in the line fields are grouped as you type. The fields and the server read `1 000,50`, `1000.5` and `1,000.50`.
+- Every invoice shows one status on the list, the form and the history: issued, delivered, overdue or in the trash.
 - Number series per firm under the new Invoicing tab of a firm: format with date tokens and one sequence, default series, next number. A number is never used twice, the sequence restarts each year when the format has a year, and the format locks once the series has numbers. Deleted invoices go to a trash that keeps their number, and a number an edit gave up stays taken. See [docs/adr/0013-invoice-numbers-and-trash.md](docs/adr/0013-invoice-numbers-and-trash.md).
 - Invoicing settings per firm: rounding of the total, constant symbol, texts above and below the items, and the contact printed on invoices.
 - A logo and an image with stamp and signature on the firm form. PNG or JPEG in RGB, up to 1 MB and 3000 x 3000 pixels. Both stay outside the web root in `var/share/prod/firm-images`, so include that directory in backups.
@@ -36,6 +40,10 @@ Planned as 0.5.0: the first release with invoices.
 - SQLite 3.35 or newer is required, for the atomic counter of number series.
 - The firm sections of the contact form are replaced by a scope per panel. With two or more active firms, the panels for roles, document defaults, invoicing e-mails and archive state have a dropdown: all firms, or one firm. A firm can use the shared values or have its own, for example a supplier for one firm and a customer for the other. Everything is saved with the form. A contact archived for all firms stays archived for every firm. The address book list stays on the shared values.
 - The sidebar is grouped around documents and settings. Invoices are under Sales (Prodej), the address book under Contacts (Adresář), and Settings at the bottom holds Firms and the new item Import and export, which opens the history of imports. A group without items is not shown. The firm page has two tabs, Details and Invoicing, in place of a button; the invoicing tab holds the settings and the series. All addresses stay as they were.
+- Firms is now My firms (Moje firmy) in the interface, and its empty text says these are your own companies that issue documents.
+- An error about the firm links to the firm's settings in a new tab, and a firm without a bank account says so in the payment section before the save. Every link in the error list lands on a field that takes the focus.
+- The lines of the invoice form: the discount opens per line, moving and removing a line are in a row menu, and the total reads with VAT for a payer. Amounts on screen show Kč for CZK; the PDF is unchanged.
+- The order number and the description moved into More details, which opens when it holds something other than the defaults, or a mistake.
 - An identified person cannot issue invoices yet; the save is refused until the rules for it are reviewed.
 - Text that the PDF font cannot print is refused when an invoice is saved, with the field and the characters named, so that the PDF and the ISDOC file never differ. Text in scripts such as Chinese or Arabic cannot be used in invoices yet.
 - All firms now edits the document defaults, invoicing e-mails and archive state a contact shares, which the form did not offer before.

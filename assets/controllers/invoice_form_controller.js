@@ -5,6 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 
 const RECOUNT_DELAY = 250;
 const MAX_SYMBOL_DIGITS = 10;
+const CONTACT_CHANNEL = 'foresi-contact-created';
 
 /**
  * The live part of the invoice form, which works without it through the server's
@@ -23,7 +24,7 @@ export default class extends Controller {
     ];
 
     static values = {
-        recountUrl: String, numberUrl: String, contactUrl: String, firm: String, editing: Boolean, payer: Boolean,
+        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, firm: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
         registrationLabel: String, vatLabel: String, unsaved: Boolean,
         maxLines: Number, newLineVat: String, dueDateSet: Boolean,
@@ -38,6 +39,8 @@ export default class extends Controller {
         this.dueDateFollows = !this.dueDateSetValue;
         this.symbolFollows = this.hasVariableSymbolTarget && this.variableSymbolTarget.value === this.symbolOf(this.numberPeekTarget.value);
         this.showSupplyCodes();
+        this.contacts = new BroadcastChannel(CONTACT_CHANNEL);
+        this.contacts.onmessage = (event) => this.contactCreated(event.data);
         if (this.hasErrorsTarget) {
             // After the form-errors controller has placed the first invalid field.
             requestAnimationFrame(() => requestAnimationFrame(() => this.clearOfErrors(document.activeElement)));
@@ -47,6 +50,7 @@ export default class extends Controller {
     disconnect() {
         clearTimeout(this.timer);
         this.request?.abort();
+        this.contacts.close();
     }
 
     // Changes
@@ -270,6 +274,29 @@ export default class extends Controller {
         this.changed();
     }
 
+    // The plus opens the contact form in a new tab, which keeps this form. The first contact
+    // saved there comes back here; a contact saved in some other tab does not.
+    awaitContact() {
+        this.awaitingContact = true;
+    }
+
+    async contactCreated(id) {
+        if (!this.awaitingContact) {
+            return;
+        }
+        this.awaitingContact = false;
+        const url = new URL(this.customersUrlValue, window.location.origin);
+        url.searchParams.set('id', id);
+        const response = await fetch(url, { headers: { Accept: 'application/json' } });
+        const customer = response.ok ? (await response.json()).results[0] : undefined;
+        if (customer !== undefined) {
+            this.field('customerId').value = customer.id;
+            this.field('customerQuery').value = customer.label;
+            this.element.querySelector('[data-customer-candidates]')?.remove();
+            this.customerPicked({ detail: customer });
+        }
+    }
+
     customerCleared() {
         if (this.payerValue) {
             this.newLineVatValue = 'base';
@@ -365,9 +392,28 @@ export default class extends Controller {
         this.move(event.currentTarget, 1);
     }
 
+    // Hidden with a zero behind it, so a hidden field never changes the price.
+    toggleDiscount(event) {
+        const toggle = event.currentTarget;
+        const box = toggle.closest('tr').querySelector('[data-discount]');
+        const field = box.querySelector('input');
+        box.hidden = !box.hidden;
+        toggle.setAttribute('aria-expanded', box.hidden ? 'false' : 'true');
+        if (box.hidden) {
+            field.value = '';
+            this.changed();
+        } else {
+            field.select();
+        }
+    }
+
     move(button, step) {
         const row = button.closest('tr');
+        const trigger = row.querySelector('[data-dropdown-target=button]');
+        row.querySelector('[data-dropdown-target=menu]').hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
         const neighbour = step < 0 ? row.previousElementSibling : row.nextElementSibling;
+        trigger.focus();
         if (neighbour === null) {
             return;
         }
@@ -377,7 +423,7 @@ export default class extends Controller {
             neighbour.after(row);
         }
         this.renumber();
-        button.focus();
+        trigger.focus();
         this.changed();
     }
 
@@ -426,8 +472,8 @@ export default class extends Controller {
     // Names, ids and buttons follow the order on screen.
     renumber() {
         this.lineTargets.forEach((row, index) => {
-            row.querySelectorAll('[name], [id], [for], [aria-describedby], button[value]').forEach((element) => {
-                for (const attribute of ['name', 'id', 'for', 'aria-describedby']) {
+            row.querySelectorAll('[name], [id], [for], [aria-describedby], [aria-controls], [aria-labelledby], button[value]').forEach((element) => {
+                for (const attribute of ['name', 'id', 'for', 'aria-describedby', 'aria-controls', 'aria-labelledby']) {
                     if (element.hasAttribute(attribute)) {
                         element.setAttribute(attribute, element.getAttribute(attribute).replace(/lines\[[^\]]+\]/, `lines[${index}]`).replace(/lines-[^-]+-/, `lines-${index}-`));
                     }
@@ -454,6 +500,10 @@ export default class extends Controller {
         const field = document.getElementById(event.currentTarget.hash.slice(1));
         if (field === null) {
             return;
+        }
+        // A copy field of the customer shows only with the box ticked.
+        if (field.id.startsWith('customer-')) {
+            document.getElementById('customerEdit').checked = true;
         }
         for (let box = field.closest('details'); box !== null; box = box.parentElement.closest('details')) {
             box.open = true;
@@ -483,9 +533,14 @@ export default class extends Controller {
         }
         event.preventDefault();
         const row = field.closest('tr');
-        if (row !== null && field.dataset.cell === 'discount' && row === this.lineTargets.at(-1)) {
+        if (row !== null && row === this.lineTargets.at(-1) && field === this.lastCell(row)) {
             this.addLine();
         }
+    }
+
+    // The discount shows on some rows only, so the last cell depends on the row.
+    lastCell(row) {
+        return Array.from(row.querySelectorAll('[data-cell]')).filter((cell) => cell.getClientRects().length > 0).at(-1);
     }
 
     // Leaving

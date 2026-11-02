@@ -39,12 +39,12 @@ final readonly class InvoiceFigures
         $totals = $this->pricing->totals($priced, $context->regime, $context->rounding, $context->country);
 
         return [
-            'lines' => array_map(fn (PricedLine $line): array => ['total' => $this->amounts->money($line->amounts->gross)], $priced),
+            'lines' => array_map(fn (PricedLine $line): array => ['total' => $this->amounts->shown($line->amounts->gross)], $priced),
             'summaries' => $context->isPayer() ? array_map($this->summary(...), $totals->summaries) : [],
-            'net' => $this->amounts->money($totals->net),
-            'vat' => $context->isPayer() ? $this->amounts->money($totals->vat) : null,
-            'rounding' => $totals->rounding->isZero() ? null : $this->amounts->money($totals->rounding),
-            'payable' => $this->amounts->money($totals->payable),
+            'net' => $this->amounts->shown($totals->net),
+            'vat' => $context->isPayer() ? $this->amounts->shown($totals->vat) : null,
+            'rounding' => $totals->rounding->isZero() ? null : $this->amounts->shown($totals->rounding),
+            'payable' => $this->amounts->shown($totals->payable),
         ];
     }
 
@@ -53,9 +53,9 @@ final readonly class InvoiceFigures
      */
     private function summary(RateSummary $summary): array
     {
-        $vat = $summary->rate instanceof Percent ? $this->amounts->money($summary->vat) : '';
+        $vat = $summary->rate instanceof Percent ? $this->amounts->shown($summary->vat) : '';
 
-        return ['label' => $this->label($summary), 'base' => $this->amounts->money($summary->base), 'vat' => $vat];
+        return ['label' => $this->label($summary), 'base' => $this->amounts->shown($summary->base), 'vat' => $vat];
     }
 
     private function label(RateSummary $summary): string

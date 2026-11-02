@@ -23,6 +23,8 @@ use Psr\Clock\ClockInterface;
  * otherwise the value the firms share. Roles, invoicing defaults, invoicing
  * e-mails and the archive state can differ; anything else is always shared.
  * An archived contact is archived for all firms, whatever a firm has of its own.
+ * Any contact that is not archived for a firm can be invoiced by it, whatever its
+ * roles; the first document makes it a customer of that firm.
  *
  * Changing a value belongs in a unit of work. Null takes a firm back to the
  * shared value.
@@ -34,6 +36,7 @@ final readonly class ContactSettingsForFirm
         private PartyDetails $details,
         private Parties $parties,
         private ClockInterface $clock,
+        private LegalEntities $firms,
     ) {
     }
 
@@ -65,20 +68,34 @@ final readonly class ContactSettingsForFirm
         return $party->isArchived() || $this->hasOwnArchive($party, $firm);
     }
 
-    /**
-     * Whether the firm can invoice the contact: not archived for it, and a customer,
-     * which a plain contact without roles may be.
-     */
-    public function isCustomerOf(Party $party, LegalEntity $firm): bool
+    public function isCustomer(Party $party, LegalEntity $firm): bool
     {
-        return !$this->isArchivedFor($party, $firm) && $this->hasCustomerRole($party, $firm);
+        return \in_array(PartyRole::Customer, $this->rolesFor($party, $firm), true);
     }
 
-    public function hasCustomerRole(Party $party, LegalEntity $firm): bool
+    /**
+     * Adds the customer role for this firm and leaves the other roles alone. A firm with
+     * roles of its own keeps them; so does a firm among several, where the shared value
+     * would change what the contact is to the others. The only active firm has nobody
+     * else to differ from, so the shared roles change, and the address book shows them.
+     *
+     * @throws \DomainException for an archived firm, like every change here
+     */
+    public function makeCustomer(Party $party, LegalEntity $firm): void
     {
-        $roles = $this->rolesFor($party, $firm);
+        if ($this->isCustomer($party, $firm)) {
+            return;
+        }
 
-        return [] === $roles || \in_array(PartyRole::Customer, $roles, true);
+        $roles = [...$this->rolesFor($party, $firm), PartyRole::Customer];
+        if ($this->hasOwnRoles($party, $firm) || \count($this->firms->active()) > 1) {
+            $this->changeRoles($party, $firm, $roles);
+
+            return;
+        }
+
+        $this->refuseArchived($firm);
+        $party->assignRoles($roles);
     }
 
     public function hasOwnRoles(Party $party, LegalEntity $firm): bool

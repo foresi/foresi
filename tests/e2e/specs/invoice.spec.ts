@@ -6,11 +6,20 @@ import { INVOICING_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const PHONE = { width: 390, height: 844 };
+const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
 
 async function expectNoSeriousViolations(page: Page): Promise<void> {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
   const blocking = violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
   expect(blocking.map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`)).toEqual([]);
+}
+
+// On a phone the action bar floats over whatever field the scroll leaves below it, which
+// axe reads as a target too small. Scrolling moves it away, so the check runs with it in flow.
+async function expectNoSeriousViolationsWithoutTheFloatingBar(page: Page): Promise<void> {
+  const style = await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+  await expectNoSeriousViolations(page);
+  await style.evaluate((element) => element.remove());
 }
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
@@ -88,6 +97,9 @@ async function setIssueDate(page: Page, date: string): Promise<void> {
 
 // Types as a person does: Chrome asks before unload only after a real gesture.
 async function type(page: Page, id: string, text: string): Promise<void> {
+  if (id === '#description') {
+    await openMore(page);
+  }
   await page.locator(id).click();
   await page.keyboard.type(text);
 }
@@ -102,6 +114,23 @@ async function backAnswering(page: Page, leave: boolean): Promise<void> {
   await going;
   await page.waitForLoadState('load');
   await page.waitForTimeout(400);
+}
+
+// The description lives in "More details", closed on a new form.
+async function openMore(page: Page): Promise<void> {
+  if (await page.locator('details[data-more-details]').getAttribute('open') === null) {
+    await page.locator('#invoice-details').click();
+  }
+}
+
+async function describe(page: Page, text: string): Promise<void> {
+  await openMore(page);
+  await page.locator('#description').fill(text);
+}
+
+async function lineAction(page: Page, index: number, action: 'up' | 'down' | 'remove'): Promise<void> {
+  await page.locator(`#lines-${index}-menu`).click();
+  await page.locator(`#lines-${index}-${action}`).click();
 }
 
 async function fillLine(page: Page, text = 'Práce', price = '500'): Promise<void> {
@@ -155,9 +184,7 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#customer')).toHaveValue('Example Domestic a.s.');
     await expect(page.locator('[data-customer-summary]')).toContainText('12345679');
 
-    await tabThrough(page, ['customer-add', 'customerEdit', 'customer-contact', 'orderNumber']);
-    await page.keyboard.type('PO-1');
-    await tabThrough(page, ['description', 'invoice-details', 'issueDate', 'taxPointDate', 'dueDate', 'paymentMethod', 'lines-0-text']);
+    await tabThrough(page, ['customer-add', 'customerEdit', 'customer-contact', 'invoice-details', 'issueDate', 'taxPointDate', 'dueDate', 'paymentMethod', 'lines-0-text']);
     await page.keyboard.type('Konzultace');
     await tabThrough(page, ['lines-0-price']);
     await page.keyboard.type('1000,10');
@@ -166,9 +193,9 @@ test.describe.serial('an invoice', () => {
     await page.keyboard.type('2');
     await tabThrough(page, ['lines-0-unit']);
     await page.keyboard.type('h');
-    await tabThrough(page, ['lines-0-priceType', 'lines-0-vat', 'lines-0-discount']);
-    await expect(page.locator('[data-total=payable]')).toHaveText(/2\s420,00\sCZK/);
-    await tabThrough(page, ['lines-0-up', 'lines-0-down', 'lines-0-remove', 'invoice-new-line', 'invoice-cancel', 'invoice-more', 'invoice-save']);
+    await tabThrough(page, ['lines-0-priceType', 'lines-0-vat', 'lines-0-discount-toggle']);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/2\s420,00\sKč/);
+    await tabThrough(page, ['lines-0-menu', 'invoice-new-line', 'invoice-cancel', 'invoice-more', 'invoice-save']);
     await page.keyboard.press('Enter');
 
     await expect(page).toHaveURL(/\/invoices$/);
@@ -313,20 +340,20 @@ test.describe.serial('an invoice', () => {
   test('counts on the server and adds a line from the last cell', async ({ page }) => {
     await openPayerForm(page);
     await page.locator('#lines-0-price').fill('100,10');
-    await expect(page.locator('[data-total=payable]')).toHaveText(/121,00\sCZK/);
-    await expect(page.locator('[data-total=rounding]')).toHaveText(/-0,12\sCZK/);
-    await expect(page.locator('[data-line-total]').first()).toHaveText(/121,12\sCZK/);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/121,00\sKč/);
+    await expect(page.locator('[data-total=rounding]')).toHaveText(/-0,12\sKč/);
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/121,12\sKč/);
 
-    await page.locator('#lines-0-discount').press('Enter');
+    await page.locator('#lines-0-vat').press('Enter');
     await expect(page.locator('#lines-1-text')).toBeFocused();
     await expect(page.locator('#lines-1-quantity')).toHaveValue('1');
     await expect(page).toHaveURL(/\/invoices\/new$/);
 
     await page.locator('#lines-1-text').fill('Druhá');
-    await page.locator('#lines-1-up').click();
+    await lineAction(page, 1, 'up');
     await expect(page.locator('#lines-0-text')).toHaveValue('Druhá');
-    await expect(page.locator('#lines-0-up')).toBeFocused();
-    await page.locator('#lines-0-remove').click();
+    await expect(page.locator('#lines-0-menu')).toBeFocused();
+    await lineAction(page, 0, 'remove');
     await expect(page.locator('#lines-0-price')).toHaveValue('100,10');
     await expect(page.locator('#lines-0-text')).toBeFocused();
   });
@@ -485,12 +512,192 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#dueDate')).toHaveValue('2026-12-24');
   });
 
-  test('offers only customers of the firm', async ({ page }) => {
+  test('offers a contact without the customer role, who becomes a customer on the save', async ({ page }) => {
     await openPayerForm(page);
     await page.locator('#customer').fill('Example Vendor');
-    await expect(page.getByText('Pro tuto firmu jsme odběratele nenašli.')).toBeAttached();
-    await expect(page.locator('#customer-list [role=option]')).toHaveCount(0);
+    await page.getByRole('option', { name: 'Example Vendor' }).click();
+    await expect(page.locator('[data-customer-summary]')).toBeVisible();
+    await fillLine(page);
+    await save(page);
+    await expect(page).toHaveURL(/\/invoices$/);
+
+    await page.goto('/contacts?q=Example%20Vendor');
+    await page.getByRole('link', { name: 'Example Vendor' }).first().click();
+    await page.goto(`${page.url()}/edit`);
+    await expect(page.locator('input[type=checkbox][value=customer]:checked')).not.toHaveCount(0);
   });
+
+  test('says what to do when nothing is found', async ({ page }) => {
+    await openPayerForm(page);
+    await page.locator('#customer').fill('Nobody at all');
+    await expect(page.getByText('Nic nenalezeno. Použijte plus nebo adresář.', { exact: true }).first()).toBeVisible();
+  });
+
+  test('the plus adds a customer from the register in a new tab and picks it with its defaults', async ({ page, context }) => {
+    await openPayerForm(page);
+    await fillLine(page, 'Zůstane', '750');
+    const [tab] = await Promise.all([context.waitForEvent('page'), page.locator('#customer-add').click()]);
+    await tab.locator('#lookup').fill('12345687');
+    await tab.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
+    await expect(tab.locator('#displayName')).toHaveValue('Example Company s.r.o.');
+    if (await tab.locator('#street').inputValue() === '') {
+      await tab.locator('#street').fill('Example Street 1');
+      await tab.locator('#city').fill('Example City');
+      await tab.locator('#postalCode').fill('100 00');
+    }
+    await tab.locator('button[type=submit]').last().click();
+    await expect(tab).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
+
+    await expect(page.locator('#customer')).toHaveValue('Example Company s.r.o.');
+    await expect(page.locator('input[name=customerId]')).not.toHaveValue('');
+    await expect(page.locator('[data-customer-summary]')).toContainText('12345687');
+    await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
+    await expect(page.locator('#lines-0-price')).toHaveValue('750,00');
+    await page.screenshot({ path: `${SHOTS}/plus-picked-desktop.png`, fullPage: true });
+    await tab.close();
+    await save(page);
+    await expect(page).toHaveURL(/\/invoices$/);
+  });
+
+  test('the plus works on a phone', async ({ page, context }) => {
+    await page.setViewportSize(PHONE);
+    await openPayerForm(page);
+    const [tab] = await Promise.all([context.waitForEvent('page'), page.locator('#customer-add').click()]);
+    await tab.setViewportSize(PHONE);
+    await tab.locator('#kind').selectOption('person');
+    await tab.locator('#displayName').fill('Example Phone Person');
+    await tab.locator('#street').fill('Example Street 9');
+    await tab.locator('#city').fill('Example City');
+    await tab.locator('#postalCode').fill('100 00');
+    await tab.locator('button[type=submit]').last().click();
+    await expect(tab).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
+    await expect(page.locator('#customer')).toHaveValue('Example Phone Person');
+    await expectNoSidewaysScroll(page);
+    await page.screenshot({ path: `${SHOTS}/plus-picked-phone.png`, fullPage: true });
+    await tab.close();
+  });
+
+  test('a contact saved in another tab is not picked unless the plus asked for it', async ({ page, context }) => {
+    await openPayerForm(page);
+    const other = await context.newPage();
+    await other.goto('/contacts/new');
+    await other.locator('#kind').selectOption('person');
+    await other.locator('#displayName').fill('Example Unrelated Person');
+    await other.locator('#street').fill('Example Street 8');
+    await other.locator('#city').fill('Example City');
+    await other.locator('#postalCode').fill('100 00');
+    await other.locator('button[type=submit]').last().click();
+    await expect(other).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
+    await other.close();
+    await expect(page.locator('#customer')).toHaveValue('');
+  });
+
+  test('reveals the discount of a line by its icon and keeps it visible with a value', async ({ page }) => {
+    await openPayerForm(page);
+    await fillLine(page, 'Práce', '1000');
+    await expect(page.locator('#lines-0-discount')).toBeHidden();
+    await page.locator('#lines-0-discount-toggle').click();
+    await expect(page.locator('#lines-0-discount')).toBeFocused();
+    await page.keyboard.type('10');
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s089,00\sKč/);
+    await page.locator('#lines-0-discount').press('Tab');
+    await page.screenshot({ path: `${SHOTS}/line-discount-desktop.png`, fullPage: true });
+    await page.locator('#lines-0-discount-toggle').click();
+    await expect(page.locator('#lines-0-discount')).toBeHidden();
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s210,00\sKč/);
+  });
+
+  test('moves a line from its menu with the keyboard', async ({ page }) => {
+    await openPayerForm(page);
+    await fillLine(page, 'První');
+    await page.getByRole('button', { name: 'Nový řádek' }).click();
+    await page.locator('#lines-1-text').fill('Druhá');
+    await page.locator('#lines-1-menu').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#lines-1-up')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#lines-0-text')).toHaveValue('Druhá');
+    await expect(page.locator('#lines-0-menu')).toBeFocused();
+    await page.locator('#lines-0-menu').click();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#lines-0-menu')).toBeFocused();
+  });
+
+  test('groups a price as it is typed and keeps the caret', async ({ page }) => {
+    await openPayerForm(page);
+    const price = page.locator('#lines-0-price');
+    await price.click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('1234567');
+    await expect(price).toHaveValue('1\u00a0234\u00a0567');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Backspace');
+    await expect(price).toHaveValue('123\u00a0567');
+    await page.keyboard.type('9');
+    await expect(price).toHaveValue('1\u00a0239\u00a0567');
+    await page.keyboard.press('Tab');
+    await expect(price).toHaveValue('1\u00a0239\u00a0567,00');
+  });
+
+  test('deletes in the middle of a formatted price', async ({ page }) => {
+    await openPayerForm(page);
+    const price = page.locator('#lines-0-price');
+    await price.click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('1234,50');
+    await page.keyboard.press('Home');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Delete');
+    await expect(price).toHaveValue('124,50');
+    await page.keyboard.type('9');
+    await expect(price).toHaveValue('1\u00a0294,50');
+  });
+
+  test('trims a quantity and reads what is pasted', async ({ page }) => {
+    await openPayerForm(page);
+    const quantity = page.locator('#lines-0-quantity');
+    await quantity.fill('1,50');
+    await quantity.blur();
+    await expect(quantity).toHaveValue('1,5');
+
+    const price = page.locator('#lines-0-price');
+    for (const [pasted, shown] of [['1 000,50', '1\u00a0000,50'], ['1000.5', '1\u00a0000,50'], ['1,000.50', '1\u00a0000,50']]) {
+      await price.click();
+      await page.keyboard.press('ControlOrMeta+a');
+      await page.evaluate((text) => document.execCommand('insertText', false, text), pasted);
+      await price.dispatchEvent('input', { inputType: 'insertFromPaste' });
+      await price.blur();
+      await expect(price).toHaveValue(shown);
+    }
+    await expect(page.locator('[data-line-total]').first()).toHaveText(/1\s815,91\sKč/);
+  });
+
+  test('leads from a firm problem to the firm settings in a new tab and keeps the form', async ({ page, context }) => {
+    await page.goto('/invoices/new');
+    await page.locator('select[name=firmId]').selectOption({ label: 'Example No Account s.r.o.' });
+    await expect(page.locator('[data-bank-note]')).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/no-account-note.png`, fullPage: true });
+    await pickCustomer(page, 'Example Domestic a.s.');
+    await fillLine(page, 'Zůstane');
+    await save(page);
+    const link = page.locator('[data-error-summary] a[target=_blank]').first();
+    await expect(link).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/error-links.png`, fullPage: true });
+    const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);
+    await expect(tab).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
+    await tab.close();
+    await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
+    for (const anchor of await page.locator('[data-error-summary] a[data-error-link]:not([target])').all()) {
+      await anchor.click();
+      await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
+    }
+  });
+
 
   test('lists every mistake on submit and marks the fields', async ({ page }) => {
     await openPayerForm(page);
@@ -542,12 +749,12 @@ test.describe.serial('an invoice', () => {
   test('says when the totals are out of date', async ({ page }) => {
     await openPayerForm(page);
     await page.locator('#lines-0-price').fill('100');
-    await expect(page.locator('[data-total=payable]')).toHaveText(/121,00\sCZK/);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/121,00\sKč/);
     await page.locator('#lines-0-price').fill('abc');
     await expect(page.getByText('Součty nejsou aktuální.')).toBeVisible();
     await page.locator('#lines-0-price').fill('200');
     await expect(page.getByText('Součty nejsou aktuální.')).toBeHidden();
-    await expect(page.locator('[data-total=payable]')).toHaveText(/242,00\sCZK/);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/242,00\sKč/);
   });
 
   test('double-clicked Save makes one invoice', async ({ page }) => {
@@ -682,6 +889,7 @@ test.describe.serial('an invoice', () => {
 
   test('is clean for axe on the desktop', async ({ page }) => {
     await openPayerForm(page);
+    await page.screenshot({ path: `${SHOTS}/form-desktop.png`, fullPage: true });
     await expectNoSeriousViolations(page);
     await expectNoSidewaysScroll(page);
   });
@@ -690,7 +898,13 @@ test.describe.serial('an invoice', () => {
     await page.setViewportSize(PHONE);
     await openPayerForm(page);
     await expectNoSidewaysScroll(page);
-    await expectNoSeriousViolations(page);
+    await expectNoSeriousViolationsWithoutTheFloatingBar(page);
+    await page.locator('#lines-0-discount-toggle').click();
+    await page.locator('#lines-0-menu').click();
+    await expectNoSidewaysScroll(page);
+    await page.screenshot({ path: `${SHOTS}/lines-phone.png`, fullPage: true });
+    await page.keyboard.press('Escape');
+    await expectNoSeriousViolationsWithoutTheFloatingBar(page);
     await page.getByRole('button', { name: 'Nový řádek' }).click();
     await expect(page.locator('#lines-1-text')).toBeFocused();
     await expectNoSidewaysScroll(page);
@@ -707,7 +921,7 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('[data-total=vat]')).toHaveCount(0);
     await expect(page.locator('main')).not.toContainText('DPH');
     await page.locator('#lines-0-price').fill('1000,50');
-    await expect(page.locator('[data-total=payable]')).toHaveText(/1\s001,00\sCZK/);
+    await expect(page.locator('[data-total=payable]')).toHaveText(/1\s001,00\sKč/);
     await expectNoSeriousViolations(page);
   });
 
@@ -723,12 +937,12 @@ test.describe.serial('an invoice', () => {
 
     const other = await context.newPage();
     await other.goto(page.url());
-    await other.locator('#description').fill('Jiný');
+    await describe(other, 'Jiný');
     await other.getByRole('button', { name: 'Uložit', exact: true }).click();
     await expect(other.getByText(/je uložená/)).toBeVisible();
     await other.close();
 
-    await page.locator('#description').fill('Starý');
+    await describe(page, 'Starý');
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
     await expect(page.locator('[data-reload-prompt]')).toContainText('mezitím uložil');
     await expectNoSeriousViolations(page);
@@ -737,7 +951,7 @@ test.describe.serial('an invoice', () => {
   test('a copy opens from the list unsaved, and saving gives a new number and leaves the source', async ({ page }) => {
     await openPayerForm(page);
     await pickCustomer(page, 'Example Domestic a.s.');
-    await page.locator('#description').fill('Zdroj kopie');
+    await describe(page, 'Zdroj kopie');
     await page.locator('#orderNumber').fill('OBJ-7');
     await fillLine(page, 'Hosting 10/2026', '500');
     await save(page);

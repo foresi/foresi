@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Form;
 
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Symfony\Component\Translation\LocaleSwitcher;
 
@@ -22,11 +23,19 @@ final readonly class AmountText
     }
 
     /**
-     * For reading: "1 210,50 CZK".
+     * For a document: "1 210,50 CZK".
      */
     public function money(Money $money): string
     {
         return \sprintf("%s\u{a0}%s", $this->grouped($money), $money->currency()->value);
+    }
+
+    /**
+     * On screen: "1 210,50 Kč", "1 210,50 EUR".
+     */
+    public function shown(Money $money): string
+    {
+        return \sprintf("%s\u{a0}%s", $this->grouped($money), Currency::CZK === $money->currency() ? 'Kč' : $money->currency()->value);
     }
 
     /**

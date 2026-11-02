@@ -223,12 +223,8 @@ final readonly class IssueRules
             return [new IssueProblem('customer', 'invoice.problem.customer_unknown')];
         }
         $problems = [];
-        $isNew = $party->id() !== $existing?->customerParty()->id();
-        if ($isNew && $this->contacts->isArchivedFor($party, $firm)) {
+        if ($party->id() !== $existing?->customerParty()->id() && $this->contacts->isArchivedFor($party, $firm)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_archived');
-        }
-        if ($isNew && !$this->contacts->hasCustomerRole($party, $firm)) {
-            $problems[] = new IssueProblem('customer', 'invoice.problem.customer_role');
         }
         $copy = $this->copies->for($input, $party, $firm, $existing);
         if (!$copy instanceof DocumentParty || !$this->isComplete($copy)) {

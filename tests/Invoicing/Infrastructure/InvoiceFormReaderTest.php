@@ -20,6 +20,7 @@ use App\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Translation\LocaleSwitcher;
 
 final class InvoiceFormReaderTest extends TestCase
 {
@@ -73,6 +74,8 @@ final class InvoiceFormReaderTest extends TestCase
         yield 'dot' => ['1200.50', 120050];
         yield 'spaces' => ['1 200,50', 120050];
         yield 'no-break spaces' => ["1\u{a0}200,50", 120050];
+        yield 'pasted with a point' => ['1000.5', 100050];
+        yield 'pasted in English' => ['1,000.50', 100050];
         yield 'negative' => ['-100,00', -10000];
         yield 'empty is zero' => ['', 0];
     }
@@ -91,6 +94,8 @@ final class InvoiceFormReaderTest extends TestCase
      */
     public static function refusedCells(): iterable
     {
+        yield 'spaces that group nothing' => ['price', '12 34,50', 'invoice.problem.price_invalid'];
+        yield 'two decimal marks' => ['price', '1,5,5', 'invoice.problem.price_invalid'];
         yield 'a word for a price' => ['price', 'abc', 'invoice.problem.price_invalid'];
         yield 'a third decimal is never rounded' => ['price', '1,005', 'invoice.problem.price_invalid'];
         yield 'a price too long' => ['price', '99999999999999', 'invoice.problem.price_invalid'];
@@ -343,7 +348,7 @@ final class InvoiceFormReaderTest extends TestCase
 
     public function testTheFormIsCompleteOnlyWithItsLastField(): void
     {
-        $reader = new InvoiceFormReader();
+        $reader = new InvoiceFormReader(new LocaleSwitcher('cs', []));
 
         self::assertTrue($reader->isComplete(Request::create('/', 'POST', ['_complete' => '1'])));
         self::assertFalse($reader->isComplete(Request::create('/', 'POST', [])));
@@ -356,7 +361,7 @@ final class InvoiceFormReaderTest extends TestCase
 
     public function testTheLinesAloneCanBeRead(): void
     {
-        $lines = new InvoiceFormReader()->lines(Request::create('/', 'POST', ['lines' => [['text' => '', 'price' => '100', 'vat' => 'base', 'priceType' => 'with_vat']]]), Currency::CZK);
+        $lines = new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [['text' => '', 'price' => '100', 'vat' => 'base', 'priceType' => 'with_vat']]]), Currency::CZK);
 
         self::assertSame([], $lines->errors);
         self::assertCount(1, $lines->lines);
@@ -366,7 +371,7 @@ final class InvoiceFormReaderTest extends TestCase
     {
         $blank = ['text' => '', 'price' => '', 'vat' => 'base', 'priceType' => 'without_vat'];
 
-        self::assertCount(2, new InvoiceFormReader()->lines(Request::create('/', 'POST', ['lines' => [$blank, $blank]]), Currency::CZK)->lines);
+        self::assertCount(2, new InvoiceFormReader(new LocaleSwitcher('cs', []))->lines(Request::create('/', 'POST', ['lines' => [$blank, $blank]]), Currency::CZK)->lines);
     }
 
     /**
@@ -409,6 +414,6 @@ final class InvoiceFormReaderTest extends TestCase
             'language' => 'en', 'version' => '3',
         ], $changes);
 
-        return new InvoiceFormReader()->read(Request::create('/', 'POST', array_filter($post, static fn (mixed $value): bool => null !== $value)), Currency::CZK);
+        return new InvoiceFormReader(new LocaleSwitcher('cs', []))->read(Request::create('/', 'POST', array_filter($post, static fn (mixed $value): bool => null !== $value)), Currency::CZK);
     }
 }

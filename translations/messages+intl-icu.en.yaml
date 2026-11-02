@@ -35,7 +35,7 @@ nav:
     dashboard: Dashboard
     contacts: Address book
     invoices: Invoices
-    firms: Firms
+    firms: My firms
     import: Import and export
 ui:
   combobox:
@@ -371,7 +371,7 @@ party:
     due_days: Enter a whole number of days from 0 to 365.
     choice: Choose one of the options.
 firm:
-  title: Firms
+  title: My firms
   new: New firm
   edit: Edit firm
   views: Firm views
@@ -381,10 +381,10 @@ firm:
     invoicing: Invoicing
   empty:
     title: No firms yet
-    text: Add the firm your organisation issues documents from.
+    text: Your own companies that issue documents.
   empty_view:
     title: Nothing here
-    text: There is no firm in this view.
+    text: None of your own firms is in this view.
   view:
     active: Active
     archived: Archived
@@ -595,8 +595,10 @@ invoice:
       deletedAt: Deleted
       reason: Reason
     status:
+      issued: Issued
       delivered: Delivered
       overdue: Overdue
+      trashed: In the trash
     action:
       edit: Edit
       pdf: PDF
@@ -676,10 +678,14 @@ invoice:
   errors_close: Close the list
   firm_changed: The firm changed, so series, number and variable symbol start over.
   currency_notice: 'This contact prefers {contact}. The document stays in {document}.'
+  opens_new_tab: opens in a new tab
   blocked:
-    no_firm_title: Invoices need a firm
-    no_firm_text: The firm is the issuer of every invoice.
+    no_firm_title: Add your own firm first
+    no_firm_text: One of your own firms issues every invoice.
     add_firm: Add a firm
+    no_series_title: The firm has no active series
+    no_series_text: Add a number series in the invoicing settings of the firm.
+    open_firm: Open the firm settings
   flash:
     saved: 'Invoice {number} is saved.'
     renumbered: 'Invoice saved as {number}: {preview} was taken meanwhile.'
@@ -700,7 +706,8 @@ invoice:
     help: Save gives the next free number unless you change it.
   customer:
     placeholder: Name, registration number or e-mail
-    empty: No customer found for this firm.
+    empty: Nothing found. Use the plus or the address book.
+    none_yet: No customers yet. Use the plus or the address book.
     add: Add
     picked: 'Customer {name} is filled in with their defaults. Check the form and save.'
     candidates: Matching customers
@@ -733,7 +740,8 @@ invoice:
     dueDate: Due date
     paymentMethod: Payment
     bankAccount: Bank account
-    bankAccount_none: The firm has no bank account.
+    bankAccount_none: The firm has no bank account yet.
+    bankAccount_add: Add it in the firm settings
     currency: Currency
   field_label:
     form: Form
@@ -769,6 +777,8 @@ invoice:
     supplyCode_choose: Choose a code
     discount: Discount %
     total: Total
+    total_with_vat: Total with VAT
+    discount_toggle: Discount on this line
     actions: Actions
     add: New line
     drag: Drag to reorder
@@ -835,7 +845,6 @@ invoice:
     currency_not_home: The price must be in the currency of the firm.
     customer_address_incomplete: The customer needs a complete billing address.
     customer_archived: This contact is archived for the firm.
-    customer_role: This contact is not a customer of the firm.
     customer_unknown: Choose a customer.
     customer_vat_id_invalid: The VAT ID of the customer is not valid.
     date_invalid: This date does not exist.

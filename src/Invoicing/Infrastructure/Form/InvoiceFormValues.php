@@ -186,7 +186,7 @@ final readonly class InvoiceFormValues
         if (!$party instanceof Party) {
             return $values;
         }
-        if (!$this->contacts->isCustomerOf($party, $firm)) {
+        if ($this->contacts->isArchivedFor($party, $firm)) {
             return array_merge($values, ['customerId' => '', 'customerQuery' => '', 'customer' => $this->emptyCustomer()]);
         }
         if (VatRegime::Payer === $draft->regime) {
