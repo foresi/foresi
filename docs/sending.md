@@ -79,6 +79,8 @@ The link is `https://<DEFAULT_URI>/d/<token>`. The token has 256 bits; the datab
 
 The public link is limited to 60 requests a minute per client IP address, counted together for the page, the PDF, "Open PDF", "Download" and any other address under `/d/`. The client IP is the one Symfony gives (`Request::getClientIp()`), so behind a reverse proxy or a load balancer `trusted_proxies` must be set: `SYMFONY_TRUSTED_PROXIES` (or `framework.trusted_proxies`) to the proxy's addresses, and `framework.trusted_headers` to the headers it sets, such as `x-forwarded-for`, if they are not Symfony's defaults. Without it every request comes from the proxy's address, all customers share one limit, and one busy minute answers them all with 429.
 
+Once the invoice is paid or overpaid, the page says "Paid" and shows no account, no QR code and no other way to pay, so the customer cannot pay twice; the PDF keeps the payment details it was sent with, and the page notes the date it was paid and that nothing is left to pay. After a part payment the page shows what is left to pay, without the QR code, which would ask for the whole amount. See [bank-pairing.md](bank-pairing.md).
+
 A link keeps showing the PDF that was sent, also after the invoice is edited; the invoice form warns that the invoice changed since it was sent, so you can send it again. Trash cancels sends that have not gone out and revokes their links. A delivered invoice cannot be trashed, so to end a link that went to a wrong address, the operator runs:
 
 ```bash

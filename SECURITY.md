@@ -4,6 +4,15 @@
 
 Foresi is under active development and has no stable release yet. Security fixes are applied to the default branch.
 
+## Inbound surface
+
+Most of Foresi is behind sign-in. These parts take input from outside it:
+
+- **Public document links** (`/d/<token>`): a 256-bit token, stored only as a hash, rate limited per IP. See [docs/sending.md](docs/sending.md#the-public-link).
+- **Bank e-mail.** Mail to a bank account's inbound address, taken from the operator's mailbox over IMAP or posted to the optional webhook `POST /inbound/mail`. The address carries a 128-bit token, stored only as a hash and a sealed copy. The webhook needs a bearer secret (`INBOUND_WEBHOOK_SECRET`; empty turns it off), is rate limited per IP before the secret is checked, takes at most 10 MiB and answers alike for known and unknown addresses. A bank message pays an invoice only when the topmost `Authentication-Results` header comes from a receiving server the operator trusts (`BANK_INBOX_TRUSTED_AUTHSERV`) and shows a single aligned `dmarc=pass`, or the strict ARC rescue applies; anything else is recorded unpaid or rejected. The model, and what the operator must configure, is in [docs/bank-pairing.md](docs/bank-pairing.md#the-security-model) and [docs/adr/0018-bank-notification-mail.md](docs/adr/0018-bank-notification-mail.md).
+
+A way to make a bank message pay an invoice without a verified notice from the bank is a vulnerability; please report it as below.
+
 ## Reporting a vulnerability
 
 Please do not report security problems in public issues, discussions or pull requests.
