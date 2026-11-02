@@ -515,7 +515,7 @@ firm:
       encryption: Encryption
       username: Username
       password: Password
-      password_kept: Leave blank to keep the stored password.
+      password_kept: Leave blank to keep the stored password, unless you change the server, port, encryption or user name.
       fromAddress: Sender e-mail
       fromAddress_help: Undelivered mail comes back here too.
       fromName: Sender name
@@ -552,6 +552,7 @@ firm:
       port: 'The port must be one of: {ports}.'
       encryption: Choose the encryption.
       line_break: The value cannot hold a line break.
+      password_again: The server, port, encryption or user name changed. Enter the password again.
       save_failed: Saving failed. Try it again.
   invoicing:
     title: Invoicing

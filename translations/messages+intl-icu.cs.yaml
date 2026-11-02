@@ -515,7 +515,7 @@ firm:
       encryption: Šifrování
       username: Uživatelské jméno
       password: Heslo
-      password_kept: Prázdné pole ponechá uložené heslo.
+      password_kept: Prázdné pole ponechá uložené heslo, pokud nezměníte server, port, šifrování ani uživatelské jméno.
       fromAddress: E-mail odesílatele
       fromAddress_help: Sem se vrátí i nedoručené zprávy.
       fromName: Jméno odesílatele
@@ -552,6 +552,7 @@ firm:
       port: 'Port musí být jeden z: {ports}.'
       encryption: Vyberte šifrování.
       line_break: Hodnota nesmí obsahovat zalomení řádku.
+      password_again: Server, port, šifrování nebo uživatelské jméno se změnily. Zadejte heslo znovu.
       save_failed: Uložení se nepovedlo. Zkuste to znovu.
   invoicing:
     title: Fakturace
