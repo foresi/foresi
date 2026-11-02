@@ -1164,6 +1164,11 @@ invoice:
     variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
     vat_invalid: Vyberte DPH řádku.
 recurring:
+  notice:
+    failing: '{count, plural, one {Pravidelnou fakturu se nepodařilo vystavit nebo odeslat.} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat.} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat.}}'
+    review: '{count, plural, one {Faktura z pravidelné faktury čeká, až ji odešlete.} few {# faktury z pravidelných faktur čekají, až je odešlete.} other {# faktur z pravidelných faktur čeká, až je odešlete.}}'
+    unfinished: 'Dnešní pravidelné faktury ještě nejsou vystavené, ač už je po {hour}:00. Zkontrolujte, že na serveru běží fronta i plánovač.'
+    link: Zobrazit
   problem:
     due_days_invalid: Splatnost je 0 až 365 dní od vystavení.
     ended: Tato pravidelná faktura je ukončená a nedá se změnit.

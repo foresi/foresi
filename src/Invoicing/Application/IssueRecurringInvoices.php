@@ -1,0 +1,158 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Invoicing\Application;
+
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\RecurringInvoice;
+use App\Invoicing\Domain\RecurringState;
+use App\Party\Application\TransactionalWork;
+use App\Tenancy\Application\Schedule\DailyPeriod;
+use App\Tenancy\Application\Schedule\ScheduledJob;
+use App\Tenancy\Application\TenantClock;
+use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Issues the invoices of recurring templates once a day from 05:00 in the
+ * tenant's zone, so the first of the month's invoices leave early that morning.
+ * Each active template due by today issues every occurrence from its next date
+ * up to today, oldest first, each once whatever else runs (IssueRecurringOccurrence),
+ * at most MAX_PER_RUN per template: a worker that was down catches up, the rest
+ * follows the next day. Each invoice is then sent or held for review
+ * (DeliverRecurringInvoice); one more than LATE_DAYS late is held, as nobody
+ * expects it any more without a look.
+ *
+ * A template whose world moved, a customer archived for the firm, a contact
+ * without an invoicing address, a kind of rate gone on the tax point, a firm
+ * without a mail server, is never skipped in silence: the refusal is recorded on
+ * the template, the firm is told by e-mail and the shell shows it, and the next
+ * template runs. A refused issue keeps the next date, so the next run tries again;
+ * a template that runs clean again clears its failure. Anything else is thrown,
+ * so the scheduler gives the day back and the next tick retries it; what was
+ * issued stays issued and is not issued twice.
+ *
+ * The run works by ids: issuing starts the session over, so nothing loaded
+ * before it is used after it.
+ */
+final readonly class IssueRecurringInvoices implements ScheduledJob
+{
+    public const string NAME = 'recurring-invoices';
+    public const int START_HOUR = 5;
+    /** An occurrence up to this many days late is still sent; a later one waits for review. */
+    public const int LATE_DAYS = 3;
+    public const int MAX_PER_RUN = 24;
+
+    public function __construct(
+        private RecurringInvoices $templates,
+        private IssueRecurringOccurrence $occurrences,
+        private DeliverRecurringInvoice $delivery,
+        private RecurringAlerts $alerts,
+        private TransactionalWork $work,
+        private TenantClock $tenantClock,
+        private ClockInterface $clock,
+        private LoggerInterface $logger,
+    ) {
+    }
+
+    public function name(): string
+    {
+        return self::NAME;
+    }
+
+    public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
+    {
+        return DailyPeriod::of($now, $zone, self::START_HOUR);
+    }
+
+    /**
+     * The catch-up follows each template's next date, which already names what was
+     * missed, so the last period is not needed.
+     */
+    public function run(?string $lastPeriod): void
+    {
+        // The day of the period, so a run given back and retried after midnight still works for its own day.
+        $today = new \DateTimeImmutable($this->period($this->now(), $this->tenantClock->timezone()));
+        foreach ($this->templates->due($today) as $id) {
+            $this->runTemplate($id, $today);
+        }
+    }
+
+    private function runTemplate(string $id, \DateTimeImmutable $today): void
+    {
+        $failure = null;
+        for ($issued = 0; $issued < self::MAX_PER_RUN; ++$issued) {
+            $occurrence = $this->dueOccurrence($this->templates->current($id), $today);
+            if (!$occurrence instanceof \DateTimeImmutable) {
+                break;
+            }
+            try {
+                $invoice = $this->occurrences->issue($id, $occurrence, $today);
+            } catch (IssueRefused $refused) {
+                $failure = $refused->problems[0]->key ?? 'invoice.problem.refused';
+                break;
+            } catch (UnsupportedCountry) {
+                $failure = 'invoice.problem.firm_country_unsupported';
+                break;
+            }
+            if (!$invoice instanceof Invoice) {
+                // Taken meanwhile, by "issue now" or another worker; the next round reads where it stands.
+                continue;
+            }
+            $outcome = $this->delivery->deliver($invoice, $this->templates->get($id), $this->isLate($occurrence, $today));
+            if ($outcome->isRefused()) {
+                $failure = $outcome->code;
+            }
+        }
+        $this->settle($id, $failure, $today);
+    }
+
+    private function dueOccurrence(RecurringInvoice $template, \DateTimeImmutable $today): ?\DateTimeImmutable
+    {
+        $next = $template->nextOccurrence();
+        if (RecurringState::Active !== $template->state() || !$next instanceof \DateTimeImmutable || $next->format('Y-m-d') > $today->format('Y-m-d')) {
+            return null;
+        }
+
+        return $next;
+    }
+
+    private function isLate(\DateTimeImmutable $occurrence, \DateTimeImmutable $today): bool
+    {
+        $days = new \DateTimeImmutable($occurrence->format('Y-m-d'))->diff(new \DateTimeImmutable($today->format('Y-m-d')))->days;
+
+        return $days > self::LATE_DAYS;
+    }
+
+    private function settle(string $id, ?string $failure, \DateTimeImmutable $today): void
+    {
+        if (null === $failure) {
+            if (null !== $this->templates->current($id)->lastFailureCode()) {
+                $this->work->run(function () use ($id): void {
+                    $this->templates->lock($id)->clearFailure();
+                });
+            }
+
+            return;
+        }
+        $this->logger->warning('The recurring invoice {template} was refused: {code}.', ['template' => $id, 'code' => $failure]);
+        $at = $this->now();
+        $template = $this->work->run(function () use ($id, $failure, $at): RecurringInvoice {
+            $template = $this->templates->lock($id);
+            $template->recordFailure($at, $failure);
+
+            return $template;
+        });
+        $this->alerts->alert($template, $failure, $today);
+    }
+
+    private function now(): \DateTimeImmutable
+    {
+        return \DateTimeImmutable::createFromInterface($this->clock->now());
+    }
+}
