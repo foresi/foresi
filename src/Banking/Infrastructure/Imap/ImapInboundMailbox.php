@@ -86,7 +86,8 @@ final class ImapInboundMailbox implements InboundMailbox
      */
     public function client(): Mailbox
     {
-        return new Mailbox([
+        // The settings, the password among them, are an argument here: a trace of this frame would show them.
+        return $this->guarded('set up', fn (): Mailbox => new Mailbox([
             'host' => $this->host,
             'port' => $this->port,
             'encryption' => $this->encryption,
@@ -96,20 +97,32 @@ final class ImapInboundMailbox implements InboundMailbox
             'validate_cert' => true,
             'timeout' => self::TIMEOUT,
             'debug' => false,
-        ]);
+        ]));
     }
 
     public function fetch(int $limit, array $skip = []): array
     {
-        $this->close();
+        $this->guarded('closed', $this->close(...));
         if ($limit < 1) {
             return [];
         }
         $mailbox = $this->client();
         $connection = $this->connection ?? new NamespacedImapConnection(new ImapStream());
-        $this->connect($mailbox, $connection);
+        $this->guarded('opened', static function () use ($mailbox, $connection): void {
+            $mailbox->connect($connection);
+        });
         $this->mailbox = $mailbox;
 
+        return $this->guarded('read', fn (): array => $this->read($mailbox, $connection, $limit, $skip));
+    }
+
+    /**
+     * @param list<string> $skip
+     *
+     * @return list<MailboxItem>
+     */
+    private function read(Mailbox $mailbox, NamespacedImapConnection $connection, int $limit, array $skip): array
+    {
         $folders = $mailbox->folders();
         $inbox = $folders->findOrFail($this->folder);
         [$prefix, $delimiter] = $this->home($connection, '' === $inbox->delimiter() ? '/' : $inbox->delimiter());
@@ -162,18 +175,25 @@ final class ImapInboundMailbox implements InboundMailbox
     }
 
     /**
-     * Opens the session. The library logs in with the password as an argument of
-     * its own methods, and a trace keeps arguments where exceptions carry them
-     * (zend.exception_ignore_args off, as in development), so its exception is
-     * never passed on: a new one says what failed, in words without the password,
-     * and starts its trace here.
+     * Runs one step of the library. The library holds the password: it logs in
+     * with it as an argument of its own methods, on connecting and again on any
+     * reconnect, and the client is built with it. A trace keeps arguments where
+     * exceptions carry them (zend.exception_ignore_args off, as in development),
+     * so no exception of a step is passed on: a new one says what failed, in words
+     * without the password, and starts its trace here.
+     *
+     * @template T
+     *
+     * @param callable(): T $step
+     *
+     * @return T
      */
-    private function connect(Mailbox $mailbox, NamespacedImapConnection $connection): void
+    private function guarded(string $doing, callable $step): mixed
     {
         try {
-            $mailbox->connect($connection);
+            return $step();
         } catch (\Throwable $failure) {
-            throw $this->notOpened($failure);
+            throw $this->redacted($failure, $doing);
         }
     }
 
@@ -181,11 +201,11 @@ final class ImapInboundMailbox implements InboundMailbox
      * Deliberately without the library exception as its previous one: that one's
      * trace holds the password.
      */
-    private function notOpened(\Throwable $failure): \RuntimeException
+    private function redacted(\Throwable $failure, string $doing): \RuntimeException
     {
         $reason = '' === $this->password ? $failure->getMessage() : str_replace($this->password, '[redacted]', $failure->getMessage());
 
-        return new \RuntimeException(\sprintf('The bank inbox %s:%d could not be opened (%s): %s', $this->host, $this->port, new \ReflectionClass($failure)->getShortName(), $reason));
+        return new \RuntimeException(\sprintf('The bank inbox %s:%d could not be %s (%s): %s', $this->host, $this->port, $doing, new \ReflectionClass($failure)->getShortName(), $reason));
     }
 
     /**
@@ -214,14 +234,16 @@ final class ImapInboundMailbox implements InboundMailbox
             throw new \LogicException(\sprintf('The message %s was not fetched in this run.', $uid));
         }
         $path = $this->folders[$folder];
-        $capabilities = $this->mailbox?->capabilities() ?? [];
-        if (\in_array('MOVE', $capabilities, true) || \in_array('UIDPLUS', $capabilities, true)) {
-            $message->move($path);
-        } else {
-            // RFC 3501 alone: copy, then flag the original deleted; the inbox is never expunged.
-            $this->mailbox?->connection()->copy($path, $message->uid());
-            $message->markDeleted();
-        }
+        $this->guarded('written to', function () use ($message, $path): void {
+            $capabilities = $this->mailbox?->capabilities() ?? [];
+            if (\in_array('MOVE', $capabilities, true) || \in_array('UIDPLUS', $capabilities, true)) {
+                $message->move($path);
+            } else {
+                // RFC 3501 alone: copy, then flag the original deleted; the inbox is never expunged.
+                $this->mailbox?->connection()->copy($path, $message->uid());
+                $message->markDeleted();
+            }
+        });
         unset($this->fetched[$message->uid()]);
     }
 

@@ -290,6 +290,38 @@ final class ImapInboundMailboxTest extends TestCase
         }
     }
 
+    /**
+     * Past the login the library still holds the password, and reconnects with it
+     * as an argument when a connection drops: no library exception is passed on
+     * from any step, only one in words without the password.
+     */
+    public function testAFailureAfterTheLoginNeverCarriesTheLibrarysTrace(): void
+    {
+        $previous = ini_set('zend.exception_ignore_args', '0');
+        try {
+            $stream = new FakeStream();
+            $stream->feed([
+                '* OK IMAP ready',
+                'TAG1 OK LOGIN completed',
+                'TAG2 NO [SERVERBUG] '.self::PASSWORD.' is not a folder',
+            ]);
+            $adapter = new ImapInboundMailbox('imap.example.com', 993, 'ssl', 'bank@example.com', self::PASSWORD, 'INBOX', new NamespacedImapConnection($stream));
+
+            try {
+                $adapter->fetch(50);
+                self::fail('A refused command fails the run.');
+            } catch (\RuntimeException $failure) {
+                self::assertNull($failure->getPrevious());
+                foreach ([(string) $failure, $failure->getTraceAsString()] as $shown) {
+                    self::assertStringNotContainsString(self::PASSWORD, $shown);
+                }
+                self::assertStringContainsString('[redacted]', $failure->getMessage());
+            }
+        } finally {
+            ini_set('zend.exception_ignore_args', false === $previous ? '1' : $previous);
+        }
+    }
+
     public function testAMessageNotFetchedInThisRunCannotBeMoved(): void
     {
         $adapter = new ImapInboundMailbox('imap.example.com', 993, 'ssl', 'bank@example.com', self::PASSWORD, 'INBOX');
