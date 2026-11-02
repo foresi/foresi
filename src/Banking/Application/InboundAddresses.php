@@ -49,17 +49,36 @@ final readonly class InboundAddresses
     /**
      * The text with the token of every address made from the template cut out, as
      * "bank+…@example.com": a mail may quote its own address, such as a forwarding
-     * confirmation does, and only the owner of a firm sees the address.
+     * confirmation does, and only the owner of a firm sees the address. An address
+     * in a link may be URL-encoded ("bank%2B…%40example.com"), and one in a long
+     * line wrapped by a quoted-printable soft break ("=" at the end of a line),
+     * which is taken out first, so the token is masked however it is written.
      */
     public function masked(string $text): string
     {
         if (!$this->isConfigured()) {
             return $text;
         }
+        $text = preg_replace('/=\r?\n/', '', $text) ?? $text;
         [$before, $after] = explode(self::PLACEHOLDER, $this->template, 2);
-        $pattern = '/('.preg_quote($before, '/').')['.InboundToken::ALPHABET.']{'.InboundToken::LENGTH.'}('.preg_quote($after, '/').')/i';
+        $pattern = '/('.$this->written($before).')['.InboundToken::ALPHABET.']{'.InboundToken::LENGTH.'}('.$this->written($after).')/i';
 
         return preg_replace($pattern, "\$1\u{2026}\$2", $text) ?? $text;
+    }
+
+    /**
+     * A pattern for the part of the template as written plainly or URL-encoded,
+     * character by character.
+     */
+    private function written(string $part): string
+    {
+        $pattern = '';
+        foreach (mb_str_split($part) as $character) {
+            $quoted = preg_quote($character, '/');
+            $pattern .= 1 === preg_match('/^[A-Za-z0-9._~-]$/', $character) ? $quoted : '(?:'.$quoted.'|'.preg_quote(rawurlencode($character), '/').')';
+        }
+
+        return $pattern;
     }
 
     /**
