@@ -123,6 +123,16 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         return $ids;
     }
 
+    public function invoiceNumbersOf(string $paymentId): array
+    {
+        /** @var list<array{id: string, number: string}> $rows */
+        $rows = $this->em->createQuery('SELECT DISTINCT i.id AS id, i.number AS number FROM '.PaymentAllocation::class.' a JOIN a.invoice i WHERE a.payment = :payment ORDER BY i.number, i.id')
+            ->setParameter('payment', $paymentId)
+            ->getArrayResult();
+
+        return array_column($rows, 'number', 'id');
+    }
+
     public function add(Payment $payment): void
     {
         $this->em->persist($payment);

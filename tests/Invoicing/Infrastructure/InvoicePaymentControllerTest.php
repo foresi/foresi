@@ -391,6 +391,31 @@ final class InvoicePaymentControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-payments]', 'No payments yet.');
     }
 
+    public function testRemovingAPaymentOfSeveralInvoicesNamesThemAll(): void
+    {
+        $this->signedIn();
+        $first = $this->issued();
+        $second = $this->issued();
+        $paymentId = $this->scoped(function () use ($first, $second): string {
+            $part = Money::of('1210.00', Currency::CZK);
+
+            return self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-03'), Money::of('2420.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($first->id(), $part), new AllocationRequest($second->id(), $part)]))->id();
+        });
+
+        $crawler = $this->client->request('GET', '/invoices/'.$first->id().'/edit');
+        $remove = $crawler->filter('[data-payments] form[action="/invoices/'.$first->id().'/payments/'.$paymentId.'/cancel"]');
+        self::assertSame('The payment also pays invoice '.$second->number().'. It is removed from all of them, and each counts as unpaid again by its part.', $remove->attr('data-confirm-text'));
+
+        $this->client->submit($remove->form());
+
+        self::assertSame([], $this->allocations());
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="status"]', $this->nb('The payment of 2,420.00 Kč was removed from invoices '.$first->number().', '.$second->number().'.'));
+        $translator = self::getContainer()->get('translator');
+        self::assertSame('Úhrada platí i fakturu 20260002. Odebere se ze všech a každá bude o svou část znovu neuhrazená.', $translator->trans('invoice.payment.panel.remove_text_shared', ['count' => 1, 'numbers' => '20260002'], null, 'cs'));
+        self::assertSame('Úhrada platí i faktury 20260002, 20260003. Odebere se ze všech, každá bude o svou část znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.', $translator->trans('invoice.payment.panel.remove_text_shared_bank', ['count' => 2, 'numbers' => '20260002, 20260003'], null, 'cs'));
+    }
+
     public function testRemovingNeedsAToken(): void
     {
         $this->signedIn();

@@ -161,7 +161,8 @@ final class InvoicePaymentController extends AbstractController
 
     /**
      * Removes a payment from the invoice. For a bank payment the movement goes back
-     * to the unmatched queue; the confirmation says so.
+     * to the unmatched queue; the confirmation says so. A payment of several invoices
+     * goes from all of them, which the confirmation and the flash name.
      */
     #[Route('/invoices/{id}/payments/{paymentId}/cancel', name: 'app_invoice_payment_cancel', requirements: ['id' => Requirement::UUID_V7, 'paymentId' => Requirement::UUID], methods: ['POST'])]
     public function cancel(string $id, string $paymentId, Request $request): RedirectResponse
@@ -184,8 +185,14 @@ final class InvoicePaymentController extends AbstractController
         if ([] === $lines) {
             throw new NotFoundHttpException('The payment pays another invoice.');
         }
+        // Read before: a cancelled payment pays nothing, so it names no invoice.
+        $numbers = array_values($this->payments->invoiceNumbersOf($paymentId));
         $this->cancelling->cancel($paymentId);
-        $this->addFlash('success', $this->translator->trans('invoice.payment.flash.removed', ['amount' => $this->amounts->shown($lines[0]->allocated)]));
+        if (\count($numbers) > 1) {
+            $this->addFlash('success', $this->translator->trans('invoice.payment.flash.removed_shared', ['amount' => $this->amounts->shown($payment->amount()), 'numbers' => implode(', ', $numbers)]));
+        } else {
+            $this->addFlash('success', $this->translator->trans('invoice.payment.flash.removed', ['amount' => $this->amounts->shown($lines[0]->allocated)]));
+        }
 
         return $edit;
     }

@@ -1269,6 +1269,8 @@ invoice:
       remove_confirm: 'Odebrat úhradu {amount}?'
       remove_text: Faktura bude o tuto částku znovu neuhrazená.
       remove_text_bank: Faktura bude o tuto částku znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.
+      remove_text_shared: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech a každá bude o svou část znovu neuhrazená.'
+      remove_text_shared_bank: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech, každá bude o svou část znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.'
       remove_accept: Odebrat úhradu
       keep: Ponechat
     flash:
@@ -1277,6 +1279,7 @@ invoice:
       overpaid: 'Úhrada {amount} je zaznamenaná. Faktura {number} je přeplacená o {over}.'
       already_recorded: Tato úhrada už je zaznamenaná.
       removed: 'Úhrada {amount} je odebraná.'
+      removed_shared: 'Úhrada {amount} je odebraná z faktur {numbers}.'
       already_removed: Tato úhrada už byla odebrána.
     bank_transfer: Převodem
     cash: Hotově

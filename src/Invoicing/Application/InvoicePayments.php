@@ -57,6 +57,14 @@ interface InvoicePayments
      */
     public function invoiceIdsOf(string $paymentId): array;
 
+    /**
+     * The numbers of the invoices the payment pays, as a person tells them apart;
+     * none once it is cancelled.
+     *
+     * @return array<string, string> number by invoice id, in the order of the numbers
+     */
+    public function invoiceNumbersOf(string $paymentId): array;
+
     public function add(Payment $payment): void;
 
     public function addAllocation(PaymentAllocation $allocation): void;

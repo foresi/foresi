@@ -45,7 +45,7 @@ final readonly class PaymentPanel
         $format = $this->translator->trans('format.date');
 
         return [
-            'lines' => array_map(fn (InvoicePaymentLine $line): array => $this->line($line, $format), $this->payments->linesOf($invoice)),
+            'lines' => array_map(fn (InvoicePaymentLine $line): array => $this->line($invoice, $line, $format), $this->payments->linesOf($invoice)),
             'paid' => $this->amounts->shown($paid),
             'remaining' => $remaining->isNegative() || $remaining->isZero() ? null : $this->amounts->shown($remaining),
             'overpaid' => $remaining->isNegative() ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
@@ -56,13 +56,21 @@ final readonly class PaymentPanel
     }
 
     /**
+     * A payment that pays other invoices too goes from all of them: the
+     * confirmation names them, so nobody unpays an invoice they are not looking at
+     * unawares.
+     *
      * @return PanelLine
      */
-    private function line(InvoicePaymentLine $line, string $format): array
+    private function line(Invoice $invoice, InvoicePaymentLine $line, string $format): array
     {
         $amount = $this->amounts->shown($line->allocated);
         $date = $line->receivedOn->format($format);
         $bank = PaymentSource::BankMovement === $line->source;
+        $others = array_values(array_diff_key($this->payments->invoiceNumbersOf($line->paymentId), [$invoice->id() => true]));
+        $text = [] === $others
+            ? $this->translator->trans($bank ? 'invoice.payment.panel.remove_text_bank' : 'invoice.payment.panel.remove_text')
+            : $this->translator->trans($bank ? 'invoice.payment.panel.remove_text_shared_bank' : 'invoice.payment.panel.remove_text_shared', ['count' => \count($others), 'numbers' => implode(', ', $others)]);
 
         return [
             'id' => $line->paymentId,
@@ -75,7 +83,7 @@ final readonly class PaymentPanel
             'label' => $this->translator->trans('invoice.payment.panel.remove_label', ['amount' => $amount, 'date' => $date]),
             'confirm' => [
                 'title' => $this->translator->trans('invoice.payment.panel.remove_confirm', ['amount' => $amount]),
-                'text' => $this->translator->trans($bank ? 'invoice.payment.panel.remove_text_bank' : 'invoice.payment.panel.remove_text'),
+                'text' => $text,
                 'accept' => $this->translator->trans('invoice.payment.panel.remove_accept'),
                 'cancel' => $this->translator->trans('invoice.payment.panel.keep'),
                 'tone' => 'danger',

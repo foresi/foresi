@@ -1269,6 +1269,8 @@ invoice:
       remove_confirm: 'Remove the payment of {amount}?'
       remove_text: The invoice counts as unpaid again by that amount.
       remove_text_bank: The invoice counts as unpaid again by that amount, and the bank movement goes back among the unmatched ones.
+      remove_text_shared: 'The payment also pays {count, plural, one {invoice} other {invoices}} {numbers}. It is removed from all of them, and each counts as unpaid again by its part.'
+      remove_text_shared_bank: 'The payment also pays {count, plural, one {invoice} other {invoices}} {numbers}. It is removed from all of them, each counts as unpaid again by its part, and the bank movement goes back among the unmatched ones.'
       remove_accept: Remove payment
       keep: Keep it
     flash:
@@ -1277,6 +1279,7 @@ invoice:
       overpaid: 'A payment of {amount} was recorded. Invoice {number} is overpaid by {over}.'
       already_recorded: This payment is recorded already.
       removed: 'The payment of {amount} was removed.'
+      removed_shared: 'The payment of {amount} was removed from invoices {numbers}.'
       already_removed: This payment was removed already.
     bank_transfer: Bank transfer
     cash: Cash
