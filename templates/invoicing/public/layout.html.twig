@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Frame of the public link pages: no application shell, no script (the page's policy allows none),
+    and nothing that would start a session. Texts are in the language the page passes as "locale";
+    the stylesheet's address comes as "stylesheet", as no script loads it here.
+#}
+{% extends 'base.html.twig' %}
+
+{% block head %}
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+{% endblock %}
+
+{% block stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endblock %}
+
+{% block javascripts %}{% endblock %}
+
+{% block body %}
+    <main class="mx-auto grid min-h-screen w-full max-w-4xl content-start gap-4 px-4 py-6 sm:gap-5 sm:py-10">
+        {% block content %}{% endblock %}
+    </main>
+{% endblock %}

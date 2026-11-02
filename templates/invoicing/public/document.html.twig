@@ -1,0 +1,57 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/public/layout.html.twig' %}
+
+{% set title = 'invoice.public.title'|trans({number: document.number}, 'messages', locale) %}
+
+{% block title %}{{ title }} · {{ document.issuerName }}{% endblock %}
+
+{% block content %}
+    <header class="flex min-w-0 items-center gap-3">
+        <span class="grid size-10 shrink-0 place-items-center rounded-control bg-green text-heading font-semibold text-white" aria-hidden="true">{{ document.issuerName|first|upper }}</span>
+        <p class="m-0 min-w-0">
+            <span class="block text-small text-muted">{{ 'invoice.public.from'|trans({}, 'messages', locale) }}</span>
+            <span class="block truncate text-heading font-semibold text-ink">{{ document.issuerName }}</span>
+        </p>
+    </header>
+
+    <section class="overflow-hidden rounded-panel border border-container bg-white shadow-raised" aria-labelledby="document-title">
+        <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 border-b border-divider p-4 sm:p-6">
+            <div class="min-w-0">
+                <h1 id="document-title" class="m-0 text-title font-semibold text-ink">{{ title }}</h1>
+                <p class="m-0 mt-1 text-body text-muted">{{ 'invoice.public.for'|trans({customer: document.customerName}, 'messages', locale) }}</p>
+            </div>
+            {# The paid status of the document goes here once payments are recorded. #}
+            {% block status %}{% endblock %}
+        </div>
+
+        <dl class="m-0 grid gap-4 p-4 sm:grid-cols-3 sm:gap-6 sm:p-6">
+            <div class="min-w-0">
+                <dt class="text-small text-muted">{{ 'invoice.public.amount'|trans({}, 'messages', locale) }}</dt>
+                <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ amount }}</dd>
+            </div>
+            <div class="min-w-0">
+                <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
+                <dd class="num m-0 mt-1 text-heading font-medium text-ink sm:mt-2">{{ dueDate }}</dd>
+            </div>
+            <div class="min-w-0">
+                <dt class="text-small text-muted">{{ 'invoice.public.number'|trans({}, 'messages', locale) }}</dt>
+                <dd class="num m-0 mt-1 break-words text-heading font-medium text-ink sm:mt-2">{{ document.number }}</dd>
+            </div>
+        </dl>
+
+        <div class="flex flex-col gap-2 border-t border-divider bg-head p-4 sm:flex-row sm:items-center sm:px-6">
+            <twig:Ui:Button variant="primary" icon="receipt-text" :href="pdf" class="w-full sm:w-auto">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            <twig:Ui:Button icon="download" :href="pdf" download="{{ fileName }}" class="w-full sm:w-auto">{{ 'invoice.public.download'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+        </div>
+    </section>
+
+    {# Phones show embedded PDFs poorly, so there the buttons above are the way in. #}
+    <object data="{{ pdf }}" type="application/pdf" title="{{ 'invoice.public.viewer'|trans({number: document.number}, 'messages', locale) }}" class="hidden aspect-[210/297] w-full rounded-panel border border-container bg-white shadow-raised md:block">
+        <div class="grid h-full place-content-center justify-items-center gap-3 p-6 text-center">
+            <p class="m-0 max-w-sm text-body text-text">{{ 'invoice.public.fallback'|trans({}, 'messages', locale) }}</p>
+            <twig:Ui:Button variant="primary" icon="receipt-text" :href="pdf">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+        </div>
+    </object>
+
+    <p class="m-0 text-small text-muted">{{ 'invoice.public.notice'|trans({issuer: document.issuerName}, 'messages', locale) }}</p>
+{% endblock %}

@@ -32,8 +32,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 final readonly class ActiveTenantSubscriber
 {
-    /** Pages that must stay reachable while the user has not chosen an organisation. */
-    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE];
+    /**
+     * Pages that must stay reachable while the user has not chosen an organisation;
+     * the public links to sent documents belong to no organisation of the viewer.
+     */
+    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE, 'app_document_link', 'app_document_link_pdf'];
 
     private const string ASSET_PATHS = '#^/(assets|_profiler|_wdt|build)(/|$)#';
 

@@ -100,6 +100,8 @@ services:
         alias: App\Party\Application\RegistrationNumberFactory
     test.invoice_send_firm_limiter:
         alias: limiter.invoice_send_firm
+    test.document_link_limiter:
+        alias: limiter.document_link
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -133,6 +135,8 @@ services:
         alias: App\Invoicing\Infrastructure\Mail\RateLimitedSends
     App\Invoicing\Application\InvoiceSendQueue:
         alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
+    App\Invoicing\Application\PublicDocuments:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
 
     # Links to sent documents are derived from the application secret, never stored.
     App\Invoicing\Application\LinkTokens:
@@ -219,6 +223,15 @@ when@e2e:
         e2e.mail_secrets:
             alias: App\Invoicing\Application\MailSecrets
             public: true
+        e2e.issue_invoice:
+            alias: App\Invoicing\Application\IssueInvoice
+            public: true
+        e2e.send_invoice:
+            alias: App\Invoicing\Application\SendInvoice
+            public: true
+        e2e.link_tokens:
+            alias: App\Invoicing\Application\LinkTokens
+            public: true
 
 when@test:
     parameters:
@@ -260,6 +273,9 @@ when@test:
         # Lets a test spend the budget of a firm.
         test.invoice_send_firm_limiter:
             alias: limiter.invoice_send_firm
+            public: true
+        test.document_link_limiter:
+            alias: limiter.document_link
             public: true
 
         # The generic audit query; the fake import target answers changedSince()

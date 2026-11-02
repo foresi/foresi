@@ -12,7 +12,8 @@ declare(strict_types=1);
  * first-run screen, a third with two firms and one contact for the firm scope,
  * and a fourth with a VAT payer, a non-payer and customers for the invoice form;
  * the payer has a mail server, whose password is sealed with the e2e-only key of
- * serve.sh. Run it after the migrations, in the e2e environment:
+ * serve.sh. A fifth tenant, without users, holds one sent invoice, whose links go
+ * to var/e2e-links.json for the public link specs. Run it after the migrations, in the e2e environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -24,12 +25,24 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\SendInvoice;
+use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxTreatment;
+use App\Invoicing\Domain\VatRateKind;
 use App\Kernel;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyInput;
@@ -46,6 +59,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
@@ -68,12 +82,18 @@ $createParty = $container->get('e2e.create_party');
 $registrationNumbers = $container->get('e2e.registration_numbers');
 $hashers = $container->get('e2e.password_hashers');
 $mailSecrets = $container->get('e2e.mail_secrets');
+$issueInvoice = $container->get('e2e.issue_invoice');
+$sendInvoice = $container->get('e2e.send_invoice');
+$linkTokens = $container->get('e2e.link_tokens');
 \assert($entityManager instanceof EntityManagerInterface);
 \assert($context instanceof TenantContext);
 \assert($createParty instanceof CreateParty);
 \assert($registrationNumbers instanceof RegistrationNumberFactory);
 \assert($hashers instanceof PasswordHasherFactoryInterface);
 \assert($mailSecrets instanceof MailSecrets);
+\assert($issueInvoice instanceof IssueInvoice);
+\assert($sendInvoice instanceof SendInvoice);
+\assert($linkTokens instanceof LinkTokens);
 
 $password = getenv('E2E_PASSWORD');
 // Hashed the way the application hashes it, so the sign-in form accepts it.
@@ -180,5 +200,32 @@ $defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::CZK, Docu
 $defaultsOf('Example Euro a.s.', new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::BankTransfer, false));
 $entityManager->flush();
 $context->reset();
+
+// A sent invoice of a tenant nobody signs in to, for the public link page. Its links
+// are derived from the e2e secret; the specs read them from var/e2e-links.json.
+$sender = new Tenant(TenantId::generate(), 'Example Sender', new DateTimeImmutable());
+$entityManager->persist($sender);
+$entityManager->flush();
+$context->switchTo($sender->id());
+$senderFirm = new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 5678', ['CZ6508000000192000145399']);
+$entityManager->persist($senderFirm);
+$senderSeries = new Series($senderFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$senderSeries->markDefault();
+$entityManager->persist($senderSeries);
+$entityManager->persist(FirmMailServer::define($senderFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'studio@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'studio@example.com', 'Example Studio s.r.o.'));
+$entityManager->flush();
+$senderCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Client a.s.', [PartyRole::Customer], 'billing@example.com', 2, '12345679', 'CZ12345679'));
+$day = new DateTimeImmutable('2026-11-02');
+$senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $senderSeries->id(), null, $senderCustomer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', 'Website redesign', '', '', DocumentLanguage::Czech, [
+    new LineInput('Website redesign', Quantity::fromString('1'), 'ks', Money::of('12500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+]));
+// Delivered at once: the mail queue of the e2e environment is synchronous.
+$senderSend = $sendInvoice->send(new SendRequest($senderInvoice->id(), ['billing@example.com'], [], true, 'Faktura {number}', "Dobrý den,\nposíláme fakturu {number}.\n\n{link}"));
+$context->reset();
+file_put_contents(dirname(__DIR__, 2).'/var/e2e-links.json', json_encode([
+    'customer' => $linkTokens->token($senderSend->id(), LinkAudience::Customer),
+    'copy' => $linkTokens->token($senderSend->id(), LinkAudience::Copy),
+    'number' => $senderInvoice->number(),
+], \JSON_THROW_ON_ERROR));
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

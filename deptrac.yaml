@@ -377,6 +377,8 @@ deptrac:
       # A failed delivery is recorded in the tenant of its message.
       - TenancyDomain
       - TenantStamp
+      # The public link page reads the frozen data of a send across tenants.
+      - TenantFilterBypass
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers.

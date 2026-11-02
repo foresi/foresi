@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The answer for every link that shows nothing: unknown, ended, cancelled or malformed alike, so the
+    page tells nothing about what exists. Too many requests get their own text.
+#}
+{% extends 'invoicing/public/layout.html.twig' %}
+
+{% set key = limited ? 'invoice.public.limited' : 'invoice.public.gone' %}
+
+{% block title %}{{ (key ~ '.title')|trans({}, 'messages', locale) }}{% endblock %}
+
+{% block content %}
+    <section class="mx-auto mt-6 grid w-full max-w-lg justify-items-center gap-3 rounded-panel border border-container bg-white p-6 text-center shadow-raised sm:mt-16 sm:p-8">
+        <span class="grid size-10 place-items-center rounded-control bg-green-tint text-green" aria-hidden="true">{{ ux_icon('lucide:' ~ (limited ? 'clock-3' : 'link-2'), {class: 'size-5'}) }}</span>
+        <h1 class="m-0 text-title font-semibold text-ink">{{ (key ~ '.title')|trans({}, 'messages', locale) }}</h1>
+        <p class="m-0 text-body text-text">{{ (key ~ '.text')|trans({}, 'messages', locale) }}</p>
+    </section>
+{% endblock %}

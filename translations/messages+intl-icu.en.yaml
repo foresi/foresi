@@ -587,6 +587,24 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  public:
+    title: 'Invoice {number}'
+    from: From
+    for: 'For {customer}'
+    amount: Amount to pay
+    due: Due date
+    number: Document number
+    open: Open PDF
+    download: Download
+    viewer: 'Invoice {number} as PDF'
+    fallback: This browser cannot show the PDF on the page. Open it with the button.
+    notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
+    gone:
+      title: This link is not available
+      text: The link is not valid, or the sender has ended it. If you need the document, ask whoever sent it to you.
+    limited:
+      title: Too many requests
+      text: Please try again in a minute.
   mail:
     default:
       subject: 'Invoice {number}'

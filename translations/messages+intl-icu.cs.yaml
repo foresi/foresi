@@ -587,6 +587,24 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  public:
+    title: 'Faktura {number}'
+    from: Od
+    for: 'Pro {customer}'
+    amount: K úhradě
+    due: Splatnost
+    number: Číslo dokladu
+    open: Otevřít PDF
+    download: Stáhnout
+    viewer: 'Faktura {number} jako PDF'
+    fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
+    notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
+    gone:
+      title: Odkaz není k dispozici
+      text: Odkaz je neplatný, nebo ho odesílatel zrušil. Pokud doklad potřebujete, obraťte se na toho, kdo vám ho poslal.
+    limited:
+      title: Příliš mnoho požadavků
+      text: Zkuste to prosím znovu za minutu.
   mail:
     default:
       subject: 'Faktura {number}'
