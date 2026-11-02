@@ -22,6 +22,12 @@ interface InboundMessages
     public function has(string $dedupKey): bool;
 
     /**
+     * The sha256 of the raw bytes of the message with this dedup key, or null
+     * when none is stored.
+     */
+    public function rawHashOf(string $dedupKey): ?string;
+
+    /**
      * Stores a new message by a single statement, in the active tenant. Of two
      * messages with one dedup key only the first is stored, even at the same
      * moment; the message object is not managed afterwards.

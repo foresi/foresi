@@ -20,9 +20,10 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * The raw message is a file named by raw_key, and its sha256 is kept to tell a
  * changed file. The dedup key is the sha256 of the Message-ID, or of the raw
- * bytes when there is none, and is unique in the tenant: the same mail fetched
- * and posted, or forwarded twice, is one row. Rows are inserted by a single
- * statement that skips a duplicate, so the two never race.
+ * bytes when there is none or another message with other bytes holds that
+ * Message-ID, and is unique in the tenant: the same mail fetched and posted is
+ * one row. Rows are inserted by a single statement that skips a duplicate, so
+ * the two never race.
  *
  * The feed is named by its id only: a feed is never deleted, and the row is
  * written before any entity of the tenant is loaded.

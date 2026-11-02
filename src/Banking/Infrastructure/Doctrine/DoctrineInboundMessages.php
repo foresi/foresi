@@ -85,6 +85,13 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         return false !== $this->connection->fetchOne(self::HAS, ['tenant' => $this->context->current()->toString(), 'key' => $dedupKey]);
     }
 
+    public function rawHashOf(string $dedupKey): ?string
+    {
+        $hash = $this->connection->fetchOne('SELECT raw_sha256 FROM inbound_message WHERE tenant_id = :tenant AND dedup_key = :key', ['tenant' => $this->context->current()->toString(), 'key' => $dedupKey]);
+
+        return false === $hash ? null : $this->text($hash);
+    }
+
     public function add(InboundMessage $message): bool
     {
         return 1 === $this->connection->executeStatement(self::ADD, [

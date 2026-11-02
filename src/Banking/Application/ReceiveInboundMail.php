@@ -26,8 +26,10 @@ use Psr\Clock\ClockInterface;
  * The file is written first and the row and the processing message after it,
  * in one transaction, so a crash leaves at most a file without a row, which is
  * removed when the store fails and is harmless otherwise. The same mail twice,
- * by Message-ID or else by its bytes, is one row: a second fetch after a crash,
- * a forward to two addresses of one tenant, or one fetch and one post.
+ * by Message-ID with the same bytes or else by its bytes, is one row: a second
+ * fetch after a crash, or one fetch and one post of the same bytes. A copy with
+ * a Message-ID stored already but other bytes is a row of its own, so junk that
+ * took the ID of a bank notice never keeps the notice out.
  *
  * Nothing is kept of a mail for no known address. Never log the address.
  */
@@ -94,8 +96,8 @@ final readonly class ReceiveInboundMail
 
     private function store(InboundMail $mail, string $raw, InboundChannel $channel, FeedRoute $route): ReceiveOutcome
     {
-        $dedupKey = hash('sha256', $mail->messageId() ?? $raw);
-        if ($this->messages->has($dedupKey)) {
+        $dedupKey = $this->dedupKey($mail, $raw);
+        if (null === $dedupKey) {
             return ReceiveOutcome::Duplicate;
         }
 
@@ -126,6 +128,32 @@ final readonly class ReceiveInboundMail
         $this->feeds->touch($route->feedId, $now);
 
         return ReceiveOutcome::Stored;
+    }
+
+    /**
+     * The key the mail is stored under, or null when it is stored already. The
+     * Message-ID is the sender's word, so it only merges copies with the same
+     * bytes: a copy with the same Message-ID and other bytes, such as junk that
+     * took the ID of a notice the bank is about to send, or the real notice after
+     * such junk, is kept under the hash of its bytes, and a movement both carry
+     * is a possible duplicate the second time.
+     */
+    private function dedupKey(InboundMail $mail, string $raw): ?string
+    {
+        $byBytes = hash('sha256', $raw);
+        $messageId = $mail->messageId();
+        if (null !== $messageId) {
+            $byId = hash('sha256', $messageId);
+            $stored = $this->messages->rawHashOf($byId);
+            if (null === $stored) {
+                return $byId;
+            }
+            if (hash_equals($stored, $mail->sha256())) {
+                return null;
+            }
+        }
+
+        return $this->messages->has($byBytes) ? null : $byBytes;
     }
 
     /**

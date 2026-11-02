@@ -140,19 +140,40 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
-    public function testTheSameMessageIdTwiceIsOneRow(): void
+    public function testTheSameMessageTwiceIsOneRow(): void
     {
         $fetched = InboundMailKit::mail($this->kit->address);
-        // The webhook copy passed one more server, so its bytes differ.
-        $posted = InboundMailKit::mail($this->kit->address, headers: ['Received' => 'from relay.example.com by mx.example.com']);
 
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($fetched, InboundChannel::Imap));
-        self::assertSame(ReceiveOutcome::Duplicate, $this->receive->receive($posted, InboundChannel::Webhook));
+        self::assertSame(ReceiveOutcome::Duplicate, $this->receive->receive($fetched, InboundChannel::Webhook));
 
         self::assertSame(1, $this->rowCount());
         self::assertSame('imap', $this->onlyRow()['channel']);
         self::assertCount(1, $this->queue->getSent());
         self::assertCount(1, $this->storedFiles());
+    }
+
+    /**
+     * A Message-ID is the sender's word: anyone can send junk with the one of a
+     * notice the bank is about to send. A copy with the same Message-ID and other
+     * bytes is kept under the hash of its bytes; should both carry the same
+     * movement, the movement of the second is a possible duplicate.
+     */
+    public function testTheSameMessageIdWithOtherBytesIsKeptUnderItsBytes(): void
+    {
+        $first = InboundMailKit::mail($this->kit->address, body: "Junk that took the bank's Message-ID.\r\n");
+        // The webhook copy passed one more server, so its bytes differ.
+        $second = InboundMailKit::mail($this->kit->address, headers: ['Received' => 'from relay.example.com by mx.example.com']);
+
+        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($first, InboundChannel::Imap));
+        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($second, InboundChannel::Webhook));
+        self::assertSame(ReceiveOutcome::Duplicate, $this->receive->receive($second, InboundChannel::Imap));
+
+        $keys = $this->connection->fetchFirstColumn('SELECT dedup_key FROM inbound_message ORDER BY dedup_key');
+        $expected = [hash('sha256', InboundMailKit::MESSAGE_ID), hash('sha256', $second)];
+        sort($expected);
+        self::assertSame($expected, $keys);
+        self::assertCount(2, $this->queue->getSent());
     }
 
     public function testNoMessageIdFallsBackToTheRawHash(): void

@@ -138,7 +138,7 @@ export default {
 
 Store the secret as a secret of the worker (`FORESI_INBOUND_SECRET` here), never in its code. A failed post throws, so the relay's own handling of a failed delivery applies; check your service's documentation for what it does then. The trust rule below applies to webhook mail as to polled mail: the relay's own receiving server must add `Authentication-Results`, and its authserv-id must be trusted, or the mail is recorded but never pays anything by itself. Look at one raw message as the relay receives it before you trust its id.
 
-IMAP and the webhook can run together. The same message arriving both ways, twice by forwarding, or again after a crash, is stored once: the key is the SHA-256 of its `Message-ID`, or of its bytes when it has none.
+IMAP and the webhook can run together. The same message arriving both ways with the same bytes, or again after a crash, is stored once: the key is the SHA-256 of its `Message-ID`, or of its bytes when it has none. Anyone can send mail with the `Message-ID` of a notice the bank is about to send, so a copy whose `Message-ID` is stored already but whose bytes differ is stored as well, under the SHA-256 of its bytes: junk that arrives first never keeps the real notice out. Should both copies carry the same movement, such as one notice forwarded through two paths that changed its headers, the second movement is a **possible duplicate** and never pays anything.
 
 ## What Foresi believes
 

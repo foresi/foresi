@@ -17,8 +17,10 @@ use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\InboundMessages;
 use App\Banking\Application\Ownership;
 use App\Banking\Application\PendingChanges;
+use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Application\RetryInboundMessage;
 use App\Banking\Application\UnknownInboundMessage;
+use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Infrastructure\Navigation\BankNotices;
@@ -153,6 +155,29 @@ final class ProcessMessageTest extends InboundTestCase
         $row = $this->messageRow($id);
         self::assertSame(['notbankmail', self::getContainer()->get(BankMessageParsers::class)->signature(), null, null], [$row['status'], $row['parser_id'], $row['parser_version'], $row['trust']]);
         self::assertSame([], $this->movementsOf($id));
+    }
+
+    /**
+     * Anyone may send mail with the Message-ID of a notice the bank is about to
+     * send. Arriving first, such junk must not keep the real notice out.
+     */
+    public function testJunkWithTheBanksMessageIdDoesNotKeepTheRealNoticeOut(): void
+    {
+        $invoice = $this->kbInvoice();
+        $real = $this->notice('incoming-booked');
+        self::assertSame(1, preg_match('/^Message-ID: <([^>]+)>$/m', $real, $match));
+        $junk = $this->received(InboundMailKit::mail($this->address, $match[1], body: "Nothing to see.\r\n"));
+        self::assertSame(InboundStatus::NotBankMail, $this->process->process($junk));
+
+        $id = $this->received($real);
+
+        self::assertNotSame($junk, $id);
+        self::assertSame(hash('sha256', $real), Scalars::text($this->em->getConnection()->fetchOne('SELECT dedup_key FROM inbound_message WHERE id = ?', [$id])), 'Kept under its bytes.');
+        self::assertSame(InboundStatus::Processed, $this->process->process($id));
+        self::assertSame('verified', $this->messageRow($id)['trust']);
+        self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
+        // The same real notice again is still one row.
+        self::assertSame(ReceiveOutcome::Duplicate, $this->receive->receive($real, InboundChannel::Imap));
     }
 
     public function testRetryIsManualAndIdempotent(): void
