@@ -323,6 +323,16 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('<span>Read</span>', $html);
     }
 
+    public function testAnIconCellWithoutAHintHasNoTooltip(): void
+    {
+        $rows = $this->rows();
+        $rows[0]['cells']['name'] = ['text' => 'Queued', 'icon' => 'send'];
+
+        $html = $this->render(['rows' => $rows]);
+
+        self::assertMatchesRegularExpression('#<span class="inline-flex items-center gap-1.5" data-icon-cell="send"><svg[^>]*class="size-4 shrink-0 text-muted"#', $html);
+    }
+
     public function testNumericCellsAreRendered(): void
     {
         $rows = $this->rows();
@@ -405,6 +415,7 @@ final class DataTableTest extends KernelTestCase
         yield 'cell with object value' => [['rows' => [['cells' => ['name' => new \stdClass()]]]]];
         yield 'array cell without text' => [['rows' => [['cells' => ['name' => ['tone' => 'red']]]]]];
         yield 'icon cell without text' => [['rows' => [['cells' => ['name' => ['icon' => 'send']]]]]];
+        yield 'icon cell with an icon that is not a name' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => ['send']]]]]]];
         yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
         yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
     }

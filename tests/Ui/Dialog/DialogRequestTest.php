@@ -33,6 +33,7 @@ final class DialogRequestTest extends TestCase
         self::assertSame('application/json', $response->headers->get('Content-Type'));
         self::assertSame(['location' => '/invoices?tab=unpaid'], json_decode((string) $response->getContent(), true));
         self::assertStringContainsString(DialogRequest::HEADER, (string) $response->headers->get('Vary'));
+        self::assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function testAPageRequestKeepsItsRedirect(): void
@@ -45,10 +46,10 @@ final class DialogRequestTest extends TestCase
 
     public function testADialogPageIsNeverCachedAsTheFullPage(): void
     {
-        $response = $this->respond($this->dialogRequest(), new Response('<dialog></dialog>'));
+        $response = $this->respond($this->dialogRequest(), new Response('<dialog></dialog>', Response::HTTP_OK, ['Vary' => 'Accept-Language']));
 
         self::assertSame('<dialog></dialog>', $response->getContent());
-        self::assertStringContainsString(DialogRequest::HEADER, (string) $response->headers->get('Vary'));
+        self::assertSame(['Accept-Language', DialogRequest::HEADER], $response->getVary(), 'What the page varies on already stays.');
     }
 
     private function dialogRequest(): Request
