@@ -307,7 +307,17 @@ jobs:
             --git-diff-lines --git-diff-base="${BASE}" \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
             --min-msi=80 --min-covered-msi=90 --ignore-msi-with-no-mutations \
-            --show-mutations --no-progress
+            --show-mutations=max --no-progress
+
+      # Every escaped mutant of the changed lines, with its diff, for fixing them in one go.
+      - name: Upload the mutants of the changed lines
+        if: ${{ failure() && matrix.shard == 0 }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: infection-changed-lines
+          path: var/infection/infection.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Mutation testing
         if: ${{ matrix.shard != 0 }}
