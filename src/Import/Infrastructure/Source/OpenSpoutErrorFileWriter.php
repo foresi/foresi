@@ -15,9 +15,11 @@ use App\Import\Domain\Import;
 use App\Import\Domain\RowError;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\CSV\Options as CsvOptions;
 use OpenSpout\Writer\CSV\Writer as CsvWriter;
 use OpenSpout\Writer\WriterInterface;
+use OpenSpout\Writer\XLSX\Options as XlsxOptions;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -46,14 +48,15 @@ final readonly class OpenSpoutErrorFileWriter implements ErrorFileWriter
             }
         }
 
-        $writer = $this->writer($settings);
+        $style = self::textStyle();
+        $writer = $this->writer($settings, $style);
         $writer->openToFile($path);
         try {
-            $writer->addRow($this->row([...$headers, $this->translator->trans('import.error_file.column', [], 'messages', $locale)]));
+            $writer->addRow($this->row([...$headers, $this->translator->trans('import.error_file.column', [], 'messages', $locale)], $style));
             foreach ($rows as $row) {
                 $cells = array_pad($row->raw(), \count($headers), '');
                 $messages = array_map(fn (RowError $error): string => $this->message($error, $columnOf, $locale), $row->errors());
-                $writer->addRow($this->row([...$cells, implode(' ', $messages)]));
+                $writer->addRow($this->row([...$cells, implode(' ', $messages)], $style));
             }
         } finally {
             $writer->close();
@@ -66,24 +69,33 @@ final readonly class OpenSpoutErrorFileWriter implements ErrorFileWriter
         return '' !== $cell && str_contains(self::FORMULA_START, $cell[0]) ? "'".$cell : $cell;
     }
 
-    private function writer(SourceSettings $settings): WriterInterface
+    /**
+     * The one style of every cell of a file: the XLSX default font with
+     * wrapped text. OpenSpout registers styles per object, so sharing one
+     * instance keeps a file with many multi-line cells at a single style.
+     */
+    public static function textStyle(): Style
+    {
+        return new Style(fontSize: XlsxOptions::DEFAULT_FONT_SIZE, fontName: XlsxOptions::DEFAULT_FONT_NAME, shouldWrapText: true);
+    }
+
+    private function writer(SourceSettings $settings, Style $style): WriterInterface
     {
         if (SourceFormat::Xlsx === $settings->format) {
-            return new XlsxWriter();
+            return new XlsxWriter(new XlsxOptions(FALLBACK_STYLE: $style));
         }
-        $options = new CsvOptions();
-        $options->FIELD_DELIMITER = $settings->delimiter ?? ';';
-        $options->SHOULD_ADD_BOM = true;
 
-        return new CsvWriter($options);
+        $delimiter = $settings->delimiter ?? '';
+
+        return new CsvWriter(new CsvOptions(FIELD_DELIMITER: '' === $delimiter ? ';' : $delimiter, SHOULD_ADD_BOM: true));
     }
 
     /**
      * @param list<string> $cells
      */
-    private function row(array $cells): Row
+    private function row(array $cells, Style $style): Row
     {
-        return new Row(array_map(static fn (string $cell): StringCell => new StringCell(self::neutralise($cell), null), $cells));
+        return new Row(array_map(static fn (string $cell): StringCell => new StringCell(self::neutralise($cell), $style), $cells));
     }
 
     /**
