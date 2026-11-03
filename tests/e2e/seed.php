@@ -82,6 +82,7 @@ use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Tenancy\Application\TenantClock;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
@@ -378,7 +379,10 @@ $issueRecurring = $container->get('e2e.issue_recurring');
 \assert($saveRecurring instanceof SaveRecurringInvoice);
 \assert($recurringLifecycle instanceof RecurringLifecycle);
 \assert($issueRecurring instanceof IssueRecurringOccurrence);
-$today = new DateTimeImmutable('today');
+$tenantClock = $container->get('e2e.tenant_clock');
+\assert($tenantClock instanceof TenantClock);
+// The firm's today, not the server's: after midnight in the firm's zone they differ.
+$today = $tenantClock->today();
 $firstOfNextMonth = $today->modify('first day of next month');
 $recurring = static fn (string $description, string $price, Recurrence $recurrence, RecurringDelivery $delivery = RecurringDelivery::Send): RecurringInvoice => $saveRecurring->create(new RecurringInput(
     $recurringFirm->id(),

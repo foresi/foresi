@@ -254,6 +254,9 @@ when@e2e:
         e2e.issue_recurring:
             alias: App\Invoicing\Application\IssueRecurringOccurrence
             public: true
+        e2e.tenant_clock:
+            alias: App\Tenancy\Application\TenantClock
+            public: true
 
 when@test:
     parameters:
