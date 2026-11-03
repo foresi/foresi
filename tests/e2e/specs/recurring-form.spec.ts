@@ -87,7 +87,8 @@ test.describe.serial('a recurring invoice', () => {
 
     await page.locator('#description').fill('Hosting ');
     await page.locator('#description').press('End');
-    await page.getByRole('toolbar', { name: 'Proměnné' }).getByRole('button', { name: 'Měsíc/rok' }).click();
+    // The variables under Popis; the same ones stand over the items.
+    await page.getByRole('toolbar', { name: 'Proměnné' }).first().getByRole('button', { name: 'Měsíc/rok' }).click();
     await expect(page.locator('#description')).toHaveValue('Hosting {month/year}');
     await expect(preview(page).locator('[data-preview-description]').first()).toHaveText('Hosting 1/2027');
     await preview(page).getByText('Přehled budoucích vystavení').click();
