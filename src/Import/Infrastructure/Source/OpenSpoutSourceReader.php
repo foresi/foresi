@@ -285,7 +285,8 @@ final readonly class OpenSpoutSourceReader implements SourceReader
                 foreach ($sheet->getRowIterator() as $row) {
                     ++$number;
 
-                    yield $number => array_map(CellText::of(...), $row->toArray());
+                    // OpenSpout fills the gaps between cells, so the values are in column order.
+                    yield $number => array_values(array_map(CellText::of(...), $row->toArray()));
                 }
 
                 return;
@@ -322,9 +323,7 @@ final readonly class OpenSpoutSourceReader implements SourceReader
 
     private function openXlsx(string $path): XlsxReader
     {
-        $options = new Options();
-        $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
-        $reader = new XlsxReader($options);
+        $reader = new XlsxReader(new Options(SHOULD_PRESERVE_EMPTY_ROWS: true));
 
         try {
             $reader->open($path);
