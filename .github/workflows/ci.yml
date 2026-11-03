@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The merge queue tests each pull request on top of main before it lands.
+  merge_group:
+  # The full mutation run, once a week, on main.
+  schedule:
+    - cron: '0 3 * * 1'
+  # Runs everything, the full mutation run included, on a branch when asked.
+  workflow_dispatch:
 
 permissions: {}
 
@@ -16,9 +23,9 @@ concurrency:
 jobs:
   # The quality gate is split in jobs that run side by side, and the job named
   # "Quality gate (sqlite)" below puts them together. Static checks, migrations and the
-  # production build need no tests. The tests run once, with coverage. Mutation testing,
-  # which skips no mutant and dominated the run time, then runs in parallel shards on
-  # that coverage.
+  # production build need no tests. The tests run once, with coverage. Mutation testing
+  # then runs on that coverage: the changed lines on a pull request, everything in
+  # parallel shards on main and once a week.
   static:
     name: Static analysis and build
     runs-on: ubuntu-latest
@@ -123,7 +130,7 @@ jobs:
       # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
       # by SHA-256, and a missing binary fails the tests instead of skipping them.
       - name: Set up Java for veraPDF
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
@@ -185,13 +192,15 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Mutation testing in parallel shards. Infection has no sharding of its own, so a shard is
-  # a set of source files (bin/infection-shard), balanced by size. Every shard reuses the
-  # coverage above, skips the initial test run, and leaves the minimum scores to the
-  # quality gate, which judges the total of all shards. Keep SHARD_COUNT and the matrix in
-  # step; a shard that is missing fails the gate.
+  # Mutation testing, on the coverage above, with no initial test run. A pull request and
+  # the merge queue mutate only the lines the change adds or modifies, and must reach the
+  # minimum scores on them (shard 0). On main, once a week and when started by hand the
+  # whole code is mutated in parallel shards: Infection has no sharding of its own, so a
+  # shard is a set of source files (bin/infection-shard), balanced by size, and the quality
+  # gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
+  # that is missing fails the gate.
   mutation:
-    name: Mutation testing (shard ${{ matrix.shard }})
+    name: ${{ matrix.shard == 0 && 'Mutation testing (changed lines)' || format('Mutation testing (shard {0})', matrix.shard) }}
     needs: coverage
     runs-on: ubuntu-latest
     # Generous on purpose: a mutant may wait up to 30 minutes for slow covering tests
@@ -202,13 +211,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
     env:
       SHARD_COUNT: '10'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The changed lines are found against the base commit.
+          fetch-depth: 0
 
       - name: Set up PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -233,7 +244,7 @@ jobs:
       # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
       # by SHA-256, and a missing binary fails the tests instead of skipping them.
       - name: Set up Java for veraPDF
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
@@ -284,7 +295,20 @@ jobs:
           name: coverage
           path: var/coverage/
 
+      - name: Mutation testing of the changed lines
+        if: ${{ matrix.shard == 0 }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
+            --coverage=var/coverage --skip-initial-tests \
+            --git-diff-lines --git-diff-base="${BASE}" \
+            --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
+            --min-msi=80 --min-covered-msi=90 --ignore-msi-with-no-mutations \
+            --show-mutations --no-progress
+
       - name: Mutation testing
+        if: ${{ matrix.shard != 0 }}
         shell: bash
         env:
           SHARD: ${{ matrix.shard }}
@@ -303,7 +327,7 @@ jobs:
             "${files[@]}"
 
       - name: Upload the result of the shard
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard != 0 }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: infection-shard-${{ matrix.shard }}
@@ -314,9 +338,9 @@ jobs:
           retention-days: 7
 
   # The required check. It stays named "Quality gate (sqlite)" and passes only when the
-  # static checks, the tests and every mutation shard pass, and when the mutation score
-  # of all shards together reaches the minimums (80 MSI, 90 covered MSI) with no mutant
-  # skipped. It runs even when a job before it failed, and then fails on that.
+  # static checks, the tests and mutation testing pass. After a full run it also needs the
+  # mutation score of all shards together to reach the minimums (80 MSI, 90 covered MSI)
+  # with no mutant skipped. It runs even when a job before it failed, and then fails on that.
   quality:
     name: Quality gate (sqlite)
     needs: [static, coverage, mutation]
@@ -325,27 +349,32 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    env:
+      FULL_RUN: ${{ github.event_name != 'pull_request' && github.event_name != 'merge_group' }}
     steps:
       - name: The jobs before it passed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          STATIC: ${{ needs.static.result }}
+          COVERAGE: ${{ needs.coverage.result }}
+          MUTATION: ${{ needs.mutation.result }}
         run: |
-          echo "Results: ${RESULTS}"
-          for result in ${RESULTS}; do
-            [ "${result}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
-          done
+          echo "Static: ${STATIC}, tests: ${COVERAGE}, mutation: ${MUTATION}"
+          [ "${STATIC}" = success ] && [ "${COVERAGE}" = success ] && [ "${MUTATION}" = success ] || { echo "A job before the gate did not pass."; exit 1; }
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ env.FULL_RUN == 'true' }}
         with:
           persist-credentials: false
 
       - name: Set up PHP
+        if: ${{ env.FULL_RUN == 'true' }}
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
 
       - name: Download the results of the shards
+        if: ${{ env.FULL_RUN == 'true' }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: infection-shard-*
@@ -353,6 +382,7 @@ jobs:
           merge-multiple: true
 
       - name: Mutation score of all shards
+        if: ${{ env.FULL_RUN == 'true' }}
         run: php bin/infection-shard merge var/shards
 
   # PostgreSQL leg. Static analysis does not depend on the database, so only
@@ -392,7 +422,7 @@ jobs:
           coverage: pcov
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
-          ini-values: upload_max_filesize=64M, post_max_size=64M
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -407,7 +437,7 @@ jobs:
       # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
       # by SHA-256, and a missing binary fails the tests instead of skipping them.
       - name: Set up Java for veraPDF
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
@@ -501,7 +531,7 @@ jobs:
           extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, zip
           tools: composer:v2
           # Same upload limits as docs/import.md asks of a server; the upload tests rely on them.
-          ini-values: upload_max_filesize=64M, post_max_size=64M
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
 
       - name: Get Composer cache directory
         id: composer-cache
