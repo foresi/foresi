@@ -252,8 +252,12 @@ final readonly class SendInvoice
         }
     }
 
+    /**
+     * Every address comes here without spaces around it; anything else trim() would
+     * take off is a control character, which refuses the address.
+     */
     private function isAddress(string $address): bool
     {
-        return PartyEmail::isValid($address) && $address === trim($address) && 1 !== preg_match(self::CONTROL, $address);
+        return PartyEmail::isValid($address) && 1 !== preg_match(self::CONTROL, $address);
     }
 }

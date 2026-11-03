@@ -11,7 +11,10 @@ namespace App\Tests\Invoicing\Application;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
+use App\Invoicing\Application\InvoicePdf;
+use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\RenderedPdf;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
@@ -27,6 +30,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Infrastructure\Schedule\ScheduleTick;
 use App\Tests\Import\Support\RunMessages;
 use App\Tests\Support\Mail\RecordingMailGateway;
+use Doctrine\DBAL\Connection;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -424,6 +428,131 @@ final class SendInvoiceTest extends SendingTestCase
             self::fail('The delivery was expected to fail.');
         } catch (\Throwable) {
         }
+    }
+
+    public function testATrashedInvoiceIsRefusedBeforeAnythingElseIsAsked(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->trash->trash($invoice->id(), 'Wrong customer');
+        $this->connection->executeStatement('DELETE FROM firm_mail_server');
+
+        self::assertSame(SendRefused::TRASHED, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice)));
+    }
+
+    public function testAnInvoiceThatKeepsChangingIsDrawnThreeTimesOnOneLimit(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        // One send left for the firm: a round drawn again must not take another.
+        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(499);
+        $pdf = new class($this->connection, $invoice->id()) implements InvoicePdf {
+            public int $drawn = 0;
+
+            public function __construct(private readonly Connection $connection, private readonly string $invoiceId)
+            {
+            }
+
+            public function render(IssuedDocument $document): RenderedPdf
+            {
+                ++$this->drawn;
+                // Someone saves the invoice while it is drawn.
+                $this->connection->executeStatement('UPDATE invoice SET version = version + 1 WHERE id = ?', [$this->invoiceId]);
+
+                return new RenderedPdf('%PDF-1.7', $document->number.'.pdf');
+            }
+        };
+        self::getContainer()->set(InvoicePdf::class, $pdf);
+
+        try {
+            $this->sent($invoice);
+            self::fail('Expected the send to give up.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('The invoice kept changing while it was drawn for sending.', $failure->getMessage());
+        }
+        self::assertSame(3, $pdf->drawn);
+        $this->assertNothingStoredOrQueued();
+    }
+
+    public function testAnIssuerCountryWithoutSupportIsUndrawable(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->connection->executeStatement("UPDATE invoice SET issuer_address_country_code = 'XX' WHERE id = ?", [$invoice->id()]);
+        $this->em->clear();
+
+        self::assertSame(SendRefused::UNDRAWABLE, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice)));
+        $this->assertNothingStoredOrQueued();
+    }
+
+    public function testTheSubjectIsStoredAsOneLineWithoutSpacesAround(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $send = $this->sent($invoice, ['subject' => '  Invoice 20260001  ']);
+
+        self::assertSame('Invoice 20260001', $this->row($send->id())['subject']);
+    }
+
+    public function testTheCopyGoesToTheFirmsAddressWithoutSpaces(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->contactEmail(' office@example.com ');
+
+        $send = $this->sent($invoice, ['copyToMe' => true]);
+
+        self::assertSame('office@example.com', $this->row($send->id())['copy_to']);
+    }
+
+    public function testWithoutAFirmAddressOrAUserThereIsNoCopy(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $send = $this->sent($invoice, ['copyToMe' => true]);
+
+        self::assertNull($this->row($send->id())['copy_to']);
+    }
+
+    public function testAnAddressRepeatedInAnyCaseIsSentToOnce(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $send = $this->sent($invoice, [
+            'to' => ['ÚČTY@example.com', 'účty@example.com', '  ', 'ÚČTY@example.com', 'billing@example.com'],
+            'cc' => ['účty@example.com', 'Accounts@example.com', 'accounts@example.com'],
+        ]);
+
+        self::assertSame(['ÚČTY@example.com', 'billing@example.com'], $send->to());
+        self::assertSame(['Accounts@example.com'], $send->cc());
+    }
+
+    public function testABadAddressIsNamedInTheRefusal(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        try {
+            $this->sent($invoice, ['to' => ['billing@example.com', 'not an address']]);
+            self::fail('Expected the send to be refused.');
+        } catch (SendRefused $refused) {
+            self::assertSame(SendRefused::BAD_ADDRESS, $refused->reason);
+            self::assertSame(['not an address'], $refused->details);
+        }
+    }
+
+    public function testTheTextLimitsCountCharactersNotBytes(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $send = $this->sent($invoice, ['subject' => str_repeat('č', InvoiceSend::MAX_SUBJECT), 'body' => str_repeat('č', InvoiceSend::MAX_BODY)]);
+
+        self::assertSame(InvoiceSend::MAX_SUBJECT, mb_strlen($send->subject()));
+        self::assertSame(SendRefused::BAD_SUBJECT, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['subject' => str_repeat('č', InvoiceSend::MAX_SUBJECT + 1)])));
+        self::assertSame(SendRefused::BAD_BODY, $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['body' => str_repeat('č', InvoiceSend::MAX_BODY + 1)])));
+    }
+
+    public function testOnlyTheWholeLinkTokenIsRefusedInASubject(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        self::assertSame('Invoice {link', $this->sent($invoice, ['subject' => 'Invoice {link'])->subject());
+        self::assertSame('Invoice link}', $this->sent($invoice, ['subject' => 'Invoice link}'])->subject());
     }
 
     private function assertNothingStoredOrQueued(): void

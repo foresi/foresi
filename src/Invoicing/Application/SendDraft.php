@@ -13,7 +13,6 @@ use App\Identity\Application\UserRepository;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailTemplateKind;
-use App\Invoicing\Domain\SendStatus;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\EmailPurpose;
 
@@ -71,7 +70,7 @@ final readonly class SendDraft
         $hasTo = array_any($recipients, static fn (SendRecipient $recipient): bool => SendRecipient::TO === $recipient->field);
         if (!$hasTo && '' !== $copied) {
             // Without an address for invoices the mail goes to the one the document holds; a copy address it holds moves to To.
-            $others = array_values(array_filter($recipients, static fn (SendRecipient $recipient): bool => mb_strtolower($recipient->address) !== mb_strtolower($copied)));
+            $others = array_filter($recipients, static fn (SendRecipient $recipient): bool => mb_strtolower($recipient->address) !== mb_strtolower($copied));
             $recipients = [new SendRecipient($copied, null, SendRecipient::TO, true), ...$others];
             $fromDocument = true;
         }
@@ -125,8 +124,9 @@ final readonly class SendDraft
     {
         $last = null;
         foreach ($this->sends->ofInvoice($invoice) as $send) {
+            // Only a send that went out has a moment it was sent, and it keeps it.
             $at = $send->sentAt();
-            if (SendStatus::Sent === $send->status() && $at instanceof \DateTimeImmutable && (!$last instanceof \DateTimeImmutable || $at > $last)) {
+            if ($at instanceof \DateTimeImmutable && (!$last instanceof \DateTimeImmutable || $at > $last)) {
                 $last = $at;
             }
         }

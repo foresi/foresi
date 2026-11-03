@@ -23,7 +23,7 @@ final class FirmMailServerTest extends TestCase
     public function testDefinesAServer(): void
     {
         $firm = $this->firm();
-        $server = FirmMailServer::define($firm, ' smtp.example.com ', 587, MailEncryption::Starttls, 'invoices@example.com', 'k1:sealed', 'invoices@example.com', ' Example Firm ');
+        $server = FirmMailServer::define($firm, ' smtp.example.com ', 587, MailEncryption::Starttls, ' invoices@example.com ', 'k1:sealed', ' invoices@example.com ', ' Example Firm ');
 
         self::assertSame($firm, $server->firm());
         self::assertSame($firm, $server->auditRoot());
@@ -160,6 +160,7 @@ final class FirmMailServerTest extends TestCase
         yield 'host with a port' => [['host' => 'smtp.example.com:25']];
         yield 'IPv4 in brackets' => [['host' => '[93.184.215.14]']];
         yield 'empty secret' => [['secret' => '']];
+        yield 'line break in the secret' => [['secret' => "k1:sealed\r\nAUTH"]];
     }
 
     private function server(): FirmMailServer
@@ -187,5 +188,21 @@ final class FirmMailServerTest extends TestCase
 
         $server->markVerified(new \DateTimeImmutable('2026-11-02 13:00'));
         self::assertNull($server->lastTestError());
+    }
+
+    public function testALongTestErrorIsCutToItsColumnByCharacters(): void
+    {
+        $server = $this->server();
+
+        $server->markTestFailed(new \DateTimeImmutable('2026-11-02 11:00'), str_repeat('č', 300), false);
+
+        self::assertSame(str_repeat('č', 255), $server->lastTestError());
+    }
+
+    public function testTheTenantIsKnownOnlyOnceStored(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        $this->server()->tenantId();
     }
 }

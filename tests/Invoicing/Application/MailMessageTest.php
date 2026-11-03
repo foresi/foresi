@@ -59,11 +59,13 @@ final class MailMessageTest extends TestCase
         yield 'from name' => [['fromName' => "Example\r\nBcc: x@example.com"]];
         yield 'reply-to' => [['replyTo' => "office@example.com\nBcc: x@example.com"]];
         yield 'to' => [['to' => ["customer@example.com\r\nBcc: x@example.com"]]];
+        yield 'a later to' => [['to' => ['customer@example.com', "other@example.com\r\nBcc: x@example.com"]]];
         yield 'cc' => [['cc' => ["copy@example.com\rBcc: x@example.com"]]];
         yield 'subject' => [['subject' => "Invoice\r\nBcc: x@example.com"]];
         yield 'message id' => [['messageId' => "<1@example.com>\r\nBcc: x@example.com"]];
         yield 'nobody to send to' => [['to' => []]];
         yield 'a message id without brackets' => [['messageId' => '1@example.com']];
+        yield 'a message id with more after it' => [['messageId' => '<1@example.com> <2@example.com>']];
     }
 
     /**

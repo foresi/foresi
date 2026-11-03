@@ -8,10 +8,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\SendDraft;
 use App\Invoicing\Application\SendRecipient;
+use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
+use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\PartyEmail;
@@ -82,6 +85,34 @@ final class SendDraftTest extends SendingTestCase
         self::assertSame([['billing@example.com', 'to', true], ['accounts@example.com', 'cc', true]], $this->recipientsOf($invoice));
     }
 
+    public function testTheDocumentsAddressIsOfferedWithoutSpaces(): void
+    {
+        $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
+        $invoice = $this->issue->issue($this->input(overrides: ['customerOnDocument' => $this->typedCustomer(' office@example.com ')]));
+
+        self::assertSame([['office@example.com', 'to', true]], $this->recipientsOf($invoice));
+    }
+
+    public function testTheDocumentsAddressTakesThePlaceOfTheSameCopyAddressInAnyCase(): void
+    {
+        $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
+        $this->em->persist(new PartyEmail($this->customer, 'ÚČTY@example.com', EmailPurpose::Copy));
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input(overrides: ['customerOnDocument' => $this->typedCustomer('Účty@example.com')]));
+
+        self::assertSame([['Účty@example.com', 'to', true]], $this->recipientsOf($invoice));
+    }
+
+    public function testAnAddressTheContactListsTwiceInAnyCaseIsOfferedOnce(): void
+    {
+        $this->em->persist(new PartyEmail($this->customer, 'ÚČTY@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new PartyEmail($this->customer, 'účty@example.com', EmailPurpose::Copy));
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input());
+
+        self::assertSame([['billing@example.com', 'to', true], ['ÚČTY@example.com', 'to', true]], $this->recipientsOf($invoice));
+    }
+
     public function testNoAddressAnywhereLeavesTheRecipientsEmpty(): void
     {
         $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
@@ -119,6 +150,16 @@ final class SendDraftTest extends SendingTestCase
         self::assertSame("Dobrý den,\nExample Customer a.s.\n{link}", $draft->body);
     }
 
+    public function testTheSubjectIsOneLineWithoutSpacesAround(): void
+    {
+        $templates = self::getContainer()->get(\App\Invoicing\Application\MailTemplates::class);
+        $templates->save($this->firm, \App\Invoicing\Domain\MailTemplateKind::Invoice, DocumentLanguage::Czech, 'Doklad {number} {order_number}', '{link}');
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input(overrides: ['orderNumber' => '']));
+
+        self::assertSame('Doklad 20260001', $this->draft()->for($invoice)->subject);
+    }
+
     public function testTheSenderAndTheCopyAddressAreTheFirms(): void
     {
         $this->contactEmail('office@example.com');
@@ -131,6 +172,14 @@ final class SendDraftTest extends SendingTestCase
         self::assertSame('invoices@example.com', $draft->fromAddress);
         self::assertSame('office@example.com', $draft->copyAddress);
         self::assertNull($draft->lastSentAt);
+    }
+
+    public function testTheCopyAddressIsTakenWithoutSpaces(): void
+    {
+        $this->contactEmail(' office@example.com ');
+        $invoice = $this->issue->issue($this->input());
+
+        self::assertSame('office@example.com', $this->draft()->for($invoice)->copyAddress);
     }
 
     public function testWithoutAServerTheDraftSaysSo(): void
@@ -157,6 +206,28 @@ final class SendDraftTest extends SendingTestCase
 
         self::assertSame('2026-11-03 10:00:00', $draft->lastSentAt?->format('Y-m-d H:i:s'));
         self::assertSame('2026-11-04 08:00:00', Clock::get()->now()->format('Y-m-d H:i:s'));
+    }
+
+    public function testTheLastSendIsTheLatestMomentWhicheverWasAskedForFirst(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        [$first, $second, $third] = array_map(function (string $at) use ($invoice): string {
+            self::mockTime('2026-11-03 '.$at);
+
+            return $this->sent($invoice)->id();
+        }, ['09:00:00', '09:01:00', '09:02:00']);
+        // The second goes out last.
+        foreach (['10:00' => $first, '11:00' => $third, '12:00' => $second] as $at => $id) {
+            self::mockTime('2026-11-03 '.$at.':00');
+            $this->worker->run(only: static fn (object $message): bool => $message instanceof DeliverInvoiceSend && $id === $message->sendId);
+        }
+
+        self::assertSame('2026-11-03 12:00:00', $this->draft()->for($invoice)->lastSentAt?->format('Y-m-d H:i:s'));
+    }
+
+    private function typedCustomer(string $email): DocumentParty
+    {
+        return new DocumentParty('Example Customer a.s.', '87654320', 'CZ87654320', new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), '', $email, '', '', null, null);
     }
 
     private function draft(): SendDraft
