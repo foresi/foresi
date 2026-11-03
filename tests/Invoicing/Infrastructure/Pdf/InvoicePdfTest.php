@@ -80,7 +80,7 @@ final class InvoicePdfTest extends InvoiceTestCase
             'Datum splatnosti', '15. 11. 2026',
             'Consulting work', 'Cena za m. j.', 'bez DPH', 'Sazba', 'Základ', 'DPH',
             '1 260,00', '264,60', '1 524,60',
-            '1 525,00 CZK',
+            '1 525,00 Kč',
             'CZ6508000000192000145399', '19-2000145399/0800',
             'Variabilní symbol', '20260001', 'Konstantní symbol', '0308',
             'PO-77', 'Before', 'After', 'Consulting',
@@ -218,7 +218,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         // The recap stays unrounded and the payable amount takes the rounding.
         self::assertMatchesRegularExpression('/21 %\s+1 260,00\s+264,60\s+1 524,60/', $text);
         self::assertMatchesRegularExpression('/Celkem\s+1 260,00\s+264,60\s+1 524,60/', $text);
-        self::assertStringContainsString('1 525,00 CZK', $text);
+        self::assertStringContainsString('1 525,00 Kč', $text);
     }
 
     public function testADownwardRoundingIsPrintedNegative(): void
@@ -238,7 +238,7 @@ final class InvoicePdfTest extends InvoiceTestCase
         $text = $this->textOf($this->issuedByNonPayer([], '1000.50'));
 
         self::assertMatchesRegularExpression('/Zaokrouhlení\s+1,00\s+0,50\s+0,50/', $text);
-        self::assertStringContainsString('1 001,00 CZK', $text);
+        self::assertStringContainsString('1 001,00 Kč', $text);
     }
 
     public function testAStampPrintsAndAMissingStampLeavesTheCaption(): void
@@ -448,8 +448,8 @@ final class InvoicePdfTest extends InvoiceTestCase
     {
         $document = $this->issued([$this->line('8264462.80')]);
 
-        self::assertStringContainsString('10 000 000,00 CZK', $this->textOf($this->issued([$this->line('8264462.81')])));
-        self::assertMatchesRegularExpression('/\d 999 999,\d\d CZK|10 000 000,00 CZK/', $this->textOf($document));
+        self::assertStringContainsString('10 000 000,00 Kč', $this->textOf($this->issued([$this->line('8264462.81')])));
+        self::assertMatchesRegularExpression('/\d 999 999,\d\d Kč|10 000 000,00 Kč/u', $this->textOf($document));
     }
 
     /**

@@ -1,0 +1,138 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: cancel}, {label: 'firm.mail.title'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set chip_class = 'inline-flex h-control-sm cursor-grab select-none items-center rounded-control border border-control-line bg-white px-2.5 text-small font-medium text-text hover:border-muted active:cursor-grabbing ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'firm.mail.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% for message in app.flashes('success') %}
+        <twig:Ui:Alert tone="success" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <twig:Ui:Alert tone="error" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'mail'} only %}</div>
+
+    <div class="grid max-w-4xl grid-cols-1 gap-4">
+        <twig:Ui:Tabs :label="'firm.mail.sections'|trans" :items="tabs" />
+
+        {% if tab == 'templates' %}
+            <form id="mail-templates" method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate>
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                <input type="hidden" name="section" value="templates">
+
+                {% if errors.form is defined %}
+                    <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+                {% endif %}
+
+                <twig:Ui:Card :title="'firm.mail.card.invoice'|trans" icon="receipt-text">
+                    <p class="m-0 mb-3 text-small text-muted">{{ 'firm.mail.templates_help'|trans }}</p>
+                    <div class="grid gap-5">
+                        {% for language in languages %}
+                            {% set code = language.code %}
+                            <section class="grid gap-3{% if not loop.first %} border-t border-divider pt-4{% endif %}" aria-labelledby="language-{{ code }}" data-controller="mail-chips">
+                                <div class="flex min-h-control flex-wrap items-center justify-between gap-2">
+                                    <h4 id="language-{{ code }}" class="m-0 text-small font-semibold text-ink">{{ language.label }}</h4>
+                                    {% if language.custom %}
+                                        {# Its own form, after the save button in source order, so Enter in a field saves and never resets. #}
+                                        <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="history" :form="'mail-reset-' ~ code">{{ 'firm.mail.reset'|trans }}</twig:Ui:Button>
+                                    {% endif %}
+                                </div>
+                                <twig:Ui:TextInput :name="'subject[' ~ code ~ ']'" :id="'subject-' ~ code" :label="'firm.mail.field.subject'|trans" :value="templates[code].subject" :error="errors['subject-' ~ code]|default(null)" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                                <twig:Ui:Textarea :name="'body[' ~ code ~ ']'" :id="'body-' ~ code" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: language.link})" :value="templates[code].body" :error="errors['body-' ~ code]|default(null)" :rows="9" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                                <div class="grid gap-1.5">
+                                    <p id="variables-{{ code }}" class="m-0 text-small font-medium text-ink">{{ 'firm.mail.variables'|trans }}</p>
+                                    <p id="variables-{{ code }}-help" class="m-0 text-caption text-muted">{{ 'firm.mail.variables_help'|trans }}</p>
+                                    {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
+                                    <div role="toolbar" aria-labelledby="variables-{{ code }} language-{{ code }}" aria-describedby="variables-{{ code }}-help" class="flex flex-wrap gap-1.5" lang="{{ code }}" data-action="keydown->mail-chips#move">
+                                        {% for variable in language.variables %}
+                                            <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
+                            </section>
+                        {% endfor %}
+                    </div>
+                </twig:Ui:Card>
+
+                <twig:Ui:ActionBar>
+                    <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+                </twig:Ui:ActionBar>
+            </form>
+            {% for language in languages|filter(language => language.custom) %}
+                <form id="mail-reset-{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                    <input type="hidden" name="section" value="templates">
+                    <input type="hidden" name="reset" value="{{ language.code }}">
+                </form>
+            {% endfor %}
+        {% else %}
+            {% if not keyConfigured and errors.form is not defined %}
+                <twig:Ui:Alert tone="error">{{ 'firm.mail.error.no_key'|trans }}</twig:Ui:Alert>
+            {% endif %}
+
+            {# The test button sits in the server card, but posts this form of its own. #}
+            <form id="mail-test" method="post" action="{{ testAction }}" hidden>
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEST_TOKEN')) }}">
+            </form>
+
+            <form id="mail-server" method="post" action="{{ action }}" class="grid grid-cols-1 gap-4" novalidate data-controller="mail-port" data-mail-port-ports-value="{{ encryptionPorts|json_encode }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::SERVER_TOKEN')) }}">
+                <input type="hidden" name="section" value="server">
+
+                {% if errors.form is defined %}
+                    <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+                {% endif %}
+
+                <twig:Ui:Card :title="'firm.mail.card.server'|trans" icon="plug">
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="sm:col-span-2"><twig:Ui:TextInput name="host" id="host" :label="'firm.mail.field.host'|trans" :help="'firm.mail.field.host_help'|trans" :value="server.host" :error="errors.host|default(null)" maxlength="253" autocomplete="off" autocapitalize="none" spellcheck="false" required /></div>
+                        <div><twig:Ui:Select name="port" id="port" data-mail-port-target="port" :label="'firm.mail.field.port'|trans" :options="ports" :value="server.port" :error="errors.port|default(null)" required /></div>
+                        <div><twig:Ui:Select name="encryption" id="encryption" data-action="change->mail-port#preset" :label="'firm.mail.field.encryption'|trans" :options="encryptions" :value="server.encryption" :error="errors.encryption|default(null)" required /></div>
+                        <div><twig:Ui:TextInput name="username" id="username" :label="'firm.mail.field.username'|trans" :value="server.username" :error="errors.username|default(null)" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" required /></div>
+                        <div><twig:Ui:TextInput type="password" name="password" id="password" :label="'firm.mail.field.password'|trans" :help="hasServer ? 'firm.mail.field.password_kept'|trans : null" value="" :error="errors.password|default(null)" autocomplete="new-password" :required="not hasServer" /></div>
+                        <div><twig:Ui:TextInput type="email" name="fromAddress" id="fromAddress" :label="'firm.mail.field.fromAddress'|trans" :help="'firm.mail.field.fromAddress_help'|trans" :value="server.fromAddress" :error="errors.fromAddress|default(null)" maxlength="254" required /></div>
+                        <div><twig:Ui:TextInput name="fromName" id="fromName" :label="'firm.mail.field.fromName'|trans" :help="'firm.mail.field.fromName_help'|trans" :value="server.fromName" :error="errors.fromName|default(null)" maxlength="255" required /></div>
+                    </div>
+                </twig:Ui:Card>
+
+                <twig:Ui:Card :title="'firm.mail.card.test'|trans" icon="send">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="grid min-w-0 gap-1">
+                            {% if hasServer %}
+                                <p class="m-0 text-small text-ink">{{ 'firm.mail.test.intro'|trans({email: recipient}) }}</p>
+                                {% set dateFormat = 'firm.mail.test.date_format'|trans %}
+                                <div id="mail-test-result" class="grid gap-0.5 text-caption">
+                                    {% if verifiedAt %}
+                                        <p class="m-0 text-muted"><time datetime="{{ verifiedAt|date('c') }}">{{ 'firm.mail.test.verified'|trans({date: verifiedAt|date(dateFormat)}) }}</time></p>
+                                    {% elseif lastTestError is null %}
+                                        <p class="m-0 text-muted">{{ 'firm.mail.test.unverified'|trans }}</p>
+                                    {% endif %}
+                                    {% if lastTestError is not null and lastTestAt %}
+                                        <p class="m-0 font-medium text-badge-red-text"><time datetime="{{ lastTestAt|date('c') }}">{{ 'firm.mail.test.last_failed'|trans({date: lastTestAt|date(dateFormat), reason: lastTestError}) }}</time></p>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <p class="m-0 text-small text-muted">{{ 'firm.mail.test.save_first'|trans }}</p>
+                            {% endif %}
+                        </div>
+                        {% if hasServer %}
+                            <twig:Ui:Button type="submit" icon="send" form="mail-test">{{ 'firm.mail.test.button'|trans }}</twig:Ui:Button>
+                        {% endif %}
+                    </div>
+                </twig:Ui:Card>
+
+                <twig:Ui:ActionBar>
+                    <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+                </twig:Ui:ActionBar>
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -12,8 +12,9 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, plain: bool}
- * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?string, icon: ?string, plain: bool, fields: array<string, string>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, plain: bool, icon: ?string, iconClass: string}
+ * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
+ * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string}
  * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool}
  */
@@ -23,6 +24,8 @@ final class DataTable
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
     private const array ALIGNS = ['left', 'right', 'center'];
+    /** The colour of the icon of an icon cell, by tone; its text says the same, so colour is never alone. */
+    private const array ICON_TONES = ['gray' => 'text-muted', 'green' => 'text-green', 'amber' => 'text-badge-amber-text', 'red' => 'text-badge-red-text'];
 
     /**
      * @var list<array<string, mixed>> each with a string key and label, optional align, sortable, sort (asc|desc), href and
@@ -214,7 +217,6 @@ final class DataTable
         Style::href($href);
         $icon = isset($action['icon']) && is_string($action['icon']) ? $action['icon'] : null;
         Style::icon($icon);
-        $confirm = $action['confirm'] ?? null;
         $fields = [];
         foreach (is_array($action['fields'] ?? null) ? $action['fields'] : [] as $name => $value) {
             if (is_scalar($value)) {
@@ -226,10 +228,39 @@ final class DataTable
             'label' => Style::requireString($action, 'label', 'A row action'),
             'href' => $href,
             'method' => $method,
-            'confirm' => is_string($confirm) ? $confirm : null,
+            'confirm' => $this->confirm($action['confirm'] ?? null),
             'icon' => $icon,
             'plain' => true === ($action['plain'] ?? false),
+            'dialog' => 'GET' === $method && true === ($action['dialog'] ?? false),
             'fields' => $fields,
+        ];
+    }
+
+    /**
+     * A confirmation is the question alone, or the question with its consequence,
+     * the labels of the two answers and the danger tone.
+     *
+     * @return Confirm|null
+     */
+    private function confirm(mixed $confirm): ?array
+    {
+        if (null === $confirm) {
+            return null;
+        }
+        if (is_string($confirm)) {
+            $confirm = ['title' => $confirm];
+        }
+        if (!is_array($confirm)) {
+            throw new \InvalidArgumentException('A confirmation is a question or an array with a title.');
+        }
+        $optional = static fn (string $key): ?string => isset($confirm[$key]) && is_string($confirm[$key]) && '' !== $confirm[$key] ? $confirm[$key] : null;
+
+        return [
+            'title' => Style::requireString($confirm, 'title', 'A confirmation'),
+            'text' => $optional('text'),
+            'accept' => $optional('accept'),
+            'cancel' => $optional('cancel'),
+            'tone' => $optional('tone'),
         ];
     }
 
@@ -242,7 +273,17 @@ final class DataTable
     {
         $tone = null;
         $hint = null;
-        if (is_array($value)) {
+        $icon = null;
+        $iconClass = '';
+        if (is_array($value) && isset($value['icon'])) {
+            // A label with an icon in front and its explanation as a tooltip, such as how an invoice was sent.
+            $icon = is_string($value['icon']) ? $value['icon'] : throw new \InvalidArgumentException('A cell icon must be a string.');
+            Style::icon($icon);
+            $iconTone = $value['tone'] ?? 'gray';
+            $iconClass = is_string($iconTone) && isset(self::ICON_TONES[$iconTone]) ? self::ICON_TONES[$iconTone] : throw new \InvalidArgumentException('Unknown icon tone.');
+            $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('An icon cell needs a text.');
+            $hint = isset($value['hint']) && is_string($value['hint']) ? $value['hint'] : null;
+        } elseif (is_array($value)) {
             $badge = Style::badge($value + ['label' => $value['text'] ?? null], 'A table cell');
             $tone = $badge['tone'];
             $text = $badge['label'];
@@ -261,11 +302,13 @@ final class DataTable
             'numeric' => 'right' === $column['align'],
             'text' => $text,
             'tone' => $tone,
-            'title' => mb_strlen($text) > self::TITLE_FROM_LENGTH ? $text : null,
+            'title' => null === $icon && mb_strlen($text) > self::TITLE_FROM_LENGTH ? $text : null,
             'link' => $link,
             'hint' => $hint,
             'phone' => $column['phone'],
             'plain' => $plain,
+            'icon' => $icon,
+            'iconClass' => $iconClass,
         ];
     }
 }

@@ -2,7 +2,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
+import { EMPTY_OWNER_STATE, INVOICING_OWNER_STATE, OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -56,6 +56,44 @@ test.describe('signed in', () => {
     await page.goto('/_catalogue?locale=cs');
     await expect(page.getByRole('heading', { level: 1, name: 'Katalog komponent' })).toBeVisible();
     await expectNoSeriousViolations(page);
+  });
+});
+
+async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+}
+
+test.describe('e-mail settings', () => {
+  test.use({ storageState: INVOICING_OWNER_STATE });
+
+  async function open(page: Page, tab: string): Promise<void> {
+    await page.goto('/settings/firms');
+    await page.getByRole('link', { name: 'Example Payer s.r.o.', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
+    await page.waitForURL(/\/mail$/);
+    if (tab === 'Poštovní server') {
+      await page.getByRole('navigation', { name: 'Části nastavení e-mailů' }).getByRole('link', { name: tab }).click();
+      await page.waitForURL(/\/mail\?tab=server$/);
+    }
+  }
+
+  test('templates have no serious accessibility violations and no sideways scroll @a11y @layout', async ({ page }) => {
+    await open(page, 'Šablony');
+    await expect(page.locator('#body-cs')).toHaveValue(/\{Číslo dokladu\}/);
+    // At load on a phone the floating action bar covers the first chips, which axe counts
+    // against their target size; a keyboard or touch user reaches them scrolled clear of it.
+    await page.getByRole('toolbar', { name: 'Proměnné Čeština' }).scrollIntoViewIfNeeded();
+    await expectNoSeriousViolations(page);
+    await expectNoSidewaysScroll(page);
+  });
+
+  test('the mail server has no serious accessibility violations and no sideways scroll @a11y @layout', async ({ page }) => {
+    await open(page, 'Poštovní server');
+    await expect(page.locator('#host')).toHaveValue('smtp.example.com');
+    await expect(page.locator('#password')).toHaveValue('');
+    await expectNoSeriousViolations(page);
+    await expectNoSidewaysScroll(page);
   });
 });
 

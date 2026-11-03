@@ -16,8 +16,9 @@ export default class extends Controller {
     connect() {
         this.media = window.matchMedia(NARROW);
         this.onKeydown = (event) => {
-            // The command palette (or a menu) inside the drawer handles its own Escape first.
-            if (event.key === 'Escape' && !event.defaultPrevented && this.isOpen()) {
+            // A menu inside the drawer handles its own Escape first; an open dialog takes Escape for
+            // itself, and preventing it here would keep the dialog open.
+            if (event.key === 'Escape' && !event.defaultPrevented && this.isOpen() && document.querySelector('dialog:modal') === null) {
                 event.preventDefault();
                 this.close();
             }

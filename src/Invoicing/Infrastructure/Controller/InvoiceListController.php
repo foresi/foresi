@@ -16,16 +16,22 @@ use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoiceHistoryLine;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
+use App\Invoicing\Infrastructure\Form\MailTokenLabels;
+use App\Invoicing\Infrastructure\Form\SendFailureText;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -41,16 +47,20 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The invoice list, its trash and the history of a document, for staff. An action on a
  * row comes back to the list it started from. Links into the form leave Turbo: the form
- * is a plain page. A delete asks for its reason on a page of its own, which works with
- * the keyboard, on a phone and without JavaScript.
+ * is a plain page. Send and delete open in a dialog over the list; each is also a page of
+ * its own, which works without JavaScript.
  *
- * @phpstan-type Action array{label: string, href: string, method: string, confirm?: string, icon?: string, plain?: bool, fields?: array<string, string>}
+ * @phpstan-type Action array{label: string, href: string, method: string, confirm?: array{title: string, text: string, accept: string}, icon?: string, plain?: bool, dialog?: bool, fields?: array<string, string>}
  */
 final class InvoiceListController extends AbstractController
 {
     public const string ACTION_TOKEN = 'invoice_action';
+    /** The icon of each send mark: its label says the same, so it is never colour alone. */
+    private const array MARK_ICONS = ['queued' => 'clock-3', 'sent' => 'send', 'read' => 'circle-check', 'failed' => 'triangle-alert'];
+    private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
-    private const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
+    /** The parts of the list's query an action carries back to it. */
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -63,6 +73,9 @@ final class InvoiceListController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly InvoiceSends $sends,
+        private readonly MailTokenLabels $labels,
+        private readonly SendFailureText $failures,
     ) {
     }
 
@@ -166,10 +179,13 @@ final class InvoiceListController extends AbstractController
         $this->denyUnlessStaff();
         $invoice = $this->invoice($id);
 
+        $timezone = $this->timezoneOf($invoice);
+        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone), $this->history->of($invoice));
+
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $this->timezoneOf($invoice)), $this->history->of($invoice)),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone)),
         ]);
     }
 
@@ -262,6 +278,9 @@ final class InvoiceListController extends AbstractController
         }
         $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
         $columns[] = $this->column('status', $sort, $query, phone: false);
+        if (!$trash) {
+            $columns[] = $this->column('sent', $sort, $query, phone: false);
+        }
 
         return $columns;
     }
@@ -308,11 +327,13 @@ final class InvoiceListController extends AbstractController
         } else {
             $due = $row->dueDate->format($date);
             $overdue = $this->translator->trans('invoice.list.status.overdue');
+            $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value);
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
                 'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
+                'sent' => null === $mark ? null : ['text' => $mark, 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value)],
             ];
-            $secondary = $this->joined([$row->customerName, $due, $badge]);
+            $secondary = $this->joined([$row->customerName, $due, $badge, $mark]);
         }
 
         return [
@@ -364,13 +385,18 @@ final class InvoiceListController extends AbstractController
             ];
         }
 
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $copy];
+        $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send, $copy];
         if (!$row->delivered) {
-            $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]), 'fields' => $fields];
+            $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
+                'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),
+                'text' => $this->translator->trans('invoice.list.delivered_confirm_text'),
+                'accept' => $this->translator->trans('invoice.list.delivered_confirm_accept'),
+            ], 'fields' => $fields];
         }
         $actions[] = $history;
         if (!$row->delivered) {
-            $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET'];
+            $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
 
         return $actions;
@@ -410,6 +436,69 @@ final class InvoiceListController extends AbstractController
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),
         ];
+    }
+
+    /**
+     * The changes and the sends in one line of time. At the same moment the creation
+     * comes first, then a send, then what the send caused, such as its delivery.
+     *
+     * @param list<array<string, mixed>> $changes
+     * @param list<array<string, mixed>> $sends
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function inTime(array $changes, array $sends): array
+    {
+        $items = [...$changes, ...$sends];
+        $key = static fn (array $item): array => [
+            new \DateTimeImmutable(\is_string($item['datetime']) ? $item['datetime'] : throw new \LogicException('An item of the history needs its moment.')),
+            isset($item['send']) ? 1 : ('plus' === $item['icon'] ? 0 : 2),
+        ];
+        usort($items, static fn (array $one, array $other): int => $key($one) <=> $key($other));
+
+        return $items;
+    }
+
+    /**
+     * Each send of the invoice as the history shows it. Only the newest offers to send again.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function sendItems(Invoice $invoice, \DateTimeZone $timezone): array
+    {
+        $sends = $this->sends->ofInvoice($invoice);
+        $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (InvoiceSend $send): ?string => $send->createdBy(), $sends), \is_string(...)))));
+        $format = $this->translator->trans('format.datetime');
+        $items = [];
+        foreach ($sends as $index => $send) {
+            $recipients = implode(', ', [...$send->to(), ...$send->cc()]);
+            $copy = $send->copyTo();
+            $status = $send->status()->value;
+            $items[] = [
+                'send' => true,
+                'time' => $send->createdAt()->setTimezone($timezone)->format($format),
+                'datetime' => $send->createdAt()->format(\DATE_ATOM),
+                'icon' => 'send',
+                'text' => $this->translator->trans('invoice.history.send', ['who' => $this->who($send->createdBy(), $names), 'recipients' => $recipients])
+                    .(null === $copy ? '' : ' · '.$this->translator->trans('invoice.history.send_copy', ['address' => $copy])),
+                'status' => $this->translator->trans('invoice.sends.status.'.$status),
+                'tone' => match ($send->status()) {
+                    SendStatus::Sent => 'green',
+                    SendStatus::Failed => 'red',
+                    default => 'gray',
+                },
+                'read' => null === $send->firstReadAt() ? null : $this->translator->trans('invoice.history.send_read', ['date' => $send->firstReadAt()->setTimezone($timezone)->format($format)]),
+                'error' => SendStatus::Sent === $send->status() ? null : $this->failures->of($send->lastErrorCode(), $send->lastErrorSmtp(), $send->lastError()),
+                'copyError' => $this->failures->of($send->copyErrorCode(), $send->copyErrorSmtp(), $send->copyError()),
+                'subject' => $send->subject(),
+                'body' => $this->labels->linkToEditor($send->body(), $send->language()),
+                'language' => $send->language()->value,
+                'pdf' => $this->generateUrl('app_invoice_sent_pdf', ['id' => $invoice->id(), 'sendId' => $send->id()]),
+                'again' => $index === array_key_last($sends) && !$invoice->isTrashed() ? $this->generateUrl('app_invoice_send', ['id' => $invoice->id()]) : null,
+            ];
+        }
+
+        return $items;
     }
 
     private function timezoneOf(Invoice $invoice): \DateTimeZone

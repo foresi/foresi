@@ -14,7 +14,7 @@ const TOO_MANY_REQUESTS = 429;
  * identifiers and the billing address. The form works without it.
  */
 export default class extends Controller {
-    static targets = ['query', 'results', 'name', 'registrationCountry', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode'];
+    static targets = ['query', 'results', 'name', 'registrationCountry', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode', 'seat'];
     static values = { url: String, existing: String, empty: String, limited: String };
 
     disconnect() {
@@ -118,6 +118,10 @@ export default class extends Controller {
         this.fill(this.cityTarget, record.city);
         this.fill(this.postalCodeTarget, record.postalCode);
         this.fill(this.countryCodeTarget, record.countryCode);
+        if (this.hasSeatTarget) {
+            // The short form keeps the seat folded away: its summary says what was filled in.
+            this.seatTarget.textContent = [record.street, [record.postalCode, record.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+        }
         this.clear();
         this.nameTarget.focus();
     }

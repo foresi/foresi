@@ -29,6 +29,18 @@ framework:
                     max_retries: 3
                     delay: 2000
                     multiplier: 4
+            # Outgoing mail, apart so a slow mail server never holds up other work. The
+            # retries wait 1, 4, 16, 64 and 256 minutes, about 5.7 hours in all, which
+            # outlasts greylisting. A permanent refusal skips them.
+            mail:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: mail
+                    redeliver_timeout: 600
+                retry_strategy:
+                    max_retries: 5
+                    delay: 60000
+                    multiplier: 4
             failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -38,6 +50,8 @@ framework:
             messenger.bus.default:
                 middleware:
                     - App\Tenancy\Infrastructure\Messenger\TenantMiddleware
+                    # A delivery waiting for another worker's lease is put back, not retried.
+                    - App\Invoicing\Infrastructure\Messenger\WaitForLeaseMiddleware
 
         routing:
             # The import pipeline: one message per chunk, so a crash loses one chunk, not the import.
@@ -48,6 +62,10 @@ framework:
             App\Import\Application\Message\UndoImportChunk: async
             # Imported contacts are checked in the public registers later, at low priority.
             App\Party\Application\RecheckRegistry: registry
+            # Timed work: the schedule ticks, and each due job runs in its tenant.
+            App\Tenancy\Application\Schedule\RunScheduledJob: async
+            # Sending documents by e-mail, on its own queue.
+            App\Invoicing\Application\DeliverInvoiceSend: mail
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
@@ -56,4 +74,5 @@ when@e2e:
             transports:
                 async: 'sync://'
                 registry: 'sync://'
+                mail: 'sync://'
                 failed: 'in-memory://'

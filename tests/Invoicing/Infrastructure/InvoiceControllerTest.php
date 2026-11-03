@@ -1415,6 +1415,95 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');
     }
 
+    public function testSendAndSaveSavesThenOpensTheDialog(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        self::assertSelectorTextContains('#invoice-more-menu button[value="save_send"][role="menuitem"]', 'Send and save');
+        // Above "PDF and save", as in iDoklad.
+        self::assertSame(['save_send', 'save_pdf'], $this->client->getCrawler()->filter('#invoice-more-menu button')->extract(['value']));
+
+        $this->save(array_merge($values, ['_action' => 'save_send']));
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame('Consulting', $this->stored($invoice)->description());
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/send');
+        $this->client->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertAnySelectorTextContains('[role="status"]', $invoice->number());
+    }
+
+    public function testANewCustomerOpensInADialogOutsideTheInvoiceForm(): void
+    {
+        $this->signedIn();
+
+        $crawler = $this->client->request('GET', '/invoices/new');
+
+        $add = $crawler->filter('#customer-add');
+        // Without JavaScript the full contact form opens in a new tab, as before.
+        self::assertSame('/contacts/new', $add->attr('href'));
+        self::assertSame('_blank', $add->attr('target'));
+        self::assertNotNull($add->attr('data-dialog'));
+        self::assertSame('dialog', $add->attr('aria-haspopup'));
+        self::assertSame('#customer', $add->attr('data-dialog-focus'));
+        self::assertStringContainsString('contact:created@document->invoice-form#contactFromDialog', (string) $crawler->filter('form#invoice-form')->attr('data-action'));
+        // The dialog host is no part of the invoice form, so the dialog never marks it changed or submits it.
+        self::assertCount(1, $crawler->filter('dialog#dialog'));
+        self::assertCount(0, $crawler->filter('form#invoice-form dialog'));
+    }
+
+    public function testSaveAndSendWithDialogsOpensTheSendDialogOverTheSavedForm(): void
+    {
+        $this->signedIn();
+        $values = $this->filled();
+        // Without JavaScript the field stays empty and save and send goes to the send page, as above.
+        self::assertSame('', $this->client->getCrawler()->filter('form#invoice-form input[name="_dialogs"][data-dialog-capable]')->attr('value'));
+
+        $this->save(array_merge($values, ['_action' => 'save_send', '_dialogs' => '1']));
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame('Consulting', $this->stored($invoice)->description());
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+        $crawler = $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="status"]', $invoice->number());
+        $opener = $crawler->filter('a[data-dialog][data-dialog-autoopen]');
+        self::assertCount(1, $opener);
+        self::assertSame('/invoices/'.$invoice->id().'/send', $opener->attr('href'));
+        self::assertSame('follow', $opener->attr('data-dialog-then'));
+        self::assertNull($crawler->filter('form#invoice-form a[data-dialog-autoopen]')->getNode(0), 'The opener sits outside the invoice form.');
+        // Once: a reload or Back shows the form without the dialog.
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
+        self::assertSelectorNotExists('a[data-dialog-autoopen]');
+    }
+
+    public function testARefusedSaveDoesNotOpenTheDialog(): void
+    {
+        $this->signedIn();
+
+        $this->save(array_merge($this->filled(['customerId' => '', 'customerQuery' => '']), ['_action' => 'save_send']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([], $this->invoices());
+        self::assertSelectorExists('[data-error-summary]');
+    }
+
+    public function testAStaleSendAndSaveAsksToReloadAndOpensNoDialog(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $stale = $this->openEdit($invoice);
+        $newer = $this->openEdit($invoice);
+        $newer['description'] = 'First save';
+        $this->saveEdit($invoice, $newer);
+
+        $stale['description'] = 'Second save';
+        $this->saveEdit($invoice, array_merge($stale, ['_action' => 'save_send']));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSelectorExists('[data-reload-prompt]');
+        self::assertSame('First save', $this->stored($invoice)->description());
+    }
+
     public function testAFormCutOffIsRefusedWholeAndAButtonOfItDoesNothing(): void
     {
         $this->signedIn();

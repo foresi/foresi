@@ -49,6 +49,7 @@ final readonly class IssueRules
         private LinePricing $pricing,
         private FirmInvoicingSettings $settings,
         private PrintableText $printable,
+        private InvoiceSends $sends,
     ) {
     }
 
@@ -163,6 +164,15 @@ final readonly class IssueRules
         }
         if ($existing?->isDelivered() ?? false) {
             return [new IssueProblem('number', 'invoice.problem.number_locked')];
+        }
+        // A send that went out fixes them too, delivered or not: one that went out
+        // while the invoice went to the trash leaves it undelivered after a restore.
+        if ($existing instanceof Invoice && $this->sends->hasGoneOut($existing)) {
+            return [new IssueProblem('number', 'invoice.problem.number_locked_sent')];
+        }
+        // A queued send fixes them too, or the customer could get a number the invoice no longer has.
+        if ($existing instanceof Invoice && $this->sends->hasQueued($existing)) {
+            return [new IssueProblem('number', 'invoice.problem.number_locked_sending')];
         }
         $series = $this->series($input, $firm, $existing);
         if (!$series instanceof Series) {

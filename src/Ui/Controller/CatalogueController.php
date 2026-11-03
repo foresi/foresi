@@ -30,7 +30,7 @@ final class CatalogueController extends AbstractController
     public const array SECTIONS = [
         'tokens', 'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea',
         'search-field', 'combobox', 'radio-cards', 'card', 'description-list', 'tabs', 'stepper', 'alert', 'empty-state', 'kbd',
-        'data-table', 'pagination', 'bulk-bar', 'action-bar', 'kpi-strip', 'facts-grid', 'timeline', 'progress-bar', 'mapping-row', 'page-header', 'command-palette',
+        'data-table', 'pagination', 'bulk-bar', 'action-bar', 'dialog', 'kpi-strip', 'facts-grid', 'timeline', 'progress-bar', 'mapping-row', 'page-header', 'command-palette',
     ];
 
     private const array LOCALES = ['cs', 'en'];

@@ -28,6 +28,8 @@ final class DesignTokensTest extends TestCase
         'templates/components/Ui/Stepper.html.twig' => ['rounded-full'],
         // The sticky sidebar is as tall as the viewport minus the frame padding.
         'templates/layout/app.html.twig' => ['h-[calc(100vh-20px)]'],
+        // A dialog with fields fills a phone screen edge to edge, where a rounded corner would be cut off.
+        'src/Ui/Component/Dialog.php' => ['rounded-none'],
     ];
 
     private const array RADII = ['sm', 'control', 'panel'];

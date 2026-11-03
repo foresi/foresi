@@ -46,15 +46,19 @@ final class CommandPaletteTest extends KernelTestCase
         self::assertStringContainsString('Ctrl K', $html);
     }
 
-    public function testDialogIsHiddenModalAndLabelled(): void
+    public function testDialogIsTheSharedNativeDialogLabelledAndLightDismissed(): void
     {
         $html = $this->render();
 
-        self::assertMatchesRegularExpression('#<div[^>]*data-command-palette-target="overlay"[^>]*hidden|<div[^>]*hidden[^>]*data-command-palette-target="overlay"#', $html);
-        self::assertStringContainsString('role="dialog"', $html);
-        self::assertStringContainsString('aria-modal="true"', $html);
-        self::assertStringContainsString('tabindex="-1"', $html);
-        self::assertStringContainsString('data-action="mousedown->command-palette#keepFocus"', $html);
+        // The shared dialog: the browser makes the page inert and turns Escape into a close.
+        self::assertMatchesRegularExpression('#<dialog[^>]*id="command-palette-dialog"#', $html);
+        self::assertStringNotContainsString('aria-modal', $html);
+        self::assertStringNotContainsString('data-command-palette-target="overlay"', $html);
+        self::assertStringContainsString('data-controller="dialog"', $html);
+        self::assertStringContainsString('data-command-palette-dialog-outlet="#command-palette-dialog"', $html);
+        self::assertStringContainsString('data-dialog-dismissable-value="true"', $html);
+        self::assertStringContainsString('dialog:closed-&gt;command-palette#closed', $html);
+        self::assertStringContainsString('mousedown-&gt;command-palette#keepFocus', $html);
         self::assertStringContainsString('aria-label="Příkazová paleta"', $html);
     }
 

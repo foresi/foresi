@@ -15,7 +15,10 @@ use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoiceHistory;
+use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePdf;
+use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
@@ -35,6 +38,7 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
@@ -80,7 +84,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceController extends AbstractController
 {
     public const string FORM_TOKEN = 'invoice_form';
-    private const array SAVING = ['save', 'save_pdf'];
+    private const array SAVING = ['save', 'save_send', 'save_pdf'];
+    /** The dialog a saved form opens once over itself: the send dialog of save and send. */
+    public const string OPEN_DIALOG_FLASH = 'open_dialog';
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
@@ -109,6 +115,8 @@ final class InvoiceController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly IssuedDocumentFactory $documents,
         private readonly InvoicePdf $pdf,
+        private readonly InvoiceSends $sends,
+        private readonly InvoiceHistory $history,
     ) {
     }
 
@@ -339,7 +347,14 @@ final class InvoiceController extends AbstractController
         $this->tokens->complete($token, $saved->id());
         $this->flashSaved($saved, $submission, $ownNumber);
 
-        return 'save_pdf' === $action ? $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]) : $this->redirectToRoute('app_invoices');
+        return match ($action) {
+            'save_pdf' => $this->redirectToRoute('app_invoice_pdf', ['id' => $saved->id()]),
+            // With JavaScript the send dialog opens over the saved form; without, the send page.
+            'save_send' => '1' === $request->request->getString('_dialogs')
+                ? $this->openOverForm($saved)
+                : $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
+            default => $this->redirectToRoute('app_invoices'),
+        };
     }
 
     /**
@@ -453,6 +468,13 @@ final class InvoiceController extends AbstractController
         $this->addFlash('success', $this->translator->trans('invoice.flash.saved', ['number' => $saved->number()]));
     }
 
+    private function openOverForm(Invoice $saved): RedirectResponse
+    {
+        $this->addFlash(self::OPEN_DIALOG_FLASH, $this->generateUrl('app_invoice_send', ['id' => $saved->id()]));
+
+        return $this->redirectToRoute('app_invoice_edit', ['id' => $saved->id()]);
+    }
+
     private function alreadySaved(): RedirectResponse
     {
         $this->addFlash('warning', $this->translator->trans('invoice.flash.already_saved'));
@@ -543,6 +565,7 @@ final class InvoiceController extends AbstractController
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
+            'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
             'issuerCountry' => $this->issuerCountry($context),
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
@@ -560,6 +583,38 @@ final class InvoiceController extends AbstractController
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
+    }
+
+    /**
+     * When the invoice was changed after the last send that went out, or is about
+     * to: the customer's link shows what was sent, not what is stored. Changed means
+     * a newer version than the send carried and a change in its history from the
+     * second of the send on, as the log keeps whole seconds; the delivery a send
+     * records is no change.
+     *
+     * @return string|null the moment of that send, as shown
+     */
+    private function changedAfterSend(InvoiceFormContext $context): ?string
+    {
+        $invoice = $context->invoice;
+        if (!$invoice instanceof Invoice) {
+            return null;
+        }
+        $last = null;
+        foreach ($this->sends->ofInvoice($invoice) as $send) {
+            if (\in_array($send->status(), [SendStatus::Sent, SendStatus::Queued], true)) {
+                $last = $send;
+            }
+        }
+        if (null === $last || $last->invoiceVersion() >= $invoice->version()) {
+            return null;
+        }
+        $after = $last->createdAt();
+        if (!array_any($this->history->of($invoice), static fn (InvoiceHistoryEntry $entry): bool => InvoiceHistoryEntry::CHANGED === $entry->event && $entry->occurredAt >= $after)) {
+            return null;
+        }
+
+        return ($last->sentAt() ?? $last->createdAt())->setTimezone($context->country->timezone())->format($this->translator->trans('format.datetime'));
     }
 
     /**

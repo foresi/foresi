@@ -84,8 +84,8 @@ test.describe('import of contacts', () => {
     await expect(page.locator('tbody tr').first()).toContainText('idoklad-contacts.csv');
     await page.locator('tbody tr').first().getByRole('link').click();
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Vrátit import' }).click();
+    await page.getByRole('alertdialog', { name: 'Vrátit import?' }).getByRole('button', { name: 'Vrátit import' }).click();
     await expect(page.locator('[data-import-outcome]')).toContainText('Import je vrácený.');
   });
 
@@ -127,8 +127,8 @@ test.describe('import of contacts', () => {
     await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
     await expectFocusedClearOfActionBar(page, page.locator('#match_key'));
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await page.getByRole('alertdialog', { name: 'Zrušit import?' }).getByRole('button', { name: 'Zrušit import' }).click();
     await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
   });
 
@@ -146,8 +146,8 @@ test.describe('import of contacts', () => {
     await expect(page.locator('#column-0-review')).toHaveCount(0);
     await expectNoSeriousViolations(page);
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await page.getByRole('alertdialog', { name: 'Zrušit import?' }).getByRole('button', { name: 'Zrušit import' }).click();
     await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
   });
 
@@ -161,8 +161,8 @@ test.describe('import of contacts', () => {
     await expectNoSeriousViolations(page);
 
     // Leave nothing behind for the next run of the suite.
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await page.getByRole('alertdialog', { name: 'Zrušit import?' }).getByRole('button', { name: 'Zrušit import' }).click();
     await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
   });
 
@@ -190,8 +190,8 @@ test.describe('import of contacts', () => {
         await undockActionBar(page);
         await expect(page.locator('main')).toHaveScreenshot(`check-content-${name}.png`);
 
-        page.once('dialog', (dialog) => dialog.accept());
         await page.getByRole('button', { name: 'Zrušit import' }).click();
+        await page.getByRole('alertdialog', { name: 'Zrušit import?' }).getByRole('button', { name: 'Zrušit import' }).click();
         await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
       });
     }
@@ -233,8 +233,8 @@ test.describe('import of contacts', () => {
     await page.setViewportSize({ width: 900, height: 420 });
     await expect(bar).toHaveCSS('position', 'static');
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Zrušit import' }).click();
+    await page.getByRole('alertdialog', { name: 'Zrušit import?' }).getByRole('button', { name: 'Zrušit import' }).click();
     await expect(page.getByText('Import je zrušený.').first()).toBeVisible();
   });
 });

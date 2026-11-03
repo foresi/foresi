@@ -16,12 +16,15 @@ use Psr\Clock\ClockInterface;
 
 /**
  * Moves an invoice to the trash and back. It keeps its number and content either
- * way, and the audit log explains the gap.
+ * way, and the audit log explains the gap. Trash stops the sends still queued and
+ * ends every link of the invoice, in the same transaction; restoring brings no
+ * link back, and sending again makes a new one.
  */
 final readonly class TrashInvoice
 {
     public function __construct(
         private InvoiceStore $store,
+        private InvoiceSends $sends,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private AuditActor $actor,
@@ -40,7 +43,10 @@ final readonly class TrashInvoice
     {
         return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id, $reason): Invoice {
             $invoice = $this->store->lock($id);
-            $invoice->trash(\DateTimeImmutable::createFromInterface($this->clock->now()), $this->actor->userId(), $reason);
+            $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+            $invoice->trash($now, $this->actor->userId(), $reason);
+            $this->sends->cancelQueued($invoice, $now);
+            $this->sends->revokeAll($invoice, $now);
 
             return $invoice;
         }));

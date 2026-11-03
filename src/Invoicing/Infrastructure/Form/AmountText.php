@@ -23,14 +23,6 @@ final readonly class AmountText
     }
 
     /**
-     * For a document: "1 210,50 CZK".
-     */
-    public function money(Money $money): string
-    {
-        return \sprintf("%s\u{a0}%s", $this->grouped($money), $money->currency()->value);
-    }
-
-    /**
      * On screen: "1 210,50 Kč", "1 210,50 EUR".
      */
     public function shown(Money $money): string

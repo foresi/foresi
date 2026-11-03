@@ -108,8 +108,10 @@ test.describe.serial('the invoice list', () => {
     await page.keyboard.press('ArrowDown');
     const menu = first.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
+    await expect(menu.getByRole('menuitem', { name: 'Odeslat' })).toBeFocused();
     await expect(menu).toBeInViewport({ ratio: 1 });
+    await page.keyboard.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
     await page.keyboard.press('Escape');
@@ -148,8 +150,8 @@ test.describe.serial('the invoice list', () => {
     await page.goto('/invoices');
     const first = page.locator('tbody tr').first();
     await first.getByRole('button', { name: /Další akce/ }).click();
-    page.once('dialog', (dialog) => { void dialog.accept(); });
     await first.getByRole('menuitem', { name: 'Označit jako doručené' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Označit jako doručenou' }).click();
     await expect(page.getByText(/je označená jako doručená\./)).toBeVisible();
 
     const delivered = page.locator('tbody tr').first();

@@ -1,0 +1,156 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The send dialog: from the list, the history and save and send it opens over the page; the same URL
+    is a page of its own without JavaScript. As a dialog it shows the message at a glance with Send
+    focused, so one click or Enter sends; "Edit text" opens subject, text and other recipients in the
+    same dialog, which then grows. It opens with the text open when something needs a fix.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
+{% set form_invalid = problems is not empty %}
+{% set fieldProblems = problems|filter(problem => problem.id != 'form') %}
+{% set link_class = 'text-current underline underline-offset-2 ' ~ constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set compact = in_dialog() %}
+{% set expanded = problems is not empty or draft.recipients is empty %}
+{% set dialog_size = 'md' %}
+{% set dialog_fields = draft.hasServer %}
+{% set dialog_class = 'has-[[data-send-edit][open]]:max-w-[720px]' %}
+
+{% block title %}{{ 'invoice.send.title'|trans({number: invoice.number}) }}{% endblock %}
+
+{% block dialog_body %}
+    {% if not draft.hasServer %}
+        <twig:Ui:EmptyState icon="plug" :title="'invoice.send.no_server_title'|trans" :text="'invoice.send.no_server_text'|trans({firm: invoice.issuer.name}) ~ (settingsUrl ? '' : ' ' ~ 'invoice.send.no_server_owner'|trans)" class="{{ compact ? 'py-4' : 'py-12' }}">
+            {% if not compact %}
+                <twig:Ui:Button :href="cancel">{{ 'invoice.send.back'|trans }}</twig:Ui:Button>
+                {% if settingsUrl %}
+                    <twig:Ui:Button :href="settingsUrl" variant="primary" icon="settings">{{ 'invoice.send.no_server_open'|trans }}</twig:Ui:Button>
+                {% endif %}
+            {% endif %}
+        </twig:Ui:EmptyState>
+    {% else %}
+        <form method="post" id="send-form" action="{{ path('app_invoice_send', {id: invoice.id}) }}" class="grid grid-cols-1 gap-4 [&:has([data-send-edit][open])_[data-send-preview]]:hidden" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceSendController::FORM_TOKEN')) }}">
+            <input type="hidden" name="_submission" value="{{ token }}">
+            <input type="hidden" name="return" value="{{ return }}">
+
+            {% if problems is not empty %}
+                {# A refusal that names no field takes the focus itself; otherwise the first field to fix does. #}
+                <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldProblems is empty">
+                    <p class="m-0 mb-1 font-semibold">{{ 'invoice.send.errors_title'|trans }}</p>
+                    <ul class="m-0 grid list-none gap-0.5 p-0">
+                        {% for problem in problems %}
+                            <li>
+                                {%- if problem.id == 'form' %}{{ problem.message }}
+                                {%- else %}<a href="#{{ problem.id == 'recipients' ? (draft.recipients is empty ? 'others' : 'recipient-1') : problem.id }}" class="{{ link_class }}">{{ problem.field }}</a>: {{ problem.message }}
+                                {%- endif -%}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </twig:Ui:Alert>
+            {% endif %}
+
+            {% if lastSent %}
+                <twig:Ui:Alert tone="info" icon="circle-check" data-sent-before>{{ 'invoice.send.sent_before'|trans({date: lastSent}) }}</twig:Ui:Alert>
+            {% endif %}
+
+            {% set others %}
+                <twig:Ui:TextInput name="others" id="others" type="text" inputmode="email" :label="'invoice.send.field.others'|trans" :help="'invoice.send.others_help'|trans({max: maxOthers})" :value="values.others" :error="errors.others|default(null)" :errorRef="errors.recipients is defined and draft.recipients is empty ? 'recipients-error' : null" autocomplete="off" autocapitalize="none" spellcheck="false" />
+            {% endset %}
+            {% set text %}
+                <twig:Ui:TextInput name="subject" id="subject" :label="'invoice.send.field.subject'|trans" :value="values.subject" :error="errors.subject|default(null)" :lang="draft.language.value" maxlength="255" required />
+                <twig:Ui:Textarea name="body" id="body" :label="'invoice.send.field.body'|trans" :help="'invoice.send.body_help'|trans({token: linkToken})" :value="values.body" :error="errors.body|default(null)" :rows="10" :lang="draft.language.value" />
+            {% endset %}
+
+            {% set fields %}
+                <dl class="m-0 grid gap-1.5">
+                    <dt class="text-small font-medium text-ink">{{ 'invoice.send.field.from'|trans }}</dt>
+                    <dd class="m-0 min-w-0 break-words text-text">{{ draft.fromName }} <span class="text-muted">&lt;{{ draft.fromAddress }}&gt;</span></dd>
+                </dl>
+
+                <fieldset class="m-0 grid min-w-0 gap-2.5 border-0 p-0"{% if errors.recipients is defined %} aria-describedby="recipients-error"{% endif %}>
+                    <legend class="mb-1.5 p-0 text-small font-medium text-ink">{{ 'invoice.send.field.recipients'|trans }}</legend>
+                    {% for recipient in draft.recipients %}
+                        {% set purpose = recipient.purpose ? recipient.purpose.value : 'document' %}
+                        <twig:Ui:Checkbox
+                            :name="recipient.field ~ '[]'"
+                            :id="'recipient-' ~ loop.index"
+                            :value="recipient.address"
+                            :label="('invoice.send.recipient.' ~ purpose)|trans({address: recipient.address})"
+                            :checked="recipient.address in values[recipient.field]"
+                            :errorRef="errors.recipients is defined ? 'recipients-error' : null"
+                        />
+                    {% endfor %}
+                    {% if draft.fromDocument %}
+                        <p class="m-0 text-caption text-muted" data-recipient-note>{{ 'invoice.send.from_document'|trans }}</p>
+                    {% elseif draft.recipients is empty %}
+                        <p class="m-0 text-caption text-muted" data-recipient-note>{{ 'invoice.send.no_address'|trans }}</p>
+                    {% endif %}
+                    {% if errors.recipients is defined %}
+                        <p id="recipients-error" class="m-0 text-caption font-medium text-badge-red-text">{{ errors.recipients }}</p>
+                    {% endif %}
+                    {% if not compact %}{{ others }}{% endif %}
+                </fieldset>
+
+                {% if draft.copyAddress %}
+                    <twig:Ui:Checkbox name="copyToMe" id="copyToMe" :label="'invoice.send.copy_to_me'|trans({address: draft.copyAddress})" :checked="values.copyToMe" />
+                {% endif %}
+            {% endset %}
+
+            {% if compact %}
+                {{ fields }}
+                {# What goes out, read-only: the subject, the start of the text and the link it carries. #}
+                {% set excerpt = values.body|replace({(linkToken): ' '})|split("\n")|map(line => line|trim)|filter(line => line)|join(' ') %}
+                <div data-send-preview class="grid justify-items-start gap-1 rounded-panel border border-container bg-head px-3.5 py-3" lang="{{ draft.language.value }}">
+                    <p class="m-0 text-small font-medium text-muted">{{ 'invoice.send.message'|trans }}</p>
+                    <p class="m-0 font-semibold text-ink [overflow-wrap:anywhere]" data-send-preview-subject>{{ values.subject }}</p>
+                    <p class="m-0 line-clamp-2 text-text [overflow-wrap:anywhere]" data-send-preview-body>{{ excerpt }}</p>
+                    <span data-link-token class="mt-1 inline-flex h-badge items-center gap-1 rounded-sm bg-badge-green px-1.5 text-caption font-medium text-badge-green-text">{{ ux_icon('lucide:link-2', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ linkToken|trim('{}') }}</span>
+                </div>
+                <details data-send-edit class="min-w-0 [&[open]>summary]:hidden"{% if expanded %} open{% endif %}>
+                    <summary class="w-fit cursor-pointer list-none text-small font-medium text-ink underline underline-offset-2 hover:text-green [&::-webkit-details-marker]:hidden {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.send.edit'|trans }}</summary>
+                    <div class="grid gap-4">
+                        {{ others }}
+                        {{ text }}
+                    </div>
+                </details>
+            {% else %}
+                <twig:Ui:Card :title="'invoice.send.card'|trans" icon="send">
+                    <div class="grid gap-4">
+                        {{ fields }}
+                        {{ text }}
+                    </div>
+                </twig:Ui:Card>
+            {% endif %}
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ draft.hasServer ? 'invoice.cancel'|trans : 'invoice.send.close'|trans }}</twig:Ui:Button>
+    {% if draft.hasServer %}
+        <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" icon="send" :autofocus="not expanded">{{ 'invoice.send.submit'|trans }}</twig:Ui:Button>
+    {% elseif settingsUrl %}
+        <twig:Ui:Button :href="settingsUrl" variant="primary" icon="settings">{{ 'invoice.send.no_server_open'|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-3xl grid-cols-1 gap-4">
+        {% for type, tone in {success: 'success', warning: 'warning', error: 'error'} %}
+            {% for message in app.flashes(type) %}<twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% endfor %}
+
+        {% if not draft.hasServer %}
+            <twig:Ui:Card>{{ body }}</twig:Ui:Card>
+        {% else %}
+            {{ body }}
+            <twig:Ui:ActionBar>
+                <twig:Ui:Button :href="cancel">{{ 'invoice.send.back'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" icon="send">{{ 'invoice.send.submit'|trans }}</twig:Ui:Button>
+            </twig:Ui:ActionBar>
+        {% endif %}
+    </div>
+{% endblock %}

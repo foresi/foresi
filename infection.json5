@@ -42,11 +42,16 @@
         "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries"]},
         // Unreachable guards: IssueRules refuses these cases before the throw.
         "Throw_": {"ignore": ["App\\Invoicing\\Application\\IssueInvoice::issue::65", "App\\Invoicing\\Application\\IssueInvoice::issue::67", "App\\Invoicing\\Application\\EditInvoice::edit::63", "App\\Invoicing\\Application\\EditInvoice::edit::64"]},
-        // Equivalent mutants: preg_replace() without the u flag always returns a string.
+        // Equivalent mutants: preg_replace() and preg_replace_callback() without the u flag always return a string,
+        // and NumberFormatter formats an integer without failing.
         "CastString": {"ignore": [
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
-            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize"
+            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize",
+            "App\\Invoicing\\Application\\MailText::render::27",
+            "App\\Invoicing\\Application\\DocumentFormat::money::31"
         ]},
+        // Equivalent mutant: of two sends sent at the same moment, either is the last one.
+        "GreaterThan": {"ignore": ["App\\Invoicing\\Application\\SendDraft::lastSentAt"]},
         // Equivalent mutants in the party import: a new party starts from the standard defaults, so clearing them changes
         // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII.
         "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input"]},

@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.sends.title'|trans}] %}
+
+{% block title %}{{ 'invoice.sends.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% if nothingSent %}
+        <twig:Ui:EmptyState icon="send" :title="'invoice.sends.empty.title'|trans" :text="'invoice.sends.empty.text'|trans">
+            <twig:Ui:Button :href="path('app_invoices')" icon="receipt-text">{{ 'invoice.list.title'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <div class="grid grid-cols-1 gap-4">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <twig:Ui:Tabs :items="tabs" :label="'invoice.sends.views'|trans" class="min-w-0 flex-1" />
+                {% if firms is not empty %}
+                    <form method="get" action="{{ path('app_invoice_sends') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_select]:h-control-lg">
+                        {% if status != 'all' %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+                        <div class="min-w-0 flex-1 sm:w-52 sm:flex-none"><twig:Ui:Select name="firm" id="send-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
+                        <twig:Ui:Button type="submit" icon="list-filter">{{ 'invoice.sends.filter'|trans }}</twig:Ui:Button>
+                    </form>
+                {% endif %}
+            </div>
+
+            <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :rows="rows" data-send-log>
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="search" :title="'invoice.sends.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="path('app_invoice_sends')">{{ 'invoice.sends.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                </twig:block>
+                <twig:block name="footer">
+                    <span class="num">{{ 'invoice.sends.summary'|trans({total: page.total}) }}</span>
+                    <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
+                </twig:block>
+            </twig:Ui:DataTable>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -10,7 +10,14 @@ declare(strict_types=1);
  * Seeds the end-to-end database (var/e2e.db): the tenant "Example Company" with
  * the user testing@example.com and 30 parties, a second, empty tenant for the
  * first-run screen, a third with two firms and one contact for the firm scope,
- * and a fourth with a VAT payer, a non-payer and customers for the invoice form. Run it after the migrations, in the e2e environment:
+ * and a fourth with a VAT payer, a non-payer and customers for the invoice form;
+ * the payer has a mail server, whose password is sealed with the e2e-only key of
+ * serve.sh. A fifth tenant, without users, holds one sent invoice, whose links go
+ * to var/e2e-links.json for the public link specs. A sixth, "Example Sending" with
+ * sending@example.com, holds the invoices of the send dialog specs, one of them refused
+ * by the recipient's server and one opened. "Example Dialogs" with dialogs@example.com
+ * holds three invoices for the dialog specs. Run it after the migrations, in the e2e
+ * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
  *
@@ -22,18 +29,36 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\LinkTokens;
+use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\SendInvoice;
+use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\LinkAudience;
+use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxTreatment;
+use App\Invoicing\Domain\VatRateKind;
 use App\Kernel;
 use App\Party\Application\CreateParty;
 use App\Party\Application\PartyInput;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
+use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\PaymentMethod;
@@ -41,9 +66,11 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
+use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
@@ -62,11 +89,19 @@ $context = $container->get('e2e.tenant_context');
 $createParty = $container->get('e2e.create_party');
 $registrationNumbers = $container->get('e2e.registration_numbers');
 $hashers = $container->get('e2e.password_hashers');
+$mailSecrets = $container->get('e2e.mail_secrets');
+$issueInvoice = $container->get('e2e.issue_invoice');
+$sendInvoice = $container->get('e2e.send_invoice');
+$linkTokens = $container->get('e2e.link_tokens');
 \assert($entityManager instanceof EntityManagerInterface);
 \assert($context instanceof TenantContext);
 \assert($createParty instanceof CreateParty);
 \assert($registrationNumbers instanceof RegistrationNumberFactory);
 \assert($hashers instanceof PasswordHasherFactoryInterface);
+\assert($mailSecrets instanceof MailSecrets);
+\assert($issueInvoice instanceof IssueInvoice);
+\assert($sendInvoice instanceof SendInvoice);
+\assert($linkTokens instanceof LinkTokens);
 
 $password = getenv('E2E_PASSWORD');
 // Hashed the way the application hashes it, so the sign-in form accepts it.
@@ -95,6 +130,8 @@ $tenantWithOwner('Example Empty Company', 'empty@example.com', 'Empty Example');
 $group = $tenantWithOwner('Example Group', 'group@example.com', 'Group Example');
 $invoicing = $tenantWithOwner('Example Invoicing', 'invoicing@example.com', 'Invoicing Example');
 $tenantWithOwner('Example First Run', 'first-run@example.com', 'First Run Example');
+$sending = $tenantWithOwner('Example Sending', 'sending@example.com', 'Sending Example');
+$dialogs = $tenantWithOwner('Example Dialogs', 'dialogs@example.com', 'Dialogs Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 /** @var Closure(PartyKind, string, list<PartyRole>, string, int, ?string=, ?string=): PartyInput $party */
@@ -157,6 +194,8 @@ $standard = new Series($payerFirm, Series::STANDARD, SeriesFormat::fromString(Se
 $standard->markDefault();
 $entityManager->persist($standard);
 $entityManager->persist(new Series($payerFirm, 'Second', SeriesFormat::fromString('B{YY}{NNN}'), DocumentKind::Invoice));
+// A throwaway password: the e2e mail gateway records and never connects.
+$entityManager->persist(FirmMailServer::define($payerFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Payer s.r.o.'));
 $entityManager->flush();
 $createParty->createFrom($party(PartyKind::Company, 'Example German GmbH', [PartyRole::Customer], 'german@example.com', 7, null, 'DE123456789'));
 $createParty->createFrom($party(PartyKind::Company, 'Example Domestic a.s.', [PartyRole::Customer], 'domestic@example.com', 3, '12345679', 'CZ12345679'));
@@ -170,6 +209,88 @@ $defaultsOf('Example Builder a.s.', new InvoicingDefaults(30, Currency::CZK, Doc
 $defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
 $defaultsOf('Example Euro a.s.', new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::BankTransfer, false));
 $entityManager->flush();
+$context->reset();
+
+// A sent invoice of a tenant nobody signs in to, for the public link page. Its links
+// are derived from the e2e secret; the specs read them from var/e2e-links.json.
+$sender = new Tenant(TenantId::generate(), 'Example Sender', new DateTimeImmutable());
+$entityManager->persist($sender);
+$entityManager->flush();
+$context->switchTo($sender->id());
+$senderFirm = new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 5678', ['CZ6508000000192000145399']);
+$entityManager->persist($senderFirm);
+$senderSeries = new Series($senderFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$senderSeries->markDefault();
+$entityManager->persist($senderSeries);
+$entityManager->persist(FirmMailServer::define($senderFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'studio@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'studio@example.com', 'Example Studio s.r.o.'));
+$entityManager->flush();
+$senderCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Client a.s.', [PartyRole::Customer], 'billing@example.com', 2, '12345679', 'CZ12345679'));
+$day = new DateTimeImmutable('2026-11-02');
+$senderInvoice = $issueInvoice->issue(new InvoiceInput($senderFirm->id(), $senderSeries->id(), null, $senderCustomer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '20260001', '', '', 'Website redesign', '', '', DocumentLanguage::Czech, [
+    new LineInput('Website redesign', Quantity::fromString('1'), 'ks', Money::of('12500.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+]));
+// Delivered at once: the mail queue of the e2e environment is synchronous.
+$senderSend = $sendInvoice->send(new SendRequest($senderInvoice->id(), ['billing@example.com'], [], true, 'Faktura '.$senderInvoice->number(), "Dobrý den,\nposíláme fakturu ".$senderInvoice->number().".\n\n{link}"));
+$context->reset();
+file_put_contents(dirname(__DIR__, 2).'/var/e2e-links.json', json_encode([
+    'customer' => $linkTokens->token($senderSend->id(), LinkAudience::Customer),
+    'copy' => $linkTokens->token($senderSend->id(), LinkAudience::Copy),
+    'number' => $senderInvoice->number(),
+], \JSON_THROW_ON_ERROR));
+
+// The tenant of the send dialog specs: a payer firm with a mail server and one without,
+// and a customer with an address for invoices and one for a copy. Its invoices are
+// issued here, so the specs of the other tenants see nothing of them.
+$context->switchTo($sending);
+$sendingFirm = new LegalEntity('Example Sending s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(1), VatStatus::Registered, 'Example register, entry C 9012', ['CZ6508000000192000145399']);
+$entityManager->persist($sendingFirm);
+$sendingSeries = new Series($sendingFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$sendingSeries->markDefault();
+$entityManager->persist($sendingSeries);
+$entityManager->persist(FirmMailServer::define($sendingFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Sending s.r.o.'));
+$quietFirm = new LegalEntity('Example Quiet s.r.o.', new RegistrationNumber('CZ', '12345687'), null, $address(2), VatStatus::NotRegistered, 'Example trade register', ['CZ6508000000192000145399']);
+$entityManager->persist($quietFirm);
+$quietSeries = new Series($quietFirm, Series::STANDARD, SeriesFormat::fromString('Q{YYYY}{NNNN}'), DocumentKind::Invoice);
+$quietSeries->markDefault();
+$entityManager->persist($quietSeries);
+$entityManager->flush();
+$recipient = $createParty->createFrom($party(PartyKind::Company, 'Example Recipient a.s.', [PartyRole::Customer], '', 8, '12345679', 'CZ12345679'));
+$entityManager->persist(new PartyEmail($recipient, 'billing@example.com', EmailPurpose::Invoices));
+$entityManager->persist(new PartyEmail($recipient, 'accounts@example.com', EmailPurpose::Copy));
+$entityManager->flush();
+$sendingInvoice = static fn (LegalEntity $firm, Series $series, string $description, string $price): Invoice => $issueInvoice->issue(new InvoiceInput($firm->id(), $series->id(), null, $recipient->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+]));
+$sendingInvoice($sendingFirm, $sendingSeries, 'Annual support', '24000.00');
+$sendingInvoice($quietFirm, $quietSeries, 'Logo design', '8000.00');
+// Delivered at once by the synchronous e2e queue: one refused by the recipient's server,
+// one sent and opened, so the list, the log and the notice have each state to show.
+$sendingText = static fn (Invoice $invoice): array => ['Faktura '.$invoice->number(), "Dobrý den,\nposíláme fakturu ".$invoice->number().".\n\n{link}"];
+$hosting = $sendingInvoice($sendingFirm, $sendingSeries, 'Hosting', '3600.00');
+$failedSend = $sendInvoice->send(new SendRequest($hosting->id(), [RecordingMailGateway::REFUSING_RECIPIENT], [], false, ...$sendingText($hosting)));
+$renewal = $sendingInvoice($sendingFirm, $sendingSeries, 'Domain renewal', '450.00');
+$readSend = $sendInvoice->send(new SendRequest($renewal->id(), ['billing@example.com'], ['accounts@example.com'], true, ...$sendingText($renewal)));
+$entityManager->getConnection()->executeStatement('UPDATE invoice_send SET first_read_at = created_at, read_count = 1 WHERE id = ?', [$readSend->id()]);
+$context->reset();
+
+// The tenant of the dialog specs: a firm with a mail server and a customer, and three
+// invoices to send, to move to the trash and to mark delivered in dialogs.
+$context->switchTo($dialogs);
+$dialogFirm = new LegalEntity('Example Dialogs s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(3), VatStatus::Registered, 'Example register, entry C 3456', ['CZ6508000000192000145399']);
+$entityManager->persist($dialogFirm);
+$dialogSeries = new Series($dialogFirm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$dialogSeries->markDefault();
+$entityManager->persist($dialogSeries);
+$entityManager->persist(FirmMailServer::define($dialogFirm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $mailSecrets->seal('throwaway-smtp-password'), 'invoices@example.com', 'Example Dialogs s.r.o.'));
+$entityManager->flush();
+$buyer = $createParty->createFrom($party(PartyKind::Company, 'Example Buyer a.s.', [PartyRole::Customer], '', 9, '12345679', 'CZ12345679'));
+$entityManager->persist(new PartyEmail($buyer, 'buyer@example.com', EmailPurpose::Invoices));
+$entityManager->flush();
+foreach (['Support' => '1000.00', 'Hosting' => '2000.00', 'Licence' => '3000.00'] as $description => $price) {
+    $issueInvoice->issue(new InvoiceInput($dialogFirm->id(), $dialogSeries->id(), null, $buyer->id(), null, $day, $day, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+        new LineInput($description, Quantity::fromString('1'), 'ks', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+    ]));
+}
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

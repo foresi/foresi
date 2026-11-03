@@ -1,0 +1,85 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new customer as a dialog over the invoice form: the registry lookup, then name, registration
+    number and e-mail. The lookup fills the seat, which waits behind its own disclosure and opens when
+    it needs a fix. Everything else is in the full form, which stays the page at the same URL.
+#}
+{% extends 'layout/dialog.html.twig' %}
+
+{% set dialog_size = 'md' %}
+{% set addressProblem = errors.street is defined or errors.city is defined or errors.postalCode is defined or errors.countryCode is defined %}
+{% set seat = [values.street, [values.postalCode, values.city]|filter(v => v)|join(' ')]|filter(v => v)|join(', ') %}
+
+{% block title %}{{ 'party.quick.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="contact-quick-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="party-lookup" data-party-lookup-url-value="{{ path('app_contact_lookup') }}" data-party-lookup-existing-value="{{ 'party.lookup.existing'|trans }}" data-party-lookup-empty-value="{{ 'party.lookup.empty'|trans }}" data-party-lookup-limited-value="{{ 'party.lookup.limited'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Party\\Infrastructure\\Controller\\PartyFormController::FORM_TOKEN')) }}">
+        <input type="hidden" name="_submission" value="{{ token }}">
+        <input type="hidden" name="kind" value="{{ values.kind }}">
+        <input type="hidden" name="roles[]" value="customer">
+        <input type="hidden" name="registrationCountry" value="{{ values.registrationCountry }}" data-party-lookup-target="registrationCountry">
+        <input type="hidden" name="vatId" value="{{ values.vatId }}" data-party-lookup-target="vatId">
+
+        <p class="m-0 text-small text-muted">
+            {{ 'party.quick.intro'|trans }}
+            <a href="{{ path('app_contact_new') }}" target="_blank" rel="noopener" data-action="dialog#discard" class="font-medium text-ink underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'party.quick.full'|trans }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
+        </p>
+
+        {% if errors is not empty %}
+            {# A problem of no field takes the focus itself; otherwise the first field to fix does. #}
+            {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+                <p class="m-0 mb-1 font-semibold">{{ 'party.quick.errors_title'|trans }}</p>
+                <ul class="m-0 grid list-none gap-0.5 p-0">
+                    {% for field, message in errors %}
+                        <li>
+                            {%- if field == 'form' or field not in ['displayName', 'registrationNumber', 'email', 'street', 'city', 'postalCode', 'countryCode'] %}{{ field == 'form' ? '' : ('party.field.' ~ field)|trans ~ ': ' }}{{ message }}
+                            {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('party.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- endif -%}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if duplicates is not empty %}
+            <twig:Ui:Alert tone="warning" role="alert" icon="triangle-alert" :title="'party.duplicate.title'|trans" data-duplicate-warning>
+                <p class="mb-2">{{ 'party.duplicate.text'|trans }}</p>
+                <ul class="m-0 mb-3 list-none p-0">
+                    {% for match in duplicates %}
+                        <li><a href="{{ match.url }}" class="font-medium text-badge-amber-text underline" target="_blank" rel="noopener">{{ match.name }}</a>{% if match.archived %} ({{ 'party.archived'|trans }}){% endif %}</li>
+                    {% endfor %}
+                </ul>
+                <twig:Ui:Button type="submit" variant="primary" name="confirm_duplicate" value="1" :autofocus="true">{{ 'party.duplicate.confirm'|trans }}</twig:Ui:Button>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        <div>
+            <twig:Ui:TextInput id="lookup" type="search" :label="'party.lookup.label'|trans" :help="'party.lookup.help'|trans" autocomplete="off" data-party-lookup-target="query" data-action="input->party-lookup#search" />
+            <div class="mt-2" data-party-lookup-target="results" aria-live="polite"></div>
+        </div>
+        <twig:Ui:TextInput name="displayName" id="displayName" :label="'party.field.displayName'|trans" :value="values.displayName" :error="errors.displayName|default(null)" maxlength="255" required data-party-lookup-target="name" />
+        <div class="grid gap-4 sm:grid-cols-2">
+            <twig:Ui:TextInput name="registrationNumber" id="registrationNumber" :label="'party.field.registrationNumber'|trans" :value="values.registrationNumber" :error="errors.registrationNumber|default(null)" maxlength="64" data-party-lookup-target="registrationNumber" />
+            <twig:Ui:TextInput name="email" id="email" type="email" :label="'party.field.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="254" />
+        </div>
+
+        <details data-quick-address class="rounded-control border border-divider px-3 py-2"{% if addressProblem %} open{% endif %}>
+            <summary class="cursor-pointer text-small font-medium text-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                {{- 'party.card.billing'|trans }} <span class="font-normal text-muted" data-party-lookup-target="seat">{{ seat }}</span>
+            </summary>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2"><twig:Ui:TextInput name="street" id="street" :label="'party.field.street'|trans" :value="values.street" :error="errors.street|default(null)" maxlength="255" required data-party-lookup-target="street" /></div>
+                <twig:Ui:TextInput name="city" id="city" :label="'party.field.city'|trans" :value="values.city" :error="errors.city|default(null)" maxlength="128" required data-party-lookup-target="city" />
+                <twig:Ui:TextInput name="postalCode" id="postalCode" :label="'party.field.postalCode'|trans" :value="values.postalCode" :error="errors.postalCode|default(null)" maxlength="32" required data-party-lookup-target="postalCode" />
+                <div class="sm:col-span-2"><twig:Ui:Select name="countryCode" id="countryCode" :label="'party.field.countryCode'|trans" :options="countries" :value="values.countryCode" :error="errors.countryCode|default(null)" data-party-lookup-target="countryCode" /></div>
+            </div>
+        </details>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="contact-quick-form" variant="primary">{{ 'party.quick.create'|trans }}</twig:Ui:Button>
+{% endblock %}

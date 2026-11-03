@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Header with the title and an X, a body that alone scrolls, a footer with the buttons. The footer
+    also holds the question a changed form asks before it is closed, so it never opens a second dialog.
+#}
+{% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
+{% set bodySlot %}{% block content %}{% endblock %}{% endset %}
+<dialog {{ attributes.defaults({
+    id: id,
+    class: this.classes,
+    'data-controller': 'dialog',
+    'data-action': this.actions,
+    'data-dialog-fields-value': fields ? 'true' : 'false',
+    'data-dialog-dismissable-value': this.isDismissable() ? 'true' : 'false',
+    'data-dialog-remote-value': remote ? 'true' : 'false',
+    'data-dialog-confirm-value': variant == 'confirm' ? 'true' : 'false',
+}) }}{% if this.chrome %} aria-labelledby="{{ id }}-title"{% if description %} aria-describedby="{{ id }}-description"{% endif %}{% endif %}{% if variant == 'bare' %} aria-label="{{ label }}"{% endif %}{% if variant == 'confirm' %} role="alertdialog"{% if not description %} aria-describedby="{{ id }}-text"{% endif %}{% endif %}>
+    {%- if this.chrome -%}
+        <header class="flex shrink-0 items-start gap-3 border-b border-divider py-3 pl-5 pr-3 max-sm:pl-4">
+            <div class="min-w-0 flex-1 py-0.5">
+                <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" class="m-0 text-heading font-semibold text-ink outline-none [overflow-wrap:anywhere]">{{ title }}</h2>
+                {% if description %}<p id="{{ id }}-description" data-dialog-target="description" class="m-0 mt-0.5 text-small text-muted">{{ description }}</p>{% endif %}
+            </div>
+            <twig:Ui:IconButton icon="x" :label="'ui.dialog.close'|trans" variant="ghost" data-action="dialog#dismiss" />
+        </header>
+        <div data-dialog-target="body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 max-sm:px-4">{{ bodySlot }}</div>
+        {% if footerSlot|trim is not empty %}
+            <footer class="shrink-0 border-t border-divider px-5 py-3 max-sm:px-4">
+                <div data-dialog-target="actions"{% if asking %} hidden{% endif %} class="flex flex-wrap items-center justify-end gap-2 max-sm:grid max-sm:auto-cols-fr max-sm:grid-flow-col max-sm:[&_a]:h-auto max-sm:[&_a]:min-h-control-lg max-sm:[&_a]:w-full max-sm:[&_a]:whitespace-normal max-sm:[&_a]:py-1.5 max-sm:[&_button]:h-auto max-sm:[&_button]:min-h-control-lg max-sm:[&_button]:w-full max-sm:[&_button]:whitespace-normal max-sm:[&_button]:py-1.5">{{ footerSlot }}</div>
+                <div data-dialog-target="discard"{% if not asking %} hidden{% endif %} class="flex flex-wrap items-center justify-end gap-2 max-sm:grid max-sm:grid-cols-2">
+                    <p id="{{ id }}-discard" class="m-0 mr-auto text-body font-medium text-ink max-sm:col-span-2">{{ 'ui.dialog.discard_question'|trans }}</p>
+                    <twig:Ui:Button data-action="dialog#keepEditing" data-dialog-target="keep" aria-describedby="{{ id }}-discard" class="max-sm:h-control-lg">{{ 'ui.dialog.keep_editing'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button variant="danger" data-action="dialog#discard" class="max-sm:h-control-lg">{{ 'ui.dialog.discard'|trans }}</twig:Ui:Button>
+                </div>
+            </footer>
+        {% endif %}
+    {%- elseif not remote -%}
+        {{ bodySlot }}
+    {%- endif -%}
+</dialog>

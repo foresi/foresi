@@ -95,14 +95,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(['/settings/firms My firms', '/imports Import and export'], $links);
     }
 
-    public function testTheFirmPageHasTabsForDetailsAndInvoicingAndKeepsFirmsMarkedInTheSidebar(): void
+    public function testTheFirmPageHasTabsForDetailsInvoicingAndMailAndKeepsFirmsMarkedInTheSidebar(): void
     {
         $this->signIn();
         $id = $this->firm('Example Firm', $this->tenant, '12345695')->id();
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$id.'/edit');
 
-        self::assertSame(['Details', 'Invoicing'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
+        self::assertSame(['Details', 'Invoicing', 'E-mail'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
         self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
         self::assertSame('/settings/firms', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
 
@@ -402,14 +402,19 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('main table', 'Other Firm');
     }
 
-    public function testTheArchiveButtonAsksForConfirmation(): void
+    public function testTheArchiveButtonAsksForConfirmationNamingTheOutcome(): void
     {
         $this->signIn();
         $firm = $this->firm('Example Firm', $this->tenant, '12345695');
 
         $crawler = $this->client->request('GET', '/settings/firms/'.$firm->id().'/edit');
 
-        self::assertSame('Archive this firm? It cannot be restored.', $crawler->filter('form[action$="/archive"]')->attr('data-turbo-confirm'));
+        $form = $crawler->filter('form[action$="/archive"]');
+        self::assertSame('Archive firm Example Firm?', $form->attr('data-turbo-confirm'));
+        self::assertSame('An archived firm cannot be restored.', $form->attr('data-confirm-text'));
+        self::assertSame('Archive firm', $form->attr('data-confirm-accept'));
+        self::assertSame('Keep firm', $form->attr('data-confirm-cancel'));
+        self::assertSame('danger', $form->attr('data-confirm-tone'));
     }
 
     public function testTheLastActiveFirmCannotBeArchived(): void

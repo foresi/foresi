@@ -80,6 +80,18 @@ final class NavigationRegistryTest extends TestCase
         self::assertFalse($this->registry($item)->groups(null, true)[0]['items'][0]->current);
     }
 
+    public function testAnItemOfItsOwnWinsOverAnotherItemsPrefix(): void
+    {
+        $list = new NavigationItem('sales', 'a', 'plus', 'app_invoices', routePrefixes: ['app_invoice']);
+        $log = new NavigationItem('sales', 'b', 'plus', 'app_invoice_sends');
+
+        $onLog = $this->registry($list, $log)->groups('app_invoice_sends', true)[0]['items'];
+        $onEdit = $this->registry($list, $log)->groups('app_invoice_edit', true)[0]['items'];
+
+        self::assertSame([false, true], [$onLog[0]->current, $onLog[1]->current]);
+        self::assertSame([true, false], [$onEdit[0]->current, $onEdit[1]->current]);
+    }
+
     public function testNothingIsCurrentWithoutARoute(): void
     {
         $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1'))->groups(null, true);

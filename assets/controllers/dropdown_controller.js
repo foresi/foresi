@@ -24,11 +24,14 @@ export default class extends Controller {
         this.onBeforeCache = () => this.close(false);
         document.addEventListener('click', this.onDocumentClick);
         document.addEventListener('turbo:before-cache', this.onBeforeCache);
+        // An item that opened a dialog is done with the menu; the dialog returns focus to the button.
+        document.addEventListener('dialog:opened', this.onBeforeCache);
     }
 
     disconnect() {
         document.removeEventListener('click', this.onDocumentClick);
         document.removeEventListener('turbo:before-cache', this.onBeforeCache);
+        document.removeEventListener('dialog:opened', this.onBeforeCache);
     }
 
     items() {

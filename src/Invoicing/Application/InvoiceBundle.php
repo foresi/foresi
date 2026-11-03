@@ -63,6 +63,8 @@ final readonly class InvoiceBundle
 
         $files = [];
         $failed = [];
+        // The limits below are for this archive only; whatever ran before gets its own back.
+        $limit = (int) ini_get('max_execution_time');
         try {
             foreach ($ids as $id) {
                 set_time_limit(self::SECONDS_PER_DOCUMENT);
@@ -92,6 +94,7 @@ final readonly class InvoiceBundle
                 throw new \RuntimeException('The archive cannot be written.');
             }
         } finally {
+            set_time_limit($limit);
             array_map(static fn (string $file): bool => @unlink($file), $files);
             rmdir($parts);
         }

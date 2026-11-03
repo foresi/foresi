@@ -13,7 +13,8 @@ use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
 /**
- * Invoices in the sidebar, for those who work with them.
+ * Invoices and the e-mails they were sent with in the sidebar, for those who work
+ * with them.
  */
 final readonly class InvoicingNavigation implements NavigationItemProvider
 {
@@ -25,6 +26,7 @@ final readonly class InvoicingNavigation implements NavigationItemProvider
     {
         if ($this->staff->isStaff()) {
             yield new NavigationItem('sales', 'nav.item.invoices', 'receipt-text', 'app_invoices', weight: 10, commandLabelKey: 'invoice.new', commandRoute: 'app_invoice_new', routePrefixes: ['app_invoice']);
+            yield new NavigationItem('sales', 'nav.item.sent_mail', 'send', 'app_invoice_sends', weight: 20);
         }
     }
 }

@@ -533,20 +533,22 @@ test.describe.serial('an invoice', () => {
     await expect(page.getByText('Nic nenalezeno. Použijte plus nebo adresář.', { exact: true }).first()).toBeVisible();
   });
 
-  test('the plus adds a customer from the register in a new tab and picks it with its defaults', async ({ page, context }) => {
+  test('the plus adds a customer from the register in a dialog and picks it with its defaults', async ({ page }) => {
     await openPayerForm(page);
     await fillLine(page, 'Zůstane', '750');
-    const [tab] = await Promise.all([context.waitForEvent('page'), page.locator('#customer-add').click()]);
-    await tab.locator('#lookup').fill('12345687');
-    await tab.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
-    await expect(tab.locator('#displayName')).toHaveValue('Example Company s.r.o.');
-    if (await tab.locator('#street').inputValue() === '') {
-      await tab.locator('#street').fill('Example Street 1');
-      await tab.locator('#city').fill('Example City');
-      await tab.locator('#postalCode').fill('100 00');
+    await page.locator('#customer-add').click();
+    const dialog = page.getByRole('dialog', { name: 'Nový zákazník' });
+    await dialog.locator('#lookup').fill('12345687');
+    await dialog.getByRole('button', { name: /Example Company s\.r\.o\./ }).click();
+    await expect(dialog.locator('#displayName')).toHaveValue('Example Company s.r.o.');
+    if (await dialog.locator('#street').inputValue() === '') {
+      await dialog.getByText('Fakturační adresa').click();
+      await dialog.locator('#street').fill('Example Street 1');
+      await dialog.locator('#city').fill('Example City');
+      await dialog.locator('#postalCode').fill('100 00');
     }
-    await tab.locator('button[type=submit]').last().click();
-    await expect(tab).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
+    await dialog.getByRole('button', { name: 'Vytvořit zákazníka' }).click();
+    await expect(dialog).toBeHidden();
 
     await expect(page.locator('#customer')).toHaveValue('Example Company s.r.o.');
     await expect(page.locator('input[name=customerId]')).not.toHaveValue('');
@@ -554,27 +556,43 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#lines-0-text')).toHaveValue('Zůstane');
     await expect(page.locator('#lines-0-price')).toHaveValue('750,00');
     await page.screenshot({ path: `${SHOTS}/plus-picked-desktop.png`, fullPage: true });
-    await tab.close();
     await save(page);
     await expect(page).toHaveURL(/\/invoices$/);
   });
 
-  test('the plus works on a phone', async ({ page, context }) => {
-    await page.setViewportSize(PHONE);
+  test('the full form from the dialog opens in a new tab and its contact is picked', async ({ page, context }) => {
     await openPayerForm(page);
-    const [tab] = await Promise.all([context.waitForEvent('page'), page.locator('#customer-add').click()]);
-    await tab.setViewportSize(PHONE);
+    await page.locator('#customer-add').click();
+    const dialog = page.getByRole('dialog', { name: 'Nový zákazník' });
+    const [tab] = await Promise.all([context.waitForEvent('page'), dialog.getByRole('link', { name: /Otevřít celý formulář/ }).click()]);
+    await expect(dialog).toBeHidden();
     await tab.locator('#kind').selectOption('person');
-    await tab.locator('#displayName').fill('Example Phone Person');
-    await tab.locator('#street').fill('Example Street 9');
+    await tab.locator('#displayName').fill('Example Tab Person');
+    await tab.locator('#street').fill('Example Street 7');
     await tab.locator('#city').fill('Example City');
     await tab.locator('#postalCode').fill('100 00');
     await tab.locator('button[type=submit]').last().click();
     await expect(tab).toHaveURL(/\/contacts\/[0-9a-f-]+$/);
-    await expect(page.locator('#customer')).toHaveValue('Example Phone Person');
+    await expect(page.locator('#customer')).toHaveValue('Example Tab Person');
+    await tab.close();
+  });
+
+  test('the plus works on a phone', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await openPayerForm(page);
+    await page.locator('#customer-add').click();
+    const dialog = page.getByRole('dialog', { name: 'Nový zákazník' });
+    await dialog.locator('#displayName').fill('Example Phone Company s.r.o.');
+    await dialog.locator('#registrationNumber').fill('23456787');
+    await dialog.getByText('Fakturační adresa').click();
+    await dialog.locator('#street').fill('Example Street 9');
+    await dialog.locator('#city').fill('Example City');
+    await dialog.locator('#postalCode').fill('100 00');
+    await dialog.getByRole('button', { name: 'Vytvořit zákazníka' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('#customer')).toHaveValue('Example Phone Company s.r.o.');
     await expectNoSidewaysScroll(page);
     await page.screenshot({ path: `${SHOTS}/plus-picked-phone.png`, fullPage: true });
-    await tab.close();
   });
 
   test('a contact saved in another tab is not picked unless the plus asked for it', async ({ page, context }) => {

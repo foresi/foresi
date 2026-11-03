@@ -44,6 +44,8 @@ final readonly class NavigationRegistry
             }
         }
 
+        // A page that is an item of its own is that item's, even where another item's prefix covers it.
+        $owned = array_any(array_merge(...array_values($byGroup)), static fn (array $entry): bool => $entry[0]->route === $currentRoute);
         $groups = [];
         foreach ($byGroup as $key => $items) {
             if ([] === $items) {
@@ -59,7 +61,7 @@ final readonly class NavigationRegistry
                         $entry[0]->icon,
                         $entry[0]->route,
                         $tenantActive ? $entry[0]->countProvider?->count() : null,
-                        self::isCurrent($entry[0], $currentRoute),
+                        self::isCurrent($entry[0], $currentRoute, $owned),
                         $entry[0]->commandLabelKey,
                         $entry[0]->commandRoute,
                     ),
@@ -71,12 +73,15 @@ final readonly class NavigationRegistry
         return $groups;
     }
 
-    private static function isCurrent(NavigationItem $item, ?string $currentRoute): bool
+    private static function isCurrent(NavigationItem $item, ?string $currentRoute, bool $owned): bool
     {
         if (null === $currentRoute) {
             return false;
         }
+        if ($item->route === $currentRoute) {
+            return true;
+        }
 
-        return $item->route === $currentRoute || array_any($item->routePrefixes, static fn (string $prefix): bool => str_starts_with($currentRoute, $prefix));
+        return !$owned && array_any($item->routePrefixes, static fn (string $prefix): bool => str_starts_with($currentRoute, $prefix));
     }
 }

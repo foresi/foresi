@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The dialogs every signed-in page shares, outside any form of the page: the host that loads a
+    dialog link in place, the confirmation behind data-turbo-confirm and dialog:confirm events, and
+    the status region that announces what a dialog did when it closes over the page.
+#}
+<twig:Ui:Dialog id="dialog" remote data-dialog-failed-value="{{ 'ui.dialog.failed'|trans }}" />
+<twig:Ui:Dialog id="confirm-dialog" variant="confirm" size="sm" :title="'ui.confirm.accept'|trans">
+    {# Its consequence: the description of the alert dialog. #}
+    <p id="confirm-dialog-text" data-dialog-target="text" class="m-0 text-text"></p>
+    <twig:block name="footer">
+        <twig:Ui:Button data-dialog-target="reject" data-label="{{ 'ui.confirm.cancel'|trans }}" data-action="dialog#answerNo">{{ 'ui.confirm.cancel'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="primary" data-dialog-target="accept" data-tone="default" data-label="{{ 'ui.confirm.accept'|trans }}" data-action="dialog#answerYes">{{ 'ui.confirm.accept'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="danger" hidden data-dialog-target="accept" data-tone="danger" data-label="{{ 'ui.confirm.accept'|trans }}" data-action="dialog#answerYes">{{ 'ui.confirm.accept'|trans }}</twig:Ui:Button>
+    </twig:block>
+</twig:Ui:Dialog>
+<p id="dialog-status" role="status" class="sr-only"></p>

@@ -12,6 +12,7 @@
         "ext-gd": "*",
         "ext-iconv": "*",
         "ext-intl": "*",
+        "ext-sodium": "*",
         "ext-zip": "*",
         "brick/math": "^1.0",
         "brick/money": "^0.15.2",
@@ -28,9 +29,11 @@
         "symfony/framework-bundle": "7.4.*",
         "symfony/http-client": "7.4.*",
         "symfony/lock": "^7.4.22",
+        "symfony/mailer": "7.4.*",
         "symfony/messenger": "^7.4.22",
         "symfony/rate-limiter": "7.4.*",
         "symfony/runtime": "7.4.*",
+        "symfony/scheduler": "7.4.*",
         "symfony/security-bundle": "7.4.*",
         "symfony/stimulus-bundle": "^3.6",
         "symfony/translation": "7.4.*",
@@ -101,7 +104,10 @@
             "phpstan analyse --memory-limit=1G --ansi"
         ],
         "deptrac": "deptrac analyse --no-progress --ansi",
-        "phpunit": "phpunit",
+        "phpunit": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php -d max_execution_time=0 vendor/bin/phpunit"
+        ],
         "phpunit:coverage": [
             "Composer\\Config::disableProcessTimeout",
             "@php -d max_execution_time=0 -d memory_limit=2G vendor/bin/phpunit --coverage-xml=var/coverage/coverage-xml --log-junit=var/coverage/junit.xml"

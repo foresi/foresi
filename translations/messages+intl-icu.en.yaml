@@ -37,7 +37,17 @@ nav:
     invoices: Invoices
     firms: My firms
     import: Import and export
+    sent_mail: Sent e-mails
 ui:
+  dialog:
+    close: Close
+    discard_question: Discard unsaved changes?
+    keep_editing: Keep editing
+    discard: Discard
+    failed: Something went wrong. Please try again.
+  confirm:
+    accept: Confirm
+    cancel: Cancel
   combobox:
     found: 'Found: {count}'
   mapping_row:
@@ -135,11 +145,20 @@ catalogue:
     type: Type
     border: Borders
     elevation: Elevation
+    unsaved: Unsaved changes
+    confirm: Confirmation
+    open: Open
 
 format:
   date: 'Y-m-d'
   datetime: 'Y-m-d H:i'
 party:
+  quick:
+    title: New customer
+    intro: A name and a seat are enough; the rest can follow later.
+    full: Open the full form
+    create: Create customer
+    errors_title: The customer is not saved yet
   header:
     import: Import
     export: Export
@@ -313,7 +332,10 @@ party:
     applies_to: Applies to
     set: Set for this firm
     reset: Back to shared
-    reset_confirm: "This firm's own values will be deleted when you save. Continue?"
+    reset_confirm: Go back to the shared values?
+    reset_confirm_text: "This firm's own values are deleted when you save."
+    reset_confirm_accept: Go back to shared
+    reset_confirm_cancel: Keep own values
     emails: Invoicing e-mails
     archive: Archive state
     invoice_emails: E-mails for invoices
@@ -379,6 +401,7 @@ firm:
   tab:
     details: Details
     invoicing: Invoicing
+    mail: E-mail
   empty:
     title: No firms yet
     text: Your own companies that issue documents.
@@ -419,7 +442,10 @@ firm:
     not_registered: Non-payer
     identified_person: Identified person
   confirm:
-    archive: Archive this firm? It cannot be restored.
+    archive: 'Archive firm {name}?'
+    archive_text: An archived firm cannot be restored.
+    archive_accept: Archive firm
+    archive_cancel: Keep firm
   flash:
     created: The firm is saved.
     updated: The changes are saved.
@@ -436,6 +462,98 @@ firm:
     image_dimensions: The image can be at most 3000 x 3000 pixels.
     image_color: Upload the JPEG in RGB, not in CMYK.
     image_upload: The image could not be uploaded. Try it again.
+  mail:
+    title: E-mail
+    sections: E-mail settings sections
+    tab:
+      templates: Templates
+      server: Mail server
+    card:
+      invoice: Invoice
+      server: Outgoing mail server (SMTP)
+      test: Test e-mail
+    templates_help: The text is sent in the language of the document.
+    language:
+      cs: Czech
+      en: English
+    reset: Restore the built-in text
+    reset_confirm: 'Restore the built-in text for {language}?'
+    reset_confirm_text: Your own text is deleted.
+    reset_confirm_accept: Restore built-in text
+    reset_confirm_cancel: Keep own text
+    inserted: 'Inserted: {name}'
+    variables: Variables
+    variables_help: Click or drag to insert into the text.
+    variable:
+      number: Document number
+      order_number: Order number
+      variable_symbol: Variable symbol
+      description: Description
+      issue_date: Issue date
+      due_date: Due date
+      currency: Currency
+      document_type: Document type
+      customer_name: Customer name
+      amount_vat: VAT amount
+      amount_total: Amount to pay
+      amount_net: Amount without VAT
+      firm_name: Firm name
+      iban: IBAN
+      firm_email: Firm e-mail
+      firm_phone: Firm phone
+      registration_number: Reg. No.
+      vat_id: VAT ID
+      sender_name: Sender name
+      link: Link to the document
+    field:
+      subject: Subject
+      body: Message
+      body_help: 'Without {token} the link is added at the end.'
+      host: Host
+      host_help: For example smtp.example.com
+      port: Port
+      encryption: Encryption
+      username: Username
+      password: Password
+      password_kept: Leave blank to keep the stored password, unless you change the server, port, encryption or user name.
+      fromAddress: Sender e-mail
+      fromAddress_help: Undelivered mail comes back here too.
+      fromName: Sender name
+      fromName_help: Recipients see it beside the message.
+    encryption:
+      starttls: STARTTLS (usually port 587)
+      tls: TLS (usually port 465)
+    test:
+      intro: 'Sends a message to {email} through the saved server.'
+      button: Send a test e-mail
+      verified: 'Verified on {date}.'
+      date_format: 'j M Y \a\t H:i'
+      unverified: These settings are not verified yet.
+      last_failed: 'Last test on {date} failed: {reason}'
+      save_first: A test e-mail can be sent once the server is saved.
+      subject: 'Test e-mail: {firm}'
+      body: 'This message checks that the server {host}:{port} sends the mail of the firm. No reply is needed.'
+    flash:
+      saved: The e-mail templates are saved.
+      reset: The template has its built-in text again.
+      server_saved: The mail server is saved.
+      test_sent: 'The test e-mail went to {email}.'
+      test_refused: 'The test e-mail did not go out: {reason}'
+      test_limited: Too many test e-mails. Try again in a minute.
+      test_unavailable: Save the mail server first.
+    error:
+      unknown_variables: 'Unknown variable: {names}. Insert one from the list below the text.'
+      link_in_subject: 'The link {link} belongs in the message, not in the subject.'
+      no_key: This installation has no key to seal passwords. The administrator sets MAIL_SECRET_KEYS.
+      host: Enter a host name or an IP address, without a port.
+      host_refused: This server cannot be reached from here. Enter a public server.
+      host_unresolved: No server of this name was found. Check the name.
+      unknown_token: The text holds an unknown variable. Insert one from the list below the text.
+      port: 'The port must be one of: {ports}.'
+      encryption: Choose the encryption.
+      line_break: The value cannot hold a line break.
+      password_again: The server, port, encryption or user name changed. Enter the password again.
+      save_failed: Saving failed. Try it again.
   invoicing:
     title: Invoicing
     card:
@@ -502,6 +620,151 @@ series:
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
 invoice:
+  public:
+    title: 'Invoice {number}'
+    from: From
+    for: 'For {customer}'
+    amount: Amount to pay
+    due: Due date
+    payment:
+      title: Pay by bank transfer
+      account: Account number
+      iban: IBAN
+      variable_symbol: Variable symbol
+      amount: Amount
+      qr: Scan in your banking app (QR Platba)
+    open: Open PDF
+    download: Download
+    viewer: 'Invoice {number} as PDF'
+    fallback: This browser cannot show the PDF on the page. Open it with the button.
+    notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
+    gone:
+      title: This link is not available
+      text: The link is not valid, or the sender has ended it. If you need the document, ask whoever sent it to you.
+    limited:
+      title: Too many requests
+      text: Please try again in a minute.
+  mail:
+    default:
+      subject: 'Invoice {number}'
+      body: |-
+        Based on your order I am sending invoice no. {number} for {amount_total}, due on {due_date}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+  mark:
+    queued: Sending
+    sent: Sent
+    read: Read
+    failed: Failed
+    hint:
+      queued: Waiting in the queue to be sent
+      sent: Sent to the customer
+      read: The customer opened the document
+      failed: The e-mail could not be sent
+  changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  send_failure:
+    password_unreadable: The mail server password cannot be opened with the configured keys. Enter it again in the e-mail settings.
+    bad_address: An address of the message is not valid.
+    login_refused: '{smtp, select, none {The mail server refused the login.} other {The mail server refused the login (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {The mail server refused the message.} other {The mail server refused the message (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {The mail server refused the recipient {recipient}.} other {The mail server refused the recipient {recipient} (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {The mail server asks to try again later.} other {The mail server asks to try again later (SMTP {smtp}).}}'
+    unexpected_answer: The mail server gave an unexpected answer.
+    secure_connection: 'The secure connection to the mail server failed: check the encryption, the port and the host name.'
+    unreachable: The mail server could not be reached or the connection broke.
+    unresolved: The mail server name could not be resolved.
+    host_not_allowed: The mail server address is not allowed.
+    no_server: The firm has no mail server. Add one in the e-mail settings.
+    unbuildable: The message could not be built from the stored send.
+    not_handed_over: The message could not be handed to the mail server.
+    copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
+    gave_up: The message could not be delivered.
+    link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
+  sends:
+    title: Sent e-mails
+    views: Send states
+    filter: Filter
+    tab:
+      all: All
+      sent: Sent
+      queued: Waiting
+      failed: Failed
+    column:
+      when: When
+      firm: Firm
+      number: Document
+      customer: Customer
+      recipients: Recipients
+      status: Status
+      error: Error
+    status:
+      queued: Waiting
+      sent: Sent
+      failed: Failed
+      cancelled: Cancelled
+    summary: '{total, plural, one {# e-mail} other {# e-mails}}'
+    action:
+      again: Send again
+    empty:
+      title: Nothing sent yet
+      text: Send an invoice from its menu in the invoice list, or with Send and save.
+      filtered_title: No e-mail matches
+      reset: Clear the filter
+    notice:
+      failed: '{count, plural, one {An invoice could not be sent.} other {# invoices could not be sent.}}'
+      stuck: '{count, plural, one {An e-mail has} other {# e-mails have}} been waiting to be sent for more than {minutes} minutes. Check that the queue worker runs on the server.'
+      retrying: '{count, plural, one {An e-mail is being tried again: the mail server has not taken it yet.} other {# e-mails are being tried again: the mail server has not taken them yet.}}'
+      link: Show
+  send:
+    title: 'Send invoice {number}'
+    card: E-mail
+    back: Back
+    submit: Send
+    edit: Edit text
+    message: Message
+    close: Close
+    errors_title: The e-mail has not been sent
+    sent_before: 'This invoice was sent on {date}. Sending it again gives the recipient a new link.'
+    from_document: The contact has no e-mail for invoices, so the address on the document is offered.
+    no_address: The contact has no e-mail. Type an address under other recipients.
+    others_help: 'Up to {max} addresses, separated by commas.'
+    copy_to_me: 'Send a copy to me at {address}'
+    body_help: '{token} marks the link. Without it, the link goes last.'
+    trashed: 'Invoice {number} is in the trash, so it cannot be sent.'
+    no_server_title: The firm has no mail server
+    no_server_text: 'Invoices of {firm} leave through its own mail server. Until the firm has one, nothing can be sent.'
+    no_server_open: Set up the mail server
+    no_server_owner: The owner of the organisation sets up the server in the firm's e-mail settings.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (copy)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: From
+      recipients: To
+      others: Other recipients
+      subject: Subject
+      body: E-mail text
+    flash:
+      queued: 'Invoice {number} is queued for sending to {recipients}.'
+      already_queued: 'Invoice {number} is already queued for sending.'
+    error:
+      no_recipient: Tick or type at least one recipient.
+      too_many_recipients: 'There can be at most {max} recipients.'
+      too_many_others: 'There can be at most {max} other recipients.'
+      bad_address: '{address} is not a valid e-mail address.'
+      bad_subject: The subject cannot be empty, longer than 255 characters or hold the link.
+      bad_body: The e-mail text is too long.
+      trashed: The invoice has been moved to the trash meanwhile.
+      no_server: The firm has lost its mail server meanwhile.
+      local_link_base: The link would lead to this computer. The administrator sets the public address of the installation in DEFAULT_URI.
+      insecure_link_base: The link would go over unencrypted http. The administrator sets an https address in DEFAULT_URI.
+      rate_limited: Too many sends in a short time. Try again in a moment.
+      undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -530,7 +793,6 @@ invoice:
     tax_point: Tax point date
     supply_date: Date of supply
     due_date: Due date
-    date_format: 'j M Y'
     bank_account: Bank account
     payment_method: Payment method
     variable_symbol: Variable symbol
@@ -578,12 +840,15 @@ invoice:
     not_in_trash: This invoice is not in the trash.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
-    delivered_confirm: 'Mark invoice {number} as delivered? It can no longer be deleted then.'
+    delivered_confirm: 'Mark invoice {number} as delivered?'
+    delivered_confirm_text: A delivered invoice can no longer be deleted.
+    delivered_confirm_accept: Mark as delivered
     tab:
       all: All
       overdue: Overdue
       trash: Trash
     column:
+      sent: E-mail
       number: Number
       firm: Firm
       customer: Customer
@@ -601,6 +866,7 @@ invoice:
       trashed: In the trash
     action:
       edit: Edit
+      send: Send
       pdf: PDF
       copy: Copy
       delivered: Mark as delivered
@@ -631,6 +897,13 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
+    send: '{who} sent an e-mail to {recipients}'
+    send_copy: 'copy to {address}'
+    send_show: Show the e-mail
+    send_subject: Subject
+    send_pdf: PDF as sent
+    send_read: 'Read {date}'
+    send_again: Send again
     line_added: 'Line {number} ({text}) added'
     line_removed: 'Line {number} ({text}) removed'
     line_changed: 'Line {number} ({text}): {fields}'
@@ -666,6 +939,7 @@ invoice:
   reload: Reload the invoice
   cancel: Cancel
   save: Save
+  save_send: Send and save
   save_pdf: PDF and save
   more_actions: More actions
   more: More details
@@ -863,6 +1137,8 @@ invoice:
     no_lines: Add at least one line.
     number_invalid: Enter a number with at least one letter or digit, up to 80 characters.
     number_locked: Series and number cannot change once the document is delivered.
+    number_locked_sending: Series and number cannot change while the document is being sent.
+    number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
     numbers_exhausted: This series has no numbers left.
@@ -951,7 +1227,10 @@ import:
     too_large: The file is larger than 50 MB. Split it into smaller parts.
   cancel:
     button: Cancel import
-    confirm: Do you really want to cancel the import? Nothing will be written.
+    confirm: Cancel the import?
+    confirm_text: Nothing will be written.
+    confirm_accept: Cancel import
+    confirm_cancel: Continue the import
   file:
     title: File
     change: Change
@@ -1125,7 +1404,10 @@ import:
       text: Created records are archived, updated ones get their previous values back and archived ones are restored. Records someone changed in the meantime stay as they are.
       deadline: 'The import can be undone until {date}.'
       button: Undo import
-      confirm: Do you really want to undo the import?
+      confirm: Undo the import?
+      confirm_text: Created records are archived and changed ones get their previous values.
+      confirm_accept: Undo import
+      confirm_cancel: Keep import
     done: Done
   notice:
     finished: 'The import of {name} is done.'

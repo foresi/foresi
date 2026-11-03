@@ -16,6 +16,14 @@ parameters:
     # Logos and stamps; never below public/. From the kernel, not from the environment
     # variable: that one is relative, and the web server would resolve it inside public/.
     app.firm_image_dir: '%kernel.share_dir%/firm-images'
+    # A firm's mail server may not be in a private, loopback or link-local network,
+    # as tenants type the host. An installation whose server is inside sets this.
+    app.mail.allow_private_hosts: false
+    # Links in sent mail are built on DEFAULT_URI; a loopback base would make them dead,
+    # so sending refuses one. Development and the tests allow it.
+    app.mail.allow_local_links: false
+    # The PDFs exactly as they were sent; never below public/. Back it up with the database.
+    app.sent_documents_dir: '%kernel.share_dir%/sent-documents'
 
 services:
     # default configuration for services in *this* file
@@ -46,6 +54,9 @@ services:
         # ...and contribute presets of the known sources they can read.
         App\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
+        # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
+        App\Tenancy\Application\Schedule\ScheduledJob:
+            tags: ['app.scheduled_job']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -87,6 +98,10 @@ services:
     # id used by the wiring test; it is made public in the test env below.
     test.registration_number_factory:
         alias: App\Party\Application\RegistrationNumberFactory
+    test.invoice_send_firm_limiter:
+        alias: limiter.invoice_send_firm
+    test.document_link_limiter:
+        alias: limiter.document_link
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -95,6 +110,42 @@ services:
     App\Shared\Infrastructure\Registry\PublicRegistryClient:
         arguments:
             $registryOutgoingLimiter: '@limiter.registry_outgoing'
+
+    # Mail goes out through the firm's own server. Named here so the test and e2e
+    # environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
+    App\Invoicing\Application\MailGateway:
+        alias: App\Invoicing\Infrastructure\Mail\SymfonyMailGateway
+    App\Invoicing\Application\MailServers:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+    App\Invoicing\Application\MailSecrets:
+        alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    App\Invoicing\Application\MailHostPolicy:
+        alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+    App\Invoicing\Application\MailTemplates:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+    App\Invoicing\Application\DocumentTitles:
+        alias: App\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
+    App\Invoicing\Application\InvoiceSends:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
+    App\Invoicing\Application\SentFiles:
+        alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+    App\Invoicing\Application\DocumentLinks:
+        alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
+    App\Invoicing\Application\SendLimits:
+        alias: App\Invoicing\Infrastructure\Mail\RateLimitedSends
+    App\Invoicing\Application\InvoiceSendQueue:
+        alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
+    App\Invoicing\Application\PublicDocuments:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
+
+    # Links to sent documents are derived from the application secret, never stored.
+    App\Invoicing\Application\LinkTokens:
+        arguments:
+            $secret: '%kernel.secret%'
+
+    App\Invoicing\Infrastructure\Mail\DiskSentFiles:
+        arguments:
+            $root: '%app.sent_documents_dir%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -110,6 +161,9 @@ services:
             - { name: kernel.reset, method: reset }
 
 when@dev:
+    parameters:
+        app.mail.allow_local_links: true
+
     services:
         App\Ui\Controller\CatalogueController:
             autowire: true
@@ -119,6 +173,9 @@ when@dev:
 # SQLite database. Registry adapters are replaced by the fixture-backed fakes of the
 # PHPUnit suite, so no browser test ever calls a live register.
 when@e2e:
+    parameters:
+        app.mail.allow_local_links: true
+
     services:
         _defaults:
             autowire: true
@@ -153,10 +210,35 @@ when@e2e:
             alias: Doctrine\ORM\EntityManagerInterface
             public: true
 
+        # Nothing is ever sent from the browser tests.
+        App\Invoicing\Application\MailGateway:
+            alias: App\Tests\Support\Mail\RecordingMailGateway
+            public: true
+        App\Tests\Support\Mail\RecordingMailGateway: ~
+        # ...and no browser test asks a real DNS server for a mail host.
+        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        App\Tests\Support\Mail\ExampleHostResolver: ~
+        e2e.mail_secrets:
+            alias: App\Invoicing\Application\MailSecrets
+            public: true
+        e2e.issue_invoice:
+            alias: App\Invoicing\Application\IssueInvoice
+            public: true
+        e2e.send_invoice:
+            alias: App\Invoicing\Application\SendInvoice
+            public: true
+        e2e.link_tokens:
+            alias: App\Invoicing\Application\LinkTokens
+            public: true
+
 when@test:
     parameters:
         # Inside the test cache, so a test never writes to the real share directory.
         app.firm_image_dir: '%kernel.cache_dir%/firm-images'
+        app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
+        app.mail.allow_local_links: true
 
     services:
         _defaults:
@@ -175,6 +257,26 @@ when@test:
 
         test.login_throttling_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.mail_test_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.invoice_send_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.invoice_send_firm_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.document_link_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        # Lets a test spend the budget of a firm.
+        test.invoice_send_firm_limiter:
+            alias: limiter.invoice_send_firm
+            public: true
+        test.document_link_limiter:
+            alias: limiter.document_link
+            public: true
 
         # The generic audit query; the fake import target answers changedSince()
         # with it, while targets of the application check their own entities.
@@ -243,6 +345,51 @@ when@test:
         App\Invoicing\Application\CustomerCopies: { public: true }
         App\Invoicing\Application\LinePricing: { public: true }
         App\Invoicing\Application\NumberAllocator: { public: true }
+
+        # A scheduled job that counts its runs, and the run records it is claimed through.
+        App\Tests\Tenancy\Support\CountingJob:
+            tags: ['app.scheduled_job']
+        App\Tenancy\Application\Schedule\ScheduledJobRuns:
+            alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
+            public: true
+
+        # Tests never send mail: the gateway records instead.
+        App\Invoicing\Application\MailGateway:
+            alias: App\Tests\Support\Mail\RecordingMailGateway
+            public: true
+        App\Tests\Support\Mail\RecordingMailGateway: ~
+        App\Invoicing\Application\MailServers:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
+            public: true
+        App\Invoicing\Application\MailSecrets:
+            alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+            public: true
+        App\Invoicing\Application\MailHostPolicy:
+            alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+            public: true
+        # No test asks a real DNS server for a mail host.
+        App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        App\Tests\Support\Mail\ExampleHostResolver: ~
+        App\Invoicing\Application\MailTemplates:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
+            public: true
+        App\Invoicing\Application\MailVariables: { public: true }
+        App\Invoicing\Application\SendInvoice: { public: true }
+        App\Invoicing\Application\LinkTokens:
+            public: true
+            arguments:
+                $secret: '%kernel.secret%'
+        App\Invoicing\Application\InvoiceSends:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
+            public: true
+        App\Invoicing\Application\DocumentLinks:
+            alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
+            public: true
+        App\Invoicing\Application\SentFiles:
+            alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+            public: true
 
         # Stands in for a plugin adding a sidebar item.
         App\Tests\Ui\Support\TestNavigationProvider: ~

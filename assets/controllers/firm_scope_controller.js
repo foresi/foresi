@@ -12,7 +12,7 @@ import { Controller } from '@hotwired/stimulus';
  */
 export default class extends Controller {
     static targets = ['pane', 'option', 'marker', 'current', 'label', 'currentMarker'];
-    static values = { active: String, confirm: String };
+    static values = { active: String, confirm: Object };
 
     connect() {
         this.show(this.activeValue);
@@ -29,14 +29,25 @@ export default class extends Controller {
         this.part(pane, 'fields').querySelector('input:not([type="hidden"]), select, textarea')?.focus();
     }
 
-    reset(event) {
-        if (!window.confirm(this.confirmValue)) {
+    // Asks in the shared confirmation dialog; on a page without it, the browser asks.
+    async reset(event) {
+        const pane = this.pane(event);
+        if (!(await this.confirmed())) {
             return;
         }
-        const pane = this.pane(event);
         this.markOwn(pane, false);
         this.copyShared(pane);
         this.part(pane, 'set').querySelector('button')?.focus();
+    }
+
+    confirmed() {
+        return new Promise((resolve) => {
+            if (document.querySelector('[data-dialog-confirm-value="true"]') === null) {
+                resolve(window.confirm(this.confirmValue.title));
+                return;
+            }
+            document.dispatchEvent(new CustomEvent('dialog:confirm', { detail: { ...this.confirmValue, resolve } }));
+        });
     }
 
     show(scope) {

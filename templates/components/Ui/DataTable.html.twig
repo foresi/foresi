@@ -3,6 +3,7 @@
 {% set footerSlot %}{% block footer %}{% endblock %}{% endset %}
 {% set bulkSlot %}{% block bulk %}{% endblock %}{% endset %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% macro confirm(confirm) %}{% if confirm %} data-turbo-confirm="{{ confirm.title }}"{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 <div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }}{% if selectable %} data-controller="table-selection" data-action="keydown->table-selection#keydown click->table-selection#rowClick"{% endif %}>
     {% if this.rowViews is empty %}
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
@@ -49,7 +50,9 @@
                                 {% endif %}
                                 {% for cell in row.cells %}
                                     <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ row.secondary and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}">
-                                        {%- if cell.tone -%}
+                                        {%- if cell.icon -%}
+                                            <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
+                                        {%- elseif cell.tone -%}
                                             <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
                                             <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
@@ -70,13 +73,13 @@
                                             {% set inMenu = row.actions|filter(action => action.icon is null) %}
                                             {% for action in row.actions|filter(action => action.icon is not null) %}
                                                 {% if action.method == 'POST' %}
-                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}>
+                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{{ _self.confirm(action.confirm) }}>
                                                         <input type="hidden" name="_token" value="{{ actionToken }}">
                                                         {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                                                         <twig:Ui:IconButton type="submit" :icon="action.icon" :label="action.label" variant="ghost" size="sm" />
                                                     </form>
                                                 {% else %}
-                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" />
+                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" :data-dialog="action.dialog ? true : false" :aria-haspopup="action.dialog ? 'dialog' : false" />
                                                 {% endif %}
                                             {% endfor %}
                                             <div class="relative{{ inMenu is empty ? ' sm:hidden' : '' }}" data-controller="dropdown" data-dropdown-float-value="true">
@@ -85,13 +88,13 @@
                                                     {% for action in row.actions %}
                                                         {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus ~ (action.icon ? ' sm:hidden' : '') %}
                                                         {% if action.method == 'POST' %}
-                                                            <form method="post" action="{{ action.href }}"{% if action.confirm %} data-turbo-confirm="{{ action.confirm }}"{% endif %}{% if action.icon %} class="sm:hidden" {% endif %}>
+                                                            <form method="post" action="{{ action.href }}"{{ _self.confirm(action.confirm) }}{% if action.icon %} class="sm:hidden" {% endif %}>
                                                                 <input type="hidden" name="_token" value="{{ actionToken }}">
                                                                 {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                                                                 <button type="submit" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %} class="{{ itemClass }}">{{ action.label }}</button>
                                                             </form>
                                                         {% else %}
-                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
+                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %}{% if action.dialog %} data-dialog aria-haspopup="dialog"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
                                                         {% endif %}
                                                     {% endfor %}
                                                 </div>

@@ -27,6 +27,28 @@ framework:
             limit: 10
             interval: '1 minute'
 
+        # Test e-mails of a firm's mail server, per signed-in user.
+        mail_test:
+            policy: sliding_window
+            limit: 5
+            interval: '1 minute'
+
+        # Documents sent by e-mail, per signed-in user and per firm.
+        invoice_send:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+        invoice_send_firm:
+            policy: sliding_window
+            limit: 500
+            interval: '1 day'
+
+        # Public links to sent documents, per client address.
+        document_link:
+            policy: sliding_window
+            limit: 60
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -39,6 +61,14 @@ when@test:
                 storage_service: test.party_refresh_checks_storage
             registry_outgoing:
                 storage_service: test.registry_outgoing_storage
+            mail_test:
+                storage_service: test.mail_test_storage
+            invoice_send:
+                storage_service: test.invoice_send_storage
+            invoice_send_firm:
+                storage_service: test.invoice_send_firm_storage
+            document_link:
+                storage_service: test.document_link_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

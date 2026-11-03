@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Ui\Component;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 
 final class DataTableTest extends KernelTestCase
@@ -41,6 +42,16 @@ final class DataTableTest extends KernelTestCase
         ]];
     }
 
+    /**
+     * @param list<array<string, mixed>> $actions
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rowsWith(array $actions): array
+    {
+        return [['id' => 'a1', 'href' => '/invoices/a1/edit', 'cells' => ['name' => '20260001', 'email' => '1 Nov', 'balance' => '1 200'], 'actions' => $actions]];
+    }
+
     public function testRowActionsShowInTheRowAndInTheMenu(): void
     {
         $html = $this->render(['rows' => $this->rowsWithActions(), 'actionToken' => 'tok']);
@@ -53,6 +64,46 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('role="menuitem" tabindex="-1" data-phone-only data-turbo="false"', $html);
         self::assertStringContainsString('data-dropdown-float-value="true"', $html);
         self::assertSame(4, substr_count($html, 'role="menuitem"'), 'Everything is in the menu of a phone.');
+    }
+
+    public function testAConfirmationNamesItsOutcomeAndADialogActionOpensInPlace(): void
+    {
+        $crawler = new Crawler($this->render(['rows' => $this->rowsWith([
+            ['label' => 'Mark', 'href' => '/invoices/a1/mark', 'method' => 'POST', 'confirm' => ['title' => 'Mark 20260001 as delivered?', 'text' => 'It can no longer be deleted.', 'accept' => 'Mark as delivered', 'tone' => 'danger']],
+            ['label' => 'Send', 'href' => '/invoices/a1/send', 'method' => 'GET', 'dialog' => true],
+            ['label' => 'History', 'href' => '/invoices/a1/history', 'method' => 'GET'],
+        ]), 'actionToken' => 'tok']));
+
+        $form = $crawler->filter('form[action="/invoices/a1/mark"]')->first();
+        self::assertSame('Mark 20260001 as delivered?', $form->attr('data-turbo-confirm'));
+        self::assertSame('It can no longer be deleted.', $form->attr('data-confirm-text'));
+        self::assertSame('Mark as delivered', $form->attr('data-confirm-accept'));
+        self::assertSame('danger', $form->attr('data-confirm-tone'));
+        self::assertNull($form->attr('data-confirm-cancel'));
+        // The link is the page without JavaScript; the dialog controller opens it in place.
+        $send = $crawler->filter('a[role="menuitem"][href="/invoices/a1/send"]');
+        self::assertNotNull($send->attr('data-dialog'));
+        self::assertSame('dialog', $send->attr('aria-haspopup'));
+        self::assertNull($crawler->filter('a[role="menuitem"][href="/invoices/a1/history"]')->attr('data-dialog'));
+    }
+
+    public function testAnIconActionOpensItsDialogInPlaceToo(): void
+    {
+        $crawler = new Crawler($this->render(['rows' => $this->rowsWith([
+            ['label' => 'Send again', 'href' => '/invoices/a1/send', 'method' => 'GET', 'icon' => 'send', 'dialog' => true],
+        ])]));
+
+        $icon = $crawler->filter('a[aria-label="Send again"]');
+        self::assertNotNull($icon->attr('data-dialog'));
+        self::assertSame('dialog', $icon->attr('aria-haspopup'));
+    }
+
+    public function testAConfirmationWithoutTitleThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => $this->rowsWith([
+            ['label' => 'Mark', 'href' => '/invoices/a1/mark', 'method' => 'POST', 'confirm' => ['text' => 'No question.']],
+        ])]);
     }
 
     public function testATableWithoutActionsHasNoColumnForThem(): void
@@ -261,6 +312,27 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('num', $html);
     }
 
+    public function testAnIconCellShowsItsLabelAndExplainsItInATooltip(): void
+    {
+        $rows = $this->rows();
+        $rows[0]['cells']['name'] = ['text' => 'Read', 'icon' => 'circle-check', 'tone' => 'green', 'hint' => 'The customer opened it'];
+
+        $html = $this->render(['rows' => $rows]);
+
+        self::assertMatchesRegularExpression('#<span class="inline-flex items-center gap-1.5" title="The customer opened it" data-icon-cell="circle-check"><svg[^>]*class="size-4 shrink-0 text-green"[^>]*aria-hidden="true"#', $html);
+        self::assertStringContainsString('<span>Read</span>', $html);
+    }
+
+    public function testAnIconCellWithoutAHintHasNoTooltip(): void
+    {
+        $rows = $this->rows();
+        $rows[0]['cells']['name'] = ['text' => 'Queued', 'icon' => 'send'];
+
+        $html = $this->render(['rows' => $rows]);
+
+        self::assertMatchesRegularExpression('#<span class="inline-flex items-center gap-1.5" data-icon-cell="send"><svg[^>]*class="size-4 shrink-0 text-muted"#', $html);
+    }
+
     public function testNumericCellsAreRendered(): void
     {
         $rows = $this->rows();
@@ -342,6 +414,10 @@ final class DataTableTest extends KernelTestCase
         yield 'cell with unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'tone' => 'pink']]]]]];
         yield 'cell with object value' => [['rows' => [['cells' => ['name' => new \stdClass()]]]]];
         yield 'array cell without text' => [['rows' => [['cells' => ['name' => ['tone' => 'red']]]]]];
+        yield 'icon cell without text' => [['rows' => [['cells' => ['name' => ['icon' => 'send']]]]]];
+        yield 'icon cell with an icon that is not a name' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => ['send']]]]]]];
+        yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
+        yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
     }
 
     /**

@@ -1,22 +1,35 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{% extends 'layout/app.html.twig' %}
+{# A page of its own, and from the list a danger dialog over it: the same form, the same URL. #}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: path('app_invoices')}, {label: invoice.number}] %}
+{% set dialog_size = 'sm' %}
 
 {% block title %}{{ 'invoice.trash.title'|trans({number: invoice.number}) }}{% endblock %}
 
+{% block dialog_body %}
+    <form method="post" id="trash-form" action="{{ path('app_invoice_trash', {id: invoice.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        <p class="m-0 text-text">{{ invoice.customer.name }} · <span class="num">{{ payable }}</span></p>
+        <p class="m-0 text-muted">{{ 'invoice.trash.keeps'|trans }}</p>
+        <twig:Ui:Textarea name="reason" id="trash-reason" :label="'invoice.trash.reason'|trans" :help="'invoice.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {# The safe answer has the focus (APG); a refusal puts it on the reason. #}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="error is null">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'invoice.trash.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
 {% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
     <twig:Ui:Card :title="'invoice.card.delete'|trans" icon="trash-2" class="max-w-2xl">
-        <form method="post" action="{{ path('app_invoice_trash', {id: invoice.id}) }}" class="grid gap-4" novalidate>
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
-            <input type="hidden" name="return" value="{{ return }}">
-            <p class="m-0 text-text">{{ invoice.customer.name }} · <span class="num">{{ payable }}</span></p>
-            <p class="m-0 text-muted">{{ 'invoice.trash.keeps'|trans }}</p>
-            <twig:Ui:Textarea name="reason" id="trash-reason" :label="'invoice.trash.reason'|trans" :help="'invoice.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
-            <div class="flex flex-wrap justify-end gap-2">
-                <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
-                <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'invoice.trash.submit'|trans }}</twig:Ui:Button>
-            </div>
-        </form>
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'invoice.trash.submit'|trans }}</twig:Ui:Button>
+        </div>
     </twig:Ui:Card>
 {% endblock %}

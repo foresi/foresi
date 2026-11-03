@@ -43,7 +43,7 @@
 
     <twig:Ui:ActionBar>
         {% if screen.undoable %}
-            <form method="post" action="{{ path('app_import_undo', {id: import.id}) }}" data-turbo-confirm="{{ 'import.summary.undo.confirm'|trans }}">
+            <form method="post" action="{{ path('app_import_undo', {id: import.id}) }}" data-turbo-confirm="{{ 'import.summary.undo.confirm'|trans }}" data-confirm-text="{{ 'import.summary.undo.confirm_text'|trans }}" data-confirm-accept="{{ 'import.summary.undo.confirm_accept'|trans }}" data-confirm-cancel="{{ 'import.summary.undo.confirm_cancel'|trans }}" data-confirm-tone="danger">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Import\\Infrastructure\\Controller\\ImportController::TOKEN')) }}">
                 <twig:Ui:Button type="submit" icon="archive-restore">{{ 'import.summary.undo.button'|trans }}</twig:Ui:Button>
             </form>

@@ -57,12 +57,17 @@
             {% endif %}
             {% for notice in copyNotices %}<twig:Ui:Alert tone="warning" role="status" data-copy-notice>{{ notice|trans }}</twig:Ui:Alert>{% endfor %}
             {% if trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
+            {% if changedAfterSend|default(null) %}<twig:Ui:Alert tone="warning" data-changed-after-send>{{ 'invoice.changed_after_send'|trans({date: changedAfterSend}) }}</twig:Ui:Alert>{% endif %}
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
+        {# Save and send: the send dialog opens once over the saved form, then leads to the list like Save. #}
+        {% for url in app.flashes(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceController::OPEN_DIALOG_FLASH')) %}
+            <a href="{{ url }}" hidden data-dialog data-dialog-autoopen data-dialog-then="follow" data-dialog-return="#invoice-save"></a>
+        {% endfor %}
 
         <form method="post" id="invoice-form" action="{{ editing ? path('app_invoice_edit', {id: invoice.id}) : path('app_invoice_new') }}" class="grid gap-4" novalidate data-turbo="false"
             data-controller="invoice-form"
-            data-action="combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload pageshow@window->invoice-form#shown mouseup@window->invoice-form#disarmDrag"
+            data-action="contact:created@document->invoice-form#contactFromDialog combobox:pick->invoice-form#customerPicked combobox:clear->invoice-form#customerCleared input->invoice-form#changed change->invoice-form#changed input@document->invoice-form#outsideInput submit->invoice-form#submitted keydown.enter@window->invoice-form#enter beforeunload@window->invoice-form#beforeUnload pageshow@window->invoice-form#shown mouseup@window->invoice-form#disarmDrag"
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
             data-invoice-form-customers-url-value="{{ path('app_invoice_customers', {firm: firm.id}) }}"
@@ -85,6 +90,8 @@
             <button type="submit" name="_action" value="refresh" hidden tabindex="-1"></button>
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceController::FORM_TOKEN')) }}">
             <input type="hidden" name="_submission" value="{{ token }}">
+            {# Filled in by the dialog host: save and send may then open the send dialog over this form. #}
+            <input type="hidden" name="_dialogs" value="" data-dialog-capable>
             <input type="hidden" name="version" value="{{ version }}">
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
             <input type="hidden" name="copyOf" value="{{ copyOf }}">
@@ -127,7 +134,7 @@
                     <div class="grid gap-3">
                         <div class="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                             <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers', {firm: firm.id})" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
-                            <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="sm:mt-6" target="_blank" rel="noopener" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="sm:mt-6" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
                         </div>
                         {% if candidates is not empty %}
                             <ul class="m-0 grid list-none gap-1 p-0" data-customer-candidates aria-label="{{ 'invoice.customer.candidates'|trans }}">
@@ -269,6 +276,7 @@
                 <div class="relative" data-controller="dropdown">
                     <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
                     <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
+                        <button type="submit" name="_action" value="save_send" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_send'|trans }}</button>
                         <button type="submit" name="_action" value="save_pdf" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_pdf'|trans }}</button>
                     </div>
                 </div>

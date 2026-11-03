@@ -37,7 +37,17 @@ nav:
     invoices: Faktury
     firms: Moje firmy
     import: Import a export
+    sent_mail: Odeslané e-maily
 ui:
+  dialog:
+    close: Zavřít
+    discard_question: Zahodit neuložené změny?
+    keep_editing: Pokračovat v úpravách
+    discard: Zahodit
+    failed: Něco se nepovedlo. Zkuste to prosím znovu.
+  confirm:
+    accept: Potvrdit
+    cancel: Zrušit
   combobox:
     found: 'Nalezeno: {count}'
   mapping_row:
@@ -135,11 +145,20 @@ catalogue:
     type: Písmo
     border: Okraje
     elevation: Stíny
+    unsaved: Neuložené změny
+    confirm: Potvrzení
+    open: Otevřený
 
 format:
   date: "j.\u00A0n.\u00A0Y"
   datetime: 'j. n. Y H:i'
 party:
+  quick:
+    title: Nový zákazník
+    intro: Stačí název a sídlo, ostatní doplníte později.
+    full: Otevřít celý formulář
+    create: Vytvořit zákazníka
+    errors_title: Zákazník zatím není uložený
   header:
     import: Importovat
     export: Exportovat
@@ -313,7 +332,10 @@ party:
     applies_to: Platí pro
     set: Nastavit pro tuto firmu
     reset: Vrátit na společné
-    reset_confirm: 'Vlastní hodnoty této firmy se po uložení smažou. Pokračovat?'
+    reset_confirm: Vrátit na společné hodnoty?
+    reset_confirm_text: Vlastní hodnoty této firmy se po uložení smažou.
+    reset_confirm_accept: Vrátit na společné
+    reset_confirm_cancel: Ponechat vlastní
     emails: Fakturační e-maily
     archive: Stav archivace
     invoice_emails: E-maily pro faktury
@@ -379,6 +401,7 @@ firm:
   tab:
     details: Údaje
     invoicing: Fakturace
+    mail: E-maily
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Vaše vlastní firmy, které vystavují doklady.
@@ -419,7 +442,10 @@ firm:
     not_registered: Neplátce DPH
     identified_person: Identifikovaná osoba
   confirm:
-    archive: Archivovat tuto firmu? Obnovit ji nelze.
+    archive: 'Archivovat firmu {name}?'
+    archive_text: Archivovanou firmu už nepůjde obnovit.
+    archive_accept: Archivovat firmu
+    archive_cancel: Ponechat firmu
   flash:
     created: Firma je uložená.
     updated: Změny jsou uložené.
@@ -436,6 +462,98 @@ firm:
     image_dimensions: Obrázek může mít nejvýš 3000 x 3000 pixelů.
     image_color: Nahrajte JPEG v RGB, ne v CMYK.
     image_upload: Obrázek se nepodařilo nahrát. Zkuste to znovu.
+  mail:
+    title: E-maily
+    sections: Části nastavení e-mailů
+    tab:
+      templates: Šablony
+      server: Poštovní server
+    card:
+      invoice: Faktura
+      server: Server odchozí pošty (SMTP)
+      test: Zkušební e-mail
+    templates_help: Text se posílá v jazyce dokladu.
+    language:
+      cs: Čeština
+      en: Angličtina
+    reset: Obnovit výchozí text
+    reset_confirm: 'Vrátit text pro {language} na výchozí?'
+    reset_confirm_text: Vlastní text se smaže.
+    reset_confirm_accept: Obnovit výchozí text
+    reset_confirm_cancel: Ponechat vlastní text
+    inserted: 'Vloženo: {name}'
+    variables: Proměnné
+    variables_help: Kliknutím nebo přetažením vložíte do textu.
+    variable:
+      number: Číslo dokladu
+      order_number: Číslo objednávky
+      variable_symbol: Variabilní symbol
+      description: Popis
+      issue_date: Datum vystavení
+      due_date: Datum splatnosti
+      currency: Měna
+      document_type: Typ dokladu
+      customer_name: Název odběratele
+      amount_vat: Částka DPH
+      amount_total: Částka k úhradě
+      amount_net: Částka bez DPH
+      firm_name: Název firmy
+      iban: IBAN
+      firm_email: E-mail firmy
+      firm_phone: Telefon firmy
+      registration_number: IČO
+      vat_id: DIČ
+      sender_name: Jméno odesílatele
+      link: Odkaz na doklad
+    field:
+      subject: Předmět
+      body: Text e-mailu
+      body_help: 'Bez {token} se odkaz připojí na konec.'
+      host: Server
+      host_help: Například smtp.example.com
+      port: Port
+      encryption: Šifrování
+      username: Uživatelské jméno
+      password: Heslo
+      password_kept: Prázdné pole ponechá uložené heslo, pokud nezměníte server, port, šifrování ani uživatelské jméno.
+      fromAddress: E-mail odesílatele
+      fromAddress_help: Sem se vrátí i nedoručené zprávy.
+      fromName: Jméno odesílatele
+      fromName_help: Příjemce ho uvidí u zprávy.
+    encryption:
+      starttls: STARTTLS (obvykle port 587)
+      tls: TLS (obvykle port 465)
+    test:
+      intro: 'Pošle zprávu na {email} přes uložený server.'
+      button: Poslat zkušební e-mail
+      verified: 'Ověřeno {date}.'
+      date_format: 'j. n. Y \v H:i'
+      unverified: Nastavení zatím nebylo ověřeno.
+      last_failed: 'Poslední test {date} neprošel: {reason}'
+      save_first: Zkušební e-mail půjde poslat po uložení serveru.
+      subject: 'Zkušební e-mail: {firm}'
+      body: 'Tato zpráva ověřuje, že server {host}:{port} odesílá poštu firmy. Není třeba odpovídat.'
+    flash:
+      saved: E-mailové šablony jsou uložené.
+      reset: Šablona má zase výchozí text.
+      server_saved: Poštovní server je uložený.
+      test_sent: 'Zkušební e-mail odešel na {email}.'
+      test_refused: 'Zkušební e-mail neodešel: {reason}'
+      test_limited: Příliš mnoho zkušebních e-mailů. Zkuste to za minutu.
+      test_unavailable: Nejdřív uložte poštovní server.
+    error:
+      unknown_variables: 'Neznámá proměnná: {names}. Vložte ji z nabídky pod textem.'
+      link_in_subject: 'Odkaz {link} patří do textu, ne do předmětu.'
+      no_key: Tato instalace nemá klíč k šifrování hesel. Správce ho nastaví v MAIL_SECRET_KEYS.
+      host: Zadejte název serveru nebo IP adresu, bez portu.
+      host_refused: K tomuto serveru se odsud nelze připojit. Zadejte veřejný server.
+      host_unresolved: Server tohoto jména se nenašel. Zkontrolujte název.
+      unknown_token: Text obsahuje neznámou proměnnou. Vložte ji z nabídky pod textem.
+      port: 'Port musí být jeden z: {ports}.'
+      encryption: Vyberte šifrování.
+      line_break: Hodnota nesmí obsahovat zalomení řádku.
+      password_again: Server, port, šifrování nebo uživatelské jméno se změnily. Zadejte heslo znovu.
+      save_failed: Uložení se nepovedlo. Zkuste to znovu.
   invoicing:
     title: Fakturace
     card:
@@ -502,6 +620,151 @@ series:
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
 invoice:
+  public:
+    title: 'Faktura {number}'
+    from: Od
+    for: 'Pro {customer}'
+    amount: K úhradě
+    due: Splatnost
+    payment:
+      title: Platba převodem
+      account: Číslo účtu
+      iban: IBAN
+      variable_symbol: Variabilní symbol
+      amount: Částka
+      qr: Naskenujte v aplikaci banky (QR Platba)
+    open: Otevřít PDF
+    download: Stáhnout
+    viewer: 'Faktura {number} jako PDF'
+    fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
+    notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
+    gone:
+      title: Odkaz není k dispozici
+      text: Odkaz je neplatný, nebo ho odesílatel zrušil. Pokud doklad potřebujete, obraťte se na toho, kdo vám ho poslal.
+    limited:
+      title: Příliš mnoho požadavků
+      text: Zkuste to prosím znovu za minutu.
+  mail:
+    default:
+      subject: 'Faktura {number}'
+      body: |-
+        Na základě Vaší objednávky Vám zasílám fakturu č. {number} na částku {amount_total} se splatností {due_date}.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
+  mark:
+    queued: Odesílá se
+    sent: Odesláno
+    read: Přečteno
+    failed: Neodešlo
+    hint:
+      queued: Čeká ve frontě na odeslání
+      sent: Odesláno odběrateli
+      read: Odběratel otevřel doklad
+      failed: E-mail se nepodařilo odeslat
+  changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
+  send_failure:
+    password_unreadable: Heslo k poštovnímu serveru nejde s nastavenými klíči otevřít. Zadejte ho v nastavení e-mailů znovu.
+    bad_address: Některá adresa zprávy není platná.
+    login_refused: '{smtp, select, none {Poštovní server odmítl přihlášení.} other {Poštovní server odmítl přihlášení (SMTP {smtp}).}}'
+    message_refused: '{smtp, select, none {Poštovní server zprávu odmítl.} other {Poštovní server zprávu odmítl (SMTP {smtp}).}}'
+    recipient_refused: '{smtp, select, none {Poštovní server odmítl adresáta {recipient}.} other {Poštovní server odmítl adresáta {recipient} (SMTP {smtp}).}}'
+    try_later: '{smtp, select, none {Poštovní server žádá zkusit to později.} other {Poštovní server žádá zkusit to později (SMTP {smtp}).}}'
+    unexpected_answer: Poštovní server odpověděl neočekávaně.
+    secure_connection: 'Zabezpečené spojení se serverem selhalo: zkontrolujte šifrování, port a název serveru.'
+    unreachable: Poštovní server nejde zastihnout, nebo se spojení přerušilo.
+    unresolved: Název poštovního serveru nejde přeložit na adresu.
+    host_not_allowed: Adresa poštovního serveru není povolená.
+    no_server: Firma nemá poštovní server. Přidejte ho v nastavení e-mailů.
+    unbuildable: Z uložených údajů nejde zprávu sestavit.
+    not_handed_over: Zprávu se nepodařilo předat poštovnímu serveru.
+    copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
+    gave_up: Zprávu se nepodařilo doručit.
+    link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
+  sends:
+    title: Odeslané e-maily
+    views: Stavy odeslání
+    filter: Filtrovat
+    tab:
+      all: Vše
+      sent: Odesláno
+      queued: Čeká
+      failed: Neodešlo
+    column:
+      when: Kdy
+      firm: Firma
+      number: Doklad
+      customer: Zákazník
+      recipients: Příjemci
+      status: Stav
+      error: Chyba
+    status:
+      queued: Čeká
+      sent: Odesláno
+      failed: Neodešlo
+      cancelled: Zrušeno
+    summary: '{total, plural, one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    action:
+      again: Odeslat znovu
+    empty:
+      title: Zatím nic neodešlo
+      text: Fakturu pošlete z její nabídky v seznamu faktur, nebo tlačítkem Odeslat a uložit.
+      filtered_title: Žádný e-mail neodpovídá
+      reset: Zrušit filtr
+    notice:
+      failed: '{count, plural, one {Fakturu se nepodařilo odeslat.} few {# faktury se nepodařilo odeslat.} other {# faktur se nepodařilo odeslat.}}'
+      stuck: '{count, plural, one {E-mail čeká} few {# e-maily čekají} other {# e-mailů čeká}} na odeslání déle než {minutes} minut. Zkontrolujte, že na serveru běží zpracování fronty.'
+      retrying: '{count, plural, one {E-mail se zkouší odeslat znovu: poštovní server ho zatím nepřevzal.} few {# e-maily se zkoušejí odeslat znovu: poštovní server je zatím nepřevzal.} other {# e-mailů se zkouší odeslat znovu: poštovní server je zatím nepřevzal.}}'
+      link: Zobrazit
+  send:
+    title: 'Odeslat fakturu {number}'
+    card: E-mail
+    back: Zpět
+    submit: Odeslat
+    edit: Upravit text
+    message: Zpráva
+    close: Zavřít
+    errors_title: E-mail zatím neodešel
+    sent_before: 'Faktura už odešla {date}. Když ji pošlete znovu, příjemce dostane nový odkaz.'
+    from_document: Kontakt nemá e-mail pro faktury, proto se nabízí adresa z dokladu.
+    no_address: Kontakt nemá žádný e-mail. Napište adresu do dalších příjemců.
+    others_help: 'Nejvýše {max} adres oddělených čárkou.'
+    copy_to_me: 'Poslat kopii i mně na {address}'
+    body_help: '{token} je místo pro odkaz. Bez něj bude odkaz na konci.'
+    trashed: 'Faktura {number} je v koši, takže ji nejde odeslat.'
+    no_server_title: Firma nemá poštovní server
+    no_server_text: 'Faktury firmy {firm} odcházejí přes její vlastní poštovní server. Dokud ho firma nemá, nejde nic odeslat.'
+    no_server_open: Nastavit poštovní server
+    no_server_owner: Server nastaví vlastník organizace v e-mailech firmy.
+    recipient:
+      invoices: '{address}'
+      copy: '{address} (kopie)'
+      general: '{address}'
+      document: '{address}'
+    field:
+      from: Od
+      recipients: Komu
+      others: Další příjemci
+      subject: Předmět
+      body: Text e-mailu
+    flash:
+      queued: 'Faktura {number} je zařazená k odeslání na {recipients}.'
+      already_queued: 'Faktura {number} už je zařazená k odeslání.'
+    error:
+      no_recipient: Zaškrtněte nebo napište aspoň jednoho příjemce.
+      too_many_recipients: 'Příjemců může být nejvýše {max}.'
+      too_many_others: 'Dalších příjemců může být nejvýše {max}.'
+      bad_address: '{address} není platná e-mailová adresa.'
+      bad_subject: Předmět nesmí být prázdný, delší než 255 znaků ani obsahovat odkaz.
+      bad_body: Text e-mailu je příliš dlouhý.
+      trashed: Faktura je mezitím v koši.
+      no_server: Firma mezitím přišla o poštovní server.
+      local_link_base: Odkaz by vedl na tento počítač. Správce nastaví veřejnou adresu instalace v DEFAULT_URI.
+      insecure_link_base: Odkaz by vedl přes nešifrované http. Správce nastaví v DEFAULT_URI adresu s https.
+      rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
+      undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -530,7 +793,6 @@ invoice:
     tax_point: Datum zdanitelného plnění
     supply_date: Datum uskutečnění
     due_date: Datum splatnosti
-    date_format: 'j. n. Y'
     bank_account: Bankovní účet
     payment_method: Způsob platby
     variable_symbol: Variabilní symbol
@@ -578,12 +840,15 @@ invoice:
     not_in_trash: Tato faktura v koši není.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
-    delivered_confirm: 'Označit fakturu {number} jako doručenou? Pak už ji nepůjde smazat.'
+    delivered_confirm: 'Označit fakturu {number} jako doručenou?'
+    delivered_confirm_text: Doručenou fakturu už nepůjde smazat.
+    delivered_confirm_accept: Označit jako doručenou
     tab:
       all: Vše
       overdue: Po splatnosti
       trash: Koš
     column:
+      sent: E-mail
       number: Číslo
       firm: Firma
       customer: Zákazník
@@ -601,6 +866,7 @@ invoice:
       trashed: V koši
     action:
       edit: Upravit
+      send: Odeslat
       pdf: PDF
       copy: Kopírovat
       delivered: Označit jako doručené
@@ -631,6 +897,13 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    send: '{who}: e-mail na {recipients}'
+    send_copy: 'kopie na {address}'
+    send_show: Zobrazit e-mail
+    send_subject: Předmět
+    send_pdf: PDF, jak odešlo
+    send_read: 'Přečteno {date}'
+    send_again: Odeslat znovu
     line_added: 'Položka {number} ({text}) přidána'
     line_removed: 'Položka {number} ({text}) odebrána'
     line_changed: 'Položka {number} ({text}): {fields}'
@@ -666,6 +939,7 @@ invoice:
   reload: Načíst fakturu znovu
   cancel: Zrušit
   save: Uložit
+  save_send: Odeslat a uložit
   save_pdf: PDF a uložit
   more_actions: Další akce
   more: Další údaje
@@ -863,6 +1137,8 @@ invoice:
     no_lines: Přidejte alespoň jeden řádek.
     number_invalid: Zadejte číslo s alespoň jedním písmenem nebo číslicí, nejvýše 80 znaků.
     number_locked: Řadu a číslo nelze po doručení dokladu změnit.
+    number_locked_sending: Řadu a číslo nelze měnit, dokud se doklad odesílá.
+    number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
     number_taken: Toto číslo už bylo v této firmě použito.
     numbers_exhausted: V této řadě už nezbývají čísla.
@@ -951,7 +1227,10 @@ import:
     too_large: Soubor je větší než 50 MB. Rozdělte ho na menší části.
   cancel:
     button: Zrušit import
-    confirm: Opravdu chcete import zrušit? Nic se nezapíše.
+    confirm: Zrušit import?
+    confirm_text: Nic se nezapíše.
+    confirm_accept: Zrušit import
+    confirm_cancel: Pokračovat v importu
   file:
     title: Soubor
     change: Změnit
@@ -1125,7 +1404,10 @@ import:
       text: Vytvořené záznamy se archivují, aktualizované dostanou původní hodnoty a archivované se obnoví. Záznamy, které někdo mezitím změnil, zůstanou beze změny.
       deadline: 'Import jde vrátit do {date}.'
       button: Vrátit import
-      confirm: Opravdu chcete import vrátit?
+      confirm: Vrátit import?
+      confirm_text: Vytvořené záznamy se archivují a změněné dostanou původní hodnoty.
+      confirm_accept: Vrátit import
+      confirm_cancel: Ponechat import
     done: Hotovo
   notice:
     finished: 'Import souboru {name} je hotový.'
