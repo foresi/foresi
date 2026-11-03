@@ -88,6 +88,17 @@ final class RecurringFormControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testTheVariablesAreOfferedUnderTheDescriptionAndOverTheItems(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorExists('[role="toolbar"][aria-labelledby="recurring-variables"] [data-token]', 'under Popis');
+        self::assertSelectorExists('[role="toolbar"][aria-labelledby="recurring-variables-lines"] [data-token]', 'over the items');
+        self::assertSelectorExists('[data-invoice-form-target="lines"] [data-mail-chips-target="field"]', 'an item takes a variable');
+    }
+
     public function testTheNewFormOpensWithTheScheduleDefaults(): void
     {
         $this->signedIn();

@@ -29,3 +29,17 @@
         {% endif %}
     </dl>
 {% endmacro %}
+
+{# The variables of a period as chips; one goes into the field that had the focus last: the description, a text or an item. #}
+{% macro variables(id, variables, focus) %}
+    <div class="flex flex-wrap items-center gap-1">
+        <span id="{{ id }}" class="inline-flex items-center gap-1 text-caption font-medium text-muted" title="{{ 'recurring.variables.help'|trans }}">{{ 'recurring.variables.title'|trans }}{{ ux_icon('lucide:circle-help', {class: 'size-3.5', 'aria-hidden': 'true'}) }}</span>
+        <span id="{{ id }}-help" class="sr-only">{{ 'recurring.variables.help'|trans }}</span>
+        {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
+        <div role="toolbar" aria-labelledby="{{ id }}" aria-describedby="{{ id }}-help" class="flex flex-wrap gap-1" data-action="keydown->mail-chips#move">
+            {% for variable in variables %}
+                <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" title="{{ variable.token }}" class="inline-flex h-badge cursor-grab select-none items-center rounded-sm border border-control-line bg-white px-1.5 text-caption font-medium text-text hover:border-muted active:cursor-grabbing {{ focus }}">{{ variable.label }}</button>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}

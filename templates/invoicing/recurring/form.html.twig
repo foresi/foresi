@@ -126,18 +126,10 @@
                         <twig:Ui:TextInput name="orderNumber" id="orderNumber" :label="'invoice.field.orderNumber'|trans" :value="values.orderNumber" :error="errorFields.orderNumber|default(null)" maxlength="64" autocomplete="off" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
                         <div class="grid content-start gap-1.5">
                             <twig:Ui:TextInput name="description" id="description" :label="'invoice.field.description'|trans" :help="'invoice.field.description_help'|trans" :value="values.description" :error="errorFields.description|default(null)" autocomplete="off" data-mail-chips-target="field" data-mail-chips-default data-action="focus->mail-chips#remember" />
-                            {# The variables, compact under Popis; what they do is in the tooltip and read out with them. #}
-                            <div class="flex flex-wrap items-center gap-1">
-                                <span id="recurring-variables" class="inline-flex items-center gap-1 text-caption font-medium text-muted" title="{{ 'recurring.variables.help'|trans }}">{{ 'recurring.variables.title'|trans }}{{ ux_icon('lucide:circle-help', {class: 'size-3.5', 'aria-hidden': 'true'}) }}</span>
-                                <span id="recurring-variables-help" class="sr-only">{{ 'recurring.variables.help'|trans }}</span>
-                                {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
-                                <div role="toolbar" aria-labelledby="recurring-variables" aria-describedby="recurring-variables-help" class="flex flex-wrap gap-1" data-action="keydown->mail-chips#move">
-                                    {% for variable in variables %}
-                                        <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" title="{{ variable.token }}" class="inline-flex h-badge cursor-grab select-none items-center rounded-sm border border-control-line bg-white px-1.5 text-caption font-medium text-text hover:border-muted active:cursor-grabbing {{ focus }}">{{ variable.label }}</button>
-                                    {% endfor %}
-                                </div>
-                                <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
-                            </div>
+                            {# The variables, compact under Popis and again over the items; what they do is in the tooltip and read out with them. #}
+                            {% import 'invoicing/recurring/_parts.html.twig' as parts %}
+                            {{ parts.variables('recurring-variables', variables, focus) }}
+                            <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
                         </div>
                     </div>
                     <details data-more-details class="rounded-control border border-divider px-3 py-2"{% if moreOpen %} open{% endif %}>
@@ -218,6 +210,8 @@
             </div>
 
             <twig:Ui:Card :title="'invoice.card.lines'|trans" icon="receipt-text">
+                {% import 'invoicing/recurring/_parts.html.twig' as parts %}
+                <div class="mb-3">{{ parts.variables('recurring-variables-lines', variables, focus) }}</div>
                 <table class="block w-full xl:table xl:table-fixed" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
                     <thead class="max-xl:sr-only">
                         <tr class="text-left text-small font-medium text-muted">
