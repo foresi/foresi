@@ -68,7 +68,8 @@ test.describe.serial('a recurring invoice', () => {
     await openFromInvoice(page);
     await expect(page.locator('#customer')).toHaveValue('Example Buyer a.s.');
     const text = await page.locator('#lines-0-text').inputValue();
-    expect(['Support', 'Hosting', 'Licence']).toContain(text);
+    // The seeded invoices, or the one the dialog specs issue.
+    expect(['Support', 'Hosting', 'Licence', 'Konzultace']).toContain(text);
     await expect(page.locator('#description')).toHaveValue(text);
     await expect(page.locator('#name')).toHaveValue(text);
     await page.locator('#name').fill('Example yearly hosting');

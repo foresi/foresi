@@ -17,10 +17,12 @@ export MAIL_SECRET_KEYS="e2e1:ZTJlLW9ubHktbWFpbC1rZXktbmV2ZXItZm9yLXVzZSE="
 rm -rf var/cache/e2e
 rm -f var/e2e.db
 php bin/console doctrine:migrations:migrate --no-interaction --quiet
-php tests/e2e/seed.php
+# The seeded firms are Czech: PHP's own today is the firms' today, also after midnight in
+# Prague while the CI server is still on the day before in UTC.
+php -d date.timezone=Europe/Prague tests/e2e/seed.php
 
 export PHP_CLI_SERVER_WORKERS=4
 # variables_order=EGPCS: the built-in server otherwise hides APP_ENV from Symfony, which then
 # falls back to the dev environment and the developer database. display_errors=0 as in production:
 # the warning of a form past max_input_vars must not reach the page before the headers.
-exec php -d variables_order=EGPCS -d display_startup_errors=0 -d display_errors=0 -S "127.0.0.1:${port}" -t public public/index.php
+exec php -d date.timezone=Europe/Prague -d variables_order=EGPCS -d display_startup_errors=0 -d display_errors=0 -S "127.0.0.1:${port}" -t public public/index.php
