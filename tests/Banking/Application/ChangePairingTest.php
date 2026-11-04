@@ -73,6 +73,22 @@ final class ChangePairingTest extends KernelTestCase
         self::assertContains(FirmPairing::class, $this->connection()->fetchFirstColumn('SELECT entity_class FROM audit_entry'));
     }
 
+    public function testARowWrittenWithoutTheSwitchesHasTheDefaults(): void
+    {
+        $firm = $this->firm('Example One s.r.o.');
+        $this->connection()->insert('firm_bank_pairing', ['id' => '01963c5e-0000-7000-8000-000000000001', 'tenant_id' => $this->context->current()->toString(), 'legal_entity_id' => $firm->id()]);
+
+        self::assertSame([['legal_entity_id' => $firm->id(), 'auto_pairing' => 1, 'small_difference' => 0]], $this->stored(), 'the database defaults are the ones of a firm without a row');
+    }
+
+    public function testTheTenantOfASwitchIsStampedOnPersist(): void
+    {
+        $pairing = FirmPairing::of($this->firm('Example One s.r.o.'), true, false);
+
+        $this->expectException(\LogicException::class);
+        $pairing->tenantId();
+    }
+
     public function testAnotherTenantsFirmIsNotFound(): void
     {
         $firm = $this->firm('Example One s.r.o.');

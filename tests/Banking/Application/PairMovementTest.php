@@ -30,6 +30,7 @@ use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecordPayment;
+use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\PriceType;
 use App\Party\Application\TransactionalWork;
@@ -271,6 +272,7 @@ final class PairMovementTest extends BankingTestCase
 
         self::assertNull($this->pairingWith($log)->auto($movement->id()));
 
+        self::assertCount(4, array_filter($log->entries, static fn (string $entry): bool => str_starts_with($entry, 'read:')), 'the first read and one after each of the three rounds of locks');
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Ambiguous], [$stored->state(), $stored->unmatchedReason()]);
         self::assertSame(0, $this->paymentCount());
@@ -316,6 +318,228 @@ final class PairMovementTest extends BankingTestCase
 
         $this->expectException(UnknownBankMovement::class);
         $this->pairing->auto($movement->id());
+    }
+
+    public function testAnInvoiceThatDropsOutOfALaterReadStaysLocked(): void
+    {
+        $first = $this->issue->issue($this->input());
+        $second = $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        // The first read finds the first invoice only, every later one the second only, as if the first was paid meanwhile.
+        $log = new LockLog(self::getContainer()->get(Candidates::class), static fn (int $read, array $found): array => array_values(array_filter(
+            $found,
+            static fn (Candidate $candidate): bool => $candidate->invoiceId === (1 === $read ? $first : $second)->id(),
+        )));
+
+        self::assertNotNull($this->pairingWith($log)->auto($movement->id()));
+
+        $both = [$first->id(), $second->id()];
+        sort($both, \SORT_STRING);
+        self::assertSame(['read:'.$first->id(), 'lock:'.$first->id(), 'read:'.$second->id(), 'lock:'.$both[0], 'lock:'.$both[1], 'read:'.$second->id()], $log->entries);
+        self::assertSame(PaymentState::Paid, $this->stateOf($second));
+    }
+
+    public function testInvoicesAreLockedInAscendingIdOrder(): void
+    {
+        $first = $this->issue->issue($this->input());
+        $second = $this->issue->issue($this->input());
+        $ids = [$first->id(), $second->id()];
+        sort($ids, \SORT_STRING);
+        $movement = $this->recordMovement->record($this->incoming('1210.00', vs: null), self::verified());
+        $log = new LockLog(self::getContainer()->get(Candidates::class));
+
+        $this->pairingWith($log)->pair($movement->id(), [new AllocationRequest($ids[1], $this->czk('605.00')), new AllocationRequest($ids[0], $this->czk('605.00'))]);
+
+        self::assertSame(['lock:'.$ids[0], 'lock:'.$ids[1]], $log->entries);
+    }
+
+    public function testAMovementMarkedPairedIsRefusedEvenWithoutALivePayment(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $this->em->getConnection()->executeStatement("UPDATE bank_movement SET state = 'paired', unmatched_reason = NULL WHERE id = ?", [$movement->id()]);
+        $this->em->clear();
+
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        self::assertSame(0, $this->paymentCount());
+    }
+
+    public function testALivePaymentFromAnotherPathRefusesBeforeTheInvoiceIsLookedAt(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $this->payFromAnotherPath($movement->id(), $invoice->id());
+
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+    }
+
+    public function testARejectedMovementIsRefusedWhateverItsTrustSays(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'rejected' WHERE id = ?", [$movement->id()]);
+        $this->em->clear();
+
+        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): \App\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
+        self::assertSame(0, $this->paymentCount());
+    }
+
+    public function testAMovementNoLongerPairedIsNotUnpairedThroughThePaymentItStillNames(): void
+    {
+        $this->issue->issue($this->input());
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $payment = $this->pairing->auto($movement->id());
+        self::assertNotNull($payment);
+        $this->em->getConnection()->executeStatement("UPDATE bank_movement SET state = 'unmatched', unmatched_reason = 'no_invoice' WHERE id = ?", [$movement->id()]);
+        $this->em->clear();
+
+        $this->expectPairingRefused(PairingRefused::NOT_PAIRED, fn () => $this->unpairing->unpair($movement->id()));
+        self::assertFalse($this->payments->get($payment->id())->isCancelled());
+    }
+
+    public function testARefusalStandsWhenAnotherPathPaidTheMovementMeanwhile(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $other = $this->issue->issue($this->input());
+        $unverified = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
+        $short = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), self::verified());
+        $unknownInvoice = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-18'), self::verified());
+
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \App\Invoicing\Domain\Payment => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unverified->id(), $other->id(), '1.00'))->pair($unverified->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        try {
+            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($short->id(), $other->id(), '1.00'))->pair($short->id(), [new AllocationRequest($invoice->id(), $this->czk('1000.00'))]);
+            self::fail('A wrong sum should be refused.');
+        } catch (PaymentRefused $refused) {
+            self::assertSame(PaymentRefused::AMOUNT_MISMATCH, $refused->reason);
+        }
+        try {
+            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unknownInvoice->id(), $other->id(), '1.00'))->pair($unknownInvoice->id(), [new AllocationRequest('01963c5e-0000-7000-8000-00000000dead', $this->czk('1210.00'))]);
+            self::fail('An unknown invoice should not be found.');
+        } catch (UnknownInvoice) {
+        }
+        self::assertSame(3, $this->paymentCount(), 'only the payments of the other path');
+    }
+
+    public function testAFailureAfterAnotherPathPaidTheMovementMeansItIsPaidAlready(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $manual = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $automatic = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), self::verified());
+        $unpaid = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-18'), self::verified());
+        $lost = new \RuntimeException('The unique index of live payments refused the insert.');
+
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \App\Invoicing\Domain\Payment => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($manual->id(), $invoice->id(), '1.00'), $lost)->pair($manual->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        self::assertNull($this->pairingMeanwhile(fn () => $this->payFromAnotherPath($automatic->id(), $invoice->id(), '1.00'), $lost)->auto($automatic->id()));
+
+        try {
+            $this->pairingMeanwhile(static function (): void {}, $lost)->auto($unpaid->id());
+            self::fail('Should the movement still be unpaid, the failure is not hidden.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame($lost, $failure);
+        }
+    }
+
+    public function testAMovementThatDoesNotExistStaysUnknownWhateverPaymentNamesIt(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $missing = '01963c5e-0000-7000-8000-00000000beef';
+        $this->payFromAnotherPath($missing, $invoice->id(), '1.00');
+
+        try {
+            $this->pairing->pair($missing, [new AllocationRequest($invoice->id(), $this->czk('1.00'))]);
+            self::fail('The movement should not be found.');
+        } catch (UnknownBankMovement $unknown) {
+            self::assertSame('The bank movement does not exist.', $unknown->getMessage());
+        }
+        $this->expectException(UnknownBankMovement::class);
+        $this->pairing->auto($missing);
+    }
+
+    public function testAPaymentRefusedAfterAnotherPathPaidTheMovementLeavesItsReason(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        // Booked tomorrow: the invoice refuses the payment.
+        $movement = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-21'), self::verified());
+        $before = $this->storedMovement($movement->id())->unmatchedReason();
+
+        self::assertNull($this->pairingMeanwhile(fn () => $this->payFromAnotherPath($movement->id(), $invoice->id(), '1.00'))->auto($movement->id()));
+
+        self::assertNotSame(UnmatchedReason::Refused, $before);
+        self::assertSame($before, $this->storedMovement($movement->id())->unmatchedReason(), 'the payment of the other path stands, and the reason with it');
+    }
+
+    public function testATrashedInvoiceTheMatcherChoseLeavesTheMovementWithoutAnInvoice(): void
+    {
+        $trashed = $this->issue->issue($this->input());
+        $this->trash->trash($trashed->id(), 'Issued by mistake');
+        $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
+        $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'ambiguous' WHERE id = ?", [$movement->id()]);
+        $this->em->clear();
+        // The matcher read it just before it was trashed.
+        $log = new LockLog(self::getContainer()->get(Candidates::class), fn (int $read, array $found): array => [new Candidate($trashed->id(), $trashed->number(), new \DateTimeImmutable('2026-11-15'), $this->czk('1210.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'))]);
+
+        self::assertNull($this->pairingWith($log)->auto($movement->id()));
+
+        self::assertSame(UnmatchedReason::NoInvoice, $this->storedMovement($movement->id())->unmatchedReason());
+        self::assertSame(0, $this->paymentCount());
+    }
+
+    public function testARefusalSaysWhy(): void
+    {
+        self::assertSame('The pairing was refused: not_paired.', new PairingRefused(PairingRefused::NOT_PAIRED)->getMessage());
+    }
+
+    /**
+     * Pairing whose first unit lets another path pay the movement once it failed, or
+     * before it fails with the given failure, as a notice committing meanwhile would.
+     */
+    private function pairingMeanwhile(\Closure $meanwhile, ?\Throwable $failure = null): PairMovement
+    {
+        $container = self::getContainer();
+        $work = new class($container->get(TransactionalWork::class), $meanwhile, $failure) implements TransactionalWork {
+            private bool $done = false;
+
+            public function __construct(private readonly TransactionalWork $work, private readonly \Closure $meanwhile, private readonly ?\Throwable $failure)
+            {
+            }
+
+            public function run(callable $work): mixed
+            {
+                if ($this->done) {
+                    return $this->work->run($work);
+                }
+                $this->done = true;
+                if ($this->failure instanceof \Throwable) {
+                    ($this->meanwhile)();
+
+                    throw $this->failure;
+                }
+                try {
+                    return $this->work->run($work);
+                } catch (\Throwable $failure) {
+                    ($this->meanwhile)();
+
+                    throw $failure;
+                }
+            }
+        };
+
+        return new PairMovement(
+            $this->movements,
+            $this->matcher,
+            $container->get(FirmPairingRules::class),
+            $container->get(RecordPayment::class),
+            $this->store,
+            $work,
+            $container->get(ConflictRetry::class),
+            $container->get(InvoicePayments::class),
+        );
+    }
+
+    private function payFromAnotherPath(string $movementId, string $invoiceId, string $amount = '1210.00'): void
+    {
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk($amount), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movementId, '', [new AllocationRequest($invoiceId, $this->czk($amount))]));
+        $this->em->flush();
     }
 
     private function pairingWith(LockLog $log, ?FirmPairingRules $rules = null): PairMovement

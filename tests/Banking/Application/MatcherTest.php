@@ -10,6 +10,7 @@ namespace App\Tests\Banking\Application;
 
 use App\Banking\Application\Candidate;
 use App\Banking\Application\MatchDecision;
+use App\Banking\Application\Matcher;
 use App\Banking\Application\PairingRules;
 use App\Banking\Domain\BankMovement;
 use App\Banking\Domain\MessageTrust;
@@ -60,6 +61,9 @@ final class MatcherTest extends BankingTestCase
         yield 'several: otherwise ambiguous' => ['100.00', [['B', '300.00', '2026-11-10'], ['A', '500.00', '2026-11-01']], self::ON, 'ambiguous'];
         yield 'several: two equal are ambiguous' => ['300.00', [['B', '300.00', '2026-11-10'], ['A', '300.00', '2026-11-01']], self::ON, 'ambiguous'];
         yield 'no candidate' => ['100.00', [], self::ON, 'no_invoice'];
+        yield 'small difference on, the exact amount settles nothing' => ['1210.00', [['A', '1210.00', '2026-11-15']], self::SMALL, [['A', '1210.00', null]]];
+        yield 'several: a difference of exactly the limit settles' => ['299.01', [['A', '500.00', '2026-11-01'], ['B', '300.00', '2026-11-10']], self::SMALL, [['B', '299.01', '0.99']]];
+        yield 'an invoice with nothing left is no candidate' => ['100.00', [['A', '0.00', '2026-11-01'], ['B', '500.00', '2026-11-10']], self::ON, [['B', '100.00', null]]];
         yield 'automatic pairing off' => ['1210.00', [['A', '1210.00', '2026-11-15']], [false, false], 'auto_pairing_off'];
     }
 
@@ -160,6 +164,28 @@ final class MatcherTest extends BankingTestCase
 
         self::assertSame(UnmatchedReason::NoInvoice, $decision->reason);
         self::assertSame([$later], $decision->suggestions);
+    }
+
+    public function testAnInvoiceIssuedOnTheDayOfThePaymentPairs(): void
+    {
+        $sameDay = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-12-05'), $this->czk('1210.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-20'));
+
+        self::assertSame([['A', '1210.00', null]], $this->shape($this->decide($this->movement('1210.00'), [$sameDay], new PairingRules(true, false))));
+    }
+
+    public function testAnInvoiceIssuedAfterThePaymentLeavesTheOtherToPair(): void
+    {
+        $later = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-01'), $this->czk('500.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-21'));
+        $earlier = new Candidate('B', '2026-0002', new \DateTimeImmutable('2026-11-10'), $this->czk('300.00'), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
+
+        self::assertSame([['B', '100.00', null]], $this->shape($this->decide($this->movement('100.00'), [$later, $earlier], new PairingRules(true, false))));
+    }
+
+    public function testASymbolIsItsDigitsWithoutLeadingZeros(): void
+    {
+        self::assertSame('1234', Matcher::normalised('VS 0012-34'));
+        self::assertNull(Matcher::normalised('VS 000'));
+        self::assertNull(Matcher::normalised(null));
     }
 
     public function testLeadingZerosInVsStillMatch(): void
