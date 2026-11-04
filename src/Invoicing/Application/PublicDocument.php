@@ -38,11 +38,11 @@ final readonly class PublicDocument
         public ?string $domesticAccount,
         public string $variableSymbol,
         public ?string $paymentCode,
-        public PaymentState $payment = PaymentState::Unpaid,
+        public PaymentState $payment,
         /** What is still to pay in minor units, never below zero. */
-        public int $remainingMinor = 0,
+        public int $remainingMinor,
         /** The day the last payment not cancelled came in, or null without one. */
-        public ?\DateTimeImmutable $lastPaidOn = null,
+        public ?\DateTimeImmutable $lastPaidOn,
     ) {
     }
 }
