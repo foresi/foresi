@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\IssueProblem;
+use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\RecurringRefused;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringInvoice;
@@ -15,6 +19,8 @@ use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
+use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Id;
 
 final class SaveRecurringInvoiceTest extends RecurringTestCase
 {
@@ -163,6 +169,74 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         $this->em->clear();
         self::assertSame(['recurring.problem.no_occurrence_left'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->edit($template->id(), $this->templates->get($template->id())->version(), $this->recurringInput(overrides: ['recurrence' => $this->monthly(end: RecurrenceEnd::AfterCount, endAfter: 1)]))));
         self::assertSame('2027-01-01', $this->templateRow($template->id())['next_occurrence']);
+    }
+
+    public function testARefusalNamesEachProblemByItsField(): void
+    {
+        try {
+            $this->save->create($this->recurringInput([$this->line(), $this->line(treatment: TaxTreatment::NotApplicable, kind: null)], ['orderNumber' => str_repeat('a', Invoice::MAX_ORDER_NUMBER_LENGTH + 1), 'constantSymbol' => 'ABC']));
+            self::fail('Expected the template to be refused.');
+        } catch (RecurringRefused $refused) {
+            self::assertSame(
+                [['orderNumber', 'invoice.problem.too_long'], ['constantSymbol', 'invoice.problem.constant_symbol_invalid'], ['lines.1.vat', 'invoice.problem.vat_invalid']],
+                array_map(static fn (IssueProblem $problem): array => [$problem->field, $problem->key], $refused->problems),
+            );
+            self::assertSame('The recurring invoice cannot be changed: invoice.problem.too_long, invoice.problem.constant_symbol_invalid, invoice.problem.vat_invalid', $refused->getMessage());
+        }
+    }
+
+    public function testTheDocumentFieldsTakeTheirWholeLengthInAnyScript(): void
+    {
+        $template = $this->save->create($this->recurringInput(overrides: ['orderNumber' => str_repeat('č', Invoice::MAX_ORDER_NUMBER_LENGTH), 'constantSymbol' => str_repeat('9', Invoice::MAX_CONSTANT_SYMBOL_LENGTH), 'dueDays' => RecurringInvoice::MAX_DUE_DAYS]));
+
+        $row = $this->templateRow($template->id());
+        self::assertSame([str_repeat('č', Invoice::MAX_ORDER_NUMBER_LENGTH), '9999999999', 365], [$row['order_number'], $row['constant_symbol'], $row['due_days']]);
+    }
+
+    public function testAConstantSymbolIsDigitsOnly(): void
+    {
+        self::assertSame(['invoice.problem.constant_symbol_invalid'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['constantSymbol' => str_repeat('č', Invoice::MAX_CONSTANT_SYMBOL_LENGTH)]))));
+        self::assertSame(['invoice.problem.too_long'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['constantSymbol' => str_repeat('9', Invoice::MAX_CONSTANT_SYMBOL_LENGTH + 1)]))));
+    }
+
+    public function testAnOrderNumberThePdfCannotPrintIsRefused(): void
+    {
+        self::assertSame(['invoice.problem.unprintable'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['orderNumber' => 'PO 中文']))));
+    }
+
+    public function testAnArchivedSeriesIsRefused(): void
+    {
+        $this->series->archive();
+        $this->em->flush();
+
+        self::assertSame(['invoice.problem.series_archived'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput())));
+    }
+
+    public function testAnUnknownCustomerIsRefused(): void
+    {
+        self::assertSame(['invoice.problem.customer_unknown'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['customerId' => Id::generate()]))));
+    }
+
+    public function testTheAmountsAreCheckedOnTheFirstTaxPoint(): void
+    {
+        self::assertSame(['invoice.problem.payable_negative'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput([$this->line('-100.00')]))));
+    }
+
+    public function testABankAccountIsKeptForABankTransferOnly(): void
+    {
+        $template = $this->save->create($this->recurringInput(overrides: ['paymentMethod' => PaymentMethod::Cash]));
+
+        self::assertNull($this->templateRow($template->id())['bank_account']);
+    }
+
+    public function testAnInputCopiesToBothByDefaultAndListsItsLines(): void
+    {
+        $input = $this->recurringInput([3 => $this->line(text: 'First'), 7 => $this->line(text: 'Second')]);
+
+        self::assertTrue($input->copyToMe);
+        self::assertTrue($input->copyToOthers);
+        self::assertSame(['First', 'Second'], array_map(static fn (LineInput $line): string => $line->text, $input->lines));
+        self::assertSame([0, 1], array_keys($input->lines));
     }
 
     public function testStartPausedStoresPausedAndImportedFrom(): void
