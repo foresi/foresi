@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# One row of the lines table, a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. #}
+{# One row of the lines table, a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. A recurring template's form passes textAttributes, which its variable chips need on the text cell. #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% macro classes(invalid) %}w-full rounded-control border bg-white px-2.5 text-ink {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}{% endmacro %}
 {% macro input(index, cell, label, value, errorFields, extra, numeric) %}
@@ -30,7 +30,7 @@
 {% set totalLabel = (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans %}
 <tbody data-invoice-form-target="line" class="block rounded-panel border border-container p-3 xl:table-row-group xl:border-0 xl:p-0 max-xl:mb-3">
     <tr class="grid grid-cols-2 gap-2 xl:table-row">
-        <td class="col-span-2 {{ cell }}">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, '', false) }}</td>
+        <td class="col-span-2 {{ cell }}">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, textAttributes|default(''), false) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, 'data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, 'data-controller="number-input" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>

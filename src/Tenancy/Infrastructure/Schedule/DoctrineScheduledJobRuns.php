@@ -116,6 +116,16 @@ final readonly class DoctrineScheduledJobRuns implements ScheduledJobRuns
         );
     }
 
+    public function lastFinished(string $job): ?string
+    {
+        $last = $this->connection->fetchOne(
+            'SELECT last_period FROM scheduled_job_run WHERE tenant_id = :tenant AND job = :job',
+            ['tenant' => $this->context->current()->toString(), 'job' => $job],
+        );
+
+        return \is_string($last) ? $last : null;
+    }
+
     private function create(string $tenant, string $job): void
     {
         $this->connection->executeStatement(self::CREATE, ['id' => Id::generate(), 'tenant' => $tenant, 'job' => $job]);

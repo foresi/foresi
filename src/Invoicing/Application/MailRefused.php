@@ -37,6 +37,10 @@ final class MailRefused extends \RuntimeException
     public const string COPY_UNKNOWN = 'copy_unknown';
     public const string GAVE_UP = 'gave_up';
     public const string LINK_CHANGED = 'link_changed';
+    /** A reminder whose contact has no address to send to any more. */
+    public const string NO_RECIPIENT = 'no_recipient';
+    /** A reminder whose invoice could not be checked before it left: the mail server was never asked. */
+    public const string CHECK_FAILED = 'check_failed';
 
     /**
      * @param string   $reasonCode one of the constants: what the screen translates, beside the English reason kept for logs and old rows

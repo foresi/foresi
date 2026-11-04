@@ -14,12 +14,15 @@ use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\MailText;
 use App\Invoicing\Application\MailVariables;
+use App\Invoicing\Domain\MailTemplateKind;
 use App\Invoicing\Domain\TotalRounding;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tests\Support\PdfTools;
 
 final class MailVariablesTest extends InvoiceTestCase
@@ -126,6 +129,41 @@ final class MailVariablesTest extends InvoiceTestCase
     {
         self::assertSame(['amount', 'Number'], $this->variables->unknownIn('Invoice {number} for {amount}, {Number}, {amount} and { spaced } {link}'));
         self::assertSame([], $this->variables->unknownIn('Invoice {number} {link}'));
+    }
+
+    public function testReminderVariablesAreUnknownInInvoiceTemplates(): void
+    {
+        $text = 'Invoice {number}, {days_overdue} days, step {reminder_step}, {amount_due} {link}';
+
+        self::assertSame(['days_overdue', 'reminder_step', 'amount_due'], $this->variables->unknownIn($text));
+        self::assertSame(['days_overdue', 'reminder_step', 'amount_due'], $this->variables->unknownIn($text, MailTemplateKind::Invoice));
+        self::assertSame([], $this->variables->unknownIn($text, MailTemplateKind::Reminder));
+        self::assertNotContains('amount_due', $this->variables->names());
+        $reminder = $this->variables->names(MailTemplateKind::Reminder);
+        self::assertSame([...array_slice($this->variables->names(), 0, -1), 'days_overdue', 'reminder_step', 'amount_due', 'link'], $reminder, 'the invoice set, the reminder ones, then the link');
+    }
+
+    public function testReminderValuesNameTheStepTheDaysAndTheAmountDue(): void
+    {
+        $document = $this->document($this->issue->issue($this->input())->id());
+
+        $values = $this->variables->valuesForReminder($document, 'Sender Example', 2, Money::of('800.50', Currency::CZK), new \DateTimeImmutable('2026-11-29'));
+
+        self::assertSame('14', $values['days_overdue'], 'due 15 November, reminded on the 29th');
+        self::assertSame('2', $values['reminder_step']);
+        self::assertSame("800,50\u{a0}Kč", $values['amount_due']);
+        self::assertSame('20260001', $values['number'], 'every invoice variable is there too');
+        self::assertSame([...array_keys($values), 'link'], $this->variables->names(MailTemplateKind::Reminder));
+    }
+
+    public function testNoDaysAreOverdueOnTheDueDateOrBefore(): void
+    {
+        $document = $this->document($this->issue->issue($this->input())->id());
+        $due = Money::of('800.50', Currency::CZK);
+
+        self::assertSame('0', $this->variables->valuesForReminder($document, 'Sender Example', 1, $due, new \DateTimeImmutable('2026-11-15'))['days_overdue'], 'on the due date');
+        self::assertSame('0', $this->variables->valuesForReminder($document, 'Sender Example', 1, $due, new \DateTimeImmutable('2026-11-14'))['days_overdue'], 'the day before');
+        self::assertSame('1', $this->variables->valuesForReminder($document, 'Sender Example', 1, $due, new \DateTimeImmutable('2026-11-16'))['days_overdue']);
     }
 
     public function testSingleLineTurnsBreaksIntoSpaces(): void

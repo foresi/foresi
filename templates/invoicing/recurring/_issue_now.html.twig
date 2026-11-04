@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/recurring/_action.html.twig' %}
+
+{% block title %}{{ 'recurring.issue_now.title'|trans }}{% endblock %}
+
+{% block fields %}
+    {% if available %}<input type="hidden" name="occurrence" value="{{ occurrence }}">{% endif %}
+{% endblock %}
+
+{% block summary %}
+    {% if available %}
+        <p class="m-0 text-text">{{ 'recurring.issue_now.text'|trans({occurrence: occurrenceShown}) }}</p>
+        <twig:Ui:DescriptionList :items="[
+            {label: 'recurring.issue_now.issue_date'|trans, value: issueDate},
+            {label: 'recurring.field.taxPoint'|trans, value: taxPoint},
+            {label: 'recurring.issue_now.due_date'|trans, value: dueDate},
+        ]" />
+        <p class="m-0 text-muted" data-delivery>{{ ('recurring.issue_now.delivery.' ~ template.delivery.value)|trans }}</p>
+    {% else %}
+        <p class="m-0 text-text">{{ 'recurring.issue_now.not_active'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block submit %}{{ 'recurring.issue_now.submit'|trans }}{% endblock %}

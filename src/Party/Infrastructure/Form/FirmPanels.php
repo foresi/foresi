@@ -160,6 +160,7 @@ final readonly class FirmPanels
             'language' => $defaults->language->value,
             'paymentMethod' => $defaults->paymentMethod->value,
             'reverseCharge' => $defaults->reverseCharge ? '1' : '',
+            'sendReminders' => $defaults->sendReminders ? '1' : '',
         ];
     }
 

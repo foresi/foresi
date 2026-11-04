@@ -366,6 +366,8 @@ deptrac:
       - VendorDbalConnection
       - SharedDomain
       - SharedApplication
+      # Also implements the Tenancy port TenantZoneFallback (FirmCountryZones):
+      # Invoicing knows the firms and their countries, Tenancy never depends on it.
       - TenancyApplication
       - IdentityApplication
       - AuditApplication

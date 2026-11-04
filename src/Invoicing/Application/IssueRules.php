@@ -10,24 +10,17 @@ namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\Series;
-use App\Invoicing\Domain\TaxTreatment;
-use App\Invoicing\Domain\TotalRounding;
-use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Iban;
 use App\Party\Domain\InvalidIban;
-use App\Party\Domain\InvalidVatId;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatId;
-use App\Party\Domain\VatStatus;
-use App\Shared\Domain\Money;
 
 /**
  * What a document must be to be saved, on every path. It reads and never writes,
@@ -46,10 +39,10 @@ final readonly class IssueRules
         private SeriesCatalog $catalog,
         private InvoiceStore $store,
         private CustomerCopies $copies,
-        private LinePricing $pricing,
         private FirmInvoicingSettings $settings,
         private PrintableText $printable,
         private InvoiceSends $sends,
+        private LineRules $shared,
     ) {
     }
 
@@ -73,9 +66,12 @@ final readonly class IssueRules
         }
         $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy)];
         $regime = $existing?->vatRegime() ?? VatRegime::of($firm->vatStatus());
-        $problems = [...$problems, ...$this->lines($input, $regime, $country, $copy, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode)];
+        $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode, $input->taxPointDate)];
+        if ([] !== $problems || !$input->taxPointDate instanceof \DateTimeImmutable) {
+            return $problems;
+        }
 
-        return [] === $problems ? $this->amounts($input, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country) : $problems;
+        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country, $input->taxPointDate);
     }
 
     /**
@@ -86,21 +82,8 @@ final readonly class IssueRules
         if ($existing instanceof Invoice) {
             return $input->firmId === $firm->id() ? [] : [new IssueProblem('firm', 'invoice.problem.firm_locked')];
         }
-        $problems = [];
-        if ($firm->isArchived()) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_archived');
-        }
-        if (VatStatus::IdentifiedPerson === $firm->vatStatus()) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_identified_person');
-        }
-        if ($firm->vatStatus()->requiresVatId() && !$firm->vatId() instanceof VatId) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_vat_id_missing');
-        }
-        if ('' === trim($firm->registerEntry())) {
-            $problems[] = new IssueProblem('firm', 'invoice.problem.firm_register_entry_missing');
-        }
 
-        return $problems;
+        return $this->shared->firm($firm);
     }
 
     /**
@@ -241,7 +224,7 @@ final readonly class IssueRules
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_address_incomplete');
         } elseif (!$this->fits($copy)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.too_long');
-        } elseif ($input->customerOnDocument instanceof DocumentParty && null !== $copy->vatId && !$this->vatIdOf($copy) instanceof VatId) {
+        } elseif ($input->customerOnDocument instanceof DocumentParty && null !== $copy->vatId && !LineRules::vatIdOf($copy->vatId) instanceof VatId) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_vat_id_invalid');
         }
 
@@ -263,18 +246,7 @@ final readonly class IssueRules
             'textBefore' => $input->textBefore,
             'textAfter' => $input->textAfter,
         ];
-        foreach ($input->lines as $index => $line) {
-            $texts['lines.'.$index.'.text'] = $line->text;
-            $texts['lines.'.$index.'.unit'] = $line->unit;
-        }
-
-        $problems = [];
-        foreach ($texts as $field => $text) {
-            $characters = $this->printable->unprintable($text);
-            if ([] !== $characters) {
-                $problems[] = new IssueProblem($field, 'invoice.problem.unprintable', ['characters' => implode(', ', $characters)]);
-            }
-        }
+        $problems = $this->shared->unprintable([...$texts, ...$this->shared->lineTexts($input->lines)]);
         if ($customer instanceof DocumentParty) {
             $problems = [...$problems, ...$this->printingOf('customer', $customer)];
         }
@@ -353,127 +325,5 @@ final readonly class IssueRules
         } catch (UnsupportedCountry) {
             return null;
         }
-    }
-
-    /**
-     * @return list<IssueProblem>
-     */
-    private function lines(InvoiceInput $input, VatRegime $regime, InvoicingCountry $country, ?DocumentParty $customer, string $issuerCountry): array
-    {
-        if ([] === $input->lines) {
-            return [new IssueProblem('lines', 'invoice.problem.no_lines')];
-        }
-        if (\count($input->lines) > Invoice::MAX_LINES) {
-            return [new IssueProblem('lines', 'invoice.problem.too_many_lines')];
-        }
-        $problems = [];
-        foreach ($input->lines as $index => $line) {
-            $field = 'lines.'.$index;
-            if ('' === trim($line->text)) {
-                $problems[] = new IssueProblem($field.'.text', 'invoice.problem.line_text_missing');
-            }
-            if (mb_strlen($line->unit) > InvoiceLine::MAX_UNIT_LENGTH) {
-                $problems[] = new IssueProblem($field.'.unit', 'invoice.problem.too_long');
-            }
-            if ($line->price->currency() !== $country->homeCurrency()) {
-                $problems[] = new IssueProblem($field.'.price', 'invoice.problem.currency_not_home');
-            }
-            if (TaxTreatment::ReverseCharge === $line->treatment) {
-                $problems = [...$problems, ...$this->reverseCharge($line, $field, $regime, $country, $customer, $issuerCountry, $input->taxPointDate)];
-            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment) {
-                $problems[] = new IssueProblem($field.'.vat', 'invoice.problem.vat_invalid');
-            } elseif (VatRegime::Payer === $regime && $line->treatment->hasRate() && !$this->hasRate($line, $country, $input->taxPointDate)) {
-                $problems[] = new IssueProblem($field.'.rate', 'invoice.problem.line_rate_missing');
-            }
-        }
-
-        return $problems;
-    }
-
-    /**
-     * A missing tax point is a problem of its own, so the line is not blamed for it.
-     */
-    private function hasRate(LineInput $line, InvoicingCountry $country, ?\DateTimeImmutable $taxPoint): bool
-    {
-        if (!$line->rateKind instanceof VatRateKind) {
-            return false;
-        }
-        if (!$taxPoint instanceof \DateTimeImmutable) {
-            return true;
-        }
-        try {
-            $country->rate($line->rateKind, $taxPoint);
-
-            return true;
-        } catch (\DomainException) {
-            return false;
-        }
-    }
-
-    /**
-     * @return list<IssueProblem>
-     */
-    private function reverseCharge(LineInput $line, string $field, VatRegime $regime, InvoicingCountry $country, ?DocumentParty $customer, string $issuerCountry, ?\DateTimeImmutable $taxPoint): array
-    {
-        if (VatRegime::Payer !== $regime) {
-            return [new IssueProblem($field.'.treatment', 'invoice.problem.reverse_charge_payer')];
-        }
-        $vatId = $this->vatIdOf($customer);
-        if (!$vatId instanceof VatId) {
-            return [new IssueProblem('customer', 'invoice.problem.reverse_charge_customer_vat_id')];
-        }
-        $code = $line->supplyCode ?? '';
-        if ($vatId->country() !== $issuerCountry) {
-            return '' === $code ? [] : [new IssueProblem($field.'.supplyCode', 'invoice.problem.supply_code_not_allowed')];
-        }
-        if (!$taxPoint instanceof \DateTimeImmutable) {
-            return [];
-        }
-        foreach ($country->supplyCodes($taxPoint) as $known) {
-            if ($known->code === $code) {
-                return [];
-            }
-        }
-
-        return [new IssueProblem($field.'.supplyCode', 'invoice.problem.supply_code_invalid')];
-    }
-
-    private function vatIdOf(?DocumentParty $customer): ?VatId
-    {
-        if (null === $customer?->vatId) {
-            return null;
-        }
-        try {
-            return VatId::fromString($customer->vatId);
-        } catch (InvalidVatId) {
-            return null;
-        }
-    }
-
-    /**
-     * @return list<IssueProblem>
-     */
-    private function amounts(InvoiceInput $input, VatRegime $regime, TotalRounding $rounding, InvoicingCountry $country): array
-    {
-        if (!$input->taxPointDate instanceof \DateTimeImmutable) {
-            return [];
-        }
-        try {
-            $lines = $this->pricing->priced($input->lines, $regime, $country, $input->taxPointDate);
-            $totals = $this->pricing->totals($lines, $regime, $rounding, $country);
-        } catch (\OverflowException) {
-            return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
-        }
-        $amounts = [$totals->net, $totals->gross, $totals->payable];
-        foreach ($lines as $line) {
-            $amounts[] = $line->amounts->unitNet;
-            $amounts[] = $line->amounts->net;
-            $amounts[] = $line->amounts->gross;
-        }
-        if (array_any($amounts, static fn (Money $amount): bool => abs($amount->minor()) > Invoice::MAX_AMOUNT_MINOR)) {
-            return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
-        }
-
-        return $totals->payable->isNegative() ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
     }
 }

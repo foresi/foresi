@@ -21,7 +21,10 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
+use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\NumberKey;
+use App\Invoicing\Domain\SendPurpose;
+use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\LegalEntity;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
@@ -265,7 +268,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     }
 
     /**
-     * What firm and text leave: the tabs count within this.
+     * What firm, text and the to-send filter leave: the tabs count within this.
      *
      * @param array<string, string> $firms
      *
@@ -278,6 +281,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         if (null !== $filter->firmId && isset($firms[$filter->firmId])) {
             $where .= ' AND i.firm = :firm';
             $parameters['firm'] = [$filter->firmId, null];
+        }
+        if ($filter->toSend) {
+            // Issued from a template and not delivered: neither marked so nor sent or on its way; a failed send does not count.
+            $where .= ' AND i.recurringInvoiceId IS NOT NULL AND i.deletedAt IS NULL AND i.deliveredAt IS NULL'
+                .' AND NOT EXISTS (SELECT s.id FROM '.InvoiceSend::class.' s WHERE s.invoice = i AND s.purpose = :invoicePurpose AND s.status IN (:deliveringStatuses))';
+            $parameters['invoicePurpose'] = [SendPurpose::Invoice->value, null];
+            $parameters['deliveringStatuses'] = [[SendStatus::Queued->value, SendStatus::Sent->value], null];
         }
         $text = trim($filter->text);
         if ('' === $text) {

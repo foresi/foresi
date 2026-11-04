@@ -1,0 +1,50 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The shape every action on a recurring template shares: a page of its own, and from the list a
+    small dialog over it; the same form, the same URL. An action template fills "title", "summary"
+    and "submit" (the label of the button) and may set "submit_icon". A danger action (end, delete)
+    focuses Cancel, the safe answer (APG); the others focus their button. With "available" false the
+    action no longer applies and only Cancel is left.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'recurring.list.title'|trans, href: path('app_recurring')}, {label: customer}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = false %}
+{% set available = available ?? true %}
+
+{% block submit %}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="recurring-action" action="{{ path(route, {id: template.id}) }}" class="grid gap-3">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        {% block fields %}{% endblock %}
+        <p class="m-0 text-text"><span class="font-medium text-ink">{{ customer }}</span>{% if description %} · {{ description }}{% endif %}</p>
+        <p class="m-0 text-small text-muted">{{ interval }}</p>
+        {% block summary %}{% endblock %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {% set submitLabel %}{{ block('submit') }}{% endset %}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="danger or not available">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+    {% if available %}
+        <twig:Ui:Button type="submit" form="recurring-action" :variant="danger ? 'danger' : 'primary'" :icon="submit_icon|default(null)" :autofocus="not danger">{{ submitLabel }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    {% set cardTitle %}{{ block('title') }}{% endset %}
+    {% set submitLabel %}{{ block('submit') }}{% endset %}
+    <twig:Ui:Card :title="cardTitle|striptags|html_decode|trim" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+            {% if available %}
+                <twig:Ui:Button type="submit" form="recurring-action" :variant="danger ? 'danger' : 'primary'" :icon="submit_icon|default(null)">{{ submitLabel }}</twig:Ui:Button>
+            {% endif %}
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

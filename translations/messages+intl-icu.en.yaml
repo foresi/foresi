@@ -38,6 +38,7 @@ nav:
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
+    recurring: Recurring invoices
 ui:
   dialog:
     close: Close
@@ -683,6 +684,8 @@ invoice:
     copy_unknown: The copy was handed to the mail server, but its answer was not recorded.
     gave_up: The message could not be delivered.
     link_changed: 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.'
+    no_recipient: The contact has no e-mail address for invoices any more, so the reminder was not sent.
+    check_failed: Before the reminder left, it could not be checked whether its invoice is still unpaid.
   sends:
     title: Sent e-mails
     views: Send states
@@ -765,6 +768,7 @@ invoice:
       insecure_link_base: The link would go over unencrypted http. The administrator sets an https address in DEFAULT_URI.
       rate_limited: Too many sends in a short time. Try again in a moment.
       undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
+      reminder_taken: This reminder of the invoice has been queued already.
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -893,6 +897,7 @@ invoice:
     card: History
     system: The system
     created: '{who} created the invoice'
+    issued_recurring: '{who} issued the invoice from a recurring invoice'
     changed: '{who} changed the invoice'
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
@@ -1159,6 +1164,254 @@ invoice:
     trashed: This invoice is in the trash. Restore it to change it.
     variable_symbol_invalid: The variable symbol has 1 to 10 digits.
     vat_invalid: Choose the VAT of the line.
+recurring:
+  notice:
+    failing: '{count, plural, one {A recurring invoice could not be issued or sent.} other {# recurring invoices could not be issued or sent.}}'
+    review: '{count, plural, one {An invoice from a recurring template is waiting for you to send it.} other {# invoices from recurring templates are waiting for you to send them.}}'
+    unfinished: 'Today''s recurring invoices have not been issued yet, although it is past {hour}:00. Check that the queue worker and the scheduler run on the server.'
+    link: Show
+  problem:
+    name_missing: Enter a template name.
+    name_too_long: A template name has at most 120 characters.
+    due_days_invalid: An invoice is due 0 to 365 days after it is issued.
+    ended: This recurring invoice has ended and cannot be changed.
+    first_issue_past: The first invoice cannot be issued in the past.
+    issued: This recurring invoice has issued invoices, so it can only be ended.
+    no_occurrence_left: With this schedule no invoice is left to issue.
+    choice_invalid: Choose one of the options.
+    first_issue_missing: Enter the date of the first issue.
+    every_invalid: Enter a whole number from 1 to 99.
+    end_on_missing: Enter the date of the last issue.
+    end_on_before_first: The last issue cannot come before the first.
+    end_after_invalid: Enter a number from 1 to 999.
+  form:
+    new_title: New recurring invoice
+    edit_title: Recurring invoice
+    save: Save
+    apply: Update the preview
+    from_invoice: Recurring invoice
+  card:
+    main: Invoice template
+    schedule: Repeat issuing
+    sending: Sending the invoice
+    dates: Dates
+    payment: My payment details
+  field:
+    paymentMethod: Payment method
+    name: Template name
+    name_help: The recurring invoice is listed under this name.
+    sendToCustomer: To the customer
+    copyToMe: A copy to my e-mail
+    copyToOthers: To other recipients on the contact
+    firstIssueOn: First issue
+    unit: Repeat
+    every: Repeat every
+    every_help: For example 3 means every third day, week, month or year.
+    onLastDayOfMonth: Issue on the last day of the month
+    taxPoint: Tax point
+    dueDays: Due in (days)
+    dueDays_help: Days from the issue date.
+    end: End repeating
+    endOn: Last issue
+    endAfter: Number of issues
+    series_help: Each invoice takes the next number of this series.
+    state: State
+  unit:
+    day: Daily
+    week: Weekly
+    month: Monthly
+    year: Yearly
+  tax_point:
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
+  supply_point:
+    issue_date: On the issue date
+    last_day_of_month: Last day of the month
+  end:
+    never: Never
+    on_date: On a date
+    after_count: After a number of issues
+  sending:
+    legend: 'After issuing, send:'
+    held: The invoice is only issued and waits in the To send list.
+    no_email: no e-mail filled in
+  step:
+    less: 'Decrease: {field}'
+    more: 'Increase: {field}'
+  payment:
+    account_number: Account number
+    iban: IBAN
+  variables:
+    title: Variables
+    help: Goes into the last field – description, text or item.
+  variable:
+    day: Day
+    month: Month
+    year: Year
+    quarter: Quarter
+    month_year: Month/year
+    document_number: Invoice number
+  preview:
+    unknown: 'The next issue cannot be worked out yet:'
+    next: 'The next invoice will be issued on {date}'
+    next_now: The next invoice will be issued right after saving
+    next_now_review: The next invoice will be issued right after saving and will wait for your review
+    next_morning: The next invoice will be issued today at 5:00
+    next_morning_review: The next invoice will be issued today at 5:00 and will wait for your review
+    all: Overview of future issues
+    ends: Repeating ends here.
+    document_number: '[invoice number]'
+  flash:
+    saved: 'The recurring invoice is saved. The next invoice is issued on {date}.'
+    already_saved: This recurring invoice is saved already.
+    paused: 'The recurring invoice for {customer} is paused. Nothing is issued until you resume it.'
+    resumed: 'The recurring invoice is resumed. The next invoice is issued on {date}.'
+    resumed_ended: The recurring invoice is resumed, but its schedule has no invoice left, so it has ended.
+    skipped: '{count, plural, one {Skipped date:} other {Skipped dates:}} {dates}.'
+    ended: 'The recurring invoice for {customer} has ended.'
+    deleted: 'The recurring invoice for {customer} is deleted.'
+    issued: 'Invoice {number} is issued.'
+    issued_sent: 'Invoice {number} is issued and on its way to the customer.'
+    issued_review: 'Invoice {number} is issued and waits under To send.'
+    issued_refused: 'Invoice {number} is issued but could not be sent: {reason} It waits under To send.'
+    already_issued: This date is already issued; nothing more was issued.
+    not_active: The recurring invoice is not active, so nothing was issued.
+    changed_meanwhile: The recurring invoice changed meanwhile. Please try again.
+    issue_refused: 'The invoice cannot be issued: {problems}'
+  to_send:
+    label: To send
+    hint: Invoices from recurring invoices that nobody has sent yet.
+  alert:
+    subject:
+      issue: A recurring invoice could not be issued
+      send: A recurring invoice was issued but not sent
+    opening:
+      issue: 'A recurring invoice of {firm} for {customer} could not be issued on {date}.'
+      send: 'A recurring invoice of {firm} for {customer} was issued on {date} but not sent. It waits among the invoices to send.'
+    closing:
+      issue: The next run tries again tomorrow at 5:00. Fix the cause in Foresi under recurring invoices.
+      send: Once fixed, send it in Foresi from the list of invoices.
+    digest:
+      subject: '{count, plural, one {# recurring invoice could not be issued or sent} other {# recurring invoices could not be issued or sent}}'
+      subject_send: '{count, plural, one {# recurring invoice was issued but not sent} other {# recurring invoices were issued but not sent}}'
+      opening: 'Recurring invoices of {firm} could not be issued or sent on {date}:'
+      closing: The issued invoices wait among the invoices to send. The next run tries the others again tomorrow at 5:00.
+    link: 'Recurring invoices in Foresi: {url}'
+    reason:
+      other: 'The rules refused it (code {code}).'
+      issue:
+        refused: The rules refused to issue the invoice.
+      invoice:
+        problem:
+          customer_archived: The customer is archived for this firm.
+          customer_unknown: The customer no longer exists.
+          customer_address_incomplete: The customer has no complete invoicing address.
+          line_rate_missing: The kind of VAT rate of a line does not exist on the tax point.
+          firm_archived: The firm is archived.
+          firm_country_unsupported: The rules of the firm's country are not available.
+      send:
+        no_server: The firm has no mail server set up.
+        no_recipient: The customer has no e-mail address for invoices.
+        bad_address: An e-mail address of the customer is not valid.
+        rate_limited: The firm has used up its daily budget of e-mails.
+        undrawable: The invoice cannot be drawn as a PDF.
+        unexpected: Sending failed on an unexpected error.
+  failure:
+    other: The last run could not issue or send it.
+    send:
+      no_server: The firm has no mail server set up.
+      no_recipient: The customer has no e-mail address for invoices.
+      bad_address: An e-mail address of the customer is not valid.
+      rate_limited: The firm has used up its daily budget of e-mails.
+      undrawable: The invoice cannot be drawn as a PDF.
+      unexpected: Sending failed on an unexpected error. Send the invoice from the To send list.
+  list:
+    title: Recurring invoices
+    views: Recurring invoice lists
+    filter: Show
+    failed: 'Failed: {reason}'
+    fix:
+      mail: Set up the mail server
+      contact: Edit the contact
+      to_send: Send from the invoices to send
+      edit: Edit the recurring invoice
+    summary: '{total, plural, one {# recurring invoice} other {# recurring invoices}}'
+    tab:
+      active: Active
+      paused: Paused
+      ended: Ended
+      failing: Failing
+    column:
+      name: Template name
+      customer: Customer
+      description: Description
+      firm: Firm
+      interval: Repeats
+      next: Next issue
+      end: Ends
+      delivery: After issue
+      amount: Amount
+      state: State
+    delivery:
+      send: Send
+      review: Review
+    interval:
+      day: '{every, plural, one {Daily} other {Every # days}}'
+      week: '{every, plural, one {Weekly} other {Every # weeks}}'
+      month: '{every, plural, one {Monthly} other {Every # months}}'
+      year: '{every, plural, one {Yearly} other {Every # years}}'
+      last_day: ', on the last day of the month'
+    end:
+      never: no end
+      on_date: 'until {date}'
+      after_count: '{left, plural, =0 {no more} other {# more}}'
+      ended: 'ended {date}'
+    action:
+      edit: Edit
+      issue_now: Issue now
+      pause: Pause
+      resume: Resume
+      end: End
+      delete: Delete
+    empty:
+      title: No recurring invoices yet
+      text: Create a new one, or make one from an issued invoice with Recurring invoice in its menu.
+      from_invoice: Pick an invoice
+      filtered_title: Nothing here for this firm
+      reset: Show all firms
+      active: No active recurring invoice
+      paused: Nothing is paused
+      ended: Nothing has ended
+      failing: Everything issues without trouble
+  pause:
+    title: Pause the recurring invoice
+    text: 'Neither the invoice due on {date} nor any later one is issued until you resume it.'
+    text_no_date: No further invoice is issued until you resume it.
+    resume_hint: On resume, the dates of the pause are skipped.
+    not_active: Only an active recurring invoice can be paused.
+  resume:
+    title: Resume the recurring invoice
+    skipped: '{count, plural, one {This date fell in the pause and is not issued:} other {These dates fell in the pause and are not issued:}}'
+    next: 'The next invoice is issued on {date}.'
+    ends: The schedule has no invoice left, so resuming ends the recurring invoice.
+    not_paused: This recurring invoice is not paused.
+  ending:
+    title: End the recurring invoice
+    text: No further invoice is issued. An ended recurring invoice cannot be started again.
+    keeps: The invoices already issued stay as they are.
+  delete:
+    title: Delete the recurring invoice
+    text: It has not issued any invoice yet, so it is deleted entirely.
+  issue_now:
+    title: Issue the invoice now
+    text: 'The invoice for {occurrence} is issued with these dates:'
+    issue_date: Issue date
+    due_date: Due date
+    submit: Issue
+    not_active: Only an active recurring invoice can be issued now.
+    delivery:
+      send: Then it goes by e-mail to the customer, with a copy to you. The next date moves on.
+      review: Then it waits under To send for your review. The next date moves on.
 import:
   number: '{value, number}'
   new: New import
@@ -1512,3 +1765,80 @@ import:
       currency: Currency
       payment_method: Payment method
       private_note: Private note
+reminder:
+  card:
+    template: Reminder
+    settings: Automatic reminders
+  templates_help: Reminders go out in the language of the document.
+  mail:
+    default:
+      subject: 'Reminder: invoice {number}'
+      body: |-
+        Hello,
+
+        this is a friendly reminder that invoice {number}, due on {due_date}, has not been paid yet. The amount due is {amount_due}.
+
+        If you have paid it in the meantime, please disregard this message.
+
+        Thank you,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Days overdue
+    reminder_step: Reminder number
+    amount_due: Amount due
+  field:
+    enabled: Send reminders automatically
+    enabled_help: Only invoices due from the switch-on day get reminders.
+    first: First reminder
+    first_help: Days after the due date
+    every: Next reminders
+    every_help: Days after the previous reminder
+    minimum: 'Minimum amount ({currency})'
+    minimum_help: Lower amounts get no reminder. Leave blank for no minimum.
+  gate: Automatic reminders start once payments are recorded.
+  at_most: 'Up to {count} reminders per invoice.'
+  date_format: 'j M Y'
+  tomorrow:
+    title: Reminded tomorrow
+    off: Reminders are off.
+    none: No reminder goes out tomorrow.
+    due: 'due {date}'
+  planned:
+    title: If you switched reminders on today
+    intro: 'These first reminders would go out over the next {days} days:'
+    none: 'No first reminder would go out over the next {days} days.'
+    'on': 'reminder on {date}'
+  error:
+    gate: Automatic reminders start once payments are recorded.
+    days: 'Enter a whole number of days from {min} to {max}.'
+    minimum: Enter an amount such as 500 or 500.50.
+  contact:
+    send: Send reminders
+    send_help: When the firm reminds overdue invoices automatically.
+  log:
+    column: Type
+    all: All types
+    purpose:
+      invoice: Invoice
+      reminder: Reminder
+    step: 'Reminder {step}'
+    again: Send another reminder
+  history:
+    sent: '{who} sent reminder {step} to {recipients}'
+    again: Send another reminder
+  list:
+    action: Send reminder
+    last: 'Last reminder {date}'
+    count: '{count, plural, one {# reminder} other {# reminders}}'
+  manual:
+    title: 'Reminder {step} for invoice {number}'
+    submit: Send reminder
+    intro: '{days, plural, one {# day} other {# days}} overdue, reminder {step} of at most {max}.'
+    queued: 'Reminder {step} of invoice {number} is queued for sending to {recipients}.'
+    already_queued: 'Reminder {step} of invoice {number} is already queued for sending.'
+    not_overdue: 'Invoice {number} is not overdue, so it gets no reminder.'
+    limit: 'Invoice {number} has had {max} reminders, the most there can be.'
+    settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
+    taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'

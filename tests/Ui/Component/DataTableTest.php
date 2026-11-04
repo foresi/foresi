@@ -106,6 +106,29 @@ final class DataTableTest extends KernelTestCase
         ])]);
     }
 
+    public function testARowAlertShowsUnderItsColumnAndOnAPhoneUnderTheFirstCell(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/contacts/a1', 'cells' => ['name' => 'Example Company', 'email' => 'info@example.com', 'balance' => '1 200'], 'alert' => ['text' => 'Failed: no address.', 'column' => 'email', 'href' => '/contacts/a1/edit', 'action' => 'Edit the contact']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $cells = $crawler->filter('tbody td');
+        $alert = $cells->eq(1)->filter('[data-row-alert]');
+        self::assertStringContainsString('Failed: no address.', $alert->text());
+        self::assertSame('/contacts/a1/edit', $alert->filter('a')->attr('href'));
+        self::assertStringContainsString('max-sm:hidden', (string) $alert->attr('class'));
+        self::assertSame('info@example.com', $cells->eq(1)->filter('[title], span')->first()->text(), 'the cell keeps its own text');
+        $phone = $cells->eq(0)->filter('[data-row-alert-phone]');
+        self::assertStringContainsString('Edit the contact', $phone->text());
+        self::assertStringContainsString('sm:hidden', (string) $phone->attr('class'));
+    }
+
+    public function testARowAlertUnderAnUnknownColumnThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'nowhere']]]]);
+    }
+
     public function testATableWithoutActionsHasNoColumnForThem(): void
     {
         $html = $this->render();
@@ -130,6 +153,39 @@ final class DataTableTest extends KernelTestCase
         $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
 
         self::assertSame(3, substr_count($html, 'max-sm:hidden'), 'The header and both cells of the column.');
+    }
+
+    public function testATruncatingColumnSharesTheRoomLeftAndAlwaysHasATitle(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name', 'truncate' => true], ['key' => 'email', 'label' => 'E-mail', 'truncate' => true], ['key' => 'balance', 'label' => 'Balance', 'align' => 'right']];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(6, substr_count($html, 'sm:max-w-0 sm:w-1/2'), 'The headers and all cells of both columns.');
+        self::assertStringContainsString('title="Second Ltd"', $html, 'A short text can be cut short too.');
+        self::assertStringContainsString('title="info@example.com"', $html);
+        self::assertStringNotContainsString('title="1 200"', $html, 'Numbers keep their width.');
+        self::assertStringNotContainsString('max-w-[32ch]', $html, 'A truncating column is cut by its share, not a fixed cap.');
+    }
+
+    public function testAOneTruncatingColumnTakesAllTheRoomLeft(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name', 'truncate' => true], ['key' => 'email', 'label' => 'E-mail']];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(3, substr_count($html, 'sm:max-w-0 sm:w-full'));
+        self::assertStringNotContainsString('title="Second Ltd"', $this->render());
+    }
+
+    public function testAWideColumnIsLeftOutOnANarrowerScreen(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'email', 'label' => 'E-mail', 'wide' => true]];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $this->rows()]);
+
+        self::assertSame(3, substr_count($html, 'max-xl:hidden'), 'The header and both cells of the column.');
+        self::assertStringNotContainsString('max-xl:hidden', $this->render());
     }
 
     public function testARowActionGoesByGetOrPost(): void
@@ -418,6 +474,13 @@ final class DataTableTest extends KernelTestCase
         yield 'icon cell with an icon that is not a name' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => ['send']]]]]]];
         yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
         yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
+        yield 'row alert without a text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['column' => 'name']]]]];
+        yield 'row alert with a text that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 5, 'column' => 'name']]]]];
+        yield 'row alert with an empty text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => '', 'column' => 'name']]]]];
+        yield 'row alert with an unsafe href' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 'javascript:alert(1)', 'action' => 'Fix']]]]];
+        yield 'row alert with an href that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 5, 'action' => 'Fix']]]]];
+        yield 'row alert with an action that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => 5]]]]];
+        yield 'row alert with an empty action' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => '']]]]];
     }
 
     /**

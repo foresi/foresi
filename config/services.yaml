@@ -102,6 +102,8 @@ services:
         alias: limiter.invoice_send_firm
     test.document_link_limiter:
         alias: limiter.document_link
+    test.invoice_balances:
+        alias: App\Invoicing\Application\InvoiceBalances
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -125,16 +127,27 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
     App\Invoicing\Application\DocumentTitles:
         alias: App\Invoicing\Infrastructure\Pdf\TranslatedDocumentTitles
+    App\Invoicing\Application\RecurringAlertTexts:
+        alias: App\Invoicing\Infrastructure\Mail\TranslatedRecurringAlertTexts
     App\Invoicing\Application\InvoiceSends:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
     App\Invoicing\Application\SentFiles:
         alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+    # What is still owed on invoices. The payments module rebinds this to an
+    # authoritative implementation that passes InvoiceBalancesContractTest, and
+    # the SQL condition below to the same implementation.
+    App\Invoicing\Application\InvoiceBalances:
+        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+    App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition:
+        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
     App\Invoicing\Application\DocumentLinks:
         alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
     App\Invoicing\Application\SendLimits:
         alias: App\Invoicing\Infrastructure\Mail\RateLimitedSends
     App\Invoicing\Application\InvoiceSendQueue:
         alias: App\Invoicing\Infrastructure\Messenger\MessengerInvoiceSendQueue
+    App\Invoicing\Application\RecurringIssueQueue:
+        alias: App\Invoicing\Infrastructure\Messenger\MessengerRecurringIssueQueue
     App\Invoicing\Application\PublicDocuments:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
 
@@ -231,6 +244,18 @@ when@e2e:
             public: true
         e2e.link_tokens:
             alias: App\Invoicing\Application\LinkTokens
+            public: true
+        e2e.save_recurring:
+            alias: App\Invoicing\Application\SaveRecurringInvoice
+            public: true
+        e2e.recurring_lifecycle:
+            alias: App\Invoicing\Application\RecurringLifecycle
+            public: true
+        e2e.issue_recurring:
+            alias: App\Invoicing\Application\IssueRecurringOccurrence
+            public: true
+        e2e.tenant_clock:
+            alias: App\Tenancy\Application\TenantClock
             public: true
 
 when@test:
@@ -330,6 +355,12 @@ when@test:
         App\Invoicing\Application\InvoiceStore:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
             public: true
+        App\Invoicing\Application\InvoiceBalances:
+            alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+            public: true
+        test.invoice_balances:
+            alias: App\Invoicing\Application\InvoiceBalances
+            public: true
         App\Invoicing\Application\ConflictRetry:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry
             public: true
@@ -345,6 +376,14 @@ when@test:
         App\Invoicing\Application\CustomerCopies: { public: true }
         App\Invoicing\Application\LinePricing: { public: true }
         App\Invoicing\Application\NumberAllocator: { public: true }
+        # The recurring templates and their daily run, for the tests that drive them directly.
+        App\Invoicing\Application\SaveRecurringInvoice: { public: true }
+        App\Invoicing\Application\IssueRecurringInvoices: { public: true, tags: ['app.scheduled_job'] }
+        App\Invoicing\Application\RecurringLifecycle: { public: true }
+        App\Invoicing\Application\IssueRecurringOccurrence: { public: true }
+        App\Invoicing\Application\RecurringInvoices:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices
+            public: true
 
         # A scheduled job that counts its runs, and the run records it is claimed through.
         App\Tests\Tenancy\Support\CountingJob:
@@ -352,6 +391,8 @@ when@test:
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
+        # Nothing uses the tenant's clock yet; the jobs that will are on their way.
+        App\Tenancy\Application\TenantClock: { public: true }
 
         # Tests never send mail: the gateway records instead.
         App\Invoicing\Application\MailGateway:

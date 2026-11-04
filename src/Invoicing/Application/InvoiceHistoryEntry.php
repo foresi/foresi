@@ -14,6 +14,8 @@ namespace App\Invoicing\Application;
 final readonly class InvoiceHistoryEntry
 {
     public const string CREATED = 'created';
+    /** Created too, by a recurring template rather than a person's form. */
+    public const string ISSUED_FROM_RECURRING = 'issued_recurring';
     public const string CHANGED = 'changed';
     public const string TRASHED = 'trashed';
     public const string RESTORED = 'restored';

@@ -9,10 +9,11 @@ declare(strict_types=1);
 namespace App\Invoicing\Domain;
 
 /**
- * What a mail template is for: one template per kind of document, and later per
- * reminder or thank-you message.
+ * What a mail template is for: one template per kind of document, and one for the
+ * reminder of an overdue invoice.
  */
 enum MailTemplateKind: string
 {
     case Invoice = 'invoice';
+    case Reminder = 'reminder';
 }

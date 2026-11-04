@@ -8,11 +8,12 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 
 /**
- * Which sends the send log shows: of one firm or all, in one state or all, newest
- * first.
+ * Which sends the send log shows: of one firm or all, in one state or all, the
+ * invoices or the reminders or both, newest first.
  */
 final readonly class SendLogFilter
 {
@@ -22,6 +23,7 @@ final readonly class SendLogFilter
         public ?string $firmId = null,
         public ?SendStatus $status = null,
         public int $page = 1,
+        public ?SendPurpose $purpose = null,
     ) {
     }
 }

@@ -63,6 +63,10 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'invoicing_reverse_charge', type: 'boolean', nullable: true)]
     private ?bool $invoicingReverseCharge = null;
 
+    /** Null on rows from before the flag, which read as on. */
+    #[ORM\Column(name: 'invoicing_send_reminders', type: 'boolean', nullable: true)]
+    private ?bool $invoicingSendReminders = null;
+
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
@@ -121,7 +125,7 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
             return null;
         }
 
-        return new InvoicingDefaults($this->invoicingDueDays, $this->invoicingCurrency, $this->invoicingLanguage, $this->invoicingPaymentMethod, $this->invoicingReverseCharge);
+        return new InvoicingDefaults($this->invoicingDueDays, $this->invoicingCurrency, $this->invoicingLanguage, $this->invoicingPaymentMethod, $this->invoicingReverseCharge, $this->invoicingSendReminders ?? true);
     }
 
     public function changeInvoicingDefaults(?InvoicingDefaults $defaults): void
@@ -131,6 +135,7 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
         $this->invoicingLanguage = $defaults?->language;
         $this->invoicingPaymentMethod = $defaults?->paymentMethod;
         $this->invoicingReverseCharge = $defaults?->reverseCharge;
+        $this->invoicingSendReminders = $defaults?->sendReminders;
     }
 
     public function archivedAt(): ?\DateTimeImmutable

@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/recurring/_action.html.twig' %}
+
+{% set available = template.state.value == 'paused' %}
+
+{% block title %}{{ 'recurring.resume.title'|trans }}{% endblock %}
+
+{% block summary %}
+    {% if not available %}
+        <p class="m-0 text-text">{{ 'recurring.resume.not_paused'|trans }}</p>
+    {% else %}
+        {% if skipped is not empty %}
+            <div class="grid gap-1" data-skipped>
+                <p class="m-0 text-text">{{ 'recurring.resume.skipped'|trans({count: skipped|length}) }}</p>
+                <ul class="m-0 grid gap-0.5 pl-5 text-text">
+                    {% for date in skipped %}<li class="num">{{ date }}</li>{% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <p class="m-0 text-text" data-resumes-on>{{ resumesOn ? 'recurring.resume.next'|trans({date: resumesOn}) : 'recurring.resume.ends'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block submit %}{{ 'recurring.list.action.resume'|trans }}{% endblock %}

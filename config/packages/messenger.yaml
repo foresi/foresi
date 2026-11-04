@@ -64,6 +64,8 @@ framework:
             App\Party\Application\RecheckRegistry: registry
             # Timed work: the schedule ticks, and each due job runs in its tenant.
             App\Tenancy\Application\Schedule\RunScheduledJob: async
+            # A recurring template saved or resumed after the day's run, issued at once.
+            App\Invoicing\Application\IssueRecurringTemplate: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
 

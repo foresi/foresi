@@ -15,7 +15,9 @@ use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailTemplates;
+use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRefused;
+use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
@@ -25,6 +27,7 @@ use App\Invoicing\Domain\MailTemplateKind;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
@@ -556,6 +559,217 @@ final class InvoiceSendControllerTest extends WebTestCase
         $values = $this->dialog($invoice, 'q=2026');
         $this->post($invoice, $values);
         self::assertResponseRedirects('/invoices?q=2026');
+    }
+
+    public function testManualReminderStoresStepAndPurpose(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+
+        $crawler = $this->openReminder($invoice);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Reminder 1 for invoice 20260001');
+        self::assertSame('Upomínka: faktura 20260001', $crawler->filter('#subject')->attr('value'));
+        self::assertStringContainsString('faktura č. 20260001 se splatností', $crawler->filter('#body')->text());
+        self::assertSame('1', $crawler->filter('input[name="step"]')->attr('value'));
+        self::assertSelectorTextContains('[data-reminder-intro]', '5 days overdue');
+        self::assertSelectorTextContains('#send-submit', 'Send reminder');
+
+        $this->postReminder($invoice, $this->reminderForm($crawler));
+
+        self::assertResponseRedirects('/invoices');
+        $this->em()->clear();
+        $row = $this->onlySend();
+        self::assertSame('reminder', $row['purpose']);
+        self::assertEquals(1, $row['reminder_step']);
+        self::assertSame('Upomínka: faktura 20260001', $row['subject']);
+        self::assertNotNull($row['created_by'], 'a person queued it');
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="status"]', 'Reminder 1 of invoice 20260001 is queued for sending to billing@example.com.');
+
+        // The next one is the second.
+        $crawler = $this->openReminder($invoice);
+        self::assertSelectorTextContains('h1', 'Reminder 2 for invoice 20260001');
+        $this->postReminder($invoice, $this->reminderForm($crawler));
+        self::assertEquals([1, 2], $this->connection()->fetchFirstColumn("SELECT reminder_step FROM invoice_send WHERE purpose = 'reminder' ORDER BY reminder_step"));
+    }
+
+    public function testManualReminderCountsTowardsTen(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+        $this->scoped(static function () use ($invoice): void {
+            for ($step = 1; $step <= 9; ++$step) {
+                self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], false, 'Reminder', '{link}', SendPurpose::Reminder, $step));
+            }
+        });
+
+        $crawler = $this->openReminder($invoice);
+        self::assertSelectorTextContains('h1', 'Reminder 10 for invoice 20260001');
+        $this->postReminder($invoice, $this->reminderForm($crawler));
+        self::assertResponseRedirects('/invoices');
+        self::assertEquals(10, $this->connection()->fetchOne("SELECT MAX(reminder_step) FROM invoice_send WHERE purpose = 'reminder'"));
+
+        // Ten is the most: neither the list nor the dialog offers another.
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertCount(0, $crawler->filter('a[href^="/invoices/'.$invoice->id().'/remind"]'));
+        $this->openReminder($invoice);
+        self::assertResponseRedirects('/invoices');
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="alert"]', 'Invoice 20260001 has had 10 reminders, the most there can be.');
+        self::assertSame(10, $this->reminderCount());
+    }
+
+    public function testOfferedOnlyWhenOverdueAndNotTrashed(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+
+        // Not overdue yet: no reminder in the menu, and the address says why.
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertCount(0, $crawler->filter('a[href^="/invoices/'.$invoice->id().'/remind"]'));
+        $this->openReminder($invoice);
+        self::assertResponseRedirects('/invoices');
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="alert"]', 'Invoice 20260001 is not overdue, so it gets no reminder.');
+
+        self::mockTime('2026-11-20 10:00:00');
+        $crawler = $this->client->request('GET', '/invoices?q=2026');
+        $link = $crawler->selectLink('Send reminder');
+        self::assertSame('/invoices/'.$invoice->id().'/remind?return=q%3D2026', $link->attr('href'));
+        self::assertNotNull($link->attr('data-dialog'));
+        $values = $this->reminderForm($this->openReminder($invoice, 'q=2026'));
+
+        $this->scoped(static fn () => self::getContainer()->get(TrashInvoice::class)->trash($invoice->id(), 'Wrong customer'));
+        $crawler = $this->client->request('GET', '/invoices?tab=trash');
+        self::assertCount(0, $crawler->filter('a[href^="/invoices/'.$invoice->id().'/remind"]'));
+        $this->openReminder($invoice);
+        self::assertResponseRedirects('/invoices');
+        $this->postReminder($invoice, $values);
+        self::assertResponseRedirects('/invoices?q=2026');
+        self::assertSame(0, $this->sendCount());
+    }
+
+    public function testTheReminderCountsTheTenantsDayAsTheRunsDo(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        // Due on the 15th; at 11:00 UTC it is still the 15th in Prague, the firm's country, but the 16th for the tenant.
+        $this->connection()->executeStatement('UPDATE tenant SET timezone = ? WHERE id = ?', ['Pacific/Kiritimati', $this->tenant->toString()]);
+        self::mockTime('2026-11-15 11:00:00');
+
+        $crawler = $this->openReminder($invoice);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('1 day overdue, reminder 1', $crawler->filter('main')->text());
+    }
+
+    public function testDoubleSubmitRemindsOnce(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+        $values = $this->reminderForm($this->openReminder($invoice));
+
+        $this->postReminder($invoice, $values);
+        $this->postReminder($invoice, $values);
+
+        self::assertResponseRedirects('/invoices');
+        self::assertSame(1, $this->reminderCount());
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="status"]', 'Reminder 1 of invoice 20260001 is already queued for sending.');
+    }
+
+    public function testAReminderTakenMeanwhileShowsTheNextOne(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+        $values = $this->reminderForm($this->openReminder($invoice));
+        // The daily run queues the first one while the dialog is open.
+        $this->scoped(static fn () => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], false, 'Reminder', '{link}', SendPurpose::Reminder, 1)));
+
+        $crawler = $this->postReminder($invoice, $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-error-summary]', 'Reminder 1 was queued meanwhile. Check the text of reminder 2 and send it.');
+        self::assertSame('2', $crawler->filter('input[name="step"]')->attr('value'));
+        self::assertSame(1, $this->reminderCount());
+        $this->postReminder($invoice, $this->reminderForm($crawler));
+        self::assertResponseRedirects('/invoices');
+        self::assertSame(2, $this->reminderCount());
+    }
+
+    public function testTheReminderOpensAsADialogOverThePage(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/remind', server: ['HTTP_X_FORESI_DIALOG' => '1']);
+
+        self::assertResponseIsSuccessful();
+        $crawler = new Crawler((string) $this->client->getResponse()->getContent(), 'http://localhost/');
+        self::assertSame('Reminder 1 for invoice 20260001', $crawler->filter('dialog h2')->text());
+        self::assertSame('/invoices/'.$invoice->id().'/remind', $crawler->filter('form#send-form')->attr('action'));
+        self::assertNotNull($crawler->filter('footer button#send-submit')->attr('autofocus'));
+        self::assertStringContainsString('Upomínka: faktura 20260001', $crawler->filter('[data-send-preview-subject]')->text());
+    }
+
+    public function testRemindIsStaffOnlyAndTenantIsolated(): void
+    {
+        $this->signedIn(Role::Subcontractor);
+        foreach (['GET', 'POST'] as $method) {
+            $this->client->request($method, '/invoices/019a0000-0000-7000-8000-000000000001/remind');
+            self::assertResponseStatusCodeSame(403, $method);
+        }
+    }
+
+    public function testRemindingAnotherTenantsInvoiceIs404(): void
+    {
+        $this->signedIn();
+        $foreign = $this->foreignInvoice();
+
+        $this->client->request('GET', '/invoices/'.$foreign.'/remind');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', '/invoices/'.$foreign.'/remind', ['_token' => 'x']);
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame(0, $this->sendCount());
+    }
+
+    private function openReminder(Invoice $invoice, string $return = ''): Crawler
+    {
+        return $this->client->request('GET', '/invoices/'.$invoice->id().'/remind'.('' === $return ? '' : '?return='.rawurlencode($return)));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function reminderForm(Crawler $crawler): array
+    {
+        /** @var array<string, mixed> $values */
+        $values = $crawler->filter('form#send-form')->form()->getPhpValues();
+
+        return $values;
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     */
+    private function postReminder(Invoice $invoice, array $values): Crawler
+    {
+        return $this->client->request('POST', '/invoices/'.$invoice->id().'/remind', $values);
+    }
+
+    private function reminderCount(): int
+    {
+        $count = $this->connection()->fetchOne("SELECT COUNT(*) FROM invoice_send WHERE purpose = 'reminder'");
+        self::assertIsNumeric($count);
+
+        return (int) $count;
     }
 
     private function exhaustFirmLimit(): void

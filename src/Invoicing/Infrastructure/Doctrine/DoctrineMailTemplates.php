@@ -57,11 +57,11 @@ final readonly class DoctrineMailTemplates implements MailTemplates
 
     public function save(LegalEntity $firm, MailTemplateKind $kind, DocumentLanguage $language, string $subject, string $body): void
     {
-        $inSubject = $this->variables->unknownIn($subject);
+        $inSubject = $this->variables->unknownIn($subject, $kind);
         if (str_contains($subject, '{'.MailVariables::LINK.'}')) {
             $inSubject[] = MailVariables::LINK;
         }
-        $inBody = $this->variables->unknownIn($body);
+        $inBody = $this->variables->unknownIn($body, $kind);
         if ([] !== $inSubject || [] !== $inBody) {
             throw new UnknownMailVariables($inSubject, $inBody);
         }

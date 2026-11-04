@@ -4,6 +4,7 @@
     is a page of its own without JavaScript. As a dialog it shows the message at a glance with Send
     focused, so one click or Enter sends; "Edit text" opens subject, text and other recipients in the
     same dialog, which then grows. It opens with the text open when something needs a fix.
+    A reminder by hand is the same dialog with the reminder text, its step and how long the invoice is overdue.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
@@ -16,8 +17,10 @@
 {% set dialog_size = 'md' %}
 {% set dialog_fields = draft.hasServer %}
 {% set dialog_class = 'has-[[data-send-edit][open]]:max-w-[720px]' %}
+{% set submit_label = reminder ? 'reminder.manual.submit'|trans : 'invoice.send.submit'|trans %}
+{% set submit_icon = reminder ? 'bell-ring' : 'send' %}
 
-{% block title %}{{ 'invoice.send.title'|trans({number: invoice.number}) }}{% endblock %}
+{% block title %}{{ reminder ? 'reminder.manual.title'|trans({step: reminder.step, number: invoice.number}) : 'invoice.send.title'|trans({number: invoice.number}) }}{% endblock %}
 
 {% block dialog_body %}
     {% if not draft.hasServer %}
@@ -30,10 +33,11 @@
             {% endif %}
         </twig:Ui:EmptyState>
     {% else %}
-        <form method="post" id="send-form" action="{{ path('app_invoice_send', {id: invoice.id}) }}" class="grid grid-cols-1 gap-4 [&:has([data-send-edit][open])_[data-send-preview]]:hidden" novalidate>
+        <form method="post" id="send-form" action="{{ action }}" class="grid grid-cols-1 gap-4 [&:has([data-send-edit][open])_[data-send-preview]]:hidden" novalidate>
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceSendController::FORM_TOKEN')) }}">
             <input type="hidden" name="_submission" value="{{ token }}">
             <input type="hidden" name="return" value="{{ return }}">
+            {% if reminder %}<input type="hidden" name="step" value="{{ reminder.step }}">{% endif %}
 
             {% if problems is not empty %}
                 {# A refusal that names no field takes the focus itself; otherwise the first field to fix does. #}
@@ -49,6 +53,10 @@
                         {% endfor %}
                     </ul>
                 </twig:Ui:Alert>
+            {% endif %}
+
+            {% if reminder %}
+                <p class="m-0 flex items-center gap-1.5 text-small text-muted" data-reminder-intro>{{ ux_icon('lucide:bell-ring', {class: 'size-4 shrink-0 text-badge-red-text', 'aria-hidden': 'true'}) }}{{ reminder.intro }}</p>
             {% endif %}
 
             {% if lastSent %}
@@ -130,7 +138,7 @@
 {% block dialog_footer %}
     <twig:Ui:Button data-action="dialog#dismiss">{{ draft.hasServer ? 'invoice.cancel'|trans : 'invoice.send.close'|trans }}</twig:Ui:Button>
     {% if draft.hasServer %}
-        <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" icon="send" :autofocus="not expanded">{{ 'invoice.send.submit'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" :icon="submit_icon" :autofocus="not expanded">{{ submit_label }}</twig:Ui:Button>
     {% elseif settingsUrl %}
         <twig:Ui:Button :href="settingsUrl" variant="primary" icon="settings">{{ 'invoice.send.no_server_open'|trans }}</twig:Ui:Button>
     {% endif %}
@@ -149,7 +157,7 @@
             {{ body }}
             <twig:Ui:ActionBar>
                 <twig:Ui:Button :href="cancel">{{ 'invoice.send.back'|trans }}</twig:Ui:Button>
-                <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" icon="send">{{ 'invoice.send.submit'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" id="send-submit" form="send-form" variant="primary" :icon="submit_icon">{{ submit_label }}</twig:Ui:Button>
             </twig:Ui:ActionBar>
         {% endif %}
     </div>

@@ -21,18 +21,21 @@ use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Invoicing\Infrastructure\Form\SendFailureText;
-use Psr\Clock\ClockInterface;
+use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,8 +50,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The invoice list, its trash and the history of a document, for staff. An action on a
  * row comes back to the list it started from. Links into the form leave Turbo: the form
- * is a plain page. Send and delete open in a dialog over the list; each is also a page of
- * its own, which works without JavaScript.
+ * is a plain page. Send, reminder and delete open in a dialog over the list; each is also a
+ * page of its own, which works without JavaScript. An overdue row counts the reminders that
+ * went out or wait to, read for the whole page in one query.
  *
  * @phpstan-type Action array{label: string, href: string, method: string, confirm?: array{title: string, text: string, accept: string}, icon?: string, plain?: bool, dialog?: bool, fields?: array<string, string>}
  */
@@ -60,7 +64,7 @@ final class InvoiceListController extends AbstractController
     private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page'];
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -72,10 +76,11 @@ final class InvoiceListController extends AbstractController
         private readonly AmountText $amounts,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
-        private readonly ClockInterface $clock,
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
+        private readonly RecurringInvoices $recurring,
+        private readonly TenantClock $tenantClock,
     ) {
     }
 
@@ -89,13 +94,21 @@ final class InvoiceListController extends AbstractController
         $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
         $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
         $firm = $request->query->getString('firm');
+        // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
+        $toSend = '1' === $request->query->getString('toSend');
 
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1))));
+        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend));
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
+        // Within the firm the list is filtered by, so the chip counts what pressing it shows.
+        $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         $here = 1 === $page->page ? $query : $query + ['page' => (string) $page->page];
         $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
+        $reminders = InvoiceFilter::TRASH === $tab ? [] : $this->sends->remindersFor(array_values(array_map(
+            static fn (InvoiceRow $row): string => $row->id,
+            array_filter($page->rows, static fn (InvoiceRow $row): bool => $row->overdue),
+        )));
 
         return $this->render('invoicing/index.html.twig', [
             'firstRun' => [] === $page->firms,
@@ -107,9 +120,12 @@ final class InvoiceListController extends AbstractController
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
             'tabs' => $this->tabs($page, $tab, $query),
             'columns' => $this->columns($tab, $sort, $query, $severalFirms),
-            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here)), $page->rows),
+            'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
             'baseUrl' => $this->generateUrl('app_invoices', $query),
-            'filtered' => '' !== $text || '' !== $firm,
+            'toSend' => $toSend,
+            'toSendCount' => $toSendCount,
+            'toSendHref' => $this->generateUrl('app_invoices', $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
+            'filtered' => '' !== $text || '' !== $firm || $toSend,
         ]);
     }
 
@@ -185,7 +201,7 @@ final class InvoiceListController extends AbstractController
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone)),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today()))),
         ]);
     }
 
@@ -256,6 +272,11 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
+     * The names and the reason give way to the numbers, dates, states and actions, cut short
+     * with their full text in a title, so the table fits its frame with every column shown. A
+     * narrower screen leaves out the issue date and the e-mail mark, the columns of least value
+     * to a list read for what to collect; the invoice still shows both.
+     *
      * @param array<string, string> $query
      *
      * @return list<array<string, mixed>>
@@ -265,21 +286,21 @@ final class InvoiceListController extends AbstractController
         $trash = InvoiceFilter::TRASH === $tab;
         $columns = [$this->column('number', $sort, $query, sortable: true)];
         if ($severalFirms) {
-            $columns[] = $this->column('firm', $sort, $query, phone: false);
+            $columns[] = $this->column('firm', $sort, $query, phone: false) + ['truncate' => true];
         }
-        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false);
+        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false) + ['truncate' => true];
         if ($trash) {
-            $columns[] = $this->column('deletedBy', $sort, $query, phone: false);
+            $columns[] = $this->column('deletedBy', $sort, $query, phone: false) + ['truncate' => true];
             $columns[] = $this->column('deletedAt', $sort, $query, phone: false);
-            $columns[] = $this->column('reason', $sort, $query, phone: false);
+            $columns[] = $this->column('reason', $sort, $query, phone: false) + ['truncate' => true];
         } else {
-            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false);
+            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false) + ['wide' => true];
             $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false);
         }
         $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
-            $columns[] = $this->column('sent', $sort, $query, phone: false);
+            $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
         }
 
         return $columns;
@@ -306,11 +327,12 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $names by user id
+     * @param array<string, string>                              $names     by user id
+     * @param array{count: int, lastAt: \DateTimeImmutable}|null $reminders of an overdue row
      *
      * @return array<string, mixed>
      */
-    private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return): array
+    private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
         $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed);
@@ -328,10 +350,23 @@ final class InvoiceListController extends AbstractController
             $due = $row->dueDate->format($date);
             $overdue = $this->translator->trans('invoice.list.status.overdue');
             $mark = SendMark::None === $row->sendMark ? null : $this->translator->trans('invoice.mark.'.$row->sendMark->value);
+            $sent = null === $mark ? null : ['text' => $mark, 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value)];
+            // A reminded row says how many reminders went, in the place of the mark: the newest
+            // e-mail was one of them. A failure keeps its mark, as that is what to act on.
+            if (null !== $reminders && SendMark::Failed !== $row->sendMark) {
+                $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->tenantClock->timezone())->format($date)]);
+                $sent = [
+                    'text' => $this->translator->trans('reminder.list.count', ['count' => $reminders['count']]),
+                    'icon' => 'bell-ring',
+                    'tone' => SendMark::Read === $row->sendMark ? 'green' : 'gray',
+                    'hint' => $this->joined([$last, $mark]),
+                ];
+                $mark = $sent['text'];
+            }
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
                 'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
-                'sent' => null === $mark ? null : ['text' => $mark, 'icon' => self::MARK_ICONS[$row->sendMark->value], 'tone' => self::MARK_TONES[$row->sendMark->value], 'hint' => $this->translator->trans('invoice.mark.hint.'.$row->sendMark->value)],
+                'sent' => $sent,
             ];
             $secondary = $this->joined([$row->customerName, $due, $badge, $mark]);
         }
@@ -343,7 +378,7 @@ final class InvoiceListController extends AbstractController
             'label' => $row->number,
             'secondary' => $secondary,
             'cells' => $cells,
-            'actions' => $this->actions($row, $return),
+            'actions' => $this->actions($row, $return, $reminders['count'] ?? 0),
         ];
     }
 
@@ -352,10 +387,17 @@ final class InvoiceListController extends AbstractController
      */
     private function badge(Invoice $invoice): array
     {
-        $today = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->timezoneOf($invoice));
-        $status = InvoiceStatus::ofInvoice($invoice, $today);
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today());
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
+    }
+
+    /**
+     * The tenant's day, as the reminder run counts it (ADR 0017): whether an invoice is overdue.
+     */
+    private function today(): \DateTimeImmutable
+    {
+        return $this->tenantClock->today();
     }
 
     /**
@@ -369,7 +411,7 @@ final class InvoiceListController extends AbstractController
     /**
      * @return list<Action>
      */
-    private function actions(InvoiceRow $row, string $return): array
+    private function actions(InvoiceRow $row, string $return, int $reminders): array
     {
         $id = ['id' => $row->id];
         $fields = ['return' => $return];
@@ -386,7 +428,14 @@ final class InvoiceListController extends AbstractController
         }
 
         $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send, $copy];
+        $recurring = ['label' => $this->translator->trans('recurring.form.from_invoice'), 'href' => $this->generateUrl('app_recurring_new', ['from' => $row->id]), 'method' => 'GET', 'plain' => true];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send];
+        // Reminders of other statuses still take a step, so the dialog may yet refuse the tenth; it says why.
+        if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
+            $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
+        }
+        $actions[] = $copy;
+        $actions[] = $recurring;
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
                 'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),
@@ -429,6 +478,7 @@ final class InvoiceListController extends AbstractController
             'datetime' => $entry->occurredAt->format(\DATE_ATOM),
             'icon' => match ($entry->event) {
                 InvoiceHistoryEntry::CREATED => 'plus',
+                InvoiceHistoryEntry::ISSUED_FROM_RECURRING => 'refresh-cw',
                 InvoiceHistoryEntry::TRASHED => 'trash-2',
                 InvoiceHistoryEntry::RESTORED => 'archive-restore',
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
@@ -460,11 +510,13 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * Each send of the invoice as the history shows it. Only the newest offers to send again.
+     * Each send of the invoice as the history shows it, a reminder with its step. Only the
+     * newest offers to send again: the invoice after an invoice, and after a reminder the
+     * next reminder while the invoice is overdue and has steps left.
      *
      * @return list<array<string, mixed>>
      */
-    private function sendItems(Invoice $invoice, \DateTimeZone $timezone): array
+    private function sendItems(Invoice $invoice, \DateTimeZone $timezone, bool $overdue): array
     {
         $sends = $this->sends->ofInvoice($invoice);
         $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (InvoiceSend $send): ?string => $send->createdBy(), $sends), \is_string(...)))));
@@ -474,12 +526,21 @@ final class InvoiceListController extends AbstractController
             $recipients = implode(', ', [...$send->to(), ...$send->cc()]);
             $copy = $send->copyTo();
             $status = $send->status()->value;
+            $reminder = SendPurpose::Reminder === $send->purpose();
+            $newest = $index === array_key_last($sends) && !$invoice->isTrashed();
+            $again = null;
+            if ($newest && !$reminder) {
+                $again = $this->generateUrl('app_invoice_send', ['id' => $invoice->id()]);
+            } elseif ($newest && $overdue && ($send->reminderStep() ?? 0) < FirmReminders::MAX_STEPS) {
+                $again = $this->generateUrl('app_invoice_remind', ['id' => $invoice->id()]);
+            }
+            $parameters = ['who' => $this->who($send->createdBy(), $names), 'recipients' => $recipients];
             $items[] = [
                 'send' => true,
                 'time' => $send->createdAt()->setTimezone($timezone)->format($format),
                 'datetime' => $send->createdAt()->format(\DATE_ATOM),
-                'icon' => 'send',
-                'text' => $this->translator->trans('invoice.history.send', ['who' => $this->who($send->createdBy(), $names), 'recipients' => $recipients])
+                'icon' => $reminder ? 'bell-ring' : 'send',
+                'text' => ($reminder ? $this->translator->trans('reminder.history.sent', $parameters + ['step' => $send->reminderStep() ?? 0]) : $this->translator->trans('invoice.history.send', $parameters))
                     .(null === $copy ? '' : ' · '.$this->translator->trans('invoice.history.send_copy', ['address' => $copy])),
                 'status' => $this->translator->trans('invoice.sends.status.'.$status),
                 'tone' => match ($send->status()) {
@@ -494,7 +555,8 @@ final class InvoiceListController extends AbstractController
                 'body' => $this->labels->linkToEditor($send->body(), $send->language()),
                 'language' => $send->language()->value,
                 'pdf' => $this->generateUrl('app_invoice_sent_pdf', ['id' => $invoice->id(), 'sendId' => $send->id()]),
-                'again' => $index === array_key_last($sends) && !$invoice->isTrashed() ? $this->generateUrl('app_invoice_send', ['id' => $invoice->id()]) : null,
+                'again' => $again,
+                'againLabel' => $this->translator->trans($reminder ? 'reminder.history.again' : 'invoice.history.send_again'),
             ];
         }
 

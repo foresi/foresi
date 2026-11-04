@@ -11,9 +11,14 @@ namespace App\Invoicing\Infrastructure\Form;
 use App\Invoicing\Application\MailVariables;
 use App\Invoicing\Application\RenderedMail;
 use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\MailTemplate;
+use App\Invoicing\Domain\MailTemplateKind;
 use App\Party\Domain\DocumentLanguage;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
+use App\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -28,25 +33,28 @@ final readonly class FirmMailSubmission
     private const int MAX_ADDRESS = 254;
     private const int MAX_NAME = 255;
     private const int MAX_PASSWORD = 512;
+    private const string AMOUNT = '/^\d{1,13}(?:\.\d{1,2})?$/D';
 
     /**
-     * @param array<string, string>                                      $values server fields, without the password
+     * @param array<string, string>                                      $values server or reminder fields, without the password
      * @param array<string, array{subject: string, body: string}>        $texts  document language => template text, stored form
      * @param array<string, array{subject: string, body: string}>        $typed  document language => template text, as typed
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors field id => translation key and its parameters
      */
-    private function __construct(public array $values, public array $texts, public array $typed, public array $errors, public string $password = '')
+    private function __construct(public array $values, public array $texts, public array $typed, public array $errors, public string $password = '', public ?Money $minimum = null)
     {
     }
 
     /**
-     * Fields subject[cs], body[cs] and so on, one pair per document language. The
-     * tokens come as readable labels of that language and are stored by name.
+     * Fields subject[cs], body[cs] and so on, one pair per document language; for
+     * the reminder reminder_subject[cs] and reminder_body[cs]. The tokens come as
+     * readable labels of that language and kind and are stored by name.
      */
-    public static function templates(Request $request, MailTokenLabels $labels): self
+    public static function templates(Request $request, MailTokenLabels $labels, MailTemplateKind $kind = MailTemplateKind::Invoice): self
     {
-        $subjects = $request->request->all('subject');
-        $bodies = $request->request->all('body');
+        $prefix = self::prefix($kind);
+        $subjects = $request->request->all($prefix.'subject');
+        $bodies = $request->request->all($prefix.'body');
         $texts = [];
         $typed = [];
         $errors = [];
@@ -55,30 +63,70 @@ final readonly class FirmMailSubmission
             $subject = trim(\is_string($subjects[$code] ?? null) ? $subjects[$code] : '');
             $body = trim(str_replace(["\r\n", "\r"], "\n", \is_string($bodies[$code] ?? null) ? $bodies[$code] : ''));
             $typed[$code] = ['subject' => $subject, 'body' => $body];
-            $storedSubject = $labels->fromEditor($subject, $language);
-            $storedBody = $labels->fromEditor($body, $language);
+            $storedSubject = $labels->fromEditor($subject, $language, $kind);
+            $storedBody = $labels->fromEditor($body, $language, $kind);
+            $subjectId = str_replace('_', '-', $prefix).'subject-'.$code;
+            $bodyId = str_replace('_', '-', $prefix).'body-'.$code;
             $texts[$code] = ['subject' => $storedSubject['text'], 'body' => $storedBody['text']];
 
             if ('' === $subject) {
-                $errors['subject-'.$code] = ['party.error.required'];
+                $errors[$subjectId] = ['party.error.required'];
             } elseif (mb_strlen($storedSubject['text']) > MailTemplate::MAX_SUBJECT) {
-                $errors['subject-'.$code] = ['party.error.too_long'];
+                $errors[$subjectId] = ['party.error.too_long'];
             } elseif ([] !== $storedSubject['unknown']) {
-                $errors['subject-'.$code] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedSubject['unknown'])]];
+                $errors[$subjectId] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedSubject['unknown'])]];
             } elseif (str_contains($storedSubject['text'], '{'.MailVariables::LINK.'}')) {
-                $errors['subject-'.$code] = ['firm.mail.error.link_in_subject', ['link' => $labels->token(MailVariables::LINK, $language)]];
+                $errors[$subjectId] = ['firm.mail.error.link_in_subject', ['link' => $labels->token(MailVariables::LINK, $language, $kind)]];
             }
 
             if ('' === $body) {
-                $errors['body-'.$code] = ['party.error.required'];
+                $errors[$bodyId] = ['party.error.required'];
             } elseif (mb_strlen($storedBody['text']) > MailTemplate::MAX_BODY) {
-                $errors['body-'.$code] = ['party.error.too_long'];
+                $errors[$bodyId] = ['party.error.too_long'];
             } elseif ([] !== $storedBody['unknown']) {
-                $errors['body-'.$code] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedBody['unknown'])]];
+                $errors[$bodyId] = ['firm.mail.error.unknown_variables', ['names' => implode(', ', $storedBody['unknown'])]];
             }
         }
 
         return new self([], $texts, $typed, $errors);
+    }
+
+    /**
+     * The reminders card: reminders[enabled], reminders[firstAfterDays],
+     * reminders[everyDays] and reminders[minimum], an amount in the home currency
+     * as the user's language writes it; blank is no minimum.
+     */
+    public static function reminders(Request $request, Currency $home, string $locale): self
+    {
+        $posted = $request->request->all('reminders');
+        $text = static fn (string $key): string => \is_string($posted[$key] ?? null) ? trim($posted[$key]) : '';
+        $values = [
+            'enabled' => '1' === $text('enabled') ? '1' : '',
+            'firstAfterDays' => $text('firstAfterDays'),
+            'everyDays' => $text('everyDays'),
+            'minimum' => $text('minimum'),
+        ];
+
+        $errors = [];
+        foreach (['firstAfterDays' => 'reminders-first', 'everyDays' => 'reminders-every'] as $field => $id) {
+            $days = $values[$field];
+            if (1 !== preg_match('/^\d{1,3}$/D', $days) || (int) $days < FirmReminders::MIN_DAYS || (int) $days > FirmReminders::MAX_DAYS) {
+                $errors[$id] = ['reminder.error.days', ['min' => (string) FirmReminders::MIN_DAYS, 'max' => (string) FirmReminders::MAX_DAYS]];
+            }
+        }
+        $minimum = null;
+        if ('' !== $values['minimum']) {
+            $decimal = TypedNumber::decimal($values['minimum'], $locale);
+            if (1 !== preg_match(self::AMOUNT, $decimal)) {
+                $errors['reminders-minimum'] = ['reminder.error.minimum'];
+            } else {
+                $minimum = Money::of($decimal, $home);
+                // Zero asks for no minimum.
+                $minimum = $minimum->isZero() ? null : $minimum;
+            }
+        }
+
+        return new self($values, [], [], $errors, '', $minimum);
     }
 
     /**
@@ -128,6 +176,14 @@ final readonly class FirmMailSubmission
         }
 
         return new self($values, [], [], $errors, $password);
+    }
+
+    /**
+     * The start of the field names of a kind: "" for the invoice, "reminder_" for the reminder.
+     */
+    public static function prefix(MailTemplateKind $kind): string
+    {
+        return MailTemplateKind::Invoice === $kind ? '' : $kind->value.'_';
     }
 
     /**

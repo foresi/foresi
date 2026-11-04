@@ -566,6 +566,7 @@ final readonly class PartyImportTarget implements ImportTarget
                 'language' => $defaults->language->value,
                 'paymentMethod' => $defaults->paymentMethod->value,
                 'reverseCharge' => $defaults->reverseCharge,
+                'sendReminders' => $defaults->sendReminders,
             ],
             'billing' => $address instanceof Address ? ['street' => $address->street, 'city' => $address->city, 'postalCode' => $address->postalCode, 'countryCode' => $address->countryCode] : null,
             'generalEmail' => $general instanceof PartyEmail ? ['id' => $general->id(), 'address' => $general->address()] : null,
@@ -599,6 +600,7 @@ final readonly class PartyImportTarget implements ImportTarget
             DocumentLanguage::tryFrom($text('language')) ?? $standard->language,
             PaymentMethod::tryFrom($text('paymentMethod')) ?? $standard->paymentMethod,
             true === ($fields['reverseCharge'] ?? null),
+            false !== ($fields['sendReminders'] ?? null),
         ));
 
         $billing = $data['billing'] ?? null;

@@ -9,8 +9,10 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Domain;
 
 use App\Invoicing\Domain\DocumentParty;
+use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
@@ -82,6 +84,17 @@ final class InvoiceSendTest extends TestCase
         yield 'a body past its limit' => [['body' => str_repeat('č', InvoiceSend::MAX_BODY + 1)]];
         yield 'a copy without its link' => [['copyTo' => 'me@example.com']];
         yield 'a link without its copy' => [['copyTokenHash' => str_repeat('b', 64)]];
+        yield 'a reminder without its step' => [['purpose' => SendPurpose::Reminder]];
+        yield 'a reminder of step 0' => [['purpose' => SendPurpose::Reminder, 'reminderStep' => 0]];
+        yield 'a reminder past the last step' => [['purpose' => SendPurpose::Reminder, 'reminderStep' => FirmReminders::MAX_STEPS + 1]];
+        yield 'an invoice with a step' => [['reminderStep' => 1]];
+    }
+
+    public function testARemindersStepRunsFromOneToTheLast(): void
+    {
+        self::assertSame(1, $this->queued(['purpose' => SendPurpose::Reminder, 'reminderStep' => 1])->reminderStep());
+        $last = $this->queued(['purpose' => SendPurpose::Reminder, 'reminderStep' => FirmReminders::MAX_STEPS]);
+        self::assertSame([SendPurpose::Reminder, FirmReminders::MAX_STEPS], [$last->purpose(), $last->reminderStep()]);
     }
 
     public function testATryThatFailedKeepsItsCodeAndCutsItsTextsByCharacters(): void

@@ -25,6 +25,8 @@ final class SendRefused extends \RuntimeException
     public const string INSECURE_LINK_BASE = 'insecure_link_base';
     public const string RATE_LIMITED = 'rate_limited';
     public const string UNDRAWABLE = 'undrawable';
+    /** Another send took this reminder step of the invoice first. */
+    public const string REMINDER_TAKEN = 'reminder_taken';
 
     /**
      * @param list<string> $details what the reason is about, such as the address or the unknown tokens

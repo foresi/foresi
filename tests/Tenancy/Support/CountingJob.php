@@ -15,7 +15,8 @@ use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * A daily job that remembers each run: the tenant it ran in, the notes it could
- * see and the last period it was given. It can be told to fail. The record is
+ * see and the last period it was given, and the zone of each period it was asked
+ * for. Its day is the calendar day of the zone. It can be told to fail. The record is
  * static, as the job is a service of the container and the test reads it.
  */
 final class CountingJob implements ScheduledJob
@@ -24,6 +25,9 @@ final class CountingJob implements ScheduledJob
 
     /** @var list<array{tenant: string, lastPeriod: ?string, notes: list<string>}> */
     private static array $runs = [];
+
+    /** @var list<string> */
+    private static array $zones = [];
 
     private static int $failures = 0;
 
@@ -36,9 +40,11 @@ final class CountingJob implements ScheduledJob
         return self::NAME;
     }
 
-    public function period(\DateTimeImmutable $now): string
+    public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
     {
-        return $now->format('Y-m-d');
+        self::$zones[] = $zone->getName();
+
+        return $now->setTimezone($zone)->format('Y-m-d');
     }
 
     public function run(?string $lastPeriod): void
@@ -56,6 +62,7 @@ final class CountingJob implements ScheduledJob
     public static function reset(): void
     {
         self::$runs = [];
+        self::$zones = [];
         self::$failures = 0;
     }
 
@@ -70,5 +77,13 @@ final class CountingJob implements ScheduledJob
     public static function runs(): array
     {
         return self::$runs;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function zones(): array
+    {
+        return self::$zones;
     }
 }

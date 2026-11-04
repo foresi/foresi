@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Identity\Domain\Membership;
+use App\Identity\Domain\Role;
+use App\Identity\Domain\User;
+use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
 use App\Invoicing\Application\InvoicePdf;
@@ -22,6 +26,7 @@ use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Infrastructure\Mail\RateLimitedSends;
 use App\Invoicing\Infrastructure\Mail\RouterDocumentLinks;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
@@ -33,6 +38,8 @@ use Doctrine\DBAL\Connection;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 final class SendInvoiceTest extends SendingTestCase
 {
@@ -215,6 +222,8 @@ final class SendInvoiceTest extends SendingTestCase
     public function testSendsAreLimitedPerUser(): void
     {
         $invoice = $this->issue->issue($this->input());
+        // A person's budget: the system's sends spend only the firm's (RateLimitedSendsTest).
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser('019a0000-0000-7000-8000-00000000002a', 'staff@example.com', 'hash'), 'main', ['ROLE_USER']));
         for ($i = 0; $i < 30; ++$i) {
             $this->sent($invoice);
         }
@@ -437,8 +446,9 @@ final class SendInvoiceTest extends SendingTestCase
     public function testAnInvoiceThatKeepsChangingIsDrawnThreeTimesOnOneLimit(): void
     {
         $invoice = $this->issue->issue($this->input());
-        // One send left for the firm: a round drawn again must not take another.
-        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(499);
+        // One send left for the firm, here a system's send without a user, which stops at its share
+        // of the day: a round drawn again must not take another.
+        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(intdiv(500 * RateLimitedSends::SYSTEM_SHARE, 100) - 1);
         $pdf = new class($this->connection, $invoice->id()) implements InvoicePdf {
             public int $drawn = 0;
 
@@ -494,6 +504,22 @@ final class SendInvoiceTest extends SendingTestCase
         $send = $this->sent($invoice, ['copyToMe' => true]);
 
         self::assertSame('office@example.com', $this->row($send->id())['copy_to']);
+    }
+
+    public function testTheSignedInPersonTakesTheCopyEvenOnBehalfOfSomeoneElse(): void
+    {
+        $sender = new User('staff@example.com', 'hash', 'Example Staff');
+        $owner = new User('owner@example.com', 'hash', 'Example Owner');
+        $this->em->persist($sender);
+        $this->em->persist($owner);
+        $this->em->persist(new Membership($owner, Role::Member));
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input());
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($sender->id(), 'staff@example.com', 'hash'), 'main', ['ROLE_USER']));
+
+        $send = $this->sent($invoice, ['copyToMe' => true, 'onBehalfOf' => $owner->id()]);
+
+        self::assertSame('staff@example.com', $this->row($send->id())['copy_to']);
     }
 
     public function testWithoutAFirmAddressOrAUserThereIsNoCopy(): void

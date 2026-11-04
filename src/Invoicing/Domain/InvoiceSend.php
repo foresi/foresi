@@ -37,6 +37,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_invoice_send_status', columns: ['tenant_id', 'status', 'created_at'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_send_token', columns: ['token_hash'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_send_copy_token', columns: ['copy_token_hash'])]
+#[ORM\UniqueConstraint(name: 'uniq_send_reminder_step', columns: ['tenant_id', 'invoice_id', 'reminder_step'])]
 class InvoiceSend implements TenantOwned, Audited, AuditRooted
 {
     /** To and Cc together, as iDoklad's own limit of other recipients plus the contact's addresses. */
@@ -51,6 +52,13 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
 
     #[ORM\Column(type: 'string', length: 16, enumType: SendStatus::class)]
     private SendStatus $status = SendStatus::Queued;
+
+    #[ORM\Column(type: 'string', length: 16, enumType: SendPurpose::class, options: ['default' => 'invoice'])]
+    private SendPurpose $purpose = SendPurpose::Invoice;
+
+    /** Which reminder of the invoice this is, from 1; null for any other send. Unique per invoice. */
+    #[ORM\Column(name: 'reminder_step', type: 'smallint', nullable: true)]
+    private ?int $reminderStep = null;
 
     #[ORM\Column(name: 'sent_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $sentAt = null;
@@ -191,8 +199,10 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
      * @param string|null  $copyTo          where the firm's own copy goes, with a link of its own
      * @param string|null  $domesticAccount the account as people of the issuer's country write it
      * @param string|null  $paymentCode     the payment QR code of the PDF, as text
+     * @param int|null     $reminderStep    for a reminder, which one of the invoice, from 1
      *
-     * @throws \InvalidArgumentException without a recipient, past the limit, or with a value that could start a header
+     * @throws \InvalidArgumentException without a recipient, past the limit, with a value that could start a header,
+     *                                   or a reminder without its step
      */
     public static function queue(
         string $id,
@@ -210,6 +220,8 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         string $pdfSha256,
         ?string $domesticAccount = null,
         ?string $paymentCode = null,
+        SendPurpose $purpose = SendPurpose::Invoice,
+        ?int $reminderStep = null,
     ): self {
         if ([] === $to) {
             throw new \InvalidArgumentException('A send needs a recipient.');
@@ -228,8 +240,11 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
         if ((null === $copyTokenHash) !== (null === $copyTo)) {
             throw new \InvalidArgumentException('A copy has a link of its own, and only a copy has one.');
         }
+        if (SendPurpose::Reminder === $purpose ? (null === $reminderStep || $reminderStep < 1 || $reminderStep > FirmReminders::MAX_STEPS) : null !== $reminderStep) {
+            throw new \InvalidArgumentException(\sprintf('A reminder has a step from 1 to %d, and only a reminder has one.', FirmReminders::MAX_STEPS));
+        }
 
-        return new self(
+        $send = new self(
             $id,
             $invoice,
             $to,
@@ -257,6 +272,10 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
             $invoice->variableSymbol(),
             $paymentCode,
         );
+        $send->purpose = $purpose;
+        $send->reminderStep = $reminderStep;
+
+        return $send;
     }
 
     /**
@@ -402,6 +421,16 @@ class InvoiceSend implements TenantOwned, Audited, AuditRooted
     public function status(): SendStatus
     {
         return $this->status;
+    }
+
+    public function purpose(): SendPurpose
+    {
+        return $this->purpose;
+    }
+
+    public function reminderStep(): ?int
+    {
+        return $this->reminderStep;
     }
 
     /**

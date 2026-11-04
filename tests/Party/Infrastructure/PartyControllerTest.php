@@ -151,14 +151,16 @@ final class PartyControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/contacts');
         self::assertSelectorCount(25, 'main tbody tr');
-        self::assertSame('Company 01', trim($crawler->filter('main tbody tr')->first()->filter('td')->eq(1)->text()));
+        self::assertSame('Company 01', trim($crawler->filter('main tbody tr')->first()->filter('td [data-row-link]')->text()));
+        // A phone shows the roles under the name, in an element of its own.
+        self::assertStringStartsWith('Customer', trim($crawler->filter('main tbody tr')->first()->filter('td [data-row-secondary]')->text()));
         self::assertSelectorExists('nav[aria-label="Pagination"]');
 
         $crawler = $this->client->request('GET', '/contacts?page=2');
         self::assertSelectorCount(2, 'main tbody tr');
 
         $crawler = $this->client->request('GET', '/contacts?sort=-name');
-        self::assertSame('Company 27', trim($crawler->filter('main tbody tr')->first()->filter('td')->eq(1)->text()));
+        self::assertSame('Company 27', trim($crawler->filter('main tbody tr')->first()->filter('td [data-row-link]')->text()));
         self::assertSelectorExists('th[aria-sort="descending"]');
     }
 

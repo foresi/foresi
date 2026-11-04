@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 
 /**
@@ -17,7 +18,8 @@ use App\Invoicing\Domain\SendStatus;
 final readonly class SendLogRow
 {
     /**
-     * @param list<string> $recipients To, then Cc
+     * @param list<string> $recipients   To, then Cc
+     * @param int|null     $reminderStep for a reminder, which one of the invoice
      */
     public function __construct(
         public string $sendId,
@@ -33,6 +35,8 @@ final readonly class SendLogRow
         public ?string $error,
         public ?string $errorCode = null,
         public ?int $errorSmtp = null,
+        public SendPurpose $purpose = SendPurpose::Invoice,
+        public ?int $reminderStep = null,
     ) {
     }
 }

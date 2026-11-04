@@ -29,7 +29,18 @@ final readonly class StaffCheck
     public function isStaff(): bool
     {
         $userId = $this->actor->userId();
-        if (null === $userId || !$this->context->has()) {
+
+        return null !== $userId && $this->isStaffMember($userId);
+    }
+
+    /**
+     * Whether a given user, signed in or not, still works for the active
+     * organisation as its owner or a member: for work done on their behalf, such
+     * as a copy of a mail a run sends for them.
+     */
+    public function isStaffMember(string $userId): bool
+    {
+        if (!$this->context->has()) {
             return false;
         }
         $tenant = $this->context->current();

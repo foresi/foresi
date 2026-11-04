@@ -324,7 +324,7 @@ final class ImportControllerTest extends WebTestCase
 
         // The summary's archive link lists the record the full replace archived, and nothing else.
         $crawler = $this->client->request('GET', '/contacts?import='.$id.'&outcome=archive');
-        self::assertSame(['Example Old Customer'], $crawler->filter('main tbody tr td:nth-child(2)')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Example Old Customer'], $crawler->filter('main tbody tr td:nth-child(2) [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
     }
 
     public function testRunningTwiceStartsTheImportOnce(): void
@@ -420,7 +420,7 @@ final class ImportControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', $href);
 
-        $names = $crawler->filter('main tbody tr td:nth-child(2)')->each(static fn (Crawler $cell): string => trim($cell->text()));
+        $names = $crawler->filter('main tbody tr td:nth-child(2) [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
         sort($names);
         self::assertSame(['Example Company s.r.o.', 'Example Trade a.s.', 'Jan Example'], $names);
         self::assertStringContainsString('Contacts the import of idoklad-contacts.csv created.', $crawler->filter('[data-imported-by]')->text());

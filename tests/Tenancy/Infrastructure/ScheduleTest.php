@@ -254,6 +254,50 @@ final class ScheduleTest extends KernelTestCase
         self::assertEqualsCanonicalizing([$this->first->toString(), $this->second->toString()], $tenants);
     }
 
+    public function testTheTickPassesEachTenantsZone(): void
+    {
+        $this->zone($this->first, 'Europe/Prague');
+        $this->zone($this->second, 'America/New_York');
+        // 03:00 UTC is 04:00 of 1 November in Prague and 23:00 of 31 October in New York.
+        self::mockTime('2026-11-01 03:00:00');
+
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
+
+        $periods = [];
+        foreach ($this->countingSent() as $envelope) {
+            $message = $envelope->getMessage();
+            self::assertInstanceOf(RunScheduledJob::class, $message);
+            $stamp = $envelope->last(TenantStamp::class);
+            self::assertInstanceOf(TenantStamp::class, $stamp);
+            $periods[$stamp->tenantId] = $message->period;
+        }
+        self::assertCount(2, $periods);
+        self::assertSame('2026-11-01', $periods[$this->first->toString()] ?? null, 'Prague is past midnight.');
+        self::assertSame('2026-10-31', $periods[$this->second->toString()] ?? null, 'New York is not.');
+        self::assertEqualsCanonicalizing(['Europe/Prague', 'America/New_York'], CountingJob::zones());
+
+        $this->worker->run();
+        self::assertSame('2026-11-01', $this->row($this->first)['last_period']);
+        self::assertSame('2026-10-31', $this->row($this->second)['last_period']);
+    }
+
+    public function testLastFinishedReadsTheActiveTenantOnly(): void
+    {
+        $this->context->set($this->first);
+        self::assertNull($this->runs()->lastFinished(CountingJob::NAME), 'No run yet.');
+        $claim = $this->runs()->claim(CountingJob::NAME, '2026-10-31');
+        self::assertInstanceOf(Claim::class, $claim);
+        $this->runs()->finish($claim);
+        $running = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
+        self::assertInstanceOf(Claim::class, $running);
+        self::assertSame('2026-10-31', $this->runs()->lastFinished(CountingJob::NAME), 'A run in progress has not finished.');
+        self::assertNull($this->runs()->lastFinished('another-job'));
+
+        $this->context->switchTo($this->second);
+        self::assertNull($this->runs()->lastFinished(CountingJob::NAME));
+        $this->context->reset();
+    }
+
     public function testTheScheduleTicksEveryFiveMinutesUnderALock(): void
     {
         $schedule = self::getContainer()->get(ForesiSchedule::class)->getSchedule();
@@ -287,6 +331,15 @@ final class ScheduleTest extends KernelTestCase
     private function countingSent(): array
     {
         return array_values(array_filter([...$this->queue->getSent()], static fn (\Symfony\Component\Messenger\Envelope $envelope): bool => !$envelope->getMessage() instanceof RunScheduledJob || CountingJob::NAME === $envelope->getMessage()->job));
+    }
+
+    private function zone(TenantId $id, string $zone): void
+    {
+        $tenant = $this->em->find(Tenant::class, $id);
+        self::assertInstanceOf(Tenant::class, $tenant);
+        $tenant->changeTimezone(new \DateTimeZone($zone));
+        $this->em->flush();
+        $this->em->clear();
     }
 
     private function runs(): ScheduledJobRuns

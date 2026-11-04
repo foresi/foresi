@@ -11,7 +11,8 @@ import { Controller } from '@hotwired/stimulus';
  * next one is an arrow key away. The insert goes through the browser's own
  * editing (insertText), so Ctrl+Z or Cmd+Z in the field undoes it. A chip can
  * also be dragged into the text. The fields stay plain, so the form works
- * without JavaScript.
+ * without JavaScript. A field marked data-mail-chips-default takes a chip
+ * before any field was in focus.
  *
  *     <section data-controller="mail-chips">
  *         <input data-mail-chips-target="field" data-action="focus->mail-chips#remember">
@@ -27,7 +28,8 @@ export default class extends Controller {
     static targets = ['field', 'status', 'chip'];
 
     connect() {
-        this.last = this.fieldTargets.find((field) => field.tagName === 'TEXTAREA') ?? this.fieldTargets[0] ?? null;
+        this.last = this.fieldTargets.find((field) => field.hasAttribute('data-mail-chips-default'))
+            ?? this.fieldTargets.find((field) => field.tagName === 'TEXTAREA') ?? this.fieldTargets[0] ?? null;
     }
 
     remember(event) {

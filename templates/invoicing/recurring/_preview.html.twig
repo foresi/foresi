@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The next issue of the form, in iDoklad's shape: one line under the schedule fields and a link to
+    the dates after it. In the schedule card, and on its own as the answer of the preview, which the
+    form puts in place of this frame. With JavaScript the link opens the dates in a dialog of the card
+    (recurring-schedule#showAll); without it, it is a disclosure that shows them here.
+#}
+<turbo-frame id="recurring-preview" class="grid gap-1" aria-live="polite" data-recurring-schedule-target="frame">
+    {% if preview.problems is not empty %}
+        <div class="text-small text-badge-red-text" data-preview-problem>
+            <p class="m-0 font-medium">{{ 'recurring.preview.unknown'|trans }}</p>
+            <ul class="m-0 mt-0.5 list-disc pl-5">
+                {% for problem in preview.problems %}<li>{{ problem }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% elseif preview.rows is not empty %}
+        {% set review = preview.delivery == 'review' %}
+        <p class="m-0 text-body text-ink" data-preview-next data-preview-when="{{ preview.when }}">
+            {%- if preview.when == 'date' -%}
+                {{ 'recurring.preview.next'|trans({date: preview.rows[0].issue}) }}
+            {%- else -%}
+                {{ ('recurring.preview.next_' ~ preview.when ~ (review ? '_review' : ''))|trans }}
+            {%- endif -%}
+        </p>
+        <details data-preview-all>
+            <summary id="recurring-all-link" class="w-fit cursor-pointer list-none text-small font-medium text-ink underline underline-offset-2 hover:text-green [&::-webkit-details-marker]:hidden {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-action="click->recurring-schedule#showAll">{{ 'recurring.preview.all'|trans }}</summary>
+            <div class="mt-2" data-recurring-schedule-target="list">
+                <ol class="m-0 grid list-none gap-1 p-0">
+                    {% for row in preview.rows %}
+                        <li class="flex min-w-0 items-baseline gap-x-3 text-body">
+                            <span class="num shrink-0 text-ink" data-preview-issue>{{ row.issue }}</span>
+                            {% if row.description %}<span class="min-w-0 truncate text-small text-muted" title="{{ row.description }}" data-preview-description>{{ row.description }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+                {% if preview.end %}<p class="m-0 mt-2 text-small text-muted" data-preview-end>{{ preview.end }}</p>{% endif %}
+            </div>
+        </details>
+    {% endif %}
+</turbo-frame>
