@@ -34,6 +34,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\BankingTestCase;
+use App\Tests\Banking\Support\LoggingBankMovements;
 use App\Tests\Party\Support\FirmAccounts;
 use Psr\Clock\ClockInterface;
 
@@ -95,6 +96,18 @@ final class RecordMovementTest extends BankingTestCase
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::AutoPairingOff], [$stored->state(), $stored->unmatchedReason()]);
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
+    }
+
+    public function testTheAccountIsLockedBeforeTheMovementIsAdded(): void
+    {
+        $movements = new LoggingBankMovements($this->movements);
+        $container = self::getContainer();
+        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class));
+
+        $movement = $record->record($this->incoming('10.00'), self::verified());
+
+        // Movements of one account are recorded one after the other: the second of two equal ones sees the first.
+        self::assertSame(['lockAccount:'.$this->account->id(), 'add:'.$movement->id()], $movements->entries);
     }
 
     public function testAnOwnTransferIsNeverPaired(): void

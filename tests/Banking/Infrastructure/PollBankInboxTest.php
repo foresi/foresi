@@ -95,6 +95,8 @@ final class PollBankInboxTest extends KernelTestCase
         $record = $this->logged[0];
         self::assertIsArray($record);
         self::assertSame('error', $record['level']);
+        self::assertStringContainsString('stays in the inbox for the next poll', $record['message']);
+        self::assertStringContainsString('"uid":"'.$failing.'","count":1,"max":5', $record['context']);
         // Never the address or its token: whoever reads the log could post as the bank.
         self::assertStringNotContainsString($this->kit->token, $record['message'].$record['context']);
 
@@ -149,6 +151,7 @@ final class PollBankInboxTest extends KernelTestCase
         $last = $this->logged[\count($this->logged) - 1];
         self::assertIsArray($last);
         self::assertStringContainsString('moved to Rejected', $last['message']);
+        self::assertStringContainsString('"uid":"'.$failing.'","count":5', $last['context']);
     }
 
     public function testASuccessForgetsTheFailures(): void
@@ -184,6 +187,9 @@ final class PollBankInboxTest extends KernelTestCase
         self::assertSame(1, $this->rowCount());
         self::assertCount(PollBankInbox::BATCH, $this->mailbox->inbox(), 'The unmovable ones stay for the operator.');
         self::assertCount(PollBankInbox::BATCH, $this->failures->atLeast(PollBankInbox::MAX_FAILURES));
+        $unmovable = array_values(array_filter($this->logged->getArrayCopy(), static fn (array $record): bool => str_contains($record['message'], 'cannot be moved')));
+        self::assertCount(PollBankInbox::BATCH, $unmovable);
+        self::assertStringContainsString('"uid":"1","count":5', $unmovable[0]['context']);
     }
 
     public function testAnEmptyHostDisablesPolling(): void
