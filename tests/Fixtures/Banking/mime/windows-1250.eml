@@ -1,0 +1,11 @@
+From: notices@bank.example.com
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <cp1250-1@bank.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=windows-1250
+Content-Transfer-Encoding: quoted-printable
+
+Counter-party: =8Aimon =D8=EDha, =8E=EF=E1r
+Amount: 1=A0234,50 CZK

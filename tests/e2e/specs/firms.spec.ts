@@ -56,7 +56,6 @@ test.describe.serial('an owner manages firms', () => {
     await expect(page.locator('#registrationNumber')).toHaveValue('12345687');
     await expect(page.locator('#vatId')).toHaveValue('CZ12345687');
     await page.locator('#registerEntry').fill('Spisová značka C 1234');
-    await page.locator('#bankAccounts').fill('CZ65 0800 0000 1920 0014 5399');
     await expect(page.locator('[data-action-bar]')).toBeInViewport();
     await page.getByRole('button', { name: 'Uložit' }).click();
 

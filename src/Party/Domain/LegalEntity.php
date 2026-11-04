@@ -19,7 +19,8 @@ use Doctrine\ORM\Mapping as ORM;
  * doing the work and the one that invoices. Among the active firms of a tenant a
  * registration number is unique; an archived firm stays for what it issued and
  * releases its number. Production code goes through the firm screens, which turn
- * a taken number into a form error before the unique index would refuse it.
+ * a taken number into a form error before the unique index would refuse it. Its
+ * bank accounts are records of their own, see FirmBankAccount.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'legal_entity')]
@@ -37,10 +38,6 @@ class LegalEntity implements TenantOwned, Audited
     #[ORM\Column(type: 'string', length: 255)]
     private string $name;
 
-    /** @var list<string> */
-    #[ORM\Column(name: 'bank_accounts', type: 'json')]
-    private array $bankAccounts;
-
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
@@ -57,9 +54,6 @@ class LegalEntity implements TenantOwned, Audited
     #[ORM\Column(type: 'string', length: 72, nullable: true)]
     private ?string $stamp = null;
 
-    /**
-     * @param array<string> $bankAccounts IBANs (keys are discarded); spaces and case are normalised
-     */
     public function __construct(
         string $name,
         #[ORM\Embedded(class: RegistrationNumber::class, columnPrefix: false)]
@@ -72,21 +66,15 @@ class LegalEntity implements TenantOwned, Audited
         private VatStatus $vatStatus,
         #[ORM\Column(name: 'register_entry', type: 'string', length: 255)]
         private string $registerEntry,
-        array $bankAccounts,
     ) {
         $this->id = Id::generate();
         $this->name = $this->cleanName($name);
-        $this->bankAccounts = $this->cleanAccounts($bankAccounts);
         $this->activeRegistrationKey = $registrationNumber->normalised();
     }
 
-    /**
-     * @param array<string> $bankAccounts IBANs (keys are discarded); spaces and case are normalised
-     */
-    public function update(string $name, RegistrationNumber $registrationNumber, ?VatId $vatId, Address $address, VatStatus $vatStatus, string $registerEntry, array $bankAccounts): void
+    public function update(string $name, RegistrationNumber $registrationNumber, ?VatId $vatId, Address $address, VatStatus $vatStatus, string $registerEntry): void
     {
         $this->name = $this->cleanName($name);
-        $this->bankAccounts = $this->cleanAccounts($bankAccounts);
         $this->registrationNumber = $registrationNumber;
         $this->vatId = $vatId;
         $this->address = $address;
@@ -159,14 +147,6 @@ class LegalEntity implements TenantOwned, Audited
         return $this->registerEntry;
     }
 
-    /**
-     * @return list<string>
-     */
-    public function bankAccounts(): array
-    {
-        return $this->bankAccounts;
-    }
-
     public function logo(): ?string
     {
         return $this->logo;
@@ -200,15 +180,5 @@ class LegalEntity implements TenantOwned, Audited
         }
 
         return $name;
-    }
-
-    /**
-     * @param array<string> $bankAccounts
-     *
-     * @return list<string>
-     */
-    private function cleanAccounts(array $bankAccounts): array
-    {
-        return array_values(array_map(static fn (string $iban): string => Iban::fromString($iban)->toString(), $bankAccounts));
     }
 }

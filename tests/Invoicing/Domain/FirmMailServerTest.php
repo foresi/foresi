@@ -170,7 +170,7 @@ final class FirmMailServerTest extends TestCase
 
     private function firm(): LegalEntity
     {
-        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        return new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
 
     public function testOnlyASettingsProblemTakesTheVerificationAway(): void

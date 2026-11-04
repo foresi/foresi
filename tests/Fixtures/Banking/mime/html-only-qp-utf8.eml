@@ -1,0 +1,12 @@
+Return-Path: <notices@bank.example.com>
+From: notices@bank.example.com
+To: bank+token@example.com
+Subject: =?UTF-8?Q?Payment_notice_=E2=80=93_caf=C3=A9?=
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <html-only-1@bank.example.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><p>Amount: 1=C2=A0234,50 CZK</p><p>Note: na=C3=AFve caf=C3=
+=A9 =E2=80=93 d=C3=A9j=C3=A0 vu</p></body></html>

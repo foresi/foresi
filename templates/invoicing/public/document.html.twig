@@ -20,8 +20,15 @@
                 <h1 id="document-title" class="m-0 break-words text-title font-semibold text-ink">{{ title }}</h1>
                 <p class="m-0 mt-1 text-body text-muted">{{ 'invoice.public.for'|trans({customer: document.customerName}, 'messages', locale) }}</p>
             </div>
-            {# The paid status of the document goes here once payments are recorded. #}
-            {% block status %}{% endblock %}
+            {# Paid in full, or more: the customer needs to do nothing. A part payment says nothing here. #}
+            {% block status %}
+                {% if paid %}
+                    <span class="inline-flex h-badge items-center gap-1 whitespace-nowrap rounded-sm bg-badge-green px-2 text-caption font-medium text-badge-green-text" data-paid-status>
+                        {{- ux_icon('lucide:circle-check', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) -}}
+                        <span>{{ 'invoice.public.paid'|trans({}, 'messages', locale) }}</span>
+                    </span>
+                {% endif %}
+            {% endblock %}
         </div>
 
         <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6">
@@ -33,14 +40,25 @@
                 <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
                 <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ dueDate }}</dd>
             </div>
+            {% if remaining %}
+                <div class="min-w-0" data-remaining>
+                    <dt class="text-small text-muted">{{ 'invoice.public.remaining'|trans({}, 'messages', locale) }}</dt>
+                    <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ remaining }}</dd>
+                </div>
+            {% endif %}
         </dl>
 
         <div class="flex flex-col gap-2 border-t border-divider bg-head p-4 sm:flex-row sm:items-center sm:px-6">
             <twig:Ui:Button variant="primary" icon="receipt-text" :href="open" class="w-full sm:w-auto">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
-            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ 'invoice.public.download'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            {# The PDF is the one sent, payment details and all. #}
+            {% if paidOn %}
+                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.paid_note'|trans({date: paidOn}, 'messages', locale) }}</p>
+            {% endif %}
         </div>
     </section>
 
+    {# Paid in full or more: no way to pay twice. #}
     {% if transfer %}
         <section class="rounded-panel border border-container bg-white p-4 shadow-raised sm:p-6" aria-labelledby="payment-title">
             <h2 id="payment-title" class="m-0 text-heading font-semibold text-ink">{{ 'invoice.public.payment.title'|trans({}, 'messages', locale) }}</h2>
@@ -64,7 +82,7 @@
                     {% endif %}
                     <div class="min-w-0">
                         <dt class="text-small text-muted">{{ 'invoice.public.payment.amount'|trans({}, 'messages', locale) }}</dt>
-                        <dd class="num m-0 mt-0.5 text-body font-medium text-ink">{{ amount }}</dd>
+                        <dd class="num m-0 mt-0.5 text-body font-medium text-ink">{{ remaining ?? amount }}</dd>
                     </div>
                 </dl>
                 {% if qr %}

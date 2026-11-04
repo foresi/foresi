@@ -53,10 +53,17 @@
                                 {% endif %}
                                 {% for cell in row.cells %}
                                     <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}">
-                                        {%- if cell.icon -%}
+                                        {%- if cell.links -%}
+                                            <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
+                                                {%- for link in cell.links -%}
+                                                    {%- if not loop.first %}, {% endif -%}
+                                                    <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.text }}</a>
+                                                {%- endfor -%}
+                                            </span>
+                                        {%- elseif cell.icon -%}
                                             <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
                                         {%- elseif cell.tone -%}
-                                            <twig:Ui:Badge :tone="cell.tone">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
+                                            <twig:Ui:Badge :tone="cell.tone" :title="cell.hint ?: false">{{ cell.text }}{% if cell.hint %}<span class="sr-only"> · {{ cell.hint }}</span>{% endif %}</twig:Ui:Badge>
                                         {%- elseif cell.link -%}
                                             <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
                                         {%- elseif cell.numeric -%}

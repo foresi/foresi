@@ -849,7 +849,7 @@ final class ContactSettingsForFirmTest extends WebTestCase
 
     private function firm(string $name, string $number): LegalEntity
     {
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->transaction()->run(fn () => $this->firms()->add($firm));
 
         return $firm;

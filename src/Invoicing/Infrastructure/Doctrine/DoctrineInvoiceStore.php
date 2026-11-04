@@ -10,10 +10,12 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
@@ -26,6 +28,7 @@ use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,6 +41,10 @@ use Psr\Clock\ClockInterface;
  * fails when it starts to write. The write takes the row, or the database, until
  * the transaction ends. A statement of its own, because it names the tenant itself:
  * the tenant filter covers only queries of the ORM.
+ *
+ * What an invoice has been paid is summed in SQL for the tabs and for overdue, one
+ * subquery per use, and read in one more query for the rows of a page. A document
+ * paid in full or more is settled: it is never overdue.
  */
 final readonly class DoctrineInvoiceStore implements InvoiceStore
 {
@@ -57,6 +64,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         private InvoicingCountries $countries,
         private ClockInterface $clock,
         private InvoiceSends $sends,
+        private InvoicePayments $payments,
     ) {
     }
 
@@ -156,13 +164,21 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
 
         $counts = $this->em->createQuery(
             'SELECT SUM(CASE WHEN i.deletedAt IS NULL THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$overdue.' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$this->settled('c1').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$this->unsettled('c2').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unsettled('c3').' THEN 1 ELSE 0 END), '
             .'SUM(CASE WHEN i.deletedAt IS NOT NULL THEN 1 ELSE 0 END) FROM '.Invoice::class.' i WHERE '.$where,
         );
         $this->bind($counts, [...$parameters, ...$overdueParameters]);
         /** @var list<numeric-string|int|null> $values */
         $values = array_values((array) $counts->getSingleResult(Query::HYDRATE_ARRAY));
-        $tabCounts = [InvoiceFilter::ALL => (int) $values[0], InvoiceFilter::OVERDUE => (int) $values[1], InvoiceFilter::TRASH => (int) $values[2]];
+        $tabCounts = [
+            InvoiceFilter::ALL => (int) $values[0],
+            InvoiceFilter::PAID => (int) $values[1],
+            InvoiceFilter::UNPAID => (int) $values[2],
+            InvoiceFilter::OVERDUE => (int) $values[3],
+            InvoiceFilter::TRASH => (int) $values[4],
+        ];
 
         $total = $tabCounts[$filter->tab] ?? $tabCounts[InvoiceFilter::ALL];
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
@@ -170,7 +186,9 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
 
         $condition = $where.match ($filter->tab) {
             InvoiceFilter::TRASH => ' AND i.deletedAt IS NOT NULL',
-            InvoiceFilter::OVERDUE => ' AND i.deletedAt IS NULL AND '.$overdue,
+            InvoiceFilter::PAID => ' AND i.deletedAt IS NULL AND '.$this->settled('l'),
+            InvoiceFilter::UNPAID => ' AND i.deletedAt IS NULL AND '.$this->unsettled('l'),
+            InvoiceFilter::OVERDUE => ' AND i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unsettled('l'),
             default => ' AND i.deletedAt IS NULL',
         };
         $list = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
@@ -179,10 +197,12 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         /** @var list<Invoice> $invoices */
         $invoices = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
 
-        // One query for the marks of the whole page.
-        $marks = $this->sends->marksFor(array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices));
+        // One query for the marks of the whole page, and one for what it has been paid.
+        $ids = array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices);
+        $marks = $this->sends->marksFor($ids);
+        $paid = $this->payments->paidFor($ids);
 
-        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None), $invoices), $total, $tabCounts, $page, $pages, $firms);
+        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
     }
 
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
@@ -268,6 +288,22 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     }
 
     /**
+     * Paid in full or more: Paid and Overpaid. A document with nothing to pay is never settled.
+     */
+    private function settled(string $suffix): string
+    {
+        return '(i.payableMinor > 0 AND i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+    }
+
+    /**
+     * Unpaid and PartlyPaid: what is still to pay, or what has nothing to pay.
+     */
+    private function unsettled(string $suffix): string
+    {
+        return '(i.payableMinor <= 0 OR i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+    }
+
+    /**
      * What firm, text and the to-send filter leave: the tabs count within this.
      *
      * @param array<string, string> $firms
@@ -331,9 +367,11 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     /**
      * @param array<string, \DateTimeImmutable> $todays by country
      */
-    private function row(Invoice $invoice, array $todays, SendMark $mark): InvoiceRow
+    private function row(Invoice $invoice, array $todays, SendMark $mark, int $paidMinor): InvoiceRow
     {
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
+        $paid = Money::ofMinor($paidMinor, $invoice->currency());
+        $payment = PaymentState::of($invoice->payable(), $paid);
 
         return new InvoiceRow(
             $invoice->id(),
@@ -344,8 +382,10 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->dueDate(),
             $invoice->payable(),
             $invoice->isDelivered(),
-            !$invoice->isTrashed() && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
+            !$invoice->isTrashed() && !$payment->isSettled() && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
+            $paid,
+            $payment,
             null === $today ? $invoice->deletedAt() : $invoice->deletedAt()?->setTimezone($today->getTimezone()),
             $invoice->deletedBy(),
             $invoice->deletedReason(),

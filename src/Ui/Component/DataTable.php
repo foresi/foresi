@@ -12,7 +12,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -327,7 +327,13 @@ final class DataTable
         $hint = null;
         $icon = null;
         $iconClass = '';
-        if (is_array($value) && isset($value['icon'])) {
+        $links = [];
+        if (is_array($value) && isset($value['links'])) {
+            // Several links in one cell, such as the invoices a payment paid; plain leaves Turbo.
+            $links = $this->links($value['links']);
+            $plain = true === ($value['plain'] ?? false);
+            $text = implode(', ', array_column($links, 'text'));
+        } elseif (is_array($value) && isset($value['icon'])) {
             // A label with an icon in front and its explanation as a tooltip, such as how an invoice was sent.
             $icon = is_string($value['icon']) ? $value['icon'] : throw new \InvalidArgumentException('A cell icon must be a string.');
             Style::icon($icon);
@@ -364,6 +370,28 @@ final class DataTable
             'plain' => $plain,
             'icon' => $icon,
             'iconClass' => $iconClass,
+            'links' => $links,
         ];
+    }
+
+    /**
+     * @return list<array{text: string, href: string}>
+     */
+    private function links(mixed $links): array
+    {
+        if (!is_array($links) || [] === $links) {
+            throw new \InvalidArgumentException('A links cell needs a list of links.');
+        }
+        $views = [];
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                throw new \InvalidArgumentException('A link of a cell must be an array.');
+            }
+            $href = Style::requireString($link, 'href', 'A link of a cell');
+            Style::href($href);
+            $views[] = ['text' => Style::requireString($link, 'text', 'A link of a cell'), 'href' => $href];
+        }
+
+        return $views;
     }
 }

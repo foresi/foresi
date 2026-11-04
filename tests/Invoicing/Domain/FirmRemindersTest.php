@@ -86,7 +86,7 @@ final class FirmRemindersTest extends TestCase
 
     private function reminders(?Money $minimum): FirmReminders
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '10000', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '10000', 'CZ'), VatStatus::NotRegistered, '');
         $reminders = FirmReminders::standard($firm);
         $reminders->change(true, 7, 7, $minimum, new \DateTimeImmutable('2026-11-02'));
 

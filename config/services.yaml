@@ -24,6 +24,8 @@ parameters:
     app.mail.allow_local_links: false
     # The PDFs exactly as they were sent; never below public/. Back it up with the database.
     app.sent_documents_dir: '%kernel.share_dir%/sent-documents'
+    # Raw bank mail as it arrived; never below public/. Back it up with the database.
+    app.inbound_mail_dir: '%kernel.share_dir%/inbound-mail'
 
 services:
     # default configuration for services in *this* file
@@ -57,6 +59,12 @@ services:
         # Timed work done once per tenant and period; see App\Tenancy\Application\Schedule.
         App\Tenancy\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
+        # Timed work of the installation, with no tenant; see App\Tenancy\Application\Schedule\OperatorTask.
+        App\Tenancy\Application\Schedule\OperatorTask:
+            tags: ['app.operator_task']
+        # A country module plugs into banking with the parsers of its banks' mail.
+        App\Banking\Application\BankMessageParser:
+            tags: ['app.bank_message_parser']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -66,9 +74,67 @@ services:
         arguments:
             $domesticAccounts: !tagged_iterator app.domestic_bank_account
 
+    App\Party\Application\ManageFirmBankAccounts:
+        arguments:
+            $domesticAccounts: !tagged_iterator app.domestic_bank_account
+    # Banking records the movements that fix an account's currency.
+    App\Party\Application\BankAccountUsage:
+        alias: App\Banking\Infrastructure\MovementUsage
+
     App\Invoicing\Application\InvoicingCountries:
         arguments:
             $countries: !tagged_iterator app.invoicing_country
+
+    App\Banking\Application\BankMessageParsers:
+        arguments:
+            $parsers: !tagged_iterator app.bank_message_parser
+
+    App\Banking\Application\MailReader:
+        alias: App\Banking\Infrastructure\Mime\ZbatesonMailReader
+    # Whose authentication results are believed, per channel; empty lists verify no message.
+    # The webhook has its own list and never falls back to the mailbox's.
+    App\Banking\Application\TrustSettings:
+        arguments:
+            $authservIds: '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%'
+            $arcSealers: '%env(csv:BANK_INBOX_TRUSTED_ARC)%'
+            $webhookAuthservIds: '%env(csv:INBOUND_WEBHOOK_TRUSTED_AUTHSERV)%'
+    # A firm's stored switches, or the defaults while it has none.
+    App\Banking\Application\FirmPairingRules:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineFirmPairings
+    # The inbound address of a bank account; empty means bank mail is not set up here.
+    App\Banking\Application\InboundAddresses:
+        arguments:
+            $template: '%env(string:BANK_INBOX_ADDRESS)%'
+    App\Banking\Application\BankMovements:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+    App\Banking\Application\Candidates:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineCandidates
+    # The operator mailbox bank mail is polled from; none when BANK_INBOX_HOST is empty.
+    App\Banking\Application\InboundMailbox:
+        factory: ['App\Banking\Infrastructure\Imap\ImapInboundMailbox', 'fromSettings']
+        arguments:
+            $host: '%env(string:BANK_INBOX_HOST)%'
+            $port: '%env(int:BANK_INBOX_PORT)%'
+            $encryption: '%env(string:BANK_INBOX_ENCRYPTION)%'
+            $user: '%env(string:BANK_INBOX_USER)%'
+            $password: '%env(string:BANK_INBOX_PASSWORD)%'
+            $folder: '%env(string:BANK_INBOX_FOLDER)%'
+    App\Banking\Application\InboundMessages:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrineInboundMessages
+    App\Banking\Application\Ownership:
+        alias: App\Banking\Infrastructure\IdentityOwnership
+    # How often a message of the operator mailbox failed, across polls.
+    App\Banking\Application\PollFailures:
+        alias: App\Banking\Infrastructure\CachePollFailures
+    App\Banking\Application\InboundFiles:
+        alias: App\Banking\Infrastructure\Files\DiskInboundFiles
+    App\Banking\Application\InboundProcessing:
+        alias: App\Banking\Infrastructure\Messenger\MessengerInboundProcessing
+    App\Banking\Application\PendingChanges:
+        alias: App\Banking\Infrastructure\Doctrine\DoctrinePendingChanges
+    App\Banking\Infrastructure\Files\DiskInboundFiles:
+        arguments:
+            $root: '%app.inbound_mail_dir%'
 
     App\Country\CzechRepublic\Invoicing\IsdocWriter:
         arguments:
@@ -102,6 +168,10 @@ services:
         alias: limiter.invoice_send_firm
     test.document_link_limiter:
         alias: limiter.document_link
+    test.inbound_mail_limiter:
+        alias: limiter.inbound_mail
+    test.inbound_mail_relay_limiter:
+        alias: limiter.inbound_mail_relay
     test.invoice_balances:
         alias: App\Invoicing\Application\InvoiceBalances
 
@@ -150,6 +220,11 @@ services:
         alias: App\Invoicing\Infrastructure\Messenger\MessengerRecurringIssueQueue
     App\Invoicing\Application\PublicDocuments:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments
+    App\Invoicing\Application\InvoicePayments:
+        alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+    # A cancelled bank payment returns its movement to the unmatched ones.
+    App\Invoicing\Application\PaymentSourceRelease:
+        alias: App\Banking\Infrastructure\ReleaseMovement
 
     # Links to sent documents are derived from the application secret, never stored.
     App\Invoicing\Application\LinkTokens:
@@ -188,6 +263,8 @@ when@dev:
 when@e2e:
     parameters:
         app.mail.allow_local_links: true
+        # The bank mail of the seed, gone with the e2e cache that serve.sh starts from.
+        app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
 
     services:
         _defaults:
@@ -245,6 +322,21 @@ when@e2e:
         e2e.link_tokens:
             alias: App\Invoicing\Application\LinkTokens
             public: true
+        e2e.record_payment:
+            alias: App\Invoicing\Application\RecordPayment
+            public: true
+        e2e.record_movement:
+            alias: App\Banking\Application\RecordMovement
+            public: true
+        e2e.pair_movement:
+            alias: App\Banking\Application\PairMovement
+            public: true
+        e2e.generate_address:
+            alias: App\Banking\Application\GenerateAddress
+            public: true
+        e2e.receive_inbound_mail:
+            alias: App\Banking\Application\ReceiveInboundMail
+            public: true
         e2e.save_recurring:
             alias: App\Invoicing\Application\SaveRecurringInvoice
             public: true
@@ -263,6 +355,7 @@ when@test:
         # Inside the test cache, so a test never writes to the real share directory.
         app.firm_image_dir: '%kernel.cache_dir%/firm-images'
         app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
+        app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
         app.mail.allow_local_links: true
 
     services:
@@ -295,12 +388,24 @@ when@test:
         test.document_link_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.inbound_mail_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.inbound_mail_relay_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         # Lets a test spend the budget of a firm.
         test.invoice_send_firm_limiter:
             alias: limiter.invoice_send_firm
             public: true
         test.document_link_limiter:
             alias: limiter.document_link
+            public: true
+        test.inbound_mail_limiter:
+            alias: limiter.inbound_mail
+            public: true
+        test.inbound_mail_relay_limiter:
+            alias: limiter.inbound_mail_relay
             public: true
 
         # The generic audit query; the fake import target answers changedSince()
@@ -388,6 +493,20 @@ when@test:
         # A scheduled job that counts its runs, and the run records it is claimed through.
         App\Tests\Tenancy\Support\CountingJob:
             tags: ['app.scheduled_job']
+        App\Tests\Tenancy\Support\CountingOperatorTask:
+            tags: ['app.operator_task']
+
+        # The operator mailbox in memory, and an inbound file store a test can make fail.
+        App\Tests\Support\Mail\FakeInboundMailbox: ~
+        App\Banking\Application\InboundMailbox:
+            alias: App\Tests\Support\Mail\FakeInboundMailbox
+            public: true
+        App\Tests\Banking\Support\FailingInboundFiles:
+            decorates: App\Banking\Application\InboundFiles
+        # The poller's failure counts in memory, so no test leaves them for the next.
+        App\Banking\Infrastructure\CachePollFailures:
+            arguments:
+                $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
@@ -430,6 +549,23 @@ when@test:
             public: true
         App\Invoicing\Application\SentFiles:
             alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+            public: true
+        App\Invoicing\Application\InvoicePayments:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
+            public: true
+        App\Invoicing\Application\RecordPayment: { public: true }
+        App\Invoicing\Application\CancelPayment: { public: true }
+
+        # Public for the banking tests and the worker of the pairing race, which drive them directly.
+        App\Banking\Application\BankMovements:
+            alias: App\Banking\Infrastructure\Doctrine\DoctrineBankMovements
+            public: true
+        App\Banking\Application\RecordMovement: { public: true }
+        App\Banking\Application\PairMovement: { public: true }
+        App\Banking\Application\UnpairMovement: { public: true }
+        App\Banking\Application\Matcher: { public: true }
+        App\Party\Application\BankAccountUsage:
+            alias: App\Banking\Infrastructure\MovementUsage
             public: true
 
         # Stands in for a plugin adding a sidebar item.

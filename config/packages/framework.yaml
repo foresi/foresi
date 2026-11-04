@@ -49,6 +49,18 @@ framework:
             limit: 60
             interval: '1 minute'
 
+        # The inbound mail webhook, per client address: requests whose secret is wrong or missing.
+        inbound_mail:
+            policy: sliding_window
+            limit: 120
+            interval: '1 minute'
+        # The inbound mail webhook, per client address: requests with the right secret, a budget
+        # of their own, so strangers sharing the relay's address cannot lock it out.
+        inbound_mail_relay:
+            policy: sliding_window
+            limit: 600
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -69,6 +81,10 @@ when@test:
                 storage_service: test.invoice_send_firm_storage
             document_link:
                 storage_service: test.document_link_storage
+            inbound_mail:
+                storage_service: test.inbound_mail_storage
+            inbound_mail_relay:
+                storage_service: test.inbound_mail_relay_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

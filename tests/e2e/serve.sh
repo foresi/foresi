@@ -12,6 +12,12 @@ export APP_ENV=e2e
 export APP_DEBUG=1
 # A fixed key for sealing mail server passwords in the browser tests only; never a real one.
 export MAIL_SECRET_KEYS="e2e1:ZTJlLW9ubHktbWFpbC1rZXktbmV2ZXItZm9yLXVzZSE="
+# The inbound address template of bank mail; example.com, so nothing is ever delivered.
+export BANK_INBOX_ADDRESS="bank+{token}@example.com"
+# The receiving server whose Authentication-Results the seeded bank mail carries.
+export BANK_INBOX_TRUSTED_AUTHSERV="mx.example.com"
+# The seed posts its bank mail as a relay would, through the webhook's channel.
+export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
 
 # Fresh state: the login throttle and the registry cache live in the file cache.
 rm -rf var/cache/e2e

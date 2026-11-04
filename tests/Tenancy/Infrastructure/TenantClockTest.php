@@ -236,7 +236,7 @@ final class TenantClockTest extends KernelTestCase
         $this->context->switchTo($tenant);
         // Valid Czech registration numbers in turn, so the firms of a tenant stay unique.
         $numbers = ['12345695', '12345679', '25596641'];
-        $firm = new LegalEntity('Example Firm '.$country, new RegistrationNumber('CZ', $numbers[$this->firms++ % 3]), null, new Address('Example Street 1', 'Example City', '100 00', $country), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm '.$country, new RegistrationNumber('CZ', $numbers[$this->firms++ % 3]), null, new Address('Example Street 1', 'Example City', '100 00', $country), VatStatus::NotRegistered, '');
         $this->em->persist($firm);
         $this->em->flush();
         $this->context->reset();

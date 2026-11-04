@@ -15,12 +15,15 @@ use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoiceHistoryLine;
 use App\Invoicing\Application\InvoicePage;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRefused;
+use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
@@ -35,6 +38,8 @@ use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Invoicing\Infrastructure\Form\SendFailureText;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -79,6 +84,7 @@ final class InvoiceListController extends AbstractController
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
+        private readonly InvoicePayments $payments,
         private readonly RecurringInvoices $recurring,
         private readonly TenantClock $tenantClock,
     ) {
@@ -147,6 +153,10 @@ final class InvoiceListController extends AbstractController
             $problem = $refused->isMissing() ? 'invoice.list.reason_missing' : 'invoice.problem.too_long';
 
             return $this->trashForm($this->invoice($id), $reason, $this->translator->trans($problem), $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (PaymentRefused) {
+            $this->addFlash('error', $this->translator->trans('invoice.payment.refused.has_payments'));
+
+            return $this->toList($return);
         } catch (\DomainException) {
             return $this->refused($this->invoice($id), $return);
         }
@@ -196,12 +206,12 @@ final class InvoiceListController extends AbstractController
         $invoice = $this->invoice($id);
 
         $timezone = $this->timezoneOf($invoice);
-        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone), $this->history->of($invoice));
+        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone, $invoice->currency()), $this->history->of($invoice));
 
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today()))),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice)))),
         ]);
     }
 
@@ -335,9 +345,12 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
-        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed);
+        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
-        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()]];
+        // A part payment says what is left; overdue or not, that is what someone acts on.
+        $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;
+        $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left])];
+        $badge = null === $left ? $badge : $badge.' · '.$left;
         if ($severalFirms) {
             $cells['firm'] = $row->firmName;
         }
@@ -387,7 +400,7 @@ final class InvoiceListController extends AbstractController
      */
     private function badge(Invoice $invoice): array
     {
-        $status = InvoiceStatus::ofInvoice($invoice, $this->today());
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -429,7 +442,12 @@ final class InvoiceListController extends AbstractController
 
         $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         $recurring = ['label' => $this->translator->trans('recurring.form.from_invoice'), 'href' => $this->generateUrl('app_recurring_new', ['from' => $row->id]), 'method' => 'GET', 'plain' => true];
-        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf, $send];
+        $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf];
+        // Offered while something is still to pay, as iDoklad's Pay is.
+        if (!$row->payment->isSettled() && !$row->payable->isZero() && !$row->payable->isNegative()) {
+            $actions[] = ['label' => $this->label('pay'), 'href' => $this->generateUrl('app_invoice_pay', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'icon' => 'banknote', 'dialog' => true];
+        }
+        $actions[] = $send;
         // Reminders of other statuses still take a step, so the dialog may yet refuse the tenth; it says why.
         if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
             $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
@@ -467,10 +485,11 @@ final class InvoiceListController extends AbstractController
     /**
      * @return array{time: string, datetime: string, icon: string, text: string}
      */
-    private function timelineItem(InvoiceHistoryEntry $entry, \DateTimeZone $timezone): array
+    private function timelineItem(InvoiceHistoryEntry $entry, \DateTimeZone $timezone, Currency $currency): array
     {
         $who = $entry->userName ?? $this->translator->trans('invoice.history.system');
-        $text = $this->translator->trans('invoice.history.'.$entry->event, ['who' => $who, 'reason' => $entry->reason ?? '']);
+        $amount = $this->amounts->shown(Money::ofMinor($entry->amountMinor ?? 0, $currency));
+        $text = $this->translator->trans('invoice.history.'.$entry->event, ['who' => $who, 'reason' => $entry->reason ?? '', 'amount' => $amount]);
         $changes = [...array_map($this->fieldLabel(...), $entry->fields), ...array_map($this->lineChange(...), $entry->lines)];
 
         return [
@@ -482,6 +501,8 @@ final class InvoiceListController extends AbstractController
                 InvoiceHistoryEntry::TRASHED => 'trash-2',
                 InvoiceHistoryEntry::RESTORED => 'archive-restore',
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
+                InvoiceHistoryEntry::PAID => 'banknote',
+                InvoiceHistoryEntry::PAYMENT_CANCELLED => 'banknote-x',
                 default => 'pencil',
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),

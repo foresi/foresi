@@ -39,6 +39,7 @@ nav:
     import: Import a export
     sent_mail: Odeslané e-maily
     recurring: Pravidelné faktury
+    bank: Banka
 ui:
   dialog:
     close: Zavřít
@@ -403,6 +404,7 @@ firm:
     details: Údaje
     invoicing: Fakturace
     mail: E-maily
+    bank: Banka
   empty:
     title: Zatím tu nejsou žádné firmy
     text: Vaše vlastní firmy, které vystavují doklady.
@@ -428,8 +430,6 @@ firm:
     vatStatus: Vztah k DPH
     registerEntry: Zápis v rejstříku
     registerEntry_help: Rejstřík a spisová značka, jak je uvádíte na dokladech
-    bankAccounts: Bankovní účty
-    bankAccounts_help: 'IBAN, každý na samostatný řádek'
     logo: Logo
     logo_help: 'PNG nebo JPEG, nejvýš 1 MB'
     logo_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
@@ -455,7 +455,6 @@ firm:
     registration_taken: Toto IČO už má jiná firma.
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
-    iban: 'Zkontrolujte IBAN: {iban}'
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     last_active: Poslední aktivní firmu nelze archivovat. Nejdřív přidejte jinou firmu.
     image_type: Nahrajte obrázek PNG nebo JPEG.
@@ -583,6 +582,352 @@ firm:
       constant_symbol: Zadejte nejvýš 10 číslic.
       email: Zadejte platný e-mail.
       save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+bank:
+  account:
+    firm_form:
+      label: Bankovní účty
+      text: Bankovní účty firmy jsou v jejím nastavení banky.
+      link: Otevřít nastavení banky
+    refused:
+      invalid_iban: Zadejte IBAN nebo tuzemské číslo účtu s kódem banky.
+      duplicate: Firma už tento účet má, možná archivovaný.
+      currency_locked: Účet už má bankovní pohyby, proto jeho měna zůstává.
+      archived_primary: Archivovaný účet nemůže být hlavní. Nejdřív ho obnovte.
+      unknown_currency: Vyberte jednu z nabízených měn.
+    title: Banka
+    sections: Části nastavení banky
+    tab:
+      accounts: Účty
+      pairing: Párování plateb
+    card:
+      accounts: Bankovní účty
+    intro: Účty, na které vám zákazníci platí. Hlavní účet dostanou nové faktury.
+    add: Přidat účet
+    new: Nový bankovní účet
+    edit: Upravit bankovní účet
+    empty:
+      title: Zatím tu nejsou žádné účty
+      text: Přidejte účet, na který vám zákazníci platí. První účet bude hlavní a dostanou ho nové faktury.
+    column:
+      name: Účet
+      iban: IBAN
+      currency: Měna
+      state: Stav
+      address: Adresa pro banku
+    state:
+      primary: Hlavní
+      active: Aktivní
+      archived: Archivovaný
+    action:
+      edit: Upravit
+      primary: Nastavit jako hlavní
+      address: Adresa pro banku
+      archive: Archivovat
+      restore: Obnovit
+    confirm:
+      archive: 'Archivovat účet {name}?'
+      archive_text: Nové faktury ho už nenabídnou. Vystavené faktury zůstanou beze změny a účet půjde obnovit.
+      archive_accept: Archivovat účet
+      archive_cancel: Ponechat účet
+    field:
+      number: Číslo účtu
+      number_help: 'Číslo s kódem banky, třeba 19-2000145399/0800, nebo IBAN'
+      iban_value: 'IBAN {iban}'
+      number_locked_help: Číslo účtu nejde změnit. Jiný účet přidejte jako nový.
+      currency: Měna
+      currency_locked_help: Účet už má bankovní pohyby, proto jeho měna zůstává.
+      label: Název
+      label_help: 'Jen pro vás, třeba Provozní účet'
+      primary: Hlavní účet
+      primary_help: Nové faktury dostanou tento účet.
+      primary_kept_help: Změníte to, když nastavíte jako hlavní jiný účet.
+    submit:
+      create: Přidat účet
+    flash:
+      created: 'Účet {name} je přidaný.'
+      updated: 'Změny účtu {name} jsou uložené.'
+      primary: '{name} je teď hlavní účet.'
+      archived: 'Účet {name} je archivovaný.'
+      restored: 'Účet {name} je obnovený.'
+    error:
+      number_required: Zadejte číslo účtu nebo IBAN.
+      label: Název může mít nejvýš 100 znaků.
+      save_failed: Účet se nepodařilo uložit. Zkuste to znovu.
+    pairing:
+      card: Párování plateb s fakturami
+      auto: Automatické párování plateb
+      auto_help: Ověřená platba uhradí jedinou odpovídající fakturu sama.
+      small: Haléřové vyrovnání
+      small_help: Vyrovná rozdíl do 0,99 Kč na celkovou částku faktury.
+      saved: Nastavení párování je uložené.
+      save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
+    address:
+      card: Adresy pro e-maily z banky
+      intro: Banka posílá oznámení o platbách na adresu účtu. Z nich Foresi pozná, které faktury jsou zaplacené.
+      no_accounts: Firma zatím nemá žádný aktivní účet.
+      no_accounts_link: Přidat účet
+      title: 'Adresa pro banku: {name}'
+      field: Adresa pro e-maily z banky
+      none: Účet zatím nemá adresu.
+      hidden: Adresu teď nejde zobrazit, protože se změnilo nastavení serveru. Vygenerujte novou.
+      first: Vygenerujte adresu a zadejte ji v bance jako příjemce oznámení o platbách.
+      generate: Vygenerovat adresu
+      regenerate: Vygenerovat novou
+      copy: Kopírovat
+      copied: Zkopírováno
+      copy_failed: Adresu se nepodařilo zkopírovat. Je označená, zkopírujte ji ručně.
+      howto: Jak nastavit banku
+      close: Zavřít
+      back: Zpět na nastavení banky
+      check:
+        label: 'Poslední e-mail ({channel}): Authentication-Results nahoře zapsal'
+        channel:
+          imap: přes IMAP
+          webhook: přes webhook
+        trusted: důvěryhodný server
+        untrusted: server, kterému Foresi nevěří
+        no_header: žádný server, hlavička chybí
+        pending: Čeká na zpracování
+      secret: Adresu zadejte jen v bance nebo v pravidle pro přeposílání. Kdo ji zná, může na ni posílat zprávy.
+      date_format: 'j. n. Y H:i'
+      last: 'Poslední zpráva přišla {date}'
+      last_none: Zatím nepřišla žádná zpráva.
+      state:
+        set: Nastavená
+        none: Bez adresy
+      confirm:
+        regenerate: 'Vygenerovat novou adresu pro {name}?'
+        regenerate_text: Stará adresa přestane hned fungovat. Novou zadejte v bance nebo v pravidle pro přeposílání.
+        regenerate_accept: Vygenerovat novou
+        regenerate_cancel: Ponechat adresu
+      flash:
+        generated: 'Adresa pro {name} je připravená. Zadejte ji v bance.'
+      refused:
+        not_configured: E-maily z banky nejsou na tomto serveru nastavené. Správce je zapne proměnnou BANK_INBOX_ADDRESS.
+        no_key: 'Adresu nejde uložit: na serveru chybí klíč MAIL_SECRET_KEYS.'
+        archived: Archivovaný účet adresu nedostane. Nejdřív ho obnovte.
+        conflict: Adresa se mezitím vygenerovala jinde. Zkontrolujte ji a případně vygenerujte novou.
+      steps:
+        business_title: MojeBanka Business
+        business_1: V Adresáři příjemců oznámení přidejte příjemce s adresou výše.
+        business_2: V Oznámení otevřete Oznámení o platbách a vyberte tento účet.
+        business_3: Zvolte příchozí platby a kanál e-mail.
+        business_4: Jako příjemce vyberte adresu výše a nastavení potvrďte.
+        kbplus_title: KB+
+        kbplus_1: KB+ posílá oznámení jen na jednu adresu, proto tam nechte svou vlastní.
+        kbplus_2: V Nastavení, Oznámení zapněte u příchozích plateb volbu E-mailem.
+        kbplus_3: Ve své poštovní schránce nastavte přeposílání těchto e-mailů na adresu výše.
+        guide_text: Další banky a přeposílání popisuje
+        guide: návod k párování plateb
+  movement:
+    title: Banka
+    views: Pohledy na banku
+    cancel: Zrušit
+    tab:
+      incoming: Příchozí
+      outgoing: Odchozí
+      unmatched: Nespárované
+      messages: Zprávy
+    column:
+      date: Datum
+      firm: Firma
+      account: Účet
+      amount: Částka
+      vs: VS
+      partner: Partner
+      message: Zpráva
+      matched: Spárováno
+      received: Přijato
+      from: Odesílatel
+      subject: Předmět
+      status: Stav
+      reason: Proč
+    list:
+      all_firms: Všechny firmy
+      all_accounts: Všechny účty
+      firm: Firma
+      account: Účet
+      search_label: Hledat pohyby
+      search_placeholder: Partner, VS nebo částka
+      paired_with: 'Spárováno s {numbers}'
+      search: Hledat
+      show: Zobrazit
+      summary: '{total, plural, one {# pohyb} few {# pohyby} other {# pohybů}}'
+    empty:
+      no_accounts_title: Zatím tu není žádný bankovní účet
+      no_accounts_text: Přidejte bankovní účet firmy v jejím nastavení banky. Platby z e-mailů banky se pak ukážou tady.
+      no_accounts_link: Otevřít firmy
+      filtered_title: Filtru nic neodpovídá
+      filtered_text: Zkuste jiné hledání, firmu nebo účet.
+      reset: Zrušit filtr
+      incoming_title: Zatím žádné příchozí platby
+      incoming_text: Platby z e-mailů banky se ukážou tady.
+      outgoing_title: Zatím žádné odchozí platby
+      outgoing_text: Platby z účtu se tu ukážou pro přehled.
+      unmatched_title: Všechny příchozí platby jsou spárované
+      unmatched_text: Nic nečeká na spárování.
+      messages_title: Zatím žádné e-maily z banky
+      messages_text: E-maily, které přijdou na adresu účtu pro banku, se ukážou tady.
+    state:
+      recorded: Zaznamenáno
+      unmatched: Nespárováno
+      paired: Spárováno
+      own_transfer: Převod mezi účty
+      possible_duplicate: Možná duplicita
+    reason:
+      no_symbol: Bez variabilního symbolu
+      no_invoice: Žádná faktura s tímto VS
+      ambiguous: Hodí se víc faktur
+      currency_mismatch: Faktura je v jiné měně
+      auto_pairing_off: Párování ručně
+      unverified: Neověřeno, nejdřív zkontrolujte v bance
+      blocked: Zrušené spárování, spárujte ručně
+      rejected: Odmítnuto, nikdy se nespáruje
+      refused: Faktura platbu nepřijala. Spárujte ji ručně.
+      account_currency: Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.
+    action:
+      pair: Spárovat
+      unpair: Zrušit spárování
+      message: Zobrazit e-mail
+    refused:
+      not_incoming: 'Tuto platbu nejde spárovat: odešla z účtu.'
+      already_paired: 'Tuto platbu nejde spárovat: už je spárovaná.'
+      rejected: 'Tuto platbu nejde spárovat: její e-mail neprošel kontrolou.'
+      possible_duplicate: 'Tuto platbu nejde spárovat: přišla už v jiném e-mailu.'
+      own_transfer: 'Tuto platbu nejde spárovat: přišla z jiného účtu firmy.'
+      not_checked_in_bank: Tuto platbu nejde spárovat, dokud nepotvrdíte, že jste ji ověřil(a) v bance.
+      invoice_settled: 'Tuto platbu nejde spárovat: faktura už je uhrazená.'
+      not_paired: Platba není spárovaná, nebo už ne.
+    flash:
+      paired: 'Spárováno s {numbers}.'
+      undo: Vrátit zpět
+      undo_gone: Zpět jde vrátit jen právě provedené spárování. Zrušte ho v jeho řádku.
+      unpaired: '{count, plural, one {Spárování je zrušené. Faktura {numbers} je znovu neuhrazená.} other {Spárování je zrušené. Faktury {numbers} jsou znovu neuhrazené.}}'
+    pair:
+      crumb: Spárovat
+      title: 'Spárovat platbu {amount}'
+      suggested: Navržené faktury
+      none_suggested: Žádná faktura nemá její VS, částku ani zákazníka.
+      others: Další neuhrazené faktury
+      found: Nalezené faktury
+      search_label: Hledat neuhrazené faktury
+      search_placeholder: Číslo, zákazník nebo VS
+      search: Hledat
+      nothing_found: Hledání neodpovídá žádná neuhrazená faktura v této měně.
+      no_others: Jiná neuhrazená faktura v této měně není.
+      due: 'splatnost {date}'
+      remaining: 'zbývá {amount}'
+      amount_label: 'Část pro fakturu {number}'
+      reason:
+        symbol: Stejný variabilní symbol
+        amount: Stejná částka
+        customer: Stejný zákazník
+      settle: Odepsat rozdíl
+      settle_help: 'Do {limit}, aby byla faktura uhrazená přesně.'
+      sum: Rozděleno
+      left: 'Zbývá rozdělit {amount}'
+      over: 'O {amount} víc než platba'
+      submit: Spárovat
+      unverified_title: Platba není ověřená
+      unverified: Tuto platbu Foresi neověřil u banky. Než ji spárujete, zkontrolujte ji ve svém internetovém bankovnictví.
+      checked_in_bank: Platbu jsem ověřil(a) v bance
+      error:
+        none: Zaškrtněte faktury, které platba hradí.
+        checked: Potvrďte, že jste platbu ověřil(a) v bance.
+        amount: Zadejte částku větší než nula.
+        sum: 'Části dávají dohromady {sum}, platba je {amount}.'
+        settle: Rozdíl jde odepsat jen u jedné faktury, do limitu a jen když to firma dovoluje.
+        unknown_invoice: Faktura už není k dispozici. Vyberte jinou.
+    unpair:
+      crumb: Zrušit spárování
+      title: 'Zrušit spárování platby {amount}?'
+      text: '{count, plural, one {Faktura {numbers} bude znovu neuhrazená} other {Faktury {numbers} budou znovu neuhrazené}} a tato platba se už nespáruje automaticky.'
+      keep: Ponechat spárování
+      submit: Zrušit spárování
+  message:
+    list:
+      summary: '{total, plural, one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    status:
+      received: Čeká
+      processing: Zpracovává se
+      processed: Zpracováno
+      ignored: Přeskočeno
+      notbankmail: Není z banky
+      failed: Nezpracováno
+      rejected: Odmítnuto
+      dismissed: Zahozeno
+      stuck: Zaseknuto
+    reason:
+      stuck: Čeká na zpracování déle než hodinu. Zkuste to znovu.
+      not_bank_mail: Není to e-mail z banky, třeba potvrzení přeposílání.
+      ignored: Banka platbu ještě nezaúčtovala.
+      unknown: E-mail se nepodařilo zpracovat.
+      raw_changed: Uložený e-mail se od přijetí změnil.
+      unreadable: Uložený e-mail nejde přečíst.
+      untrusted: Odesílatele se nepodařilo ověřit. Zkontrolujte platbu v bance.
+      account_mismatch: Účet v e-mailu není účet firmy.
+      unknown_layout: Banka změnila podobu e-mailu. Novější verze ho možná přečte.
+      missing_field: V e-mailu chybí údaj, který platba potřebuje.
+      invalid_value: Údaj v e-mailu nejde přečíst.
+      inconsistent: Části e-mailu si odporují, proto se nic nezaznamenalo.
+      ambiguous: E-mailu odpovídá formát víc bank.
+    action:
+      view: Zobrazit
+      retry: Zkusit znovu
+      accept: Přesto zaznamenat
+      dismiss: Zahodit
+    flash:
+      queued: E-mail ještě čeká ve frontě. Chvíli vydržte.
+      processed: E-mail je zpracovaný.
+      retry_failed: E-mail se teď nepodařilo zpracovat. Zkuste to později.
+      still: 'Ani tentokrát to nevyšlo: {reason}'
+      now: 'E-mail je teď: {status}.'
+      accepted: Platba je zaznamenaná nespárovaná. Spárujte ji ručně.
+      dismissed: E-mail je zahozený. Zůstává uložený.
+      dismissed_already: E-mail už je zahozený.
+    refused:
+      account_mismatch: Účet v e-mailu nepatří firmě, proto ho nejde zaznamenat.
+      not_rejected: Přesto zaznamenat jde jen e-mail, jehož odesílatele se nepodařilo ověřit.
+      not_owner: Přesto zaznamenat smí jen vlastník.
+      not_dismissable: Tento e-mail nejde zahodit.
+    trust:
+      verified: Ověřený odesílatel
+      unverified: Neověřený odesílatel
+      failed: Neprošel kontrolou
+    accept:
+      crumb: Přesto zaznamenat
+      title: Přesto platbu zaznamenat?
+      warning_title: E-mail neprošel kontrolou odesílatele a může být podvržený
+      warning: Zaznamenejte ho, jen když jste ve svém internetovém bankovnictví ověřil(a), že platba opravdu přišla.
+      text: Platba se zaznamená nespárovaná a nikdy se nespáruje automaticky. Zapíše se, kdo ji zaznamenal a kdy.
+      submit: Přesto zaznamenat
+    dismiss:
+      crumb: Zahodit
+      title: Zahodit e-mail?
+      text: Přestane upozorňovat a už se nikdy nezpracuje. Zůstane uložený tak, jak přišel.
+      keep: Ponechat
+      submit: Zahodit
+    view:
+      crumb: E-mail
+      title: E-mail z banky
+      subject: Předmět
+      from: Odesílatel
+      received: Přijato
+      account: Účet
+      status: Stav
+      trust: Ověření
+      parser: Přečetl
+      attempts: Pokusy
+      unreadable: Uložený e-mail nejde zobrazit.
+      text: Text e-mailu
+      close: Zavřít
+      back: Zpět na e-maily
+  inbox:
+    notice:
+      failed: '{count, plural, one {E-mail z banky se nepodařilo zpracovat.} few {# e-maily z banky se nepodařilo zpracovat.} other {# e-mailů z banky se nepodařilo zpracovat.}} Zkontrolujte je a zkuste to znovu.'
+      unmatched: '{count, plural, one {Příchozí platba není spárovaná s fakturou.} few {# příchozí platby nejsou spárované s fakturou.} other {# příchozích plateb není spárovaných s fakturou.}}'
+      link: Zobrazit
+
 series:
   title: Číselné řady
   new: Nová číselná řada
@@ -625,8 +970,10 @@ invoice:
     title: 'Faktura {number}'
     from: Od
     for: 'Pro {customer}'
+    paid: Uhrazeno
     amount: K úhradě
     due: Splatnost
+    remaining: Zbývá uhradit
     payment:
       title: Platba převodem
       account: Číslo účtu
@@ -636,6 +983,8 @@ invoice:
       qr: Naskenujte v aplikaci banky (QR Platba)
     open: Otevřít PDF
     download: Stáhnout
+    download_paid: Stáhnout fakturu (uhrazená)
+    paid_note: 'Uhrazeno {date}, není co platit'
     viewer: 'Faktura {number} jako PDF'
     fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
     notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
@@ -849,6 +1198,8 @@ invoice:
     delivered_confirm_accept: Označit jako doručenou
     tab:
       all: Vše
+      paid: Uhrazené
+      unpaid: Neuhrazené
       overdue: Po splatnosti
       trash: Koš
     column:
@@ -866,11 +1217,15 @@ invoice:
     status:
       issued: Vystaveno
       delivered: Doručeno
+      partly_paid: Částečně uhrazeno
       overdue: Po splatnosti
+      paid: Uhrazeno
+      overpaid: Přeplaceno
       trashed: V koši
     action:
       edit: Upravit
       send: Odeslat
+      pay: Uhradit
       pdf: PDF
       copy: Kopírovat
       delivered: Označit jako doručené
@@ -886,6 +1241,10 @@ invoice:
       reset: Zobrazit všechny faktury
       overdue_title: Nic není po splatnosti
       trash_title: Koš je prázdný
+      paid_title: Zatím nic není uhrazeno
+      paid_text: Uhrazené faktury se tu objeví, jakmile zaznamenáte úhradu.
+      unpaid_title: Vše je uhrazeno
+      unpaid_text: Žádná faktura nečeká na peníze.
   trash:
     title: 'Smazat fakturu {number}'
     keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.
@@ -902,6 +1261,8 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    paid: '{who}: úhrada {amount} zaznamenána'
+    payment_cancelled: '{who}: úhrada {amount} odebrána'
     send: '{who}: e-mail na {recipients}'
     send_copy: 'kopie na {address}'
     send_show: Zobrazit e-mail
@@ -1020,7 +1381,7 @@ invoice:
     paymentMethod: Platba
     bankAccount: Bankovní účet
     bankAccount_none: Firma zatím nemá bankovní účet.
-    bankAccount_add: Doplnit v nastavení firmy
+    bankAccount_add: Přidat v nastavení banky
     currency: Měna
   field_label:
     form: Formulář
@@ -1077,6 +1438,69 @@ invoice:
     exempt: Osvobozeno
     not_applicable: Mimo DPH
   payment:
+    refused:
+      has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
+      no_allocation: Úhrada nehradí žádnou fakturu.
+      amount_mismatch: Části úhrady nedávají dohromady její částku.
+      not_positive: Zadejte částku větší než nula.
+      wrong_firm: Faktura patří jiné firmě.
+      currency_mismatch: Úhrada je v jiné měně než faktura.
+      trashed: Faktura je v koši.
+      future_date: Úhrada nemůže mít datum v budoucnosti.
+      settlement_not_allowed: Rozdíl se mezitím změnil, proto se neodepsal. Zkontrolujte částku a zkuste to znovu.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      no_movement: Úhrada potřebuje svůj bankovní pohyb.
+    error:
+      date: Zadejte platné datum.
+      amount: 'Zadejte částku, například 1 210,50.'
+      method: Vyberte způsob úhrady.
+      note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
+      settle_too_large: 'Odepsat lze jen rozdíl do {limit}.'
+      settle_none: Rozdíl v této měně se neodepisuje.
+    title: 'Uhradit fakturu {number}'
+    page_card: Úhrada
+    submit: Zaznamenat úhradu
+    field:
+      receivedOn: Datum úhrady
+      amount: Částka
+      method: Způsob úhrady
+      note: Poznámka
+      settle: Uzavřít fakturu a rozdíl odepsat
+    payable: 'K úhradě {payable}'
+    remaining_of: 'Zbývá {remaining} z {payable}'
+    settled: Faktura je už uhrazená. Další úhrada ji přeplatí.
+    overpay: 'Faktura bude přeplacená o {over}.'
+    settle_difference: 'Odepíše se {difference}, aby byla faktura uhrazená přesně.'
+    trashed: 'Faktura {number} je v koši. Nejdřív ji obnovte.'
+    nothing_due: 'Faktura {number} nemá nic k úhradě.'
+    left: 'zbývá {amount}'
+    panel:
+      title: Úhrady
+      movement: Zobrazit bankovní pohyb
+      pay: Uhradit
+      empty: Zatím žádné úhrady.
+      paid: Uhrazeno
+      remaining: Zbývá uhradit
+      overpaid: Přeplaceno o
+      written_off: 'odepsáno {amount}'
+      bank: Bankovní pohyb
+      remove: Odebrat
+      remove_label: 'Odebrat úhradu {amount} ze dne {date}'
+      remove_confirm: 'Odebrat úhradu {amount}?'
+      remove_text: Faktura bude o tuto částku znovu neuhrazená.
+      remove_text_bank: Faktura bude o tuto částku znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.
+      remove_text_shared: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech a každá bude o svou část znovu neuhrazená.'
+      remove_text_shared_bank: 'Úhrada platí i {count, plural, one {fakturu} other {faktury}} {numbers}. Odebere se ze všech, každá bude o svou část znovu neuhrazená a bankovní pohyb se vrátí mezi nespárované.'
+      remove_accept: Odebrat úhradu
+      keep: Ponechat
+    flash:
+      recorded: 'Úhrada {amount} k faktuře {number} je zaznamenaná.'
+      settled: 'Úhrada {amount} k faktuře {number} je zaznamenaná. Rozdíl {difference} se odepsal.'
+      overpaid: 'Úhrada {amount} je zaznamenaná. Faktura {number} je přeplacená o {over}.'
+      already_recorded: Tato úhrada už je zaznamenaná.
+      removed: 'Úhrada {amount} je odebraná.'
+      removed_shared: 'Úhrada {amount} je odebraná z faktur {numbers}.'
+      already_removed: Tato úhrada už byla odebrána.
     bank_transfer: Převodem
     cash: Hotově
     card: Kartou

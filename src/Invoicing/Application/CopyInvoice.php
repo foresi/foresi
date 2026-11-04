@@ -17,6 +17,7 @@ use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -36,6 +37,7 @@ final readonly class CopyInvoice
         private InvoiceStore $store,
         private NumberCounter $counter,
         private ContactSettingsForFirm $contacts,
+        private FirmBankAccounts $accounts,
     ) {
     }
 
@@ -65,7 +67,7 @@ final readonly class CopyInvoice
             'customerId' => $customer ? $party->id() : null,
             'dueDate' => $this->dueDate($draft, $customer, $party, $firm),
             'paymentMethod' => $source->paymentMethod(),
-            'bankAccount' => \in_array($source->bankAccount(), $firm->bankAccounts(), true) ? $source->bankAccount() : $draft->bankAccount,
+            'bankAccount' => \in_array($source->bankAccount(), $this->accounts->ibansOf($firm), true) ? $source->bankAccount() : $draft->bankAccount,
             'constantSymbol' => $source->constantSymbol(),
             'description' => $source->description(),
             'textBefore' => $source->textBefore(),

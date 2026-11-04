@@ -1,0 +1,22 @@
+From: notices@bank.example.com
+To: bank+token@example.com
+Subject: Payment notice with a PDF
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <attachment-1@bank.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="mixed-boundary"
+
+--mixed-boundary
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Amount: 1 234,50 CZK
+
+--mixed-boundary
+Content-Type: application/pdf; name="Oznameni.pdf"
+Content-Disposition: attachment; filename="Oznameni.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKU1lOVEhFVElDIEFUVEFDSE1FTlQKJSVFT0YK
+
+--mixed-boundary--

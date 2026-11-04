@@ -16,6 +16,7 @@
         "ext-zip": "*",
         "brick/math": "^1.0",
         "brick/money": "^0.15.2",
+        "directorytree/imapengine": "~1.25.7",
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
@@ -46,7 +47,8 @@
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
-        "tecnickcom/tc-lib-pdf": "^8.82.2"
+        "tecnickcom/tc-lib-pdf": "^8.82.2",
+        "zbateson/mail-mime-parser": "^4.0.8"
     },
     "config": {
         "allow-plugins": {

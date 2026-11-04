@@ -44,6 +44,15 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return true;
     }
 
+    /**
+     * Up to 99 haléř in crowns, the coins nobody pays by transfer. Another
+     * currency has no such custom.
+     */
+    public function settlementLimit(Currency $currency): ?int
+    {
+        return Currency::CZK === $currency ? 99 : null;
+    }
+
     public function timezone(): \DateTimeZone
     {
         return new \DateTimeZone('Europe/Prague');

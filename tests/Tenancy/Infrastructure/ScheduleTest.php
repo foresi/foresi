@@ -302,8 +302,8 @@ final class ScheduleTest extends KernelTestCase
     {
         $schedule = self::getContainer()->get(ForesiSchedule::class)->getSchedule();
 
+        // The tick comes first; the operator tasks follow it (see OperatorTaskTest).
         $messages = $schedule->getRecurringMessages();
-        self::assertCount(1, $messages);
         $trigger = $messages[0]->getTrigger();
         self::assertInstanceOf(PeriodicalTrigger::class, $trigger);
         self::assertSame('every 5 minutes', (string) $trigger);

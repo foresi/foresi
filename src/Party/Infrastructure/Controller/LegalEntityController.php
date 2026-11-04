@@ -164,12 +164,12 @@ final class LegalEntityController extends AbstractController
         try {
             if ($firm instanceof LegalEntity) {
                 $this->transaction->run(static function () use ($firm, $input, $logo, $stamp): void {
-                    $firm->update($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry, $input->bankAccounts);
+                    $firm->update($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry);
                     $firm->changeLogo($logo);
                     $firm->changeStamp($stamp);
                 });
             } else {
-                $created = new LegalEntity($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry, $input->bankAccounts);
+                $created = new LegalEntity($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry);
                 $created->changeLogo($logo);
                 $created->changeStamp($stamp);
                 $this->transaction->run(fn () => $this->firms->add($created));
@@ -235,6 +235,8 @@ final class LegalEntityController extends AbstractController
             'countries' => CountryOptions::options($request->getLocale()),
             'action' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_edit', ['id' => $firm->id()]) : $this->generateUrl('app_firm_new'),
             'cancel' => $this->generateUrl('app_firm_index'),
+            // A new firm gets its accounts once it is saved, on its bank tab.
+            'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null,
         ], new Response(status: $status));
     }
 
@@ -267,7 +269,6 @@ final class LegalEntityController extends AbstractController
             'postalCode' => '',
             'countryCode' => 'CZ',
             'registerEntry' => '',
-            'bankAccounts' => '',
             'removeLogo' => '',
             'removeStamp' => '',
         ];
@@ -289,7 +290,6 @@ final class LegalEntityController extends AbstractController
             'postalCode' => $firm->address()->postalCode,
             'countryCode' => $firm->address()->countryCode,
             'registerEntry' => $firm->registerEntry(),
-            'bankAccounts' => implode("\n", $firm->bankAccounts()),
             'removeLogo' => '',
             'removeStamp' => '',
         ];

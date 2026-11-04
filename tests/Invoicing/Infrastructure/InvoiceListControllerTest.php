@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceRow;
@@ -17,6 +18,8 @@ use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\SendRequest;
@@ -25,6 +28,7 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -33,6 +37,7 @@ use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\DocumentLanguage;
@@ -50,6 +55,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -115,7 +121,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['All 2', 'Overdue 1', 'Trash 1'], $this->tabs($crawler));
+        self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 1', 'Trash 1'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('tbody tr'));
 
         $crawler = $this->client->request('GET', '/invoices?tab=overdue');
@@ -131,7 +137,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->issue('2026-11-01', '2026-12-15');
 
-        $crawler = $this->client->request('GET', '/invoices?tab=paid');
+        $crawler = $this->client->request('GET', '/invoices?tab=settled');
 
         self::assertSame(['All 1'], $crawler->filter('nav[aria-label="Invoice lists"] a[aria-current="page"]')->each(static fn (Crawler $tab): string => (string) preg_replace('/(\D)(\d)/', '$1 $2', $tab->text())));
     }
@@ -146,7 +152,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices', ['firm' => $second->id()]);
 
         self::assertSame([$other->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
         self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
         // The tabs and the sort keep the firm.
         self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
@@ -259,7 +265,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices', ['q' => 'findable']);
 
-        self::assertSame(['All 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
     }
 
     public function testTheNewestDayComesFirstAndWithinItTheHighestNumber(): void
@@ -345,6 +351,92 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringContainsString($this->nbsp('1,210.00 Kč'), $row->text());
     }
 
+    public function testEachStateShowsItsBadge(): void
+    {
+        $this->signedIn();
+        $issued = $this->issue('2026-11-01', '2026-12-01');
+        $overdue = $this->issue('2026-11-02', '2026-11-10');
+        $partly = $this->issue('2026-11-03', '2026-12-01');
+        $partlyOverdue = $this->issue('2026-11-04', '2026-11-10');
+        $paid = $this->issue('2026-11-05', '2026-11-10');
+        $overpaid = $this->issue('2026-11-06', '2026-12-01');
+        $this->pay($partly, '210.00');
+        $this->pay($partlyOverdue, '1000.00');
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1300.00');
+
+        $rows = $this->client->request('GET', '/invoices')->filter('tbody tr');
+
+        $badges = [];
+        foreach ($rows as $row) {
+            $row = new Crawler($row, 'http://localhost/');
+            $badges[$row->filter('a[data-row-link]')->text()] = $row->filter('td')->eq(5)->filter('span')->first()->text();
+        }
+        self::assertSame([
+            $overpaid->number() => 'Overpaid',
+            $paid->number() => 'Paid',
+            $partlyOverdue->number() => 'Overdue · 210.00 Kč left to pay',
+            $partly->number() => 'Partly paid · 1,000.00 Kč left to pay',
+            $overdue->number() => 'Overdue',
+            $issued->number() => 'Issued',
+        ], array_map($this->nbspless(...), $badges));
+        $partlyRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $partly->number()));
+        self::assertSame('1,000.00 Kč left to pay', $this->nbspless((string) $partlyRow->filter('td')->eq(5)->filter('span')->first()->attr('title')));
+        self::assertStringContainsString('Partly paid · 1,000.00 Kč left to pay', $this->nbspless($partlyRow->filter('[data-row-secondary]')->text()));
+    }
+
+    public function testThePaidTabListsPaidAndOverpaidOnly(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-01');
+        $partly = $this->issue('2026-11-02', '2026-12-01');
+        $paid = $this->issue('2026-11-03', '2026-11-10');
+        $overpaid = $this->issue('2026-11-04', '2026-12-01');
+        $this->pay($partly, '100.00');
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1210.01');
+
+        $crawler = $this->client->request('GET', '/invoices?tab=paid');
+
+        self::assertSame([$overpaid->number(), $paid->number()], $this->numbers($crawler));
+        self::assertSame(['All 4', 'Paid 2', 'Unpaid 2', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['20260002', '20260001'], $this->numbers($this->client->request('GET', '/invoices?tab=unpaid')));
+    }
+
+    public function testPayIsOfferedUntilTheInvoiceIsPaid(): void
+    {
+        $this->signedIn();
+        $unpaid = $this->issue('2026-11-01', '2026-12-01');
+        $paid = $this->issue('2026-11-02', '2026-12-01');
+        $this->pay($paid, '1210.00');
+
+        $rows = $this->client->request('GET', '/invoices')->filter('tbody tr');
+
+        $unpaidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $unpaid->number()));
+        $pay = $unpaidRow->filter('a[aria-label="Pay"]');
+        self::assertSame('/invoices/'.$unpaid->id().'/pay', $pay->attr('href'));
+        self::assertNotNull($pay->attr('data-dialog'));
+        self::assertSame('dialog', $pay->attr('aria-haspopup'));
+        self::assertCount(1, $unpaidRow->filter('[role="menu"] a[data-phone-only][href="/invoices/'.$unpaid->id().'/pay"]'), 'on a phone it is in the menu');
+        $paidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $paid->number()));
+        self::assertCount(0, $paidRow->filter('a[href$="/pay"]'));
+    }
+
+    public function testThePaidAndUnpaidTabsSayWhyTheyAreEmpty(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+
+        $this->client->request('GET', '/invoices?tab=paid');
+        self::assertSelectorTextContains('main', 'Nothing is paid yet');
+        self::assertSelectorTextContains('main', 'Paid invoices show here once you record a payment.');
+
+        $this->pay($invoice, '1210.00');
+        $this->client->request('GET', '/invoices?tab=unpaid');
+        self::assertSelectorTextContains('main', 'Everything is paid');
+        self::assertSelectorTextNotContains('main', 'No invoices here');
+    }
+
     public function testAnotherTenantSeesNothing(): void
     {
         $this->signedIn();
@@ -354,7 +446,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertSame([$invoice->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
 
         $this->client->request('GET', '/invoices/'.$other->id().'/history');
         self::assertResponseStatusCodeSame(404);
@@ -786,7 +878,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['20260001'], $this->numbers($crawler));
     }
 
-    public function testTwentyFiveRowsLoadInAtMostThreeQueries(): void
+    public function testTwentyFiveRowsLoadInAtMostFiveQueries(): void
     {
         $this->signedIn();
         for ($i = 0; $i < 25; ++$i) {
@@ -799,7 +891,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $used = $this->queryCount() - $before;
 
         self::assertCount(25, $page->rows);
-        self::assertLessThanOrEqual(4, $used, 'Queries used: '.$used);
+        // The firms, the counts, the rows, the send marks and the paid amounts.
+        self::assertLessThanOrEqual(5, $used, 'Queries used: '.$used);
     }
 
     public function testMarksTakeOneQuery(): void
@@ -1056,7 +1149,7 @@ final class InvoiceListControllerTest extends WebTestCase
                 new \DateTimeImmutable($date),
                 new \DateTimeImmutable($due),
                 PaymentMethod::BankTransfer,
-                ($firm ?? $this->firm)->bankAccounts()[0],
+                self::getContainer()->get(FirmBankAccounts::class)->primaryOf($firm ?? $this->firm)?->iban(),
                 $variableSymbol,
                 '',
                 '',
@@ -1068,6 +1161,19 @@ final class InvoiceListControllerTest extends WebTestCase
                 '' === $variableSymbol,
             ));
         });
+    }
+
+    private function pay(Invoice $invoice, string $amount): void
+    {
+        $this->scoped(function () use ($invoice, $amount): void {
+            $money = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $money)]));
+        });
+    }
+
+    private function nbspless(string $text): string
+    {
+        return str_replace("\u{a0}", ' ', $text);
     }
 
     private function trashed(Invoice $invoice, string $reason): void
@@ -1104,8 +1210,9 @@ final class InvoiceListControllerTest extends WebTestCase
     private function secondFirm(): LegalEntity
     {
         return $this->scoped(function (): LegalEntity {
-            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2', ['CZ5508000000001234567899']);
+            $firm = new LegalEntity('Example Second s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Example Street 2', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
             $this->em()->persist($firm);
+            FirmAccounts::add($this->em(), $firm, 'CZ5508000000001234567899');
             $this->em()->flush();
 
             return $firm;
@@ -1117,7 +1224,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
         $this->context->switchTo($tenant);
         try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
             $this->em()->persist($firm);
             $this->em()->flush();
 
@@ -1132,8 +1239,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
         $this->context->switchTo($tenant);
         try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register', [self::IBAN]);
+            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), VatId::fromString('CZ12345679'), new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Register');
             $this->em()->persist($firm);
+            FirmAccounts::add($this->em(), $firm, self::IBAN);
             $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $series->markDefault();
             $this->em()->persist($series);
@@ -1186,8 +1294,9 @@ final class InvoiceListControllerTest extends WebTestCase
     {
         [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
         $this->context->switchTo($this->tenant);
-        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
+        FirmAccounts::add($this->em(), $this->firm, self::IBAN);
         $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->series->markDefault();
         $this->em()->persist($this->series);

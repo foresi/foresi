@@ -46,6 +46,7 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -81,8 +82,9 @@ final class RecurringNoticesTest extends WebTestCase
         [$this->tenant] = $this->browser->seed(['Tenant A'], 'en', Role::Owner);
         $this->scoped(function (): void {
             $em = $this->browser->em();
-            $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+            $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
             $em->persist($this->firm);
+            FirmAccounts::add($em, $this->firm, self::IBAN);
             $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $this->series->markDefault();
             $em->persist($this->series);

@@ -45,6 +45,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -659,7 +660,7 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $this->context->switchTo($tenant);
         $number = 'CZ' === $country ? new RegistrationNumber('CZ', '12345695') : new RegistrationNumber($country, 'HRB 12345');
-        $firm = new LegalEntity('Example Firm s.r.o.', $number, null, new Address('Example Street 1', 'Example City', '10000', $country), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', $number, null, new Address('Example Street 1', 'Example City', '10000', $country), VatStatus::NotRegistered, '');
         $em = $this->browser->em();
         $em->persist($firm);
         $em->flush();
@@ -681,8 +682,9 @@ final class FirmMailControllerTest extends WebTestCase
         try {
             $em = $this->browser->em();
             $iban = 'CZ6508000000192000145399';
-            $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [$iban]);
+            $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
             $em->persist($firm);
+            FirmAccounts::add($em, $firm, $iban);
             $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
             $series->markDefault();
             $em->persist($series);

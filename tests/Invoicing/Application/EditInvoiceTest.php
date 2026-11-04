@@ -35,6 +35,7 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 final class EditInvoiceTest extends InvoiceTestCase
@@ -125,23 +126,25 @@ final class EditInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input());
         self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
         $this->firm->archive(new \DateTimeImmutable('2026-11-02'));
-        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::Registered, '', []);
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::Registered, '');
+        FirmAccounts::archiveAll($this->em, $this->firm);
         $this->em->flush();
 
         $this->edited($invoice, $this->input(overrides: ['description' => 'Still editable']));
 
         self::assertSame('Still editable', $this->reloaded($invoice)->description());
-        self::assertSame(self::IBAN, $this->reloaded($invoice)->bankAccount(), 'an account removed from the firm stays on its old document');
+        self::assertSame(self::IBAN, $this->reloaded($invoice)->bankAccount(), 'an account the firm archived stays on its old document');
     }
 
     public function testEditingAfterTheFirmBecamePayerKeepsTheRegime(): void
     {
-        $firm = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', [self::IBAN]);
+        $firm = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em->persist($firm);
+        FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();
         $invoice = $this->issue->issue($this->input([$this->line('121.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
 
-        $firm->update($firm->name(), $firm->registrationNumber(), \App\Party\Domain\VatId::fromString('CZ27074358'), $firm->address(), VatStatus::Registered, 'Register', [self::IBAN]);
+        $firm->update($firm->name(), $firm->registrationNumber(), \App\Party\Domain\VatId::fromString('CZ27074358'), $firm->address(), VatStatus::Registered, 'Register');
         $this->em->flush();
 
         $this->edited($invoice, $this->input([$this->line('242.00', PriceType::WithVat)], ['firmId' => $firm->id(), 'seriesId' => null]));
@@ -157,7 +160,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testEditingAfterTheFirmStoppedBeingAPayerKeepsTheRates(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::NotRegistered, '', [self::IBAN]);
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), null, $this->firm->address(), VatStatus::NotRegistered, '');
         $this->em->flush();
 
         $this->edited($invoice, $this->input([$this->line('2000.00')]));
@@ -197,8 +200,9 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testTheFirmCannotChange(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $other = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register', [self::IBAN]);
+        $other = new \App\Party\Domain\LegalEntity('Second Firm s.r.o.', new \App\Party\Domain\RegistrationNumber('CZ', '27074358'), null, $this->firm->address(), VatStatus::NotRegistered, 'Register');
         $this->em->persist($other);
+        FirmAccounts::add($this->em, $other, self::IBAN);
         $this->em->flush();
 
         $this->assertRefusedFor('invoice.problem.firm_locked', fn () => $this->edited($invoice, $this->input(overrides: ['firmId' => $other->id()])));
@@ -597,7 +601,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     public function testTheRulesUseTheStoredIssuerCountryAndRegime(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), $this->firm->vatId(), new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'), VatStatus::NotRegistered, 'Register', [self::IBAN]);
+        $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), $this->firm->vatId(), new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'), VatStatus::NotRegistered, 'Register');
         $this->em->flush();
 
         // Still a Czech payer's document, so a Czech customer's reverse charge needs a code and has its rate.

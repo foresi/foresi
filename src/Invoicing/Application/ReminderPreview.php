@@ -30,6 +30,7 @@ final readonly class ReminderPreview
         private ReminderCandidates $candidates,
         private InvoiceStore $store,
         private TenantClock $clock,
+        private InvoicePayments $payments,
     ) {
     }
 
@@ -89,6 +90,8 @@ final readonly class ReminderPreview
     private function row(string $id, \DateTimeImmutable $on): InvoiceRow
     {
         $invoice = $this->store->get($id);
+        $paid = $this->payments->paidOf($invoice);
+        $payment = PaymentState::of($invoice->payable(), $paid);
 
         return new InvoiceRow(
             $invoice->id(),
@@ -99,8 +102,10 @@ final readonly class ReminderPreview
             $invoice->dueDate(),
             $invoice->payable(),
             $invoice->isDelivered(),
-            $invoice->dueDate()->format('Y-m-d') < $on->format('Y-m-d'),
+            !$payment->isSettled() && $invoice->dueDate()->format('Y-m-d') < $on->format('Y-m-d'),
             $invoice->isTrashed(),
+            $paid,
+            $payment,
         );
     }
 }

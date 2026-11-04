@@ -11,6 +11,7 @@ export const INVOICING_OWNER = 'invoicing@example.com';
 export const FIRST_RUN_OWNER = 'first-run@example.com';
 export const SENDING_OWNER = 'sending@example.com';
 export const DIALOGS_OWNER = 'dialogs@example.com';
+export const BANK_OWNER = 'bank@example.com';
 export const RECURRING_OWNER = 'recurring@example.com';
 export const REMINDERS_OWNER = 'reminders@example.com';
 
@@ -23,6 +24,7 @@ export const INVOICING_OWNER_STATE = '.auth/invoicing-owner.json';
 export const FIRST_RUN_OWNER_STATE = '.auth/first-run-owner.json';
 export const SENDING_OWNER_STATE = '.auth/sending-owner.json';
 export const DIALOGS_OWNER_STATE = '.auth/dialogs-owner.json';
+export const BANK_OWNER_STATE = '.auth/bank-owner.json';
 export const RECURRING_OWNER_STATE = '.auth/recurring-owner.json';
 export const REMINDERS_OWNER_STATE = '.auth/reminders-owner.json';
 

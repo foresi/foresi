@@ -9,6 +9,10 @@ declare(strict_types=1);
 namespace App\Tests\Tenancy;
 
 use App\Audit\Domain\AuditEntry;
+use App\Banking\Domain\BankFeed;
+use App\Banking\Domain\BankMovement;
+use App\Banking\Domain\FirmPairing;
+use App\Banking\Domain\InboundMessage;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
@@ -25,11 +29,14 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\MailTemplate;
+use App\Invoicing\Domain\Payment;
+use App\Invoicing\Domain\PaymentAllocation;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesCounter;
 use App\Party\Domain\ContactLink;
+use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
@@ -82,7 +89,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class] as $class) {
             yield $class => [$class];
         }
     }

@@ -52,6 +52,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -242,6 +243,26 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->assertRefusedFor('invoice.problem.bank_account_foreign', fn (): Invoice => $this->issue->issue($this->input(overrides: ['bankAccount' => 'nonsense'])));
     }
 
+    public function testIssueRulesAcceptOnlyTheFirmsActiveIbansOrTheStoredOne(): void
+    {
+        $second = FirmAccounts::add($this->em, $this->firm, 'CZ5508000000001234567899');
+        $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
+        FirmAccounts::add($this->em, $other, 'DE89370400440532013000');
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input(overrides: ['bankAccount' => 'CZ55 0800 0000 0012 3456 7899']));
+
+        $this->assertRefusedFor('invoice.problem.bank_account_foreign', fn (): Invoice => $this->issue->issue($this->input(overrides: ['bankAccount' => 'DE89370400440532013000'])));
+        $second->archive(new \DateTimeImmutable('2026-11-02'));
+        $this->em->flush();
+        $this->assertRefusedFor('invoice.problem.bank_account_foreign', fn (): Invoice => $this->issue->issue($this->input(overrides: ['bankAccount' => 'CZ5508000000001234567899'])));
+        $this->edited($invoice, $this->input(overrides: ['bankAccount' => 'CZ5508000000001234567899', 'description' => 'Kept account']));
+
+        $stored = $this->reloaded($invoice);
+        self::assertSame('Kept account', $stored->description());
+        self::assertSame('CZ5508000000001234567899', $stored->bankAccount(), 'the document keeps the account the firm archived since');
+        self::assertSame(self::IBAN, $this->issue->issue($this->input())->bankAccount());
+    }
+
     public function testCashNeedsNoIban(): void
     {
         $invoice = $this->issue->issue($this->input(overrides: ['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null]));
@@ -329,8 +350,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAFirmOutsideTheFontIsRefused(): void
     {
-        $firm = new LegalEntity('中文 s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 2', [self::IBAN]);
+        $firm = new LegalEntity('中文 s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 2');
         $this->em->persist($firm);
+        FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();
 
         $problems = $this->problemsOf(fn (): Invoice => $this->issue->issue($this->input(overrides: ['firmId' => $firm->id(), 'seriesId' => null])));
@@ -1131,8 +1153,9 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     private function secondFirm(VatStatus $status, ?string $vatId, string $register = 'Example register, entry C 2', ?Address $address = null): LegalEntity
     {
-        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null === $vatId ? null : \App\Party\Domain\VatId::fromString($vatId), $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, $register, [self::IBAN]);
+        $firm = new LegalEntity('Second Firm s.r.o.', new RegistrationNumber('CZ', '27074358'), null === $vatId ? null : \App\Party\Domain\VatId::fromString($vatId), $address ?? new Address('Example Street 1', 'Example City', '100 00', 'CZ'), $status, $register);
         $this->em->persist($firm);
+        FirmAccounts::add($this->em, $firm, self::IBAN);
         $this->em->flush();
 
         return $firm;

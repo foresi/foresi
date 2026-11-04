@@ -111,6 +111,30 @@ deptrac:
       collectors:
         - type: directory
           value: src/Invoicing/Infrastructure/.*
+    # Bank movements, inbound bank mail and pairing. The layers exist before all
+    # their code does: a directory collector matching nothing is no error.
+    - name: BankingDomain
+      collectors:
+        - type: directory
+          value: src/Banking/Domain/.*
+    - name: BankingApplication
+      collectors:
+        - type: directory
+          value: src/Banking/Application/.*
+    - name: BankingInfrastructure
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/Banking/Infrastructure/.*
+          must_not:
+            - type: directory
+              value: src/Banking/Infrastructure/Imap/.*
+    # The IMAP adapter, the only code that may use the IMAP library and what it brings.
+    - name: BankingImap
+      collectors:
+        - type: directory
+          value: src/Banking/Infrastructure/Imap/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -148,6 +172,16 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Com\\Tecnick\\
+    # MIME parsing; only the Banking module's infrastructure may use it.
+    - name: VendorZbateson
+      collectors:
+        - type: classLike
+          value: ^ZBateson\\
+    # IMAP and the Laravel collections and Carbon it is built on; only the IMAP adapter may use them.
+    - name: VendorImapEngine
+      collectors:
+        - type: classLike
+          value: ^(DirectoryTree|Illuminate|Carbon)\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -381,9 +415,64 @@ deptrac:
       - TenantStamp
       # The public link page reads the frozen data of a send across tenants.
       - TenantFilterBypass
+    # Banking builds on Party and Invoicing; they never use Banking, which plugs
+    # into them through the ports they declare.
+    BankingDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+      - InvoicingDomain
+    BankingApplication:
+      - BankingDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - InvoicingDomain
+      - InvoicingApplication
+    BankingInfrastructure:
+      - SharedInfrastructure
+      - BankingDomain
+      - BankingApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - VendorZbateson
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - InvoicingDomain
+      - InvoicingApplication
+      # The secret token of an inbound address names its tenant: looked up across tenants.
+      - TenantFilterBypass
+      # The bank settings of a firm are for its owner.
+      - IdentityApplication
+      # Notices on every page about bank mail that needs someone.
+      - Ui
+    BankingImap:
+      - BankingDomain
+      - BankingApplication
+      - VendorSymfony
+      - VendorImapEngine
+      - SharedDomain
+      - SharedApplication
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
-    # the one place that talks HTTP to public registers.
+    # the one place that talks HTTP to public registers. It plugs its banks' mail
+    # parsers into Banking.
     CountryCzechRepublic:
       - SharedDomain
       - SharedInfrastructure
@@ -391,6 +480,8 @@ deptrac:
       - PartyApplication
       - InvoicingDomain
       - InvoicingApplication
+      - BankingDomain
+      - BankingApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony

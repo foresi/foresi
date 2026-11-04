@@ -35,6 +35,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Invoicing/Domain'
                 prefix: 'App\Invoicing\Domain'
                 alias: Invoicing
+            Banking:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Banking/Domain'
+                prefix: 'App\Banking\Domain'
+                alias: Banking
             Import:
                 type: attribute
                 is_bundle: false

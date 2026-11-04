@@ -1,0 +1,128 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Pairing a movement by hand, as iDoklad's Pair: the movement on top, the invoices it fits first
+    (same variable symbol, same amount, same customer), then the other unpaid invoices of the firm in
+    its currency or what a search finds. Each ticked invoice takes a part, filled in oldest due first;
+    the parts must add up to the movement, which the running sum shows. No confirmation: the flash
+    after it offers Undo. From the list it opens over the page; the same URL is a page of its own.
+    A movement the bank did not vouch for (checkFirst) gets a warning, nothing ticked or filled in,
+    and a required box saying the payment was checked in the bank.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.movement.pair.crumb'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set dialog_fields = true %}
+{% set dialog_description = booked ~ (partner ? ' · ' ~ partner : '') %}
+
+{% block title %}{{ 'bank.movement.pair.title'|trans({amount: amount}) }}{% endblock %}
+
+{% macro invoice(line, unit) %}
+    <li class="grid grid-cols-[auto_minmax(0,1fr)_8.5rem] items-start gap-x-3 gap-y-1 py-2.5 max-sm:grid-cols-[auto_minmax(0,1fr)]" data-pair-invoice="{{ line.id }}" data-pair-sum-target="line" data-remaining="{{ line.remainingMinor }}">
+        <input type="checkbox" name="invoices[]" value="{{ line.id }}" id="pair-invoice-{{ line.id }}"{% if line.checked %} checked{% endif %}
+            class="mt-1 size-4 accent-green {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" data-pair-sum-target="check" data-action="change->pair-sum#ticked">
+        <label for="pair-invoice-{{ line.id }}" class="min-w-0 cursor-pointer">
+            <span class="block truncate font-medium text-ink"><span class="num">{{ line.number }}</span> · {{ line.customer }}</span>
+            <span class="block text-caption text-muted">
+                {%- if line.reason %}<span class="font-medium text-green">{{ line.reason }}</span> · {% endif -%}
+                <span class="whitespace-nowrap">{{ line.due }}</span> · <span class="num whitespace-nowrap">{{ 'bank.movement.pair.remaining'|trans({amount: line.remaining}) }}</span>
+            </span>
+        </label>
+        {# One amount per line: its label names the invoice for a screen reader, the line shows it to the eye. #}
+        <div class="grid gap-1 max-sm:col-start-2">
+            <label for="pair-amount-{{ line.id }}" class="sr-only">{{ line.label }}</label>
+            <input type="text" name="amounts[{{ line.id }}]" id="pair-amount-{{ line.id }}" value="{{ line.value }}" inputmode="decimal" autocomplete="off"
+                {%- if line.error %} aria-invalid="true" aria-describedby="pair-amount-{{ line.id }}-error"{% endif %}
+                class="num h-control w-full rounded-control border bg-white px-2.5 text-right text-ink {{ line.error ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}"
+                data-pair-sum-target="amount" data-controller="number-input" data-number-input-decimals-value="2"
+                data-action="input->number-input#typed blur->number-input#finished input->pair-sum#check keydown.enter->pair-sum#submit">
+            {% if line.error %}<p id="pair-amount-{{ line.id }}-error" role="alert" class="m-0 text-caption font-medium text-badge-red-text">{{ line.error }}</p>{% endif %}
+        </div>
+    </li>
+{% endmacro %}
+
+{% block dialog_body %}
+    <form method="post" id="pair-form" action="{{ path('app_bank_movement_pair', {id: movement.id}) }}" class="grid grid-cols-1 gap-4" novalidate
+        data-controller="pair-sum"
+        data-pair-sum-total-value="{{ amountMinor }}"
+        data-pair-sum-unit-value="{{ unit }}"
+        {%- if limit is not null %} data-pair-sum-limit-value="{{ limit }}"{% endif %}
+        {%- if checkFirst %} data-pair-sum-fill-value="false"{% endif %}>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+        {# The bank did not vouch for this payment: nothing is ticked or filled in, and the person confirms they found it in the bank. #}
+        {% if checkFirst %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'bank.movement.pair.unverified_title'|trans" data-pair-unverified>{{ 'bank.movement.pair.unverified'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        <dl class="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 rounded-panel bg-head px-4 py-3 text-small" data-pair-movement>
+            <dt class="text-muted">{{ 'bank.movement.column.vs'|trans }}</dt><dd class="num m-0 text-ink">{{ movement.variableSymbol ?: '—' }}</dd>
+            {% if movement.message %}<dt class="text-muted">{{ 'bank.movement.column.message'|trans }}</dt><dd class="m-0 text-ink [overflow-wrap:anywhere]">{{ movement.message }}</dd>{% endif %}
+        </dl>
+
+        <section aria-labelledby="pair-suggested-title" class="grid gap-1" data-pair-suggestions>
+            <h3 id="pair-suggested-title" class="m-0 text-small font-semibold text-ink">{{ 'bank.movement.pair.suggested'|trans }}</h3>
+            {% if suggested is empty %}
+                <p class="m-0 text-small text-muted">{{ 'bank.movement.pair.none_suggested'|trans }}</p>
+            {% else %}
+                <ul class="m-0 list-none divide-y divide-divider p-0">
+                    {% for line in suggested %}{{ _self.invoice(line, unit) }}{% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        <section aria-labelledby="pair-others-title" class="grid gap-2" data-pair-others>
+            <h3 id="pair-others-title" class="m-0 text-small font-semibold text-ink">{{ (searched ? 'bank.movement.pair.found' : 'bank.movement.pair.others')|trans }}</h3>
+            <div class="flex items-end gap-2" role="search">
+                <twig:Ui:SearchField name="q" id="pair-q" :value="values.q" :label="'bank.movement.pair.search_label'|trans" :placeholder="'bank.movement.pair.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1" data-action="keydown.enter->pair-sum#search" />
+                <twig:Ui:Button type="submit" name="search" value="1" icon="search" data-pair-sum-target="search" formnovalidate>{{ 'bank.movement.pair.search'|trans }}</twig:Ui:Button>
+            </div>
+            {% if others is empty %}
+                <p class="m-0 text-small text-muted">{{ (searched ? 'bank.movement.pair.nothing_found' : 'bank.movement.pair.no_others')|trans }}</p>
+            {% else %}
+                <ul class="m-0 list-none divide-y divide-divider p-0">
+                    {% for line in others %}{{ _self.invoice(line, unit) }}{% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        {% if limit is not null %}
+            <div class="grid gap-1" data-pair-sum-target="settle" data-settle>
+                <twig:Ui:Checkbox name="settle" id="pair-settle" :label="'bank.movement.pair.settle'|trans" :checked="values.settle" :error="errors.settle|default(null)" />
+                <p class="m-0 pl-6 text-caption text-muted">{{ settleText }}</p>
+            </div>
+        {% endif %}
+
+        {% if checkFirst %}
+            <div data-pair-checked>
+                <twig:Ui:Checkbox name="checked_in_bank" id="pair-checked-in-bank" :label="'bank.movement.pair.checked_in_bank'|trans" :checked="values.checked" :required="true" :error="errors.checked_in_bank|default(null)" />
+            </div>
+        {% endif %}
+
+        <p class="m-0 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-divider pt-3 text-small" data-pair-sum aria-live="polite">
+            <span class="text-muted">{{ 'bank.movement.pair.sum'|trans }} <span class="num font-semibold text-ink" data-pair-sum-target="sum">{{ sum }}</span> / <span class="num">{{ amount }}</span></span>
+            <span class="font-medium text-badge-amber-text" data-pair-sum-target="left" data-left-template="{{ 'bank.movement.pair.left'|trans({amount: '{amount}'}) }}" data-over-template="{{ 'bank.movement.pair.over'|trans({amount: '{amount}'}) }}" hidden></span>
+        </p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'bank.movement.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" id="pair-submit" form="pair-form" variant="primary" icon="link-2" data-pair-sum-target="submit">{{ 'bank.movement.pair.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-2xl grid-cols-1 gap-4">
+        <twig:Ui:Card :title="'bank.movement.pair.title'|trans({amount: amount})" icon="link-2"><p class="m-0 mb-3 text-small text-muted">{{ dialog_description }}</p>{{ body }}</twig:Ui:Card>
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'bank.movement.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" id="pair-submit" form="pair-form" variant="primary" icon="link-2">{{ 'bank.movement.pair.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

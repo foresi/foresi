@@ -14,6 +14,7 @@ use App\Audit\Domain\AuditEntry;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
+use App\Invoicing\Domain\PaymentAllocation;
 
 /**
  * The audit log of an invoice as steps a person recognises. One save writes an entry
@@ -21,8 +22,10 @@ use App\Invoicing\Domain\InvoiceLine;
  * rewrite lines by position, so a line of the log is a position, not a thing that
  * moved: a step says what each position held before and after, from the old values
  * of the log. Removing the first of two lines is the first position taking the text
- * of the second, and the second position going. The text removed stays visible.
- * An invoice issued from a recurring template says so in its first step.
+ * of the second, and the second position going. The text removed stays visible. A
+ * payment shows when its allocation to the invoice comes, and its cancellation when
+ * the allocation goes. An invoice issued from a recurring template says so in its
+ * first step.
  */
 final readonly class InvoiceHistory
 {
@@ -41,7 +44,7 @@ final readonly class InvoiceHistory
     {
         $entries = array_values(array_filter(
             $this->trail->rootHistory(Invoice::class, $invoice->id()),
-            static fn (AuditEntry $entry): bool => \in_array($entry->entityClass(), [Invoice::class, InvoiceLine::class], true),
+            static fn (AuditEntry $entry): bool => \in_array($entry->entityClass(), [Invoice::class, InvoiceLine::class, PaymentAllocation::class], true),
         ));
         $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (AuditEntry $entry): ?string => $entry->userId(), $entries), \is_string(...)))));
 
@@ -86,11 +89,18 @@ final readonly class InvoiceHistory
         $fields = [];
         $reason = null;
         $event = InvoiceHistoryEntry::CHANGED;
+        $amount = null;
         $shown = [];
         foreach ($group as $entry) {
             $changes = $entry->changes();
             if (InvoiceLine::class === $entry->entityClass()) {
                 $shown[] = $this->line($entry, $lines);
+                continue;
+            }
+            if (PaymentAllocation::class === $entry->entityClass()) {
+                $removed = AuditAction::Deleted === $entry->action();
+                $event = $removed ? InvoiceHistoryEntry::PAYMENT_CANCELLED : InvoiceHistoryEntry::PAID;
+                $amount = ($amount ?? 0) + $this->minor($changes, 'amountMinor', $removed) + $this->minor($changes, 'settlementMinor', $removed);
                 continue;
             }
             $event = $this->event($entry) ?? $event;
@@ -108,7 +118,21 @@ final readonly class InvoiceHistory
             $created ? [] : array_values(array_unique($fields)),
             $created ? [] : array_values(array_filter($shown, static fn (InvoiceHistoryLine $line): bool => InvoiceHistoryLine::CHANGED !== $line->change || [] !== $line->fields || null !== $line->previousText)),
             $reason,
+            $amount,
         );
+    }
+
+    /**
+     * A money column of an allocation as the log has it: the new value when it came,
+     * the old one when it went.
+     *
+     * @param array<string, array<mixed>> $changes
+     */
+    private function minor(array $changes, string $field, bool $removed): int
+    {
+        $value = $changes[$field][$removed ? 0 : 1] ?? 0;
+
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private function event(AuditEntry $entry): ?string

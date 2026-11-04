@@ -1,0 +1,75 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The inbound address of one bank account with the steps that point the bank's payment
+    notifications at it: a dialog over the bank tab, and a page of its own. Without an address yet it
+    offers to generate one; a new address in place of an old one is asked for on the tab, with a
+    confirmation, since the old one stops at once.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: account.name}] %}
+{% set dialog_size = 'md' %}
+{% set dialog_fields = false %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set link_class = 'font-semibold text-current underline underline-offset-2 ' ~ focus %}
+
+{% block title %}{{ 'bank.account.address.title'|trans({name: account.name}) }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-4">
+        {% if account.address %}
+            <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'bank.account.address.copied'|trans }}" data-copy-failed-value="{{ 'bank.account.address.copy_failed'|trans }}">
+                <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="address" :label="'bank.account.address.field'|trans" :value="account.address" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+                <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'bank.account.address.copy'|trans }}</span></twig:Ui:Button>
+                <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+            </div>
+            <p class="m-0 text-caption text-muted">{{ 'bank.account.address.secret'|trans }}</p>
+        {% elseif account.hasFeed %}
+            <twig:Ui:Alert tone="warning">{{ 'bank.account.address.hidden'|trans }}</twig:Ui:Alert>
+        {% elseif unavailable %}
+            <twig:Ui:Alert tone="warning">{{ unavailable }}</twig:Ui:Alert>
+        {% else %}
+            <p class="m-0 text-text">{{ 'bank.account.address.first'|trans }}</p>
+        {% endif %}
+
+        <section class="grid gap-1.5" aria-labelledby="steps-business">
+            <h3 id="steps-business" class="m-0 text-small font-semibold text-ink">{{ 'bank.account.address.steps.business_title'|trans }}</h3>
+            <ol class="m-0 grid list-decimal gap-1 pl-5 text-small text-text">
+                {% for step in 1..4 %}<li>{{ ('bank.account.address.steps.business_' ~ step)|trans }}</li>{% endfor %}
+            </ol>
+        </section>
+        <section class="grid gap-1.5" aria-labelledby="steps-kbplus">
+            <h3 id="steps-kbplus" class="m-0 text-small font-semibold text-ink">{{ 'bank.account.address.steps.kbplus_title'|trans }}</h3>
+            <ol class="m-0 grid list-decimal gap-1 pl-5 text-small text-text">
+                {% for step in 1..3 %}<li>{{ ('bank.account.address.steps.kbplus_' ~ step)|trans }}</li>{% endfor %}
+            </ol>
+        </section>
+        <p class="m-0 text-small text-muted">{{ 'bank.account.address.steps.guide_text'|trans }} <a href="{{ guide }}" target="_blank" rel="noopener" class="{{ link_class }}">{{ 'bank.account.address.steps.guide'|trans }}</a></p>
+    </div>
+    {% if not account.hasFeed and unavailable is null %}
+        <form method="post" id="bank-address-form" action="{{ account.url }}" hidden>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) }}">
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" :variant="account.hasFeed or unavailable ? 'primary' : 'secondary'">{{ 'bank.account.address.close'|trans }}</twig:Ui:Button>
+    {% if not account.hasFeed and unavailable is null %}
+        <twig:Ui:Button type="submit" form="bank-address-form" variant="primary" icon="key-round">{{ 'bank.account.address.generate'|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'bank'} only %}</div>
+    <twig:Ui:Card :title="'bank.account.address.title'|trans({name: account.name})" icon="inbox" class="max-w-2xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'bank.account.address.back'|trans }}</twig:Ui:Button>
+            {% if not account.hasFeed and unavailable is null %}
+                <twig:Ui:Button type="submit" form="bank-address-form" variant="primary" icon="key-round">{{ 'bank.account.address.generate'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

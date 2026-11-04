@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Application\CopyInvoice;
@@ -116,6 +117,7 @@ final class RecurringFormController extends AbstractController
         private readonly TenantClock $clock,
         private readonly UserRepository $users,
         private readonly TranslatorInterface $translator,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -459,8 +461,10 @@ final class RecurringFormController extends AbstractController
             $errorFields[$error['id']] = $error['message'];
         }
         $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
+        // Accounts are kept on the firm's bank tab, which only an owner may open.
+        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
         $bankAccounts = $this->options->bankAccounts($firm, $template?->bankAccount());
-        $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl);
+        $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl, $bankUrl);
         $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'], $error['key'])], $errors);
         $previewRequest = new Request(request: $values);
         $previewRequest->request->set('firmId', $firm->id());
@@ -478,6 +482,7 @@ final class RecurringFormController extends AbstractController
             'errors' => $links,
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
+            'bankUrl' => $bankUrl,
             'moreOpen' => $this->moreOpen($values, $firm, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,

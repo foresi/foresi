@@ -188,6 +188,41 @@ final class DataTableTest extends KernelTestCase
         self::assertStringNotContainsString('max-xl:hidden', $this->render());
     }
 
+    public function testALinksCellLinksEachOfItsValues(): void
+    {
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'paid', 'label' => 'Paid with']];
+        $rows = [['id' => 'a1', 'cells' => ['name' => 'Payment', 'paid' => ['links' => [['text' => '20260001', 'href' => '/invoices/1/edit'], ['text' => '20260002', 'href' => '/invoices/2/edit']], 'plain' => true]]]];
+
+        $html = $this->render(['columns' => $columns, 'rows' => $rows]);
+
+        self::assertMatchesRegularExpression('~<a href="/invoices/1/edit" data-turbo="false"[^>]*>20260001</a>, <a href="/invoices/2/edit" data-turbo="false"[^>]*>20260002</a>~', $html);
+        self::assertStringNotContainsString('data-row-link', $html, 'The links are the cell, not a link of the row.');
+    }
+
+    public function testALinksCellStaysInTurboUnlessItIsPlain(): void
+    {
+        $rows = [['id' => 'a1', 'cells' => ['paid' => ['links' => [['text' => '20260001', 'href' => '/invoices/1/edit']]]]]];
+
+        $html = $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid with']], 'rows' => $rows]);
+
+        self::assertStringContainsString('href="/invoices/1/edit"', $html);
+        self::assertStringNotContainsString('data-turbo="false"', $html);
+    }
+
+    public function testALinksCellNeedsAtLeastOneLink(): void
+    {
+        $this->expectExceptionMessageIsOrContains('A links cell needs a list of links.');
+
+        $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid']], 'rows' => [['cells' => ['paid' => ['links' => []]]]]]);
+    }
+
+    public function testALinkOfACellNeedsASafeHref(): void
+    {
+        $this->expectExceptionMessageIsOrContains('Unsupported URL in href.');
+
+        $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid']], 'rows' => [['cells' => ['paid' => ['links' => [['text' => 'x', 'href' => 'javascript:alert(1)']]]]]]]);
+    }
+
     public function testARowActionGoesByGetOrPost(): void
     {
         $this->expectExceptionMessageIsOrContains('A row action goes by GET or POST.');

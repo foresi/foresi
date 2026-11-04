@@ -13,6 +13,10 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
             security: false
+        # The inbound mail webhook checks its own bearer secret: no user and no session.
+        inbound_mail:
+            pattern: ^/inbound/mail$
+            stateless: true
         main:
             lazy: true
             provider: app_user_provider
@@ -45,6 +49,8 @@ security:
         - { path: ^/_catalogue$, roles: PUBLIC_ACCESS }
         # Links to sent documents, opened by customers from their mail.
         - { path: ^/d/, roles: PUBLIC_ACCESS }
+        # Raw bank mail from a relay, which proves itself with the webhook secret.
+        - { path: ^/inbound/mail$, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

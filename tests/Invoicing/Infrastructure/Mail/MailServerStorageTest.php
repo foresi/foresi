@@ -95,7 +95,7 @@ final class MailServerStorageTest extends KernelTestCase
 
     private function newFirm(string $registrationNumber): LegalEntity
     {
-        $firm = new LegalEntity('Example Firm '.$registrationNumber, new RegistrationNumber('CZ', $registrationNumber), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm '.$registrationNumber, new RegistrationNumber('CZ', $registrationNumber), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($firm);
 
         return $firm;

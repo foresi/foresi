@@ -44,6 +44,7 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
+use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -101,9 +102,9 @@ abstract class InvoiceTestCase extends KernelTestCase
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             $status,
             $register,
-            [self::IBAN],
         );
         $this->em->persist($firm);
+        FirmAccounts::add($this->em, $firm, self::IBAN);
 
         return $firm;
     }

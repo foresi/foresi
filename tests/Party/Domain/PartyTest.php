@@ -72,7 +72,6 @@ final class PartyTest extends TestCase
             $this->address(),
             VatStatus::NotRegistered,
             'Register entry 1',
-            ['de89 3704 0044 0532 0130 00'],
         );
 
         self::assertSame('Example Company', $entity->name());
@@ -80,7 +79,6 @@ final class PartyTest extends TestCase
         self::assertNull($entity->vatId());
         self::assertSame(VatStatus::NotRegistered, $entity->vatStatus());
         self::assertSame('Register entry 1', $entity->registerEntry());
-        self::assertSame(['DE89370400440532013000'], $entity->bankAccounts());
         self::assertSame('Example City', $entity->address()->city);
     }
 
@@ -95,22 +93,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\LogicException::class);
 
-        new LegalEntity('Example Company', new RegistrationNumber('DE', '1'), null, $this->address(), VatStatus::Registered, '', [])->tenantId();
-    }
-
-    public function testBankAccountsAreStoredAsAList(): void
-    {
-        $entity = new LegalEntity(
-            'Example Company',
-            new RegistrationNumber('DE', 'HRB 1'),
-            null,
-            $this->address(),
-            VatStatus::NotRegistered,
-            '',
-            [3 => 'DE89370400440532013000', 7 => 'GB82WEST12345698765432'],
-        );
-
-        self::assertSame([0, 1], array_keys($entity->bankAccounts()));
+        new LegalEntity('Example Company', new RegistrationNumber('DE', '1'), null, $this->address(), VatStatus::Registered, '')->tenantId();
     }
 
     #[DataProvider('invalidRegistrationNumbers')]
@@ -138,7 +121,7 @@ final class PartyTest extends TestCase
     {
         $this->expectException(\DomainException::class);
 
-        new LegalEntity(' ', new RegistrationNumber('DE', '1'), null, $this->address(), VatStatus::Registered, '', []);
+        new LegalEntity(' ', new RegistrationNumber('DE', '1'), null, $this->address(), VatStatus::Registered, '');
     }
 
     public function testIbanIsNormalised(): void

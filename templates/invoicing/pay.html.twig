@@ -1,0 +1,75 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The pay dialog, small, with iDoklad's fields: date, amount, method and note. What is still to pay
+    is filled in, and the dialog says it above the fields. More than that warns as it is typed and
+    still records. From the list and the invoice it opens over the page; the same URL is a page of
+    its own without JavaScript.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = true %}
+
+{% block title %}{{ 'invoice.payment.title'|trans({number: invoice.number}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="pay-form" action="{{ path('app_invoice_pay', {id: invoice.id}) }}" class="grid grid-cols-1 gap-4" novalidate
+        data-controller="payment-amount"
+        data-payment-amount-remaining-value="{{ remainingMinor }}"
+        data-payment-amount-unit-value="{{ unit }}"
+        {%- if limit is not null %} data-payment-amount-limit-value="{{ limit }}"{% endif %}>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
+        <input type="hidden" name="_submission" value="{{ token }}">
+        <input type="hidden" name="return" value="{{ return }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        <p class="m-0 text-text" data-pay-summary>
+            <span class="block min-w-0 truncate">{{ invoice.customer.name }}</span>
+            <span class="num text-muted">{{ partly ? 'invoice.payment.remaining_of'|trans({remaining: remaining, payable: payable}) : 'invoice.payment.payable'|trans({payable: payable}) }}</span>
+        </p>
+        {% if settled %}
+            <twig:Ui:Alert tone="info" icon="circle-check" data-settled>{{ 'invoice.payment.settled'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <twig:Ui:TextInput name="receivedOn" id="pay-receivedOn" type="date" :label="'invoice.payment.field.receivedOn'|trans" :value="values.receivedOn" :error="errors.receivedOn|default(null)" :required="true" :max="today" />
+            <twig:Ui:TextInput name="amount" id="pay-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-payment-amount-target="amount" data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished input->payment-amount#check" />
+        </div>
+        {# Read out once the typing stops, not on every key. #}
+        <p class="m-0 flex items-start gap-1.5 text-small font-medium text-badge-amber-text" data-payment-amount-target="warning" data-overpay-warning data-template="{{ 'invoice.payment.overpay'|trans({over: '{over}'}) }}" aria-live="polite" hidden>
+            {{- ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) -}}
+            <span data-payment-amount-target="warningText"></span>
+        </p>
+        {# Only where the issuer's country writes off coins: closing the difference the amount leaves, never typing one. #}
+        {% if limit is not null %}
+            <div class="grid gap-1" data-settle data-payment-amount-target="settle" data-template="{{ 'invoice.payment.settle_difference'|trans({difference: '{difference}'}) }}"{% if not settle.shown %} hidden{% endif %}>
+                <twig:Ui:Checkbox name="settle" id="pay-settle" :label="'invoice.payment.field.settle'|trans" :checked="values.settle" :error="errors.settle|default(null)" data-payment-amount-target="settleBox" data-action="change->payment-amount#check" />
+                <p class="m-0 pl-6 text-caption text-muted" data-payment-amount-target="settleText">{{ settle.difference ? 'invoice.payment.settle_difference'|trans({difference: settle.difference}) : '' }}</p>
+            </div>
+        {% endif %}
+        <twig:Ui:Select name="method" id="pay-method" :label="'invoice.payment.field.method'|trans" :options="methods" :value="values.method" :error="errors.method|default(null)" />
+        <twig:Ui:Textarea name="note" id="pay-note" :label="'invoice.payment.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" :maxlength="maxNote" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+    {# The amount has the focus and Enter in any field records the payment; a refusal puts the focus on the field to fix. #}
+    <twig:Ui:Button type="submit" id="pay-submit" form="pay-form" variant="primary" icon="banknote">{{ 'invoice.payment.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-xl grid-cols-1 gap-4">
+        <twig:Ui:Card :title="'invoice.payment.page_card'|trans" icon="banknote">{{ body }}</twig:Ui:Card>
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" id="pay-submit" form="pay-form" variant="primary" icon="banknote">{{ 'invoice.payment.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

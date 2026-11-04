@@ -16,7 +16,8 @@
         "configDir": "."
     },
     "timeout": 1800,
-    // Not the shared system temp directory: two runs at once (two checkouts) would overwrite each other's coverage files.
+    // Not the shared system temp directory: two runs at once (two checkouts) would overwrite each other's coverage
+    // files.
     "tmpDir": "var/infection",
     "logs": {
         "text": "var/infection/infection.log"
@@ -41,7 +42,10 @@
             "App\\Invoicing\\Application\\RecurringPreview::next",
             "App\\Invoicing\\Application\\RecurringAlerts::message",
             "App\\Invoicing\\Application\\MailVariables::valuesForReminder",
-            "App\\Tenancy\\Application\\Schedule\\DailyPeriod::of"
+            "App\\Tenancy\\Application\\Schedule\\DailyPeriod::of",
+            // bindec() of five bits is an int, and the logged money columns are ints.
+            "App\\Banking\\Application\\InboundToken::generate::32",
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::135"
         ]},
         // Equivalent mutants: the whole match of a percentage reads as a number up to its dot, which is the same
         // integer part. Of recurring dates: RecurringSchedule::estimate() only has to stay at or before the first
@@ -58,7 +62,14 @@
             "App\\Invoicing\\Domain\\RecurringInvoice::__construct::196",
             "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
             "App\\Invoicing\\Application\\RecurringPreview::next::38",
-            "App\\Invoicing\\Application\\RecurringRules::schedule::177"
+            "App\\Invoicing\\Application\\RecurringRules::schedule::177",
+            // Equivalent mutants: &#127; decodes back to DEL; the amount groups are never empty, and "150." reads as
+            // 150; a depth of -1 is not above zero as 0 is not; the log always has both money columns of an allocation.
+            "App\\Banking\\Application\\NotificationLines::textOf::58",
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::372",
+            "App\\Banking\\Application\\AuthenticationResultsParser::segments::85",
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::133",
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::135"
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [
@@ -68,7 +79,16 @@
             "App\\Invoicing\\Domain\\RecurringSchedule::estimate::121",
             "App\\Invoicing\\Domain\\RecurringSchedule::estimate::123",
             "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
-            "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212"
+            "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
+            // The same; no code point lies above U+10FFFF; a backslash before the last character keeps the same
+            // characters; a template holds exactly one placeholder, so a limit of 3 gives the same two parts.
+            "App\\Banking\\Application\\NotificationLines::textOf::58",
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::372",
+            "App\\Banking\\Application\\AuthenticationResultsParser::segments::101",
+            "App\\Banking\\Application\\InboundAddresses::masked::63",
+            "App\\Banking\\Application\\InboundAddresses::tokenIn::94",
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::133",
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::135"
         ]},
         "LessThanOrEqualTo": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::114"]},
         "Plus": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::118"]},
@@ -80,22 +100,57 @@
             "App\\Invoicing\\Domain\\RecurringInvoice::resume::312",
             "App\\Invoicing\\Application\\RecurringPreview::next",
             "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate::155",
-            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate::161"
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate::161",
+            // Equivalent mutant: the decision was just made unmatched, so the loop ends on its condition anyway.
+            "App\\Banking\\Application\\PairMovement::autoUnderLocks::153",
+            // Equivalent mutant: the amount left never drops below zero and every open invoice has something to pay,
+            // so once nothing is left every later part is zero and skipped as well.
+            "App\\Banking\\Application\\PairingChoices::prefill::115"
         ]},
-        // Equivalent mutant: when the template's run throws, nothing was refused yet, and alerting nothing does nothing.
-        "UnwrapFinally": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runOne"]},
-        // Unreachable: IssueRules refuses a firm of an unsupported country (firm_country_unsupported) before any lookup throws.
-        "CatchBlockRemoval": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate"]},
+        // Equivalent mutant: when the template's run throws, nothing was refused yet, and alerting nothing does
+        // nothing.
+        "UnwrapFinally": {"ignore": [
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runOne",
+            // Equivalent mutant: loadHTML() does not throw for the non-empty string it gets.
+            "App\\Banking\\Application\\NotificationLines::textOf"
+        ]},
+        // Unreachable: IssueRules refuses a firm of an unsupported country (firm_country_unsupported) before any lookup
+        // throws.
+        "CatchBlockRemoval": {"ignore": [
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate",
+            // Equivalent mutant: an unknown message counts no failed attempt either way (the update finds no row) and
+            // is rethrown.
+            "App\\Banking\\Application\\ProcessMessage::run"
+        ]},
         // Equivalent mutant: a spent firm is checked with isset(), which false passes as true does.
-        "TrueValue": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate"]},
+        "TrueValue": {"ignore": [
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate",
+            // Equivalent mutant: only the number of contested signers is read, never the values.
+            "App\\Banking\\Application\\MailAuthentication::contestedSigners::113"
+        ]},
         // Equivalent mutant: the alert texts read only the customer and the code of each failure.
         "UnwrapArrayMap": {"ignore": ["App\\Invoicing\\Application\\RecurringAlerts::message"]},
         // Equivalent mutants: a seat that is not an array has no city, so it ends as no seat either way; without a
         // token the loop adds nothing and the rest of the text is all of it.
-        "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat", "App\\Invoicing\\Domain\\PeriodText::resolve"]},
+        "ReturnRemoval": {"ignore": [
+            "App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat", "App\\Invoicing\\Domain\\PeriodText::resolve",
+            // Equivalent mutants: with nothing chosen the loop adds nothing, and a single chosen invoice gets the whole
+            // (positive) amount; archiving an archived account keeps its first date, and making the primary account or
+            // a restored one primary again when the firm has a primary changes nothing.
+            "App\\Banking\\Application\\PairingChoices::prefill::104",
+            "App\\Banking\\Application\\PairingChoices::prefill::107",
+            "App\\Party\\Application\\ManageFirmBankAccounts::archive::111",
+            "App\\Party\\Application\\ManageFirmBankAccounts::archive::116",
+            "App\\Party\\Application\\ManageFirmBankAccounts::restore::138"
+        ]},
         // Equivalent mutant: the separator only keeps the keys apart, in either order.
-        "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries", "App\\Invoicing\\Application\\RecurringAlerts::alertAll"]},
-        // Unreachable guards: IssueRules refuses these cases before the throw, RecurringRules refuses an unknown customer
+        "Concat": {"ignore": [
+            "App\\Invoicing\\Domain\\InvoiceCalculator::summaries", "App\\Invoicing\\Application\\RecurringAlerts::alertAll",
+            // Equivalent mutants: a date with the time before it or without one parses to the same midnight.
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474"
+        ]},
+        // Unreachable guards: IssueRules refuses these cases before the throw, RecurringRules refuses an unknown
+        // customer
         // before SaveRecurringInvoice reads it, a schedule that never ends always has a next date, and a row alert's
         // column that is not a string fails the check of its column below.
         "Throw_": {"ignore": [
@@ -105,7 +160,9 @@
             "App\\Invoicing\\Application\\EditInvoice::edit::64",
             "App\\Invoicing\\Application\\SaveRecurringInvoice::content::111",
             "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
-            "App\\Ui\\Component\\DataTable::alert::242"
+            "App\\Ui\\Component\\DataTable::alert::242",
+            // RecordPayment::check() refuses a payment without allocations, so a firm is always found.
+            "App\\Invoicing\\Application\\RecordPayment::firmOf::169"
         ]},
         // Equivalent mutants: preg_replace() and preg_replace_callback() without the u flag always return a string,
         // and NumberFormatter formats an integer without failing.
@@ -115,32 +172,93 @@
             "App\\Invoicing\\Application\\MailText::render::27",
             "App\\Invoicing\\Application\\DocumentFormat::money::31",
             // The first group of the pattern always takes part in a match.
-            "App\\Invoicing\\Domain\\PeriodText::resolve::43"
+            "App\\Invoicing\\Domain\\PeriodText::resolve::43",
+            // preg_replace() without the u flag always returns a string.
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::371"
         ]},
         // Equivalent mutants: of two sends sent at the same moment, either is the last one; a day equal to the one
         // compared with sets the same day again.
         "GreaterThan": {"ignore": ["App\\Invoicing\\Application\\SendDraft::lastSentAt", "App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::227", "App\\Invoicing\\Domain\\RecurringInvoice::resume::318"]},
-        // Equivalent mutants in the party import: a new party starts from the standard defaults, so clearing them changes
-        // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII. The one
+        // Equivalent mutants in the party import: a new party starts from the standard defaults, so clearing them
+        // changes
+        // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII. The
+        // one
         // caller of RecurringSchedule::inMonth() without a last-day flag, PeriodText, reads only the month and year.
         "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input", "App\\Invoicing\\Domain\\RecurringSchedule::inMonth"]},
         "AssignCoalesce": {"ignore": ["App\\Party\\Application\\ImportPartyValues::address"]},
-        "MBString": {"ignore": ["App\\Party\\Application\\ImportPartyValues::roles"]},
-        // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again with the same outcome.
-        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Domain\\FirmReminders::minimum"]},
+        "MBString": {"ignore": [
+            "App\\Party\\Application\\ImportPartyValues::roles",
+            // A configured inbound template passes FILTER_VALIDATE_EMAIL without the Unicode flag, so it is ASCII only.
+            "App\\Banking\\Application\\InboundAddresses::written::76"
+        ]},
+        // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again
+        // with the same outcome.
+        "LogicalOr": {"ignore": [
+            "App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Domain\\FirmReminders::minimum",
+            // Equivalent mutants: a key and its value come from the same branch of the pattern; an empty side fails the
+            // count check of the newest ARC set below.
+            "App\\Banking\\Application\\AuthenticationResultsParser::result::150",
+            "App\\Banking\\Application\\MailAuthentication::arcVouches::211"
+        ]},
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
         // string fails the check of its column below.
-        "LogicalAnd": {"ignore": ["App\\Invoicing\\Domain\\RecurringInvoice::resume::308", "App\\Ui\\Component\\DataTable::alert::242"]},
-        // Equivalent mutants: an end on a date always has that date (Recurrence checks it), and a staff member is a stored user.
+        "LogicalAnd": {"ignore": [
+            "App\\Invoicing\\Domain\\RecurringInvoice::resume::308", "App\\Ui\\Component\\DataTable::alert::242",
+            // Equivalent mutants: two equal invoices are both close to the amount, so nothing pairs either way; when
+            // only one statement has an IBAN, the IBAN comparison below refuses with the same reason.
+            "App\\Banking\\Application\\Matcher::decide::109",
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::assertAgree::316"
+        ]},
+        // Equivalent mutants: an end on a date always has that date (Recurrence checks it), and a staff member is a
+        // stored user.
         "NullSafeMethodCall": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::isOver", "App\\Invoicing\\Application\\RecurringAlerts::recipient"]},
         // Equivalent mutants: ids hold letters and digits only, so the XML escape flags change nothing, and the
         // parser flags only back up the checks above them (no DTD is let through, errors are collected internally).
-        "BitwiseOr": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::envelope", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse"]},
-        // Equivalent mutants: a blank answer fails as invalid XML instead, a blank VAT id is rejected by VatId, with the same result.
-        "UnwrapTrim": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse", "App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::vatId"]},
+        "BitwiseOr": {"ignore": [
+            "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::envelope", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse",
+            // Equivalent mutants: the HTML parser fetches nothing, and its errors are collected internally and cleared
+            // either way.
+            "App\\Banking\\Application\\NotificationLines::textOf::62"
+        ]},
+        // Equivalent mutants: a blank answer fails as invalid XML instead, a blank VAT id is rejected by VatId, with
+        // the same result.
+        "UnwrapTrim": {"ignore": [
+            "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse", "App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::vatId",
+            // Equivalent mutants: HTML of white space only loads to no lines, and every KB value is trimmed already.
+            "App\\Banking\\Application\\NotificationLines::textOf::52",
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::iban::422"
+        ]},
         // Equivalent mutants: the batch is only walked with foreach, and spreading a list renumbers its keys anyway.
-        "UnwrapArrayValues": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Application\\MailVariables::names"]},
+        "UnwrapArrayValues": {"ignore": [
+            "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Application\\MailVariables::names",
+            // Of the bank: usort(), sort() and array_slice() renumber the keys anyway, and the other lists are only
+            // counted, searched, filtered again or walked with foreach; the symbol matches come first, so their keys
+            // already run from 0.
+            "App\\Banking\\Application\\Matcher::decide::80",
+            "App\\Banking\\Application\\PairMovement::lockInvoices::220",
+            "App\\Banking\\Application\\PairingChoices::of::70",
+            "App\\Banking\\Application\\PairingChoices::of::88",
+            "App\\Banking\\Application\\PairingChoices::prefill::100",
+            "App\\Banking\\Application\\PairingChoices::prefill::101",
+            "App\\Banking\\Application\\MailAuthentication::verdict::86",
+            "App\\Banking\\Application\\TrustSettings::names::77",
+            "App\\Invoicing\\Application\\InvoiceHistory::of::45",
+            "App\\Invoicing\\Application\\RecordPayment::record::57"
+        ]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
-        "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]}
+        "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]},
+        // Equivalent mutant: the libxml HTML parser lower-cases tag names already.
+        "UnwrapStrToLower": {"ignore": ["App\\Banking\\Application\\NotificationLines::collect::80"]},
+        // Unreachable: the whole part is digits and the fraction at most two of them, so Money only fails by overflow.
+        "Catch_": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::375"]},
+        // Equivalent mutant: Iban::fromString() upper-cases itself, and the domestic pattern does not depend on case.
+        "UnwrapStrToUpper": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::iban::414"]},
+        // Equivalent mutant: a date without a time parses to the same midnight.
+        "ConcatOperandRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474"]},
+        // Equivalent mutants: the subject is always exactly one character, and rawurlencode() output has no regex
+        // metacharacters.
+        "PregMatchRemoveCaret": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]},
+        "PregMatchRemoveDollar": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]},
+        "PregQuote": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]}
     }
 }

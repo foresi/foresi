@@ -12,6 +12,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Iban;
 use App\Party\Domain\InvalidIban;
@@ -34,6 +35,7 @@ final readonly class RecurringRules
         private ContactSettingsForFirm $contacts,
         private SeriesCatalog $catalog,
         private FirmInvoicingSettings $settings,
+        private FirmBankAccounts $accounts,
     ) {
     }
 
@@ -116,7 +118,7 @@ final readonly class RecurringRules
             return false;
         }
         try {
-            return \in_array(Iban::fromString($account)->toString(), $firm->bankAccounts(), true);
+            return \in_array(Iban::fromString($account)->toString(), $this->accounts->ibansOf($firm), true);
         } catch (InvalidIban) {
             return false;
         }

@@ -1,0 +1,47 @@
+From: Komercni banka <info@kb.cz>
+To: bank+token@example.com
+Subject: =?utf-8?B?T3puw6FtZW7DrSBvIHBsYXRiw6FjaA==?=
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <english-only@kb.example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="kb-mixed"
+
+--kb-mixed
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html><head><meta http-equiv=3D"Content-Type" content=3D"text/html; charset=
+=3Dutf-8"><title>Notice</title></head>
+<body>
+<hr>
+<p>Dear client,</p>
+<p>we send you a notice of payments on your account.</p>
+<table>
+<tr><td colspan=3D"2" style=3D"font-weight:bold;padding-top:16px">Incoming =
+payment</td></tr>
+<tr><td style=3D"color:#555">Amount and currency</td><td>99,90 CZK</td></tr=
+>
+<tr><td style=3D"color:#555">Your account number</td><td>19-2000145399/0800=
+</td></tr>
+<tr><td style=3D"color:#555">Counteraccount number</td><td>123-4567890123/0=
+100</td></tr>
+<tr><td style=3D"color:#555">Counteraccount name</td><td>Example Buyer Ltd<=
+/td></tr>
+<tr><td style=3D"color:#555">Due date</td><td>02.11.2026</td></tr>
+<tr><td style=3D"color:#555">Status of the payment</td><td>Booked</td></tr>
+<tr><td style=3D"color:#555">Variable symbol</td><td>2026001</td></tr>
+<tr><td style=3D"color:#555">Constant symbol</td><td>0308</td></tr>
+<tr><td style=3D"color:#555">Specific symbol</td><td>0</td></tr>
+</table>
+<p>Example footer, example.com</p>
+</body></html>
+
+--kb-mixed
+Content-Type: application/pdf; name="Oznameni.pdf"
+Content-Disposition: attachment; filename="Oznameni.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKU1lOVEhFVElDIEFUVEFDSE1FTlQKJSVFT0YK
+
+--kb-mixed--

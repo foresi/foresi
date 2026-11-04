@@ -1,0 +1,68 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Invoicing\Application;
+
+use App\Audit\Application\AuditActor;
+use App\Invoicing\Domain\PaymentSource;
+use App\Party\Application\TransactionalWork;
+use Psr\Clock\ClockInterface;
+
+/**
+ * Cancels a payment: its allocations go, so the invoices it paid are as unpaid as
+ * before, and the payment stays with who cancelled it and when. Under the locks of
+ * those invoices, in the order RecordPayment takes them, so it never crosses a
+ * payment being recorded. Cancelling twice is cancelling once: the second call
+ * changes nothing and tells nobody.
+ *
+ * The source of the payment, a bank movement, is locked first, then the invoices:
+ * the order of pairing and unpairing, so cancelling on the invoice and unpairing on
+ * the bank tab wait for each other instead of deadlocking. Both are read before the
+ * transaction, so the locks come first in it (on SQLite a read before the first write
+ * lock would refuse to wait); neither the source nor the invoices of a payment ever
+ * change, so what was read still holds under the locks.
+ */
+final readonly class CancelPayment
+{
+    public function __construct(
+        private InvoicePayments $payments,
+        private InvoiceStore $store,
+        private TransactionalWork $work,
+        private ConflictRetry $retry,
+        private AuditActor $actor,
+        private ClockInterface $clock,
+        private PaymentSourceRelease $release,
+    ) {
+    }
+
+    /**
+     * @throws UnknownPayment also for a payment of another tenant
+     */
+    public function cancel(string $paymentId): void
+    {
+        $this->retry->run(function () use ($paymentId): void {
+            $source = $this->payments->get($paymentId);
+            $ids = $this->payments->invoiceIdsOf($paymentId);
+            $this->work->run(function () use ($paymentId, $source, $ids): void {
+                $this->release->lockSource($source);
+                foreach ($ids as $id) {
+                    $this->store->lock($id);
+                }
+                $payment = $this->payments->get($paymentId);
+                if ($payment->isCancelled()) {
+                    return;
+                }
+                $this->payments->removeAllocationsOf($payment);
+                $payment->cancel(\DateTimeImmutable::createFromInterface($this->clock->now()), $this->actor->userId());
+                if (PaymentSource::BankMovement === $payment->source()) {
+                    $this->release->released($payment);
+                }
+            });
+        });
+    }
+}

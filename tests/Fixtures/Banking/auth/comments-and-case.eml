@@ -1,0 +1,14 @@
+Authentication-Results: (received by the inbox) MX.Example.COM 1;
+  DKIM (signature) = Pass (good signature)
+  Header.D=KB.CZ. header.s=sel1;
+  DMARC (policy) = Pass (p=QUARANTINE) Header.From=KB.CZ.;
+  arc=none
+From: "KB" (bank) <Info@KB.cz>
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <comments-and-case@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK

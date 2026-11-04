@@ -1,0 +1,65 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Adding or editing a bank account of a firm: a small dialog over the bank tab, and the same form
+    as a page of its own. The IBAN is the account, so it is shown, not edited, once stored; the
+    currency is fixed once the account has bank movements.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set editing = account is not null %}
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm_index')}, {label: firm.name, href: path('app_firm_edit', {id: firm.id})}, {label: 'bank.account.title'|trans, href: cancel}, {label: editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="bank-account-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ACCOUNT_TOKEN')) }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        {% if editing %}
+            <div class="grid gap-1.5" id="number">
+                <p class="m-0 text-small font-medium text-ink">{{ 'bank.account.field.number'|trans }}</p>
+                {% if domestic %}<p class="num m-0 text-body font-medium text-ink">{{ domestic }}</p>{% endif %}
+                <p class="num m-0 {{ domestic ? 'text-small text-muted' : 'text-body font-medium text-ink' }}">{{ 'bank.account.field.iban_value'|trans({iban: iban}) }}</p>
+                <p class="m-0 text-caption text-muted">{{ 'bank.account.field.number_locked_help'|trans }}</p>
+            </div>
+        {% else %}
+            <twig:Ui:TextInput name="number" id="number" :label="'bank.account.field.number'|trans" :help="'bank.account.field.number_help'|trans" :value="values.number" :error="errors.number|default(null)" maxlength="64" autocomplete="off" autocapitalize="characters" spellcheck="false" required />
+        {% endif %}
+
+        <div class="grid gap-4 sm:grid-cols-[8rem_1fr]">
+            <twig:Ui:Select name="currency" id="currency" :label="'bank.account.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" :disabled="currencyLocked" :help="currencyLocked ? 'bank.account.field.currency_locked_help'|trans : null" required />
+            <twig:Ui:TextInput name="label" id="label" :label="'bank.account.field.label'|trans" :help="'bank.account.field.label_help'|trans" :value="values.label" :error="errors.label|default(null)" maxlength="100" />
+        </div>
+
+        {% if editing and account.primary %}
+            <twig:Ui:Checkbox name="primary" id="primary" value="1" :checked="true" :disabled="true" :label="'bank.account.field.primary'|trans" :help="'bank.account.field.primary_kept_help'|trans" />
+        {% else %}
+            <twig:Ui:Checkbox name="primary" id="primary" value="1" :checked="values.primary == '1'" :label="'bank.account.field.primary'|trans" :help="'bank.account.field.primary_help'|trans" :error="errors.primary|default(null)" />
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="bank-account-form" variant="primary">{{ editing ? 'party.save'|trans : 'bank.account.submit.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <div class="mb-4">{% include 'party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'bank'} only %}</div>
+    <twig:Ui:Card :title="editing ? 'bank.account.edit'|trans : 'bank.account.new'|trans" icon="landmark" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="bank-account-form" variant="primary">{{ editing ? 'party.save'|trans : 'bank.account.submit.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

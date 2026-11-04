@@ -16,6 +16,7 @@ use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\InvoicingDefaults;
@@ -39,6 +40,7 @@ final readonly class NewInvoiceDefaults
         private FirmInvoicingSettings $settings,
         private InvoicingCountries $countries,
         private ClockInterface $clock,
+        private FirmBankAccounts $accounts,
     ) {
     }
 
@@ -66,7 +68,7 @@ final readonly class NewInvoiceDefaults
             $today,
             $this->dueDate($today, InvoicingDefaults::DEFAULT_DUE_DAYS),
             PaymentMethod::BankTransfer,
-            $firm->bankAccounts()[0] ?? null,
+            $this->accounts->primaryOf($firm)?->iban(),
             VariableSymbol::fromNumber($number),
             $settings->constantSymbol(),
             $settings->textBefore(),

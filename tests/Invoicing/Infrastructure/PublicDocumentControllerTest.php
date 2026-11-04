@@ -9,12 +9,16 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\MailSecrets;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
@@ -22,6 +26,7 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\MailEncryption;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -47,6 +52,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
+use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -313,6 +319,89 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertStringNotContainsString($code, (string) $this->client->getResponse()->getContent(), 'drawn, not printed');
     }
 
+    public function testThePublicPageSaysPaidWhenPaid(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-status]', 'nothing is paid yet');
+
+        $this->paid($sent['invoice'], '500.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-status]', 'a part payment says nothing to the customer');
+
+        $this->paid($sent['invoice'], '710.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno');
+
+        $this->paid($sent['invoice'], '100.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno', 'overpaid is paid to the customer');
+    }
+
+    public function testAPaidOrOverpaidInvoiceInvitesNoPayment(): void
+    {
+        $sent = $this->sentDocument();
+
+        $this->paid($sent['invoice'], '1210.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('#payment-title', 'paid: no payment instructions');
+        self::assertSelectorNotExists('figure svg', 'paid: no QR code');
+        self::assertSelectorNotExists('[data-remaining]');
+
+        $this->paid($sent['invoice'], '100.00');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('#payment-title', 'overpaid: no payment instructions');
+        self::assertSelectorNotExists('figure svg', 'overpaid: no QR code');
+    }
+
+    /**
+     * The PDF still shows the payment details it was sent with, so the page says,
+     * next to the download, that there is nothing left to pay.
+     */
+    public function testAPaidInvoiceSaysWhenItWasPaidNextToTheUnchangedPdf(): void
+    {
+        $sent = $this->sentDocument();
+        $stored = $this->storedPdf($sent['send']);
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-note]');
+        self::assertSame('Stáhnout', $crawler->filter('a[href$="/download"]')->text());
+
+        $this->paid($sent['invoice'], '500.00', '2026-11-01');
+        $this->client->request('GET', '/d/'.$sent['token']);
+        self::assertSelectorNotExists('[data-paid-note]', 'a part payment leaves something to pay');
+
+        $this->paid($sent['invoice'], '710.00', '2026-11-02');
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        $date = self::getContainer()->get(DocumentFormat::class)->date(new \DateTimeImmutable('2026-11-02'), DocumentLanguage::Czech);
+        self::assertSame('Uhrazeno '.$date.', není co platit', $crawler->filter('[data-paid-note]')->text(), 'the day the last payment settled it');
+        self::assertSame('Stáhnout fakturu (uhrazená)', $crawler->filter('a[href$="/download"]')->text());
+        foreach (['/pdf', '/open', '/download'] as $suffix) {
+            $this->client->request('GET', '/d/'.$sent['token'].$suffix);
+            self::assertSame($stored, $this->client->getInternalResponse()->getContent(), 'the PDF is the one sent');
+        }
+    }
+
+    public function testAPartPaymentShowsWhatRemainsWithoutTheQrCode(): void
+    {
+        $sent = $this->sentDocument();
+        $this->paid($sent['invoice'], '500.00');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertMatchesRegularExpression('/^710,00\x{a0}Kč$/u', $crawler->filter('[data-remaining] dd')->text());
+        self::assertSame('Zbývá uhradit', $crawler->filter('[data-remaining] dt')->text());
+        $payment = $crawler->filter('section[aria-labelledby="payment-title"]');
+        $values = $payment->filter('dd')->each(static fn ($dd): string => $dd->text());
+        self::assertSame(['19-2000145399/0800', 'CZ65 0800 0000 1920 0014 5399', '20260001'], \array_slice($values, 0, 3));
+        self::assertMatchesRegularExpression('/^710,00\x{a0}Kč$/u', $values[3], 'the transfer asks for what remains');
+        // The stored code asks for the whole amount, and the builder takes no other.
+        self::assertCount(0, $payment->filter('figure svg'));
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
@@ -496,6 +585,14 @@ final class PublicDocumentControllerTest extends WebTestCase
         });
     }
 
+    private function paid(string $invoiceId, string $amount, string $on = '2026-11-03'): void
+    {
+        $this->inTenant(function () use ($invoiceId, $amount, $on): void {
+            $money = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm[0] ?? '', new \DateTimeImmutable($on), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoiceId, $money)]));
+        });
+    }
+
     /**
      * A payer firm with a series, a mail server and a contact address, and a
      * customer, in the active tenant.
@@ -506,8 +603,9 @@ final class PublicDocumentControllerTest extends WebTestCase
     {
         $container = self::getContainer();
         $em = $this->browser->em();
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1', [self::IBAN]);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $em->persist($firm);
+        FirmAccounts::add($em, $firm, self::IBAN);
         $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $em->persist($series);
         $customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');

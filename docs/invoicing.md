@@ -20,7 +20,8 @@ This page says what the invoices of this release do and do not do. It is a state
 - **Register entry.** Required on every firm, as Civil Code section 435 requires it on business documents. A business outside the Commercial Register states its record in another register, such as the trade register.
 - **More details.** Order number, description, symbols, language and texts. The section opens when one of them differs from what the form starts with, or holds a mistake. An empty description takes the text of the first line.
 - **Numbers.** Prices and quantities are grouped as you type; without JavaScript the server reads the same forms. A separator counts only where it groups thousands properly, and a comma in `1,000` is a decimal mark in Czech and a thousands separator in English.
-- **Status.** One derived status per document, the most relevant: in the trash, overdue, delivered, issued. Payment states will join this order.
+- **Status.** One derived status per document, the most relevant: in the trash, overpaid, paid, overdue, partly paid, delivered, issued. An invoice is overdue only while something is left to pay.
+- **Payments.** "Pay" in the row menu records a payment by hand: date, amount, method and note. A part payment and an overpayment are allowed. Payments from bank notification e-mails are paired by themselves when the rules leave one answer. The invoice lists its payments, each can be removed, and an invoice with payments cannot go to the trash. See [bank-pairing.md](bank-pairing.md).
 
 ## ISDOC statement
 
@@ -34,7 +35,8 @@ Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own wri
 - A number has at most 40 characters and no `*` or `%`, or its QR code could not be made. A series whose numbers could be longer cannot be saved.
 - The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
 - A document in the trash prints with a mark, without the QR code and without the ISDOC file.
-- Payments and foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which stay off until payments are recorded, in [reminders.md](reminders.md).
+- Foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), payments and bank pairing in [bank-pairing.md](bank-pairing.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which stay off until payments are recorded, in [reminders.md](reminders.md).
+- Tax documents on payment, advances, bulk payment and payments in another currency than the invoice's are not included. Bank notifications are read for Komerční banka only.
 - The rounding rules, the reverse charge and the numbering are implemented as described in the ADRs; whether they are right for your situation is for your adviser to confirm.
 
 ## Bulk download and time limits

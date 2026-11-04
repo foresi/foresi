@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { test as setup } from '@playwright/test';
-import { EMPTY_OWNER, EMPTY_OWNER_STATE, GROUP_OWNER, GROUP_OWNER_STATE, INVOICING_OWNER, INVOICING_OWNER_STATE, OWNER, OWNER_STATE, signIn, FIRST_RUN_OWNER, FIRST_RUN_OWNER_STATE, SENDING_OWNER, SENDING_OWNER_STATE, DIALOGS_OWNER, DIALOGS_OWNER_STATE, RECURRING_OWNER, RECURRING_OWNER_STATE, REMINDERS_OWNER, REMINDERS_OWNER_STATE } from '../support/session';
+import { EMPTY_OWNER, EMPTY_OWNER_STATE, GROUP_OWNER, GROUP_OWNER_STATE, INVOICING_OWNER, INVOICING_OWNER_STATE, OWNER, OWNER_STATE, signIn, FIRST_RUN_OWNER, FIRST_RUN_OWNER_STATE, SENDING_OWNER, SENDING_OWNER_STATE, DIALOGS_OWNER, DIALOGS_OWNER_STATE, RECURRING_OWNER, RECURRING_OWNER_STATE, REMINDERS_OWNER, REMINDERS_OWNER_STATE, BANK_OWNER, BANK_OWNER_STATE } from '../support/session';
 
 setup('sign in the owner of Example Company', async ({ page }) => {
   await signIn(page, OWNER);
@@ -36,6 +36,11 @@ setup('sign in the owner of the tenant that sends invoices', async ({ page }) =>
 setup('sign in the owner of the tenant of the dialog specs', async ({ page }) => {
   await signIn(page, DIALOGS_OWNER);
   await page.context().storageState({ path: DIALOGS_OWNER_STATE });
+});
+
+setup('sign in the owner of the tenant of the bank settings spec', async ({ page }) => {
+  await signIn(page, BANK_OWNER);
+  await page.context().storageState({ path: BANK_OWNER_STATE });
 });
 
 setup('sign in the owner of the tenant of the recurring list specs', async ({ page }) => {

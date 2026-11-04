@@ -1,0 +1,15 @@
+Authentication-Results: mx.example.com;
+  dkim=pass header.d=bank.example.com header.s=sel1;
+  dmarc=pass header.from=bank.example.com
+Received: from relay.example.net (relay.example.net [192.0.2.10])
+  by mx.example.com with ESMTPS; Mon, 02 Nov 2026 09:15:02 +0100
+Authentication-Results: relay.example.net; dkim=fail header.d=bank.example.com
+From: "Bank Notices" <Notices@Bank.Example.COM>
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <auth-1@bank.example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK

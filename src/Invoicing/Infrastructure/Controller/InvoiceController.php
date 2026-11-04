@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
@@ -17,6 +18,7 @@ use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
@@ -47,7 +49,9 @@ use App\Invoicing\Infrastructure\Form\InvoiceFormOptions;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
+use App\Invoicing\Infrastructure\Form\PaymentPanel;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\UnknownLegalEntity;
@@ -115,6 +119,10 @@ final class InvoiceController extends AbstractController
         private readonly InvoicePdf $pdf,
         private readonly InvoiceSends $sends,
         private readonly InvoiceHistory $history,
+        private readonly FirmBankAccounts $accounts,
+        private readonly InvoicePayments $payments,
+        private readonly PaymentPanel $panel,
+        private readonly OwnerCheck $owner,
         private readonly InvoiceFormOptions $options,
     ) {
     }
@@ -303,7 +311,7 @@ final class InvoiceController extends AbstractController
         $action = $request->request->getString('_action', 'refresh');
         // The firm got its first account in another tab while this form was open.
         if (!$context->invoice instanceof Invoice && '' === $request->request->getString('bankAccount')) {
-            $request->request->set('bankAccount', $context->firm->bankAccounts()[0] ?? '');
+            $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
         }
         $matches = $this->typedCustomers($request, $context->firm, $action);
         $submission = $this->reader->read($request, $context->currency);
@@ -540,7 +548,9 @@ final class InvoiceController extends AbstractController
             $errorFields[$error['id']] = $error['message'];
         }
         $firmUrl = $this->generateUrl('app_firm_edit', ['id' => $firm->id()]);
-        $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl);
+        // The bank tab is the owner's: staff learn the account is missing, not where to add it.
+        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank', ['id' => $firm->id()]) : null;
+        $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
         return $this->render('invoicing/form.html.twig', [
             'blocked' => null,
@@ -552,7 +562,9 @@ final class InvoiceController extends AbstractController
             'errors' => array_map(static fn (array $error): array => $error + ['link' => $targets->of($error['id'], $error['key'])], $errors),
             'errorFields' => $errorFields,
             'firmUrl' => $firmUrl,
+            'bankUrl' => $bankUrl,
             'statusBadge' => $this->statusBadge($context),
+            'payments' => $invoice instanceof Invoice ? $this->panel->of($invoice) : null,
             'moreOpen' => $this->moreOpen($values, $context, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,
@@ -625,7 +637,7 @@ final class InvoiceController extends AbstractController
             return null;
         }
         // Overdue by the tenant's day, as the reminders count it (ADR 0017).
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today());
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -777,7 +789,7 @@ final class InvoiceController extends AbstractController
     }
 
     /**
-     * The accounts of the firm, and the one on the document, which the firm may have dropped.
+     * The active accounts of the firm, and the one on the document, which the firm may have archived.
      *
      * @return array<string, string>
      */

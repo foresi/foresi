@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    "Dismiss" for a message nobody will record: it stops asking for attention and is never processed
+    again; the raw message stays stored and the audit log says who set it aside.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans, href: cancel}, {label: 'bank.message.dismiss.crumb'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = false %}
+
+{% block title %}{{ 'bank.message.dismiss.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="dismiss-form" action="{{ path('app_bank_message_dismiss', {id: message.id}) }}" class="grid gap-3" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        <p class="m-0 min-w-0 truncate text-text" title="{{ subject }}">{{ subject }}</p>
+        {% if reason %}<p class="m-0 text-small text-muted">{{ reason }}</p>{% endif %}
+        <p class="m-0 text-text">{{ 'bank.message.dismiss.text'|trans }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="true">{{ 'bank.message.dismiss.keep'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="dismiss-form" variant="danger">{{ 'bank.message.dismiss.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'bank.message.dismiss.title'|trans" icon="inbox" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="cancel">{{ 'bank.message.dismiss.keep'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="dismiss-form" variant="danger">{{ 'bank.message.dismiss.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

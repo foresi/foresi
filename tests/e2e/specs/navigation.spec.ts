@@ -44,9 +44,11 @@ test.describe('navigation', () => {
 
     // Only groups that hold something are shown, in the fixed order, and Settings is last.
     const groups = await sidebar.locator('[data-nav-group]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-group')));
-    expect(groups).toEqual(['main', 'sales', 'contacts', 'settings']);
+    expect(groups).toEqual(['main', 'sales', 'money', 'contacts', 'settings']);
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('heading', { name: 'Prodej' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury', exact: true })).toBeVisible();
+    await expect(sidebar.locator('[data-nav-group="money"]').getByRole('heading', { name: 'Finance' })).toBeVisible();
+    await expect(sidebar.locator('[data-nav-group="money"]').getByRole('link', { name: 'Banka', exact: true })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
     const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');
@@ -74,7 +76,7 @@ test.describe('navigation', () => {
     await page.getByRole('link', { name: 'Example Payer s.r.o.' }).first().click();
 
     const tabs = page.getByRole('navigation', { name: 'Části firmy' });
-    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily']);
+    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily', 'Banka']);
     await expect(tabs.locator('[aria-current="page"]')).toHaveText('Údaje');
     await expect(page).toHaveURL(/\/settings\/firms\/[0-9a-f-]+\/edit$/);
     await expectNoSeriousViolations(page);

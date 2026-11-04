@@ -1,0 +1,50 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The inbound address of one account on the pairing tab, with the trust check of its last mail.
+    Variables: feed (from the controller's feedView), unavailable (why nothing can be generated here,
+    or null), first (no top border).
+#}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('App\\Banking\\Infrastructure\\Controller\\FirmBankController::ADDRESS_TOKEN')) %}
+{% set dateFormat = 'bank.account.address.date_format'|trans %}
+<li class="grid gap-2 py-3{% if not first %} border-t border-divider{% endif %}{% if first %} pt-0{% endif %}" data-bank-feed="{{ feed.id }}" aria-labelledby="feed-{{ feed.id }}-name">
+    <div class="flex min-h-control flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h4 id="feed-{{ feed.id }}-name" class="m-0 text-small font-semibold text-ink">{{ feed.name }}</h4>
+        <a href="{{ feed.url }}" data-dialog aria-haspopup="dialog" class="text-small font-medium text-ink underline underline-offset-2 {{ focus }}">{{ 'bank.account.address.howto'|trans }}</a>
+    </div>
+    {% if feed.address %}
+        <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'bank.account.address.copied'|trans }}" data-copy-failed-value="{{ 'bank.account.address.copy_failed'|trans }}">
+            <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput :id="'feed-' ~ feed.id ~ '-address'" :label="'bank.account.address.field'|trans" :value="feed.address" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+            <twig:Ui:Button icon="copy" data-action="copy#copy" :aria-describedby="'feed-' ~ feed.id ~ '-name'"><span data-copy-target="label">{{ 'bank.account.address.copy'|trans }}</span></twig:Ui:Button>
+            <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+        </div>
+    {% elseif feed.hasFeed %}
+        <p class="m-0 text-small text-muted">{{ 'bank.account.address.hidden'|trans }}</p>
+    {% else %}
+        <p class="m-0 text-small text-muted">{{ 'bank.account.address.none'|trans }}</p>
+    {% endif %}
+    {# Whose Authentication-Results the last mail carried on top, and the verdict: what setting up trust needs, nothing else of the mail. #}
+    {% if feed.check %}
+        <p class="m-0 text-caption text-muted [overflow-wrap:anywhere]" data-trust-check>
+            {{- 'bank.account.address.check.label'|trans({channel: feed.check.channel}) }}
+            {% if feed.check.authserv %}<span class="font-mono text-ink">{{ feed.check.authserv }}</span>, {% endif %}{{ feed.check.server }} · {{ feed.check.verdict -}}
+        </p>
+    {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        {% if feed.hasFeed %}
+            <p class="m-0 text-caption text-muted" data-last-message>
+                {%- if feed.lastReceivedAt %}<time datetime="{{ feed.lastReceivedAt|date('c') }}">{{ 'bank.account.address.last'|trans({date: feed.lastReceivedAt|date(dateFormat)}) }}</time>
+                {%- else %}{{ 'bank.account.address.last_none'|trans }}{% endif -%}
+            </p>
+            <form method="post" action="{{ feed.url }}" data-turbo-confirm="{{ 'bank.account.address.confirm.regenerate'|trans({name: feed.name}) }}" data-confirm-text="{{ 'bank.account.address.confirm.regenerate_text'|trans }}" data-confirm-accept="{{ 'bank.account.address.confirm.regenerate_accept'|trans }}" data-confirm-cancel="{{ 'bank.account.address.confirm.regenerate_cancel'|trans }}" data-confirm-tone="danger">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="refresh-cw" :disabled="unavailable is not null" :aria-describedby="'feed-' ~ feed.id ~ '-name'">{{ 'bank.account.address.regenerate'|trans }}</twig:Ui:Button>
+            </form>
+        {% else %}
+            <form method="post" action="{{ feed.url }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" icon="key-round" :disabled="unavailable is not null" :aria-describedby="'feed-' ~ feed.id ~ '-name'">{{ 'bank.account.address.generate'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    </div>
+</li>

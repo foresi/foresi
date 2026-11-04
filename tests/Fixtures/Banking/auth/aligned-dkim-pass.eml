@@ -1,0 +1,14 @@
+Authentication-Results: mx.example.com;
+  dkim=pass header.d=kb.cz header.s=sel1;
+  spf=pass smtp.mailfrom=kb.cz
+Received: from out.kb.cz (out.kb.cz [192.0.2.20])
+  by mx.example.com with ESMTPS; Mon, 02 Nov 2026 09:15:02 +0100
+From: "KB" <info@kb.cz>
+To: bank+token@example.com
+Subject: Payment notice
+Date: Mon, 02 Nov 2026 09:15:00 +0100
+Message-ID: <aligned-dkim-pass@example.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+Amount: 100,00 CZK

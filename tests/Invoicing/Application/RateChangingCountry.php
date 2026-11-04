@@ -45,6 +45,11 @@ final readonly class RateChangingCountry implements InvoicingCountry
         return $this->inner->timezone();
     }
 
+    public function settlementLimit(Currency $currency): ?int
+    {
+        return $this->inner->settlementLimit($currency);
+    }
+
     public function rate(VatRateKind $kind, \DateTimeImmutable $on): Percent
     {
         return VatRateKind::Base === $kind && $on->format('Y-m-d') >= '2027-01-01' ? Percent::fromString('23') : $this->inner->rate($kind, $on);

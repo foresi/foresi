@@ -14,6 +14,7 @@ use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Iban;
 use App\Party\Domain\InvalidIban;
@@ -42,6 +43,7 @@ final readonly class IssueRules
         private FirmInvoicingSettings $settings,
         private PrintableText $printable,
         private InvoiceSends $sends,
+        private FirmBankAccounts $accounts,
         private LineRules $shared,
     ) {
     }
@@ -120,8 +122,8 @@ final readonly class IssueRules
     }
 
     /**
-     * One of the firm's accounts, or the one the document already has: the firm may
-     * have dropped it since.
+     * One of the firm's active accounts, or the one the document already has: the
+     * firm may have archived it since.
      */
     private function accountAllowed(?string $account, LegalEntity $firm, ?Invoice $existing): bool
     {
@@ -134,7 +136,7 @@ final readonly class IssueRules
             return false;
         }
 
-        return \in_array($iban, $firm->bankAccounts(), true) || $iban === $existing?->bankAccount();
+        return $iban === $existing?->bankAccount() || \in_array($iban, $this->accounts->ibansOf($firm), true);
     }
 
     /**

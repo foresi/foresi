@@ -45,7 +45,7 @@ final class MailVariablesTest extends InvoiceTestCase
         $id = $this->issue->issue($this->input())->id();
         // The contact and the firm change after the invoice was issued.
         $this->customer->rename('Renamed Customer a.s.');
-        $this->firm->update('Renamed Firm s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Other Street 9', 'Other City', '300 00', 'CZ'), VatStatus::Registered, '', [self::IBAN]);
+        $this->firm->update('Renamed Firm s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Other Street 9', 'Other City', '300 00', 'CZ'), VatStatus::Registered, '');
         $this->em->flush();
         $this->em->clear();
 

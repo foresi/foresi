@@ -15,3 +15,6 @@
 # Import reader fixtures must keep their exact bytes (encodings, BOM, line endings).
 /tests/Import/Fixtures/*.csv binary
 /tests/Import/Fixtures/*.xlsx binary
+# Mail fixtures likewise: line endings and transfer encodings are what the tests read.
+/tests/Fixtures/Banking/mime/*.eml binary
+/tests/Fixtures/Banking/kb/*.eml binary

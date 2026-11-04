@@ -12,6 +12,7 @@ use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VatRateKind;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
@@ -29,6 +30,7 @@ final readonly class InvoiceFormOptions
         private SeriesCatalog $catalog,
         private AmountText $amounts,
         private TranslatorInterface $translator,
+        private FirmBankAccounts $accounts,
     ) {
     }
 
@@ -133,13 +135,13 @@ final readonly class InvoiceFormOptions
     }
 
     /**
-     * The accounts of the firm, and $own, which the firm may have dropped.
+     * The active accounts of the firm, primary first, and $own, which the firm may have archived since.
      *
      * @return array<string, string>
      */
     public function bankAccounts(LegalEntity $firm, ?string $own = null): array
     {
-        $accounts = $firm->bankAccounts();
+        $accounts = $this->accounts->ibansOf($firm);
         if (null !== $own && !\in_array($own, $accounts, true)) {
             $accounts[] = $own;
         }

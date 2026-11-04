@@ -33,6 +33,8 @@ use PHPUnit\Framework\TestCase;
 final class RecurringNameMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261103000804';
+    /** The migration under test, not the latest: later ones expect rows this test does not fill. */
+    private const string AFTER = 'DoctrineMigrations\Version20261103000805';
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
     private const string SCHEMA = 'recurring_name_migration_test';
 
@@ -63,7 +65,7 @@ final class RecurringNameMigrationTest extends TestCase
 
     public function testATemplateIsNamedAfterItsDescriptionElseItsCustomer(): void
     {
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         self::assertSame('Hosting {month/year}', $this->column('described', 'name'));
         self::assertSame('Example Customer a.s.', $this->column('blank', 'name'), 'no description: the customer');
@@ -72,7 +74,7 @@ final class RecurringNameMigrationTest extends TestCase
 
     public function testBothCopiesStayOnAndTheDeliveryIsKept(): void
     {
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
 
         foreach (['described' => 'send', 'blank' => 'review'] as $label => $delivery) {
             self::assertTrue((bool) $this->column($label, 'copy_to_me'));
@@ -83,7 +85,7 @@ final class RecurringNameMigrationTest extends TestCase
 
     public function testItCanBeRolledBack(): void
     {
-        $this->migrateTo(null);
+        $this->migrateTo(self::AFTER);
         $this->migrateTo(self::BEFORE);
 
         $columns = array_keys($this->db->createSchemaManager()->introspectTableColumnsByUnquotedName('recurring_invoice'));
@@ -173,16 +175,14 @@ final class RecurringNameMigrationTest extends TestCase
         return $connection;
     }
 
-    private function migrateTo(?string $version): void
+    private function migrateTo(string $version): void
     {
         $migrations = DependencyFactory::fromConnection(
             new ConfigurationArray(['migrations_paths' => ['DoctrineMigrations' => \dirname(__DIR__, 2).'/migrations']]),
             new ExistingConnection($this->db),
         );
         $migrations->getMetadataStorage()->ensureInitialized();
-        $plan = $migrations->getMigrationPlanCalculator()->getPlanUntilVersion(
-            null === $version ? $migrations->getVersionAliasResolver()->resolveVersionAlias('latest') : new Version($version),
-        );
+        $plan = $migrations->getMigrationPlanCalculator()->getPlanUntilVersion(new Version($version));
         $migrations->getMigrator()->migrate($plan, new MigratorConfiguration());
     }
 }

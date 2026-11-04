@@ -15,8 +15,8 @@ use App\Shared\Domain\Currency;
 
 /**
  * What a country decides about a document: its home currency and time zone, its
- * VAT rates by date, its legal notes, its supply codes, its payment code and its
- * electronic file. A country module implements this and is tagged automatically.
+ * VAT rates by date, how much it writes off on a payment, its legal notes, its
+ * supply codes, its payment code and its electronic file. A country module implements this and is tagged automatically.
  */
 interface InvoicingCountry
 {
@@ -30,6 +30,12 @@ interface InvoicingCountry
     public function roundsTotalsToWholeUnits(): bool;
 
     public function timezone(): \DateTimeZone;
+
+    /**
+     * The most minor units a firm of the country may write off on an invoice in
+     * the currency, either way, or null when the country has no such custom.
+     */
+    public function settlementLimit(Currency $currency): ?int;
 
     /**
      * @throws \DomainException when the country has no such rate on that date

@@ -22,6 +22,7 @@ use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Domain\VatRegime;
+use App\Party\Application\FirmBankAccounts;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\InvoicingDefaults;
@@ -30,12 +31,15 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
+use App\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
 
 final class NewInvoiceDefaultsTest extends InvoiceTestCase
 {
+    private const string SECOND_IBAN = 'CZ5508000000001234567899';
+
     private NewInvoiceDefaults $defaults;
 
     protected function setUp(): void
@@ -143,9 +147,29 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         self::assertSame('After text', $draft->textAfter);
     }
 
+    public function testArchivedAccountsAreNotOfferedToInvoices(): void
+    {
+        $second = FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        $this->em->flush();
+        self::assertSame(self::IBAN, $this->defaults->for($this->firm)->bankAccount, 'the first account is the primary one');
+
+        $this->em->wrapInTransaction(function () use ($second): void {
+            $accounts = self::getContainer()->get(FirmBankAccounts::class);
+            $accounts->makePrimary($second);
+        });
+        $this->em->clear();
+        $firm = $this->reloadedFirm();
+        self::assertSame(self::SECOND_IBAN, $this->defaults->for($firm)->bankAccount, 'a new invoice gets the primary account');
+
+        FirmAccounts::archiveAll($this->em, $firm);
+        $this->em->flush();
+        $this->em->clear();
+        self::assertNull($this->defaults->for($this->reloadedFirm())->bankAccount, 'an archived account is offered to no invoice');
+    }
+
     public function testAFirmWithoutAccountsHasNoBankAccount(): void
     {
-        $firm = new LegalEntity('Example Bankless s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+        $firm = new LegalEntity('Example Bankless s.r.o.', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em->persist($firm);
         $this->em->flush();
 
@@ -154,7 +178,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
 
     public function testAFirmOfAnUnsupportedCountryHasNoDefaults(): void
     {
-        $firm = new LegalEntity('Example Foreign', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register', []);
+        $firm = new LegalEntity('Example Foreign', new RegistrationNumber('CZ', '12345687'), null, new Address('Example Street 1', 'Example City', '100 00', 'SK'), VatStatus::NotRegistered, 'Register');
         $this->em->persist($firm);
         $this->em->flush();
 
@@ -202,6 +226,7 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
             self::getContainer()->get(FirmInvoicingSettings::class),
             self::getContainer()->get(\App\Invoicing\Application\InvoicingCountries::class),
             self::getContainer()->get(\Psr\Clock\ClockInterface::class),
+            self::getContainer()->get(FirmBankAccounts::class),
         );
 
         self::assertSame($used->id(), $defaults->firmFor($user)?->id());
@@ -310,10 +335,15 @@ final class NewInvoiceDefaultsTest extends InvoiceTestCase
         return new CustomerOption($this->customer->id(), 'Example Customer a.s.', '87654320', 'CZ87654320', new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), $defaults, 'billing@example.com');
     }
 
+    private function reloadedFirm(): LegalEntity
+    {
+        return self::getContainer()->get(\App\Party\Application\LegalEntities::class)->get($this->firm->id());
+    }
+
     private function namedFirm(string $name, string $number): LegalEntity
     {
         $this->firm->archive(new \DateTimeImmutable('2026-10-01'));
-        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register', []);
+        $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
         $this->em->persist($firm);
         $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         $this->em->persist($series);

@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\InvoiceBalances;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
@@ -90,6 +91,7 @@ final class InvoiceSendController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly InvoiceBalances $balances,
         private readonly TenantClock $tenantClock,
+        private readonly InvoicePayments $payments,
     ) {
     }
 
@@ -221,7 +223,7 @@ final class InvoiceSendController extends AbstractController
     private function notRemindable(Invoice $invoice, int $step): ?string
     {
         $number = ['number' => $invoice->number()];
-        if (InvoiceStatus::Overdue !== InvoiceStatus::ofInvoice($invoice, $this->today())) {
+        if (InvoiceStatus::Overdue !== InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice))) {
             return $this->translator->trans('reminder.manual.not_overdue', $number);
         }
         if ($step > FirmReminders::MAX_STEPS) {

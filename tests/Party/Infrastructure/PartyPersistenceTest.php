@@ -73,14 +73,12 @@ final class PartyPersistenceTest extends KernelTestCase
             new Address('Example Street 1', 'Example City', '100 00', 'CZ'),
             VatStatus::IdentifiedPerson,
             'Register entry 1',
-            ['DE89370400440532013000', 'GB82WEST12345698765432'],
         ));
         $this->em->flush();
         $this->em->clear();
 
         $entity = $this->em->getRepository(LegalEntity::class)->findAll()[0];
 
-        self::assertSame(['DE89370400440532013000', 'GB82WEST12345698765432'], $entity->bankAccounts());
         self::assertSame(VatStatus::IdentifiedPerson, $entity->vatStatus());
         self::assertNull($entity->vatId());
         self::assertSame('12345695', $entity->registrationNumber()->value);

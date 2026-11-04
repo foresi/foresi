@@ -63,7 +63,7 @@ final class MailTemplateTest extends TestCase
 
     private function template(string $subject, string $body): MailTemplate
     {
-        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '', []);
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
 
         return MailTemplate::define($firm, MailTemplateKind::Invoice, DocumentLanguage::English, $subject, $body);
     }
