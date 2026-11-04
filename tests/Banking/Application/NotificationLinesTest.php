@@ -62,6 +62,47 @@ final class NotificationLinesTest extends TestCase
         );
     }
 
+    public function testTheEdgesOfUnicodeSurviveWhateverTheDocumentDeclares(): void
+    {
+        $html = '<html><head><meta charset="windows-1250"></head><body>'
+            ."<p>a\u{7F}b\u{80}c\u{10FFFF}d</p></body></html>";
+
+        self::assertSame(["a\u{7F}b\u{80}c\u{10FFFF}d"], NotificationLines::of($html, true));
+    }
+
+    public function testACarriageReturnInsideATextRunIsWhiteSpace(): void
+    {
+        self::assertSame(['A B'], NotificationLines::of('<p>A&#13;B</p>', true));
+    }
+
+    public function testABlockBreaksTheLineOnBothItsSides(): void
+    {
+        self::assertSame(
+            ['Before', 'Inside', 'After'],
+            NotificationLines::of('<body>Before<p>Inside</p>After</body>', true),
+        );
+    }
+
+    public function testTheLibxmlErrorStateIsLeftAsItWas(): void
+    {
+        $previous = libxml_use_internal_errors(false);
+        try {
+            NotificationLines::of('<p><b>Amount</i></p></div>&bogus;', true);
+
+            self::assertFalse(libxml_use_internal_errors(true));
+            new \DOMDocument()->loadHTML('<p><b>unclosed</i></p>');
+            self::assertNotSame([], libxml_get_errors());
+
+            NotificationLines::of('<p>Amount</p>', true);
+
+            self::assertSame([], libxml_get_errors());
+            self::assertTrue(libxml_use_internal_errors());
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
+
     public function testEntitiesAreDecoded(): void
     {
         self::assertSame(['A & B <c>'], NotificationLines::of('<p>A &amp; B &lt;c&gt;</p>', true));

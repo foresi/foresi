@@ -376,6 +376,108 @@ final class KbNotificationParserTest extends TestCase
         $this->assertMovements([$this->expected()], $this->parse($this->inline(html: $html)));
     }
 
+    public function testAValueRightAfterTheColonIsReadWhole(): void
+    {
+        $text = "Incoming payment\nAmount and currency:150,00 CZK\nYour account number:19-2000145399/0800\n"
+            .'Counteraccount number:'.self::COUNTER."\nCounteraccount name:Example Buyer Ltd\nDue date:02.11.2026\n"
+            ."Status of the payment:Booked\nVariable symbol:2026001\nConstant symbol:0308\n";
+
+        $this->assertMovements([$this->expected()], $this->parse($this->inline(text: $text)));
+    }
+
+    public function testAnOwnIbanInLowerCaseIsRead(): void
+    {
+        $text = "Incoming payment\nAmount and currency: 150,00 CZK\nYour account number: cz65 0800 0000 1920 0014 5399\n"
+            ."Status of the payment: Booked\nDue date: 02.11.2026\n";
+
+        $movements = $this->parse($this->inline(text: $text))->movements();
+
+        self::assertCount(1, $movements);
+        self::assertSame(self::OWN_IBAN, $movements[0]->ownAccount);
+    }
+
+    public function testOfPaymentsNoneBookedTheFirstStatusIsTheReason(): void
+    {
+        $payment = "Amount and currency: 150,00 CZK\nYour account number: 19-2000145399/0800\nDue date: 02.11.2026\n";
+        $text = "Incoming payment\n".$payment."Status of the payment: Rejected\n"
+            ."Incoming payment\n".$payment."Status of the payment: REJECTED\n";
+
+        $result = $this->parse($this->inline(text: $text));
+
+        self::assertSame([], $result->movements());
+        self::assertSame('status:Rejected', $result->ignoredReason());
+    }
+
+    public function testAFieldAboveTheFirstHeadingIsAnUnknownLayout(): void
+    {
+        $text = "Amount and currency: 150,00 CZK\nIncoming payment\nAmount and currency: 150,00 CZK\n"
+            ."Your account number: 19-2000145399/0800\nStatus of the payment: Booked\nDue date: 02.11.2026\n";
+
+        $this->assertFailure(ParseFailure::UnknownLayout, 'stands under no heading', $this->inline(text: $text));
+    }
+
+    public function testALineWithAColonButNoLabelIsNoField(): void
+    {
+        self::assertFalse(new KbNotificationParser()->supports($this->inline(text: "Dear client: thank you for banking with us.\n")));
+
+        $text = "Dear client: here is your notice.\nIncoming payment\nAmount and currency: 150,00 CZK\n"
+            ."Your account number: 19-2000145399/0800\nNote: paid in full\nStatus of the payment: Booked\nDue date: 02.11.2026\n";
+
+        self::assertCount(1, $this->parse($this->inline(text: $text))->movements());
+    }
+
+    public function testAFieldOnlyOneLanguageStatesStillCounts(): void
+    {
+        $text = "Příchozí platba\nČástka a měna: 150,00 CZK\nČíslo vašeho účtu: 19-2000145399/0800\n"
+            ."Stav platby: Zaúčtováno\nDatum splatnosti: 02.11.2026\nZpráva pro příjemce: Děkujeme\n"
+            ."Incoming payment\nAmount and currency: 150,00 CZK\nYour account number: 19-2000145399/0800\n"
+            ."Status of the payment: Booked\nDue date: 02.11.2026\nVariable symbol: 2026001\n";
+
+        $movements = $this->parse($this->inline(text: $text))->movements();
+
+        self::assertCount(1, $movements);
+        self::assertSame('Děkujeme', $movements[0]->message);
+        self::assertSame('2026001', $movements[0]->variableSymbol);
+    }
+
+    public function testACounterAccountWrittenDomesticallyAndAsAnIbanAgrees(): void
+    {
+        $movements = $this->parse($this->inline(text: $this->bothLanguages(self::COUNTER, 'CZ10 0100 0001 2345 6789 0123')))->movements();
+
+        self::assertCount(1, $movements);
+        self::assertSame(self::COUNTER, $movements[0]->counterAccount);
+        self::assertSame(self::COUNTER_IBAN, $movements[0]->counterIban);
+        self::assertSame('2026001', $movements[0]->variableSymbol);
+    }
+
+    public function testTheFieldsAfterACounterAccountWrittenTwoWaysMustStillAgree(): void
+    {
+        $text = $this->bothLanguages(self::COUNTER, 'CZ10 0100 0001 2345 6789 0123', englishSymbol: '2026009');
+
+        $this->assertFailure(ParseFailure::Inconsistent, 'variable symbol', $this->inline(text: $text));
+    }
+
+    public function testTwoForeignCounterAccountsWithoutAnIbanMustBeTheSame(): void
+    {
+        $this->assertFailure(ParseFailure::Inconsistent, 'counter-account', $this->inline(text: $this->bothLanguages('000123456789', '000123456788')));
+    }
+
+    public function testWithoutADueDateAndAMailDateThePaymentHasNoDate(): void
+    {
+        $text = "Incoming payment\nAmount and currency: 150,00 CZK\nYour account number: 19-2000145399/0800\n"
+            ."Status of the payment: Booked\n";
+
+        $this->assertFailure(ParseFailure::MissingField, 'no date', $this->inline(text: $text, date: null));
+    }
+
+    private function bothLanguages(string $czechCounter, string $englishCounter, string $englishSymbol = '2026001'): string
+    {
+        return "Příchozí platba\nČástka a měna: 150,00 CZK\nČíslo vašeho účtu: 19-2000145399/0800\n"
+            ."Číslo protiúčtu: {$czechCounter}\nStav platby: Zaúčtováno\nDatum splatnosti: 02.11.2026\nVariabilní symbol: 2026001\n"
+            ."Incoming payment\nAmount and currency: 150,00 CZK\nYour account number: 19-2000145399/0800\n"
+            ."Counteraccount number: {$englishCounter}\nStatus of the payment: Booked\nDue date: 02.11.2026\nVariable symbol: {$englishSymbol}\n";
+    }
+
     /**
      * @param array<string, mixed> $overrides
      *

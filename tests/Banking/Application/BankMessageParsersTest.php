@@ -53,6 +53,22 @@ final class BankMessageParsersTest extends TestCase
         self::assertNull($parsers->byId('third'));
     }
 
+    public function testTheVersionsAreSortedById(): void
+    {
+        $parsers = new BankMessageParsers([$this->parser('second', false, 3), $this->parser('first', false, 2)]);
+
+        self::assertSame(['first' => 2, 'second' => 3], $parsers->versions());
+    }
+
+    public function testTheSignatureHashesEveryIdAndVersionInIdOrder(): void
+    {
+        $signature = 'parsers:'.substr(hash('sha256', "first@2\nsecond@3"), 0, 32);
+
+        self::assertSame($signature, new BankMessageParsers([$this->parser('second', false, 3), $this->parser('first', false, 2)])->signature());
+        self::assertSame($signature, new BankMessageParsers([$this->parser('first', false, 2), $this->parser('second', false, 3)])->signature());
+        self::assertSame(\strlen('parsers:') + 32, \strlen($signature));
+    }
+
     private function mail(): InboundMail
     {
         return new InboundMail(
@@ -69,10 +85,10 @@ final class BankMessageParsersTest extends TestCase
         );
     }
 
-    private function parser(string $id, bool $supports): BankMessageParser
+    private function parser(string $id, bool $supports, int $version = 1): BankMessageParser
     {
-        return new readonly class($id, $supports) implements BankMessageParser {
-            public function __construct(private string $id, private bool $supports)
+        return new readonly class($id, $supports, $version) implements BankMessageParser {
+            public function __construct(private string $id, private bool $supports, private int $version)
             {
             }
 
@@ -83,7 +99,7 @@ final class BankMessageParsersTest extends TestCase
 
             public function version(): int
             {
-                return 1;
+                return $this->version;
             }
 
             public function senderDomains(): array
