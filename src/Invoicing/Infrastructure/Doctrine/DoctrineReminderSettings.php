@@ -13,15 +13,12 @@ use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Domain\FirmReminders;
 use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final readonly class DoctrineReminderSettings implements ReminderSettings
 {
     public function __construct(
         private EntityManagerInterface $em,
         private InvoiceBalances $balances,
-        #[Autowire(param: 'app.reminders.allow_without_payments')]
-        private bool $allowWithoutPayments,
     ) {
     }
 
@@ -41,6 +38,6 @@ final readonly class DoctrineReminderSettings implements ReminderSettings
 
     public function canSwitchOn(): bool
     {
-        return $this->allowWithoutPayments || $this->balances->isAuthoritative();
+        return $this->balances->isAuthoritative();
     }
 }

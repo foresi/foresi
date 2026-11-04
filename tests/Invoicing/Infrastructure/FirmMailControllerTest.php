@@ -325,8 +325,8 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
         $container = self::getContainer();
-        // Without the test's allowance: the bound balances alone decide.
-        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class), false));
+        // The bound balances decide.
+        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class)));
 
         $crawler = $this->client->request('GET', $this->url($firm));
         self::assertCount(0, $crawler->filter('#reminders-enabled[disabled]'));
@@ -362,7 +362,7 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
         $container = self::getContainer();
-        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), new UnauthoritativeBalances($container->get(InvoiceBalances::class)), false));
+        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), new UnauthoritativeBalances($container->get(InvoiceBalances::class))));
 
         $crawler = $this->client->request('GET', $this->url($firm));
         self::assertCount(1, $crawler->filter('#reminders-enabled[disabled]'));

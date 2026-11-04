@@ -349,10 +349,10 @@ final class SendRemindersTest extends SendingTestCase
     {
         $invoice = $this->overdue();
         $this->switchOn();
-        // Balances that know no payments, and without the test's allowance.
+        // Balances that know no payments.
         $container = self::getContainer();
         $balances = new UnauthoritativeBalances($this->balances);
-        $container->set(DoctrineReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $balances, false));
+        $container->set(DoctrineReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $balances));
 
         $this->runOn('2027-01-17 09:00:00');
 
