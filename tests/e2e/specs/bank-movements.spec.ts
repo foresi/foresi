@@ -140,7 +140,10 @@ test.describe.serial('the bank movements', () => {
     await expect(dialog.locator('[data-pair-unverified], [data-pair-checked]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/bank-pair-desktop.png`, fullPage: true });
     await dialog.locator('#pair-q').fill('20260003');
+    // The invoice is already among the suggestions: wait for the search, or it redraws the dialog under the pairing.
+    const searched = page.waitForResponse((response) => response.url().includes('/pair') && response.request().method() === 'POST');
     await page.keyboard.press('Enter');
+    await searched;
     const found = dialog.locator('[data-pair-invoice]').filter({ hasText: '20260003' });
     await expect(found).toBeVisible();
     await found.getByRole('checkbox').check();
