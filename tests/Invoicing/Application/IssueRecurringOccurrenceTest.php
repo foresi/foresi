@@ -319,6 +319,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         $active = $this->save->create($this->recurringInput());
         $invoice = $this->issue->issue($this->input());
 
+        $refused = 0;
         foreach ([[$paused->id(), '2026-12-01'], [$active->id(), '2027-01-01']] as [$id, $occurrence]) {
             $this->em->clear();
             $origin = new RecurringOccurrence($this->templates, $id, new \DateTimeImmutable($occurrence), $this->templates->current($id)->version());
@@ -326,11 +327,11 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
                 self::getContainer()->get(TransactionalWork::class)->run(static function () use ($origin, $invoice): void {
                     $origin->recordIn($invoice);
                 });
-                self::fail('Expected the occurrence to be refused.');
             } catch (OccurrenceTaken) {
-                $this->addToAssertionCount(1);
+                ++$refused;
             }
         }
+        self::assertSame(2, $refused, 'both occurrences are refused');
     }
 
     public function testATemplateChangedWhileItsInvoiceIsBuiltIsBuiltAgain(): void

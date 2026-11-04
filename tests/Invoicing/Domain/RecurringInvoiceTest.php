@@ -139,7 +139,7 @@ final class RecurringInvoiceTest extends TestCase
         self::assertSame(3, $template->version(), 'pausing again changes nothing');
         $template->resume(new \DateTimeImmutable('2026-12-03'));
         self::assertSame(4, $template->version());
-        $template->change($this->content(unit: RecurrenceUnit::Day, dueDays: 30), new \DateTimeImmutable('2026-12-03'));
+        $template->change($this->content(dueDays: 30, unit: RecurrenceUnit::Day), new \DateTimeImmutable('2026-12-03'));
         self::assertSame(5, $template->version());
         $template->end(new \DateTimeImmutable('2026-12-04 10:00:00'));
         self::assertSame(6, $template->version());
