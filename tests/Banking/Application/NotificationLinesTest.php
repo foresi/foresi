@@ -67,7 +67,8 @@ final class NotificationLinesTest extends TestCase
         $html = '<html><head><meta charset="windows-1250"></head><body>'
             ."<p>a\u{7F}b\u{80}c\u{10FFFF}d</p></body></html>";
 
-        self::assertSame(["a\u{7F}b\u{80}c\u{10FFFF}d"], NotificationLines::of($html, true));
+        // libxml 2.14 and later read the reference to U+0080 as HTML5 does, as the euro sign.
+        self::assertContains(NotificationLines::of($html, true), [["a\u{7F}b\u{80}c\u{10FFFF}d"], ["a\u{7F}b€c\u{10FFFF}d"]]);
     }
 
     public function testACarriageReturnInsideATextRunIsWhiteSpace(): void
