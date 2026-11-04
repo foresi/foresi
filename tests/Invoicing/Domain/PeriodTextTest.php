@@ -90,6 +90,7 @@ final class PeriodTextTest extends TestCase
         self::assertSame('4', PeriodText::resolve('{quarter}', new \DateTimeImmutable('2027-12-31')));
         self::assertSame('Q1/2026', PeriodText::resolve('Q{quarter+1}/{year}', new \DateTimeImmutable('2026-11-30')));
         self::assertSame('Q4/2027', PeriodText::resolve('Q{quarter-1}/{year}', new \DateTimeImmutable('2027-02-28')));
+        self::assertSame('Q2', PeriodText::resolve('Q{quarter+1}', new \DateTimeImmutable('2027-01-15')), 'a quarter on moves three months');
         self::assertSame('31', PeriodText::resolve('{day}', new \DateTimeImmutable('2027-01-31')));
         self::assertSame('Q1', PeriodText::resolve('Q{quarter}', new \DateTimeImmutable('2027-01-01')));
     }

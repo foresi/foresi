@@ -327,6 +327,18 @@ final class RecurringScheduleTest extends TestCase
         self::assertSame(['2027-01-31'], array_map($this->day(...), RecurringSchedule::next($onTheDay, 0, new \DateTimeImmutable('2027-01-01'), 5)));
     }
 
+    public function testNextYearsAndWeeksAfterTheAnchorStartAtTheFirstDateNotBefore(): void
+    {
+        self::assertSame(
+            ['2027-06-15', '2028-06-15'],
+            array_map($this->day(...), RecurringSchedule::next($this->recurrence('2000-06-15', RecurrenceUnit::Year), 0, new \DateTimeImmutable('2027-06-14'), 2)),
+        );
+        self::assertSame(
+            ['2027-01-04', '2027-01-11'],
+            array_map($this->day(...), RecurringSchedule::next($this->recurrence('2026-01-05', RecurrenceUnit::Week), 0, new \DateTimeImmutable('2027-01-04'), 2)),
+        );
+    }
+
     public function testRefusesANegativeOccurrence(): void
     {
         $this->expectException(\InvalidArgumentException::class);
