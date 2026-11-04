@@ -18,7 +18,7 @@ use App\Tenancy\Domain\TenantId;
  * What every InvoiceBalances must do. An implementation extends this and says how
  * it is built and how an invoice becomes settled in its world.
  */
-abstract class InvoiceBalancesContractTest extends InvoiceTestCase
+abstract class InvoiceBalancesContract extends InvoiceTestCase
 {
     abstract protected function balances(): InvoiceBalances;
 

@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\InvoiceBalances;
-use App\Tests\Invoicing\Application\InvoiceBalancesContractTest;
+use App\Tests\Invoicing\Application\InvoiceBalancesContract;
 
-final class DueDateBalancesTest extends InvoiceBalancesContractTest
+final class DueDateBalancesTest extends InvoiceBalancesContract
 {
     protected function balances(): InvoiceBalances
     {

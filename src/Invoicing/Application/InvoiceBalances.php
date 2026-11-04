@@ -18,7 +18,7 @@ use App\Shared\Domain\Money;
  * authoritative. The payments module replaces the binding of this interface (the
  * alias in config/services.yaml) with one that knows what was paid, and answers
  * true from isAuthoritative(). Any implementation must pass
- * InvoiceBalancesContractTest.
+ * InvoiceBalancesContract.
  */
 interface InvoiceBalances
 {
