@@ -26,8 +26,10 @@ final class InvoiceRaceTest extends KernelTestCase
     private const string WORKER = 'tests/Invoicing/Infrastructure/Support/race.php';
     private const int ROUNDS = 8;
     private const float START_DELAY = 3.0;
+    private const int ATTEMPTS = 3;
 
-    private ?string $sqliteFile = null;
+    /** @var list<string> */
+    private array $sqliteFiles = [];
 
     protected function setUp(): void
     {
@@ -36,10 +38,10 @@ final class InvoiceRaceTest extends KernelTestCase
 
     protected function tearDown(): void
     {
-        if (null !== $this->sqliteFile) {
+        foreach ($this->sqliteFiles as $file) {
             foreach (['', '-journal', '-wal', '-shm'] as $suffix) {
-                if (is_file($this->sqliteFile.$suffix)) {
-                    unlink($this->sqliteFile.$suffix);
+                if (is_file($file.$suffix)) {
+                    unlink($file.$suffix);
                 }
             }
         }
@@ -60,9 +62,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testParallelIssuesGetDifferentNumbers(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 1);
-
-        $results = $this->race($url, $ids, ['issue', 'issue', 'issue', 'issue']);
+        [, , $results] = $this->raced($kind, self::ROUNDS, 1, ['issue', 'issue', 'issue', 'issue']);
 
         $numbers = array_merge(...$results);
         self::assertCount(4 * self::ROUNDS, array_unique($numbers), 'every issue got a number of its own');
@@ -74,9 +74,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testOfTwoEditsOfOneFormOneWinsAndTheDocumentAddsUp(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 1);
-
-        [$two, $three] = $this->race($url, $ids, ['edit-two', 'edit-three']);
+        [$url, $ids, [$two, $three]] = $this->raced($kind, self::ROUNDS, 1, ['edit-two', 'edit-three']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             $this->assertOneWon($two[$round], $three[$round], $invoice);
@@ -87,9 +85,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testAShrinkAndARewriteOfOneFormNeverMix(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 3);
-
-        [$shrink, $rewrite] = $this->race($url, $ids, ['edit-one', 'edit-three']);
+        [$url, $ids, [$shrink, $rewrite]] = $this->raced($kind, self::ROUNDS, 3, ['edit-one', 'edit-three']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             $this->assertOneWon($shrink[$round], $rewrite[$round], $invoice);
@@ -100,9 +96,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testADoubleClickedSaveCountsOnce(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 3);
-
-        [$first, $second] = $this->race($url, $ids, ['edit-one', 'edit-one']);
+        [$url, $ids, [$first, $second]] = $this->raced($kind, self::ROUNDS, 3, ['edit-one', 'edit-one']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             $this->assertOneWon($first[$round], $second[$round], $invoice);
@@ -114,9 +108,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testAnInvoiceIsNeverDeliveredAndTrashed(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 1);
-
-        [$trash, $deliver] = $this->race($url, $ids, ['trash', 'deliver']);
+        [$url, $ids, [$trash, $deliver]] = $this->raced($kind, self::ROUNDS, 1, ['trash', 'deliver']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertNotSame($invoice['trashed'], $invoice['delivered'], 'one of them wins');
@@ -128,9 +120,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testAnEditNeverLandsOnATrashedInvoice(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 1);
-
-        [$trash, $edit] = $this->race($url, $ids, ['trash', 'edit-two']);
+        [$url, $ids, [$trash, $edit]] = $this->raced($kind, self::ROUNDS, 1, ['trash', 'edit-two']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertSame('done', $trash[$round]);
@@ -148,9 +138,7 @@ final class InvoiceRaceTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testADeliveredInvoiceIsNeverRenumbered(string $kind): void
     {
-        [$url, $ids] = $this->seeded($kind, self::ROUNDS, 1);
-
-        [$deliver, $renumber] = $this->race($url, $ids, ['deliver', 'renumber']);
+        [$url, $ids, [$deliver, $renumber]] = $this->raced($kind, self::ROUNDS, 1, ['deliver', 'renumber']);
 
         foreach ($this->stored($url, $ids) as $round => $invoice) {
             self::assertSame('done', $deliver[$round]);
@@ -237,8 +225,9 @@ final class InvoiceRaceTest extends KernelTestCase
     {
         $url = self::suiteUrl();
         if ('sqlite' === $kind) {
-            $this->sqliteFile = sys_get_temp_dir().'/foresi-race-'.bin2hex(random_bytes(4)).'.db';
-            $url = 'sqlite:///'.$this->sqliteFile;
+            $file = sys_get_temp_dir().'/foresi-race-'.bin2hex(random_bytes(4)).'.db';
+            $this->sqliteFiles[] = $file;
+            $url = 'sqlite:///'.$file;
         }
         $seed = $this->process($url, ['seed', (string) $invoices, (string) $lines]);
         $seed->mustRun();
@@ -247,12 +236,36 @@ final class InvoiceRaceTest extends KernelTestCase
     }
 
     /**
-     * Starts one process per job, and proves they met: in most time slots all of them
-     * were at work on that invoice at once. Scheduling may spoil a slot, so not in all.
+     * Seeds the invoices and races the jobs on them, and proves the processes met: in
+     * most time slots all of them were at work on that invoice at once. A busy machine
+     * can keep them apart, and then the race proved nothing, so it runs again on fresh
+     * invoices; only processes that never meet fail the test.
      *
      * @param list<string> $jobs
      *
-     * @return list<list<string>> the results per job, one per time slot
+     * @return array{string, string, list<list<string>>} the database URL, the ids as JSON and the results per job, one per time slot
+     */
+    private function raced(string $kind, int $invoices, int $lines, array $jobs): array
+    {
+        $needed = (int) ceil($invoices / 2);
+        for ($attempt = 1;; ++$attempt) {
+            [$url, $ids] = $this->seeded($kind, $invoices, $lines);
+            [$results, $met] = $this->race($url, $ids, $jobs);
+            if ($met >= $needed || self::ATTEMPTS === $attempt) {
+                self::assertGreaterThanOrEqual($needed, $met, 'the processes did not meet on the invoices in '.self::ATTEMPTS.' attempts');
+
+                return [$url, $ids, $results];
+            }
+        }
+    }
+
+    /**
+     * Starts one process per job and counts the time slots in which all of them were at
+     * work on that invoice at once.
+     *
+     * @param list<string> $jobs
+     *
+     * @return array{list<list<string>>, int} the results per job, one per time slot, and the slots they met in
      */
     private function race(string $url, string $ids, array $jobs): array
     {
@@ -283,9 +296,8 @@ final class InvoiceRaceTest extends KernelTestCase
             }
             $met += $lastBegan < $firstEnded ? 1 : 0;
         }
-        self::assertGreaterThanOrEqual((int) ceil(\count($results[0]) / 2), $met, 'the processes did not meet on the invoices');
 
-        return $results;
+        return [$results, $met];
     }
 
     /**
