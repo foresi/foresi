@@ -102,4 +102,62 @@ final class AuthenticationResultsParserTest extends TestCase
             new AuthenticationResultsParser()->tags(' i = 2; a=rsa-sha256; cv=pass; D=arc.example.com; s=arc1; b=ZmFr ZQ==; ; junk; i=3'),
         );
     }
+
+    public function testATagListGoesOnPastAPartWithoutATag(): void
+    {
+        self::assertSame(['i' => '1', 'd' => 'arc.example.com'], new AuthenticationResultsParser()->tags('i=1; junk; d=arc.example.com'));
+    }
+
+    public function testResultsInTheAuthservSegmentAreNoResults(): void
+    {
+        // Only what follows the first semicolon is a result: the id's own segment holds the id and a version.
+        self::assertSame(
+            ['authserv' => 'mx.example.com', 'results' => [['method' => 'dmarc', 'result' => 'none', 'props' => []]]],
+            new AuthenticationResultsParser()->parse('mx.example.com dkim=pass header.d=kb.cz; dmarc=none'),
+        );
+    }
+
+    public function testAQuotedAuthservIdIsLowercasedAndEndsAtItsQuote(): void
+    {
+        self::assertSame('mx.example.com', new AuthenticationResultsParser()->parse('"MX.Example.COM" 1; none')['authserv']);
+    }
+
+    public function testATrailingBackslashInAnUnclosedQuotedIdIsKept(): void
+    {
+        self::assertSame('mx.example.com\\', new AuthenticationResultsParser()->parse('"mx.example.com\\')['authserv']);
+    }
+
+    public function testAnEscapedQuoteKeepsTheQuotedStringOpenAcrossASemicolon(): void
+    {
+        // A lone quote escaped in a value does not close it, so the semicolon after it splits nothing.
+        self::assertSame(
+            [['method' => 'dkim', 'result' => 'fail', 'props' => ['reason' => 'say "hi; dmarc=pass']]],
+            new AuthenticationResultsParser()->parse('mx.example.com; dkim=fail reason="say \"hi; dmarc=pass"')['results'],
+        );
+    }
+
+    public function testAnEscapedQuoteEndingAnUnclosedValueIsItsLastCharacter(): void
+    {
+        self::assertSame(
+            [['method' => 'dkim', 'result' => 'pass', 'props' => ['reason' => 'a"']]],
+            new AuthenticationResultsParser()->parse('mx.example.com; dkim=pass reason="a\"')['results'],
+        );
+    }
+
+    public function testOnlyTheReasonAndDottedPropertiesAreKept(): void
+    {
+        // A word that is no pair, and a pair that is neither, do not end the result.
+        self::assertSame(
+            [['method' => 'dkim', 'result' => 'pass', 'props' => ['header.d' => 'kb.cz', 'reason' => 'ok']]],
+            new AuthenticationResultsParser()->parse('mx.example.com; dkim=pass extra policy=x header.d=kb.cz reason=ok')['results'],
+        );
+    }
+
+    public function testAMethodWithoutAResultIsNoResult(): void
+    {
+        self::assertSame(
+            [['method' => 'dmarc', 'result' => 'none', 'props' => []]],
+            new AuthenticationResultsParser()->parse('mx.example.com; dkim=; dmarc=none')['results'],
+        );
+    }
 }

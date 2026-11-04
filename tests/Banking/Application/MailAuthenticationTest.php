@@ -380,6 +380,127 @@ final class MailAuthenticationTest extends TestCase
         );
     }
 
+    public function testALookalikeSenderDomainIsNotTheBanks(): void
+    {
+        // "notkb.cz" ends with the bank's domain, but is not below it.
+        $mail = $this->mail([
+            ['Authentication-Results', 'mx.example.com; dkim=pass header.d=notkb.cz; dmarc=pass header.from=notkb.cz'],
+            ['From', 'info@notkb.cz'],
+        ], 'info@notkb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    public function testADmarcPassForAnotherOfTheBanksDomainsIsNotEnough(): void
+    {
+        // kbinfo.cz is the bank's, but the sender is not below it.
+        $mail = $this->mail([
+            ['Authentication-Results', 'mx.example.com; dmarc=pass header.from=kbinfo.cz'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Unverified, TrustVerdict::UNSIGNED), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    public function testAPassAndAFailForAnotherOfTheBanksDomainsAreAmbiguous(): void
+    {
+        // The signer is the bank's, but the sender is not below it: not a broken signature of this sender.
+        $mail = $this->mail([
+            ['Authentication-Results', 'mx.example.com; dkim=pass header.d=kbinfo.cz; dkim=fail header.d=kbinfo.cz; dmarc=pass header.from=kb.cz'],
+            ['From', 'info@kb.cz'],
+        ], 'info@kb.cz');
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::AMBIGUOUS), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    public function testAnArcRescueDoesNotHideAPassAndAFailOfTheSendersSigner(): void
+    {
+        $mail = $this->arcMail(
+            'mx.example.com; dkim=fail header.d=kb.cz; dkim=pass header.d=kb.cz; arc=pass',
+            [['ARC-Seal', 'i=1; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='], ['ARC-Authentication-Results', 'i=1; arc.example.com; dkim=pass header.d=kb.cz']],
+        );
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    public function testAnArcPassWithoutAnyArcHeadersRescuesNothing(): void
+    {
+        $mail = $this->arcMail('mx.example.com; dkim=fail header.d=kb.cz; arc=pass', []);
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    /**
+     * @return iterable<string, array{list<array{string, string}>}>
+     */
+    public static function readableArcSets(): iterable
+    {
+        yield 'results folded over two lines' => [[
+            ['ARC-Seal', 'i=1; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Authentication-Results', "i=1; arc.example.com;\r\n dkim=pass header.d=kb.cz"],
+        ]];
+        yield 'results numbered with a leading zero' => [[
+            ['ARC-Seal', 'i=1; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Authentication-Results', 'i=01; arc.example.com; dkim=pass header.d=kb.cz'],
+        ]];
+        yield 'a seal numbered with a leading zero' => [[
+            ['ARC-Seal', 'i=01; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Authentication-Results', 'i=1; arc.example.com; dkim=pass header.d=kb.cz'],
+        ]];
+    }
+
+    /**
+     * @param list<array{string, string}> $arc
+     */
+    #[DataProvider('readableArcSets')]
+    public function testAnArcSetIsReadHoweverItIsWritten(array $arc): void
+    {
+        $mail = $this->arcMail('mx.example.com; dkim=fail header.d=kb.cz; arc=pass', $arc);
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Verified, TrustVerdict::ARC), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    /**
+     * The newest instance is the highest of the results and the seals together,
+     * whichever order they come in; a set missing either half vouches for nothing.
+     *
+     * @return iterable<string, array{list<array{string, string}>}>
+     */
+    public static function newestArcSetIncomplete(): iterable
+    {
+        yield 'newer results without a seal' => [[
+            ['ARC-Seal', 'i=1; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Authentication-Results', 'i=1; arc.example.com; dkim=pass header.d=kb.cz'],
+            ['ARC-Authentication-Results', 'i=2; arc.example.com; dkim=pass header.d=kb.cz'],
+        ]];
+        yield 'a newer seal without results' => [[
+            ['ARC-Seal', 'i=1; a=rsa-sha256; cv=none; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Seal', 'i=2; a=rsa-sha256; cv=pass; d=arc.example.com; s=arc1; b=ZmFrZQ=='],
+            ['ARC-Authentication-Results', 'i=1; arc.example.com; dkim=pass header.d=kb.cz'],
+        ]];
+    }
+
+    /**
+     * @param list<array{string, string}> $arc
+     */
+    #[DataProvider('newestArcSetIncomplete')]
+    public function testAnIncompleteNewestArcSetRescuesNothing(array $arc): void
+    {
+        $mail = $this->arcMail('mx.example.com; dkim=fail header.d=kb.cz; arc=pass', $arc);
+
+        self::assertEquals(new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL), $this->authentication()->verdict($mail, self::BANK, InboundChannel::Imap));
+    }
+
+    /**
+     * A mail from the bank whose receiving server wrote the results, with the ARC headers below them.
+     *
+     * @param list<array{string, string}> $arc
+     */
+    private function arcMail(string $results, array $arc): InboundMail
+    {
+        return $this->mail([['Authentication-Results', $results], ...$arc, ['From', 'info@kb.cz']], 'info@kb.cz');
+    }
+
     private function assertVerdict(MessageTrust $trust, string $basis, string $fixture, ?TrustSettings $settings = null): void
     {
         self::assertEquals(
