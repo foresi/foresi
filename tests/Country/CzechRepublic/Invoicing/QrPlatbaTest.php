@@ -98,6 +98,12 @@ final class QrPlatbaTest extends TestCase
         self::assertNull($this->qr(method: PaymentMethod::Card));
     }
 
+    public function testTheLargestAmountTakesAllTenCharactersOfItsKey(): void
+    {
+        self::assertStringContainsString('*AM:9999999.99*', (string) $this->qr(payable: '9999999.99'));
+        self::assertStringContainsString('*AM:9999999.99*', (string) $this->qr(payable: '10000000.00', leftToPay: '9999999.99'));
+    }
+
     public function testNoCodeForZero(): void
     {
         self::assertNull($this->qr(payable: '0.00'));
