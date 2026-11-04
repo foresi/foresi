@@ -214,7 +214,10 @@ final class TenantClockTest extends KernelTestCase
     {
         self::assertTrue(Tenant::isNamed(new \DateTimeZone('Europe/Prague')));
         self::assertFalse(Tenant::isNamed(new \DateTimeZone('+01:00')));
-        self::assertFalse(Tenant::isNamed(new \DateTimeZone('US/Eastern')));
+        // Some time zone databases leave out the old aliases, and then PHP cannot open one at all.
+        if (\in_array('US/Eastern', \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+            self::assertFalse(Tenant::isNamed(new \DateTimeZone('US/Eastern')));
+        }
     }
 
     private function tenant(?string $zone): TenantId
