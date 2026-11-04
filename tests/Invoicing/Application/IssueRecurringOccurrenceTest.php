@@ -15,16 +15,28 @@ use App\Country\CzechRepublic\Invoicing\IsdocWriter;
 use App\Country\CzechRepublic\Invoicing\QrPlatba;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
+use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueRecurringOccurrence;
+use App\Invoicing\Application\OccurrenceTaken;
+use App\Invoicing\Application\RecurringChangedMeanwhile;
+use App\Invoicing\Application\RecurringFilter;
+use App\Invoicing\Application\RecurringInvoices;
+use App\Invoicing\Application\RecurringOccurrence;
+use App\Invoicing\Application\RecurringPage;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\RecurringInvoice;
+use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
 use App\Party\Domain\PartyAddress;
+use App\Tenancy\Application\TenantClock;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 /**
@@ -288,6 +300,146 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
 
         $this->expectException(\DomainException::class);
         $invoice->issuedFrom('01963c5e-0000-7000-8000-0000000000aa', new \DateTimeImmutable('2027-01-01'));
+    }
+
+    public function testATemplateNotActiveIsNotCheckedByTheRules(): void
+    {
+        $template = $this->save->create($this->recurringInput());
+        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->customer, $this->firm, true);
+        $this->em->flush();
+        $this->lifecycle->pause($template->id());
+
+        self::assertNull($this->occurrences->issue($template->id(), new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-01')), 'nothing to issue, so nothing to refuse');
+    }
+
+    public function testTheOccurrenceIsTakenOnlyFromAnActiveTemplateOnItsNextDate(): void
+    {
+        $paused = $this->save->create($this->recurringInput());
+        $this->lifecycle->pause($paused->id());
+        $active = $this->save->create($this->recurringInput());
+        $invoice = $this->issue->issue($this->input());
+
+        foreach ([[$paused->id(), '2026-12-01'], [$active->id(), '2027-01-01']] as [$id, $occurrence]) {
+            $this->em->clear();
+            $origin = new RecurringOccurrence($this->templates, $id, new \DateTimeImmutable($occurrence), $this->templates->current($id)->version());
+            try {
+                self::getContainer()->get(TransactionalWork::class)->run(static function () use ($origin, $invoice): void {
+                    $origin->recordIn($invoice);
+                });
+                self::fail('Expected the occurrence to be refused.');
+            } catch (OccurrenceTaken) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testATemplateChangedWhileItsInvoiceIsBuiltIsBuiltAgain(): void
+    {
+        $template = $this->save->create($this->recurringInput());
+
+        $invoice = $this->occurrencesChangedMeanwhile(2)->issue($template->id(), new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-01'));
+
+        self::assertInstanceOf(Invoice::class, $invoice, 'the third build holds');
+        self::assertSame(1, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM invoice'));
+    }
+
+    public function testATemplateThatKeepsChangingIsGivenUp(): void
+    {
+        $template = $this->save->create($this->recurringInput());
+
+        $this->expectException(RecurringChangedMeanwhile::class);
+
+        $this->occurrencesChangedMeanwhile(3)->issue($template->id(), new \DateTimeImmutable('2026-12-01'), new \DateTimeImmutable('2026-12-01'));
+    }
+
+    /**
+     * Occurrences of templates that someone saves again, $times, while the invoice is built.
+     */
+    private function occurrencesChangedMeanwhile(int $times): IssueRecurringOccurrence
+    {
+        $container = self::getContainer();
+        $templates = new class($this->templates, $this->em->getConnection(), $times) implements RecurringInvoices {
+            public function __construct(private readonly RecurringInvoices $inner, private readonly Connection $connection, private int $times)
+            {
+            }
+
+            public function get(string $id): RecurringInvoice
+            {
+                return $this->inner->get($id);
+            }
+
+            public function lock(string $id): RecurringInvoice
+            {
+                return $this->inner->lock($id);
+            }
+
+            public function current(string $id): RecurringInvoice
+            {
+                return $this->inner->current($id);
+            }
+
+            public function lockDuringWrite(string $id): RecurringInvoice
+            {
+                if ($this->times > 0) {
+                    --$this->times;
+                    $this->connection->executeStatement('UPDATE recurring_invoice SET version = version + 1 WHERE id = ?', [$id]);
+                }
+
+                return $this->inner->lockDuringWrite($id);
+            }
+
+            public function occurrenceIssued(string $id, \DateTimeImmutable $occurrence): bool
+            {
+                return $this->inner->occurrenceIssued($id, $occurrence);
+            }
+
+            public function add(RecurringInvoice $template): void
+            {
+                $this->inner->add($template);
+            }
+
+            public function remove(RecurringInvoice $template): void
+            {
+                $this->inner->remove($template);
+            }
+
+            public function lines(RecurringInvoice $template): array
+            {
+                return $this->inner->lines($template);
+            }
+
+            public function addLine(RecurringInvoiceLine $line): void
+            {
+                $this->inner->addLine($line);
+            }
+
+            public function removeLine(RecurringInvoiceLine $line): void
+            {
+                $this->inner->removeLine($line);
+            }
+
+            public function due(\DateTimeImmutable $today): array
+            {
+                return $this->inner->due($today);
+            }
+
+            public function page(RecurringFilter $filter): RecurringPage
+            {
+                return $this->inner->page($filter);
+            }
+
+            public function failing(): int
+            {
+                return $this->inner->failing();
+            }
+
+            public function inReview(?string $firmId = null): int
+            {
+                return $this->inner->inReview($firmId);
+            }
+        };
+
+        return new IssueRecurringOccurrence($templates, $container->get(IssueInvoice::class), $container->get(TenantClock::class));
     }
 
     /**

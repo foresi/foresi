@@ -16,11 +16,15 @@ use App\Country\CzechRepublic\Invoicing\QrPlatba;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueRecurringInvoices;
+use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\MailMessage;
+use App\Invoicing\Application\RecurringAlerts;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInput;
 use App\Invoicing\Application\RecurringInvoices;
@@ -35,6 +39,7 @@ use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Application\ContactSettingsForFirm;
+use App\Party\Application\TransactionalWork;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
@@ -45,8 +50,11 @@ use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\Schedule\RunScheduledJob;
 use App\Tenancy\Application\Schedule\ScheduledJobRuns;
+use App\Tenancy\Application\TenantClock;
 use App\Tenancy\Infrastructure\Schedule\RunScheduledJobHandler;
 use App\Tests\Import\Support\RunMessages;
+use App\Tests\Support\Registry\RecordingLogger;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -334,6 +342,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     {
         $this->contactEmail('office@example.com');
         $template = $this->template();
+        $other = $this->template();
         $this->connection->executeStatement('DELETE FROM firm_mail_server');
 
         $this->runOn('2026-12-01 05:30:00');
@@ -341,11 +350,12 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $invoices = $this->invoicesOf($template);
         self::assertCount(1, $invoices, 'issued');
         self::assertSame(0, $this->sendCount(), 'not sent');
-        self::assertSame([$invoices[0]['id']], $this->toSend());
+        self::assertEqualsCanonicalizing([$invoices[0]['id'], self::text($this->invoicesOf($other)[0], 'id')], $this->toSend());
         $row = $this->templateRow($template->id());
         self::assertSame(['send.no_server', '2027-01-01'], [$row['last_failure_code'], $row['next_occurrence']]);
         self::assertNotNull($row['last_failure_at']);
-        self::assertSame(1, $this->templates->failing());
+        self::assertSame('send.no_server', $this->templateRow($other->id())['last_failure_code'], 'tried on its own, not held for a budget');
+        self::assertSame(2, $this->templates->failing());
         self::assertSame([], $this->gateway->attempts(), 'without a server no alert can leave; the notice carries it');
     }
 
@@ -609,6 +619,248 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         self::assertSame([], $this->invoicesOf($template));
     }
 
+    public function testAFailureBeforeAnUnexpectedErrorIsStillTold(): void
+    {
+        $this->contactEmail('office@example.com');
+        $archived = $this->customer();
+        $this->em->flush();
+        $refused = $this->template(customer: $archived);
+        $this->template();
+        self::getContainer()->get(ContactSettingsForFirm::class)->changeArchived($this->partyNow($archived), $this->firmNow(), true);
+        $this->em->flush();
+        // The second template breaks on what no rule foresaw: the table of invoice lines is gone.
+        $this->connection->executeStatement('ALTER TABLE invoice_line RENAME TO invoice_line_gone');
+        try {
+            $this->runOn('2026-12-01 05:30:00');
+            self::fail('The run gives the period back.');
+        } catch (\Throwable $error) {
+            self::assertNotInstanceOf(\PHPUnit\Framework\AssertionFailedError::class, $error);
+        } finally {
+            $this->connection->executeStatement('ALTER TABLE invoice_line_gone RENAME TO invoice_line');
+        }
+
+        $messages = $this->gateway->messages();
+        self::assertCount(1, $messages, 'the refusal before the error is told');
+        self::assertStringContainsString('archivovaný', $messages[0]->text);
+        self::assertSame('2026-12-01', $this->templateRow($refused->id())['last_alert_on']);
+    }
+
+    public function testRunningOneTemplateWithNothingDueLeavesItsFailure(): void
+    {
+        $template = $this->template();
+        $this->connection->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'send.no_server', last_failure_at = '2026-11-01 05:30:00' WHERE id = ?", [$template->id()]);
+
+        self::mockTime('2026-11-20 10:00:00');
+        $this->em->clear();
+        self::getContainer()->get(IssueRecurringInvoices::class)->runOne($template->id());
+
+        self::assertSame('send.no_server', $this->templateRow($template->id())['last_failure_code'], 'not due: left as it is');
+        self::assertSame([], $this->invoicesOf($template));
+    }
+
+    public function testRunningOnePausedTemplateLeavesItAsItIs(): void
+    {
+        $template = $this->template();
+        self::getContainer()->get(\App\Invoicing\Application\RecurringLifecycle::class)->pause($template->id());
+        $this->connection->executeStatement("UPDATE recurring_invoice SET last_failure_code = 'send.no_server', last_failure_at = '2026-11-01 05:30:00' WHERE id = ?", [$template->id()]);
+        $this->finishedOn('2026-12-01');
+        self::mockTime('2026-12-01 10:00:00');
+
+        self::assertFalse($this->afterTodaysRun()->afterChange($template->id()), 'a paused template is not handed to the worker');
+        $this->em->clear();
+        self::getContainer()->get(IssueRecurringInvoices::class)->runOne($template->id());
+
+        self::assertSame('send.no_server', $this->templateRow($template->id())['last_failure_code']);
+        self::assertSame([], $this->invoicesOf($template));
+    }
+
+    public function testRunningOneRefusedTemplateTellsTheFirm(): void
+    {
+        $this->contactEmail('office@example.com');
+        $template = $this->template();
+        $this->connection->executeStatement('DELETE FROM party_address');
+        self::mockTime('2026-12-01 10:00:00');
+        $this->em->clear();
+
+        self::getContainer()->get(IssueRecurringInvoices::class)->runOne($template->id());
+
+        self::assertSame('invoice.problem.customer_address_incomplete', $this->templateRow($template->id())['last_failure_code']);
+        $messages = $this->gateway->messages();
+        self::assertCount(1, $messages);
+        self::assertSame(['office@example.com'], $messages[0]->to);
+    }
+
+    public function testASpentBudgetHoldsOnlyWhatWouldBeSentNow(): void
+    {
+        $this->contactEmail('office@example.com');
+        // More than three days late before the budget runs out: held for review, not for the budget.
+        $lateReview = $this->template('2026-11-25', delivery: RecurringDelivery::Review);
+        $daily = $this->template('2026-12-01', RecurrenceUnit::Day);
+        $review = $this->template(delivery: RecurringDelivery::Review);
+        $lateSend = $this->template('2026-11-25');
+        $limiter = self::getContainer()->get('test.invoice_send_firm_limiter');
+        $limiter->create($this->firm->id())->consume(400);
+
+        $this->runOn('2026-12-03 05:30:00');
+
+        self::assertSame(['2026-12-01', '2026-12-02', '2026-12-03'], array_column($this->invoicesOf($daily), 'recurring_occurrence'), 'each date is issued and held');
+        self::assertSame('send.rate_limited', $this->templateRow($daily->id())['last_failure_code']);
+        foreach ([$lateReview, $review, $lateSend] as $template) {
+            self::assertCount(1, $this->invoicesOf($template));
+            self::assertNull($this->templateRow($template->id())['last_failure_code'], 'it waits for review anyway');
+        }
+        self::assertSame(0, $this->sendCount());
+    }
+
+    public function testAnUnexpectedErrorWhileSendingStopsThatTemplatesRun(): void
+    {
+        $template = $this->template('2026-12-01', RecurrenceUnit::Day);
+        $this->connection->executeStatement('ALTER TABLE invoice_send RENAME TO invoice_send_gone');
+        try {
+            $this->runOn('2026-12-02 05:30:00');
+        } finally {
+            $this->connection->executeStatement('ALTER TABLE invoice_send_gone RENAME TO invoice_send');
+        }
+
+        self::assertSame(['2026-12-01'], array_column($this->invoicesOf($template), 'recurring_occurrence'), 'the next date waits for the next run');
+        $row = $this->templateRow($template->id());
+        self::assertSame(['send.unexpected', '2026-12-02'], [$row['last_failure_code'], $row['next_occurrence']]);
+    }
+
+    public function testWhatWentWrongIsLoggedWithTheTemplate(): void
+    {
+        $refused = $this->template();
+        $this->connection->executeStatement('DELETE FROM party_address');
+        $logger = new RecordingLogger();
+
+        $this->runWith($logger, '2026-12-01 05:30:00');
+
+        self::assertSame(['warning'], array_column($logger->records, 'level'));
+        self::assertSame(['template' => $refused->id(), 'code' => 'invoice.problem.customer_address_incomplete'], $logger->contexts[0]);
+    }
+
+    public function testAnUnexpectedErrorWhileSendingIsLoggedWithTheInvoice(): void
+    {
+        $template = $this->template();
+        $logger = new RecordingLogger();
+        $this->connection->executeStatement('ALTER TABLE invoice_send RENAME TO invoice_send_gone');
+        try {
+            $this->runWith($logger, '2026-12-01 05:30:00');
+        } finally {
+            $this->connection->executeStatement('ALTER TABLE invoice_send_gone RENAME TO invoice_send');
+        }
+
+        self::assertSame(['error', 'warning'], array_column($logger->records, 'level'));
+        $context = $logger->contexts[0];
+        self::assertSame([self::text($this->invoicesOf($template)[0], 'id'), $template->id()], [$context['invoice'] ?? null, $context['template'] ?? null]);
+        self::assertInstanceOf(\Throwable::class, $context['exception'] ?? null);
+    }
+
+    public function testAlertsGoToEachRecipientInEachLanguage(): void
+    {
+        $this->contactEmail('office@example.com');
+        $this->template();
+        $this->template(language: DocumentLanguage::English);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $subjects = array_map(static fn (MailMessage $message): string => $message->subject, $this->gateway->messages());
+        sort($subjects);
+        self::assertSame(['A recurring invoice could not be issued', 'Pravidelnou fakturu se nepodařilo vystavit'], $subjects, 'one mail per language');
+    }
+
+    public function testWithoutAContactEachOwnerHearsOfTheirOwn(): void
+    {
+        $nobody = $this->template();
+        $first = $this->template();
+        $second = $this->template();
+        $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$this->owner()->id(), $first->id()]);
+        $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$this->member('colleague@example.com')->id(), $second->id()]);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $to = array_map(static fn (MailMessage $message): array => $message->to, $this->gateway->messages());
+        sort($to);
+        self::assertSame([['colleague@example.com'], ['owner@example.com']], $to, 'a template nobody can hear of does not stop the others');
+        self::assertNull($this->templateRow($nobody->id())['last_alert_on']);
+    }
+
+    public function testAContactThatIsNoAddressFallsBackToTheOwner(): void
+    {
+        $this->contactEmail('office@example.com');
+        $template = $this->template();
+        $this->connection->executeStatement('UPDATE recurring_invoice SET owner_id = ? WHERE id = ?', [$this->owner()->id(), $template->id()]);
+        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = 'office at example' WHERE legal_entity_id = ?", [$this->firm->id()]);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        self::assertSame([['owner@example.com']], array_map(static fn (MailMessage $message): array => $message->to, $this->gateway->messages()));
+    }
+
+    public function testTheContactAddressIsTrimmed(): void
+    {
+        $this->contactEmail('office@example.com');
+        $this->template();
+        $this->connection->executeStatement("UPDATE firm_invoicing SET contact_email = ' office@example.com ' WHERE legal_entity_id = ?", [$this->firm->id()]);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        self::assertSame([['office@example.com']], array_map(static fn (MailMessage $message): array => $message->to, $this->gateway->messages()));
+    }
+
+    public function testATemplateToldAlreadyTodayDoesNotStopTheOthers(): void
+    {
+        $this->contactEmail('office@example.com');
+        $this->template();
+        $this->connection->executeStatement('DELETE FROM party_address');
+        $this->runOn('2026-12-01 05:30:00');
+        self::assertCount(1, $this->gateway->messages());
+
+        // A template in another language fails later the same day; the first is not told twice.
+        $this->template('2026-12-01', language: DocumentLanguage::English);
+        $this->connection->executeStatement('DELETE FROM party_address');
+        $this->runOn('2026-12-01 09:00:00');
+
+        $messages = $this->gateway->messages();
+        self::assertCount(2, $messages);
+        self::assertSame('A recurring invoice could not be issued', $messages[1]->subject);
+    }
+
+    public function testTheAlertIsEscapedForItsHtmlPartAndNamedForItsDay(): void
+    {
+        $this->contactEmail('office@example.com');
+        $template = $this->template(language: DocumentLanguage::English);
+        $this->connection->executeStatement("UPDATE party SET display_name = 'O''Brien & Sons' WHERE id = ?", [$this->customer->id()]);
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $message = $this->gateway->messages()[0];
+        self::assertStringContainsString("O'Brien & Sons", $message->text);
+        self::assertStringContainsString('O&apos;Brien &amp; Sons', $message->html);
+        self::assertStringContainsString("<br>\n", $message->html);
+        self::assertStringNotContainsString('<br />', $message->html);
+        self::assertSame('<recurring-alert.'.$template->id().'.20261201@example.com>', $message->messageId, 'one template: named by it');
+    }
+
+    public function testADigestIsNamedByTheFirm(): void
+    {
+        $this->contactEmail('office@example.com');
+        $this->template();
+        $this->template();
+        $this->connection->executeStatement('DELETE FROM party_address');
+
+        $this->runOn('2026-12-01 05:30:00');
+
+        $messages = $this->gateway->messages();
+        self::assertCount(1, $messages);
+        self::assertSame('<recurring-alert.'.$this->firm->id().'.20261201@example.com>', $messages[0]->messageId);
+    }
+
     /**
      * @param list<LineInput>|null $lines
      */
@@ -717,6 +969,35 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->em->flush();
 
         return $owner;
+    }
+
+    private function member(string $email): User
+    {
+        $user = new User($email, 'hash', 'Example Colleague');
+        $this->em->persist($user);
+        $this->em->persist(new Membership($user, Role::Member));
+        $this->em->flush();
+
+        return $user;
+    }
+
+    private function runWith(RecordingLogger $logger, string $moment): void
+    {
+        self::mockTime($moment);
+        $this->em->clear();
+        $container = self::getContainer();
+        $run = new IssueRecurringInvoices(
+            $container->get(RecurringInvoices::class),
+            $container->get(IssueRecurringOccurrence::class),
+            $container->get(DeliverRecurringInvoice::class),
+            $container->get(RecurringAlerts::class),
+            $container->get(TransactionalWork::class),
+            $container->get(TenantClock::class),
+            $container->get(ClockInterface::class),
+            $logger,
+        );
+        $run->run(null);
+        $this->em->clear();
     }
 
     private function copyAddress(string $address): void
