@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Banking\Application\Candidates;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
@@ -16,6 +17,7 @@ use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStatus;
+use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentSourceRelease;
@@ -32,6 +34,8 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
+use App\Tests\Banking\Support\LockLog;
+use App\Tests\Banking\Support\LoggingInvoiceStore;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -96,6 +100,8 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertSame(PaymentState::PartlyPaid, PaymentState::of($stored->payable(), $this->payments->paidOf($stored)));
         self::assertSame(InvoiceStatus::Overdue, $this->statusOf($stored));
         self::assertSame(InvoiceStatus::PartlyPaid, InvoiceStatus::ofInvoice($stored, new \DateTimeImmutable('2026-11-10'), $this->payments->paidOf($stored)));
+        self::assertSame(InvoiceStatus::PartlyPaid, InvoiceStatus::ofInvoice($stored, new \DateTimeImmutable('2026-11-15 23:59'), $this->payments->paidOf($stored)), 'On its due date it is not overdue yet.');
+        self::assertSame(InvoiceStatus::Overdue, InvoiceStatus::ofInvoice($stored, new \DateTimeImmutable('2026-11-16'), $this->payments->paidOf($stored)));
     }
 
     public function testAnOverpaymentIsOverpaid(): void
@@ -130,6 +136,72 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertSame(6000, $this->payments->paidOf($this->store->get($first->id()))->minor());
         self::assertSame(4000, $this->payments->paidOf($this->store->get($second->id()))->minor());
         self::assertSame([$first->id() => 6000, $second->id() => 4000], $this->payments->paidFor([$first->id(), $second->id()]));
+    }
+
+    public function testEachInvoiceIsLockedOnceInAscendingOrderOfItsId(): void
+    {
+        $first = $this->issue->issue($this->input());
+        $second = $this->issue->issue($this->input());
+        $ids = [$first->id(), $second->id()];
+        sort($ids, \SORT_STRING);
+        $log = new LockLog(self::getContainer()->get(Candidates::class));
+
+        $payment = $this->recordingWith($log)->record($this->request('100.00', [
+            new AllocationRequest($ids[1], $this->czk('30.00')),
+            new AllocationRequest($ids[0], $this->czk('60.00')),
+            new AllocationRequest($ids[1], $this->czk('10.00')),
+        ]));
+
+        self::assertSame(['lock:'.$ids[0], 'lock:'.$ids[1]], $log->entries);
+        $this->em->clear();
+        self::assertSame([$ids[0] => 6000, $ids[1] => 4000], $this->payments->paidFor($ids));
+        self::assertSame(10000, $this->payments->get($payment->id())->amount()->minor());
+    }
+
+    public function testCancellingLocksEveryInvoiceThePaymentPaid(): void
+    {
+        $first = $this->issue->issue($this->input());
+        $second = $this->issue->issue($this->input());
+        $payment = $this->record->record($this->request('100.00', [
+            new AllocationRequest($first->id(), $this->czk('60.00')),
+            new AllocationRequest($second->id(), $this->czk('40.00')),
+        ]));
+        $log = new LockLog(self::getContainer()->get(Candidates::class));
+        $container = self::getContainer();
+        $cancel = new CancelPayment($this->payments, new LoggingInvoiceStore($this->store, $log), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(AuditActor::class), Clock::get(), $container->get(PaymentSourceRelease::class));
+
+        $cancel->cancel($payment->id());
+
+        $expected = ['lock:'.$first->id(), 'lock:'.$second->id()];
+        $actual = $log->entries;
+        sort($expected);
+        sort($actual);
+        self::assertSame($expected, $actual);
+        self::assertTrue($this->payments->get($payment->id())->isCancelled());
+    }
+
+    public function testAValidSettlementIsStillRefusedOverTwoInvoices(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $other = $this->issue->issue($this->input());
+
+        // 1209.50 and 0.50 written off close the first invoice exactly; a second invoice still forbids it.
+        $this->assertRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED, fn (): Payment => $this->record->record($this->request('1309.50', [
+            new AllocationRequest($invoice->id(), $this->czk('1209.50'), $this->czk('0.50')),
+            new AllocationRequest($other->id(), $this->czk('100.00')),
+        ])));
+        $this->assertNothingStored();
+    }
+
+    public function testAZeroSettlementIsNoSettlementAndNeedNotCloseTheInvoice(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $this->record->record($this->request('500.00', [new AllocationRequest($invoice->id(), $this->czk('500.00'), $this->czk('0.00'))]));
+
+        $stored = $this->reloaded($invoice);
+        self::assertSame(50000, $this->payments->paidOf($stored)->minor());
+        self::assertSame(PaymentState::PartlyPaid, PaymentState::of($stored->payable(), $this->payments->paidOf($stored)));
     }
 
     public function testASettlementCountsTowardTheInvoiceButNotThePayment(): void
@@ -489,6 +561,47 @@ final class RecordPaymentTest extends InvoiceTestCase
         );
         self::assertSame(['2026-11-20 10:01', '2026-11-20 10:02'], [$history[1]->occurredAt->format('Y-m-d H:i'), $history[2]->occurredAt->format('Y-m-d H:i')]);
         self::assertSame([[], []], [$history[1]->fields, $history[2]->fields]);
+        self::assertSame([null, 121000, 121000], array_map(static fn (InvoiceHistoryEntry $entry): ?int => $entry->amountMinor, $history));
+    }
+
+    public function testHistoryAddsUpEveryAllocationOfAPaymentWithItsSettlement(): void
+    {
+        $clock = new MockClock('2026-11-20 10:00:00', 'UTC');
+        Clock::set($clock);
+        $invoice = $this->issue->issue($this->input());
+        $other = $this->issue->issue($this->input());
+        $clock->sleep(60);
+        $this->record->record($this->request('300.00', [
+            new AllocationRequest($invoice->id(), $this->czk('200.00')),
+            new AllocationRequest($other->id(), $this->czk('25.00')),
+            new AllocationRequest($invoice->id(), $this->czk('75.00')),
+        ]));
+        $clock->sleep(60);
+        $settled = $this->record->record($this->request('934.50', [new AllocationRequest($invoice->id(), $this->czk('934.50'), $this->czk('0.50'))]));
+        $clock->sleep(60);
+        $this->cancel->cancel($settled->id());
+
+        $history = self::getContainer()->get(InvoiceHistory::class)->of($this->reloaded($invoice));
+
+        self::assertSame(
+            [[InvoiceHistoryEntry::CREATED, null], [InvoiceHistoryEntry::PAID, 27500], [InvoiceHistoryEntry::PAID, 93500], [InvoiceHistoryEntry::PAYMENT_CANCELLED, 93500]],
+            array_map(static fn (InvoiceHistoryEntry $entry): array => [$entry->event, $entry->amountMinor], $history),
+        );
+    }
+
+    private function recordingWith(LockLog $log): RecordPayment
+    {
+        $container = self::getContainer();
+
+        return new RecordPayment(
+            new LoggingInvoiceStore($this->store, $log),
+            $this->payments,
+            $container->get(InvoicingCountries::class),
+            $container->get(TransactionalWork::class),
+            $container->get(ConflictRetry::class),
+            $container->get(AuditActor::class),
+            Clock::get(),
+        );
     }
 
     private function pay(Invoice $invoice, string $amount, string $on = '2026-11-20', string $note = '', PaymentMethod $method = PaymentMethod::BankTransfer): Payment
@@ -527,6 +640,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $save();
         } catch (PaymentRefused $refused) {
             self::assertSame($reason, $refused->reason);
+            self::assertSame('The payment was refused: '.$reason.'.', $refused->getMessage());
 
             return;
         }

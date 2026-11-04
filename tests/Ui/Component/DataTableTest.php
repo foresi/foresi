@@ -199,6 +199,23 @@ final class DataTableTest extends KernelTestCase
         self::assertStringNotContainsString('data-row-link', $html, 'The links are the cell, not a link of the row.');
     }
 
+    public function testALinksCellStaysInTurboUnlessItIsPlain(): void
+    {
+        $rows = [['id' => 'a1', 'cells' => ['paid' => ['links' => [['text' => '20260001', 'href' => '/invoices/1/edit']]]]]];
+
+        $html = $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid with']], 'rows' => $rows]);
+
+        self::assertStringContainsString('href="/invoices/1/edit"', $html);
+        self::assertStringNotContainsString('data-turbo="false"', $html);
+    }
+
+    public function testALinksCellNeedsAtLeastOneLink(): void
+    {
+        $this->expectExceptionMessageIsOrContains('A links cell needs a list of links.');
+
+        $this->render(['columns' => [['key' => 'paid', 'label' => 'Paid']], 'rows' => [['cells' => ['paid' => ['links' => []]]]]]);
+    }
+
     public function testALinkOfACellNeedsASafeHref(): void
     {
         $this->expectExceptionMessageIsOrContains('Unsupported URL in href.');
