@@ -596,6 +596,48 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertSame($code, (string) $decoded);
     }
 
+    public function testAReminderOfAPartPaidInvoiceAsksForWhatIsLeft(): void
+    {
+        $id = $this->issue->issue($this->input([$this->line()]))->id();
+        $document = self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::CZK));
+        $code = self::getContainer()->get(InvoicingCountries::class)->for('CZ')->paymentCode($document);
+
+        $text = $this->textOf($document);
+
+        self::assertStringContainsString('*AM:500.00*', (string) $code);
+        self::assertStringContainsString('Zbývá uhradit', $text);
+        self::assertStringContainsString('500,00 Kč', $text);
+        self::assertStringContainsString('Celkem k úhradě: 1 210,00 Kč', $text, 'the totals stay those of the invoice');
+        self::assertSame(1, substr_count($text, 'Celkem k úhradě'), 'the payment box names what is left instead');
+    }
+
+    public function testADocumentWithoutACodeAsksForWhatIsLeftToo(): void
+    {
+        $id = $this->issue->issue($this->input([$this->line()], ['paymentMethod' => PaymentMethod::Cash, 'bankAccount' => null]))->id();
+
+        $text = $this->textOf(self::getContainer()->get(IssuedDocumentFactory::class)->of($id, Money::of('500.00', Currency::CZK)));
+
+        self::assertStringContainsString('Zbývá uhradit', $text);
+        self::assertStringContainsString('500,00 Kč', $text);
+        self::assertStringContainsString('Celkem k úhradě: 1 210,00 Kč', $text);
+    }
+
+    public function testOwingTheWholePayableOrMoreAsksForThePayable(): void
+    {
+        $id = $this->issue->issue($this->input([$this->line()]))->id();
+        $factory = self::getContainer()->get(IssuedDocumentFactory::class);
+
+        foreach (['1210.00', '1500.00'] as $owed) {
+            $document = $factory->of($id, Money::of($owed, Currency::CZK));
+
+            self::assertNull($document->leftToPay, $owed);
+            self::assertSame(121000, $document->toPay()->minor(), $owed);
+        }
+        self::assertSame(121000, $factory->of($id)->toPay()->minor());
+        self::assertSame(120999, $factory->of($id, Money::of('1209.99', Currency::CZK))->toPay()->minor());
+        self::assertStringNotContainsString('Zbývá uhradit', $this->textOf($factory->of($id, Money::of('1210.00', Currency::CZK))));
+    }
+
     public function testFileNameEndsWithIsdocPdf(): void
     {
         $rendered = $this->render($this->issued([$this->line()], ['typedNumber' => 'fa/2026-7']));

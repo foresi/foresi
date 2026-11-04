@@ -1,6 +1,7 @@
 # Automatic reminders of overdue invoices. Without recorded payments every paid
-# invoice looks unpaid, so the switch stays off until an authoritative
-# InvoiceBalances is bound; the tests and the browser tests may switch it on.
+# invoice would look unpaid, so the switch stays off while the bound
+# InvoiceBalances is not authoritative; the tests and the browser tests may
+# switch it on regardless. PaymentBalances, bound by default, is authoritative.
 parameters:
     app.reminders.allow_without_payments: false
 

@@ -9,12 +9,15 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MailTemplates;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Application\SendRequest;
@@ -24,6 +27,7 @@ use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\MailTemplateKind;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -654,6 +658,48 @@ final class InvoiceSendControllerTest extends WebTestCase
         self::assertSame(0, $this->sendCount());
     }
 
+    public function testAnInvoicePaidInFullGetsNoReminderByHand(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+        $values = $this->reminderForm($this->openReminder($invoice));
+
+        $this->pay($invoice, '1210.00');
+
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertCount(0, $crawler->filter('a[href^="/invoices/'.$invoice->id().'/remind"]'));
+        $this->openReminder($invoice);
+        self::assertResponseRedirects('/invoices');
+        $this->postReminder($invoice, $values);
+        self::assertResponseRedirects('/invoices');
+        self::assertSame(0, $this->sendCount());
+        $this->client->followRedirect();
+        self::assertAnySelectorTextContains('[role="alert"]', 'Invoice 20260001 is not overdue, so it gets no reminder.');
+    }
+
+    public function testAPartPaidInvoiceIsRemindedByHandOfWhatIsLeft(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        self::mockTime('2026-11-20 10:00:00');
+        $this->pay($invoice, '210.00');
+
+        $crawler = $this->openReminder($invoice);
+
+        self::assertResponseIsSuccessful();
+        $body = $crawler->filter('#body')->text();
+        self::assertStringContainsString("Zbývá uhradit 1\u{a0}000,00\u{a0}Kč", $body);
+        self::assertStringNotContainsString("1\u{a0}210,00", $body);
+
+        $this->postReminder($invoice, $this->reminderForm($crawler));
+
+        self::assertResponseRedirects('/invoices');
+        $row = $this->onlySend();
+        self::assertSame('reminder', $row['purpose']);
+        self::assertStringContainsString('*AM:1000.00*', $this->string($row['payment_code']), 'the QR code asks for what is left');
+    }
+
     public function testTheReminderCountsTheTenantsDayAsTheRunsDo(): void
     {
         $this->signedIn();
@@ -739,6 +785,15 @@ final class InvoiceSendControllerTest extends WebTestCase
         $this->client->request('POST', '/invoices/'.$foreign.'/remind', ['_token' => 'x']);
         self::assertResponseStatusCodeSame(404);
         self::assertSame(0, $this->sendCount());
+    }
+
+    private function pay(Invoice $invoice, string $amount): void
+    {
+        $this->scoped(function () use ($invoice, $amount): void {
+            $czk = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-16'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        });
+        $this->em()->clear();
     }
 
     private function openReminder(Invoice $invoice, string $return = ''): Crawler

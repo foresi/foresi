@@ -13,7 +13,7 @@ namespace App\Invoicing\Infrastructure\Doctrine;
  * put in their WHERE clause, so invoices that owe nothing never take a place in
  * a limited result, as settled invoices would ahead of a due one in the reminder
  * queue. Whatever binds InvoiceBalances binds this too, from the same knowledge:
- * DueDateBalances leaves out the trash, the payments module also what was paid.
+ * PaymentBalances leaves out the trash and what is paid in full.
  *
  * The condition may let through an invoice that owes nothing, which the caller
  * still drops by outstanding(); it must never leave out one that owes something.

@@ -20,7 +20,7 @@
     } %}
     {% set on = 'font-family:intertnum;font-size:7.5pt;color:#dfe5df;margin:0;' %}
     {% set onValue = 'font-family:intertnum;font-weight:bold;font-size:10pt;color:#ffffff;margin:0;white-space:nowrap;' %}
-    {% set big = doc.payable|length > 17 ? '15pt' : (doc.payable|length > 13 ? '19pt' : '24pt') %}
+    {% set big = doc.toPay|length > 17 ? '15pt' : (doc.toPay|length > 13 ? '19pt' : '24pt') %}
     {% if doc.hasQr %}
     <table cellpadding="0">
         <tr>
@@ -43,8 +43,8 @@
                             <table cellpadding="0">
                                 <tr>
                                     <td width="100%" height="56mm">
-                                        <p style="{{ on }}">{{ 'invoice.pdf.payable'|trans }}</p>
-                                        <p style="font-family:interdisplay;font-size:{{ big }};color:#ffffff;margin:0 0 6pt 0;white-space:nowrap;">{{ doc.payable }}</p>
+                                        <p style="{{ on }}">{{ doc.toPayLabel }}</p>
+                                        <p style="font-family:interdisplay;font-size:{{ big }};color:#ffffff;margin:0 0 6pt 0;white-space:nowrap;">{{ doc.toPay }}</p>
                                         <p style="{{ on }}">{{ 'invoice.pdf.due_date'|trans }}</p>
                                         <p style="font-family:intertnum;font-weight:bold;font-size:13pt;color:#ffffff;margin:0 0 7pt 0;white-space:nowrap;">{{ doc.dueDate }}</p>
                                         {% if doc.account %}<p style="{{ on }}">{{ 'invoice.pdf.bank_account'|trans }}</p><p style="{{ onValue }}">{{ doc.account }}</p>{% endif %}
@@ -71,7 +71,7 @@
         </tr>
     </table>
     {% else %}
-    {% set wide = doc.payable|length > 17 ? '14pt' : (doc.payable|length > 13 ? '18pt' : '22pt') %}
+    {% set wide = doc.toPay|length > 17 ? '14pt' : (doc.toPay|length > 13 ? '18pt' : '22pt') %}
     <table cellpadding="0">
         <tr>
             <td width="50%">
@@ -88,8 +88,8 @@
     <table cellpadding="16" style="background-color:#2f4a3a;">
         <tr>
             <td width="40%">
-                <p style="{{ on }}">{{ 'invoice.pdf.payable'|trans }}</p>
-                <p style="font-family:interdisplay;font-size:{{ wide }};color:#ffffff;margin:0;white-space:nowrap;">{{ doc.payable }}</p>
+                <p style="{{ on }}">{{ doc.toPayLabel }}</p>
+                <p style="font-family:interdisplay;font-size:{{ wide }};color:#ffffff;margin:0;white-space:nowrap;">{{ doc.toPay }}</p>
             </td>
             <td width="20%">
                 <p style="{{ on }}">{{ 'invoice.pdf.due_date'|trans }}</p>

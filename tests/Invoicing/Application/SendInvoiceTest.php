@@ -12,22 +12,28 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\RenderedPdf;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Invoicing\Infrastructure\Mail\RateLimitedSends;
 use App\Invoicing\Infrastructure\Mail\RouterDocumentLinks;
+use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
@@ -475,6 +481,47 @@ final class SendInvoiceTest extends SendingTestCase
         }
         self::assertSame(3, $pdf->drawn);
         $this->assertNothingStoredOrQueued();
+    }
+
+    public function testAReminderPaidInPartWhileDrawnIsDrawnAgainForWhatIsLeft(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $record = self::getContainer()->get(RecordPayment::class);
+        $pdf = new class($record, $this->firm->id(), $invoice->id()) implements InvoicePdf {
+            /** @var list<int> */
+            public array $asked = [];
+
+            public function __construct(private readonly RecordPayment $record, private readonly string $firmId, private readonly string $invoiceId)
+            {
+            }
+
+            public function render(IssuedDocument $document): RenderedPdf
+            {
+                $this->asked[] = $document->toPay()->minor();
+                if (1 === \count($this->asked)) {
+                    // The customer's part payment is recorded while the reminder is drawn.
+                    $czk = Money::of('210.00', Currency::CZK);
+                    $this->record->record(new PaymentRequest($this->firmId, new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($this->invoiceId, $czk)]));
+                }
+
+                return new RenderedPdf('%PDF-1.7', $document->number.'.pdf');
+            }
+        };
+        self::getContainer()->set(InvoicePdf::class, $pdf);
+
+        $send = $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]);
+
+        self::assertSame([121000, 100000], $pdf->asked, 'drawn again once the payment was in');
+        self::assertStringContainsString('*AM:1000.00*', self::text($this->row($send->id()), 'payment_code'));
+    }
+
+    public function testAReminderOwingTheWholeAsksForThePayable(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $send = $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]);
+
+        self::assertStringContainsString('*AM:1210.00*', self::text($this->row($send->id()), 'payment_code'));
     }
 
     public function testAnIssuerCountryWithoutSupportIsUndrawable(): void

@@ -1152,6 +1152,7 @@ invoice:
     constant_symbol: Konstantní symbol
     order_number: Číslo objednávky
     payable: Celkem k úhradě
+    left_to_pay: Zbývá uhradit
     item: Označení dodávky
     quantity: Počet
     unit: m. j.

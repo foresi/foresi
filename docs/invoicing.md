@@ -35,7 +35,7 @@ Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own wri
 - A number has at most 40 characters and no `*` or `%`, or its QR code could not be made. A series whose numbers could be longer cannot be saved.
 - The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
 - A document in the trash prints with a mark, without the QR code and without the ISDOC file.
-- Foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), payments and bank pairing in [bank-pairing.md](bank-pairing.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which stay off until payments are recorded, in [reminders.md](reminders.md).
+- Foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), payments and bank pairing in [bank-pairing.md](bank-pairing.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which follow the recorded payments, in [reminders.md](reminders.md).
 - Tax documents on payment, advances, bulk payment and payments in another currency than the invoice's are not included. Bank notifications are read for Komerční banka only.
 - The rounding rules, the reverse charge and the numbering are implemented as described in the ADRs; whether they are right for your situation is for your adviser to confirm.
 

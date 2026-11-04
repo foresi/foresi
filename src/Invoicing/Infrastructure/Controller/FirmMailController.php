@@ -378,6 +378,8 @@ final class FirmMailController extends AbstractController
     }
 
     /**
+     * The amount is what is left to pay, as the reminder asks for it.
+     *
      * @return array{number: string, customer: string, dueDate: \DateTimeImmutable, amount: string, href: string}
      */
     private function previewRow(InvoiceRow $row): array
@@ -386,7 +388,7 @@ final class FirmMailController extends AbstractController
             'number' => $row->number,
             'customer' => $row->customerName,
             'dueDate' => $row->dueDate,
-            'amount' => $this->amounts->shown($row->payable),
+            'amount' => $this->amounts->shown($row->payable->minus($row->paid)),
             'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->id]),
         ];
     }

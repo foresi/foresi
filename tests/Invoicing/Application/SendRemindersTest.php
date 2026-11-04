@@ -8,8 +8,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\MailTemplates;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\ReminderPreview;
 use App\Invoicing\Application\SendRefused;
 use App\Invoicing\Application\SendReminders;
@@ -17,9 +21,9 @@ use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\MailTemplateKind;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
-use App\Invoicing\Infrastructure\Doctrine\DueDateBalances;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\LegalEntity;
@@ -31,6 +35,8 @@ use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
 use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
+use App\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
+use App\Tests\Support\PdfTools;
 
 /**
  * The daily reminder run, at 08:00 in the tenant's zone (Prague here, from the
@@ -183,6 +189,76 @@ final class SendRemindersTest extends SendingTestCase
         self::assertSame([1], $this->steps($open));
     }
 
+    public function testAnInvoicePaidInFullIsNeitherPreviewedNorReminded(): void
+    {
+        $paid = $this->overdue();
+        $overpaid = $this->overdue();
+        $open = $this->overdue();
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1300.00');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        self::assertSame([$open->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($paid));
+        self::assertSame([], $this->reminders($overpaid));
+        self::assertSame([1], $this->steps($open));
+    }
+
+    public function testAPaymentRemovedAgainMakesTheInvoiceDueOnceMore(): void
+    {
+        $invoice = $this->overdue();
+        $payment = $this->pay($invoice, '1210.00');
+        $this->switchOn();
+        $this->runOn('2027-01-17 09:00:00');
+        self::assertSame([], $this->reminders($invoice));
+
+        self::getContainer()->get(CancelPayment::class)->cancel($payment);
+        $this->runOn('2027-01-18 09:00:00');
+
+        self::assertSame([1], $this->steps($invoice));
+    }
+
+    public function testAPartPaidInvoiceIsRemindedOfWhatIsLeft(): void
+    {
+        $invoice = $this->overdue();
+        $this->pay($invoice, '210.00');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+        self::assertCount(1, $rows);
+        self::assertSame([121000, 21000], [$rows[0]->payable->minor(), $rows[0]->paid->minor()]);
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        $reminder = $this->reminders($invoice)[0];
+        $body = self::text($reminder, 'body');
+        self::assertStringContainsString("Zbývá uhradit 1\u{a0}000,00\u{a0}Kč", $body);
+        self::assertStringNotContainsString("1\u{a0}210,00", $body);
+        self::assertStringContainsString('*AM:1000.00*', self::text($reminder, 'payment_code'), 'the QR code asks for what is left');
+        $pdf = PdfTools::text((string) file_get_contents($this->sentDocumentsDir().'/'.self::text($reminder, 'pdf_key')));
+        self::assertStringContainsString('Zbývá uhradit', $pdf);
+        self::assertStringContainsString('1 000,00 Kč', $pdf);
+        self::assertStringContainsString('Celkem k úhradě: 1 210,00 Kč', $pdf, 'the totals stay those of the invoice');
+    }
+
+    public function testAnInvoiceSendOfAPartPaidInvoiceStillAsksForTheWhole(): void
+    {
+        $invoice = $this->overdue();
+        $this->pay($invoice, '210.00');
+
+        $send = $this->sent($invoice);
+
+        self::assertStringContainsString('*AM:1210.00*', self::text($this->row($send->id()), 'payment_code'));
+    }
+
     public function testHundredsOfSkippedInvoicesAheadDoNotHoldBackOneThatIsDue(): void
     {
         $source = $this->overdue('2027-01-09');
@@ -273,10 +349,9 @@ final class SendRemindersTest extends SendingTestCase
     {
         $invoice = $this->overdue();
         $this->switchOn();
-        // An installation without payments and without the test's allowance.
+        // Balances that know no payments, and without the test's allowance.
         $container = self::getContainer();
-        $balances = new DueDateBalances($this->connection, $container->get(TenantContext::class));
-        self::assertFalse($balances->isAuthoritative());
+        $balances = new UnauthoritativeBalances($this->balances);
         $container->set(DoctrineReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $balances, false));
 
         $this->runOn('2027-01-17 09:00:00');
@@ -361,6 +436,20 @@ final class SendRemindersTest extends SendingTestCase
 
         self::assertSame([], $this->reminders($own));
         self::assertSame([1], $this->steps($foreign));
+    }
+
+    /**
+     * A payment recorded by hand on the day after issue, as the payments dialog records it.
+     *
+     * @return string the payment's id
+     */
+    private function pay(Invoice $invoice, string $amount): string
+    {
+        $czk = Money::of($amount, Currency::CZK);
+        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        $this->em->clear();
+
+        return $payment->id();
     }
 
     private function runOn(string $moment): void

@@ -1152,6 +1152,7 @@ invoice:
     constant_symbol: Constant symbol
     order_number: Order number
     payable: Total to pay
+    left_to_pay: Left to pay
     item: Description
     quantity: Qty
     unit: Unit
