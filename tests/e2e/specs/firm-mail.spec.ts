@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { INVOICING_OWNER_STATE } from '../support/session';
+
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+// Set it to a folder to save screenshots of the screen for review. They are not baselines.
+const SHOTS = process.env.MAIL_SHOTS;
 
 test.use({ storageState: INVOICING_OWNER_STATE });
 
@@ -10,6 +15,17 @@ async function openMailSettings(page: Page, firm: string): Promise<void> {
   await page.getByRole('link', { name: firm, exact: true }).click();
   await page.getByRole('navigation', { name: 'Části firmy' }).getByRole('link', { name: 'E-maily' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'E-maily' })).toBeVisible();
+}
+
+async function expectNoSeriousViolations(page: Page): Promise<void> {
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+  const blocking = violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(blocking.map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`)).toEqual([]);
+}
+
+async function expectNoSidewaysScroll(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
 }
 
 async function save(page: Page): Promise<void> {
@@ -138,5 +154,63 @@ test.describe.serial('the e-mail settings of a firm', () => {
     await page.getByRole('button', { name: 'Poslat zkušební e-mail' }).click();
     await expect(page.getByText('Zkušební e-mail odešel na invoicing@example.com.')).toBeVisible();
     await expect(page.locator('#mail-test-result')).toContainText(/Ověřeno \d/);
+  });
+
+  test('switches reminders on and sets their days with the keyboard, with no serious violation at either width', async ({ page }) => {
+    await openMailSettings(page, 'Example Small Trader');
+    const reminder = page.getByRole('toolbar', { name: 'Proměnné Upomínka Čeština' });
+    await expect(reminder.getByRole('button', { name: 'Zbývá uhradit' })).toBeVisible();
+    await expect(page.getByText('Nejvýš 10 upomínek k jedné faktuře.')).toBeVisible();
+    await expect(page.getByText('Upomínky jsou vypnuté.')).toBeVisible();
+
+    // From the last reminder text, Tab passes its chips once and reaches the switch.
+    await page.locator('#reminder-body-en').focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('toolbar', { name: 'Proměnné Upomínka Angličtina' }).getByRole('button', { name: 'Document number' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    const toggle = page.getByRole('switch', { name: 'Posílat upomínky automaticky' });
+    await expect(toggle).toBeFocused();
+    await page.keyboard.press('Space');
+    await expect(toggle).toBeChecked();
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#reminders-first')).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('10');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#reminders-every')).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('5');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#reminders-minimum')).toBeFocused();
+    await page.keyboard.type('500,50');
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByText('E-mailové šablony jsou uložené.')).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Posílat upomínky automaticky' })).toBeChecked();
+    await expect(page.locator('#reminders-first')).toHaveValue('10');
+    await expect(page.locator('#reminders-every')).toHaveValue('5');
+    await expect(page.locator('#reminders-minimum')).toHaveValue('500,50');
+    await expect(page.getByText('Zítra nepůjde žádná upomínka.')).toBeVisible();
+
+    // A day out of range is named at its field, and nothing else changes.
+    await page.locator('#reminders-every').fill('400');
+    await save(page);
+    await expect(page.locator('#reminders-every-error')).toContainText('od 1 do 365');
+    await expect(page.locator('#reminders-every')).toHaveAttribute('aria-invalid', 'true');
+
+    await page.reload();
+    await page.locator('#reminders-card').scrollIntoViewIfNeeded();
+    await expectNoSeriousViolations(page);
+    if (SHOTS) {
+      await page.locator('#reminders-card').screenshot({ path: `${SHOTS}/desktop-reminders-card.png` });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expectNoSidewaysScroll(page);
+    await expectNoSeriousViolations(page);
+    if (SHOTS) {
+      await page.locator('#reminders-card').screenshot({ path: `${SHOTS}/phone-reminders-card.png` });
+    }
   });
 });

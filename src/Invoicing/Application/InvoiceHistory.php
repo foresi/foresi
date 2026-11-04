@@ -24,12 +24,13 @@ use App\Invoicing\Domain\PaymentAllocation;
  * of the log. Removing the first of two lines is the first position taking the text
  * of the second, and the second position going. The text removed stays visible. A
  * payment shows when its allocation to the invoice comes, and its cancellation when
- * the allocation goes.
+ * the allocation goes. An invoice issued from a recurring template says so in its
+ * first step.
  */
 final readonly class InvoiceHistory
 {
     /** Derived from other fields, or moved into an event of its own. */
-    private const array QUIET_INVOICE_FIELDS = ['numberKey', 'netMinor', 'vatMinor', 'roundingMinor', 'customerParty', 'deliveredAt', 'deletedAt', 'deletedBy', 'deletedReason'];
+    private const array QUIET_INVOICE_FIELDS = ['numberKey', 'netMinor', 'vatMinor', 'roundingMinor', 'customerParty', 'deliveredAt', 'deletedAt', 'deletedBy', 'deletedReason', 'recurringInvoiceId', 'recurringOccurrence'];
     private const array QUIET_LINE_FIELDS = ['invoice', 'position', 'rate', 'unitNetMinor', 'netMinor', 'vatMinor', 'grossMinor'];
 
     public function __construct(private AuditTrail $trail, private UserRepository $users)
@@ -108,7 +109,7 @@ final readonly class InvoiceHistory
         }
         usort($shown, static fn (InvoiceHistoryLine $one, InvoiceHistoryLine $other): int => $one->number <=> $other->number);
         $userId = $group[0]->userId();
-        $created = InvoiceHistoryEntry::CREATED === $event;
+        $created = \in_array($event, [InvoiceHistoryEntry::CREATED, InvoiceHistoryEntry::ISSUED_FROM_RECURRING], true);
 
         return new InvoiceHistoryEntry(
             $group[0]->occurredAt(),
@@ -138,7 +139,7 @@ final readonly class InvoiceHistory
     {
         $changes = $entry->changes();
         if (AuditAction::Created === $entry->action()) {
-            return InvoiceHistoryEntry::CREATED;
+            return isset($changes['recurringInvoiceId'][1]) ? InvoiceHistoryEntry::ISSUED_FROM_RECURRING : InvoiceHistoryEntry::CREATED;
         }
         if (isset($changes['deletedAt'])) {
             return null === $changes['deletedAt'][1] ? InvoiceHistoryEntry::RESTORED : InvoiceHistoryEntry::TRASHED;

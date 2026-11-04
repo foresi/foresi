@@ -38,10 +38,16 @@ final readonly class RouterDocumentLinks implements DocumentLinks
 
     public function url(string $token): string
     {
+        return $this->page(self::ROUTE, ['token' => $token]);
+    }
+
+    public function page(string $route, array $parameters = []): string
+    {
+        // The configured base, not the request's host nor the router's own default.
         $context = $this->urls->getContext();
         $this->urls->setContext(RequestContext::fromUri($this->base));
         try {
-            return $this->urls->generate(self::ROUTE, ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+            return $this->urls->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
         } finally {
             $this->urls->setContext($context);
         }

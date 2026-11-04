@@ -32,6 +32,7 @@ use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
@@ -489,7 +490,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
         self::assertSame('false', $row->filter('a[aria-label="PDF"]')->attr('data-turbo'));
         self::assertSame('/invoices/'.$invoice->id().'/pdf', $row->filter('a[aria-label="PDF"]')->attr('href'));
-        self::assertSame(['Send', 'Copy', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
@@ -687,7 +688,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertStringContainsString('Delivered', $row->text());
-        self::assertSame(['Send', 'Copy', 'History'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'History'], $this->menu($row));
         self::assertCount(1, $row->filter('a[aria-label="Edit"]'));
     }
 
@@ -914,6 +915,44 @@ final class InvoiceListControllerTest extends WebTestCase
         $marks = array_count_values(array_map(static fn (InvoiceRow $row): string => $row->sendMark->value, $page->rows));
         ksort($marks);
         self::assertSame(['none' => 24, 'queued' => 1], $marks);
+    }
+
+    public function testListShowsTheReminderCountInOneQuery(): void
+    {
+        $this->signedIn(server: true);
+        $twice = $this->issue('2026-11-01', '2026-11-10', description: 'Twice');
+        $once = $this->issue('2026-11-02', '2026-11-10', description: 'Once');
+        $never = $this->issue('2026-11-03', '2026-11-10', description: 'Never');
+        $notDue = $this->issue('2026-11-04', '2026-12-01', description: 'Not due');
+        Clock::set(new MockClock('2026-11-18 09:00:00', 'UTC'));
+        $this->reminderOf($twice, 1);
+        $this->reminderOf($once, 1);
+        Clock::set(new MockClock('2026-11-19 09:00:00', 'UTC'));
+        $this->reminderOf($twice, 2);
+        Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
+        $this->em()->clear();
+
+        $crawler = $this->client->request('GET', '/invoices');
+        // The holder starts afresh with each request, so it holds the queries of this one.
+        $queries = self::getContainer()->get('doctrine.debug_data_holder')->getData()['default'] ?? [];
+
+        // In the e-mail column, in place of the mark: the newest e-mail was a reminder.
+        $cell = static fn (Invoice $invoice): Crawler => $crawler->filter('tbody tr[data-id="'.$invoice->id().'"] [data-icon-cell="bell-ring"]');
+        self::assertSame('2 reminders', trim($cell($twice)->text()));
+        self::assertSame('Last reminder 2026-11-19 · Sending', $cell($twice)->attr('title'));
+        self::assertSame('1 reminder', trim($cell($once)->text()));
+        self::assertSame('Last reminder 2026-11-18 · Sending', $cell($once)->attr('title'));
+        self::assertCount(0, $cell($never));
+        self::assertCount(0, $cell($notDue));
+        // On a phone the count goes with the row's second line.
+        self::assertStringContainsString('2 reminders', $crawler->filter('tbody tr[data-id="'.$twice->id().'"] [data-row-secondary]')->text());
+        self::assertGreaterThan(5, \count($queries), 'the request was recorded');
+        // The tally of the page's rows: grouped by invoice, whatever the shell's notices count besides.
+        $reminderQueries = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_starts_with($query['sql'], 'SELECT') && str_contains($query['sql'], 'FROM invoice_send') && str_contains($query['sql'], 'purpose') && str_contains($query['sql'], 'GROUP BY'));
+        self::assertCount(1, $reminderQueries);
+        // The menu offers a reminder on the overdue rows only.
+        self::assertCount(1, $crawler->filter('a[href^="/invoices/'.$never->id().'/remind"]'));
+        self::assertCount(0, $crawler->filter('a[href^="/invoices/'.$notDue->id().'/remind"]'));
     }
 
     public function testEachMarkShowsItsLabel(): void
@@ -1239,6 +1278,11 @@ final class InvoiceListControllerTest extends WebTestCase
 
             return $send->id();
         });
+    }
+
+    private function reminderOf(Invoice $invoice, int $step): void
+    {
+        $this->scoped(static fn () => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), ['billing@example.com'], [], false, 'Reminder', '{link}', SendPurpose::Reminder, $step)));
     }
 
     private function opened(string $sendId): void

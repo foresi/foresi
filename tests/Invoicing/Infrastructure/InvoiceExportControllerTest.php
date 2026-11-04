@@ -283,6 +283,22 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertSame($before, $this->temporary());
     }
 
+    public function testTheTimeLimitIsRestoredAfterwards(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-10-05');
+        $before = ini_get('max_execution_time');
+        set_time_limit(0);
+
+        try {
+            self::assertCount(1, $this->download('2026-10-01', '2026-10-31'));
+
+            self::assertSame('0', ini_get('max_execution_time'));
+        } finally {
+            set_time_limit((int) $before);
+        }
+    }
+
     public function testAnEmptyPeriodLeavesNoTemporaryFile(): void
     {
         $this->signedIn();

@@ -15,9 +15,13 @@ final class RecordingLogger extends AbstractLogger
     /** @var list<array{level: string, message: string}> */
     public array $records = [];
 
+    /** @var list<array<mixed>> the context of each record, apart, so a check of what a message reveals stays on the message */
+    public array $contexts = [];
+
     public function log($level, string|\Stringable $message, array $context = []): void
     {
         $this->records[] = ['level' => \is_string($level) ? $level : '', 'message' => (string) $message];
+        $this->contexts[] = $context;
     }
 
     public function warnings(): int

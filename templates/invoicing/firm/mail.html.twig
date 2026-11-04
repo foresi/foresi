@@ -29,48 +29,72 @@
                     <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
                 {% endif %}
 
-                <twig:Ui:Card :title="'firm.mail.card.invoice'|trans" icon="receipt-text">
-                    <p class="m-0 mb-3 text-small text-muted">{{ 'firm.mail.templates_help'|trans }}</p>
-                    <div class="grid gap-5">
-                        {% for language in languages %}
-                            {% set code = language.code %}
-                            <section class="grid gap-3{% if not loop.first %} border-t border-divider pt-4{% endif %}" aria-labelledby="language-{{ code }}" data-controller="mail-chips">
-                                <div class="flex min-h-control flex-wrap items-center justify-between gap-2">
-                                    <h4 id="language-{{ code }}" class="m-0 text-small font-semibold text-ink">{{ language.label }}</h4>
-                                    {% if language.custom %}
-                                        {# Its own form, after the save button in source order, so Enter in a field saves and never resets. #}
-                                        <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="history" :form="'mail-reset-' ~ code">{{ 'firm.mail.reset'|trans }}</twig:Ui:Button>
-                                    {% endif %}
-                                </div>
-                                <twig:Ui:TextInput :name="'subject[' ~ code ~ ']'" :id="'subject-' ~ code" :label="'firm.mail.field.subject'|trans" :value="templates[code].subject" :error="errors['subject-' ~ code]|default(null)" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
-                                <twig:Ui:Textarea :name="'body[' ~ code ~ ']'" :id="'body-' ~ code" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: language.link})" :value="templates[code].body" :error="errors['body-' ~ code]|default(null)" :rows="9" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
-                                <div class="grid gap-1.5">
-                                    <p id="variables-{{ code }}" class="m-0 text-small font-medium text-ink">{{ 'firm.mail.variables'|trans }}</p>
-                                    <p id="variables-{{ code }}-help" class="m-0 text-caption text-muted">{{ 'firm.mail.variables_help'|trans }}</p>
-                                    {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
-                                    <div role="toolbar" aria-labelledby="variables-{{ code }} language-{{ code }}" aria-describedby="variables-{{ code }}-help" class="flex flex-wrap gap-1.5" lang="{{ code }}" data-action="keydown->mail-chips#move">
-                                        {% for variable in language.variables %}
-                                            <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
+                {{ _self.templateCard('invoice', 'firm.mail.card.invoice'|trans, 'receipt-text', languages, templates, errors, chip_class) }}
+                {{ _self.templateCard('reminder', 'reminder.card.template'|trans, 'clock-3', reminderLanguages, reminderTemplates, errors, chip_class) }}
+
+                {% if remindersCard %}
+                    <twig:Ui:Card :title="'reminder.card.settings'|trans" icon="calendar" id="reminders-card">
+                        <div class="grid gap-4">
+                            <twig:Ui:Checkbox name="reminders[enabled]" id="reminders-enabled" role="switch" :label="'reminder.field.enabled'|trans" :help="remindersLocked ? 'reminder.gate'|trans : 'reminder.field.enabled_help'|trans" :error="errors['reminders-enabled']|default(null)" :checked="reminders.enabled == '1'" :disabled="remindersLocked" />
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <twig:Ui:TextInput name="reminders[firstAfterDays]" id="reminders-first" inputmode="numeric" maxlength="3" :label="'reminder.field.first'|trans" :help="'reminder.field.first_help'|trans" :value="reminders.firstAfterDays" :error="errors['reminders-first']|default(null)" required />
+                                <twig:Ui:TextInput name="reminders[everyDays]" id="reminders-every" inputmode="numeric" maxlength="3" :label="'reminder.field.every'|trans" :help="'reminder.field.every_help'|trans" :value="reminders.everyDays" :error="errors['reminders-every']|default(null)" required />
+                                <twig:Ui:TextInput name="reminders[minimum]" id="reminders-minimum" inputmode="decimal" maxlength="20" :label="'reminder.field.minimum'|trans({currency: homeCurrency})" :help="'reminder.field.minimum_help'|trans" :value="reminders.minimum" :error="errors['reminders-minimum']|default(null)" />
+                            </div>
+                            <p class="m-0 text-small text-muted">{{ 'reminder.at_most'|trans({count: maxReminders}) }}</p>
+
+                            <section id="reminders-preview" class="grid gap-2 border-t border-divider pt-4" aria-labelledby="reminders-preview-title">
+                                {% set dateFormat = 'reminder.date_format'|trans %}
+                                {% if remindersOn %}
+                                    <h4 id="reminders-preview-title" class="m-0 text-small font-semibold text-ink">{{ 'reminder.tomorrow.title'|trans }}</h4>
+                                    {% set rows = tomorrow %}
+                                    {% set empty = 'reminder.tomorrow.none'|trans %}
+                                {% else %}
+                                    <h4 id="reminders-preview-title" class="m-0 text-small font-semibold text-ink">{{ 'reminder.planned.title'|trans }}</h4>
+                                    <p class="m-0 text-small text-muted">{{ 'reminder.tomorrow.off'|trans }} {{ 'reminder.planned.intro'|trans({days: plannedDays}) }}</p>
+                                    {% set rows = planned %}
+                                    {% set empty = 'reminder.planned.none'|trans({days: plannedDays}) %}
+                                {% endif %}
+                                {% if rows is empty %}
+                                    <p class="m-0 text-small text-muted">{{ empty }}</p>
+                                {% else %}
+                                    <ul class="m-0 grid list-none divide-y divide-divider p-0">
+                                        {% for row in rows %}
+                                            <li class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2 text-small">
+                                                <span class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                                                    <a href="{{ row.href }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ row.number }}</a>
+                                                    <span class="min-w-0 truncate text-text">{{ row.customer }}</span>
+                                                </span>
+                                                <span class="flex flex-wrap items-baseline gap-x-3 text-muted">
+                                                    {% if row.on is defined %}
+                                                        <span class="text-text">{{ 'reminder.planned.on'|trans({date: row.on|date(dateFormat, false)}) }}</span>
+                                                    {% endif %}
+                                                    <span>{{ 'reminder.tomorrow.due'|trans({date: row.dueDate|date(dateFormat, false)}) }}</span>
+                                                    <span class="tabular-nums text-text">{{ row.amount }}</span>
+                                                </span>
+                                            </li>
                                         {% endfor %}
-                                    </div>
-                                </div>
-                                <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
+                                    </ul>
+                                {% endif %}
                             </section>
-                        {% endfor %}
-                    </div>
-                </twig:Ui:Card>
+                        </div>
+                    </twig:Ui:Card>
+                {% endif %}
 
                 <twig:Ui:ActionBar>
                     <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
                     <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
                 </twig:Ui:ActionBar>
             </form>
-            {% for language in languages|filter(language => language.custom) %}
-                <form id="mail-reset-{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
-                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
-                    <input type="hidden" name="section" value="templates">
-                    <input type="hidden" name="reset" value="{{ language.code }}">
-                </form>
+            {% for kind, kindLanguages in {invoice: languages, reminder: reminderLanguages} %}
+                {% for language in kindLanguages|filter(language => language.custom) %}
+                    <form id="mail-reset-{{ kind == 'invoice' ? '' : kind ~ '-' }}{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
+                        <input type="hidden" name="section" value="templates">
+                        <input type="hidden" name="kind" value="{{ kind }}">
+                        <input type="hidden" name="reset" value="{{ language.code }}">
+                    </form>
+                {% endfor %}
             {% endfor %}
         {% else %}
             {% if not keyConfigured and errors.form is not defined %}
@@ -136,3 +160,44 @@
         {% endif %}
     </div>
 {% endblock %}
+
+{#
+    One card of templates, a section per document language. The invoice keeps its plain names and ids
+    (subject[cs], #subject-cs); another kind starts them with its own (reminder_subject[cs],
+    #reminder-subject-cs), and its toolbars are named with the kind too.
+#}
+{% macro templateCard(kind, title, icon, languages, templates, errors, chip_class) %}
+    {% set names = kind == 'invoice' ? '' : kind ~ '_' %}
+    {% set ids = kind == 'invoice' ? '' : kind ~ '-' %}
+    <twig:Ui:Card :title="title" :icon="icon">
+        <p class="m-0 mb-3 text-small text-muted">{{ (kind == 'invoice' ? 'firm.mail.templates_help' : 'reminder.templates_help')|trans }}</p>
+        <div class="grid gap-5">
+            {% for language in languages %}
+                {% set code = language.code %}
+                <section class="grid gap-3{% if not loop.first %} border-t border-divider pt-4{% endif %}" aria-labelledby="language-{{ ids }}{{ code }}" data-controller="mail-chips">
+                    <div class="flex min-h-control flex-wrap items-center justify-between gap-2">
+                        <h4 id="language-{{ ids }}{{ code }}" class="m-0 text-small font-semibold text-ink">{{ language.label }}</h4>
+                        {% if kind != 'invoice' %}<span id="kind-{{ ids }}{{ code }}" class="sr-only">{{ title }}</span>{% endif %}
+                        {% if language.custom %}
+                            {# Its own form, after the save button in source order, so Enter in a field saves and never resets. #}
+                            <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="history" :form="'mail-reset-' ~ ids ~ code">{{ 'firm.mail.reset'|trans }}</twig:Ui:Button>
+                        {% endif %}
+                    </div>
+                    <twig:Ui:TextInput :name="names ~ 'subject[' ~ code ~ ']'" :id="ids ~ 'subject-' ~ code" :label="'firm.mail.field.subject'|trans" :value="templates[code].subject" :error="errors[ids ~ 'subject-' ~ code]|default(null)" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                    <twig:Ui:Textarea :name="names ~ 'body[' ~ code ~ ']'" :id="ids ~ 'body-' ~ code" :label="'firm.mail.field.body'|trans" :help="'firm.mail.field.body_help'|trans({token: language.link})" :value="templates[code].body" :error="errors[ids ~ 'body-' ~ code]|default(null)" :rows="9" :lang="code" data-mail-chips-target="field" data-action="focus->mail-chips#remember" />
+                    <div class="grid gap-1.5">
+                        <p id="variables-{{ ids }}{{ code }}" class="m-0 text-small font-medium text-ink">{{ 'firm.mail.variables'|trans }}</p>
+                        <p id="variables-{{ ids }}{{ code }}-help" class="m-0 text-caption text-muted">{{ 'firm.mail.variables_help'|trans }}</p>
+                        {# A toolbar: one Tab stop, the arrow keys move between the chips. #}
+                        <div role="toolbar" aria-labelledby="variables-{{ ids }}{{ code }}{% if kind != 'invoice' %} kind-{{ ids }}{{ code }}{% endif %} language-{{ ids }}{{ code }}" aria-describedby="variables-{{ ids }}{{ code }}-help" class="flex flex-wrap gap-1.5" lang="{{ code }}" data-action="keydown->mail-chips#move">
+                            {% for variable in language.variables %}
+                                <button type="button" draggable="true" tabindex="{{ loop.first ? 0 : -1 }}" data-token="{{ variable.token }}" data-mail-chips-target="chip" data-action="mail-chips#insert dragstart->mail-chips#drag" class="{{ chip_class }}">{{ variable.label }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="sr-only" aria-live="polite" data-mail-chips-target="status" data-inserted="{{ 'firm.mail.inserted'|trans }}"></p>
+                </section>
+            {% endfor %}
+        </div>
+    </twig:Ui:Card>
+{% endmacro %}

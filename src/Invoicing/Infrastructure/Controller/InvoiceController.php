@@ -39,15 +39,13 @@ use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
-use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VariableSymbol;
-use App\Invoicing\Domain\VatRateKind;
-use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFigures;
 use App\Invoicing\Infrastructure\Form\InvoiceFormContext;
+use App\Invoicing\Infrastructure\Form\InvoiceFormOptions;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Invoicing\Infrastructure\Form\InvoiceFormValues;
 use App\Invoicing\Infrastructure\Form\InvoiceSubmission;
@@ -60,9 +58,9 @@ use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Countries;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
+use App\Tenancy\Application\TenantClock;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -111,11 +109,11 @@ final class InvoiceController extends AbstractController
         private readonly InvoiceFormReader $reader,
         private readonly InvoiceFormValues $values,
         private readonly InvoiceFigures $figures,
-        private readonly AmountText $amounts,
         private readonly SubmissionTokens $tokens,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
+        private readonly TenantClock $tenantClock,
         private readonly TranslatorInterface $translator,
         private readonly IssuedDocumentFactory $documents,
         private readonly InvoicePdf $pdf,
@@ -125,6 +123,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoicePayments $payments,
         private readonly PaymentPanel $panel,
         private readonly OwnerCheck $owner,
+        private readonly InvoiceFormOptions $options,
     ) {
     }
 
@@ -583,11 +582,11 @@ final class InvoiceController extends AbstractController
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
             'currency' => $context->currency->value,
             'dueDays' => $this->dueDays($values),
-            'vatOptions' => $this->vatOptions($context, $taxPoint),
-            'priceTypes' => $this->priceTypes(),
-            'supplyCodes' => $this->supplyCodes($context, $taxPoint),
-            'paymentMethods' => $this->paymentMethods(),
-            'languages' => $this->languages(),
+            'vatOptions' => $this->options->vat($context, $taxPoint),
+            'priceTypes' => $this->options->priceTypes(),
+            'supplyCodes' => $this->options->supplyCodes($context, $taxPoint),
+            'paymentMethods' => $this->options->paymentMethods(),
+            'languages' => $this->options->languages(),
             'bankAccounts' => $this->bankAccounts($context),
             'countries' => $this->countryOptions(),
             'figures' => $this->shownFigures($context, $values, $taxPoint),
@@ -637,7 +636,8 @@ final class InvoiceController extends AbstractController
         if (!$context->invoice instanceof Invoice) {
             return null;
         }
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->today($context), $this->payments->paidOf($context->invoice));
+        // Overdue by the tenant's day, as the reminders count it (ADR 0017).
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -774,16 +774,7 @@ final class InvoiceController extends AbstractController
      */
     private function firmOptions(InvoiceFormContext $context): array
     {
-        if ($context->invoice instanceof Invoice) {
-            return [];
-        }
-        $options = [];
-        foreach ($this->firms->active() as $firm) {
-            $options[$firm->id()] = $firm->name();
-        }
-        $options[$context->firm->id()] = $context->firm->name();
-
-        return $options;
+        return $context->invoice instanceof Invoice ? [] : $this->options->firms($context->firm);
     }
 
     /**
@@ -794,95 +785,7 @@ final class InvoiceController extends AbstractController
      */
     private function seriesOptions(InvoiceFormContext $context): array
     {
-        $options = [];
-        foreach ($this->catalog->forFirm($context->firm) as $series) {
-            $options[$series->id()] = $this->seriesName($series);
-        }
-        if ($context->invoice instanceof Invoice) {
-            $own = $context->invoice->series();
-            $options[$own->id()] = $this->seriesName($own);
-        }
-
-        return [] === $options ? ['' => $this->translator->trans('series.name.standard')] : $options;
-    }
-
-    private function seriesName(Series $series): string
-    {
-        return Series::STANDARD === $series->name() ? $this->translator->trans('series.name.standard') : $series->name();
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function vatOptions(InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array
-    {
-        return [
-            InvoiceFormReader::VAT_BASE => $this->rateLabel($context, VatRateKind::Base, $taxPoint),
-            InvoiceFormReader::VAT_REDUCED => $this->rateLabel($context, VatRateKind::Reduced, $taxPoint),
-            InvoiceFormReader::VAT_REVERSE_CHARGE => $this->translator->trans('invoice.vat.reverse_charge'),
-            InvoiceFormReader::VAT_EXEMPT => $this->translator->trans('invoice.vat.exempt'),
-        ];
-    }
-
-    private function rateLabel(InvoiceFormContext $context, VatRateKind $kind, \DateTimeImmutable $taxPoint): string
-    {
-        try {
-            return $this->translator->trans('invoice.rate', ['rate' => $this->amounts->trimmed($context->country->rate($kind, $taxPoint)->decimal())]);
-        } catch (\DomainException) {
-            return $this->translator->trans('invoice.vat.'.$kind->value);
-        }
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function priceTypes(): array
-    {
-        $options = [];
-        foreach (PriceType::cases() as $type) {
-            $options[$type->value] = $this->translator->trans('invoice.price_type.'.$type->value);
-        }
-
-        return $options;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function supplyCodes(InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array
-    {
-        $options = ['' => $this->translator->trans('invoice.line.supplyCode_choose')];
-        foreach ($context->country->supplyCodes($taxPoint) as $code) {
-            $options[$code->code] = \sprintf('%s – %s', $code->code, $this->translator->trans($code->labelKey));
-        }
-
-        return $options;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function paymentMethods(): array
-    {
-        $options = [];
-        foreach (PaymentMethod::cases() as $method) {
-            $options[$method->value] = $this->translator->trans('invoice.payment.'.$method->value);
-        }
-
-        return $options;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function languages(): array
-    {
-        $options = [];
-        foreach (DocumentLanguage::cases() as $language) {
-            $options[$language->value] = $this->translator->trans('invoice.language.'.$language->value);
-        }
-
-        return $options;
+        return $this->options->series($context->firm, $context->invoice?->series());
     }
 
     /**
@@ -892,13 +795,7 @@ final class InvoiceController extends AbstractController
      */
     private function bankAccounts(InvoiceFormContext $context): array
     {
-        $accounts = $this->accounts->ibansOf($context->firm);
-        $own = $context->invoice?->bankAccount();
-        if (null !== $own && !\in_array($own, $accounts, true)) {
-            $accounts[] = $own;
-        }
-
-        return array_combine($accounts, $accounts);
+        return $this->options->bankAccounts($context->firm, $context->invoice?->bankAccount());
     }
 
     /**

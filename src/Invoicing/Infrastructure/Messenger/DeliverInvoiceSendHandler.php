@@ -12,6 +12,7 @@ use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\LinkedMailBody;
@@ -20,13 +21,24 @@ use App\Invoicing\Application\MailGateway;
 use App\Invoicing\Application\MailMessage;
 use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\MailServers;
+use App\Invoicing\Application\ReminderSettings;
+use App\Invoicing\Application\SendDraft;
+use App\Invoicing\Application\SendRecipient;
+use App\Invoicing\Application\UndrawableDocument;
+use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownInvoiceSend;
+use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
+use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
+use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\PartyEmail;
+use Doctrine\ORM\EntityNotFoundException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -56,6 +68,15 @@ use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
  * The lease outlasts the work it guards: the gateway ends each conversation with
  * the mail server within SymfonyMailGateway::DEADLINE_SECONDS, and one claim
  * covers at most two, the customer's mail and the copy.
+ *
+ * A reminder may have lost its reason while it waited: before it leaves, under the
+ * locks of the invoice and the send, it is cancelled when the invoice went to the
+ * trash or owes nothing any more. One the reminder run queued is also cancelled
+ * when the firm switched reminders off or the contact is no longer reminded, and
+ * fails visibly when the contact has no address left to send it to; one a person
+ * sent goes as they asked. The check runs on the claimed send, after the wait for
+ * another worker's lease and before the link is checked; when it cannot be made,
+ * it counts as one of the send's tries, as a failure to hand the mail over does.
  */
 #[AsMessageHandler]
 final readonly class DeliverInvoiceSendHandler
@@ -66,6 +87,8 @@ final readonly class DeliverInvoiceSendHandler
     private const string UNEXPECTED = 'The message could not be handed to the mail server.';
     private const string COPY_UNKNOWN = 'The copy was handed to the mail server, but its answer was not recorded.';
     private const string LINK_CHANGED = 'The link of this send no longer opens: the application secret changed after it was queued. Send it again.';
+    private const string NO_RECIPIENT = 'The contact has no address to send the reminder to any more.';
+    private const string CHECK_FAILED = 'Before the reminder left, it could not be checked whether its invoice is still unpaid.';
     /** Seconds past the end of a lease before a waiting message tries again. */
     private const int GRACE = 5;
 
@@ -81,6 +104,10 @@ final readonly class DeliverInvoiceSendHandler
         private ConflictRetry $retry,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private InvoiceBalances $balances,
+        private ReminderSettings $reminders,
+        private ContactSettingsForFirm $contacts,
+        private SendDraft $drafts,
     ) {
     }
 
@@ -98,6 +125,32 @@ final readonly class DeliverInvoiceSendHandler
             return;
         }
         $server = $this->servers->for($owed->invoice()->firm());
+        if (SendStatus::Queued === $owed->status() && SendPurpose::Reminder === $owed->purpose()) {
+            try {
+                $stopped = $this->stoppedBeforeLeaving($id, $owed->invoice()->id(), null === $owed->createdBy());
+            } catch (UnknownInvoice|UnknownLegalEntity|UnsupportedCountry|UndrawableDocument|EntityNotFoundException $unanswerable) {
+                // What a retry would find the same: the reminder fails at once, in the log, and no try is wasted.
+                $this->unit(function () use ($id): void {
+                    $send = $this->sends->lock($id);
+                    $send->recordAttempt($this->now(), self::CHECK_FAILED, code: MailRefused::CHECK_FAILED);
+                    $send->fail($this->now(), self::CHECK_FAILED, false, MailRefused::CHECK_FAILED);
+                });
+                $this->logger->warning('The reminder {send} failed: it could not be checked before it left ({reason}).', ['send' => $id, 'reason' => $unanswerable::class]);
+
+                return;
+            } catch (\Throwable $failure) {
+                // One of the send's own tries, and the claim released, so the retry
+                // checks again and MarkSendFailed can give up once the tries are used.
+                $this->unit(function () use ($id): void {
+                    $this->sends->lock($id)->recordAttempt($this->now(), self::CHECK_FAILED, code: MailRefused::CHECK_FAILED);
+                });
+
+                throw $failure;
+            }
+            if ($stopped) {
+                return;
+            }
+        }
         if (SendStatus::Queued === $owed->status()) {
             $this->deliver($owed, $server);
         }
@@ -132,6 +185,64 @@ final readonly class DeliverInvoiceSendHandler
 
             return $send;
         });
+    }
+
+    /**
+     * Whether a claimed reminder ends here instead of going out: cancelled, or
+     * failed for want of an address. The invoice is locked first, in the order
+     * trash takes them, and every answer is read now, not when it was queued.
+     */
+    private function stoppedBeforeLeaving(string $id, string $invoiceId, bool $automatic): bool
+    {
+        return $this->unit(function () use ($id, $invoiceId, $automatic): bool {
+            $invoice = $this->invoices->lock($invoiceId);
+            $cancelled = $invoice->isTrashed() || !$this->owes($invoice) || ($automatic && !$this->stillReminded($invoice));
+            // Drawing the dialog's recipients reads the document, which starts the entity manager afresh: the send is locked after.
+            $unreachable = !$cancelled && $automatic && !$this->hasRecipient($invoice);
+            $send = $this->sends->lock($id);
+            if (SendStatus::Queued !== $send->status()) {
+                $send->release();
+
+                return true;
+            }
+            if ($cancelled) {
+                $send->cancel($this->now());
+                $send->release();
+                $this->logger->info('The reminder {send} was cancelled before it left: its invoice {invoice} is no longer to be reminded.', ['send' => $id, 'invoice' => $invoiceId]);
+
+                return true;
+            }
+            if ($unreachable) {
+                $send->fail($this->now(), self::NO_RECIPIENT, false, MailRefused::NO_RECIPIENT);
+                $this->logger->warning('The reminder {send} failed: the contact of invoice {invoice} has no address to send it to.', ['send' => $id, 'invoice' => $invoiceId]);
+
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    private function owes(Invoice $invoice): bool
+    {
+        $outstanding = $this->balances->outstanding([$invoice->id()])[$invoice->id()];
+
+        return !$outstanding->isZero() && !$outstanding->isNegative();
+    }
+
+    private function stillReminded(Invoice $invoice): bool
+    {
+        $firm = $invoice->firm();
+
+        return $this->reminders->for($firm)->enabled() && $this->contacts->defaultsFor($invoice->customerParty(), $firm)->sendReminders;
+    }
+
+    /**
+     * An address in To that the send dialog would tick, as the run picked them.
+     */
+    private function hasRecipient(Invoice $invoice): bool
+    {
+        return array_any($this->drafts->for($invoice)->recipients, static fn (SendRecipient $recipient): bool => SendRecipient::TO === $recipient->field && $recipient->checked);
     }
 
     /**

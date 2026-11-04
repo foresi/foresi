@@ -11,6 +11,8 @@ namespace App\Invoicing\Application;
 /**
  * Which invoices a list shows: of one firm or all, in which tab, matching what text,
  * in what order, on what page. A sort is a name of SORTS, with a minus for descending.
+ * To send narrows any tab to the invoices a recurring template issued that were
+ * never sent: held for review, or refused for sending.
  */
 final readonly class InvoiceFilter
 {
@@ -25,7 +27,7 @@ final readonly class InvoiceFilter
     public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
     public const string DEFAULT_SORT = '-issueDate';
 
-    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page)
+    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false)
     {
     }
 }

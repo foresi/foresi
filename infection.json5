@@ -27,42 +27,119 @@
         "@default": true,
         // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate.
         "global-ignoreSourceCodeByRegex": [".*#\\[ORM\\\\.*\\blength: .*", ".*#\\[ORM\\\\JoinColumn\\(.*"],
-        // Equivalent mutants: a numeric string added to an int yields the same value.
+        // Equivalent mutants: a numeric string added to an int yields the same value, and so it does when
+        // compared with an int or taken by max(); false from strrpos() plus one is one, cast or not.
         "CastInt": {"ignore": [
             "App\\Tenancy\\Domain\\TenantId::generate",
             "App\\Invoicing\\Domain\\Percent::fromString",
             "App\\Invoicing\\Domain\\Quantity::fromString",
             "App\\Invoicing\\Domain\\SeriesFormat::beyondCounter",
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
-            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate"
+            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::validate",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate",
+            "App\\Invoicing\\Domain\\PeriodText::value",
+            "App\\Invoicing\\Application\\RecurringPreview::next",
+            "App\\Invoicing\\Application\\RecurringAlerts::message",
+            "App\\Invoicing\\Application\\MailVariables::valuesForReminder",
+            "App\\Tenancy\\Application\\Schedule\\DailyPeriod::of"
         ]},
-        // Equivalent mutant: the whole match of a percentage reads as a number up to its dot, which is the same integer part.
-        "DecrementInteger": {"ignore": ["App\\Invoicing\\Domain\\Percent::fromString::31"]},
+        // Equivalent mutants: the whole match of a percentage reads as a number up to its dot, which is the same
+        // integer part. Of recurring dates: RecurringSchedule::estimate() only has to stay at or before the first
+        // date on or after a day, and next() walks on from it, so a lower estimate gives the same dates; an issued
+        // count of -1 is below every end count (at least 1) as 0 is; setDate() carries any month into its year, so
+        // inMonth() gives the same day whatever year it splits off; a schedule that never ends gives the same first
+        // date when asked for two.
+        "DecrementInteger": {"ignore": [
+            "App\\Invoicing\\Domain\\Percent::fromString::31",
+            "App\\Invoicing\\Domain\\RecurringSchedule::inMonth::99",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::115",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::118",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
+            "App\\Invoicing\\Domain\\RecurringInvoice::__construct::196",
+            "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
+            "App\\Invoicing\\Application\\RecurringPreview::next::38",
+            "App\\Invoicing\\Application\\RecurringRules::schedule::177"
+        ]},
+        // The same, and the length of a month read from its second day instead of its first.
+        "IncrementInteger": {"ignore": [
+            "App\\Invoicing\\Domain\\RecurringSchedule::monthLength::82",
+            "App\\Invoicing\\Domain\\RecurringSchedule::inMonth::99",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::118",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::121",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::123",
+            "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
+            "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212"
+        ]},
+        "LessThanOrEqualTo": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::114"]},
+        "Plus": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::118"]},
+        // Equivalent mutants: a day equal to the one compared with sets the same day again.
+        "LessThan": {"ignore": ["App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::224", "App\\Invoicing\\Domain\\RecurringInvoice::resume::308"]},
+        // Equivalent mutants: dates come oldest first, and a date on or after the day, or past the end rule, is
+        // followed by more of them only; nothing due stays not due, and a refused issue is refused again.
+        "Break_": {"ignore": [
+            "App\\Invoicing\\Domain\\RecurringInvoice::resume::312",
+            "App\\Invoicing\\Application\\RecurringPreview::next",
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate::155",
+            "App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate::161"
+        ]},
+        // Equivalent mutant: when the template's run throws, nothing was refused yet, and alerting nothing does nothing.
+        "UnwrapFinally": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runOne"]},
+        // Unreachable: IssueRules refuses a firm of an unsupported country (firm_country_unsupported) before any lookup throws.
+        "CatchBlockRemoval": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate"]},
+        // Equivalent mutant: a spent firm is checked with isset(), which false passes as true does.
+        "TrueValue": {"ignore": ["App\\Invoicing\\Application\\IssueRecurringInvoices::runTemplate"]},
+        // Equivalent mutant: the alert texts read only the customer and the code of each failure.
+        "UnwrapArrayMap": {"ignore": ["App\\Invoicing\\Application\\RecurringAlerts::message"]},
+        // Equivalent mutants: a seat that is not an array has no city, so it ends as no seat either way; without a
+        // token the loop adds nothing and the rest of the text is all of it.
+        "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat", "App\\Invoicing\\Domain\\PeriodText::resolve"]},
         // Equivalent mutant: the separator only keeps the keys apart, in either order.
-        "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries"]},
-        // Unreachable guards: IssueRules refuses these cases before the throw.
-        "Throw_": {"ignore": ["App\\Invoicing\\Application\\IssueInvoice::issue::65", "App\\Invoicing\\Application\\IssueInvoice::issue::67", "App\\Invoicing\\Application\\EditInvoice::edit::63", "App\\Invoicing\\Application\\EditInvoice::edit::64"]},
-        // Equivalent mutants: preg_replace() without the u flag always returns a string.
+        "Concat": {"ignore": ["App\\Invoicing\\Domain\\InvoiceCalculator::summaries", "App\\Invoicing\\Application\\RecurringAlerts::alertAll"]},
+        // Unreachable guards: IssueRules refuses these cases before the throw, RecurringRules refuses an unknown customer
+        // before SaveRecurringInvoice reads it, a schedule that never ends always has a next date, and a row alert's
+        // column that is not a string fails the check of its column below.
+        "Throw_": {"ignore": [
+            "App\\Invoicing\\Application\\IssueInvoice::issue::65",
+            "App\\Invoicing\\Application\\IssueInvoice::issue::67",
+            "App\\Invoicing\\Application\\EditInvoice::edit::63",
+            "App\\Invoicing\\Application\\EditInvoice::edit::64",
+            "App\\Invoicing\\Application\\SaveRecurringInvoice::content::111",
+            "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
+            "App\\Ui\\Component\\DataTable::alert::242"
+        ]},
+        // Equivalent mutants: preg_replace() and preg_replace_callback() without the u flag always return a string,
+        // and NumberFormatter formats an integer without failing.
         "CastString": {"ignore": [
             "App\\Country\\CzechRepublic\\Party\\CzechBankAccount::toIban",
-            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize"
+            "App\\Country\\CzechRepublic\\Party\\CzechRegistrationNumberValidator::normalize",
+            "App\\Invoicing\\Application\\MailText::render::27",
+            "App\\Invoicing\\Application\\DocumentFormat::money::31",
+            // The first group of the pattern always takes part in a match.
+            "App\\Invoicing\\Domain\\PeriodText::resolve::43"
         ]},
+        // Equivalent mutants: of two sends sent at the same moment, either is the last one; a day equal to the one
+        // compared with sets the same day again.
+        "GreaterThan": {"ignore": ["App\\Invoicing\\Application\\SendDraft::lastSentAt", "App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::227", "App\\Invoicing\\Domain\\RecurringInvoice::resume::318"]},
         // Equivalent mutants in the party import: a new party starts from the standard defaults, so clearing them changes
-        // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII.
-        "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input"]},
+        // nothing; a part of an address that is missing has no earlier error to keep; role keys are plain ASCII. The one
+        // caller of RecurringSchedule::inMonth() without a last-day flag, PeriodText, reads only the month and year.
+        "FalseValue": {"ignore": ["App\\Party\\Application\\ImportPartyValues::input", "App\\Invoicing\\Domain\\RecurringSchedule::inMonth"]},
         "AssignCoalesce": {"ignore": ["App\\Party\\Application\\ImportPartyValues::address"]},
         "MBString": {"ignore": ["App\\Party\\Application\\ImportPartyValues::roles"]},
-        // Equivalent mutant: a seat that is not an array has no city, so it ends as no seat either way.
-        "ReturnRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::seat"]},
         // Equivalent mutants: both columns are always set together, and a repeated id is looked up and stored again with the same outcome.
-        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany"]},
+        "LogicalOr": {"ignore": ["App\\Party\\Domain\\Party::registrationNumber", "App\\Party\\Domain\\Party::check", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Domain\\FirmReminders::minimum"]},
+        // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
+        // string fails the check of its column below.
+        "LogicalAnd": {"ignore": ["App\\Invoicing\\Domain\\RecurringInvoice::resume::308", "App\\Ui\\Component\\DataTable::alert::242"]},
+        // Equivalent mutants: an end on a date always has that date (Recurrence checks it), and a staff member is a stored user.
+        "NullSafeMethodCall": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::isOver", "App\\Invoicing\\Application\\RecurringAlerts::recipient"]},
         // Equivalent mutants: ids hold letters and digits only, so the XML escape flags change nothing, and the
         // parser flags only back up the checks above them (no DTD is let through, errors are collected internally).
         "BitwiseOr": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::envelope", "App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse"]},
         // Equivalent mutants: a blank answer fails as invalid XML instead, a blank VAT id is rejected by VatId, with the same result.
         "UnwrapTrim": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::parse", "App\\Country\\CzechRepublic\\Registry\\AresCompanyRegistry::vatId"]},
-        // Equivalent mutant: the batch is only walked with foreach.
-        "UnwrapArrayValues": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany"]},
+        // Equivalent mutants: the batch is only walked with foreach, and spreading a list renumbers its keys anyway.
+        "UnwrapArrayValues": {"ignore": ["App\\Country\\CzechRepublic\\Registry\\AdisVatPayerReliability::checkMany", "App\\Invoicing\\Application\\MailVariables::names"]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
         "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]}
     }

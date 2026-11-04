@@ -13,7 +13,6 @@ use App\Identity\Application\UserRepository;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailTemplateKind;
-use App\Invoicing\Domain\SendStatus;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\EmailPurpose;
 
@@ -23,7 +22,8 @@ use App\Party\Domain\EmailPurpose;
  * invoices go to To, those for a copy to Cc, both ticked. A contact without one
  * for invoices offers the address the document copied, in To. The text is the firm's template in the
  * document's language, filled in as SendInvoice would fill it, so what the dialog
- * shows is what the customer gets.
+ * shows is what the customer gets. A reminder takes the firm's reminder template
+ * instead, with the days overdue, the step and what is still owed filled in.
  */
 final readonly class SendDraft
 {
@@ -37,10 +37,30 @@ final readonly class SendDraft
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
         private AuditActor $actor,
+        private InvoiceBalances $balances,
     ) {
     }
 
     public function for(Invoice $invoice): SendDraftValues
+    {
+        return $this->draft($invoice, MailTemplateKind::Invoice, fn (IssuedDocument $document, string $sender): array => $this->variables->valuesFor($document, $sender));
+    }
+
+    /**
+     * @param int                $step  which reminder of the invoice, from 1
+     * @param \DateTimeImmutable $today the firm's day the reminder leaves, for the days overdue
+     */
+    public function forReminder(Invoice $invoice, int $step, \DateTimeImmutable $today): SendDraftValues
+    {
+        $due = $this->balances->outstanding([$invoice->id()])[$invoice->id()];
+
+        return $this->draft($invoice, MailTemplateKind::Reminder, fn (IssuedDocument $document, string $sender): array => $this->variables->valuesForReminder($document, $sender, $step, $due, $today));
+    }
+
+    /**
+     * @param callable(IssuedDocument, string): array<string, string> $values
+     */
+    private function draft(Invoice $invoice, MailTemplateKind $kind, callable $values): SendDraftValues
     {
         $firm = $invoice->firm();
         $server = $this->servers->for($firm);
@@ -50,7 +70,7 @@ final readonly class SendDraft
         $hasTo = array_any($recipients, static fn (SendRecipient $recipient): bool => SendRecipient::TO === $recipient->field);
         if (!$hasTo && '' !== $copied) {
             // Without an address for invoices the mail goes to the one the document holds; a copy address it holds moves to To.
-            $others = array_values(array_filter($recipients, static fn (SendRecipient $recipient): bool => mb_strtolower($recipient->address) !== mb_strtolower($copied)));
+            $others = array_filter($recipients, static fn (SendRecipient $recipient): bool => mb_strtolower($recipient->address) !== mb_strtolower($copied));
             $recipients = [new SendRecipient($copied, null, SendRecipient::TO, true), ...$others];
             $fromDocument = true;
         }
@@ -60,8 +80,10 @@ final readonly class SendDraft
         $contact = trim($this->settings->for($firm)->contactEmail());
         $copyAddress = '' !== $contact ? $contact : $user?->email();
 
-        $template = $this->templates->textFor($firm, MailTemplateKind::Invoice, $invoice->language());
-        $values = $this->variables->valuesFor($this->documents->of($invoice->id()), $user?->displayName() ?? $firm->name());
+        $template = $this->templates->textFor($firm, $kind, $invoice->language());
+        // Read before the document, whose reading may start the entity manager afresh.
+        $sender = $user?->displayName() ?? $firm->name();
+        $values = $values($this->documents->of($invoice->id()), $sender);
         $text = new MailText();
 
         return new SendDraftValues(
@@ -102,8 +124,9 @@ final readonly class SendDraft
     {
         $last = null;
         foreach ($this->sends->ofInvoice($invoice) as $send) {
+            // Only a send that went out has a moment it was sent, and it keeps it.
             $at = $send->sentAt();
-            if (SendStatus::Sent === $send->status() && $at instanceof \DateTimeImmutable && (!$last instanceof \DateTimeImmutable || $at > $last)) {
+            if ($at instanceof \DateTimeImmutable && (!$last instanceof \DateTimeImmutable || $at > $last)) {
                 $last = $at;
             }
         }

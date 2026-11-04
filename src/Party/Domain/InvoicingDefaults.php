@@ -12,7 +12,8 @@ use App\Shared\Domain\Currency;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * What a new invoice to or from this party starts with.
+ * What a new invoice to or from this party starts with, and whether overdue
+ * invoices to it are reminded automatically.
  */
 #[ORM\Embeddable]
 final readonly class InvoicingDefaults
@@ -31,6 +32,8 @@ final readonly class InvoicingDefaults
         public PaymentMethod $paymentMethod,
         #[ORM\Column(name: 'reverse_charge', type: 'boolean')]
         public bool $reverseCharge,
+        #[ORM\Column(name: 'send_reminders', type: 'boolean', options: ['default' => true])]
+        public bool $sendReminders = true,
     ) {
         if ($dueDays < 0 || $dueDays > self::MAX_DUE_DAYS) {
             throw new \DomainException(sprintf('The due period must be between 0 and %d days.', self::MAX_DUE_DAYS));
@@ -48,6 +51,7 @@ final readonly class InvoicingDefaults
             && $this->currency === $other->currency
             && $this->language === $other->language
             && $this->paymentMethod === $other->paymentMethod
-            && $this->reverseCharge === $other->reverseCharge;
+            && $this->reverseCharge === $other->reverseCharge
+            && $this->sendReminders === $other->sendReminders;
     }
 }

@@ -15,7 +15,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
- * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string}
+ * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
+ * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
  * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool}
  */
 #[AsTwigComponent]
@@ -43,9 +44,12 @@ final class DataTable
 
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
-     *                                 selected, secondary (the line a phone shows under the first cell) and actions, each with
-     *                                 a label, href and method, optional confirm, icon (shown in the row, else in its menu),
-     *                                 plain and fields (hidden values of a POST)
+     *                                 selected, secondary (the line a phone shows under the first cell), alert (what went wrong
+     *                                 with the row: a text, the column key it shows under on a wider screen, and optionally an
+     *                                 href and action label of the place that fixes it; a phone shows it as a line of its own
+     *                                 under the first cell) and actions, each with a label, href and method, optional
+     *                                 confirm, icon (shown in the row, else in its menu), plain and fields (hidden values of
+     *                                 a POST)
      */
     public array $rows = [];
 
@@ -219,7 +223,34 @@ final class DataTable
             'cells' => $views,
             'actions' => array_values(array_map($this->action(...), $actions)),
             'secondary' => is_string($secondary) && '' !== $secondary ? $secondary : null,
+            'alert' => $this->alert($row['alert'] ?? null),
         ];
+    }
+
+    /**
+     * @return RowAlert|null
+     */
+    private function alert(mixed $alert): ?array
+    {
+        if (null === $alert) {
+            return null;
+        }
+        if (!is_array($alert)) {
+            throw new \InvalidArgumentException('A row alert must be an array.');
+        }
+        $text = isset($alert['text']) && is_string($alert['text']) && '' !== $alert['text'] ? $alert['text'] : throw new \InvalidArgumentException('A row alert needs a text.');
+        $column = isset($alert['column']) && is_string($alert['column']) ? $alert['column'] : throw new \InvalidArgumentException('A row alert needs the column it shows under.');
+        if (!in_array($column, array_column($this->columnViews, 'key'), true)) {
+            throw new \InvalidArgumentException('A row alert shows under a column of the table.');
+        }
+        $href = isset($alert['href']) && is_string($alert['href']) ? $alert['href'] : null;
+        Style::href($href);
+        $action = isset($alert['action']) && is_string($alert['action']) && '' !== $alert['action'] ? $alert['action'] : null;
+        if ((null === $href) !== (null === $action)) {
+            throw new \InvalidArgumentException('A row alert has both an href and an action label, or neither.');
+        }
+
+        return ['text' => $text, 'column' => $column, 'href' => $href, 'action' => $action];
     }
 
     /**

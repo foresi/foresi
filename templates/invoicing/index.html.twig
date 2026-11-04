@@ -31,6 +31,7 @@
                 <form method="get" action="{{ path('app_invoices') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
                     {% if tab != 'all' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
                     {% if sort != '-issueDate' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+                    {% if toSend %}<input type="hidden" name="toSend" value="1">{% endif %}
                     {% if firms is not empty %}
                         <div class="w-full sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
                     {% endif %}
@@ -38,6 +39,13 @@
                     <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
                 </form>
             </div>
+            {% if toSend or toSendCount > 0 %}
+                {# The invoices recurring templates issued that nobody sent yet: held for review, or refused for sending. #}
+                <div class="flex flex-wrap items-center gap-2" data-to-send>
+                    <twig:Ui:Button :href="toSendHref" size="sm" icon="send" :variant="toSend ? 'primary' : 'secondary'" aria-current="{{ toSend ? 'true' : 'false' }}">{{ 'recurring.to_send.label'|trans }} <span class="num">{{ toSendCount }}</span></twig:Ui:Button>
+                    {% if toSend %}<span class="text-small text-muted">{{ 'recurring.to_send.hint'|trans }}</span>{% endif %}
+                </div>
+            {% endif %}
 
             <twig:Ui:DataTable :caption="'invoice.list.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
                 <twig:block name="empty">

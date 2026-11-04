@@ -9,17 +9,33 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Invoicing\Application\DeliverInvoiceSend;
+use App\Invoicing\Application\InvoiceBalances;
+use App\Invoicing\Application\InvoiceSendQueue;
 use App\Invoicing\Application\MailMessage;
 use App\Invoicing\Application\MailRefused;
 use App\Invoicing\Application\RequeueStuckSends;
+use App\Invoicing\Application\UnknownInvoice;
+use App\Invoicing\Domain\FirmReminders;
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
+use App\Invoicing\Domain\SendPurpose;
+use App\Invoicing\Infrastructure\Doctrine\DueDateBalances;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use App\Invoicing\Infrastructure\Messenger\MarkSendFailed;
 use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
+use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\InvoicingDefaults;
+use App\Party\Domain\LegalEntity;
+use App\Party\Domain\PartyEmail;
+use App\Party\Domain\PaymentMethod;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Tests\Invoicing\Application\SendingTestCase;
+use App\Tests\Invoicing\Infrastructure\Support\SettledBalances;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
@@ -545,6 +561,238 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::getContainer()->get(RequeueStuckSends::class)->run(null);
 
         self::assertSame([], [...$this->mailQueue->getSent()]);
+    }
+
+    public function testDeliveryCancelsAReminderPaidMeanwhile(): void
+    {
+        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        [$invoice, $reminder] = $this->queuedReminder();
+        $balances->pay($invoice->id());
+
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+    }
+
+    public function testDeliveryCancelsAReminderTrashedMeanwhile(): void
+    {
+        [$invoice, $reminder] = $this->queuedReminder();
+        // A delivered invoice cannot go to the trash through the application today; the row says it did.
+        $this->connection->executeStatement('UPDATE invoice SET deleted_at = ? WHERE id = ?', ['2026-11-03 10:00:30', $invoice->id()]);
+
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+    }
+
+    public function testDeliveryCancelsAReminderWhoseContactWasSwitchedOffMeanwhile(): void
+    {
+        [, $reminder] = $this->queuedReminder();
+        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
+        $this->em->flush();
+
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+    }
+
+    public function testDeliveryCancelsAReminderOfAFirmThatSwitchedRemindersOffMeanwhile(): void
+    {
+        [, $reminder] = $this->queuedReminder();
+        $this->remindersOfTheFirm(false);
+
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+    }
+
+    public function testAReminderWithoutARecipientAnyMoreFailsVisibly(): void
+    {
+        [$invoice, $reminder] = $this->queuedReminder();
+        $this->em->createQuery('DELETE FROM '.PartyEmail::class.' e')->execute();
+        $this->connection->executeStatement("UPDATE invoice SET customer_email = '' WHERE id = ?", [$invoice->id()]);
+
+        $this->worker->run();
+        $this->em->clear();
+
+        $row = $this->row($reminder->id());
+        self::assertSame('failed', $row['status']);
+        self::assertSame(MailRefused::NO_RECIPIENT, $row['last_error_code']);
+        self::assertNotNull($row['failed_at']);
+        self::assertSame([], $this->gateway->attempts());
+    }
+
+    public function testAnOwedReminderIsDelivered(): void
+    {
+        SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        [, $reminder] = $this->queuedReminder();
+
+        $this->worker->run();
+
+        self::assertSame('sent', $this->row($reminder->id())['status']);
+        self::assertCount(1, $this->gateway->messages());
+    }
+
+    public function testAReminderByAPersonIgnoresTheAutomaticRules(): void
+    {
+        [$invoice] = $this->queuedReminder();
+        $this->mailQueue->reset();
+        $this->remindersOfTheFirm(false);
+        $invoice = $this->store->get($invoice->id());
+        $hash = str_repeat('a', 64);
+        $id = Id::generate();
+        // The link hash as a real send stores it, so the delivery's link check lets it through.
+        $tokenHash = $this->tokens->hash($this->tokens->token($id, LinkAudience::Customer));
+        $byHand = InvoiceSend::queue($id, $invoice, ['billing@example.com'], [], null, 'Reminder', 'Please pay. {link}', 'b4b5c1a0-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-11-03 10:00:00'), $tokenHash, null, 'sent/manual.pdf', $hash, purpose: SendPurpose::Reminder, reminderStep: 2);
+        $this->em->persist($byHand);
+        $this->em->flush();
+        self::getContainer()->get(InvoiceSendQueue::class)->deliver($byHand->id());
+
+        $this->worker->run();
+
+        self::assertSame('sent', $this->row($byHand->id())['status'], 'switching automatic reminders off does not stop one sent by hand');
+    }
+
+    public function testAReminderUnderWayWaitsAndIsCheckedAgainWhenItsTurnComes(): void
+    {
+        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        [$invoice, $reminder] = $this->queuedReminder();
+        $this->connection->executeStatement('UPDATE invoice_send SET claimed_at = ? WHERE id = ?', ['2026-11-03 09:58:00', $reminder->id()]);
+
+        $this->worker->run(1);
+        $waiting = $this->onlyWaiting(1);
+        self::assertNull($waiting->last(RedeliveryStamp::class), 'waiting for the lease uses no retry');
+        self::assertSame('queued', $this->row($reminder->id())['status']);
+
+        // Paid while the other worker's lease ran: the claim that follows still asks.
+        $balances->pay($invoice->id());
+        self::mockTime('2026-11-03 10:04:00');
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+    }
+
+    public function testAReminderNoLongerOwedIsCancelledBeforeItsLinkIsChecked(): void
+    {
+        [, $reminder] = $this->queuedReminder();
+        $this->connection->executeStatement('UPDATE invoice_send SET token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $reminder->id()]);
+        $this->remindersOfTheFirm(false);
+
+        $this->worker->run();
+
+        $this->assertCancelled($reminder);
+        self::assertNull($this->row($reminder->id())['last_error_code']);
+    }
+
+    public function testAnOwedReminderWhoseLinkNoLongerMatchesFailsWithoutMailing(): void
+    {
+        [, $reminder] = $this->queuedReminder();
+        $this->connection->executeStatement('UPDATE invoice_send SET token_hash = ? WHERE id = ?', [hash('sha256', 'an older secret'), $reminder->id()]);
+
+        $failure = $this->deliveryFailure();
+
+        self::assertInstanceOf(UnrecoverableMessageHandlingException::class, $failure);
+        self::assertSame([], $this->gateway->attempts());
+        $row = $this->row($reminder->id());
+        self::assertSame('failed', $row['status']);
+        self::assertSame(MailRefused::LINK_CHANGED, $row['last_error_code']);
+    }
+
+    public function testAReminderCheckThatCannotBeMadeCountsAsATryOfTheSend(): void
+    {
+        self::getContainer()->set(DueDateBalances::class, new class implements InvoiceBalances {
+            public function outstanding(array $invoiceIds): array
+            {
+                throw new \RuntimeException('The balances are out of reach.');
+            }
+
+            public function isAuthoritative(): bool
+            {
+                return true;
+            }
+        });
+        [, $reminder] = $this->queuedReminder();
+
+        $failure = $this->deliveryFailure();
+
+        self::assertNotInstanceOf(SendLeaseHeld::class, $failure);
+        $row = $this->row($reminder->id());
+        self::assertSame('queued', $row['status']);
+        self::assertSame(1, self::integer($row, 'attempts'), 'one of the send\'s own tries, so MarkSendFailed can give up on it');
+        self::assertSame(MailRefused::CHECK_FAILED, $row['last_error_code'], 'its own code: the mail server was never asked');
+        self::assertNull($row['claimed_at'], 'the retry may check again at once');
+        self::assertSame([], $this->gateway->attempts());
+    }
+
+    public function testAReminderWhoseInvoiceCannotBeFoundFailsAtOnceWithoutRetries(): void
+    {
+        self::getContainer()->set(DueDateBalances::class, new class implements InvoiceBalances {
+            public function outstanding(array $invoiceIds): array
+            {
+                throw new UnknownInvoice();
+            }
+
+            public function isAuthoritative(): bool
+            {
+                return true;
+            }
+        });
+        [, $reminder] = $this->queuedReminder();
+
+        $this->worker->run();
+
+        $row = $this->row($reminder->id());
+        self::assertSame('failed', $row['status'], 'stopped for good, where the log shows it');
+        self::assertSame(MailRefused::CHECK_FAILED, $row['last_error_code']);
+        self::assertSame(1, self::integer($row, 'attempts'), 'no retries burnt on what cannot change');
+        self::assertSame([], $this->gateway->attempts());
+    }
+
+    public function testAnInvoiceSendToAPaidInvoiceStillGoes(): void
+    {
+        $balances = SettledBalances::install(self::getContainer(), $this->connection, self::getContainer()->get(TenantContext::class));
+        $invoice = $this->issue->issue($this->input());
+        $send = $this->sent($invoice);
+        $balances->pay($invoice->id());
+
+        $this->worker->run();
+
+        self::assertSame('sent', $this->row($send->id())['status'], 'only reminders ask what is still owed');
+    }
+
+    /**
+     * A delivered invoice with reminders switched on and its first reminder queued by the run.
+     *
+     * @return array{Invoice, InvoiceSend}
+     */
+    private function queuedReminder(): array
+    {
+        $invoice = $this->delivered->mark($this->issue->issue($this->input())->id());
+        $this->remindersOfTheFirm(true);
+        $reminder = $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]);
+        $this->em->clear();
+        $this->customer = $this->em->find(\App\Party\Domain\Party::class, $this->customer->id()) ?? self::fail('No customer.');
+
+        return [$invoice, $reminder];
+    }
+
+    private function remindersOfTheFirm(bool $enabled): void
+    {
+        $firm = $this->em->find(LegalEntity::class, $this->firm->id()) ?? self::fail('No firm.');
+        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy(['firm' => $firm]) ?? FirmReminders::standard($firm);
+        $settings->change($enabled, 7, 7, null, new \DateTimeImmutable('2026-11-01'));
+        $this->em->persist($settings);
+        $this->em->flush();
+    }
+
+    private function assertCancelled(InvoiceSend $reminder): void
+    {
+        $this->em->clear();
+        $row = $this->row($reminder->id());
+        self::assertSame('cancelled', $row['status']);
+        self::assertNotNull($row['cancelled_at']);
+        self::assertNull($row['claimed_at']);
+        self::assertSame([], $this->gateway->attempts());
     }
 
     /**

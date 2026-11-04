@@ -106,6 +106,29 @@ final class DataTableTest extends KernelTestCase
         ])]);
     }
 
+    public function testARowAlertShowsUnderItsColumnAndOnAPhoneUnderTheFirstCell(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/contacts/a1', 'cells' => ['name' => 'Example Company', 'email' => 'info@example.com', 'balance' => '1 200'], 'alert' => ['text' => 'Failed: no address.', 'column' => 'email', 'href' => '/contacts/a1/edit', 'action' => 'Edit the contact']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $cells = $crawler->filter('tbody td');
+        $alert = $cells->eq(1)->filter('[data-row-alert]');
+        self::assertStringContainsString('Failed: no address.', $alert->text());
+        self::assertSame('/contacts/a1/edit', $alert->filter('a')->attr('href'));
+        self::assertStringContainsString('max-sm:hidden', (string) $alert->attr('class'));
+        self::assertSame('info@example.com', $cells->eq(1)->filter('[title], span')->first()->text(), 'the cell keeps its own text');
+        $phone = $cells->eq(0)->filter('[data-row-alert-phone]');
+        self::assertStringContainsString('Edit the contact', $phone->text());
+        self::assertStringContainsString('sm:hidden', (string) $phone->attr('class'));
+    }
+
+    public function testARowAlertUnderAnUnknownColumnThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'nowhere']]]]);
+    }
+
     public function testATableWithoutActionsHasNoColumnForThem(): void
     {
         $html = $this->render();
@@ -374,6 +397,16 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('<span>Read</span>', $html);
     }
 
+    public function testAnIconCellWithoutAHintHasNoTooltip(): void
+    {
+        $rows = $this->rows();
+        $rows[0]['cells']['name'] = ['text' => 'Queued', 'icon' => 'send'];
+
+        $html = $this->render(['rows' => $rows]);
+
+        self::assertMatchesRegularExpression('#<span class="inline-flex items-center gap-1.5" data-icon-cell="send"><svg[^>]*class="size-4 shrink-0 text-muted"#', $html);
+    }
+
     public function testNumericCellsAreRendered(): void
     {
         $rows = $this->rows();
@@ -456,8 +489,16 @@ final class DataTableTest extends KernelTestCase
         yield 'cell with object value' => [['rows' => [['cells' => ['name' => new \stdClass()]]]]];
         yield 'array cell without text' => [['rows' => [['cells' => ['name' => ['tone' => 'red']]]]]];
         yield 'icon cell without text' => [['rows' => [['cells' => ['name' => ['icon' => 'send']]]]]];
+        yield 'icon cell with an icon that is not a name' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => ['send']]]]]]];
         yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
         yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
+        yield 'row alert without a text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['column' => 'name']]]]];
+        yield 'row alert with a text that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 5, 'column' => 'name']]]]];
+        yield 'row alert with an empty text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => '', 'column' => 'name']]]]];
+        yield 'row alert with an unsafe href' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 'javascript:alert(1)', 'action' => 'Fix']]]]];
+        yield 'row alert with an href that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 5, 'action' => 'Fix']]]]];
+        yield 'row alert with an action that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => 5]]]]];
+        yield 'row alert with an empty action' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => '']]]]];
     }
 
     /**

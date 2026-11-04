@@ -402,7 +402,14 @@ final class PartyController extends AbstractController
     {
         $columns = [];
         foreach (['name' => true, 'kind' => true, 'roles' => false, 'registration' => true, 'vat' => true, 'email' => false, 'status' => false] as $key => $sortable) {
-            $column = ['key' => $key, 'label' => $this->translator->trans('party.column.'.$key)];
+            // The name and the e-mail give way, cut short with their full text in a title. A phone
+            // shows the name and the state; the rest goes in the line under the name.
+            $column = [
+                'key' => $key,
+                'label' => $this->translator->trans('party.column.'.$key),
+                'truncate' => \in_array($key, ['name', 'email'], true),
+                'phone' => \in_array($key, ['name', 'status'], true),
+            ];
             if ($sortable) {
                 $column += [
                     'sortable' => true,
@@ -428,14 +435,17 @@ final class PartyController extends AbstractController
                 default => null,
             };
 
+            $roles = implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $row->roles));
+
             return [
                 'id' => $row->id,
                 'label' => $row->displayName,
                 'href' => $this->generateUrl('app_contact_show', ['id' => $row->id]),
+                'secondary' => implode(' · ', array_filter([$roles, $row->registrationNumber, $row->email], static fn (?string $part): bool => null !== $part && '' !== $part)),
                 'cells' => [
                     'name' => $row->displayName,
                     'kind' => $this->translator->trans('party.kind.'.$row->kind->value),
-                    'roles' => implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $row->roles)),
+                    'roles' => $roles,
                     'registration' => $row->registrationNumber,
                     'vat' => $row->vatId,
                     'email' => $row->email,

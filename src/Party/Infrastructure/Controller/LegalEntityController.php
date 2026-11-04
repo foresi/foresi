@@ -73,7 +73,9 @@ final class LegalEntityController extends AbstractController
         return $this->render('party/legal_entity/index.html.twig', [
             'firstRun' => [] === $firms,
             'tabs' => $this->tabs($view, \count($active), \count($archived)),
-            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('firm.column.'.$key)], ['name', 'registration', 'vat', 'vat_status']),
+            // The name gives way, cut short with its full text in a title. A phone shows the name;
+            // the rest goes in the line under it.
+            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('firm.column.'.$key), 'truncate' => 'name' === $key, 'phone' => 'name' === $key], ['name', 'registration', 'vat', 'vat_status']),
             'rows' => array_map($this->row(...), $shown),
             'total' => \count($shown),
         ]);
@@ -316,16 +318,19 @@ final class LegalEntityController extends AbstractController
      */
     private function row(LegalEntity $firm): array
     {
+        $cells = [
+            'name' => $firm->name(),
+            'registration' => $firm->registrationNumber()->value,
+            'vat' => $firm->vatId()?->toString(),
+            'vat_status' => $this->translator->trans('firm.vat_status.'.$firm->vatStatus()->value),
+        ];
+
         return [
             'id' => $firm->id(),
             'label' => $firm->name(),
             'href' => $this->generateUrl('app_firm_edit', ['id' => $firm->id()]),
-            'cells' => [
-                'name' => $firm->name(),
-                'registration' => $firm->registrationNumber()->value,
-                'vat' => $firm->vatId()?->toString(),
-                'vat_status' => $this->translator->trans('firm.vat_status.'.$firm->vatStatus()->value),
-            ],
+            'secondary' => implode(' · ', array_filter([$cells['registration'], $cells['vat'], $cells['vat_status']], static fn (?string $part): bool => null !== $part && '' !== $part)),
+            'cells' => $cells,
         ];
     }
 

@@ -37,7 +37,10 @@ final readonly class ReparseFailedMessages implements ScheduledJob
         return self::NAME;
     }
 
-    public function period(\DateTimeImmutable $now): string
+    /**
+     * An hour of UTC, the same in every zone: a parser's update waits for no tenant's day.
+     */
+    public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
     {
         return $now->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH');
     }

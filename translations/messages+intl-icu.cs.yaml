@@ -38,6 +38,7 @@ nav:
     firms: Moje firmy
     import: Import a export
     sent_mail: Odeslané e-maily
+    recurring: Pravidelné faktury
     bank: Banka
 ui:
   dialog:
@@ -1032,6 +1033,8 @@ invoice:
     copy_unknown: Kopie odešla na server, ale jeho odpověď se nezaznamenala.
     gave_up: Zprávu se nepodařilo doručit.
     link_changed: 'Odkaz tohoto odeslání už nejde otevřít, protože se po zařazení do fronty změnil tajný klíč aplikace. Odešlete doklad znovu.'
+    no_recipient: Kontakt už nemá e-mailovou adresu pro faktury, upomínka proto neodešla.
+    check_failed: Před odesláním upomínky se nepodařilo ověřit, zda je faktura stále neuhrazená.
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
@@ -1114,6 +1117,7 @@ invoice:
       insecure_link_base: Odkaz by vedl přes nešifrované http. Správce nastaví v DEFAULT_URI adresu s https.
       rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
       undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
+      reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -1252,6 +1256,7 @@ invoice:
     card: Historie
     system: Systém
     created: '{who}: faktura vytvořena'
+    issued_recurring: '{who}: faktura vystavena z pravidelné faktury'
     changed: '{who}: faktura upravena'
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
@@ -1583,6 +1588,254 @@ invoice:
     trashed: Tato faktura je v koši. Pro změny ji obnovte.
     variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
     vat_invalid: Vyberte DPH řádku.
+recurring:
+  notice:
+    failing: '{count, plural, one {Pravidelnou fakturu se nepodařilo vystavit nebo odeslat.} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat.} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat.}}'
+    review: '{count, plural, one {Faktura z pravidelné faktury čeká, až ji odešlete.} few {# faktury z pravidelných faktur čekají, až je odešlete.} other {# faktur z pravidelných faktur čeká, až je odešlete.}}'
+    unfinished: 'Dnešní pravidelné faktury ještě nejsou vystavené, ač už je po {hour}:00. Zkontrolujte, že na serveru běží fronta i plánovač.'
+    link: Zobrazit
+  problem:
+    name_missing: Zadejte název vzoru.
+    name_too_long: Název vzoru může mít nejvýš 120 znaků.
+    due_days_invalid: Splatnost je 0 až 365 dní od vystavení.
+    ended: Tato pravidelná faktura je ukončená a nedá se změnit.
+    first_issue_past: První fakturu nejde vystavit v minulosti.
+    issued: Z této pravidelné faktury už vznikly faktury, dá se jen ukončit.
+    no_occurrence_left: S tímto rozvrhem nezbývá žádná faktura k vystavení.
+    choice_invalid: Vyberte jednu z možností.
+    first_issue_missing: Zadejte datum prvního vystavení.
+    every_invalid: Zadejte celé číslo od 1 do 99.
+    end_on_missing: Zadejte datum posledního vystavení.
+    end_on_before_first: Poslední vystavení nemůže být před prvním.
+    end_after_invalid: Zadejte počet od 1 do 999.
+  form:
+    new_title: Nová pravidelná faktura
+    edit_title: Pravidelná faktura
+    save: Uložit
+    apply: Přepočítat náhled
+    from_invoice: Pravidelná faktura
+  card:
+    main: Vzor faktury
+    schedule: Opakování vystavení
+    sending: Odesílání faktury
+    dates: Datumy
+    payment: Moje platební údaje
+  field:
+    paymentMethod: Způsob úhrady
+    name: Název vzoru
+    name_help: Pod tímto názvem pravidelnou fakturu najdete v přehledu.
+    sendToCustomer: Odběrateli
+    copyToMe: Kopie na můj e-mail
+    copyToOthers: Dalším příjemcům na kontaktu
+    firstIssueOn: První vystavení
+    unit: Opakování
+    every: Opakovat každý
+    every_help: Např. 3 znamená každý třetí den, týden, měsíc či rok.
+    onLastDayOfMonth: Vystavovat poslední den v měsíci
+    taxPoint: DUZP
+    dueDays: Splatnost (dní)
+    dueDays_help: Počet dní od vystavení faktury.
+    end: Ukončit opakování
+    endOn: Poslední vystavení
+    endAfter: Počet vystavení
+    series_help: Každá faktura dostane další číslo této řady.
+    state: Stav
+  unit:
+    day: Denně
+    week: Týdně
+    month: Měsíčně
+    year: Ročně
+  tax_point:
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
+  supply_point:
+    issue_date: V den vystavení
+    last_day_of_month: Poslední den v měsíci
+  end:
+    never: Nikdy
+    on_date: K datu
+    after_count: Po počtu vystavení
+  sending:
+    legend: 'Po vystavení odeslat:'
+    held: Faktura se jen vystaví a počká v seznamu K odeslání.
+    no_email: e-mail není vyplněn
+  step:
+    less: 'Snížit: {field}'
+    more: 'Zvýšit: {field}'
+  payment:
+    account_number: Číslo účtu
+    iban: IBAN
+  variables:
+    title: Proměnné
+    help: Vloží se do posledního pole – popisu, textu či položky.
+  variable:
+    day: Den
+    month: Měsíc
+    year: Rok
+    quarter: Čtvrtletí
+    month_year: Měsíc/rok
+    document_number: Číslo faktury
+  preview:
+    unknown: 'Další vystavení zatím nejde spočítat:'
+    next: 'Další faktura bude vystavena {date}'
+    next_now: Další faktura bude vystavena hned po uložení
+    next_now_review: Další faktura bude vystavena hned po uložení a počká na vaši kontrolu
+    next_morning: Další faktura bude vystavena dnes v 5:00
+    next_morning_review: Další faktura bude vystavena dnes v 5:00 a počká na vaši kontrolu
+    all: Přehled budoucích vystavení
+    ends: Tím opakování končí.
+    document_number: '[číslo faktury]'
+  flash:
+    saved: 'Pravidelná faktura je uložená. Další faktura se vystaví {date}.'
+    already_saved: Tato pravidelná faktura už je uložená.
+    paused: 'Pravidelná faktura pro {customer} je pozastavená. Dokud ji neobnovíte, nic se nevystaví.'
+    resumed: 'Pravidelná faktura je obnovená. Další faktura se vystaví {date}.'
+    resumed_ended: Pravidelná faktura je obnovená, ale podle rozvrhu už žádná faktura nezbývá, takže skončila.
+    skipped: '{count, plural, one {Přeskočený termín:} other {Přeskočené termíny:}} {dates}.'
+    ended: 'Pravidelná faktura pro {customer} je ukončená.'
+    deleted: 'Pravidelná faktura pro {customer} je smazaná.'
+    issued: 'Faktura {number} je vystavená.'
+    issued_sent: 'Faktura {number} je vystavená a odesílá se odběrateli.'
+    issued_review: 'Faktura {number} je vystavená a čeká v seznamu K odeslání.'
+    issued_refused: 'Faktura {number} je vystavená, ale nešla odeslat: {reason} Čeká v seznamu K odeslání.'
+    already_issued: Tento termín už je vystavený, nic dalšího se nevystavilo.
+    not_active: Pravidelná faktura není aktivní, proto se nic nevystavilo.
+    changed_meanwhile: Pravidelná faktura se mezitím změnila. Zkuste to prosím znovu.
+    issue_refused: 'Fakturu nejde vystavit: {problems}'
+  to_send:
+    label: K odeslání
+    hint: Faktury z pravidelných faktur, které ještě nikdo neodeslal.
+  alert:
+    subject:
+      issue: Pravidelnou fakturu se nepodařilo vystavit
+      send: Pravidelná faktura se vystavila, ale neodeslala
+    opening:
+      issue: 'Pravidelnou fakturu firmy {firm} pro {customer} se {date} nepodařilo vystavit.'
+      send: 'Pravidelná faktura firmy {firm} pro {customer} se {date} vystavila, ale neodeslala. Čeká mezi fakturami k odeslání.'
+    closing:
+      issue: Další běh to zkusí znovu zítra v 5:00. Příčinu opravte ve Foresi v pravidelných fakturách.
+      send: Po opravě ji odešlete ve Foresi z přehledu faktur.
+    digest:
+      subject: '{count, plural, one {# pravidelnou fakturu se nepodařilo vystavit nebo odeslat} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat}}'
+      subject_send: '{count, plural, one {# pravidelná faktura se vystavila, ale neodeslala} few {# pravidelné faktury se vystavily, ale neodeslaly} other {# pravidelných faktur se vystavilo, ale neodeslalo}}'
+      opening: 'Pravidelné faktury firmy {firm} se {date} nepodařilo vystavit nebo odeslat:'
+      closing: Vystavené faktury čekají mezi fakturami k odeslání. Nevystavené zkusí další běh znovu zítra v 5:00.
+    link: 'Pravidelné faktury ve Foresi: {url}'
+    reason:
+      other: 'Pravidla to nedovolila (kód {code}).'
+      issue:
+        refused: Pravidla vystavení fakturu odmítla.
+      invoice:
+        problem:
+          customer_archived: Odběratel je pro tuto firmu archivovaný.
+          customer_unknown: Odběratel už neexistuje.
+          customer_address_incomplete: Odběratel nemá úplnou fakturační adresu.
+          line_rate_missing: Druh sazby DPH některé položky k datu zdanitelného plnění neexistuje.
+          firm_archived: Firma je archivovaná.
+          firm_country_unsupported: Pravidla země firmy nejsou k dispozici.
+      send:
+        no_server: Firma nemá nastavený poštovní server.
+        no_recipient: Odběratel nemá e-mail pro faktury.
+        bad_address: E-mail odběratele není platný.
+        rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+        undrawable: Fakturu nejde vykreslit do PDF.
+        unexpected: Odeslání selhalo kvůli neočekávané chybě.
+  failure:
+    other: Poslední vystavení nebo odeslání se nepovedlo.
+    send:
+      no_server: Firma nemá nastavený poštovní server.
+      no_recipient: Odběratel nemá e-mail pro faktury.
+      bad_address: E-mail odběratele není platný.
+      rate_limited: Firma vyčerpala denní limit odeslaných e-mailů.
+      undrawable: Fakturu nejde vykreslit do PDF.
+      unexpected: Odeslání selhalo kvůli neočekávané chybě. Fakturu odešlete ze seznamu K odeslání.
+  list:
+    title: Pravidelné faktury
+    views: Seznamy pravidelných faktur
+    filter: Zobrazit
+    failed: 'Selhalo: {reason}'
+    fix:
+      mail: Nastavit poštovní server
+      contact: Upravit kontakt
+      to_send: Odeslat z faktur k odeslání
+      edit: Upravit pravidelnou fakturu
+    summary: '{total, plural, one {# pravidelná faktura} few {# pravidelné faktury} other {# pravidelných faktur}}'
+    tab:
+      active: Aktivní
+      paused: Pozastavené
+      ended: Ukončené
+      failing: Selhaly
+    column:
+      name: Název vzoru
+      customer: Odběratel
+      description: Popis
+      firm: Firma
+      interval: Opakování
+      next: Další vystavení
+      end: Konec
+      delivery: Po vystavení
+      amount: Částka
+      state: Stav
+    delivery:
+      send: Odeslat
+      review: Ke kontrole
+    interval:
+      day: '{every, plural, one {Denně} few {Každé # dny} other {Každých # dní}}'
+      week: '{every, plural, one {Týdně} few {Každé # týdny} other {Každých # týdnů}}'
+      month: '{every, plural, one {Měsíčně} few {Každé # měsíce} other {Každých # měsíců}}'
+      year: '{every, plural, one {Ročně} few {Každé # roky} other {Každých # let}}'
+      last_day: ', poslední den v měsíci'
+    end:
+      never: bez konce
+      on_date: 'do {date}'
+      after_count: '{left, plural, =0 {žádná další} other {ještě #×}}'
+      ended: 'ukončeno {date}'
+    action:
+      edit: Upravit
+      issue_now: Vystavit nyní
+      pause: Pozastavit
+      resume: Obnovit
+      end: Ukončit
+      delete: Smazat
+    empty:
+      title: Zatím žádné pravidelné faktury
+      text: Založte novou, nebo ji vytvořte z vystavené faktury přes položku Pravidelná faktura v jejím menu.
+      from_invoice: Vybrat fakturu
+      filtered_title: Pro tuto firmu tu nic není
+      reset: Zobrazit všechny firmy
+      active: Žádná aktivní pravidelná faktura
+      paused: Nic není pozastavené
+      ended: Nic není ukončené
+      failing: Všechno se vystavuje bez potíží
+  pause:
+    title: Pozastavit pravidelnou fakturu
+    text: 'Faktura plánovaná na {date} ani další se nevystaví, dokud pravidelnou fakturu neobnovíte.'
+    text_no_date: Žádná další faktura se nevystaví, dokud pravidelnou fakturu neobnovíte.
+    resume_hint: Po obnovení se termíny z doby pozastavení přeskočí.
+    not_active: Pozastavit jde jen aktivní pravidelnou fakturu.
+  resume:
+    title: Obnovit pravidelnou fakturu
+    skipped: '{count, plural, one {Tento termín připadl na dobu pozastavení a nevystaví se:} other {Tyto termíny připadly na dobu pozastavení a nevystaví se:}}'
+    next: 'Další faktura se vystaví {date}.'
+    ends: Podle rozvrhu už žádná faktura nezbývá, pravidelná faktura obnovením skončí.
+    not_paused: Tato pravidelná faktura není pozastavená.
+  ending:
+    title: Ukončit pravidelnou fakturu
+    text: Žádná další faktura se už nevystaví. Ukončenou pravidelnou fakturu nejde znovu spustit.
+    keeps: Vystavené faktury zůstanou beze změny.
+  delete:
+    title: Smazat pravidelnou fakturu
+    text: Zatím z ní nevznikla žádná faktura, smaže se celá.
+  issue_now:
+    title: Vystavit fakturu nyní
+    text: 'Vystaví se faktura za termín {occurrence}, s těmito daty:'
+    issue_date: Datum vystavení
+    due_date: Splatnost
+    submit: Vystavit
+    not_active: Vystavit nyní jde jen aktivní pravidelnou fakturu.
+    delivery:
+      send: Pak odejde e-mailem odběrateli a kopie vám. Další termín se posune.
+      review: Pak počká v seznamu K odeslání na vaši kontrolu. Další termín se posune.
 import:
   number: '{value, number}'
   new: Nový import
@@ -1936,3 +2189,80 @@ import:
       currency: Měna
       payment_method: Způsob platby
       private_note: Soukromá poznámka
+reminder:
+  card:
+    template: Upomínka
+    settings: Automatické upomínky
+  templates_help: Upomínka k faktuře po splatnosti se posílá v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Upomínka: faktura {number}'
+      body: |-
+        Dobrý den,
+
+        dovolujeme si Vás upozornit, že faktura č. {number} se splatností {due_date} zatím není uhrazená. Zbývá uhradit {amount_due}.
+
+        Pokud jste ji mezitím zaplatili, považujte prosím tuto zprávu za bezpředmětnou.
+
+        Děkujeme,
+        {firm_name}
+
+        {link}
+  variable:
+    days_overdue: Dní po splatnosti
+    reminder_step: Pořadí upomínky
+    amount_due: Zbývá uhradit
+  field:
+    enabled: Posílat upomínky automaticky
+    enabled_help: Upomínky dostanou jen faktury se splatností ode dne zapnutí.
+    first: První upomínka
+    first_help: Dní po splatnosti
+    every: Další upomínky
+    every_help: Dní po předchozí upomínce
+    minimum: 'Nejnižší částka ({currency})'
+    minimum_help: Nižší částka upomínku nedostane. Prázdné pole je bez minima.
+  gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+  at_most: 'Nejvýš {count} upomínek k jedné faktuře.'
+  date_format: 'j. n. Y'
+  tomorrow:
+    title: Zítra dostanou upomínku
+    off: Upomínky jsou vypnuté.
+    none: Zítra nepůjde žádná upomínka.
+    due: 'splatnost {date}'
+  planned:
+    title: Kdybyste upomínky zapnuli dnes
+    intro: 'V příštích {days} dnech by odešly tyto první upomínky:'
+    none: 'V příštích {days} dnech by neodešla žádná první upomínka.'
+    'on': 'upomínka {date}'
+  error:
+    gate: Automatické upomínky půjdou zapnout, až se budou evidovat platby.
+    days: 'Zadejte celý počet dní od {min} do {max}.'
+    minimum: Zadejte částku, třeba 500 nebo 500,50.
+  contact:
+    send: Posílat upomínky
+    send_help: Když firma posílá upomínky po splatnosti automaticky.
+  log:
+    column: Druh
+    all: Všechny druhy
+    purpose:
+      invoice: Faktura
+      reminder: Upomínka
+    step: 'Upomínka {step}'
+    again: Poslat další upomínku
+  history:
+    sent: '{who}: upomínka {step} na {recipients}'
+    again: Poslat další upomínku
+  list:
+    action: Poslat upomínku
+    last: 'Poslední upomínka {date}'
+    count: '{count, plural, one {# upomínka} few {# upomínky} other {# upomínek}}'
+  manual:
+    title: 'Upomínka {step} k faktuře {number}'
+    submit: Odeslat upomínku
+    intro: '{days, plural, one {# den} few {# dny} other {# dní}} po splatnosti, upomínka {step} z nejvýš {max}.'
+    queued: 'Upomínka {step} k faktuře {number} je ve frontě k odeslání na {recipients}.'
+    already_queued: 'Upomínka {step} k faktuře {number} už je ve frontě k odeslání.'
+    not_overdue: 'Faktura {number} není po splatnosti, upomínku proto nedostane.'
+    limit: 'Faktura {number} už má {max} upomínek, víc jich být nemůže.'
+    settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
+    taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'

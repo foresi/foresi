@@ -552,6 +552,97 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertSame(0, $this->rows(PartyEmail::class));
     }
 
+    public function testTheContactFlagIsStoredPerFirmAndShared(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $second = $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+
+        // The form shows the flag on, as a hidden "0" and a checked box of the same name.
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertSelectorExists('input[type="checkbox"][name="firms[shared][sendReminders]"][value="1"][checked]');
+        self::assertSame('0', $crawler->filter('input[type="hidden"][name="firms[shared][sendReminders]"]')->attr('value'));
+
+        // Off for the first firm only: an unchecked box posts the hidden "0".
+        $this->post($party, [$first->id() => [
+            'own' => ['invoicing' => '1'],
+            'dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '0',
+        ]]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $flags = fn (): array => $this->em()->getConnection()->fetchAllKeyValue('SELECT legal_entity_id, invoicing_send_reminders FROM party_firm_settings');
+        $shared = fn (): mixed => $this->em()->getConnection()->fetchOne('SELECT invoicing_send_reminders FROM party WHERE id = ?', [$party->id()]);
+        self::assertEquals([$first->id() => false], $flags());
+        self::assertEquals(true, $shared());
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        self::assertFalse($this->settings()->defaultsFor($stored, $this->firms()->get($first->id()))->sendReminders);
+        self::assertTrue($this->settings()->defaultsFor($stored, $this->firms()->get($second->id()))->sendReminders);
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertCount(0, $crawler->filter(\sprintf('input[type="checkbox"][name="firms[%s][sendReminders]"][checked]', $first->id())));
+
+        // Off for all firms: the shared value changes, the first firm keeps its own.
+        $this->post($stored, ['shared' => ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '0']]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        self::assertEquals(false, $shared());
+        self::assertEquals([$first->id() => false], $flags());
+
+        // Back on for all firms.
+        $this->post($stored, ['shared' => ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '1']]);
+        self::assertEquals(true, $shared());
+    }
+
+    public function testAFormWithoutTheReminderFlagKeepsTheStoredOne(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $defaults = ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer'];
+        $this->post($party, [
+            'shared' => $defaults + ['sendReminders' => '0'],
+            $first->id() => ['own' => ['invoicing' => '1'], 'sendReminders' => '0'] + $defaults,
+        ]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $connection = $this->em()->getConnection();
+        $shared = static fn (): mixed => $connection->fetchOne('SELECT invoicing_send_reminders FROM party WHERE id = ?', [$party->id()]);
+        $own = static fn (): mixed => $connection->fetchOne('SELECT invoicing_send_reminders FROM party_firm_settings WHERE legal_entity_id = ?', [$first->id()]);
+        self::assertEquals(false, $shared());
+        self::assertEquals(false, $own());
+
+        // A form that leaves the field out, such as one from before the flag, changes the due days only.
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        $this->post($stored, [
+            'shared' => ['dueDays' => '21'] + $defaults,
+            $first->id() => ['own' => ['invoicing' => '1'], 'dueDays' => '30'] + $defaults,
+        ]);
+
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        self::assertEquals(false, $shared(), 'The shared flag stays off.');
+        self::assertEquals(false, $own(), "The firm's own flag stays off.");
+        self::assertEquals(21, $connection->fetchOne('SELECT invoicing_due_days FROM party WHERE id = ?', [$party->id()]));
+    }
+
+    public function testAFirmsOwnDefaultsFromBeforeTheReminderFlagStillRemind(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $this->post($party, [$first->id() => ['own' => ['invoicing' => '1'], 'dueDays' => '30', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '0']]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        // A row stored before the flag existed has no value for it.
+        $this->em()->getConnection()->executeStatement('UPDATE party_firm_settings SET invoicing_send_reminders = NULL WHERE legal_entity_id = ?', [$first->id()]);
+
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        $defaults = $this->settings()->defaultsFor($stored, $this->firms()->get($first->id()));
+
+        self::assertSame(30, $defaults->dueDays, "the firm's own defaults");
+        self::assertTrue($defaults->sendReminders, 'read as on, as before the flag');
+    }
+
     public function testAllFirmsEditsTheSharedValues(): void
     {
         $party = $this->party();

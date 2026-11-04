@@ -37,7 +37,8 @@ final readonly class LinkedMailBody
         $anchor = '<a href="'.self::escape($this->url).'">'.self::escape($this->url).'</a>';
         $paragraphs = [];
         $split = preg_split('/\n{2,}/', trim($body));
-        foreach (false === $split ? [trim($body)] : $split as $paragraph) {
+        // The pattern is fixed and has no u flag, so the split never fails.
+        foreach (false === $split ? [] : $split as $paragraph) {
             $parts = array_map(static fn (string $part): string => nl2br(self::escape($part), false), explode(self::LINK, $paragraph));
             $paragraphs[] = '<p>'.implode($anchor, $parts).'</p>';
         }

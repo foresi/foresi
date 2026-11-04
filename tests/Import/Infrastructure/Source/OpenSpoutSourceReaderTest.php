@@ -304,7 +304,7 @@ final class OpenSpoutSourceReaderTest extends TestCase
         $writer->openToFile($path);
         $writer->addRow(Row::fromValues(['Value']));
         foreach ([1234567.0, 12345678901234567890.0, 1.0E+25, 0.000012, -2.50, 100, true, false, 'text', new \DateTimeImmutable('2026-10-01 13:45:10')] as $value) {
-            $writer->addRow(new Row([Cell::fromValue($value, $value instanceof \DateTimeImmutable ? new Style()->setFormat('yyyy-mm-dd hh:mm:ss') : null)]));
+            $writer->addRow(new Row([Cell::fromValue($value, $value instanceof \DateTimeImmutable ? new Style()->withFormat('yyyy-mm-dd hh:mm:ss') : null)]));
         }
         $writer->close();
 

@@ -68,6 +68,8 @@ framework:
             App\Tenancy\Application\Schedule\RunOperatorTask: async
             # Inbound bank mail is processed in its tenant after it was stored.
             App\Banking\Application\ProcessInboundMessage: async
+            # A recurring template saved or resumed after the day's run, issued at once.
+            App\Invoicing\Application\IssueRecurringTemplate: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
 

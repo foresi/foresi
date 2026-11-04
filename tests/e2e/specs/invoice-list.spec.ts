@@ -77,7 +77,7 @@ test.describe.serial('the invoice list', () => {
 
   test('is reached from the sidebar and the palette', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('navigation').getByRole('link', { name: 'Faktury' }).click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Faktury', exact: true }).click();
     await expect(page).toHaveURL(/\/invoices$/);
   });
 
@@ -112,6 +112,8 @@ test.describe.serial('the invoice list', () => {
     await expect(menu).toBeInViewport({ ratio: 1 });
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: 'Pravidelná faktura' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Označit jako doručené' })).toBeFocused();
     await page.keyboard.press('Escape');

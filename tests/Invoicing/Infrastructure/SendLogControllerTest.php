@@ -23,6 +23,7 @@ use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
@@ -375,6 +376,70 @@ final class SendLogControllerTest extends WebTestCase
         self::assertCount(1, $this->client->getCrawler()->filter('tbody tr'));
         // The log itself does not repeat the notice that led to it.
         self::assertSelectorNotExists('[data-shell-notices]');
+    }
+
+    public function testTheLogFiltersByPurpose(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->sent($invoice);
+        self::mockTime('2026-11-25 10:00:00');
+        $this->reminded($invoice, 1);
+
+        $crawler = $this->client->request('GET', '/invoices/sent');
+
+        self::assertContains('Type', $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
+        self::assertSame(['Reminder 1', 'Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+
+        $crawler = $this->client->request('GET', '/invoices/sent?purpose=reminder');
+        self::assertCount(1, $crawler->filter('tbody tr'));
+        self::assertSame('reminder', $crawler->filter('#send-purpose option[selected]')->attr('value'));
+        // The tabs keep the purpose, so a status narrows the reminders.
+        self::assertSame('/invoices/sent?status=queued&purpose=reminder', $crawler->filter('nav[aria-label="Send states"] a')->eq(2)->attr('href'));
+        // A reminder row offers the next reminder, not the invoice again.
+        self::assertStringEndsWith('/invoices/'.$invoice->id().'/remind', (string) $crawler->filter('tbody tr a[data-dialog]')->first()->attr('href'));
+
+        $crawler = $this->client->request('GET', '/invoices/sent?purpose=invoice');
+        self::assertSame(['Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        $crawler = $this->client->request('GET', '/invoices/sent?purpose=nonsense');
+        self::assertCount(2, $crawler->filter('tbody tr'));
+    }
+
+    public function testHistoryNamesTheReminderStep(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->sent($invoice);
+        $this->deliver();
+        self::mockTime('2026-11-25 10:00:00');
+        $this->reminded($invoice, 1);
+        $this->deliver();
+        $this->opened($this->reminded($invoice, 2, ['refuse@example.com']));
+        $this->deliver();
+
+        $crawler = $this->client->request('GET', '/invoices/'.$invoice->id().'/history');
+
+        $sends = $crawler->filter('[data-send-entry]');
+        self::assertCount(3, $sends);
+        self::assertSame(['send', 'bell-ring', 'bell-ring'], $sends->each(static fn (Crawler $entry): string => (string) $entry->attr('data-send-entry')));
+        self::assertStringContainsString('sent reminder 1 to billing@example.com', $sends->eq(1)->text());
+        self::assertStringContainsString('Sent', $sends->eq(1)->text());
+        $failed = $sends->eq(2);
+        self::assertStringContainsString('sent reminder 2 to refuse@example.com', $failed->text());
+        self::assertStringContainsString('Failed', $failed->text());
+        self::assertStringContainsString('SMTP 550', $failed->text());
+        // The newest is a reminder, so it offers the next reminder rather than the invoice again.
+        $again = $failed->filter('a[data-dialog]');
+        self::assertSame('Send another reminder', trim($again->text()));
+        self::assertSame('/invoices/'.$invoice->id().'/remind', $again->attr('href'));
+    }
+
+    /**
+     * @param list<string> $to
+     */
+    private function reminded(Invoice $invoice, int $step, array $to = ['billing@example.com']): string
+    {
+        return $this->scoped(static fn (): string => self::getContainer()->get(SendInvoice::class)->send(new SendRequest($invoice->id(), $to, [], false, 'Reminder', '{link}', SendPurpose::Reminder, $step))->id());
     }
 
     /**

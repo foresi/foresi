@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'invoicing/recurring/_action.html.twig' %}
+
+{% set submit_icon = 'trash-2' %}
+
+{% block title %}{{ 'recurring.delete.title'|trans }}{% endblock %}
+
+{% block summary %}
+    <p class="m-0 text-text">{{ available ? 'recurring.delete.text'|trans : 'recurring.problem.issued'|trans }}</p>
+{% endblock %}
+
+{% block submit %}{{ 'recurring.list.action.delete'|trans }}{% endblock %}

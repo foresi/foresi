@@ -154,7 +154,7 @@ final class PartyFormController extends AbstractController
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
         $firms = $this->scopeFirms($party);
-        $firmSubmission = $this->firmReader->read($request, array_values($firms));
+        $firmSubmission = $this->firmReader->read($request, array_values($firms), $party);
         $input = $submission->input;
         if (!$submission->valid() || !$input instanceof PartyInput || !$firmSubmission->valid()) {
             return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $firmSubmission);

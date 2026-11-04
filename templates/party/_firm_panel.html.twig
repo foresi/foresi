@@ -52,6 +52,11 @@
                         <twig:Ui:Select :name="prefix ~ '[language]'" :id="idPrefix ~ 'language'" :label="'party.firm_settings.language'|trans" :options="languages" :value="scope.values.language" :error="scope.errors.language|default(null)" />
                         <twig:Ui:Select :name="prefix ~ '[paymentMethod]'" :id="idPrefix ~ 'paymentMethod'" :label="'party.firm_settings.payment_method'|trans" :options="paymentMethods" :value="scope.values.paymentMethod" :error="scope.errors.paymentMethod|default(null)" />
                         <div class="sm:col-span-2"><twig:Ui:Checkbox :name="prefix ~ '[reverseCharge]'" :id="idPrefix ~ 'reverseCharge'" :label="'party.firm_settings.reverse_charge'|trans" :checked="scope.values.reverseCharge == '1'" /></div>
+                        <div class="sm:col-span-2">
+                            {# Unchecked posts the hidden "0", so leaving it off is told apart from a form without it. #}
+                            <input type="hidden" name="{{ prefix }}[sendReminders]" value="0">
+                            <twig:Ui:Checkbox :name="prefix ~ '[sendReminders]'" :id="idPrefix ~ 'sendReminders'" :label="'reminder.contact.send'|trans" :help="'reminder.contact.send_help'|trans" :checked="(scope.values.sendReminders ?? '1') == '1'" />
+                        </div>
                     </div>
                 {% elseif panel.key == 'emails' %}
                     <div class="grid gap-3 sm:grid-cols-2">

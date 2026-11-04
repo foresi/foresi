@@ -46,7 +46,7 @@ test.describe('navigation', () => {
     const groups = await sidebar.locator('[data-nav-group]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-group')));
     expect(groups).toEqual(['main', 'sales', 'contacts', 'settings']);
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('heading', { name: 'Prodej' })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury' })).toBeVisible();
+    await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury', exact: true })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
     const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');

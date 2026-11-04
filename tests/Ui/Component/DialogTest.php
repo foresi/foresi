@@ -72,6 +72,7 @@ final class DialogTest extends KernelTestCase
     public function testUnknownSizeThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('Unknown size "xl", expected one of: sm, md, lg.');
         $this->mountTwigComponent('Ui:Dialog', ['id' => 'x', 'title' => 'x', 'size' => 'xl']);
     }
 

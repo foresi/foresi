@@ -32,8 +32,10 @@ final class ReparseFailedMessagesTest extends InboundTestCase
         $job = $this->job(new BankMessageParsers([new KbNotificationParser()]));
 
         self::assertSame('bank-reparse', $job->name());
-        self::assertSame('2026-11-20T11', $job->period(new \DateTimeImmutable('2026-11-20 12:59:59', new \DateTimeZone('Europe/Prague'))));
-        self::assertSame('2026-11-20T12', $job->period(new \DateTimeImmutable('2026-11-20 12:00:00', new \DateTimeZone('UTC'))));
+        $prague = new \DateTimeZone('Europe/Prague');
+        self::assertSame('2026-11-20T11', $job->period(new \DateTimeImmutable('2026-11-20 12:59:59', $prague), $prague));
+        self::assertSame('2026-11-20T12', $job->period(new \DateTimeImmutable('2026-11-20 12:00:00', new \DateTimeZone('UTC')), $prague));
+        self::assertSame('2026-11-20T12', $job->period(new \DateTimeImmutable('2026-11-20 12:00:00', new \DateTimeZone('UTC')), new \DateTimeZone('Asia/Tokyo')), 'the tenant\'s zone changes nothing');
     }
 
     public function testReparseRetriesOnlyOlderParserVersions(): void
