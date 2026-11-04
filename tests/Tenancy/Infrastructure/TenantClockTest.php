@@ -210,6 +210,13 @@ final class TenantClockTest extends KernelTestCase
         $tenant->changeTimezone(new \DateTimeZone('+01:00'));
     }
 
+    public function testOnlyCanonicalNamesOfTheTzDatabaseAreNamed(): void
+    {
+        self::assertTrue(Tenant::isNamed(new \DateTimeZone('Europe/Prague')));
+        self::assertFalse(Tenant::isNamed(new \DateTimeZone('+01:00')));
+        self::assertFalse(Tenant::isNamed(new \DateTimeZone('US/Eastern')));
+    }
+
     private function tenant(?string $zone): TenantId
     {
         $id = TenantId::generate();

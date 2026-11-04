@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Identity\Domain\Membership;
+use App\Identity\Domain\Role;
+use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\DocumentLinks;
@@ -501,6 +504,22 @@ final class SendInvoiceTest extends SendingTestCase
         $send = $this->sent($invoice, ['copyToMe' => true]);
 
         self::assertSame('office@example.com', $this->row($send->id())['copy_to']);
+    }
+
+    public function testTheSignedInPersonTakesTheCopyEvenOnBehalfOfSomeoneElse(): void
+    {
+        $sender = new User('staff@example.com', 'hash', 'Example Staff');
+        $owner = new User('owner@example.com', 'hash', 'Example Owner');
+        $this->em->persist($sender);
+        $this->em->persist($owner);
+        $this->em->persist(new Membership($owner, Role::Member));
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input());
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($sender->id(), 'staff@example.com', 'hash'), 'main', ['ROLE_USER']));
+
+        $send = $this->sent($invoice, ['copyToMe' => true, 'onBehalfOf' => $owner->id()]);
+
+        self::assertSame('staff@example.com', $this->row($send->id())['copy_to']);
     }
 
     public function testWithoutAFirmAddressOrAUserThereIsNoCopy(): void

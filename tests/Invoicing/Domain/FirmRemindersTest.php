@@ -15,6 +15,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class FirmRemindersTest extends TestCase
@@ -39,6 +40,48 @@ final class FirmRemindersTest extends TestCase
         self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::CZK)));
         self::assertTrue($reminders->isWorthReminding(Money::of('0.01', Currency::EUR)));
         self::assertFalse($reminders->isWorthReminding(Money::ofMinor(0, Currency::CZK)));
+    }
+
+    public function testTheDelaysRunFromOneTo365Days(): void
+    {
+        $reminders = $this->reminders(null);
+
+        $reminders->change(true, FirmReminders::MIN_DAYS, FirmReminders::MAX_DAYS, null, new \DateTimeImmutable('2026-11-02'));
+
+        self::assertSame([FirmReminders::MIN_DAYS, FirmReminders::MAX_DAYS], [$reminders->firstAfterDays(), $reminders->everyDays()]);
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function delaysOutOfRange(): iterable
+    {
+        yield 'first after no days' => [0, 7];
+        yield 'first after over a year' => [366, 7];
+        yield 'every no days' => [7, 0];
+        yield 'every over a year' => [7, 366];
+    }
+
+    #[DataProvider('delaysOutOfRange')]
+    public function testADelayOutOfRangeIsRefused(int $firstAfterDays, int $everyDays): void
+    {
+        $this->expectException(\DomainException::class);
+
+        $this->reminders(null)->change(true, $firstAfterDays, $everyDays, null, new \DateTimeImmutable('2026-11-02'));
+    }
+
+    public function testAMinimumOfZeroIsRefused(): void
+    {
+        $this->expectException(\DomainException::class);
+
+        $this->reminders(Money::ofMinor(0, Currency::CZK));
+    }
+
+    public function testTheSettingsAreStampedWithTheirTenantOnPersist(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        $this->reminders(null)->tenantId();
     }
 
     private function reminders(?Money $minimum): FirmReminders

@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Identity\Domain\User;
+use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\SendDraft;
 use App\Invoicing\Application\SendRecipient;
@@ -19,6 +21,8 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\PartyEmail;
 use Symfony\Component\Clock\Clock;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SendDraftTest extends SendingTestCase
@@ -172,6 +176,20 @@ final class SendDraftTest extends SendingTestCase
         self::assertSame('invoices@example.com', $draft->fromAddress);
         self::assertSame('office@example.com', $draft->copyAddress);
         self::assertNull($draft->lastSentAt);
+    }
+
+    public function testTheSignedInPersonSignsTheText(): void
+    {
+        $user = new User('sender@example.com', 'hash', 'Example Sender');
+        $this->em->persist($user);
+        $this->em->flush();
+        $invoice = $this->issue->issue($this->input());
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), 'sender@example.com', 'hash'), 'main', ['ROLE_USER']));
+
+        $body = $this->draft()->for($invoice)->body;
+
+        self::assertStringContainsString("\nExample Sender\n", $body);
+        self::assertStringNotContainsString('Example Firm', $body, 'not signed by the firm');
     }
 
     public function testTheCopyAddressIsTakenWithoutSpaces(): void

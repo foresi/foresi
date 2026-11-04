@@ -218,6 +218,45 @@ final class SendRemindersTest extends SendingTestCase
         self::assertSame([$due->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
     }
 
+    public function testTomorrowListsEveryInvoiceDueForAReminderAsOverdue(): void
+    {
+        $later = $this->overdue();
+        $earlier = $this->overdue('2027-01-09');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow($this->firmNow());
+
+        self::assertSame([[$earlier->id(), true], [$later->id(), true]], array_map(static fn (InvoiceRow $row): array => [$row->id, $row->overdue], $rows));
+    }
+
+    public function testAnInvoiceDueTodayIsNotOverdueYetInThePlan(): void
+    {
+        $invoice = $this->overdue('2027-01-20');
+        $this->switchOn(enabled: false);
+        self::mockTime('2027-01-20 09:00:00');
+        $this->em->clear();
+
+        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday($this->firmNow());
+
+        self::assertCount(1, $planned);
+        self::assertSame([$invoice->id(), false, '2027-01-27'], [$planned[0]->invoice->id, $planned[0]->invoice->overdue, $planned[0]->on->format('Y-m-d')]);
+    }
+
+    public function testAReminderTakesNoCopyForTheFirm(): void
+    {
+        $this->contactEmail('office@example.com');
+        $invoice = $this->overdue();
+        $this->switchOn();
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        $reminders = $this->reminders($invoice);
+        self::assertCount(1, $reminders);
+        self::assertNull($reminders[0]['copy_to'], 'a reminder goes without a copy');
+    }
+
     public function testSwitchedOffSendsNothing(): void
     {
         $invoice = $this->overdue();

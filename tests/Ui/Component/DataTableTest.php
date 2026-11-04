@@ -474,6 +474,13 @@ final class DataTableTest extends KernelTestCase
         yield 'icon cell with an icon that is not a name' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => ['send']]]]]]];
         yield 'icon cell with an unknown icon' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'rocket']]]]]];
         yield 'icon cell with an unknown tone' => [['rows' => [['cells' => ['name' => ['text' => 'x', 'icon' => 'send', 'tone' => 'pink']]]]]];
+        yield 'row alert without a text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['column' => 'name']]]]];
+        yield 'row alert with a text that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 5, 'column' => 'name']]]]];
+        yield 'row alert with an empty text' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => '', 'column' => 'name']]]]];
+        yield 'row alert with an unsafe href' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 'javascript:alert(1)', 'action' => 'Fix']]]]];
+        yield 'row alert with an href that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => 5, 'action' => 'Fix']]]]];
+        yield 'row alert with an action that is not a string' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => 5]]]]];
+        yield 'row alert with an empty action' => [['rows' => [['cells' => ['name' => 'x'], 'alert' => ['text' => 'Failed.', 'column' => 'name', 'href' => '/fix', 'action' => '']]]]];
     }
 
     /**

@@ -40,6 +40,19 @@ final class InvoicingDefaultsTest extends TestCase
         self::assertTrue($off->equals(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::English, PaymentMethod::Cash, true, false)));
     }
 
+    public function testEveryValueTakesPartInEquality(): void
+    {
+        $base = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
+
+        self::assertTrue($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::Cash, false, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true, true)));
+        self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false)));
+    }
+
     #[DataProvider('validDueDays')]
     public function testAcceptsDueDaysFromZeroTo365(int $days): void
     {

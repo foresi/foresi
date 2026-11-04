@@ -624,6 +624,25 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertEquals(21, $connection->fetchOne('SELECT invoicing_due_days FROM party WHERE id = ?', [$party->id()]));
     }
 
+    public function testAFirmsOwnDefaultsFromBeforeTheReminderFlagStillRemind(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $this->post($party, [$first->id() => ['own' => ['invoicing' => '1'], 'dueDays' => '30', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'sendReminders' => '0']]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        // A row stored before the flag existed has no value for it.
+        $this->em()->getConnection()->executeStatement('UPDATE party_firm_settings SET invoicing_send_reminders = NULL WHERE legal_entity_id = ?', [$first->id()]);
+
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        $defaults = $this->settings()->defaultsFor($stored, $this->firms()->get($first->id()));
+
+        self::assertSame(30, $defaults->dueDays, "the firm's own defaults");
+        self::assertTrue($defaults->sendReminders, 'read as on, as before the flag');
+    }
+
     public function testAllFirmsEditsTheSharedValues(): void
     {
         $party = $this->party();

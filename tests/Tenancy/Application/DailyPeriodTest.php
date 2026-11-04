@@ -47,6 +47,12 @@ final class DailyPeriodTest extends TestCase
         self::assertSame('2026-12-31', $this->of('2026-12-31T22:59:59Z', self::PRAGUE, 0));
     }
 
+    public function testTheLastHourOfTheDayMayStartIt(): void
+    {
+        self::assertSame('2026-12-31', $this->of('2027-01-01T21:59:00Z', self::PRAGUE, 23));
+        self::assertSame('2027-01-01', $this->of('2027-01-01T22:00:00Z', self::PRAGUE, 23));
+    }
+
     /**
      * @return iterable<string, array{int}>
      */
