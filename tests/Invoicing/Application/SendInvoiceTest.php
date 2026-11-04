@@ -23,6 +23,7 @@ use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Infrastructure\Mail\RateLimitedSends;
 use App\Invoicing\Infrastructure\Mail\RouterDocumentLinks;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
@@ -442,8 +443,9 @@ final class SendInvoiceTest extends SendingTestCase
     public function testAnInvoiceThatKeepsChangingIsDrawnThreeTimesOnOneLimit(): void
     {
         $invoice = $this->issue->issue($this->input());
-        // One send left for the firm: a round drawn again must not take another.
-        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(499);
+        // One send left for the firm, here a system's send without a user, which stops at its share
+        // of the day: a round drawn again must not take another.
+        self::getContainer()->get('test.invoice_send_firm_limiter')->create($this->firm->id())->consume(intdiv(500 * RateLimitedSends::SYSTEM_SHARE, 100) - 1);
         $pdf = new class($this->connection, $invoice->id()) implements InvoicePdf {
             public int $drawn = 0;
 

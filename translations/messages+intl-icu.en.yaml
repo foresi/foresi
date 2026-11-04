@@ -1243,7 +1243,7 @@ recurring:
     iban: IBAN
   variables:
     title: Variables
-    help: Inserted into the field you were in last – the description, a text or an item.
+    help: Goes into the last field – description, text or item.
   variable:
     day: Day
     month: Month

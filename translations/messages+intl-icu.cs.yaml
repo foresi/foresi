@@ -1243,7 +1243,7 @@ recurring:
     iban: IBAN
   variables:
     title: Proměnné
-    help: Vloží se do pole, ve kterém jste byli naposledy – do popisu, textů nebo do položky.
+    help: Vloží se do posledního pole – popisu, textu či položky.
   variable:
     day: Den
     month: Měsíc
