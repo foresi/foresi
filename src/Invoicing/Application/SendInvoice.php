@@ -15,9 +15,11 @@ use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
+use App\Invoicing\Domain\SendPurpose;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
@@ -29,9 +31,13 @@ use Psr\Clock\ClockInterface;
  * where the worker puts the link; braces in a customer's name or a description
  * stay as they are. The worker only delivers.
  *
+ * The PDF of a reminder asks for what is still owed, so a part-paid invoice is
+ * reminded of what is left, in the QR code too.
+ *
  * The PDF is drawn outside the transaction; inside, under the lock of the invoice,
- * the invoice must still be the one drawn and not in the trash, and the file and
- * the row are written. The message is queued after the commit, since a
+ * which recording a payment takes as well, the invoice must still be the one
+ * drawn, owe what was drawn for a reminder, and not be in the trash, and the file
+ * and the row are written. The message is queued after the commit, since a
  * synchronous transport would otherwise deliver inside the transaction.
  */
 final readonly class SendInvoice
@@ -50,6 +56,7 @@ final readonly class SendInvoice
         private DocumentLinks $links,
         private SendLimits $limits,
         private InvoiceSendQueue $queue,
+        private InvoiceBalances $balances,
         private InvoicingCountries $countries,
         private FirmInvoicingSettings $settings,
         private UserRepository $users,
@@ -81,7 +88,8 @@ final readonly class SendInvoice
         $userId = $this->actor->userId();
         $limited = false;
         for ($round = 0; $round < self::DRAWING_ROUNDS; ++$round) {
-            $document = $this->documents->of($request->invoiceId);
+            $owed = $this->owed($request);
+            $document = $this->documents->of($request->invoiceId, $owed);
             $invoice = $this->store->get($request->invoiceId);
             if ($document->trashed) {
                 throw new SendRefused(SendRefused::TRASHED);
@@ -115,7 +123,7 @@ final readonly class SendInvoice
                 $copyTo = null;
             }
 
-            $send = $this->store($request, $invoice->version(), $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment);
+            $send = $this->store($request, $invoice->version(), $owed, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment);
             if ($send instanceof InvoiceSend) {
                 $this->queue->deliver($send->id());
 
@@ -127,18 +135,27 @@ final readonly class SendInvoice
     }
 
     /**
+     * What a reminder asks for: what is still owed. Null for any other send, which asks for the whole payable.
+     */
+    private function owed(SendRequest $request): ?Money
+    {
+        return SendPurpose::Reminder === $request->purpose ? $this->balances->outstanding([$request->invoiceId])[$request->invoiceId] : null;
+    }
+
+    /**
+     * @param Money|null              $drawnOwed what the PDF of a reminder was drawn to ask for
      * @param list<string>            $to
      * @param list<string>            $cc
-     * @param array{?string, ?string} $payment the domestic account and the payment code
+     * @param array{?string, ?string} $payment   the domestic account and the payment code
      *
-     * @return InvoiceSend|null null when the invoice changed since it was drawn, so it is drawn again
+     * @return InvoiceSend|null null when the invoice, or what it owes, changed since it was drawn, so it is drawn again
      */
-    private function store(SendRequest $request, int $drawnVersion, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $pdf, array $payment): ?InvoiceSend
+    private function store(SendRequest $request, int $drawnVersion, ?Money $drawnOwed, array $to, array $cc, ?string $copyTo, string $subject, string $body, ?string $userId, string $pdf, array $payment): ?InvoiceSend
     {
         $tenant = $this->context->current()->toString();
         $id = Id::generate();
         try {
-            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($request, $drawnVersion, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment, $tenant, $id): ?InvoiceSend {
+            return $this->retry->run(fn (): ?InvoiceSend => $this->work->run(function () use ($request, $drawnVersion, $drawnOwed, $to, $cc, $copyTo, $subject, $body, $userId, $pdf, $payment, $tenant, $id): ?InvoiceSend {
                 $invoice = $this->store->lock($request->invoiceId);
                 if ($invoice->isTrashed()) {
                     throw new SendRefused(SendRefused::TRASHED);
@@ -148,7 +165,7 @@ final readonly class SendInvoice
                 if (null !== $request->reminderStep && $this->sends->hasReminderStep($invoice, $request->reminderStep)) {
                     throw new SendRefused(SendRefused::REMINDER_TAKEN);
                 }
-                if ($invoice->version() !== $drawnVersion) {
+                if ($invoice->version() !== $drawnVersion || $this->owed($request)?->minor() !== $drawnOwed?->minor()) {
                     return null;
                 }
                 $key = $this->files->store($tenant, $id, $pdf);

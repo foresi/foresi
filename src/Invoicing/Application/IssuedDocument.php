@@ -21,7 +21,8 @@ use App\Shared\Domain\Money;
 
 /**
  * A read-only view of an issued invoice, its lines and rate summaries, for the
- * PDF and the country code. Everything comes from what is stored.
+ * PDF and the country code. Everything comes from what is stored, except what a
+ * reminder asks for once part of the invoice is paid.
  */
 final readonly class IssuedDocument
 {
@@ -59,6 +60,16 @@ final readonly class IssuedDocument
         public Money $rounding,
         public Money $payable,
         public bool $trashed = false,
+        public ?Money $leftToPay = null,
     ) {
+    }
+
+    /**
+     * What the customer is asked to pay: what is left of a part-paid invoice in a
+     * reminder, else the whole payable.
+     */
+    public function toPay(): Money
+    {
+        return $this->leftToPay ?? $this->payable;
     }
 }

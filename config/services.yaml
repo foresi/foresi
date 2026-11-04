@@ -203,13 +203,13 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends
     App\Invoicing\Application\SentFiles:
         alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
-    # What is still owed on invoices. The payments module rebinds this to an
-    # authoritative implementation that passes InvoiceBalancesContractTest, and
-    # the SQL condition below to the same implementation.
+    # What is still owed on invoices, from the recorded payments; the SQL
+    # condition comes from the same implementation, which passes
+    # InvoiceBalancesContract and is authoritative, so reminders may be switched on.
     App\Invoicing\Application\InvoiceBalances:
-        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+        alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
     App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition:
-        alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+        alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
     App\Invoicing\Application\DocumentLinks:
         alias: App\Invoicing\Infrastructure\Mail\RouterDocumentLinks
     App\Invoicing\Application\SendLimits:
@@ -461,7 +461,7 @@ when@test:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore
             public: true
         App\Invoicing\Application\InvoiceBalances:
-            alias: App\Invoicing\Infrastructure\Doctrine\DueDateBalances
+            alias: App\Invoicing\Infrastructure\Doctrine\PaymentBalances
             public: true
         test.invoice_balances:
             alias: App\Invoicing\Application\InvoiceBalances

@@ -26,9 +26,11 @@ final readonly class IssuedDocumentFactory
     }
 
     /**
+     * @param Money|null $owed what is still owed, for a reminder: below the payable, the document asks for it alone
+     *
      * @throws UnknownInvoice also for an invoice of another tenant
      */
-    public function of(string $id): IssuedDocument
+    public function of(string $id, ?Money $owed = null): IssuedDocument
     {
         $stored = $this->store->snapshot($id);
         $invoice = $stored->invoice;
@@ -68,6 +70,7 @@ final readonly class IssuedDocumentFactory
             $invoice->totalRounding(),
             $invoice->payable(),
             $invoice->isTrashed(),
+            $owed instanceof Money && $owed->minor() < $invoice->payable()->minor() ? $owed : null,
         );
     }
 }

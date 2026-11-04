@@ -14,10 +14,10 @@ use App\Shared\Domain\Money;
  * Port: what is still owed on invoices of the active tenant. Reminders ask it
  * before they are queued and again before they are delivered.
  *
- * Until payments exist, DueDateBalances answers from the invoice alone and is not
- * authoritative. The payments module replaces the binding of this interface (the
- * alias in config/services.yaml) with one that knows what was paid, and answers
- * true from isAuthoritative(). Any implementation must pass
+ * PaymentBalances answers from the recorded payments and is authoritative; it is
+ * bound by the alias in config/services.yaml. An implementation that cannot tell
+ * a paid invoice from an open one answers false from isAuthoritative(), which
+ * keeps automatic reminders off. Any implementation must pass
  * InvoiceBalancesContract.
  */
 interface InvoiceBalances

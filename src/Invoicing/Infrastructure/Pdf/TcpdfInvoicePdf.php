@@ -165,6 +165,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'vat' => $totals['vat'],
             'gross' => $totals['total'],
             'payable' => $this->format->money($document->payable, $document->language),
+            // The payment box asks for what is left once part is paid, under its own label; the totals keep the whole payable.
+            'toPay' => $this->format->money($document->toPay(), $document->language),
+            'toPayLabel' => $this->trans($document->leftToPay instanceof Money ? 'invoice.pdf.left_to_pay' : 'invoice.pdf.payable'),
             'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
             'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
         ];

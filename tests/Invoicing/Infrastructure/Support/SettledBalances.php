@@ -9,17 +9,17 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
 use App\Invoicing\Application\InvoiceBalances;
-use App\Invoicing\Infrastructure\Doctrine\DueDateBalances;
 use App\Invoicing\Infrastructure\Doctrine\OwingInvoiceCondition;
+use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Stands in for the payments module: the invoices it is told of are paid in
- * full, every other one owes what DueDateBalances says. Its SQL condition is
- * DueDateBalances' own and lets paid invoices through, so whatever reads it must
+ * Pays invoices without recording a payment: the invoices it is told of are paid
+ * in full, every other one owes what PaymentBalances says. Its SQL condition is
+ * PaymentBalances' own and lets these invoices through, so whatever reads it must
  * still drop them by outstanding().
  */
 final class SettledBalances implements InvoiceBalances, OwingInvoiceCondition
@@ -27,7 +27,7 @@ final class SettledBalances implements InvoiceBalances, OwingInvoiceCondition
     /** @var array<string, true> */
     private array $paid = [];
 
-    public function __construct(private readonly DueDateBalances $inner)
+    public function __construct(private readonly PaymentBalances $inner)
     {
     }
 
@@ -36,8 +36,8 @@ final class SettledBalances implements InvoiceBalances, OwingInvoiceCondition
      */
     public static function install(ContainerInterface $container, Connection $connection, TenantContext $context): self
     {
-        $balances = new self(new DueDateBalances($connection, $context));
-        $container->set(DueDateBalances::class, $balances);
+        $balances = new self(new PaymentBalances($connection, $context));
+        $container->set(PaymentBalances::class, $balances);
 
         return $balances;
     }

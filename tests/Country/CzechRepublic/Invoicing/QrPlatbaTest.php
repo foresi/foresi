@@ -41,6 +41,16 @@ final class QrPlatbaTest extends TestCase
         );
     }
 
+    public function testAReminderOfAPartPaidInvoiceAsksForWhatIsLeft(): void
+    {
+        self::assertStringStartsWith('SPD*1.0*ACC:CZ6508000000192000145399*AM:1000.50*CC:CZK*', (string) $this->qr(leftToPay: '1000.50'));
+    }
+
+    public function testNothingLeftToPayGivesNoCode(): void
+    {
+        self::assertNull($this->qr(leftToPay: '0.00'));
+    }
+
     public function testBaseAndReducedRateHaveTheirOwnKeys(): void
     {
         $code = $this->qr(summaries: [
@@ -86,6 +96,12 @@ final class QrPlatbaTest extends TestCase
     {
         self::assertNull($this->qr(method: PaymentMethod::Cash));
         self::assertNull($this->qr(method: PaymentMethod::Card));
+    }
+
+    public function testTheLargestAmountTakesAllTenCharactersOfItsKey(): void
+    {
+        self::assertStringContainsString('*AM:9999999.99*', (string) $this->qr(payable: '9999999.99'));
+        self::assertStringContainsString('*AM:9999999.99*', (string) $this->qr(payable: '10000000.00', leftToPay: '9999999.99'));
     }
 
     public function testNoCodeForZero(): void
@@ -226,6 +242,7 @@ final class QrPlatbaTest extends TestCase
         Currency $currency = Currency::CZK,
         VatRegime $regime = VatRegime::Payer,
         ?array $summaries = null,
+        ?string $leftToPay = null,
     ): ?string {
         $money = fn (string $amount): Money => Money::of($amount, $currency);
         $summaries ??= [new RateSummary(TaxTreatment::Standard, Percent::fromString('21.00'), $money('3100.00'), $money('651.00'), $money('3751.00'))];
@@ -259,6 +276,8 @@ final class QrPlatbaTest extends TestCase
             $money('3751.00'),
             $money('0.00'),
             $money($payable),
+            false,
+            null === $leftToPay ? null : $money($leftToPay),
         ));
     }
 

@@ -20,7 +20,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\SendPurpose;
-use App\Invoicing\Infrastructure\Doctrine\DueDateBalances;
+use App\Invoicing\Infrastructure\Doctrine\PaymentBalances;
 use App\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use App\Invoicing\Infrastructure\Messenger\MarkSendFailed;
 use App\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
@@ -700,9 +700,19 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testAReminderCheckThatCannotBeMadeCountsAsATryOfTheSend(): void
     {
-        self::getContainer()->set(DueDateBalances::class, new class implements InvoiceBalances {
+        // The balances answer while the reminder is queued and fail when the worker asks.
+        $balances = new class(new PaymentBalances($this->connection, self::getContainer()->get(TenantContext::class))) implements InvoiceBalances {
+            public bool $failing = false;
+
+            public function __construct(private readonly InvoiceBalances $inner)
+            {
+            }
+
             public function outstanding(array $invoiceIds): array
             {
+                if (!$this->failing) {
+                    return $this->inner->outstanding($invoiceIds);
+                }
                 throw new \RuntimeException('The balances are out of reach.');
             }
 
@@ -710,8 +720,10 @@ final class DeliverInvoiceSendTest extends SendingTestCase
             {
                 return true;
             }
-        });
+        };
+        self::getContainer()->set(PaymentBalances::class, $balances);
         [, $reminder] = $this->queuedReminder();
+        $balances->failing = true;
 
         $failure = $this->deliveryFailure();
 
@@ -726,9 +738,19 @@ final class DeliverInvoiceSendTest extends SendingTestCase
 
     public function testAReminderWhoseInvoiceCannotBeFoundFailsAtOnceWithoutRetries(): void
     {
-        self::getContainer()->set(DueDateBalances::class, new class implements InvoiceBalances {
+        // The balances answer while the reminder is queued and fail when the worker asks.
+        $balances = new class(new PaymentBalances($this->connection, self::getContainer()->get(TenantContext::class))) implements InvoiceBalances {
+            public bool $failing = false;
+
+            public function __construct(private readonly InvoiceBalances $inner)
+            {
+            }
+
             public function outstanding(array $invoiceIds): array
             {
+                if (!$this->failing) {
+                    return $this->inner->outstanding($invoiceIds);
+                }
                 throw new UnknownInvoice();
             }
 
@@ -736,8 +758,10 @@ final class DeliverInvoiceSendTest extends SendingTestCase
             {
                 return true;
             }
-        });
+        };
+        self::getContainer()->set(PaymentBalances::class, $balances);
         [, $reminder] = $this->queuedReminder();
+        $balances->failing = true;
 
         $this->worker->run();
 

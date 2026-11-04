@@ -53,14 +53,15 @@ final readonly class QrPlatba
     public function for(IssuedDocument $document): ?string
     {
         $iban = $document->bankAccount ?? '';
-        $payable = $document->payable->minor();
+        // A reminder of a part-paid invoice asks for what is left.
+        $payable = $document->toPay()->minor();
         if (!self::canCarry($document->number) || PaymentMethod::BankTransfer !== $document->paymentMethod || '' === $iban || Currency::CZK !== $document->currency || $payable <= 0 || $payable > self::MAX_AMOUNT_MINOR) {
             return null;
         }
 
         $pairs = [
             $this->pair('ACC', $iban, 46),
-            $this->pair('AM', $this->amount($document->payable), 10),
+            $this->pair('AM', $this->amount($document->toPay()), 10),
             $this->pair('CC', $document->currency->value, 3),
             $this->pair('DT', $document->dueDate->format('Ymd'), 8),
             $this->pair('MSG', $document->number, 60),

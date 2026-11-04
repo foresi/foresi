@@ -9,15 +9,19 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -45,6 +49,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
 use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;
@@ -286,6 +291,53 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertStringNotContainsString('reminder on', $rows->text());
     }
 
+    public function testThePreviewLeavesOutWhatIsPaidAndShowsWhatIsLeft(): void
+    {
+        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+        [$firm, $invoices] = $this->firmWithDeliveredInvoices($tenant, ['2026-11-10', '2026-11-11', '2026-10-20', '2026-10-21']);
+        [$partly, $paid, $partlyOverdue, $paidOverdue] = $invoices;
+        $this->pay($firm, $partly, '210.00');
+        $this->pay($firm, $paid, '1210.00');
+        $this->pay($firm, $partlyOverdue, '1000.00');
+        $this->pay($firm, $paidOverdue, '1210.00');
+
+        // Off: the plan of switching on today.
+        $rows = $this->client->request('GET', $this->url($firm))->filter('#reminders-preview li');
+
+        self::assertCount(1, $rows, 'the paid one is never planned');
+        self::assertStringContainsString($partly->number(), $rows->text());
+        self::assertStringContainsString('1,000.00', $rows->text(), 'what is left, not the total');
+        self::assertStringNotContainsString('1,210.00', $rows->text());
+
+        // On since October: tomorrow's reminders.
+        $this->saveTemplates($firm, ['reminders' => ['enabled' => '1']]);
+        $this->connection()->executeStatement("UPDATE firm_reminders SET enabled_on = '2026-10-01'");
+        $rows = $this->client->request('GET', $this->url($firm))->filter('#reminders-preview li');
+
+        self::assertCount(1, $rows, 'the paid one is never reminded');
+        self::assertStringContainsString($partlyOverdue->number(), $rows->text());
+        self::assertStringContainsString('210.00', $rows->text());
+        self::assertStringNotContainsString('1,210.00', $rows->text());
+    }
+
+    public function testRecordedPaymentsLiftTheGate(): void
+    {
+        $firm = $this->signedInFirm();
+        $container = self::getContainer();
+        // Without the test's allowance: the bound balances alone decide.
+        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class), false));
+
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(0, $crawler->filter('#reminders-enabled[disabled]'));
+        self::assertSelectorTextNotContains('#reminders-card', 'once payments are recorded');
+
+        $this->client->request('POST', $this->url($firm), $this->formValues(['enabled' => '1']));
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertEquals(1, $this->connection()->fetchOne('SELECT enabled FROM firm_reminders'));
+    }
+
     public function testSwitchingOnRecordsTheDay(): void
     {
         $firm = $this->signedInFirm();
@@ -310,7 +362,7 @@ final class FirmMailControllerTest extends WebTestCase
     {
         $firm = $this->signedInFirm();
         $container = self::getContainer();
-        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $container->get(InvoiceBalances::class), false));
+        $container->set(ReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), new UnauthoritativeBalances($container->get(InvoiceBalances::class)), false));
 
         $crawler = $this->client->request('GET', $this->url($firm));
         self::assertCount(1, $crawler->filter('#reminders-enabled[disabled]'));
@@ -703,6 +755,17 @@ final class FirmMailControllerTest extends WebTestCase
             }
 
             return [$firm, $invoices];
+        } finally {
+            $this->context->reset();
+        }
+    }
+
+    private function pay(LegalEntity $firm, Invoice $invoice, string $amount): void
+    {
+        $this->context->switchTo($firm->tenantId());
+        try {
+            $czk = Money::of($amount, Currency::CZK);
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($firm->id(), new \DateTimeImmutable('2026-11-01'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
         } finally {
             $this->context->reset();
         }
