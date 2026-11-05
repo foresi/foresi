@@ -29,7 +29,7 @@
                     <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
                 {% endif %}
 
-                {# The documents first, the invoice, the advance invoice and the tax document on its payment; then the reminder with its settings. #}
+                {# The documents first, the invoice, the advance invoice, the tax document on its payment and the corrective tax document; then the reminder with its settings. #}
                 {% for card in cards|filter(card => card.kind != 'reminder')|merge(cards|filter(card => card.kind == 'reminder')) %}
                     {{ _self.templateCard(card.kind, card.title|trans, card.help|trans, card.icon, card.languages, card.templates, errors, chip_class) }}
                 {% endfor %}

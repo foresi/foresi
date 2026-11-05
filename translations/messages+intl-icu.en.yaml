@@ -2443,6 +2443,20 @@ correction:
     change_text: Something changed after the supply; taxed on the decisive date.
     error: Error on the document
     error_text: The invoice was wrong; taxed in its original period.
+  variable:
+    original_number: Number of the corrected document
+  mail:
+    card: Corrective tax document
+    templates_help: A corrective tax document goes out in the language of the document.
+    default:
+      subject: 'Corrective tax document {number}'
+      body: |-
+        I am sending corrective tax document no. {number} to document no. {original_number} for {amount_total}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
 tax_document:
   waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
   needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.

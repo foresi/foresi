@@ -112,6 +112,22 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSelectorExists('form#mail-reset-advance-cs input[name="kind"][value="advance"]');
     }
 
+    public function testTheCorrectionTemplateKnowsTheNumberOfTheOriginal(): void
+    {
+        $firm = $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertSame('Opravný daňový doklad {Číslo dokladu}', $crawler->filter('#correction-subject-cs')->attr('value'));
+        self::assertStringContainsString('{Number of the corrected document}', $crawler->filter('#correction-body-en')->text());
+
+        $this->saveTemplates($firm, ['correction_body' => ['cs' => "Oprava dokladu {Číslo opravovaného dokladu}.\n{Odkaz na doklad}"]]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(
+            [['kind' => 'correction', 'language' => 'cs', 'body' => "Oprava dokladu {original_number}.\n{link}"]],
+            $this->connection()->fetchAllAssociative('SELECT kind, language, body FROM mail_template'),
+        );
+    }
+
     public function testThePageHasBothTabsAndTheChips(): void
     {
         $firm = $this->signedInFirm();
@@ -136,11 +152,12 @@ final class FirmMailControllerTest extends WebTestCase
                 'variables-cs language-cs', 'variables-en language-en',
                 'variables-advance-cs kind-advance-cs language-advance-cs', 'variables-advance-en kind-advance-en language-advance-en',
                 'variables-tax_document-cs kind-tax_document-cs language-tax_document-cs', 'variables-tax_document-en kind-tax_document-en language-tax_document-en',
+                'variables-correction-cs kind-correction-cs language-correction-cs', 'variables-correction-en kind-correction-en language-correction-en',
                 'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en',
             ],
             $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
         );
-        self::assertSame(array_fill(0, 8, '0'), $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
+        self::assertSame(array_fill(0, 10, '0'), $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
         $chips = $crawler->filter('[role="toolbar"][aria-labelledby] button[type="button"][data-token]');
         self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
     }

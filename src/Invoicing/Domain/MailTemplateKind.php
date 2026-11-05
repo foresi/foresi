@@ -18,6 +18,7 @@ enum MailTemplateKind: string
     case Reminder = 'reminder';
     case Advance = 'advance';
     case PaymentTaxDocument = 'tax_document';
+    case CorrectionDocument = 'correction';
 
     /**
      * The template a document is sent with.
@@ -28,8 +29,7 @@ enum MailTemplateKind: string
             DocumentKind::Invoice => self::Invoice,
             DocumentKind::Advance => self::Advance,
             DocumentKind::PaymentTaxDocument => self::PaymentTaxDocument,
-            // Until a corrective document has a template of its own.
-            DocumentKind::CorrectionDocument => self::Invoice,
+            DocumentKind::CorrectionDocument => self::CorrectionDocument,
         };
     }
 }

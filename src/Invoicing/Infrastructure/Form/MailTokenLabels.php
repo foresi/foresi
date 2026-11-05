@@ -40,7 +40,11 @@ final readonly class MailTokenLabels
         $invoice = $this->variables->names();
         $labels = [];
         foreach ($this->variables->names($kind) as $name) {
-            $key = \in_array($name, $invoice, true) ? 'firm.mail.variable.'.$name : 'reminder.variable.'.$name;
+            $key = match (true) {
+                \in_array($name, $invoice, true) => 'firm.mail.variable.'.$name,
+                MailTemplateKind::CorrectionDocument === $kind => 'correction.variable.'.$name,
+                default => 'reminder.variable.'.$name,
+            };
             $labels[$name] = $this->translator->trans($key, locale: $language->value);
         }
 

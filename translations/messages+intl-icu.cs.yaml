@@ -2443,6 +2443,20 @@ correction:
     change_text: Po uskutečnění plnění se něco změnilo; daní se k rozhodnému datu.
     error: Chyba na dokladu
     error_text: Faktura byla chybná; daní se v původním období.
+  variable:
+    original_number: Číslo opravovaného dokladu
+  mail:
+    card: Opravný daňový doklad
+    templates_help: Opravný daňový doklad odchází v jazyce dokladu.
+    default:
+      subject: 'Opravný daňový doklad {number}'
+      body: |-
+        Zasílám Vám opravný daňový doklad č. {number} k dokladu č. {original_number} na částku {amount_total}.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
 tax_document:
   waiting_notice: '{late, select, yes {{count, plural, one {Doklad je} few {# doklady jsou} other {# dokladů je}} po termínu daňového nebo opravného dokladu.} other {{count, plural, one {Doklad čeká} few {# doklady čekají} other {# dokladů čeká}} na daňový nebo opravný doklad, první do {date}.}}'
   needs_correction: Platba tohoto daňového dokladu byla zrušena nebo vrácena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
