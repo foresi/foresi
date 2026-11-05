@@ -12,9 +12,12 @@ use App\Country\CzechRepublic\Party\CzechBankAccount;
 use App\Country\CzechRepublic\Party\CzechBanks;
 use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Domain\DocumentParty;
+use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
+use App\Invoicing\Domain\LineAmounts;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\RateSummary;
+use App\Invoicing\Domain\SummaryLine;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Domain\PaymentMethod;
@@ -83,12 +86,15 @@ final readonly class IsdocWriter
             $this->add($reference, 'ExternalOrderID', $document->orderNumber);
         }
 
+        // Deducted advances are deposits in ISDOC, not lines: the lines are the supply (§A.6, §A.9).
+        $supply = array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null === $line->deducts()));
         $lines = $this->add($root, 'InvoiceLines');
-        foreach ($document->lines as $index => $line) {
+        foreach ($supply as $index => $line) {
             $this->line($lines, $line, $index + 1, $applicable);
         }
-        $this->taxTotal($root, $document);
-        $this->monetaryTotal($root, $document);
+        $this->deposits($root, $document);
+        $this->taxTotal($root, $document, $supply);
+        $this->monetaryTotal($root, $document, $supply);
         $this->payment($root, $document);
 
         $xml = $dom->saveXML();
@@ -202,30 +208,98 @@ final readonly class IsdocWriter
         return rtrim(rtrim($line->discount()->decimal(), '0'), '.');
     }
 
-    private function taxTotal(\DOMElement $root, IssuedDocument $document): void
+    /**
+     * A paid advance without VAT once per advance; a tax document on payment once
+     * per rate of it. Amounts are positive, though they are subtracted (§A.6).
+     */
+    private function deposits(\DOMElement $root, IssuedDocument $document): void
+    {
+        $untaxed = [];
+        $taxed = [];
+        foreach ($document->lines as $line) {
+            $id = $line->deducts();
+            if (null === $id || !isset($document->deposits[$id])) {
+                continue;
+            }
+            if ($document->deposits[$id]['taxed']) {
+                $taxed[$id.'|'.$line->treatment()->value.'|'.($line->rate()?->decimal() ?? '-')][] = $line;
+            } else {
+                $untaxed[$id][] = $line;
+            }
+        }
+        if ([] !== $untaxed) {
+            $element = $this->add($root, 'NonTaxedDeposits');
+            foreach ($untaxed as $id => $lines) {
+                $deposit = $this->add($element, 'NonTaxedDeposit');
+                $this->add($deposit, 'ID', $document->deposits[$id]['number']);
+                $this->add($deposit, 'VariableSymbol', $document->deposits[$id]['variableSymbol']);
+                $this->add($deposit, 'DepositAmount', $this->amount($this->negated($this->sum($lines, 'gross', $document))));
+            }
+        }
+        if ([] !== $taxed) {
+            $element = $this->add($root, 'TaxedDeposits');
+            foreach ($taxed as $key => $lines) {
+                $id = explode('|', $key)[0];
+                $deposit = $this->add($element, 'TaxedDeposit');
+                $this->add($deposit, 'ID', $document->deposits[$id]['number']);
+                $this->add($deposit, 'VariableSymbol', $document->deposits[$id]['variableSymbol']);
+                $this->add($deposit, 'TaxableDepositAmount', $this->amount($this->negated($this->sum($lines, 'net', $document))));
+                $this->add($deposit, 'TaxInclusiveDepositAmount', $this->amount($this->negated($this->sum($lines, 'gross', $document))));
+                $category = $this->add($deposit, 'ClassifiedTaxCategory');
+                $this->add($category, 'Percent', $lines[0]->rate()?->decimal() ?? '0.00');
+                $this->add($category, 'VATCalculationMethod', '1');
+                $this->add($category, 'VATApplicable', $this->flag($lines[0]->rate() instanceof \App\Invoicing\Domain\Percent));
+            }
+        }
+    }
+
+    /**
+     * Per rate: the supply, what the tax documents on payments claimed already, and
+     * the difference on which VAT is due now (§37a).
+     *
+     * @param list<InvoiceLine> $supply
+     */
+    private function taxTotal(\DOMElement $root, IssuedDocument $document, array $supply): void
     {
         $total = $this->add($root, 'TaxTotal');
         $domestic = array_any($document->lines, static fn (InvoiceLine $line): bool => null !== $line->supplyCode());
         $applicable = $this->isVatApplicable($document);
-        foreach ($document->summaries as $summary) {
-            $this->subtotal($total, $summary, $applicable, $domestic);
+        $zero = Money::ofMinor(0, $document->currency);
+        $claimed = [];
+        foreach ($this->summaries($this->taxedDeductions($document), $zero) as $summary) {
+            $claimed[$this->key($summary)] = $summary;
+        }
+        $supplied = $this->summaries($supply, $zero);
+        foreach ($supplied as $summary) {
+            $this->subtotal($total, $summary, $claimed[$this->key($summary)] ?? null, $applicable, $domestic);
+            unset($claimed[$this->key($summary)]);
+        }
+        // An advance at a rate the supply no longer has: all of it claimed, a difference below zero.
+        foreach ($claimed as $summary) {
+            $this->subtotal($total, new RateSummary($summary->treatment, $summary->rate, $zero, $zero, $zero), $summary, $applicable, $domestic);
         }
         $this->add($total, 'TaxAmount', $this->amount($document->vat));
     }
 
-    private function subtotal(\DOMElement $total, RateSummary $summary, bool $documentApplicable, bool $domesticReverseCharge): void
+    /**
+     * @param RateSummary|null $claimed the deduction lines at the rate, negative as they are stored
+     */
+    private function subtotal(\DOMElement $total, RateSummary $summary, ?RateSummary $claimed, bool $documentApplicable, bool $domesticReverseCharge): void
     {
         $element = $this->add($total, 'TaxSubTotal');
         $zero = '0.00';
+        $base = $claimed instanceof RateSummary ? $this->negated($claimed->base) : null;
+        $vat = $claimed instanceof RateSummary ? $this->negated($claimed->vat) : null;
+        $gross = $claimed instanceof RateSummary ? $this->negated($claimed->gross) : null;
         $this->add($element, 'TaxableAmount', $this->amount($summary->base));
         $this->add($element, 'TaxAmount', $this->amount($summary->vat));
         $this->add($element, 'TaxInclusiveAmount', $this->amount($summary->gross));
-        $this->add($element, 'AlreadyClaimedTaxableAmount', $zero);
-        $this->add($element, 'AlreadyClaimedTaxAmount', $zero);
-        $this->add($element, 'AlreadyClaimedTaxInclusiveAmount', $zero);
-        $this->add($element, 'DifferenceTaxableAmount', $this->amount($summary->base));
-        $this->add($element, 'DifferenceTaxAmount', $this->amount($summary->vat));
-        $this->add($element, 'DifferenceTaxInclusiveAmount', $this->amount($summary->gross));
+        $this->add($element, 'AlreadyClaimedTaxableAmount', $base instanceof Money ? $this->amount($base) : $zero);
+        $this->add($element, 'AlreadyClaimedTaxAmount', $vat instanceof Money ? $this->amount($vat) : $zero);
+        $this->add($element, 'AlreadyClaimedTaxInclusiveAmount', $gross instanceof Money ? $this->amount($gross) : $zero);
+        $this->add($element, 'DifferenceTaxableAmount', $this->amount($base instanceof Money ? $summary->base->minus($base) : $summary->base));
+        $this->add($element, 'DifferenceTaxAmount', $this->amount($vat instanceof Money ? $summary->vat->minus($vat) : $summary->vat));
+        $this->add($element, 'DifferenceTaxInclusiveAmount', $this->amount($gross instanceof Money ? $summary->gross->minus($gross) : $summary->gross));
 
         $category = $this->add($element, 'TaxCategory');
         $this->add($category, 'Percent', $summary->rate?->decimal() ?? $zero);
@@ -235,19 +309,71 @@ final readonly class IsdocWriter
         }
     }
 
-    private function monetaryTotal(\DOMElement $root, IssuedDocument $document): void
+    /**
+     * DifferenceTaxInclusiveAmount + PayableRoundingAmount - PaidDepositsAmount = PayableAmount (§A.6 b).
+     *
+     * @param list<InvoiceLine> $supply
+     */
+    private function monetaryTotal(\DOMElement $root, IssuedDocument $document, array $supply): void
     {
         $total = $this->add($root, 'LegalMonetaryTotal');
-        $zero = '0.00';
-        $this->add($total, 'TaxExclusiveAmount', $this->amount($document->net));
-        $this->add($total, 'TaxInclusiveAmount', $this->amount($document->gross));
-        $this->add($total, 'AlreadyClaimedTaxExclusiveAmount', $zero);
-        $this->add($total, 'AlreadyClaimedTaxInclusiveAmount', $zero);
-        $this->add($total, 'DifferenceTaxExclusiveAmount', $this->amount($document->net));
-        $this->add($total, 'DifferenceTaxInclusiveAmount', $this->amount($document->gross));
+        $taxed = $this->taxedDeductions($document);
+        $claimedNet = $this->negated($this->sum($taxed, 'net', $document));
+        $claimedGross = $this->negated($this->sum($taxed, 'gross', $document));
+        $supplyNet = $this->sum($supply, 'net', $document);
+        $supplyGross = $this->sum($supply, 'gross', $document);
+        $untaxed = array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null !== $line->deducts() && !($document->deposits[$line->deducts()]['taxed'] ?? false)));
+        $this->add($total, 'TaxExclusiveAmount', $this->amount($supplyNet));
+        $this->add($total, 'TaxInclusiveAmount', $this->amount($supplyGross));
+        $this->add($total, 'AlreadyClaimedTaxExclusiveAmount', $this->amount($claimedNet));
+        $this->add($total, 'AlreadyClaimedTaxInclusiveAmount', $this->amount($claimedGross));
+        $this->add($total, 'DifferenceTaxExclusiveAmount', $this->amount($supplyNet->minus($claimedNet)));
+        $this->add($total, 'DifferenceTaxInclusiveAmount', $this->amount($supplyGross->minus($claimedGross)));
         $this->add($total, 'PayableRoundingAmount', $this->amount($document->rounding));
-        $this->add($total, 'PaidDepositsAmount', $zero);
+        $this->add($total, 'PaidDepositsAmount', $this->amount($this->negated($this->sum($untaxed, 'gross', $document))));
         $this->add($total, 'PayableAmount', $this->amount($document->payable));
+    }
+
+    /**
+     * @return list<InvoiceLine> the lines that deduct a tax document on payment
+     */
+    private function taxedDeductions(IssuedDocument $document): array
+    {
+        return array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null !== $line->deducts() && ($document->deposits[$line->deducts()]['taxed'] ?? false)));
+    }
+
+    /**
+     * @param list<InvoiceLine> $lines
+     *
+     * @return list<RateSummary>
+     */
+    private function summaries(array $lines, Money $zero): array
+    {
+        return new InvoiceCalculator()->summaries(array_map(static fn (InvoiceLine $line): SummaryLine => new SummaryLine($line->treatment(), $line->rate(), new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross())), $lines), $zero);
+    }
+
+    private function key(RateSummary $summary): string
+    {
+        return $summary->treatment->value.'|'.($summary->rate?->basisPoints() ?? '-');
+    }
+
+    /**
+     * @param list<InvoiceLine> $lines
+     * @param 'net'|'gross'     $amount
+     */
+    private function sum(array $lines, string $amount, IssuedDocument $document): Money
+    {
+        $sum = Money::ofMinor(0, $document->currency);
+        foreach ($lines as $line) {
+            $sum = $sum->plus('net' === $amount ? $line->net() : $line->gross());
+        }
+
+        return $sum;
+    }
+
+    private function negated(Money $money): Money
+    {
+        return Money::ofMinor(-$money->minor(), $money->currency());
     }
 
     /**

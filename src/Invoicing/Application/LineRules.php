@@ -122,7 +122,7 @@ final readonly class LineRules
             }
             if (TaxTreatment::ReverseCharge === $line->treatment) {
                 $problems = [...$problems, ...$this->reverseCharge($line, $field, $regime, $country, $customerVatId, $issuerCountry, $taxPoint)];
-            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment) {
+            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment && null === $line->deducts) {
                 $problems[] = new IssueProblem($field.'.vat', 'invoice.problem.vat_invalid');
             } elseif (VatRegime::Payer === $regime && $line->treatment->hasRate() && !$this->hasRate($line, $country, $taxPoint)) {
                 $problems[] = new IssueProblem($field.'.rate', 'invoice.problem.line_rate_missing');

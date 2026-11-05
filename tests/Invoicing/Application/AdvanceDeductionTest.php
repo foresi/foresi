@@ -24,6 +24,7 @@ use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\VatStatus;
+use App\Tests\Support\IsdocSchema;
 use App\Tests\Support\PdfTools;
 
 /**
@@ -197,6 +198,89 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
 
         self::assertSame([], self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech));
+    }
+
+    public function testTheIsdocOfTheFinalInvoiceCarriesTheTaxedDeposits(): void
+    {
+        $document = $this->taxDocumentFor($this->advance([$this->line('1000.00')]), '1210.00');
+        $final = $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($document)]));
+
+        $xml = $this->isdocOf($final);
+
+        IsdocSchema::assertValid($xml);
+        self::assertSame(['1'], $this->texts($xml, '//i:InvoiceLines/i:InvoiceLine/i:ID'));
+        self::assertSame(['D820260001', '920260001', '1000.00', '1210.00', '21.00'], [
+            ...$this->texts($xml, '//i:TaxedDeposits/i:TaxedDeposit/i:ID'),
+            ...$this->texts($xml, '//i:TaxedDeposit/i:VariableSymbol'),
+            ...$this->texts($xml, '//i:TaxedDeposit/i:TaxableDepositAmount'),
+            ...$this->texts($xml, '//i:TaxedDeposit/i:TaxInclusiveDepositAmount'),
+            ...$this->texts($xml, '//i:TaxedDeposit/i:ClassifiedTaxCategory/i:Percent'),
+        ]);
+        $sub = '//i:TaxTotal/i:TaxSubTotal/i:';
+        self::assertSame(['3000.00', '630.00', '3630.00', '1000.00', '210.00', '1210.00', '2000.00', '420.00', '2420.00'], array_merge(...array_map(fn (string $name): array => $this->texts($xml, $sub.$name), ['TaxableAmount', 'TaxAmount', 'TaxInclusiveAmount', 'AlreadyClaimedTaxableAmount', 'AlreadyClaimedTaxAmount', 'AlreadyClaimedTaxInclusiveAmount', 'DifferenceTaxableAmount', 'DifferenceTaxAmount', 'DifferenceTaxInclusiveAmount'])));
+        $total = '//i:LegalMonetaryTotal/i:';
+        self::assertSame(['3000.00', '3630.00', '1000.00', '1210.00', '2000.00', '2420.00', '0.00', '2420.00'], array_merge(...array_map(fn (string $name): array => $this->texts($xml, $total.$name), ['TaxExclusiveAmount', 'TaxInclusiveAmount', 'AlreadyClaimedTaxExclusiveAmount', 'AlreadyClaimedTaxInclusiveAmount', 'DifferenceTaxExclusiveAmount', 'DifferenceTaxInclusiveAmount', 'PaidDepositsAmount', 'PayableAmount'])));
+        self::assertSame(['420.00'], $this->texts($xml, '//i:TaxTotal/i:TaxAmount'));
+        self::assertSame([], $this->texts($xml, '//i:NonTaxedDeposits/i:NonTaxedDeposit/i:ID'));
+    }
+
+    public function testAnAdvanceAtARateTheSupplyLacksIsClaimedInFull(): void
+    {
+        $document = $this->taxDocumentFor($this->advance([$this->gross('1120.00', VatRateKind::Reduced)]), '1120.00');
+        $final = $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($document)]));
+
+        $xml = $this->isdocOf($final);
+
+        IsdocSchema::assertValid($xml);
+        self::assertSame(['21.00', '12.00'], $this->texts($xml, '//i:TaxTotal/i:TaxSubTotal/i:TaxCategory/i:Percent'));
+        self::assertSame(['0.00', '1000.00', '-1000.00'], [$this->texts($xml, '//i:TaxSubTotal/i:TaxableAmount')[1], $this->texts($xml, '//i:TaxSubTotal/i:AlreadyClaimedTaxableAmount')[1], $this->texts($xml, '//i:TaxSubTotal/i:DifferenceTaxableAmount')[1]]);
+        self::assertSame(['2510.00'], $this->texts($xml, '//i:LegalMonetaryTotal/i:PayableAmount'));
+    }
+
+    public function testTheIsdocOfANonPayerCarriesTheAdvanceAsANonTaxedDeposit(): void
+    {
+        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
+        $this->em->flush();
+        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->pay($advance, '3000.00');
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech);
+        $final = $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['firmId' => $firm->id(), 'seriesId' => null]));
+
+        $xml = $this->isdocOf($final);
+
+        IsdocSchema::assertValid($xml);
+        self::assertSame(['Z920260001', '920260001', '3000.00'], [...$this->texts($xml, '//i:NonTaxedDeposits/i:NonTaxedDeposit/i:ID'), ...$this->texts($xml, '//i:NonTaxedDeposit/i:VariableSymbol'), ...$this->texts($xml, '//i:NonTaxedDeposit/i:DepositAmount')]);
+        self::assertSame(['5000.00', '3000.00', '2000.00'], [...$this->texts($xml, '//i:LegalMonetaryTotal/i:DifferenceTaxInclusiveAmount'), ...$this->texts($xml, '//i:LegalMonetaryTotal/i:PaidDepositsAmount'), ...$this->texts($xml, '//i:LegalMonetaryTotal/i:PayableAmount')]);
+        self::assertSame(['1'], $this->texts($xml, '//i:InvoiceLines/i:InvoiceLine/i:ID'));
+    }
+
+    private function isdocOf(Invoice $invoice): string
+    {
+        $file = self::getContainer()->get(CzechInvoicing::class)->electronicFile(self::getContainer()->get(IssuedDocumentFactory::class)->of($invoice->id()));
+        self::assertNotNull($file);
+
+        return $file->content;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function texts(string $xml, string $path): array
+    {
+        $document = new \DOMDocument();
+        $document->loadXML($xml);
+        $xpath = new \DOMXPath($document);
+        $xpath->registerNamespace('i', 'http://isdoc.cz/namespace/2013');
+        $nodes = $xpath->query($path);
+        self::assertNotFalse($nodes);
+
+        $texts = [];
+        foreach ($nodes as $node) {
+            self::assertInstanceOf(\DOMNode::class, $node);
+            $texts[] = $node->textContent;
+        }
+
+        return $texts;
     }
 
     private function taxDocumentFor(Invoice $advance, string $amount): Invoice
