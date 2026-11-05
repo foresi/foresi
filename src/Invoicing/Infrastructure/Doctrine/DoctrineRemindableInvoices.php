@@ -10,12 +10,14 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 
 use App\Invoicing\Application\RemindableInvoice;
 use App\Invoicing\Application\RemindableInvoices;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\SendPurpose;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 
@@ -99,12 +101,12 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         // The previous reminder was on or before today minus the delay: before the start of the day after that.
         $nextBefore = $day->modify(\sprintf('-%d days', $settings->everyDays() - 1))->setTimezone($stored);
 
-        $sql = self::SQL.' AND ('.$this->owing->owing('i').')';
-        $parameters = [];
+        $sql = self::SQL.' AND ('.$this->owing->owing('i').') AND i.kind IN (:kinds)';
+        $parameters = ['kinds' => $settings->remindsAdvances() ? [DocumentKind::Invoice->value, DocumentKind::Advance->value] : [DocumentKind::Invoice->value]];
         $minimum = $settings->minimum();
         if ($minimum instanceof Money) {
             $sql .= self::MINIMUM;
-            $parameters = ['minimumCurrency' => $minimum->currency()->value, 'minimum' => $minimum->minor()];
+            $parameters += ['minimumCurrency' => $minimum->currency()->value, 'minimum' => $minimum->minor()];
         }
         if (null !== $afterId) {
             $sql .= ' '.self::AFTER;
@@ -131,6 +133,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
                 'nextBefore' => 'datetime_immutable',
                 'yes' => ParameterType::BOOLEAN,
                 'minimum' => ParameterType::INTEGER,
+                'kinds' => ArrayParameterType::STRING,
             ],
         );
 

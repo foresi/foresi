@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
+use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssuePaymentTaxDocument;
+use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\Savepoint;
@@ -267,6 +269,41 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
         self::assertInstanceOf(Savepoint::class, $savepoint);
 
         $savepoint->run(static fn (): null => null);
+    }
+
+    public function testTheAccountantGetsTaxDocumentsAndInvoicesNotAdvances(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $advance = $this->advance([$this->line('1000.00')]);
+        $this->pay($advance, '1210.00', '2026-11-10');
+        $document = $this->onlyTaxDocumentOf($advance);
+
+        $ids = $this->store->idsForPeriod($this->firm, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-30'));
+
+        self::assertEqualsCanonicalizing([$invoice->id(), $document->id()], $ids);
+    }
+
+    public function testTheTaxDocumentListCountsThemPaidAndNeverUnpaid(): void
+    {
+        $this->pay($this->advance([$this->line('1000.00')]), '1210.00', '2026-11-01');
+
+        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
+
+        self::assertSame([InvoiceFilter::ALL => 1, InvoiceFilter::PAID => 1, InvoiceFilter::UNPAID => 0, InvoiceFilter::OVERDUE => 0, InvoiceFilter::TRASH => 0], $page->tabCounts);
+        self::assertSame(PaymentState::Paid, $page->rows[0]->payment);
+        self::assertFalse($page->rows[0]->overdue);
+        self::assertSame(DocumentKind::PaymentTaxDocument, $page->rows[0]->kind);
+    }
+
+    public function testATaxDocumentTakesNoPayment(): void
+    {
+        $advance = $this->advance([$this->line('1000.00')]);
+        $this->pay($advance, '1210.00');
+
+        $this->expectException(PaymentRefused::class);
+        $this->expectExceptionMessageIsOrContains('not_payable');
+
+        $this->pay($this->onlyTaxDocumentOf($advance), '10.00');
     }
 
     /**

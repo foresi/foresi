@@ -250,6 +250,26 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame(['minimum_minor' => null, 'minimum_currency' => null], $this->connection()->fetchAssociative('SELECT minimum_minor, minimum_currency FROM firm_reminders'));
     }
 
+    public function testAdvancesAreRemindedOnlyWhenSwitchedOn(): void
+    {
+        $firm = $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(0, $crawler->filter('#reminders-advances[checked]'));
+
+        $this->saveTemplates($firm, ['reminders' => ['advances' => '1']]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertEquals(['remind_advances' => 1, 'enabled' => 0], $this->connection()->fetchAssociative('SELECT remind_advances, enabled FROM firm_reminders'));
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertCount(1, $crawler->filter('#reminders-advances[checked]'));
+
+        $form = $crawler->filter('#mail-templates')->form()->getPhpValues();
+        self::assertIsArray($form['reminders']);
+        unset($form['reminders']['advances']);
+        $this->client->request('POST', $this->url($firm), $form);
+        self::assertEquals(['remind_advances' => 0], $this->connection()->fetchAssociative('SELECT remind_advances FROM firm_reminders'));
+    }
+
     public function testAFirmInACountryWithoutInvoicingRulesHasNoRemindersCard(): void
     {
         $firm = $this->signedInFirm('DE');

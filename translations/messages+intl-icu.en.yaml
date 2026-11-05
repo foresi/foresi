@@ -1474,6 +1474,7 @@ invoice:
       wrong_firm: The invoice belongs to another firm.
       currency_mismatch: The payment is in another currency than the invoice.
       trashed: The invoice is in the trash.
+      not_payable: A tax document on payment is paid by its payment already.
       future_date: A payment cannot come from the future.
       settlement_not_allowed: The difference changed meanwhile, so it was not written off. Check the amount and try again.
       note_too_long: 'Keep the note under {max} characters.'
@@ -2246,6 +2247,8 @@ reminder:
     reminder_step: Reminder number
     amount_due: Amount due
   field:
+    advances: Remind advance invoices too
+    advances_help: Overdue advance invoices get the same reminders. Tax documents on payment are paid and never reminded.
     enabled: Send reminders automatically
     enabled_help: Only invoices due from the switch-on day get reminders.
     first: First reminder

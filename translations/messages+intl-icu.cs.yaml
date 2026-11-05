@@ -1474,6 +1474,7 @@ invoice:
       wrong_firm: Faktura patří jiné firmě.
       currency_mismatch: Úhrada je v jiné měně než faktura.
       trashed: Faktura je v koši.
+      not_payable: Daňový doklad k platbě je uhrazený svou platbou.
       future_date: Úhrada nemůže mít datum v budoucnosti.
       settlement_not_allowed: Rozdíl se mezitím změnil, proto se neodepsal. Zkontrolujte částku a zkuste to znovu.
       note_too_long: 'Poznámka může mít nejvýše {max} znaků.'
@@ -2246,6 +2247,8 @@ reminder:
     reminder_step: Pořadí upomínky
     amount_due: Zbývá uhradit
   field:
+    advances: Upomínat i zálohové faktury
+    advances_help: Zálohové faktury po splatnosti dostanou stejné upomínky. Daňové doklady k platbě jsou uhrazené a upomínky nedostávají.
     enabled: Posílat upomínky automaticky
     enabled_help: Upomínky dostanou jen faktury se splatností ode dne zapnutí.
     first: První upomínka

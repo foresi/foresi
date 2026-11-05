@@ -10,6 +10,7 @@ namespace App\Banking\Infrastructure\Doctrine;
 
 use App\Banking\Application\Candidate;
 use App\Banking\Application\Candidates;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Shared\Domain\Currency;
@@ -66,6 +67,9 @@ final readonly class DoctrineCandidates implements Candidates
      */
     private function candidates(string $where, array $parameters): array
     {
+        // Only what asks for money: a tax document on payment is paid by the payment it taxes.
+        $where .= ' AND i.kind IN (:payableKinds)';
+        $parameters['payableKinds'] = array_values(array_map(static fn (DocumentKind $kind): string => $kind->value, array_filter(DocumentKind::cases(), static fn (DocumentKind $kind): bool => $kind->isPayable())));
         $query = $this->em->createQuery(
             'SELECT i.id AS id, i.number AS number, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, '
             .'(SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL) AS paid '

@@ -1147,6 +1147,29 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-needs-correction]', 'It needs a corrective tax document.');
     }
 
+    public function testATaxDocumentCannotBeCopiedAndOffersNoPayment(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $document = $this->scoped(function () use ($advance): Invoice {
+            $found = $this->em()->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.advanceInvoiceId = :advance')->setParameter('advance', $advance->id())->getSingleResult();
+            self::assertInstanceOf(Invoice::class, $found);
+
+            return $found;
+        });
+
+        $this->client->request('GET', '/invoices/'.$document->id().'/copy');
+        self::assertResponseStatusCodeSame(404);
+
+        $crawler = $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('main table', 'D820260001');
+        $actions = $crawler->filter('main table [href]')->each(static fn ($link): string => (string) $link->attr('href'));
+        self::assertNotContains('/invoices/'.$document->id().'/copy', $actions);
+        self::assertNotContains('/invoices/'.$document->id().'/pay', $actions);
+    }
+
     public function testIssuingATaxDocumentTwiceSaysItExists(): void
     {
         $this->signedIn();

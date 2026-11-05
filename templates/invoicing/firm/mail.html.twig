@@ -42,6 +42,7 @@
                                 <twig:Ui:TextInput name="reminders[everyDays]" id="reminders-every" inputmode="numeric" maxlength="3" :label="'reminder.field.every'|trans" :help="'reminder.field.every_help'|trans" :value="reminders.everyDays" :error="errors['reminders-every']|default(null)" required />
                                 <twig:Ui:TextInput name="reminders[minimum]" id="reminders-minimum" inputmode="decimal" maxlength="20" :label="'reminder.field.minimum'|trans({currency: homeCurrency})" :help="'reminder.field.minimum_help'|trans" :value="reminders.minimum" :error="errors['reminders-minimum']|default(null)" />
                             </div>
+                            <twig:Ui:Checkbox name="reminders[advances]" id="reminders-advances" :label="'reminder.field.advances'|trans" :help="'reminder.field.advances_help'|trans" value="1" :checked="reminders.advances|default('') == '1'" />
                             <p class="m-0 text-small text-muted">{{ 'reminder.at_most'|trans({count: maxReminders}) }}</p>
 
                             <section id="reminders-preview" class="grid gap-2 border-t border-divider pt-4" aria-labelledby="reminders-preview-title">

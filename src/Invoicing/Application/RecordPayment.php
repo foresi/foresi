@@ -172,6 +172,9 @@ final readonly class RecordPayment
             if ($invoice->isTrashed()) {
                 throw new PaymentRefused(PaymentRefused::TRASHED);
             }
+            if (!$invoice->kind()->isPayable()) {
+                throw new PaymentRefused(PaymentRefused::NOT_PAYABLE);
+            }
             if ($invoice->currency() !== $request->amount->currency()) {
                 throw new PaymentRefused(PaymentRefused::CURRENCY_MISMATCH);
             }

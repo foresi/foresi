@@ -195,18 +195,20 @@ final class FirmMailController extends AbstractController
         $first = (int) $values['firstAfterDays'];
         $every = (int) $values['everyDays'];
         $minimum = $reminders?->minimum;
+        $advances = '1' === ($values['advances'] ?? '');
         $card = $reminders instanceof FirmMailSubmission;
         $today = $this->preview->today();
         try {
-            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today): void {
+            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today, $advances): void {
                 foreach (MailTemplateKind::cases() as $kind) {
                     foreach (DocumentLanguage::cases() as $language) {
                         $text = $texts[$kind->value][$language->value];
                         $this->storeTemplate($firm, $kind, $language, $text['subject'], $text['body']);
                     }
                 }
-                if ($card && $this->changes($stored, $enabled, $first, $every, $minimum)) {
+                if ($card && ($this->changes($stored, $enabled, $first, $every, $minimum) || $stored->remindsAdvances() !== $advances)) {
                     $stored->change($enabled, $first, $every, $minimum, $today);
+                    $stored->remindAdvances($advances);
                     $this->reminders->save($stored);
                 }
             });
@@ -435,6 +437,7 @@ final class FirmMailController extends AbstractController
             'firstAfterDays' => (string) $settings->firstAfterDays(),
             'everyDays' => (string) $settings->everyDays(),
             'minimum' => $minimum instanceof Money ? $this->amounts->plain($minimum) : '',
+            'advances' => $settings->remindsAdvances() ? '1' : '',
         ];
     }
 

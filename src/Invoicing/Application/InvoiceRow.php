@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Shared\Domain\Money;
 
 /**
@@ -35,6 +36,7 @@ final readonly class InvoiceRow
         public ?string $deletedBy = null,
         public ?string $deletedReason = null,
         public SendMark $sendMark = SendMark::None,
+        public DocumentKind $kind = DocumentKind::Invoice,
     ) {
     }
 }

@@ -105,6 +105,7 @@ final readonly class FirmMailSubmission
             'firstAfterDays' => $text('firstAfterDays'),
             'everyDays' => $text('everyDays'),
             'minimum' => $text('minimum'),
+            'advances' => '1' === $text('advances') ? '1' : '',
         ];
 
         $errors = [];

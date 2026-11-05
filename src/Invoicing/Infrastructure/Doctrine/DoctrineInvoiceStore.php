@@ -21,6 +21,7 @@ use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\AbandonedNumber;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
@@ -288,11 +289,12 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     }
 
     /**
-     * Paid in full or more: Paid and Overpaid. A document with nothing to pay is never settled.
+     * Paid in full or more: Paid and Overpaid, as a tax document on payment always is. A document
+     * with nothing to pay is never settled.
      */
     private function settled(string $suffix): string
     {
-        return '(i.payableMinor > 0 AND i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+        return '(i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
     }
 
     /**
@@ -300,7 +302,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
      */
     private function unsettled(string $suffix): string
     {
-        return '(i.payableMinor <= 0 OR i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+        return '(i.payableMinor <= 0 OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
     }
 
     /**
@@ -390,6 +392,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->deletedBy(),
             $invoice->deletedReason(),
             $mark,
+            $invoice->kind(),
         );
     }
 }

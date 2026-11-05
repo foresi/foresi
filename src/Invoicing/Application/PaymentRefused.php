@@ -21,6 +21,8 @@ final class PaymentRefused extends \DomainException
     public const string WRONG_FIRM = 'wrong_firm';
     public const string CURRENCY_MISMATCH = 'currency_mismatch';
     public const string TRASHED = 'trashed';
+    /** A tax document on payment is paid by the payment it taxes. */
+    public const string NOT_PAYABLE = 'not_payable';
     public const string FUTURE_DATE = 'future_date';
     public const string SETTLEMENT_NOT_ALLOWED = 'settlement_not_allowed';
     public const string NOTE_TOO_LONG = 'note_too_long';
