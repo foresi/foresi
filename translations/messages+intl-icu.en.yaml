@@ -2447,7 +2447,7 @@ correction:
     original_number: Number of the corrected document
   mail:
     card: Corrective tax document
-    templates_help: A corrective tax document goes out in the language of the document.
+    templates_help: A correction goes out in the language of the document.
     default:
       subject: 'Corrective tax document {number}'
       body: |-
