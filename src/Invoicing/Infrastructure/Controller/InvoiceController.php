@@ -17,6 +17,7 @@ use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
+use App\Invoicing\Application\DocumentChain;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceHistory;
@@ -139,6 +140,7 @@ final class InvoiceController extends AbstractController
         private readonly DeductibleAdvances $deductible,
         private readonly RequestStack $request,
         private readonly AmountText $amounts,
+        private readonly DocumentChain $chain,
     ) {
     }
 
@@ -593,6 +595,7 @@ final class InvoiceController extends AbstractController
             'bankUrl' => $bankUrl,
             'statusBadge' => $this->statusBadge($context),
             'payments' => $invoice instanceof Invoice ? $this->panel->of($invoice) : null,
+            'chains' => $invoice instanceof Invoice ? array_map(fn (array $chain): array => ['payments' => array_map(fn (array $payment): array => ['amount' => $this->amounts->shown($payment['amount'])] + $payment, $chain['payments'])] + $chain, $this->chain->of($invoice)) : [],
             'moreOpen' => $this->moreOpen($values, $context, $errorFields),
             'noContacts' => 0 === $this->parties->counts()->all,
             'candidates' => $candidates,

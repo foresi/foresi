@@ -1197,6 +1197,22 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', 'Settled by advances');
     }
 
+    public function testEveryDocumentOfTheChainShowsItsLinks(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $this->client->request('GET', '/invoices/'.$advance->id().'/edit');
+
+        self::assertSelectorTextContains('[data-links]', 'Links');
+        self::assertSelectorTextContains('[data-links] [aria-current="page"]', 'Z920260001');
+        self::assertSelectorTextContains('[data-links] a', 'D820260001');
+        self::assertSelectorTextContains('[data-links]', '1,210.00');
+        self::assertSelectorTextContains('[data-links]', 'Not settled yet');
+    }
+
     public function testIssuingATaxDocumentTwiceSaysItExists(): void
     {
         $this->signedIn();

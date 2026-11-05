@@ -979,6 +979,14 @@ series:
     next_below_counter: 'This number is already used. The next free one is {next}.'
     kind: Choose the kind of documents.
 invoice:
+  links:
+    title: Links
+    advance: Advance invoice
+    payments: Payments
+    final: Final invoice
+    none: No payment yet
+    no_tax_document: no tax document
+    not_settled: Not settled yet
   deduction:
     label: Deduct an advance
     help: The customer's paid advances, each tax document once. Its lines are added with a minus.

@@ -305,5 +305,6 @@
             <input type="hidden" name="_complete" value="1">
         </form>
         {% if payments|default(null) %}{{ include('invoicing/_payments.html.twig') }}{% endif %}
+        {% if chains|default([]) is not empty %}{{ include('invoicing/_links.html.twig') }}{% endif %}
     {% endif %}
 {% endblock %}

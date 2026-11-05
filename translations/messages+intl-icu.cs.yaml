@@ -979,6 +979,14 @@ series:
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
     kind: Vyberte druh dokladů.
 invoice:
+  links:
+    title: Vazby
+    advance: Zálohová faktura
+    payments: Platby
+    final: Vyúčtovací faktura
+    none: Zatím žádná platba
+    no_tax_document: bez daňového dokladu
+    not_settled: Zatím nevyúčtováno
   deduction:
     label: Odečíst zálohu
     help: Uhrazené zálohy odběratele, každý daňový doklad jednou. Jeho položky se přidají se záporným znaménkem.
