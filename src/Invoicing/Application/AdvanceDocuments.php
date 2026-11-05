@@ -21,4 +21,13 @@ interface AdvanceDocuments
      * @return string|null its id
      */
     public function taxDocumentOf(string $advanceId, string $paymentId): ?string;
+
+    /**
+     * The payments of advance invoices out of the trash that are not cancelled and
+     * have no tax document, oldest payment first. Whether VAT arose on them is for
+     * the caller to tell.
+     *
+     * @return list<array{advanceId: string, paymentId: string}>
+     */
+    public function paidWithoutTaxDocument(): array;
 }

@@ -36,6 +36,7 @@ final readonly class IssuePaymentTaxDocument
         private FirmBankAccounts $accounts,
         private Savepoint $savepoint,
         private AdvanceDocuments $documents,
+        private InvoicePayments $payments,
     ) {
     }
 
@@ -57,10 +58,39 @@ final readonly class IssuePaymentTaxDocument
             return null;
         }
         try {
-            return $this->savepoint->run(fn (): Invoice => $this->issue->issue($input, new PaymentTaxDocumentOrigin($advance->id(), $payment->id())));
+            return $this->savepoint->run(fn (): Invoice => $this->issue->issue($input, new PaymentTaxDocumentOrigin($advance->id(), $payment->id(), $this->documents)));
         } catch (IssueRefused) {
             return null;
         }
+    }
+
+    /**
+     * Issues the document a payment did not get, by hand: a rule refused it then, or
+     * the advance was told to issue one only after the payment.
+     *
+     * @throws IssueRefused   when the payment has its document already, no VAT arose on it, it is
+     *                        not a live payment of the advance, or a rule refuses the document
+     * @throws UnknownInvoice also for an advance of another tenant
+     */
+    public function byHand(string $advanceId, string $paymentId): Invoice
+    {
+        if (null !== $this->documents->taxDocumentOf($advanceId, $paymentId)) {
+            throw new IssueRefused([new IssueProblem('document', 'invoice.problem.tax_document_exists')]);
+        }
+        $advance = $this->store->get($advanceId);
+        if (DocumentKind::Advance !== $advance->kind() || $advance->isTrashed() || !$this->taxation->of($advance)->arises) {
+            throw new IssueRefused([new IssueProblem('document', 'invoice.problem.no_tax_on_receipt')]);
+        }
+        $lines = array_values(array_filter($this->payments->linesOf($advance), static fn (InvoicePaymentLine $line): bool => $line->paymentId === $paymentId));
+        if ([] === $lines) {
+            throw new IssueRefused([new IssueProblem('document', 'invoice.problem.payment_unknown')]);
+        }
+        $input = $this->input($this->payments->get($paymentId), $advance, $lines[0]->allocated);
+        if (!$input instanceof InvoiceInput) {
+            throw new IssueRefused([new IssueProblem('lines', 'invoice.problem.no_lines')]);
+        }
+
+        return $this->issue->issue($input, new PaymentTaxDocumentOrigin($advanceId, $paymentId, $this->documents));
     }
 
     /**

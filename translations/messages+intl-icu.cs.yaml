@@ -1609,6 +1609,9 @@ invoice:
     series_archived: Tato řada je archivovaná.
     series_kind: Tato řada čísluje jiný druh dokladů.
     tax_document_fixed: Daňový doklad k platbě odpovídá své platbě a nelze ho měnit.
+    tax_document_exists: Tato platba už svůj daňový doklad má.
+    no_tax_on_receipt: Z této platby DPH nevznikla, daňový doklad proto nedostane.
+    payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
     series_of_another_firm: Tato řada patří jiné firmě.
     series_unknown: Vyberte číselnou řadu.
     supply_code_invalid: Vyberte kód plnění.
@@ -2297,6 +2300,24 @@ reminder:
     settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
     taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'
 advance:
+  missing:
+    tab: Chybí daňový doklad
+    title: Uhrazené zálohy bez daňového dokladu
+    intro: Z platby zálohy, ze které vznikla DPH, se vystavuje daňový doklad do 15 dnů od přijetí platby, nebo od konce měsíce, je-li místo plnění v zahraničí.
+    empty: Každá uhrazená záloha má svůj daňový doklad.
+    issue: Vystavit daňový doklad
+    issued: 'Daňový doklad {number} je vystavený.'
+    days_left: '{days, plural, =0 {Termín dnes} one {Zbývá # den} few {Zbývají # dny} other {Zbývá # dní}}'
+    days_late: '{days, plural, one {# den po termínu} few {# dny po termínu} other {# dní po termínu}}'
+    notice: '{late, select, yes {{count, plural, one {Uhrazená záloha je} few {# uhrazené zálohy jsou} other {# uhrazených záloh je}} po termínu daňového dokladu.} other {{count, plural, one {Uhrazená záloha čeká} few {# uhrazené zálohy čekají} other {# uhrazených záloh čeká}} na daňový doklad, první do {date}.}}'
+    notice_link: Zobrazit
+    column:
+      number: Zálohová faktura
+      customer: Odběratel
+      receivedOn: Uhrazeno
+      received: Částka
+      deadline: Termín
+      daysLeft: Zbývá dní
   tax_on_receipt:
     label: Daňový doklad k platbě
     rules: Podle pravidel

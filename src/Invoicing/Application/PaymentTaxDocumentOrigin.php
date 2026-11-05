@@ -17,7 +17,7 @@ use App\Invoicing\Domain\Invoice;
  */
 final readonly class PaymentTaxDocumentOrigin implements IssueOrigin
 {
-    public function __construct(public string $advanceId, public string $paymentId)
+    public function __construct(public string $advanceId, public string $paymentId, private AdvanceDocuments $documents)
     {
     }
 
@@ -26,8 +26,14 @@ final readonly class PaymentTaxDocumentOrigin implements IssueOrigin
         return $text;
     }
 
+    /**
+     * @throws IssueRefused when the payment got its document meanwhile: a retry after losing to it
+     */
     public function recordIn(Invoice $invoice): void
     {
+        if (null !== $this->documents->taxDocumentOf($this->advanceId, $this->paymentId)) {
+            throw new IssueRefused([new IssueProblem('document', 'invoice.problem.tax_document_exists')]);
+        }
         $invoice->taxesPayment($this->advanceId, $this->paymentId);
     }
 }

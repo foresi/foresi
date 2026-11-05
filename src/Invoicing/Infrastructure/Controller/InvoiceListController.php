@@ -21,7 +21,11 @@ use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
+use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\MissingTaxDocument;
+use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecurringInvoices;
@@ -71,6 +75,8 @@ final class InvoiceListController extends AbstractController
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
     public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
+    /** The tab of the advances that wait for a tax document. */
+    private const string MISSING = 'needs_tax_document';
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents'];
 
@@ -90,6 +96,8 @@ final class InvoiceListController extends AbstractController
         private readonly InvoicePayments $payments,
         private readonly RecurringInvoices $recurring,
         private readonly TenantClock $tenantClock,
+        private readonly MissingTaxDocuments $missing,
+        private readonly IssuePaymentTaxDocument $taxDocuments,
     ) {
     }
 
@@ -136,7 +144,7 @@ final class InvoiceListController extends AbstractController
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
             'newHref' => $kind->isIssuedByPerson() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
-            'tabs' => $this->tabs($page, $tab, $query, $route),
+            'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null),
             'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
             'baseUrl' => $this->generateUrl($route, $query),
@@ -145,6 +153,68 @@ final class InvoiceListController extends AbstractController
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
             'filtered' => '' !== $text || '' !== $firm || $toSend,
         ]);
+    }
+
+    /**
+     * The paid advance invoices that wait for a tax document, soonest deadline first.
+     */
+    #[Route('/advances/needs-tax-document', name: 'app_advances_missing', methods: ['GET'])]
+    public function missing(): Response
+    {
+        $this->denyUnlessStaff();
+        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::Advance));
+        $missing = $this->missing->on($this->today());
+        $date = $this->translator->trans('format.date');
+        $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('advance.missing.column.'.$key), 'align' => \in_array($key, ['received', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'receivedOn', 'received', 'deadline', 'daysLeft']);
+
+        return $this->render('invoicing/missing_tax_documents.html.twig', [
+            'tabs' => $this->tabs($page, self::MISSING, [], self::ROUTES[DocumentKind::Advance->value], \count($missing)),
+            'columns' => $columns,
+            'rows' => array_map(fn (MissingTaxDocument $row): array => [
+                'id' => $row->advanceId.'-'.$row->paymentId,
+                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->advanceId]),
+                'plain' => true,
+                'label' => $row->advanceNumber,
+                'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->received), $this->daysLeft($row)]),
+                'cells' => [
+                    'number' => $row->advanceNumber,
+                    'customer' => $row->customerName,
+                    'receivedOn' => $row->receivedOn->format($date),
+                    'received' => $this->amounts->shown($row->received),
+                    'deadline' => $row->deadline->format($date),
+                    'daysLeft' => ['text' => $this->daysLeft($row), 'tone' => $row->isLate() ? 'red' : ($row->daysLeft <= 3 ? 'amber' : 'gray')],
+                ],
+                'actions' => [[
+                    'label' => $this->translator->trans('advance.missing.issue'),
+                    'href' => $this->generateUrl('app_advance_tax_document', ['id' => $row->advanceId, 'payment' => $row->paymentId]),
+                    'method' => 'POST',
+                    'icon' => 'file-signature',
+                ]],
+            ], $missing),
+        ]);
+    }
+
+    /**
+     * Issues the tax document a payment of an advance is still waiting for.
+     */
+    #[Route('/advances/{id}/payments/{payment}/tax-document', name: 'app_advance_tax_document', requirements: ['id' => Requirement::UUID_V7, 'payment' => Requirement::UUID_V7], methods: ['POST'])]
+    public function issueTaxDocument(string $id, string $payment, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->invoice($id);
+        $this->checkToken($request);
+        try {
+            $document = $this->taxDocuments->byHand($id, $payment);
+        } catch (IssueRefused $refused) {
+            foreach ($refused->problems as $problem) {
+                $this->addFlash('error', $this->translator->trans($problem->key, $problem->parameters));
+            }
+
+            return $this->redirectToRoute('app_advances_missing');
+        }
+        $this->addFlash('success', $this->translator->trans('advance.missing.issued', ['number' => $document->number()]));
+
+        return $this->redirectToRoute('app_advances_missing');
     }
 
     #[Route('/invoices/{id}/trash', name: 'app_invoice_trash', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -293,7 +363,7 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function tabs(InvoicePage $page, string $tab, array $query, string $route): array
+    private function tabs(InvoicePage $page, string $tab, array $query, string $route, ?int $missing = null): array
     {
         $tabs = [];
         foreach (InvoiceFilter::TABS as $key) {
@@ -303,6 +373,15 @@ final class InvoiceListController extends AbstractController
                 'count' => $page->tabCounts[$key],
                 'active' => $key === $tab,
             ];
+        }
+        // The advances that wait for a tax document: their own list, as iDoklad gives tax documents theirs.
+        if (null !== $missing) {
+            array_splice($tabs, \count($tabs) - 1, 0, [[
+                'label' => $this->translator->trans('advance.missing.tab'),
+                'href' => $this->generateUrl('app_advances_missing'),
+                'count' => $missing,
+                'active' => self::MISSING === $tab,
+            ]]);
         }
 
         return $tabs;
@@ -494,6 +573,13 @@ final class InvoiceListController extends AbstractController
         }
 
         return $actions;
+    }
+
+    private function daysLeft(MissingTaxDocument $row): string
+    {
+        return $row->isLate()
+            ? $this->translator->trans('advance.missing.days_late', ['days' => -$row->daysLeft])
+            : $this->translator->trans('advance.missing.days_left', ['days' => $row->daysLeft]);
     }
 
     private function label(string $action): string

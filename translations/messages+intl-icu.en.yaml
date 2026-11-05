@@ -1609,6 +1609,9 @@ invoice:
     series_archived: This series is archived.
     series_kind: This series numbers another kind of document.
     tax_document_fixed: A tax document on payment follows its payment and cannot be changed.
+    tax_document_exists: This payment has its tax document already.
+    no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
+    payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
     series_of_another_firm: This series belongs to another firm.
     series_unknown: Choose a series.
     supply_code_invalid: Choose the supply code.
@@ -2297,6 +2300,24 @@ reminder:
     settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
     taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'
 advance:
+  missing:
+    tab: Needs tax document
+    title: Paid advances without a tax document
+    intro: A payment of an advance on which VAT arose needs a tax document within 15 days of the payment, or of the end of its month when the supply takes place abroad.
+    empty: Every paid advance has its tax document.
+    issue: Issue tax document
+    issued: 'Tax document {number} is issued.'
+    days_left: '{days, plural, =0 {Due today} one {# day left} other {# days left}}'
+    days_late: '{days, plural, one {# day late} other {# days late}}'
+    notice: '{late, select, yes {{count, plural, one {A paid advance is} other {# paid advances are}} past the deadline for a tax document.} other {{count, plural, one {A paid advance waits} other {# paid advances wait}} for a tax document, the first by {date}.}}'
+    notice_link: Show them
+    column:
+      number: Advance invoice
+      customer: Customer
+      receivedOn: Paid on
+      received: Amount
+      deadline: Deadline
+      daysLeft: Days left
   tax_on_receipt:
     label: Tax document on payment
     rules: By the rules

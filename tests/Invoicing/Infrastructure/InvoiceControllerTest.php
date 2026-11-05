@@ -10,16 +10,20 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -70,8 +74,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class InvoiceControllerTest extends WebTestCase
 {
-    /** Refused while saving, under the "version" or "form" field, or kept for a later step. */
-    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted'];
+    /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
+    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
@@ -1078,6 +1082,71 @@ final class InvoiceControllerTest extends WebTestCase
 
         self::assertSelectorNotExists('select[name="taxOnReceipt"]');
         self::assertSelectorExists('input[type="hidden"][name="taxOnReceipt"]');
+    }
+
+    public function testAPaidAdvanceWithoutATaxDocumentIsListedAndIssuedFromThere(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Paid advances without a tax document');
+        self::assertSelectorTextContains('main table', 'Z920260001');
+        self::assertSelectorTextContains('main table', '14 days left');
+        self::assertSelectorExists('main nav a[href="/advances/needs-tax-document"][aria-current="page"]');
+        self::assertSelectorTextContains('[data-shell-notices]', 'A paid advance waits for a tax document, the first by 2026-11-15.');
+        $form = $crawler->filter('form[action$="/tax-document"]')->form();
+
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/advances/needs-tax-document');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Tax document D820260001 is issued.');
+        self::assertSelectorTextContains('main', 'Every paid advance has its tax document.');
+        $documents = $this->scoped(fn (): array => $this->em()->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.advanceInvoiceId = :advance')->setParameter('advance', $advance->id())->getResult());
+        self::assertCount(1, $documents);
+    }
+
+    public function testTheAdvanceListLinksToTheAdvancesWaitingForATaxDocument(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances');
+
+        $tab = $crawler->filter('main nav a[href="/advances/needs-tax-document"]');
+        self::assertSame('Needs tax document1', trim($tab->text()));
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
+    }
+
+    public function testIssuingATaxDocumentTwiceSaysItExists(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $form = $crawler->filter('form[action$="/tax-document"]')->form();
+        $this->client->submit($form);
+
+        $this->client->submit($form);
+
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'This payment has its tax document already.');
+    }
+
+    private function paidAdvanceWithoutTaxDocument(): Invoice
+    {
+        return $this->scoped(function (): Invoice {
+            $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $advance = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance, TaxOnReceiptChoice::Skip));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+            // The supply is known now: by the rules VAT arose on the payment.
+            $this->em()->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$advance->id()]);
+
+            return $advance;
+        });
     }
 
     public function testATaxDocumentCannotBeStartedFromTheForm(): void
