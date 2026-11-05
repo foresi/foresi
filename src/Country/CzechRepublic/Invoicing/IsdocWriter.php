@@ -222,7 +222,7 @@ final readonly class IsdocWriter
                 continue;
             }
             if ($document->deposits[$id]['taxed']) {
-                $taxed[$id.'|'.$line->treatment()->value.'|'.($line->rate()?->decimal() ?? '-')][] = $line;
+                $taxed[$id][$line->treatment()->value][(string) $line->rate()?->decimal()][] = $line;
             } else {
                 $untaxed[$id][] = $line;
             }
@@ -238,17 +238,20 @@ final readonly class IsdocWriter
         }
         if ([] !== $taxed) {
             $element = $this->add($root, 'TaxedDeposits');
-            foreach ($taxed as $key => $lines) {
-                $id = explode('|', $key)[0];
-                $deposit = $this->add($element, 'TaxedDeposit');
-                $this->add($deposit, 'ID', $document->deposits[$id]['number']);
-                $this->add($deposit, 'VariableSymbol', $document->deposits[$id]['variableSymbol']);
-                $this->add($deposit, 'TaxableDepositAmount', $this->amount($this->negated($this->sum($lines, 'net', $document))));
-                $this->add($deposit, 'TaxInclusiveDepositAmount', $this->amount($this->negated($this->sum($lines, 'gross', $document))));
-                $category = $this->add($deposit, 'ClassifiedTaxCategory');
-                $this->add($category, 'Percent', $lines[0]->rate()?->decimal() ?? '0.00');
-                $this->add($category, 'VATCalculationMethod', '1');
-                $this->add($category, 'VATApplicable', $this->flag($lines[0]->rate() instanceof \App\Invoicing\Domain\Percent));
+            foreach ($taxed as $id => $treatments) {
+                foreach ($treatments as $rates) {
+                    foreach ($rates as $rate => $lines) {
+                        $deposit = $this->add($element, 'TaxedDeposit');
+                        $this->add($deposit, 'ID', $document->deposits[$id]['number']);
+                        $this->add($deposit, 'VariableSymbol', $document->deposits[$id]['variableSymbol']);
+                        $this->add($deposit, 'TaxableDepositAmount', $this->amount($this->negated($this->sum($lines, 'net', $document))));
+                        $this->add($deposit, 'TaxInclusiveDepositAmount', $this->amount($this->negated($this->sum($lines, 'gross', $document))));
+                        $category = $this->add($deposit, 'ClassifiedTaxCategory');
+                        $this->add($category, 'Percent', '' === $rate ? '0.00' : $rate);
+                        $this->add($category, 'VATCalculationMethod', '1');
+                        $this->add($category, 'VATApplicable', $this->flag('' !== $rate));
+                    }
+                }
             }
         }
     }

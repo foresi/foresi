@@ -31,23 +31,18 @@ final readonly class DocumentChain
     {
         $chains = [];
         foreach ($this->advancesOf($document) as $advance) {
-            $finals = [];
+            $finals = [$advance->deductedByInvoiceId()];
             $payments = [];
-            if (null !== $advance->deductedByInvoiceId()) {
-                $finals[$advance->deductedByInvoiceId()] = true;
-            }
             foreach ($this->payments->linesOf($advance) as $line) {
                 $taxId = $this->documents->taxDocumentOf($advance->id(), $line->paymentId);
                 $tax = null === $taxId ? null : $this->store->get($taxId);
-                if (null !== $tax?->deductedByInvoiceId()) {
-                    $finals[$tax->deductedByInvoiceId()] = true;
-                }
+                $finals[] = $tax?->deductedByInvoiceId();
                 $payments[] = ['receivedOn' => $line->receivedOn, 'amount' => $line->allocated, 'taxDocument' => $tax instanceof Invoice ? ['id' => $tax->id(), 'number' => $tax->number()] : null];
             }
             $chains[] = [
                 'advance' => ['id' => $advance->id(), 'number' => $advance->number()],
                 'payments' => $payments,
-                'finals' => array_map(fn (string $id): array => ['id' => $id, 'number' => $this->store->get($id)->number()], array_keys($finals)),
+                'finals' => array_map(fn (string $id): array => ['id' => $id, 'number' => $this->store->get($id)->number()], array_keys(array_flip(array_filter($finals, \is_string(...))))),
             ];
         }
 
@@ -68,12 +63,12 @@ final readonly class DocumentChain
         $advances = [];
         foreach ($this->store->lines($document) as $line) {
             $deducted = $this->deducted($line);
-            if ($deducted instanceof Invoice) {
-                $advances[$deducted->id()] = $deducted;
+            if ($deducted instanceof Invoice && !\in_array($deducted->id(), array_map(static fn (Invoice $advance): string => $advance->id(), $advances), true)) {
+                $advances[] = $deducted;
             }
         }
 
-        return array_values($advances);
+        return $advances;
     }
 
     private function deducted(InvoiceLine $line): ?Invoice

@@ -11,7 +11,6 @@ namespace App\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
-use App\Invoicing\Domain\InvoiceLine;
 use App\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
@@ -86,9 +85,13 @@ final readonly class TrashInvoice
      */
     private function reclaim(Invoice $invoice): void
     {
-        $ids = array_values(array_unique(array_filter(array_map(static fn (InvoiceLine $line): ?string => $line->deducts(), $this->store->lines($invoice)), \is_string(...))));
+        $ids = [];
+        foreach ($this->store->lines($invoice) as $line) {
+            $ids[(string) $line->deducts()] = true;
+        }
+        unset($ids['']);
         try {
-            $this->deductions->claim($invoice, $ids);
+            $this->deductions->claim($invoice, array_map(strval(...), array_keys($ids)));
         } catch (IssueRefused) {
             throw new \DomainException('Another invoice deducts an advance this one deducted.');
         }

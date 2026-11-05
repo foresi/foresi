@@ -50,7 +50,7 @@ final readonly class DeductibleAdvances
         $deductible = [];
         foreach ($ids['taxDocuments'] as $id) {
             $document = $this->store->get($id);
-            $advance = $this->store->get($document->advanceInvoiceId() ?? throw new \LogicException('A tax document names its advance.'));
+            $advance = $this->store->get((string) $document->advanceInvoiceId());
             $text = $this->texts->deductionText($advance, $document, $language);
             $lines = array_map(static fn (InvoiceLine $line): LineInput => new LineInput($text, $line->quantity(), '', Money::ofMinor(-$line->gross()->minor(), $line->gross()->currency()), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount(), $document->id()), $this->store->lines($document));
             $deductible[] = new Deductible($document->id(), $document->number(), $advance->number(), $document->gross(), $lines);

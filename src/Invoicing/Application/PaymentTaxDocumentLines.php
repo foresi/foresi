@@ -31,23 +31,28 @@ final readonly class PaymentTaxDocumentLines
      */
     public function of(array $advanceLines, Money $received, string $text): array
     {
-        /** @var array<string, array{line: InvoiceLine, gross: int}> $groups */
-        $groups = [];
+        /** @var array<string, list<InvoiceLine>> $grouped */
+        $grouped = [];
         foreach ($advanceLines as $line) {
-            $key = $line->treatment()->value.'|'.($line->rateKind()->value ?? '-').'|'.($line->supplyCode() ?? '-');
-            $groups[$key] ??= ['line' => $line, 'gross' => 0];
-            $groups[$key]['gross'] += $line->gross()->minor();
+            $grouped[implode('|', [$line->treatment()->value, $line->rateKind()?->value, $line->supplyCode()])][] = $line;
         }
-        $groups = array_values(array_filter($groups, static fn (array $group): bool => 0 < $group['gross']));
-        if ([] === $groups) {
+        $sources = [];
+        $ratios = [];
+        foreach ($grouped as $lines) {
+            $gross = array_sum(array_map(static fn (InvoiceLine $line): int => $line->gross()->minor(), $lines));
+            if ($gross > 0) {
+                $sources[] = $lines[0];
+                $ratios[] = $gross;
+            }
+        }
+        if ([] === $ratios) {
             return [];
         }
-        $shares = $received->allocate(...array_map(static fn (array $group): int => $group['gross'], $groups));
 
-        return array_map(static function (array $group, Money $share) use ($text): LineInput {
-            $source = $group['line'];
-
-            return new LineInput($text, Quantity::fromString('1'), '', $share, PriceType::WithVat, $source->treatment(), $source->rateKind(), $source->supplyCode(), Percent::fromString('0'));
-        }, $groups, $shares);
+        return array_map(
+            static fn (InvoiceLine $source, Money $share): LineInput => new LineInput($text, Quantity::fromString('1'), '', $share, PriceType::WithVat, $source->treatment(), $source->rateKind(), $source->supplyCode(), Percent::fromString('0')),
+            $sources,
+            $received->allocate(...$ratios),
+        );
     }
 }

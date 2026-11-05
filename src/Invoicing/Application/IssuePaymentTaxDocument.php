@@ -74,9 +74,7 @@ final readonly class IssuePaymentTaxDocument
      */
     public function byHand(string $advanceId, string $paymentId): Invoice
     {
-        if (null !== $this->documents->taxDocumentOf($advanceId, $paymentId)) {
-            throw new IssueRefused([new IssueProblem('document', 'invoice.problem.tax_document_exists')]);
-        }
+        // A payment that has its document is refused by the origin, in the transaction.
         $advance = $this->store->get($advanceId);
         if (DocumentKind::Advance !== $advance->kind() || $advance->isTrashed() || !$this->taxation->of($advance)->arises) {
             throw new IssueRefused([new IssueProblem('document', 'invoice.problem.no_tax_on_receipt')]);
@@ -96,7 +94,7 @@ final readonly class IssuePaymentTaxDocument
     /**
      * What the tax document is issued from; null when the advance has nothing to split.
      */
-    public function input(Payment $payment, Invoice $advance, Money $received): ?InvoiceInput
+    private function input(Payment $payment, Invoice $advance, Money $received): ?InvoiceInput
     {
         $lines = $this->lines->of($this->store->lines($advance), $received, $this->texts->lineText($advance));
         if ([] === $lines) {
