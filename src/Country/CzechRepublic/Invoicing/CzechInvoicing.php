@@ -100,11 +100,11 @@ final readonly class CzechInvoicing implements InvoicingCountry
     }
 
     /**
-     * Only an invoice carries ISDOC: an advance invoice and a tax document on payment
-     * go without, as iDoklad sends them.
+     * An invoice and a corrective tax document carry ISDOC: an advance invoice and a
+     * tax document on payment go without, as iDoklad sends them.
      */
     public function electronicFile(IssuedDocument $document): ?ElectronicFile
     {
-        return DocumentKind::Invoice === $document->kind ? new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml') : null;
+        return \in_array($document->kind, [DocumentKind::Invoice, DocumentKind::CorrectionDocument], true) ? new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml') : null;
     }
 }

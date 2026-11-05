@@ -33,6 +33,7 @@ final readonly class IssuedDocument
      * @param array<string, array{number: string, variableSymbol: string, taxed: bool}> $deposits        what deduction lines deduct, by id:
      *                                                                                                   a tax document is taxed, an advance invoice is not
      * @param string|null                                                               $correctedNumber the document a corrective tax document corrects
+     * @param CorrectedDocument|null                                                    $corrected       the same document, for the electronic file
      */
     public function __construct(
         public string $id,
@@ -71,6 +72,7 @@ final readonly class IssuedDocument
         public ?string $correctedNumber = null,
         public ?string $correctionReason = null,
         public ?\DateTimeImmutable $decisiveDate = null,
+        public ?CorrectedDocument $corrected = null,
     ) {
     }
 

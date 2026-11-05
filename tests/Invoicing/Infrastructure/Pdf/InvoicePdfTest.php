@@ -666,6 +666,19 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertNull(self::getContainer()->get(InvoicingCountries::class)->for('CZ')->paymentCode($credit));
     }
 
+    public function testACorrectionEmbedsItsIsdoc(): void
+    {
+        [, $credit] = $this->corrected([$this->credit('400.00')]);
+        $expected = self::getContainer()->get(InvoicingCountries::class)->for('CZ')->electronicFile($credit);
+        self::assertNotNull($expected);
+
+        $attachment = PdfTools::attachment($this->render($credit)->bytes);
+
+        self::assertSame('invoice.isdoc', $attachment['name']);
+        self::assertSame($expected->content, $attachment['content']);
+        self::assertStringContainsString('<DocumentType>2</DocumentType>', $attachment['content']);
+    }
+
     public function testADebitNoteAsksForPaymentWithTheCode(): void
     {
         [$original, $debit] = $this->corrected([$this->line('200.00')]);

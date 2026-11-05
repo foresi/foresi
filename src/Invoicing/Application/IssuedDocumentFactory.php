@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\LineAmounts;
@@ -40,6 +41,8 @@ final readonly class IssuedDocumentFactory
             array_map(static fn (InvoiceLine $line): SummaryLine => new SummaryLine($line->treatment(), $line->rate(), new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross())), $lines),
             Money::ofMinor(0, $invoice->currency()),
         );
+
+        $corrected = null === $invoice->correctedInvoiceId() ? null : $this->store->get($invoice->correctedInvoiceId());
 
         return new IssuedDocument(
             $invoice->id(),
@@ -75,9 +78,10 @@ final readonly class IssuedDocumentFactory
             null === $invoice->advanceInvoiceId() ? null : $this->store->get($invoice->advanceInvoiceId())->number(),
             $invoice->deductsAdvances(),
             $this->deposits($lines),
-            null === $invoice->correctedInvoiceId() ? null : $this->store->get($invoice->correctedInvoiceId())->number(),
+            $corrected?->number(),
             $invoice->correctionReason(),
             $invoice->decisiveDate(),
+            $corrected instanceof Invoice ? new CorrectedDocument($corrected->id(), $corrected->kind(), $corrected->number(), $corrected->issueDate()) : null,
         );
     }
 

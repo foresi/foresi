@@ -10,7 +10,9 @@ namespace App\Country\CzechRepublic\Invoicing;
 
 use App\Country\CzechRepublic\Party\CzechBankAccount;
 use App\Country\CzechRepublic\Party\CzechBanks;
+use App\Invoicing\Application\CorrectedDocument;
 use App\Invoicing\Application\IssuedDocument;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
@@ -39,6 +41,9 @@ final readonly class IsdocWriter
     private const string NAMESPACE = 'http://isdoc.cz/namespace/2013';
     private const string VERSION = '6.0.2';
     private const string INVOICE = '1';
+    private const string CREDIT_NOTE = '2';
+    private const string DEBIT_NOTE = '3';
+    private const string PAYMENT_TAX_DOCUMENT_CORRECTION = '6';
     private const string BANK_TRANSFER = '42';
     private const string REVERSE_CHARGE_WORDS = 'daň odvede zákazník';
     private const string EXEMPT_WORDS = 'Plnění je osvobozeno od daně.';
@@ -59,7 +64,7 @@ final readonly class IsdocWriter
         $dom->appendChild($root);
 
         $applicable = $this->isVatApplicable($document);
-        $this->add($root, 'DocumentType', self::INVOICE);
+        $this->add($root, 'DocumentType', $this->documentType($document));
         $this->add($root, 'ID', $document->number);
         $this->add($root, 'UUID', $document->id);
         $this->add($root, 'IssuingSystem', $this->issuingSystem);
@@ -85,6 +90,7 @@ final readonly class IsdocWriter
             $this->add($reference, 'SalesOrderID', $document->number);
             $this->add($reference, 'ExternalOrderID', $document->orderNumber);
         }
+        $this->originalDocument($root, $document);
 
         // Deducted advances are deposits in ISDOC, not lines: the lines are the supply (§A.6, §A.9).
         $supply = array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null === $line->deducts()));
@@ -101,6 +107,42 @@ final readonly class IsdocWriter
         \assert(false !== $xml);
 
         return $xml;
+    }
+
+    /**
+     * A corrective tax document is a credit note below zero and a debit note
+     * otherwise; one of a tax document on payment has a type of its own.
+     */
+    private function documentType(IssuedDocument $document): string
+    {
+        if (DocumentKind::CorrectionDocument !== $document->kind) {
+            return self::INVOICE;
+        }
+        if (DocumentKind::PaymentTaxDocument === $this->corrected($document)->kind) {
+            return self::PAYMENT_TAX_DOCUMENT_CORRECTION;
+        }
+
+        return $document->isCreditNote() ? self::CREDIT_NOTE : self::DEBIT_NOTE;
+    }
+
+    /**
+     * Types 2, 3 and 6 must name the document they correct (the Schematron of the standard).
+     */
+    private function originalDocument(\DOMElement $root, IssuedDocument $document): void
+    {
+        if (DocumentKind::CorrectionDocument !== $document->kind) {
+            return;
+        }
+        $corrected = $this->corrected($document);
+        $reference = $this->add($this->add($root, 'OriginalDocumentReferences'), 'OriginalDocumentReference');
+        $this->add($reference, 'ID', $corrected->number);
+        $this->add($reference, 'IssueDate', $corrected->issueDate->format('Y-m-d'));
+        $this->add($reference, 'UUID', $corrected->id);
+    }
+
+    private function corrected(IssuedDocument $document): CorrectedDocument
+    {
+        return $document->corrected ?? throw new \LogicException('A corrective tax document names the document it corrects.');
     }
 
     private function isVatApplicable(IssuedDocument $document): bool
