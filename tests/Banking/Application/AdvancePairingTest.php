@@ -48,7 +48,7 @@ final class AdvancePairingTest extends BankingTestCase
         $this->pairing->auto($this->recordMovement->record($this->incoming('1210.00', '920260001'), self::verified())->id());
 
         // A second transfer with the advance's symbol: the advance is paid, its tax document asks for nothing.
-        $movement = $this->recordMovement->record($this->incoming('1210.00', '920260001', messageId: 'second', bookedOn: '2026-11-20'), self::verified());
+        $movement = $this->recordMovement->record($this->incoming('1000.00', '920260001', bookedOn: '2026-11-19'), self::verified());
 
         self::assertSame([], $this->matcher->candidates($this->storedMovement($movement->id())));
         self::assertNull($this->pairing->auto($movement->id()));
