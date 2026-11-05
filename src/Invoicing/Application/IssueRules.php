@@ -166,6 +166,9 @@ final readonly class IssueRules
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
+        if ($series->kind() !== ($existing?->kind() ?? $input->kind)) {
+            return [new IssueProblem('series', 'invoice.problem.series_kind')];
+        }
         if ($series->isArchived() && $series->id() !== $existing?->series()->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_archived')];
         }
@@ -176,7 +179,7 @@ final readonly class IssueRules
     private function series(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): ?Series
     {
         if (null === $input->seriesId) {
-            return $existing?->series() ?? $this->catalog->defaultFor($firm);
+            return $existing?->series() ?? $this->catalog->defaultFor($firm, $input->kind);
         }
         try {
             return $this->catalog->get($input->seriesId);

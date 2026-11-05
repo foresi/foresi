@@ -224,7 +224,7 @@ class Invoice implements TenantOwned, Audited
      * @return AbandonedNumber|null the number given up, to be stored; null when only
      *                              its punctuation or case changed, as the number is the same
      *
-     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another firm
+     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another firm or kind
      */
     public function changeNumber(Series $series, string $number): ?AbandonedNumber
     {
@@ -233,6 +233,9 @@ class Invoice implements TenantOwned, Audited
             throw new \DomainException('Series and number are fixed once the document is delivered.');
         }
         $this->refuseForeignSeries($series);
+        if ($series->kind() !== $this->kind) {
+            throw new \DomainException('A document keeps its kind, so it takes a series of that kind.');
+        }
         $key = NumberKey::of($number);
         $abandoned = $key === $this->numberKey ? null : new AbandonedNumber($this, $this->number);
         $this->series = $series;

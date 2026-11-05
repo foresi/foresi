@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Series;
 use App\Party\Domain\LegalEntity;
 
@@ -18,11 +19,11 @@ use App\Party\Domain\LegalEntity;
 interface SeriesCatalog
 {
     /**
-     * The active series of a firm, by name.
+     * The active series of a firm, by name; of one kind when it is given.
      *
      * @return list<Series>
      */
-    public function forFirm(LegalEntity $firm): array;
+    public function forFirm(LegalEntity $firm, ?DocumentKind $kind = null): array;
 
     /**
      * All series of a firm, archived ones too, by name. An archived series keeps its
@@ -38,9 +39,10 @@ interface SeriesCatalog
     public function get(string $id): Series;
 
     /**
-     * The default series of a firm, or a new one that is not stored yet.
+     * The default series of a firm for a kind, or a new standard one that is not
+     * stored yet.
      */
-    public function defaultFor(LegalEntity $firm): Series;
+    public function defaultFor(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): Series;
 
     public function add(Series $series): void;
 
@@ -51,7 +53,7 @@ interface SeriesCatalog
     public function store(Series $series): void;
 
     /**
-     * Moves the default of the firm to this series; stores what is pending first,
+     * Moves the default of the firm for the kind of the series to it; stores what is pending first,
      * because the unique index must never see two defaults.
      */
     public function makeDefault(Series $series): void;

@@ -937,12 +937,22 @@ series:
   first: 'Zatím tu není žádná řada. První faktura této firmy dostane číslo {number} ve standardní řadě.'
   name:
     standard: Standardní
+    standard_advance: Zálohové faktury
+    standard_payment_tax_document: Daňové doklady k platbě
+  kind:
+    invoice: Faktura
+    advance: Zálohová faktura
+    payment_tax_document: Daňový doklad k přijaté platbě
   column:
     name: Název
+    kind: Doklady
     format: Formát
     next: Další číslo
     default: Výchozí
   field:
+    kind: Doklady
+    kind_help: Jaký druh dokladů řada čísluje
+    kind_locked_help: Druh dokladů řady se nemění
     name: Název
     format: Formát
     format_help: "Značky '{YYYY} {YY} {MM} {DD}' a jedna '{NNNN}'"
@@ -951,7 +961,7 @@ series:
     nextNumber_help: Prázdné nic nemění. Přeskočená čísla se nepoužijí
     startYear: Rok
     startYear_help: Formát bez roku ho nepoužije
-    default: Výchozí řada pro nové faktury
+    default: Výchozí řada pro nové doklady svého druhu
     default_help: Převezme to po dosavadní výchozí řadě
     default_kept_help: Změníte to, když nastavíte výchozí jinou řadu
   flash:
@@ -965,6 +975,7 @@ series:
     next_number: Zadejte celé číslo od 1 do 2147483647.
     start_year: Zadejte rok od 2000 do 2099.
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
+    kind: Vyberte druh dokladů.
 invoice:
   public:
     title: 'Faktura {number}'
@@ -1580,6 +1591,7 @@ invoice:
     reverse_charge_customer_vat_id: Přenesená daň vyžaduje odběratele s DIČ.
     reverse_charge_payer: Přenesená daň vyžaduje vystavitele, který je plátcem DPH.
     series_archived: Tato řada je archivovaná.
+    series_kind: Tato řada čísluje jiný druh dokladů.
     series_of_another_firm: Tato řada patří jiné firmě.
     series_unknown: Vyberte číselnou řadu.
     supply_code_invalid: Vyberte kód plnění.

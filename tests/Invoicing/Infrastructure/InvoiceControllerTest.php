@@ -1014,6 +1014,24 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('#invoice-form');
     }
 
+    public function testASeriesOfAnotherKindLeavesTheInvoiceFormOpen(): void
+    {
+        $this->signedIn(series: false);
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('The firm is missing.');
+            $advances = new Series($firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+            $advances->archive();
+            $this->em()->persist($advances);
+            $this->em()->persist(new Series($firm, 'More advances', SeriesFormat::fromString('ZG{YYYY}{NNNN}'), DocumentKind::Advance));
+            $this->em()->flush();
+        });
+
+        $crawler = $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorExists('#invoice-form');
+        self::assertSame(['Standard'], $crawler->filter('select[name="seriesId"] option')->each(static fn ($option): string => trim($option->text())));
+    }
+
     public function testAFirmWithoutSeriesStillOpensTheForm(): void
     {
         $this->signedIn(series: false);

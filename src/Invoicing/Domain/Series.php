@@ -30,7 +30,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_series_default', columns: ['legal_entity_id', 'kind', 'default_flag'])]
 class Series implements TenantOwned, Audited, AuditRooted
 {
-    /** The name of the series a firm gets without setting one up; the screens translate it. */
+    /** The name of the invoice series a firm gets without setting one up; the screens translate it. */
     public const string STANDARD = 'standard';
     public const string STANDARD_FORMAT = '{YYYY}{NNNN}';
     public const int MAX_NAME_LENGTH = 100;
@@ -72,6 +72,17 @@ class Series implements TenantOwned, Audited, AuditRooted
         $this->id = Id::generate();
         $this->name = $this->cleanName($name);
         $this->format = $format->toString();
+    }
+
+    /**
+     * The series a firm gets for a kind without setting one up, as its default.
+     */
+    public static function standard(LegalEntity $firm, DocumentKind $kind): self
+    {
+        $series = new self($firm, $kind->standardSeriesName(), SeriesFormat::fromString($kind->standardSeriesFormat()), $kind);
+        $series->markDefault();
+
+        return $series;
     }
 
     public function id(): string

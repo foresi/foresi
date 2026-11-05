@@ -937,12 +937,22 @@ series:
   first: 'No series yet. The first invoice of this firm gets the number {number} in a standard series.'
   name:
     standard: Standard
+    standard_advance: Advance invoices
+    standard_payment_tax_document: Tax documents on payment
+  kind:
+    invoice: Invoice
+    advance: Advance invoice
+    payment_tax_document: Tax document on payment
   column:
     name: Name
+    kind: Documents
     format: Format
     next: Next number
     default: Default
   field:
+    kind: Documents
+    kind_help: The kind of document this series numbers
+    kind_locked_help: The kind of documents of a series stays
     name: Name
     format: Format
     format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
@@ -951,7 +961,7 @@ series:
     nextNumber_help: Empty keeps the count. Skipped numbers are not used
     startYear: Year
     startYear_help: A format without a year ignores it
-    default: Default series for new invoices
+    default: Default series for new documents of its kind
     default_help: Takes over from the current default series
     default_kept_help: To change it, make another series the default
   flash:
@@ -965,6 +975,7 @@ series:
     next_number: Enter a whole number from 1 to 2147483647.
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
+    kind: Choose the kind of documents.
 invoice:
   public:
     title: 'Invoice {number}'
@@ -1580,6 +1591,7 @@ invoice:
     reverse_charge_customer_vat_id: Reverse charge needs a customer with a VAT ID.
     reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
     series_archived: This series is archived.
+    series_kind: This series numbers another kind of document.
     series_of_another_firm: This series belongs to another firm.
     series_unknown: Choose a series.
     supply_code_invalid: Choose the supply code.

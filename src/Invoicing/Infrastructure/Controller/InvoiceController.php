@@ -37,6 +37,7 @@ use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\SendStatus;
@@ -142,7 +143,7 @@ final class InvoiceController extends AbstractController
         }
 
         // No series at all is fine: the first save stores the default. Only archived ones leave nothing to number from.
-        if ([] === $this->catalog->forFirm($firm) && [] !== $this->catalog->everyForFirm($firm)) {
+        if ([] === $this->catalog->forFirm($firm, DocumentKind::Invoice) && array_any($this->catalog->everyForFirm($firm), static fn (Series $series): bool => DocumentKind::Invoice === $series->kind())) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
         }
 

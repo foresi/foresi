@@ -14,7 +14,6 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesCounter;
-use App\Invoicing\Domain\SeriesFormat;
 use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -24,14 +23,14 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
     {
     }
 
-    public function forFirm(LegalEntity $firm): array
+    public function forFirm(LegalEntity $firm, ?DocumentKind $kind = null): array
     {
         /** @var list<Series> $series */
         $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm AND s.archived = false ORDER BY s.name, s.id')
             ->setParameter('firm', $firm->id())
             ->getResult();
 
-        return $series;
+        return $kind instanceof DocumentKind ? array_values(array_filter($series, static fn (Series $one): bool => $one->kind() === $kind)) : $series;
     }
 
     public function everyForFirm(LegalEntity $firm): array
@@ -52,17 +51,9 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         return $series instanceof Series ? $series : throw new UnknownSeries();
     }
 
-    public function defaultFor(LegalEntity $firm): Series
+    public function defaultFor(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): Series
     {
-        $stored = $this->storedDefault($firm);
-        if ($stored instanceof Series) {
-            return $stored;
-        }
-
-        $series = new Series($firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-        $series->markDefault();
-
-        return $series;
+        return $this->storedDefault($firm, $kind) ?? Series::standard($firm, $kind);
     }
 
     public function add(Series $series): void
@@ -78,7 +69,7 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
 
     public function makeDefault(Series $series): void
     {
-        $current = $this->storedDefault($series->firm());
+        $current = $this->storedDefault($series->firm(), $series->kind());
         if ($current === $series) {
             return;
         }
@@ -105,11 +96,11 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
         return 0 < (int) $invoices;
     }
 
-    private function storedDefault(LegalEntity $firm): ?Series
+    private function storedDefault(LegalEntity $firm, DocumentKind $kind): ?Series
     {
         $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.firm = :firm AND s.kind = :kind AND s.defaultFlag = true')
             ->setParameter('firm', $firm->id())
-            ->setParameter('kind', DocumentKind::Invoice)
+            ->setParameter('kind', $kind)
             ->getOneOrNullResult();
 
         return $series instanceof Series ? $series : null;

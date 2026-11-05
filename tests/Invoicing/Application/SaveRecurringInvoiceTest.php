@@ -11,11 +11,14 @@ namespace App\Tests\Invoicing\Application;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RecurringRefused;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurrenceEnd;
 use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringState;
+use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
@@ -210,6 +213,15 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         $this->em->flush();
 
         self::assertSame(['invoice.problem.series_archived'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput())));
+    }
+
+    public function testASeriesOfAnotherKindIsRefused(): void
+    {
+        $taxDocuments = new Series($this->firm, 'Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument);
+        $this->em->persist($taxDocuments);
+        $this->em->flush();
+
+        self::assertSame(['invoice.problem.series_kind'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['seriesId' => $taxDocuments->id()]))));
     }
 
     public function testAnUnknownCustomerIsRefused(): void

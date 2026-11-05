@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\VatRegime;
@@ -139,6 +140,9 @@ final readonly class RecurringRules
         }
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
+        }
+        if (DocumentKind::Invoice !== $series->kind()) {
+            return [new IssueProblem('series', 'invoice.problem.series_kind')];
         }
 
         return $series->isArchived() ? [new IssueProblem('series', 'invoice.problem.series_archived')] : [];

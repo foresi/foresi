@@ -72,7 +72,7 @@ final readonly class IssueInvoice
                 throw new IssueRefused($problems);
             }
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
-            $series = null === $input->seriesId ? $this->catalog->defaultFor($firm) : $this->catalog->get($input->seriesId);
+            $series = null === $input->seriesId ? $this->catalog->defaultFor($firm, $input->kind) : $this->catalog->get($input->seriesId);
             $customer = $this->copies->for($input, $party, $firm, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $settings = $this->settings->for($firm);
             $regime = VatRegime::of($firm->vatStatus());
