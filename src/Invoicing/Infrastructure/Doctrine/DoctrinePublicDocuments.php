@@ -34,6 +34,7 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             payment_method, bank_account, domestic_account, variable_symbol, payment_code,
             (SELECT i.payable_minor FROM invoice i WHERE i.id = s.invoice_id) AS payable_minor,
             (SELECT i.kind FROM invoice i WHERE i.id = s.invoice_id) AS kind,
+            (SELECT i.deducts_advances FROM invoice i WHERE i.id = s.invoice_id) AS deducts_advances,
             (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
                 WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor,
             (SELECT MAX(p.received_on) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
@@ -86,6 +87,8 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             $kind->isPayable() ? max(0, $payable - $paid) : 0,
             null === $lastPaidOn ? null : new \DateTimeImmutable(substr($lastPaidOn, 0, 10)),
             $kind,
+            // A boolean of PostgreSQL, an integer of SQLite.
+            \in_array($row['deducts_advances'], [true, 1, '1', 't', 'true'], true),
         );
     }
 

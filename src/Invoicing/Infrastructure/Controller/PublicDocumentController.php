@@ -49,7 +49,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * which asks for the whole amount. The PDF is the one sent and stays as it was, so
  * next to its download a paid invoice says when it was paid and that nothing is due.
  * A tax document on payment is paid by its payment: like its PDF, the page says not
- * to pay it, with neither a due date nor a way to pay.
+ * to pay it, with neither a due date nor a way to pay. So does an invoice its
+ * advances cover, which reads as settled by them, a total below zero as a
+ * difference to refund.
  */
 final class PublicDocumentController extends AbstractController
 {
@@ -99,7 +101,8 @@ final class PublicDocumentController extends AbstractController
         $request->setLocale($language);
         // Cash and card are paid on the spot: no account to pay to. A paid invoice
         // asks for nothing more, so it shows no way to pay it twice.
-        $settled = $document->payment->isSettled();
+        $byAdvances = $document->isSettledByAdvances();
+        $settled = $document->payment->isSettled() || $byAdvances;
         $partly = PaymentState::PartlyPaid === $document->payment;
         $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled ? $document->bankAccount : null;
         $remaining = $partly ? $this->format->money(Money::ofMinor($document->remainingMinor, $document->currency), $document->language) : null;
@@ -110,6 +113,15 @@ final class PublicDocumentController extends AbstractController
             'document' => $document,
             'kind' => $document->kind->value,
             'payable' => $document->kind->isPayable(),
+            // What the payment box of the PDF says, and whether anything falls due.
+            'amountLabel' => match (true) {
+                !$document->kind->isPayable() => 'invoice.public.amount_paid',
+                $byAdvances && $document->amountMinor < 0 => 'invoice.public.to_refund',
+                $byAdvances => 'invoice.public.settled_by_advances_note',
+                default => 'invoice.public.amount',
+            },
+            'due' => $document->kind->isPayable() && !$byAdvances,
+            'byAdvances' => $byAdvances,
             'amount' => $this->amount($document),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'pdf' => $this->generateUrl(self::PDF, ['token' => $token]),

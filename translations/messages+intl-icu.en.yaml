@@ -1001,6 +1001,9 @@ invoice:
     paid: Paid
     amount: Amount to pay
     amount_paid: Total paid
+    settled_by_advances: Settled by advances
+    settled_by_advances_note: Settled by advances, nothing to pay
+    to_refund: Difference to refund
     due: Due date
     remaining: Left to pay
     payment:

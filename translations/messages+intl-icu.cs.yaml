@@ -1001,6 +1001,9 @@ invoice:
     paid: Uhrazeno
     amount: K úhradě
     amount_paid: Celkem uhrazeno
+    settled_by_advances: Uhrazeno zálohami
+    settled_by_advances_note: Uhrazeno zálohami, nic nehraďte
+    to_refund: Rozdíl k vrácení
     due: Splatnost
     remaining: Zbývá uhradit
     payment:

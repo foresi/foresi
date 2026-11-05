@@ -25,7 +25,7 @@
                 {% if paid %}
                     <span class="inline-flex h-badge items-center gap-1 whitespace-nowrap rounded-sm bg-badge-green px-2 text-caption font-medium text-badge-green-text" data-paid-status>
                         {{- ux_icon('lucide:circle-check', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) -}}
-                        <span>{{ 'invoice.public.paid'|trans({}, 'messages', locale) }}</span>
+                        <span>{{ (byAdvances ? 'invoice.public.settled_by_advances' : 'invoice.public.paid')|trans({}, 'messages', locale) }}</span>
                     </span>
                 {% endif %}
             {% endblock %}
@@ -33,11 +33,11 @@
 
         <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6">
             <div class="min-w-0">
-                <dt class="text-small text-muted">{{ (payable ? 'invoice.public.amount' : 'invoice.public.amount_paid')|trans({}, 'messages', locale) }}</dt>
+                <dt class="text-small text-muted">{{ amountLabel|trans({}, 'messages', locale) }}</dt>
                 <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ amount }}</dd>
             </div>
-            {# A tax document on payment is paid by its payment: nothing falls due. #}
-            {% if payable %}
+            {# A tax document on payment is paid by its payment, and advances may cover an invoice: nothing falls due. #}
+            {% if due %}
                 <div class="min-w-0">
                     <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
                     <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ dueDate }}</dd>

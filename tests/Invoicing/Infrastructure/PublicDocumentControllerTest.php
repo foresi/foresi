@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
@@ -445,6 +446,49 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSame('Stáhnout zálohovou fakturu (uhrazená)', $crawler->filter('a[href$="/download"]')->text());
     }
 
+    /**
+     * The advances cover the whole invoice: its PDF says it is settled by them, and so does the page.
+     */
+    public function testAnInvoiceSettledByAdvancesAsksForNothing(): void
+    {
+        $sent = $this->sentFinalInvoice('1000.00');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextSame('h1', 'Faktura '.$sent['number']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno zálohami');
+        self::assertSame(['Uhrazeno zálohami, nic nehraďte'], $crawler->filter('main dl dt')->each(static fn ($dt): string => $dt->text()), 'no amount to pay and no due date');
+        self::assertMatchesRegularExpression('/^0,00\x{a0}Kč$/u', $crawler->filter('main dl dd')->text());
+        self::assertSelectorNotExists('#payment-title');
+        self::assertSelectorNotExists('figure svg');
+        self::assertSelectorNotExists('[data-remaining]');
+    }
+
+    public function testAnInvoiceTheAdvancesOverCoverShowsTheDifferenceToRefund(): void
+    {
+        $sent = $this->sentFinalInvoice('500.00');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno zálohami');
+        self::assertSame(['Rozdíl k vrácení'], $crawler->filter('main dl dt')->each(static fn ($dt): string => $dt->text()));
+        self::assertStringContainsString('605,00', $crawler->filter('main dl dd')->text());
+        self::assertSelectorNotExists('#payment-title');
+        self::assertSelectorNotExists('figure svg');
+    }
+
+    public function testAnInvoiceLeftToPayAfterItsAdvancesStillAsksForIt(): void
+    {
+        $sent = $this->sentFinalInvoice('3000.00');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorNotExists('[data-paid-status]');
+        self::assertSame(['K úhradě', 'Splatnost'], $crawler->filter('main dl dt')->slice(0, 2)->each(static fn ($dt): string => $dt->text()));
+        self::assertSelectorExists('#payment-title');
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
@@ -658,6 +702,29 @@ final class PublicDocumentControllerTest extends WebTestCase
         });
 
         return $this->sentOf($document);
+    }
+
+    /**
+     * A final invoice of one line without VAT that deducts a paid advance of 1 210 Kč, sent.
+     *
+     * @return array{send: string, invoice: string, token: string, number: string}
+     */
+    private function sentFinalInvoice(string $price): array
+    {
+        $this->sentTaxDocument();
+        $final = $this->inTenant(function () use ($price): Invoice {
+            $container = self::getContainer();
+            [$firm, $series, $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
+            $issuer = $container->get('doctrine.orm.entity_manager')->find(LegalEntity::class, $firm) ?? throw new \LogicException('The firm is missing.');
+            $deductible = $container->get(DeductibleAdvances::class)->for($issuer, $customer, null, DocumentLanguage::Czech);
+            self::assertCount(1, $deductible);
+            $day = new \DateTimeImmutable('2026-11-03');
+            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+            return $container->get(IssueInvoice::class)->issue(new InvoiceInput($firm, $series, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-17'), PaymentMethod::BankTransfer, self::IBAN, '20260001', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line, ...$deductible[0]->lines]));
+        });
+
+        return $this->sentOf($final);
     }
 
     private function issuedAdvance(): Invoice

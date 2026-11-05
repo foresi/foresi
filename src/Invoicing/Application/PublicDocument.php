@@ -18,7 +18,8 @@ use App\Shared\Domain\Currency;
  * What the public page of a sent document shows, as frozen when it was sent:
  * scalars only, read across tenants without making one active. The payment state
  * and what remains to pay are today's, of the invoice as it stands now; a tax
- * document on payment is paid by its payment, as its PDF says.
+ * document on payment is paid by its payment, as its PDF says, and an invoice its
+ * advances cover in full is settled by them.
  */
 final readonly class PublicDocument
 {
@@ -46,6 +47,17 @@ final readonly class PublicDocument
         /** The day the last payment not cancelled came in, or null without one. */
         public ?\DateTimeImmutable $lastPaidOn,
         public DocumentKind $kind,
+        /** Whether lines of the invoice deduct advances. */
+        public bool $deductsAdvances,
     ) {
+    }
+
+    /**
+     * Its advances cover it in full: as its PDF says, there is nothing to pay, and a
+     * total below zero is a difference to refund.
+     */
+    public function isSettledByAdvances(): bool
+    {
+        return $this->deductsAdvances && $this->amountMinor <= 0;
     }
 }
