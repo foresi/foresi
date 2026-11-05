@@ -138,7 +138,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         // Late on New Year's Eve in Prague is already 2024 in UTC+14, and the other way round: the calendar date as written counts.
         $invoice = $this->issue->issue($this->input(overrides: ['taxPointDate' => new \DateTimeImmutable('2024-01-01 00:30:00', new \DateTimeZone('Pacific/Kiritimati'))]));
 
-        self::assertSame('2024-01-01', $this->reloaded($invoice)->taxPointDate()->format('Y-m-d'));
+        self::assertSame('2024-01-01', $this->reloaded($invoice)->taxPointDate()?->format('Y-m-d'));
     }
 
     public function testANonPayerInvoiceHasNoVatAndNoRates(): void
@@ -761,6 +761,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(\App\Audit\Application\AuditActor::class),
             $container->get(\Psr\Clock\ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
+            $this->deductions(),
         );
 
         try {
@@ -1104,7 +1105,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
     {
         $other = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
         $series = $this->seriesOf($other);
-        $change = $this->input()->change($this->customer, DocumentParty::ofCustomer($this->customer, self::address(), null));
+        $change = $this->input()->change($this->customer, DocumentParty::ofCustomer($this->customer, self::address(), null), DocumentKind::Invoice);
 
         $this->expectExceptionMessageIsOrContains('A document takes a series of its own firm.');
         new Invoice($this->firm, $series, '1', VatRegime::Payer, TotalRounding::None, Currency::CZK, DocumentParty::ofCustomer($this->customer, self::address(), null), $change, null, new \DateTimeImmutable('2026-11-01'));
@@ -1116,7 +1117,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
         foreach (['taxPointDate', 'dueDate'] as $date) {
             try {
-                $this->input(overrides: [$date => null])->change($this->customer, $copy);
+                $this->input(overrides: [$date => null])->change($this->customer, $copy, DocumentKind::Invoice);
                 self::fail('Expected the guard.');
             } catch (\LogicException $guard) {
                 self::assertStringContainsString('IssueRules refuses', $guard->getMessage());
@@ -1129,7 +1130,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $firm = $this->secondFirm(VatStatus::Registered, 'CZ27074358');
         $series = new Series($firm, 'Unsaved', SeriesFormat::fromString('A{NNN}'), DocumentKind::Invoice);
         $copy = DocumentParty::ofCustomer($this->customer, self::address(), null);
-        $invoice = new Invoice($firm, $series, 'A1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy), null, new \DateTimeImmutable('2026-11-01'));
+        $invoice = new Invoice($firm, $series, 'A1', VatRegime::Payer, TotalRounding::None, Currency::CZK, $copy, $this->input()->change($this->customer, $copy, DocumentKind::Invoice), null, new \DateTimeImmutable('2026-11-01'));
         $zero = Money::ofMinor(0, Currency::CZK);
         $values = new LineValues($zero, Quantity::fromString('1'), PriceType::WithoutVat, TaxTreatment::Exempt, null, Percent::fromString('0'));
         $line = new InvoiceLine($invoice, 0, 'x', 'h', null, null, $values, new LineAmounts($zero, $zero, $zero, $zero));

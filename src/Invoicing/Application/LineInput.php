@@ -30,6 +30,7 @@ final readonly class LineInput
         public ?VatRateKind $rateKind,
         public ?string $supplyCode,
         public Percent $discount,
+        public ?string $deducts = null,
     ) {
     }
 }

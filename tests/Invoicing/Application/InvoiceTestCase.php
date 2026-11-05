@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
@@ -173,6 +174,17 @@ abstract class InvoiceTestCase extends KernelTestCase
     {
         $this->em->clear();
         $this->edit->edit($invoice->id(), $input, $this->store->get($invoice->id())->version());
+    }
+
+    /**
+     * The one the container wires into IssueInvoice, as phpstan's container inlines it.
+     */
+    protected function deductions(): AdvanceDeductions
+    {
+        $deductions = new \ReflectionProperty(IssueInvoice::class, 'deductions')->getValue($this->issue);
+        self::assertInstanceOf(AdvanceDeductions::class, $deductions);
+
+        return $deductions;
     }
 
     protected function reloaded(Invoice $invoice): Invoice

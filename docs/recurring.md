@@ -1,6 +1,6 @@
 # Recurring invoices
 
-A recurring invoice is a template that issues an ordinary invoice on a schedule, for example a hosting fee every month or a licence every year. Each issued invoice is a normal invoice: it has its number from the series, it can be edited, sent again or moved to the trash under the usual rules. The template itself holds no number and is never a document. Recurring invoices are under **Sales › Recurring invoices**.
+A recurring invoice is a template that issues an ordinary invoice, or an advance invoice when its series is one of advance invoices, on a schedule, for example a hosting fee every month or a licence every year. Each issued invoice is a normal invoice: it has its number from the series, it can be edited, sent again or moved to the trash under the usual rules. The template itself holds no number and is never a document. Recurring invoices are under **Sales › Recurring invoices**.
 
 This page describes what a template holds, when its invoices are issued and sent, what happens when something goes wrong, and how templates from iDoklad map onto it.
 
@@ -16,7 +16,7 @@ The schedule:
 | Repeat | daily, weekly, monthly, yearly | |
 | Repeat every | 1 to 99 | 3 with monthly means every third month. Yearly and "every 12 months" give the same dates but stay distinct. |
 | Issue on the last day of the month | yes or no | Monthly and yearly only. Every occurrence then falls on the last day of its month. |
-| Tax point | issue date, or last day of the issue month | For a firm that is not a VAT payer the same choice is the date of supply. |
+| Tax point | issue date, or last day of the issue month | For a firm that is not a VAT payer the same choice is the date of supply. An advance invoice has none; its rates are those of its issue date. |
 | Due | 0 to 365 days | Counted from the issue date. |
 | End repeating | never, on a date (that day included), after a number of issues (1 to 999) | |
 | After the issue | send to the customer, or hold for my review | Send is the default. |

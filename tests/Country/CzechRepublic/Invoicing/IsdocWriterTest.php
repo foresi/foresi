@@ -85,6 +85,7 @@ final class IsdocWriterTest extends InvoiceTestCase
     {
         $document = $this->scenario('transfer21');
         $file = self::getContainer()->get(CzechInvoicing::class)->electronicFile($document);
+        self::assertNotNull($file);
 
         self::assertSame('invoice.isdoc', $file->name);
         self::assertSame('text/xml', $file->mime);

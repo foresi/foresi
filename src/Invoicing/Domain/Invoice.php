@@ -46,6 +46,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['tenant_id', 'recurring_invoice_id', 'recurring_occurrence'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
+#[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
+#[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -89,8 +92,9 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Column(name: 'issue_date', type: 'date_immutable')]
     private \DateTimeImmutable $issueDate;
 
-    #[ORM\Column(name: 'tax_point_date', type: 'date_immutable')]
-    private \DateTimeImmutable $taxPointDate;
+    // NULL on an advance invoice, which is no tax document.
+    #[ORM\Column(name: 'tax_point_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $taxPointDate;
 
     #[ORM\Column(name: 'due_date', type: 'date_immutable')]
     private \DateTimeImmutable $dueDate;
@@ -146,6 +150,24 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Column(name: 'deleted_reason', type: 'text', nullable: true)]
     private ?string $deletedReason = null;
 
+    // Only an advance invoice holds a choice; NULL follows the rules.
+    #[ORM\Column(name: 'tax_on_receipt', type: 'string', length: 8, nullable: true, enumType: TaxOnReceiptChoice::class)]
+    private ?TaxOnReceiptChoice $taxOnReceipt;
+
+    #[ORM\Column(name: 'advance_invoice_id', type: 'guid', nullable: true)]
+    private ?string $advanceInvoiceId = null;
+
+    #[ORM\Column(name: 'payment_id', type: 'guid', nullable: true)]
+    private ?string $paymentId = null;
+
+    // Claimed by the invoice that deducts this tax document or advance, by a statement that refuses a second claim.
+    #[AuditExcluded]
+    #[ORM\Column(name: 'deducted_by_invoice_id', type: 'guid', nullable: true)]
+    private ?string $deductedByInvoiceId = null;
+
+    #[ORM\Column(name: 'deducts_advances', type: 'boolean', options: ['default' => false])]
+    private bool $deductsAdvances = false;
+
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
 
@@ -179,6 +201,7 @@ class Invoice implements TenantOwned, Audited
         $this->id = Id::generate();
         $this->kind = $series->kind();
         $this->numberKey = NumberKey::of($this->number);
+        $this->refuseWrongTaxPoint($content);
         $this->issueDate = $content->issueDate;
         $this->taxPointDate = $content->taxPointDate;
         $this->dueDate = $content->dueDate;
@@ -191,9 +214,10 @@ class Invoice implements TenantOwned, Audited
     public function change(InvoiceChange $change): void
     {
         $this->refuseTrashed();
+        $this->refuseWrongTaxPoint($change);
         // A new object for the same day would count as a change and reach the audit log.
         $this->issueDate = $this->keepDay($this->issueDate, $change->issueDate);
-        $this->taxPointDate = $this->keepDay($this->taxPointDate, $change->taxPointDate);
+        $this->taxPointDate = $change->taxPointDate instanceof \DateTimeImmutable ? $this->keepDay($this->taxPointDate ?? $change->taxPointDate, $change->taxPointDate) : null;
         $this->dueDate = $this->keepDay($this->dueDate, $change->dueDate);
         $this->applyContent($change);
         ++$this->version;
@@ -224,7 +248,7 @@ class Invoice implements TenantOwned, Audited
      * @return AbandonedNumber|null the number given up, to be stored; null when only
      *                              its punctuation or case changed, as the number is the same
      *
-     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another firm
+     * @throws \DomainException once delivered, for an invoice in the trash, or for a series of another firm or kind
      */
     public function changeNumber(Series $series, string $number): ?AbandonedNumber
     {
@@ -233,6 +257,9 @@ class Invoice implements TenantOwned, Audited
             throw new \DomainException('Series and number are fixed once the document is delivered.');
         }
         $this->refuseForeignSeries($series);
+        if ($series->kind() !== $this->kind) {
+            throw new \DomainException('A document keeps its kind, so it takes a series of that kind.');
+        }
         $key = NumberKey::of($number);
         $abandoned = $key === $this->numberKey ? null : new AbandonedNumber($this, $this->number);
         $this->series = $series;
@@ -307,6 +334,59 @@ class Invoice implements TenantOwned, Audited
         }
         $this->recurringInvoiceId = $recurringId;
         $this->recurringOccurrence = new \DateTimeImmutable($occurrence->format('Y-m-d'));
+    }
+
+    /**
+     * Names the advance invoice and the payment a tax document on payment taxes. Set
+     * once, at issue; the pair is unique, so no payment is taxed twice.
+     *
+     * @throws \DomainException for another kind of document, or one that taxes a payment already
+     */
+    public function taxesPayment(string $advanceId, string $paymentId): void
+    {
+        if (DocumentKind::PaymentTaxDocument !== $this->kind || null !== $this->paymentId) {
+            throw new \DomainException('Only a tax document on payment taxes a payment, and only one.');
+        }
+        $this->advanceInvoiceId = $advanceId;
+        $this->paymentId = $paymentId;
+    }
+
+    /**
+     * The advance invoice whose payment a tax document on payment taxes.
+     */
+    public function advanceInvoiceId(): ?string
+    {
+        return $this->advanceInvoiceId;
+    }
+
+    /**
+     * The payment a tax document on payment taxes.
+     */
+    public function paymentId(): ?string
+    {
+        return $this->paymentId;
+    }
+
+    /**
+     * Whether lines of this invoice deduct advances: a payable of zero or less is
+     * then settled by them.
+     */
+    public function markDeductions(bool $deducts): void
+    {
+        $this->deductsAdvances = $deducts;
+    }
+
+    public function deductsAdvances(): bool
+    {
+        return $this->deductsAdvances;
+    }
+
+    /**
+     * The invoice that deducts this tax document or advance invoice.
+     */
+    public function deductedByInvoiceId(): ?string
+    {
+        return $this->deductedByInvoiceId;
     }
 
     public function recurringInvoiceId(): ?string
@@ -404,9 +484,20 @@ class Invoice implements TenantOwned, Audited
         return $this->issueDate;
     }
 
-    public function taxPointDate(): \DateTimeImmutable
+    /**
+     * Null on an advance invoice, which is no tax document.
+     */
+    public function taxPointDate(): ?\DateTimeImmutable
     {
         return $this->taxPointDate;
+    }
+
+    /**
+     * The day the VAT rates of the lines were taken on.
+     */
+    public function rateDate(): \DateTimeImmutable
+    {
+        return $this->taxPointDate ?? $this->issueDate;
     }
 
     public function dueDate(): \DateTimeImmutable
@@ -457,6 +548,15 @@ class Invoice implements TenantOwned, Audited
     public function language(): DocumentLanguage
     {
         return $this->language;
+    }
+
+    /**
+     * What a person chose about tax documents on the payments of an advance invoice;
+     * null follows the rules, and is all any other document holds.
+     */
+    public function taxOnReceipt(): ?TaxOnReceiptChoice
+    {
+        return $this->taxOnReceipt;
     }
 
     public function net(): Money
@@ -535,6 +635,7 @@ class Invoice implements TenantOwned, Audited
         $this->textBefore = $content->textBefore;
         $this->textAfter = $content->textAfter;
         $this->language = $content->language;
+        $this->taxOnReceipt = DocumentKind::Advance === $this->kind ? $content->taxOnReceipt : null;
     }
 
     private function keepDay(\DateTimeImmutable $stored, \DateTimeImmutable $given): \DateTimeImmutable
@@ -546,6 +647,16 @@ class Invoice implements TenantOwned, Audited
     {
         if ($this->isTrashed()) {
             throw new \DomainException('A document in the trash takes no change until it is restored.');
+        }
+    }
+
+    /**
+     * @throws \DomainException for a tax document without a tax point, or an advance with one
+     */
+    private function refuseWrongTaxPoint(InvoiceChange $content): void
+    {
+        if ($this->kind->isTaxDocument() !== $content->taxPointDate instanceof \DateTimeImmutable) {
+            throw new \DomainException('A tax document has a tax point, and an advance invoice has none.');
         }
     }
 

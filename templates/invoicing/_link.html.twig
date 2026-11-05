@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# A document of a chain of links: the one on screen is not a link. #}
+{% macro document(link, current, focus) %}
+    {% if link.id == current %}<span class="font-medium text-ink" aria-current="page">{{ link.number }}</span>
+    {% else %}<a href="{{ path('app_invoice_edit', {id: link.id}) }}" class="font-medium text-ink underline underline-offset-2 hover:text-green {{ focus }}">{{ link.number }}</a>{% endif %}
+{% endmacro %}

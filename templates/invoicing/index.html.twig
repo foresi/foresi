@@ -1,14 +1,15 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: titleKey|trans}] %}
+{% set newKey = kind == 'advance' ? 'advance.new' : 'invoice.new' %}
 
-{% block title %}{{ 'invoice.list.title'|trans }}{% endblock %}
+{% block title %}{{ titleKey|trans }}{% endblock %}
 
 {% block actions %}
     {% if not firstRun %}
-        <twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>
-        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
+        {% if kind == 'invoice' %}<twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>{% endif %}
+        {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
     {% endif %}
 {% endblock %}
 
@@ -28,7 +29,7 @@
         <div class="grid grid-cols-1 gap-4">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0 flex-1" />
-                <form method="get" action="{{ path('app_invoices') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
+                <form method="get" action="{{ path(route) }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg">
                     {% if tab != 'all' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
                     {% if sort != '-issueDate' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
                     {% if toSend %}<input type="hidden" name="toSend" value="1">{% endif %}
@@ -47,11 +48,11 @@
                 </div>
             {% endif %}
 
-            <twig:Ui:DataTable :caption="'invoice.list.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'invoice.list.empty.filtered_title'|trans" :text="'invoice.list.empty.filtered_text'|trans">
-                            <twig:Ui:Button :href="path('app_invoices')">{{ 'invoice.list.empty.reset'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="path(route)">{{ 'invoice.list.empty.reset'|trans }}</twig:Ui:Button>
                         </twig:Ui:EmptyState>
                     {% elseif tab == 'overdue' %}
                         <twig:Ui:EmptyState icon="circle-check" :title="'invoice.list.empty.overdue_title'|trans" />
@@ -61,14 +62,18 @@
                         <twig:Ui:EmptyState icon="banknote" :title="'invoice.list.empty.paid_title'|trans" :text="'invoice.list.empty.paid_text'|trans" />
                     {% elseif tab == 'unpaid' %}
                         <twig:Ui:EmptyState icon="circle-check" :title="'invoice.list.empty.unpaid_title'|trans" :text="'invoice.list.empty.unpaid_text'|trans" />
+                    {% elseif tab == 'settled' %}
+                        <twig:Ui:EmptyState icon="receipt-text" :title="'invoice.list.empty.settled_title'|trans" :text="'invoice.list.empty.settled_text'|trans" />
+                    {% elseif tab == 'unsettled' %}
+                        <twig:Ui:EmptyState icon="circle-check" :title="'invoice.list.empty.unsettled_title'|trans" :text="'invoice.list.empty.unsettled_text'|trans" />
                     {% else %}
-                        <twig:Ui:EmptyState icon="receipt-text" :title="'invoice.list.empty.all_title'|trans">
-                            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_invoice_new')" data-turbo="false">{{ 'invoice.new'|trans }}</twig:Ui:Button>
+                        <twig:Ui:EmptyState icon="receipt-text" :title="('invoice.list.empty.all_title_' ~ kind)|trans">
+                            {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
                         </twig:Ui:EmptyState>
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">
-                    <span class="num">{{ 'invoice.list.summary'|trans({total: page.total}) }}</span>
+                    <span class="num">{{ 'invoice.list.summary'|trans({total: page.total, kind: kind}) }}</span>
                     <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                 </twig:block>
             </twig:Ui:DataTable>

@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Banking\Application\Candidates;
+use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
@@ -18,10 +19,12 @@ use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentSourceRelease;
 use App\Invoicing\Application\PaymentState;
+use App\Invoicing\Application\PaymentTaxDocumentTexts;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\UnknownPayment;
 use App\Invoicing\Domain\Invoice;
@@ -168,7 +171,7 @@ final class RecordPaymentTest extends InvoiceTestCase
         ]));
         $log = new LockLog(self::getContainer()->get(Candidates::class));
         $container = self::getContainer();
-        $cancel = new CancelPayment($this->payments, new LoggingInvoiceStore($this->store, $log), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(AuditActor::class), Clock::get(), $container->get(PaymentSourceRelease::class));
+        $cancel = new CancelPayment($this->payments, new LoggingInvoiceStore($this->store, $log), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(AuditActor::class), Clock::get(), $container->get(PaymentSourceRelease::class), ...$this->taxDocumentParts());
 
         $cancel->cancel($payment->id());
 
@@ -420,7 +423,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             }
         };
         $container = self::getContainer();
-        $cancel = new CancelPayment($this->payments, $this->store, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(AuditActor::class), Clock::get(), $release);
+        $cancel = new CancelPayment($this->payments, $this->store, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(AuditActor::class), Clock::get(), $release, ...$this->taxDocumentParts());
 
         $cancel->cancel($manual->id());
         $cancel->cancel($bank->id());
@@ -592,6 +595,9 @@ final class RecordPaymentTest extends InvoiceTestCase
     private function recordingWith(LockLog $log): RecordPayment
     {
         $container = self::getContainer();
+        // The one the container wires, as phpstan's container inlines it.
+        $taxDocuments = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue($container->get(RecordPayment::class));
+        self::assertInstanceOf(IssuePaymentTaxDocument::class, $taxDocuments);
 
         return new RecordPayment(
             new LoggingInvoiceStore($this->store, $log),
@@ -601,6 +607,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $container->get(ConflictRetry::class),
             $container->get(AuditActor::class),
             Clock::get(),
+            $taxDocuments,
         );
     }
 
@@ -658,5 +665,21 @@ final class RecordPaymentTest extends InvoiceTestCase
         self::assertIsNumeric($value);
 
         return (int) $value;
+    }
+
+    /**
+     * What CancelPayment needs for the tax documents of a payment, as the container wires it.
+     *
+     * @return array{AdvanceDocuments, PaymentTaxDocumentTexts}
+     */
+    private function taxDocumentParts(): array
+    {
+        $wired = self::getContainer()->get(CancelPayment::class);
+        $documents = new \ReflectionProperty(CancelPayment::class, 'documents')->getValue($wired);
+        $texts = new \ReflectionProperty(CancelPayment::class, 'texts')->getValue($wired);
+        self::assertInstanceOf(AdvanceDocuments::class, $documents);
+        self::assertInstanceOf(PaymentTaxDocumentTexts::class, $texts);
+
+        return [$documents, $texts];
     }
 }

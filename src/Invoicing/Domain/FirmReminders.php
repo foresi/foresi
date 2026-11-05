@@ -19,7 +19,8 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Whether and when a firm reminds its customers of overdue invoices. The first
+ * Whether and when a firm reminds its customers of overdue invoices, and of
+ * overdue advance invoices when it says so; a tax document on payment never. The first
  * reminder goes a number of days after the due date, each next one a number of
  * days after the previous, up to MAX_STEPS. Only invoices due on or after the day
  * reminders were switched on are reminded, so switching on never sends a wave
@@ -61,6 +62,10 @@ class FirmReminders implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'minimum_minor', type: 'bigint', nullable: true)]
     private ?int $minimumMinor = null;
 
+    /** Whether advance invoices are reminded too, a switch of its own: iDoklad reminds them by hand only. */
+    #[ORM\Column(name: 'remind_advances', type: 'boolean', options: ['default' => false])]
+    private bool $remindAdvances = false;
+
     #[ORM\Column(name: 'minimum_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
     private ?Currency $minimumCurrency = null;
 
@@ -101,6 +106,16 @@ class FirmReminders implements TenantOwned, Audited, AuditRooted
         $this->everyDays = $everyDays;
         $this->minimumMinor = $minimum?->minor();
         $this->minimumCurrency = $minimum?->currency();
+    }
+
+    public function remindAdvances(bool $remind): void
+    {
+        $this->remindAdvances = $remind;
+    }
+
+    public function remindsAdvances(): bool
+    {
+        return $this->remindAdvances;
     }
 
     /**

@@ -73,6 +73,13 @@ final class FirmMailController extends AbstractController
     public const string TEST_TOKEN = 'firm_mail_test';
     private const string TEMPLATES = 'templates';
     private const string SERVER = 'server';
+    /** The card of each kind of template: its title, help and icon, in the order of MailTemplateKind. */
+    private const array CARDS = [
+        'invoice' => ['title' => 'firm.mail.card.invoice', 'help' => 'firm.mail.templates_help', 'icon' => 'receipt-text'],
+        'reminder' => ['title' => 'reminder.card.template', 'help' => 'reminder.templates_help', 'icon' => 'clock-3'],
+        'advance' => ['title' => 'advance.card.template', 'help' => 'advance.templates_help', 'icon' => 'banknote'],
+        'tax_document' => ['title' => 'tax_document.card.template', 'help' => 'tax_document.templates_help', 'icon' => 'file-signature'],
+    ];
 
     public function __construct(
         private readonly LegalEntities $firms,
@@ -188,18 +195,20 @@ final class FirmMailController extends AbstractController
         $first = (int) $values['firstAfterDays'];
         $every = (int) $values['everyDays'];
         $minimum = $reminders?->minimum;
+        $advances = '1' === ($values['advances'] ?? '');
         $card = $reminders instanceof FirmMailSubmission;
         $today = $this->preview->today();
         try {
-            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today): void {
+            $this->transaction->run(function () use ($firm, $texts, $stored, $card, $enabled, $first, $every, $minimum, $today, $advances): void {
                 foreach (MailTemplateKind::cases() as $kind) {
                     foreach (DocumentLanguage::cases() as $language) {
                         $text = $texts[$kind->value][$language->value];
                         $this->storeTemplate($firm, $kind, $language, $text['subject'], $text['body']);
                     }
                 }
-                if ($card && $this->changes($stored, $enabled, $first, $every, $minimum)) {
+                if ($card && ($this->changes($stored, $enabled, $first, $every, $minimum) || $stored->remindsAdvances() !== $advances)) {
                     $stored->change($enabled, $first, $every, $minimum, $today);
+                    $stored->remindAdvances($advances);
                     $this->reminders->save($stored);
                 }
             });
@@ -341,10 +350,14 @@ final class FirmMailController extends AbstractController
                 ['label' => $this->translator->trans('firm.mail.tab.templates'), 'href' => $url, 'active' => self::TEMPLATES === $tab],
                 ['label' => $this->translator->trans('firm.mail.tab.server'), 'href' => $url.'?tab='.self::SERVER, 'active' => self::SERVER === $tab],
             ],
-            'languages' => $kinds[MailTemplateKind::Invoice->value],
-            'reminderLanguages' => $kinds[MailTemplateKind::Reminder->value],
-            'templates' => $templates[MailTemplateKind::Invoice->value],
-            'reminderTemplates' => $templates[MailTemplateKind::Reminder->value],
+            'cards' => array_map(static fn (MailTemplateKind $kind): array => [
+                'kind' => $kind->value,
+                'title' => self::CARDS[$kind->value]['title'],
+                'help' => self::CARDS[$kind->value]['help'],
+                'icon' => self::CARDS[$kind->value]['icon'],
+                'languages' => $kinds[$kind->value],
+                'templates' => $templates[$kind->value],
+            ], MailTemplateKind::cases()),
             'reminders' => $reminders,
             'remindersCard' => $home instanceof Currency,
             // Closed until payments are recorded; a switch that is on stays usable, so it can be turned off.
@@ -424,6 +437,7 @@ final class FirmMailController extends AbstractController
             'firstAfterDays' => (string) $settings->firstAfterDays(),
             'everyDays' => (string) $settings->everyDays(),
             'minimum' => $minimum instanceof Money ? $this->amounts->plain($minimum) : '',
+            'advances' => $settings->remindsAdvances() ? '1' : '',
         ];
     }
 

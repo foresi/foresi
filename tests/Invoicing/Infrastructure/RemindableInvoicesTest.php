@@ -8,15 +8,21 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceRow;
+use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PlannedReminder;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\RemindableInvoice;
 use App\Invoicing\Application\RemindableInvoices;
 use App\Invoicing\Application\ReminderPreview;
 use App\Invoicing\Application\ReminderSettings;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\SendPurpose;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
@@ -85,6 +91,34 @@ final class RemindableInvoicesTest extends InvoiceTestCase
             new RemindableInvoice($otherFirmOff->id(), 1, null),
         ], $due, 'oldest due first; an invoice send is no reminder; a flag off for another firm does not count');
         self::assertSame([$second->id()], array_map(static fn (RemindableInvoice $invoice): string => $invoice->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 1)));
+    }
+
+    public function testAnAdvanceIsRemindedOnlyWhenTheFirmSaysSo(): void
+    {
+        $invoice = $this->deliveredDue('2026-11-15');
+        $advance = $this->delivered->mark($this->issue->issue($this->input(overrides: ['seriesId' => null, 'kind' => DocumentKind::Advance, 'taxPointDate' => null, 'dueDate' => new \DateTimeImmutable('2026-11-15')]))->id());
+        $this->em->clear();
+        $settings = $this->settings();
+
+        self::assertSame([$invoice->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $settings, $this->today(), 50)));
+        $settings->remindAdvances(true);
+        self::assertTrue($settings->remindsAdvances());
+        self::assertEqualsCanonicalizing([$invoice->id(), $advance->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $settings, $this->today(), 50)));
+    }
+
+    public function testATaxDocumentOnPaymentIsNeverReminded(): void
+    {
+        $advance = $this->issue->issue($this->input(overrides: ['seriesId' => null, 'kind' => DocumentKind::Advance, 'taxPointDate' => null, 'dueDate' => new \DateTimeImmutable('2026-11-15')]));
+        self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-10'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+        $document = $this->em->getConnection()->fetchOne('SELECT id FROM invoice WHERE advance_invoice_id = ?', [$advance->id()]);
+        self::assertIsString($document);
+        $this->delivered->mark($document);
+        $this->em->clear();
+        $settings = $this->settings();
+        $settings->remindAdvances(true);
+
+        self::assertSame([], $this->remindable->due($this->firm, $settings, $this->today(), 50));
+        self::assertSame(0, self::getContainer()->get(InvoiceBalances::class)->outstanding([$document])[$document]->minor());
     }
 
     public function testAPageStartsAfterTheLastInvoiceOfThePreviousOne(): void

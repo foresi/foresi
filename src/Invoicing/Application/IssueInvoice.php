@@ -54,6 +54,7 @@ final readonly class IssueInvoice
         private AuditActor $actor,
         private ClockInterface $clock,
         private ContactSettingsForFirm $contacts,
+        private AdvanceDeductions $deductions,
     ) {
     }
 
@@ -65,6 +66,10 @@ final readonly class IssueInvoice
      */
     public function issue(InvoiceInput $input, ?IssueOrigin $origin = null): Invoice
     {
+        if (!$input->kind->isIssuedByPerson() && !$origin instanceof PaymentTaxDocumentOrigin) {
+            throw new \LogicException('A tax document on payment is issued for a payment only.');
+        }
+
         return $this->retry->run(function () use ($input, $origin): Invoice {
             $firm = $this->firms->get($input->firmId);
             $problems = $this->rules->check($input, $firm);
@@ -72,12 +77,12 @@ final readonly class IssueInvoice
                 throw new IssueRefused($problems);
             }
             $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
-            $series = null === $input->seriesId ? $this->catalog->defaultFor($firm) : $this->catalog->get($input->seriesId);
+            $series = null === $input->seriesId ? $this->catalog->defaultFor($firm, $input->kind) : $this->catalog->get($input->seriesId);
             $customer = $this->copies->for($input, $party, $firm, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
             $settings = $this->settings->for($firm);
             $regime = VatRegime::of($firm->vatStatus());
             $issuer = DocumentParty::ofIssuer($firm, $settings);
-            $content = $input->change($party, $customer);
+            $content = $input->change($party, $customer, $series->kind());
 
             return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin): Invoice {
                 $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin);
@@ -110,11 +115,12 @@ final readonly class IssueInvoice
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $invoice = new Invoice($firm, $series, $number, $regime, $rounding, $home, $issuer, $content, $this->actor->userId(), $now);
         $this->store->add($invoice);
-        $lines = $this->pricing->priced($input->lines, $regime, $country, $content->taxPointDate);
+        $lines = $this->pricing->priced($input->lines, $regime, $country, $content->rateDate());
         foreach ($lines as $position => $line) {
-            $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts));
+            $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $country));
+        $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
 
         return $invoice;
     }

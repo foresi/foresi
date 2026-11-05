@@ -536,6 +536,85 @@ final class FirmInvoicingControllerTest extends WebTestCase
         self::assertTrue($this->onlySeries($firm)->isDefault());
     }
 
+    public function testASeriesOfAChosenKindIsSavedWithIt(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+
+        self::assertResponseRedirects($this->settingsUrl($firm));
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main table', 'Advance invoice');
+        self::assertSame(DocumentKind::Advance, $this->onlySeries($firm)->kind());
+    }
+
+    public function testTheNewSeriesFormStartsWithTheFormatOfTheKind(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $crawler = $this->client->request('GET', $this->settingsUrl($firm).'/series/new?kind=payment_tax_document');
+
+        self::assertSame('D8{YYYY}{NNNN}', $crawler->filter('input[name="format"]')->attr('value'));
+        self::assertSame('payment_tax_document', $crawler->filter('select[name="kind"] option[selected]')->attr('value'));
+    }
+
+    public function testAnUnknownKindGetsAFormError(): void
+    {
+        $firm = $this->signedInFirm();
+
+        $this->saveNewSeries($firm, ['name' => 'Odd', 'format' => 'O{YYYY}{NNNN}', 'kind' => 'receipt']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('main', 'Choose the kind of documents.');
+        self::assertSame([], $this->allSeries($firm));
+    }
+
+    public function testTheKindOfAStoredSeriesStays(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+        $series = $this->onlySeries($firm);
+
+        $this->saveSeries($firm, $series, ['name' => 'Renamed', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'invoice']);
+
+        self::assertResponseRedirects($this->settingsUrl($firm));
+        $stored = $this->onlySeries($firm);
+        self::assertSame('Renamed', $stored->name());
+        self::assertSame(DocumentKind::Advance, $stored->kind());
+        $crawler = $this->client->request('GET', $this->editUrl($firm, $stored));
+        self::assertCount(1, $crawler->filter('select[name="kind"][disabled]'));
+    }
+
+    public function testEachKindHasADefaultOfItsOwn(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->saveNewSeries($firm, ['name' => 'Invoices', 'format' => '{YYYY}{NNNN}']);
+        $this->saveNewSeries($firm, ['name' => 'Advances', 'format' => 'ZF{YYYY}{NNNN}', 'kind' => 'advance']);
+        $this->saveNewSeries($firm, ['name' => 'More advances', 'format' => 'ZG{YYYY}{NNNN}', 'kind' => 'advance', 'default' => '1']);
+
+        $defaults = array_values(array_filter($this->allSeries($firm), static fn (Series $series): bool => $series->isDefault()));
+
+        self::assertSame(['Invoices', 'More advances'], array_map(static fn (Series $series): string => $series->name(), $defaults));
+    }
+
+    public function testTheStandardSeriesOfEachKindIsTranslated(): void
+    {
+        $firm = $this->signedInFirm();
+        $this->context->switchTo($firm->tenantId());
+        $stored = $this->em()->getRepository(LegalEntity::class)->find($firm->id()) ?? throw new \LogicException('The firm is missing.');
+        $this->em()->persist(Series::standard($stored, DocumentKind::Advance));
+        $this->em()->persist(Series::standard($stored, DocumentKind::PaymentTaxDocument));
+        $this->em()->flush();
+        $this->context->reset();
+
+        $this->client->request('GET', $this->settingsUrl($firm));
+
+        self::assertSelectorTextContains('main table', 'Advance invoices');
+        self::assertSelectorTextContains('main table', 'Tax documents on payment');
+        self::assertSelectorTextContains('main table', 'Z9{YYYY}{NNNN}');
+        self::assertSelectorTextNotContains('main table', 'standard_advance');
+    }
+
     public function testAFirmWithoutSeriesIsToldWhatItGets(): void
     {
         $firm = $this->signedInFirm();

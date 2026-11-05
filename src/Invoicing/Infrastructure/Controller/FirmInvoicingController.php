@@ -101,7 +101,8 @@ final class FirmInvoicingController extends AbstractController
         $this->denyUnlessOwner();
         $firm = $this->firm($id);
         if (!$request->isMethod('POST')) {
-            $values = ['name' => '', 'format' => Series::STANDARD_FORMAT, 'startYear' => $this->today()->format('Y'), 'nextNumber' => '', 'default' => ''];
+            $kind = DocumentKind::tryFrom($request->query->getString('kind')) ?? DocumentKind::Invoice;
+            $values = ['name' => '', 'format' => $kind->standardSeriesFormat(), 'startYear' => $this->today()->format('Y'), 'nextNumber' => '', 'default' => '', 'kind' => $kind->value];
 
             return $this->seriesForm($firm, null, $values, [], $this->tokens->issue(), Response::HTTP_OK);
         }
@@ -136,6 +137,11 @@ final class FirmInvoicingController extends AbstractController
         $submission = $this->reader->series($request);
         $values = $submission->values;
         $errors = $submission->errors;
+        // The kind of a stored series stays; a browser does not send its disabled field.
+        if ($series instanceof Series) {
+            $values['kind'] = $series->kind()->value;
+            unset($errors['kind']);
+        }
         $format = $this->format($firm, $series, $values, $errors);
         if (!$series instanceof Series && !$this->tokens->isIssued($token)) {
             $token = $this->tokens->issue();
@@ -175,7 +181,7 @@ final class FirmInvoicingController extends AbstractController
             $target->rename($values['name']);
             $target->changeFormat($format);
         } else {
-            $target = new Series($firm, $values['name'], $format, DocumentKind::Invoice);
+            $target = new Series($firm, $values['name'], $format, DocumentKind::from($values['kind']));
             $this->catalog->add($target);
         }
 
@@ -183,7 +189,7 @@ final class FirmInvoicingController extends AbstractController
         if ('' !== $values['nextNumber'] && (int) $values['nextNumber'] !== $this->nextNumber($target, $period)) {
             $target->startAt((int) $values['nextNumber'], $period);
         }
-        $hasDefault = array_any($this->catalog->forFirm($firm), static fn (Series $other): bool => $other->isDefault());
+        $hasDefault = array_any($this->catalog->forFirm($firm, $target->kind()), static fn (Series $other): bool => $other->isDefault());
         if ('1' === $values['default'] || !$hasDefault) {
             $this->catalog->makeDefault($target);
         }
@@ -284,7 +290,7 @@ final class FirmInvoicingController extends AbstractController
             'values' => $values,
             'errors' => $this->messages($errors),
             'roundings' => $this->roundings(),
-            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'format', 'next', 'default']),
+            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'kind', 'format', 'next', 'default']),
             'rows' => array_map(fn (Series $one): array => $this->row($firm, $one), $series),
             'firstNumber' => $this->counter->peek($this->catalog->defaultFor($firm), $this->today()),
             'action' => $this->generateUrl('app_firm_invoicing', ['id' => $firm->id()]),
@@ -303,6 +309,7 @@ final class FirmInvoicingController extends AbstractController
             'series' => $series,
             'seriesName' => $series instanceof Series ? $this->seriesName($series) : '',
             'locked' => $series instanceof Series && $this->catalog->hasDocuments($series),
+            'kinds' => $this->kinds(),
             'nextNow' => $series instanceof Series ? (string) $this->nextNumber($series, $series->format()->period($this->today())) : '1',
             'values' => $values,
             'errors' => $this->messages($errors),
@@ -335,6 +342,7 @@ final class FirmInvoicingController extends AbstractController
             'href' => $this->generateUrl('app_series_edit', ['id' => $firm->id(), 'series' => $series->id()]),
             'cells' => [
                 'name' => $this->seriesName($series),
+                'kind' => $this->translator->trans('series.kind.'.$series->kind()->value),
                 'format' => $series->format()->toString(),
                 'next' => $this->counter->peek($series, $this->today()),
                 'default' => $series->isDefault() ? ['text' => $this->translator->trans('series.default'), 'tone' => 'green'] : null,
@@ -344,7 +352,20 @@ final class FirmInvoicingController extends AbstractController
 
     private function seriesName(Series $series): string
     {
-        return Series::STANDARD === $series->name() ? $this->translator->trans('series.name.standard') : $series->name();
+        return DocumentKind::isStandardSeriesName($series->name()) ? $this->translator->trans('series.name.'.$series->name()) : $series->name();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function kinds(): array
+    {
+        $options = [];
+        foreach (DocumentKind::cases() as $kind) {
+            $options[$kind->value] = $this->translator->trans('series.kind.'.$kind->value);
+        }
+
+        return $options;
     }
 
     /**
@@ -387,6 +408,7 @@ final class FirmInvoicingController extends AbstractController
             'startYear' => $this->today()->format('Y'),
             'nextNumber' => '',
             'default' => $series->isDefault() ? '1' : '',
+            'kind' => $series->kind()->value,
         ];
     }
 

@@ -13,7 +13,8 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PaymentMethod;
 
 /**
- * What can change on an invoice after it is issued.
+ * What can change on an invoice after it is issued. A tax point only on a tax
+ * document: an advance invoice has none.
  */
 final readonly class InvoiceChange
 {
@@ -21,7 +22,7 @@ final readonly class InvoiceChange
         public Party $customerParty,
         public DocumentParty $customer,
         public \DateTimeImmutable $issueDate,
-        public \DateTimeImmutable $taxPointDate,
+        public ?\DateTimeImmutable $taxPointDate,
         public \DateTimeImmutable $dueDate,
         public PaymentMethod $paymentMethod,
         public ?string $bankAccount,
@@ -32,7 +33,17 @@ final readonly class InvoiceChange
         public string $textBefore,
         public string $textAfter,
         public DocumentLanguage $language,
+        public ?TaxOnReceiptChoice $taxOnReceipt = null,
     ) {
+    }
+
+    /**
+     * The day the VAT rates of the lines are taken on: the tax point, or the issue
+     * date of a document that has none, such as an advance invoice.
+     */
+    public function rateDate(): \DateTimeImmutable
+    {
+        return $this->taxPointDate ?? $this->issueDate;
     }
 
     /**
@@ -55,6 +66,7 @@ final readonly class InvoiceChange
             $text($this->textBefore),
             $text($this->textAfter),
             $this->language,
+            $this->taxOnReceipt,
         );
     }
 
@@ -75,6 +87,7 @@ final readonly class InvoiceChange
             $this->textBefore,
             $this->textAfter,
             $this->language,
+            $this->taxOnReceipt,
         );
     }
 }

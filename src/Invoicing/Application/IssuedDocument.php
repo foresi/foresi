@@ -27,8 +27,11 @@ use App\Shared\Domain\Money;
 final readonly class IssuedDocument
 {
     /**
-     * @param list<InvoiceLine> $lines
-     * @param list<RateSummary> $summaries
+     * @param list<InvoiceLine>                                                         $lines
+     * @param list<RateSummary>                                                         $summaries
+     * @param string|null                                                               $advanceNumber the advance invoice a tax document on payment taxes a payment of
+     * @param array<string, array{number: string, variableSymbol: string, taxed: bool}> $deposits      what deduction lines deduct, by id:
+     *                                                                                                 a tax document is taxed, an advance invoice is not
      */
     public function __construct(
         public string $id,
@@ -41,7 +44,7 @@ final readonly class IssuedDocument
         public DocumentParty $customer,
         public DocumentParty $issuer,
         public \DateTimeImmutable $issueDate,
-        public \DateTimeImmutable $taxPointDate,
+        public ?\DateTimeImmutable $taxPointDate,
         public \DateTimeImmutable $dueDate,
         public PaymentMethod $paymentMethod,
         public ?string $bankAccount,
@@ -61,6 +64,9 @@ final readonly class IssuedDocument
         public Money $payable,
         public bool $trashed = false,
         public ?Money $leftToPay = null,
+        public ?string $advanceNumber = null,
+        public bool $deductsAdvances = false,
+        public array $deposits = [],
     ) {
     }
 

@@ -31,6 +31,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'invoice_line')]
 #[ORM\Index(name: 'idx_invoice_line_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_line_invoice', columns: ['invoice_id'])]
+#[ORM\Index(name: 'idx_invoice_line_deducts', columns: ['deducts_invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_line_position', columns: ['invoice_id', 'position'])]
 class InvoiceLine implements TenantOwned, Audited, AuditRooted
 {
@@ -85,6 +86,10 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
     #[ORM\Column(name: 'gross_minor', type: 'bigint')]
     private int $grossMinor;
 
+    /** The tax document or advance invoice a deduction line deducts; null on any other line. */
+    #[ORM\Column(name: 'deducts_invoice_id', type: 'guid', nullable: true)]
+    private ?string $deductsInvoiceId;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Invoice::class)]
         #[ORM\JoinColumn(name: 'invoice_id', nullable: false, onDelete: 'RESTRICT')]
@@ -97,9 +102,10 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
         ?string $supplyCode,
         LineValues $values,
         LineAmounts $amounts,
+        ?string $deducts = null,
     ) {
         $this->id = Id::generate();
-        $this->revise($text, $unit, $rateKind, $supplyCode, $values, $amounts);
+        $this->revise($text, $unit, $rateKind, $supplyCode, $values, $amounts, $deducts);
     }
 
     /**
@@ -107,7 +113,7 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
      *
      * @throws \DomainException for a line of an invoice in the trash
      */
-    public function revise(string $text, string $unit, ?VatRateKind $rateKind, ?string $supplyCode, LineValues $values, LineAmounts $amounts): void
+    public function revise(string $text, string $unit, ?VatRateKind $rateKind, ?string $supplyCode, LineValues $values, LineAmounts $amounts, ?string $deducts = null): void
     {
         if ($this->invoice->isTrashed()) {
             throw new \DomainException('A document in the trash takes no change until it is restored.');
@@ -126,6 +132,15 @@ class InvoiceLine implements TenantOwned, Audited, AuditRooted
         $this->netMinor = $amounts->net->minor();
         $this->vatMinor = $amounts->vat->minor();
         $this->grossMinor = $amounts->gross->minor();
+        $this->deductsInvoiceId = $deducts;
+    }
+
+    /**
+     * The tax document or advance invoice this line deducts.
+     */
+    public function deducts(): ?string
+    {
+        return $this->deductsInvoiceId;
     }
 
     public function id(): string

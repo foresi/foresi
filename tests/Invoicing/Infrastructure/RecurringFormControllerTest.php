@@ -100,6 +100,23 @@ final class RecurringFormControllerTest extends WebTestCase
         self::assertSelectorExists('[data-invoice-form-target="lines"] [data-mail-chips-target="field"]', 'an item takes a variable');
     }
 
+    public function testTheSeriesOfAdvancesAreOfferedButNotThoseOfTaxDocuments(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('The firm is missing.');
+            $this->em()->persist(new Series($firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance));
+            $this->em()->persist(new Series($firm, 'Tax documents', SeriesFormat::fromString('DD{YYYY}{NNNN}'), DocumentKind::PaymentTaxDocument));
+            $this->em()->flush();
+        });
+
+        $crawler = $this->client->request('GET', '/invoices/recurring/new');
+
+        $options = $crawler->filter('select[name="seriesId"] option')->each(static fn ($option): string => trim($option->text()));
+        self::assertContains('Advances', $options);
+        self::assertNotContains('Tax documents', $options);
+    }
+
     public function testTheNewFormOpensWithTheScheduleDefaults(): void
     {
         $this->signedIn();

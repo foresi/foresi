@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The chain of a document, as iDoklad's "Links" dialog shows it: the advance invoice, its payments
+    with their tax documents, and the invoice that deducts them. The document on screen is not a link.
+#}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set dateFormat = 'format.date'|trans %}
+<twig:Ui:Card :title="'invoice.links.title'|trans" icon="link-2" class="mt-4" data-links="">
+    <div class="grid gap-4">
+        {% import 'invoicing/_link.html.twig' as links %}
+        {% for chain in chains %}
+            <dl class="m-0 grid gap-x-4 gap-y-1 text-small sm:grid-cols-[auto_minmax(0,1fr)]">
+                <dt class="text-muted">{{ 'invoice.links.advance'|trans }}</dt>
+                <dd class="m-0">{{ links.document(chain.advance, invoice.id, focus) }}</dd>
+                <dt class="text-muted">{{ 'invoice.links.payments'|trans }}</dt>
+                <dd class="m-0">
+                    {% if chain.payments is empty %}<span class="text-muted">{{ 'invoice.links.none'|trans }}</span>{% endif %}
+                    <ul class="m-0 grid list-none gap-1 p-0">
+                        {% for payment in chain.payments %}
+                            <li><span class="num">{{ payment.receivedOn|date(dateFormat, false) }}</span> · <span class="num">{{ payment.amount }}</span> · {% if payment.taxDocument %}{{ links.document(payment.taxDocument, invoice.id, focus) }}{% else %}<span class="text-muted">{{ 'invoice.links.no_tax_document'|trans }}</span>{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                </dd>
+                <dt class="text-muted">{{ 'invoice.links.final'|trans }}</dt>
+                <dd class="m-0">
+                    {% for final in chain.finals %}{{ links.document(final, invoice.id, focus) }}{% if not loop.last %}, {% endif %}{% else %}<span class="text-muted">{{ 'invoice.links.not_settled'|trans }}</span>{% endfor %}
+                </dd>
+            </dl>
+        {% endfor %}
+    </div>
+</twig:Ui:Card>

@@ -356,7 +356,7 @@ final class EditInvoiceTest extends InvoiceTestCase
         $this->edited($invoice, $this->input([$this->line(kind: VatRateKind::Reduced)], ['taxPointDate' => new \DateTimeImmutable('2024-01-01')]));
         $invoice = $this->reloaded($invoice);
 
-        self::assertSame('2024-01-01', $invoice->taxPointDate()->format('Y-m-d'));
+        self::assertSame('2024-01-01', $invoice->taxPointDate()?->format('Y-m-d'));
         self::assertSame('12.00', $this->store->lines($invoice)[0]->rate()?->decimal());
     }
 
@@ -368,7 +368,7 @@ final class EditInvoiceTest extends InvoiceTestCase
         $invoice = $this->reloaded($invoice);
 
         self::assertSame('2027-01-05', $invoice->issueDate()->format('Y-m-d'));
-        self::assertSame('2027-01-06', $invoice->taxPointDate()->format('Y-m-d'));
+        self::assertSame('2027-01-06', $invoice->taxPointDate()?->format('Y-m-d'));
         self::assertSame('20260001', $invoice->number());
         self::assertSame('20260002', $this->issue->issue($this->input())->number(), 'the counter of 2026 did not move');
     }

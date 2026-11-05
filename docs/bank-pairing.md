@@ -266,7 +266,7 @@ Pairing works on incoming movements only, by the variable symbol and the amount:
 
 - **M0 Gate.** A movement pairs by itself only when its message is verified, it is in the currency of its account, the firm's automatic pairing is on, and nobody unpaired it before. Otherwise it stays unmatched with the reason, and the fitting invoices are kept as suggestions.
 - **M1 Own transfer.** A counter-account that is an account of the same firm makes an own transfer.
-- **M2 Candidates.** The firm's invoices that are not in the trash, are in the movement's currency, have something left to pay, and whose variable symbol equals the movement's, leading zeros ignored (`0002026001` matches `2026001`). No symbol: unmatched, "No variable symbol". No such invoice: unmatched, "No invoice has its symbol", or "The invoice is in another currency" when the only ones are.
+- **M2 Candidates.** The firm's invoices and advance invoices, never its tax documents on payment, that are not in the trash, are in the movement's currency, have something left to pay, and whose variable symbol equals the movement's, leading zeros ignored (`0002026001` matches `2026001`). No symbol: unmatched, "No variable symbol". No such invoice: unmatched, "No invoice has its symbol", or "The invoice is in another currency" when the only ones are.
 - **M3 One candidate.** It takes the whole amount and becomes paid, partly paid or overpaid.
 - **M4 Several candidates.** The one whose remaining amount equals the movement takes it. Failing that, a movement equal to what they all have left pays each its remaining amount. Failing that: unmatched, "Several invoices fit", with the oldest due first.
 - **M5 Locking.** The movement and then its invoices, in a fixed order, are locked, and the decision is made again under the locks. Of two notices for one invoice processed at the same moment, the second sees what the first paid; of a person and the matcher on one movement, only the first pairs it.
@@ -282,6 +282,8 @@ What never pairs by itself:
 - a movement someone unpaired.
 
 A movement pays through at most one live payment: the database refuses a second one.
+
+A payment of an advance invoice, paired by itself or by a person, gets its tax document in the same step, as one recorded by hand does; see [invoicing.md](invoicing.md#advances). A tax document on payment is paid by that payment and is never a candidate. A final invoice that deducts advances asks only for its own total, which the deductions already lowered, so the advance's money is never counted twice. Unpairing a payment of an advance trashes its tax document while the customer has not got it.
 
 ### Pairing settings
 

@@ -49,6 +49,7 @@ final readonly class LinePricing
             $treatment->hasRate() ? $line->rateKind : null,
             TaxTreatment::ReverseCharge === $treatment && '' !== $line->supplyCode ? $line->supplyCode : null,
             $line->discount,
+            $line->deducts,
         );
     }
 

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\LineAmounts;
@@ -71,6 +72,28 @@ final readonly class IssuedDocumentFactory
             $invoice->payable(),
             $invoice->isTrashed(),
             $owed instanceof Money && $owed->minor() < $invoice->payable()->minor() ? $owed : null,
+            null === $invoice->advanceInvoiceId() ? null : $this->store->get($invoice->advanceInvoiceId())->number(),
+            $invoice->deductsAdvances(),
+            $this->deposits($lines),
         );
+    }
+
+    /**
+     * @param list<InvoiceLine> $lines
+     *
+     * @return array<string, array{number: string, variableSymbol: string, taxed: bool}>
+     */
+    private function deposits(array $lines): array
+    {
+        $deposits = [];
+        foreach ($lines as $line) {
+            $id = $line->deducts();
+            if (null !== $id && !isset($deposits[$id])) {
+                $deducted = $this->store->get($id);
+                $deposits[$id] = ['number' => $deducted->number(), 'variableSymbol' => $deducted->variableSymbol(), 'taxed' => DocumentKind::PaymentTaxDocument === $deducted->kind()];
+            }
+        }
+
+        return $deposits;
     }
 }

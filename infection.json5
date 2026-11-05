@@ -80,6 +80,8 @@
             "App\\Invoicing\\Domain\\RecurringSchedule::estimate::123",
             "App\\Invoicing\\Domain\\RecurringSchedule::estimate::126",
             "App\\Invoicing\\Domain\\RecurringInvoice::firstOccurrenceFrom::212",
+            // A date written as Ymd has eight characters, so a limit of nine cuts nothing more.
+            "App\\Country\\CzechRepublic\\Invoicing\\QrPlatba::invoice::94",
             // The same; no code point lies above U+10FFFF; a backslash before the last character keeps the same
             // characters; a template holds exactly one placeholder, so a limit of 3 gives the same two parts.
             "App\\Banking\\Application\\NotificationLines::textOf::58",

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
@@ -31,6 +32,10 @@ use Psr\Clock\ClockInterface;
  * less this payment. How much may be written off, and in which currency, is the
  * custom of the firm's country; a country without one, or without a module,
  * allows none. Both are checked under the lock, against what is paid then.
+ *
+ * A payment of an advance invoice on which VAT arises gets its tax document in the
+ * same transaction, one per advance it pays. A document a rule refuses is left
+ * out and the payment stays: the advance then waits for its document by hand.
  */
 final readonly class RecordPayment
 {
@@ -42,6 +47,7 @@ final readonly class RecordPayment
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private IssuePaymentTaxDocument $taxDocuments,
     ) {
     }
 
@@ -79,6 +85,12 @@ final readonly class RecordPayment
             $this->payments->add($payment);
             foreach ($request->allocations as $allocation) {
                 $this->payments->addAllocation(new PaymentAllocation($payment, $invoices[$allocation->invoiceId], $allocation->amount, $allocation->settlement));
+            }
+            // The one path every payment takes, by hand or from the bank: an advance gets its tax document here.
+            foreach ($request->allocations as $allocation) {
+                if (DocumentKind::Advance === $invoices[$allocation->invoiceId]->kind()) {
+                    $this->taxDocuments->forPayment($payment, $allocation->invoiceId, $allocation->amount);
+                }
             }
 
             return $payment;
@@ -159,6 +171,9 @@ final readonly class RecordPayment
             }
             if ($invoice->isTrashed()) {
                 throw new PaymentRefused(PaymentRefused::TRASHED);
+            }
+            if (!$invoice->kind()->isPayable()) {
+                throw new PaymentRefused(PaymentRefused::NOT_PAYABLE);
             }
             if ($invoice->currency() !== $request->amount->currency()) {
                 throw new PaymentRefused(PaymentRefused::CURRENCY_MISMATCH);

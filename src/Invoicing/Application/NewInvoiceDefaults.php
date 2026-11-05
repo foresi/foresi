@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -49,11 +50,11 @@ final readonly class NewInvoiceDefaults
      *
      * @throws UnsupportedCountry for a firm whose country has no invoicing rules
      */
-    public function for(LegalEntity $firm, ?\DateTimeImmutable $on = null): InvoiceDraftValues
+    public function for(LegalEntity $firm, ?\DateTimeImmutable $on = null, DocumentKind $kind = DocumentKind::Invoice): InvoiceDraftValues
     {
         $country = $this->countries->for($firm->address()->countryCode);
         $today = $on ?? \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($country->timezone())->setTime(0, 0);
-        $series = $this->catalog->defaultFor($firm);
+        $series = $this->catalog->defaultFor($firm, $kind);
         $number = $this->counter->peek($series, $today);
         $settings = $this->settings->for($firm);
         $regime = VatRegime::of($firm->vatStatus());
@@ -75,6 +76,7 @@ final readonly class NewInvoiceDefaults
             $settings->textAfter(),
             DocumentLanguage::Czech,
             [$this->emptyLine($regime, $country->homeCurrency())],
+            kind: $kind,
         );
     }
 
