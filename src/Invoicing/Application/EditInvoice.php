@@ -70,7 +70,7 @@ final readonly class EditInvoice
                 $this->contacts->makeCustomer($party, $firm);
             }
             $this->renumber($invoice, $input, $series);
-            $this->save($invoice, $input, $input->change($party, $customer));
+            $this->save($invoice, $input, $input->change($party, $customer, $invoice->kind()));
 
             return $invoice;
         }));
@@ -93,7 +93,7 @@ final readonly class EditInvoice
         $invoice->change($input->variableSymbolFollowsNumber ? $change->withVariableSymbol(VariableSymbol::fromNumber($invoice->number())) : $change);
         $country = $this->countries->for($invoice->issuer()->address->countryCode);
         $regime = $invoice->vatRegime();
-        $lines = $this->pricing->priced($input->lines, $regime, $country, $change->taxPointDate);
+        $lines = $this->pricing->priced($input->lines, $regime, $country, $change->rateDate());
         $stored = [];
         foreach ($this->store->lines($invoice) as $line) {
             $stored[$line->position()] = $line;

@@ -25,7 +25,7 @@ export default class extends Controller {
     ];
 
     static values = {
-        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, firm: String, editing: Boolean, payer: Boolean,
+        recountUrl: String, numberUrl: String, contactUrl: String, customersUrl: String, firm: String, kind: String, editing: Boolean, payer: Boolean,
         issuerCountry: String, currency: String, dueDays: Number, titleTemplate: String, noticeTemplate: String,
         registrationLabel: String, vatLabel: String, unsaved: Boolean,
         maxLines: Number, newLineVat: String, dueDateSet: Boolean,
@@ -167,6 +167,7 @@ export default class extends Controller {
         url.searchParams.set('date', this.issueDateTarget.value);
         url.searchParams.set('series', this.seriesTarget.value);
         url.searchParams.set('firm', this.firmValue);
+        url.searchParams.set('kind', this.kindValue);
         const response = await fetch(url, { headers: { Accept: 'application/json' } });
         if (response.ok) {
             this.showNumber((await response.json()).number);

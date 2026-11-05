@@ -77,19 +77,21 @@ final readonly class QrPlatba
     private function invoice(IssuedDocument $document): string
     {
         $payer = VatRegime::Payer === $document->regime;
+        // An advance invoice is no tax document: no tax point and no VAT figures, even from a payer.
+        $taxed = $payer && $document->taxPointDate instanceof \DateTimeImmutable;
         $pairs = [
             $this->sidPair('ID', $document->number, self::MAX_NUMBER_LENGTH),
             $this->sidPair('DD', $document->issueDate->format('Ymd'), 8),
             $this->sidPair('TP', (string) $this->supplyType($document), 1),
-            $this->sidPair('TD', (string) ($payer ? self::TAX_DOCUMENT : self::NON_TAX_DOCUMENT), 1),
+            $this->sidPair('TD', (string) ($taxed ? self::TAX_DOCUMENT : self::NON_TAX_DOCUMENT), 1),
             $this->sidPair('ON', $document->orderNumber, 20),
             $payer ? $this->sidPair('VII', $document->issuer->vatId ?? '', 14) : '',
             $this->sidPair('INI', $document->issuer->registrationNumber ?? '', 8),
             $payer ? $this->sidPair('VIR', $document->customer->vatId ?? '', 14) : '',
             $this->sidPair('INR', $document->customer->registrationNumber ?? '', 8),
         ];
-        if ($payer) {
-            $pairs = [...$pairs, $this->sidPair('DUZP', $document->taxPointDate->format('Ymd'), 8), ...$this->taxes($document)];
+        if ($taxed) {
+            $pairs = [...$pairs, $this->sidPair('DUZP', $document->taxPointDate->format('Ymd'), 8), ...$this->taxes($document, $document->taxPointDate)];
         }
 
         return 'SID*1.0*'.implode('*', array_filter($pairs, static fn (string $pair): bool => '' !== $pair));
@@ -110,7 +112,7 @@ final readonly class QrPlatba
     /**
      * @return list<string>
      */
-    private function taxes(IssuedDocument $document): array
+    private function taxes(IssuedDocument $document, \DateTimeImmutable $taxPoint): array
     {
         $base = [];
         $reduced = [];
@@ -118,7 +120,7 @@ final readonly class QrPlatba
         foreach ($document->summaries as $summary) {
             if (!$summary->treatment->hasRate()) {
                 $free = $free?->plus($summary->base) ?? $summary->base;
-            } elseif ($this->isBaseRate($summary->rate, $document->taxPointDate)) {
+            } elseif ($this->isBaseRate($summary->rate, $taxPoint)) {
                 $base = [$this->sidPair('TB0', $this->amount($summary->base), 18), $this->sidPair('T0', $this->amount($summary->vat), 18)];
             } else {
                 $reduced = [$this->sidPair('TB1', $this->amount($summary->base), 18), $this->sidPair('T1', $this->amount($summary->vat), 18)];

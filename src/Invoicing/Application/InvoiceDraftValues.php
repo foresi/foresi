@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\VatRegime;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
@@ -46,6 +47,7 @@ final readonly class InvoiceDraftValues
         public ?Currency $currencyNotice = null,
         public string $description = '',
         public array $notices = [],
+        public DocumentKind $kind = DocumentKind::Invoice,
     ) {
     }
 

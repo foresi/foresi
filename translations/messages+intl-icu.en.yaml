@@ -35,6 +35,8 @@ nav:
     dashboard: Dashboard
     contacts: Address book
     invoices: Invoices
+    advances: Advance invoices
+    tax_documents: Tax documents
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
@@ -1146,9 +1148,12 @@ invoice:
     footer: '{title} · Page {page}/{pages}'
     unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
     trashed: IN THE TRASH – NOT A VALID DOCUMENT
-    document_title: 'Invoice {number}'
+    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} other {Invoice}} {number}'
     title_tax: Invoice - tax document
     title: Invoice
+    title_advance: Advance invoice
+    title_payment_tax_document: Tax document on received payment
+    advance_recap_note: VAT breakdown is informative only, this is not a tax document.
     supplier: Supplier
     customer: Customer
     registration_number: Reg. No.
@@ -1194,6 +1199,9 @@ invoice:
     line_dates: The lines hold a date or a month from the original. Check that it still applies.
   list:
     title: Invoices
+    title_invoice: Invoices
+    title_advance: Advance invoices
+    title_payment_tax_document: Tax documents on payment
     views: Invoice lists
     all_firms: All firms
     search: Search
@@ -1248,6 +1256,9 @@ invoice:
       title: No invoices yet
       text: Issue the first one. Saving gives it its number.
       all_title: No invoices here
+      all_title_invoice: No invoices here
+      all_title_advance: No advance invoices here
+      all_title_payment_tax_document: No tax documents here
       filtered_title: No invoice matches
       filtered_text: Try other words or another firm.
       reset: Show all invoices
@@ -2279,3 +2290,34 @@ reminder:
     limit: 'Invoice {number} has had {max} reminders, the most there can be.'
     settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
     taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'
+advance:
+  new: New advance invoice
+  title: 'Advance invoice {number}'
+  card:
+    template: Advance invoice
+  templates_help: An advance invoice goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Advance invoice {number}'
+      body: |-
+        Based on our agreement I am sending advance invoice no. {number} for {amount_total}, due on {due_date}. Once the payment arrives you will get a tax document for it.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+tax_document:
+  title: 'Tax document {number}'
+  card:
+    template: Tax document on payment
+  templates_help: A tax document on a received payment goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Tax document {number}'
+      body: |-
+        Thank you for your payment. I am sending tax document no. {number} for the payment of {amount_total}. It is paid already; there is nothing more to pay.
+
+        Thank you,
+        {sender_name}
+
+        {link}

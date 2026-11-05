@@ -52,6 +52,7 @@ final readonly class InvoiceFormValues
         return [
             'firmId' => $draft->firmId,
             'firmShown' => $draft->firmId,
+            'kind' => $draft->kind->value,
             'seriesId' => $draft->seriesId ?? '',
             'number' => $draft->number,
             'numberPeek' => $draft->number,
@@ -101,6 +102,7 @@ final readonly class InvoiceFormValues
         return [
             'firmId' => $invoice->firm()->id(),
             'firmShown' => $invoice->firm()->id(),
+            'kind' => $invoice->kind()->value,
             'seriesId' => $invoice->series()->id(),
             'number' => $invoice->number(),
             'numberPeek' => $invoice->number(),
@@ -112,7 +114,7 @@ final readonly class InvoiceFormValues
             'orderNumber' => $invoice->orderNumber(),
             'description' => $invoice->description(),
             'issueDate' => $invoice->issueDate()->format('Y-m-d'),
-            'taxPointDate' => $invoice->taxPointDate()->format('Y-m-d'),
+            'taxPointDate' => $invoice->taxPointDate()?->format('Y-m-d') ?? '',
             'dueDate' => $invoice->dueDate()->format('Y-m-d'),
             'paymentMethod' => $invoice->paymentMethod()->value,
             'bankAccount' => $invoice->bankAccount() ?? '',

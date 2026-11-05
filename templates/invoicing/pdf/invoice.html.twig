@@ -117,7 +117,7 @@
     <table cellpadding="0">
         <tr>
             <td width="33%"><span style="{{ s.label }}">{{ 'invoice.pdf.issue_date'|trans }}</span><br><span style="{{ s.text }}">{{ doc.issueDate }}</span></td>
-            <td width="34%"><span style="{{ s.label }}">{{ doc.taxPointLabel }}</span><br><span style="{{ s.text }}">{{ doc.taxPointDate }}</span></td>
+            <td width="34%">{% if doc.taxPointDate %}<span style="{{ s.label }}">{{ doc.taxPointLabel }}</span><br><span style="{{ s.text }}">{{ doc.taxPointDate }}</span>{% endif %}</td>
             <td width="33%">{% if doc.orderNumber %}<span style="{{ s.label }}">{{ 'invoice.pdf.order_number'|trans }}</span><br><span style="{{ s.text }}font-size:{{ doc.orderSize }}pt;">{{ doc.orderNumber }}</span>{% endif %}</td>
         </tr>
     </table>
@@ -152,6 +152,7 @@
                     td: '',
                     sum: 'font-weight:bold;background-color:#f4f2ec;',
                 }) }}
+                {% if doc.recapNote %}<p style="{{ s.label }}text-align:right;margin:3pt 0 0 0;">{{ doc.recapNote }}</p>{% endif %}
                 <p style="font-family:intertnum;font-weight:bold;font-size:11pt;text-align:right;color:#2f4a3a;margin:6pt 0 0 0;">{{ 'invoice.pdf.payable'|trans }}: {{ doc.payable }}</p>
             </td>
         </tr>

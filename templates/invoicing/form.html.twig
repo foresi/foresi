@@ -13,7 +13,7 @@
 {% endblock %}
 {% block body_attributes %} data-turbo="false"{% endblock %}
 
-{% block title %}{{ blocked|default(null) ? 'invoice.new'|trans : 'invoice.title'|trans({number: values.number ?: values.numberPeek}) }}{% endblock %}
+{% block title %}{{ blocked|default(null) ? (newKey|default('invoice.new'))|trans : titleKey|trans({number: values.number ?: values.numberPeek}) }}{% endblock %}
 
 {% block actions %}
     {% if not blocked|default(null) and not delivered %}
@@ -82,7 +82,8 @@
             data-invoice-form-issuer-country-value="{{ issuerCountry }}"
             data-invoice-form-currency-value="{{ currency }}"
             data-invoice-form-due-days-value="{{ dueDays }}"
-            data-invoice-form-title-template-value="{{ 'invoice.title'|trans({number: '__NUMBER__'}) }}"
+            data-invoice-form-title-template-value="{{ titleKey|trans({number: '__NUMBER__'}) }}"
+            data-invoice-form-kind-value="{{ kind }}"
             data-invoice-form-notice-template-value="{{ 'invoice.currency_notice'|trans({contact: '__CURRENCY__', document: currency}) }}"
             data-invoice-form-registration-label-value="{{ 'invoice.field.registrationNumber'|trans }}"
             data-invoice-form-vat-label-value="{{ 'invoice.field.vatId'|trans }}">
@@ -96,6 +97,7 @@
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
             <input type="hidden" name="copyOf" value="{{ copyOf }}">
             <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
+            <input type="hidden" name="kind" value="{{ kind }}">
             <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">
             {# Of the stored document, never of the post: a series can go there and back across re-renders. #}
             <input type="hidden" name="originalSeries" value="{{ editing ? invoice.series.id : '' }}" data-invoice-form-target="originalSeries">
@@ -192,7 +194,10 @@
                 <twig:Ui:Card :title="'invoice.card.payment'|trans" icon="landmark">
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                         <twig:Ui:TextInput name="issueDate" id="issueDate" type="date" :label="'invoice.field.issueDate'|trans" :value="values.issueDate" :error="errorFields.issueDate|default(null)" :required="true" data-invoice-form-target="issueDate" data-action="change->invoice-form#issueDateChanged" />
-                        <twig:Ui:TextInput name="taxPointDate" id="taxPointDate" type="date" :label="(payer ? 'invoice.field.taxPointDate' : 'invoice.field.supplyDate')|trans" :value="values.taxPointDate" :error="errorFields.taxPointDate|default(null)" :required="true" data-invoice-form-target="taxPointDate" data-action="input->invoice-form#taxPointTyped" />
+                        {# An advance invoice is no tax document: it has no tax point, and its rates are those of its issue date. #}
+                        {% if hasTaxPoint %}
+                            <twig:Ui:TextInput name="taxPointDate" id="taxPointDate" type="date" :label="(payer ? 'invoice.field.taxPointDate' : 'invoice.field.supplyDate')|trans" :value="values.taxPointDate" :error="errorFields.taxPointDate|default(null)" :required="true" data-invoice-form-target="taxPointDate" data-action="input->invoice-form#taxPointTyped" />
+                        {% endif %}
                         <twig:Ui:TextInput name="dueDate" id="dueDate" type="date" :label="'invoice.field.dueDate'|trans" :value="values.dueDate" :error="errorFields.dueDate|default(null)" :required="true" data-invoice-form-target="dueDate" data-action="input->invoice-form#dueDateTyped" />
                         <twig:Ui:Select name="paymentMethod" id="paymentMethod" :label="'invoice.field.paymentMethod'|trans" :options="paymentMethods" :value="values.paymentMethod" :error="errorFields.paymentMethod|default(null)" data-invoice-form-target="paymentMethod" data-action="change->invoice-form#paymentChanged" />
                         <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2{% if values.paymentMethod != 'bank_transfer' %} hidden{% endif %}" data-invoice-form-target="bankRow">
@@ -272,7 +277,7 @@
             {% endif %}
 
             <twig:Ui:ActionBar>
-                <twig:Ui:Button :href="path('app_invoices')" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :href="path(listRoute)" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
                 <div class="relative" data-controller="dropdown">
                     <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
                     <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">

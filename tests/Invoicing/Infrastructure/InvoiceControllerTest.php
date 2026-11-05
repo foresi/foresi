@@ -64,7 +64,7 @@ use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, kind: string, numberPeek: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
  * @phpstan-type Figures array{lines: list<array{total: string, discount: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
@@ -1014,6 +1014,129 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('#invoice-form');
     }
 
+    public function testTheAdvanceFormHasNoTaxPointAndNumbersInItsOwnSeries(): void
+    {
+        $this->signedIn();
+
+        $values = $this->openNew(['kind' => 'advance']);
+
+        self::assertSelectorTextContains('h1', 'Advance invoice Z920260001');
+        self::assertSelectorNotExists('input[name="taxPointDate"]');
+        self::assertSame('advance', $values['kind']);
+        self::assertSame('Z920260001', $values['numberPeek']);
+        self::assertSame('920260001', $values['variableSymbol']);
+        self::assertSame(['Advance invoices'], $this->client->getCrawler()->filter('select[name="seriesId"] option')->each(static fn ($option): string => trim($option->text())));
+        self::assertSelectorExists('a#invoice-cancel[href="/advances"]');
+    }
+
+    public function testSavingTheAdvanceFormIssuesAnAdvanceWithoutATaxPoint(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'First milestone', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+
+        $this->save($values);
+
+        self::assertResponseRedirects('/advances');
+        $advance = $this->onlyInvoice();
+        self::assertSame(DocumentKind::Advance, $advance->kind());
+        self::assertSame('Z920260001', $advance->number());
+        self::assertNull($advance->taxPointDate());
+        self::assertSame(121000, $advance->payable()->minor());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main table', 'Z920260001');
+    }
+
+    public function testATaxDocumentCannotBeStartedFromTheForm(): void
+    {
+        $this->signedIn();
+
+        $values = $this->openNew(['kind' => 'payment_tax_document']);
+
+        self::assertSame('invoice', $values['kind']);
+        self::assertSelectorExists('input[name="taxPointDate"]');
+    }
+
+    public function testAnAdvanceRecountsOnItsIssueDate(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $values['taxPointDate'] = 'not a date';
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('1,210.00 Kč', $this->nbsp($this->json()['payable']));
+    }
+
+    public function testTheNextNumberOfAKindWithoutASeriesComesFromItsStandardSeries(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/next-number', ['date' => '2026-11-01', 'series' => '', 'firm' => $this->firm->id(), 'kind' => 'advance']);
+
+        self::assertSame(['number' => 'Z920260001', 'variableSymbol' => '920260001'], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
+    }
+
+    public function testACopyOfAnAdvanceIsAnAdvance(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $this->save($values);
+
+        $copy = $this->openCopy($this->onlyInvoice());
+
+        self::assertSame('advance', $copy['kind']);
+        self::assertSame('Z920260002', $copy['numberPeek']);
+        self::assertSelectorNotExists('input[name="taxPointDate"]');
+    }
+
+    public function testEachListShowsOnlyItsKind(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $this->save($values);
+
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorTextContains('main table', '20260001');
+        self::assertSelectorTextNotContains('main table', 'Z920260001');
+        self::assertSelectorExists('main a[href="/invoices/export"]');
+
+        $this->client->request('GET', '/advances');
+        self::assertSelectorTextContains('h1', 'Advance invoices');
+        self::assertSelectorTextContains('main table', 'Z920260001');
+        self::assertCount(1, $this->client->getCrawler()->filter('main table tbody tr'));
+        self::assertSelectorExists('main a[href="/invoices/new?kind=advance"]');
+        self::assertSelectorNotExists('main a[href="/invoices/export"]');
+        self::assertSelectorExists('nav a[href="/advances"][aria-current="page"]');
+
+        $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('h1', 'Tax documents on payment');
+        self::assertSelectorTextContains('main', 'No tax documents here');
+        self::assertSelectorNotExists('main a[href^="/invoices/new"]');
+    }
+
+    public function testATabOfTheAdvanceListStaysOnIt(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+
+        $crawler = $this->client->request('GET', '/advances', ['tab' => 'unpaid']);
+
+        self::assertResponseIsSuccessful();
+        self::assertContains('/advances?tab=paid', $crawler->filter('main nav a')->each(static fn ($link): string => (string) $link->attr('href')));
+    }
+
     public function testASeriesOfAnotherKindLeavesTheInvoiceFormOpen(): void
     {
         $this->signedIn(series: false);
@@ -1822,7 +1945,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $reopened = $this->currentValues();
         self::assertSame('20270001', $reopened['number'] ?? null);
-        self::assertSame('20270001', $reopened['numberPeek'] ?? null);
+        self::assertSame('20270001', $reopened['numberPeek']);
         self::assertSame('20270001', $reopened['variableSymbol']);
         self::assertSelectorTextContains('main', 'The firm changed');
     }

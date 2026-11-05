@@ -63,7 +63,7 @@ final readonly class IsdocWriter
         $this->add($root, 'IssueDate', $document->issueDate->format('Y-m-d'));
         if (VatRegime::Payer === $document->regime) {
             // Rule A.5: a document that is no tax document has no tax point.
-            $this->add($root, 'TaxPointDate', $document->taxPointDate->format('Y-m-d'));
+            $this->add($root, 'TaxPointDate', ($document->taxPointDate ?? throw new \LogicException('Only a tax document is written as ISDOC.'))->format('Y-m-d'));
         }
         $this->add($root, 'VATApplicable', $this->flag($applicable));
         $this->add($root, 'ElectronicPossibilityAgreementReference', '');

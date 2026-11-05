@@ -68,12 +68,13 @@ final readonly class IssueRules
         }
         $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy)];
         $regime = $existing?->vatRegime() ?? VatRegime::of($firm->vatStatus());
-        $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode, $input->taxPointDate)];
-        if ([] !== $problems || !$input->taxPointDate instanceof \DateTimeImmutable) {
+        $rateDate = $input->rateDate($existing?->kind() ?? $input->kind);
+        $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode, $rateDate)];
+        if ([] !== $problems || !$rateDate instanceof \DateTimeImmutable) {
             return $problems;
         }
 
-        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country, $input->taxPointDate);
+        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country, $rateDate);
     }
 
     /**
@@ -97,7 +98,7 @@ final readonly class IssueRules
         if ($existing?->isTrashed() ?? false) {
             $problems[] = new IssueProblem('document', 'invoice.problem.trashed');
         }
-        if (!$input->taxPointDate instanceof \DateTimeImmutable) {
+        if (($existing?->kind() ?? $input->kind)->isTaxDocument() && !$input->taxPointDate instanceof \DateTimeImmutable) {
             $problems[] = new IssueProblem('taxPointDate', 'invoice.problem.tax_point_missing');
         }
         if (!$input->dueDate instanceof \DateTimeImmutable) {

@@ -77,7 +77,7 @@ final readonly class IssueInvoice
             $settings = $this->settings->for($firm);
             $regime = VatRegime::of($firm->vatStatus());
             $issuer = DocumentParty::ofIssuer($firm, $settings);
-            $content = $input->change($party, $customer);
+            $content = $input->change($party, $customer, $series->kind());
 
             return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin): Invoice {
                 $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin);
@@ -110,7 +110,7 @@ final readonly class IssueInvoice
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $invoice = new Invoice($firm, $series, $number, $regime, $rounding, $home, $issuer, $content, $this->actor->userId(), $now);
         $this->store->add($invoice);
-        $lines = $this->pricing->priced($input->lines, $regime, $country, $content->taxPointDate);
+        $lines = $this->pricing->priced($input->lines, $regime, $country, $content->rateDate());
         foreach ($lines as $position => $line) {
             $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts));
         }

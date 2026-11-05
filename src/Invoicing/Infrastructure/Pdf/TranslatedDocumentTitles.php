@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Pdf;
 
 use App\Invoicing\Application\DocumentTitles;
 use App\Invoicing\Application\IssuedDocument;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\VatRegime;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -25,6 +26,18 @@ final readonly class TranslatedDocumentTitles implements DocumentTitles
 
     public function of(IssuedDocument $document): string
     {
-        return $this->translator->trans(VatRegime::Payer === $document->regime ? 'invoice.pdf.title_tax' : 'invoice.pdf.title', locale: $document->language->value);
+        return $this->translator->trans(self::keyOf($document), locale: $document->language->value);
+    }
+
+    /**
+     * The translation key of the title: by kind, and an invoice of a payer is a tax document.
+     */
+    public static function keyOf(IssuedDocument $document): string
+    {
+        return match ($document->kind) {
+            DocumentKind::Advance => 'invoice.pdf.title_advance',
+            DocumentKind::PaymentTaxDocument => 'invoice.pdf.title_payment_tax_document',
+            DocumentKind::Invoice => VatRegime::Payer === $document->regime ? 'invoice.pdf.title_tax' : 'invoice.pdf.title',
+        };
     }
 }

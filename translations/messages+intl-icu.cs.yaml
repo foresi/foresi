@@ -35,6 +35,8 @@ nav:
     dashboard: Přehled
     contacts: Adresář
     invoices: Faktury
+    advances: Zálohové faktury
+    tax_documents: Daňové doklady
     firms: Moje firmy
     import: Import a export
     sent_mail: Odeslané e-maily
@@ -1146,9 +1148,12 @@ invoice:
     footer: '{title} · Strana {page}/{pages}'
     unsupported_country: 'Fakturu {number} nelze vytisknout: pravidla země vystavitele tato instalace nezná.'
     trashed: V KOŠI – DOKLAD NEPLATÍ
-    document_title: 'Faktura {number}'
+    document_title: '{kind, select, advance {Zálohová faktura} payment_tax_document {Daňový doklad} other {Faktura}} {number}'
     title_tax: Faktura - daňový doklad
     title: Faktura
+    title_advance: Zálohová faktura
+    title_payment_tax_document: Daňový doklad k přijaté platbě
+    advance_recap_note: Rekapitulace DPH je pouze informativní, nejedná se o daňový doklad.
     supplier: Dodavatel
     customer: Odběratel
     registration_number: IČO
@@ -1194,6 +1199,9 @@ invoice:
     line_dates: Položky obsahují datum nebo měsíc z původní faktury. Zkontrolujte, zda stále platí.
   list:
     title: Faktury
+    title_invoice: Faktury
+    title_advance: Zálohové faktury
+    title_payment_tax_document: Daňové doklady k platbě
     views: Seznamy faktur
     all_firms: Všechny firmy
     search: Hledat
@@ -1248,6 +1256,9 @@ invoice:
       title: Zatím žádné faktury
       text: Vystavte první. Uložením dostane své číslo.
       all_title: Tady žádné faktury nejsou
+      all_title_invoice: Tady žádné faktury nejsou
+      all_title_advance: Tady žádné zálohové faktury nejsou
+      all_title_payment_tax_document: Tady žádné daňové doklady nejsou
       filtered_title: Žádná faktura neodpovídá
       filtered_text: Zkuste jiná slova nebo jinou firmu.
       reset: Zobrazit všechny faktury
@@ -2279,3 +2290,34 @@ reminder:
     limit: 'Faktura {number} už má {max} upomínek, víc jich být nemůže.'
     settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
     taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'
+advance:
+  new: Nová zálohová faktura
+  title: 'Zálohová faktura {number}'
+  card:
+    template: Zálohová faktura
+  templates_help: Zálohová faktura odchází v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Zálohová faktura {number}'
+      body: |-
+        Na základě naší dohody Vám zasílám zálohovou fakturu č. {number} na částku {amount_total} se splatností {due_date}. Po přijetí platby Vám zašlu daňový doklad.
+
+        Děkuji,
+        {sender_name}
+
+        {link}
+tax_document:
+  title: 'Daňový doklad {number}'
+  card:
+    template: Daňový doklad k platbě
+  templates_help: Daňový doklad k přijaté platbě odchází v jazyce dokladu.
+  mail:
+    default:
+      subject: 'Daňový doklad {number}'
+      body: |-
+        Děkuji za platbu. Zasílám Vám daňový doklad k přijaté platbě č. {number} na částku {amount_total}. Doklad je již uhrazen, nic dalšího neplaťte.
+
+        Děkuji,
+        {sender_name}
+
+        {link}

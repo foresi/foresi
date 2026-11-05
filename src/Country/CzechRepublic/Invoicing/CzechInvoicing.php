@@ -12,6 +12,7 @@ use App\Country\CzechRepublic\Party\CzechBankAccount;
 use App\Invoicing\Application\ElectronicFile;
 use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\IssuedDocument;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
@@ -94,8 +95,12 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return $this->qr->for($document);
     }
 
-    public function electronicFile(IssuedDocument $document): ElectronicFile
+    /**
+     * Only an invoice carries ISDOC: an advance invoice and a tax document on payment
+     * go without, as iDoklad sends them.
+     */
+    public function electronicFile(IssuedDocument $document): ?ElectronicFile
     {
-        return new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml');
+        return DocumentKind::Invoice === $document->kind ? new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml') : null;
     }
 }

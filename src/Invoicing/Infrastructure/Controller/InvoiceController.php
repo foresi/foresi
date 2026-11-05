@@ -88,6 +88,10 @@ final class InvoiceController extends AbstractController
 {
     public const string FORM_TOKEN = 'invoice_form';
     private const array SAVING = ['save', 'save_send', 'save_pdf'];
+    /** The title of the form of each kind of document, with its number. */
+    private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title'];
+    /** The title of the form of a new document of a kind a person issues. */
+    private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new'];
     /** The dialog a saved form opens once over itself: the send dialog of save and send. */
     public const string OPEN_DIALOG_FLASH = 'open_dialog';
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
@@ -142,18 +146,19 @@ final class InvoiceController extends AbstractController
             return $this->render('invoicing/form.html.twig', ['blocked' => 'no_firm']);
         }
 
+        $kind = InvoiceFormReader::kind($request->query->getString('kind'));
         // No series at all is fine: the first save stores the default. Only archived ones leave nothing to number from.
-        if ([] === $this->catalog->forFirm($firm, DocumentKind::Invoice) && array_any($this->catalog->everyForFirm($firm), static fn (Series $series): bool => DocumentKind::Invoice === $series->kind())) {
+        if ([] === $this->catalog->forFirm($firm, $kind) && array_any($this->catalog->everyForFirm($firm), static fn (Series $series): bool => $kind === $series->kind())) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'no_series', 'firm' => $firm]);
         }
 
         try {
-            $context = $this->newContext($firm);
+            $context = $this->newContext($firm, $kind);
         } catch (UnsupportedCountry) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
         }
 
-        return $this->form($context, $this->values->ofDraft($this->defaults->for($firm)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+        return $this->form($context, $this->values->ofDraft($this->defaults->for($firm, kind: $kind)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     #[Route('/invoices/{id}/edit', name: 'app_invoice_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -177,7 +182,7 @@ final class InvoiceController extends AbstractController
         $this->denyUnlessStaff();
         $source = $this->invoice($id);
         try {
-            $context = $this->newContext($source->firm());
+            $context = $this->newContext($source->firm(), $source->kind());
             $draft = $this->copies->valuesFrom($source);
         } catch (UnsupportedCountry) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
@@ -227,14 +232,16 @@ final class InvoiceController extends AbstractController
         }
         $invoiceId = $request->request->getString('invoiceId');
         try {
-            $context = '' === $invoiceId ? $this->newContext($this->firm($request->request->getString('firmId'))) : $this->storedContext($this->invoice($invoiceId));
+            $context = '' === $invoiceId ? $this->newContext($this->firm($request->request->getString('firmId')), InvoiceFormReader::kind($request->request->getString('kind'))) : $this->storedContext($this->invoice($invoiceId));
         } catch (UnsupportedCountry) {
             return $this->json(['errors' => ['firm']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $lines = $this->reader->lines($request, $context->currency);
         $errors = $lines->errors;
-        $taxPoint = $this->reader->date(trim($request->request->getString('taxPointDate')), 'taxPointDate', $errors);
+        // An advance invoice takes the rates of its issue date: it has no tax point.
+        $rateField = $context->hasTaxPoint() ? 'taxPointDate' : 'issueDate';
+        $taxPoint = $this->reader->date(trim($request->request->getString($rateField)), $rateField, $errors);
         if ([] !== $errors) {
             return $this->json(['errors' => array_keys($errors)], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -275,7 +282,7 @@ final class InvoiceController extends AbstractController
 
         $firm = $this->firm($request->request->getString('firmId'));
         try {
-            $context = $this->newContext($firm);
+            $context = $this->newContext($firm, InvoiceFormReader::kind($request->request->getString('kind')));
         } catch (UnsupportedCountry) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
         }
@@ -361,7 +368,7 @@ final class InvoiceController extends AbstractController
             'save_send' => '1' === $request->request->getString('_dialogs')
                 ? $this->openOverForm($saved)
                 : $this->redirectToRoute('app_invoice_send', ['id' => $saved->id()]),
-            default => $this->redirectToRoute('app_invoices'),
+            default => $this->redirectToRoute(InvoiceListController::ROUTES[$saved->kind()->value]),
         };
     }
 
@@ -374,7 +381,7 @@ final class InvoiceController extends AbstractController
      */
     private function refused(IssueRefused $refused, ?string $invoiceId, string $firmId, array $values, array $candidates, string $token, int $version): Response
     {
-        $context = null === $invoiceId ? $this->newContext($this->firm($firmId)) : $this->storedContext($this->invoice($invoiceId));
+        $context = null === $invoiceId ? $this->newContext($this->firm($firmId), InvoiceFormReader::kind(\is_string($values['kind'] ?? null) ? $values['kind'] : '')) : $this->storedContext($this->invoice($invoiceId));
         $stale = array_any($refused->problems, static fn (IssueProblem $problem): bool => 'version' === $problem->field);
 
         return $this->form($context, $values, $stale ? [] : $this->messages([], $refused->problems), $candidates, $token, $version, $stale ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY, $stale);
@@ -579,6 +586,11 @@ final class InvoiceController extends AbstractController
             'trashed' => $invoice?->isTrashed() ?? false,
             'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
+            'kind' => $context->kind->value,
+            'listRoute' => InvoiceListController::ROUTES[$context->kind->value],
+            'hasTaxPoint' => $context->hasTaxPoint(),
+            'titleKey' => self::TITLES[$context->kind->value],
+            'newKey' => self::NEW_TITLES[$context->kind->value] ?? 'invoice.new',
             'issuerCountry' => $this->issuerCountry($context),
             'issuerName' => $invoice?->issuer()->name ?? $firm->name(),
             'currency' => $context->currency->value,
@@ -750,7 +762,9 @@ final class InvoiceController extends AbstractController
     private function taxPoint(array $values, InvoiceFormContext $context): \DateTimeImmutable
     {
         $errors = [];
-        $date = \is_string($values['taxPointDate']) ? $this->reader->date($values['taxPointDate'], 'taxPointDate', $errors) : null;
+        // An advance invoice takes the rates of its issue date: it has no tax point.
+        $field = $context->hasTaxPoint() ? 'taxPointDate' : 'issueDate';
+        $date = \is_string($values[$field]) ? $this->reader->date($values[$field], $field, $errors) : null;
 
         return $date ?? $this->today($context);
     }
@@ -786,7 +800,7 @@ final class InvoiceController extends AbstractController
      */
     private function seriesOptions(InvoiceFormContext $context): array
     {
-        return $this->options->series($context->firm, $context->invoice?->series());
+        return $this->options->series($context->firm, $context->invoice?->series(), $context->kind);
     }
 
     /**
@@ -816,7 +830,7 @@ final class InvoiceController extends AbstractController
     {
         $id = $request->query->getString('series');
         if ('' === $id) {
-            return $this->catalog->defaultFor($this->firm($request->query->getString('firm')));
+            return $this->catalog->defaultFor($this->firm($request->query->getString('firm')), InvoiceFormReader::kind($request->query->getString('kind')));
         }
 
         try {
@@ -826,9 +840,9 @@ final class InvoiceController extends AbstractController
         }
     }
 
-    private function newContext(LegalEntity $firm): InvoiceFormContext
+    private function newContext(LegalEntity $firm, DocumentKind $kind = DocumentKind::Invoice): InvoiceFormContext
     {
-        return InvoiceFormContext::new($firm, $this->countries, $this->settings);
+        return InvoiceFormContext::new($firm, $this->countries, $this->settings, $kind);
     }
 
     private function storedContext(Invoice $invoice): InvoiceFormContext

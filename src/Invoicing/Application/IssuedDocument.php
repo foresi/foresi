@@ -41,7 +41,7 @@ final readonly class IssuedDocument
         public DocumentParty $customer,
         public DocumentParty $issuer,
         public \DateTimeImmutable $issueDate,
-        public \DateTimeImmutable $taxPointDate,
+        public ?\DateTimeImmutable $taxPointDate,
         public \DateTimeImmutable $dueDate,
         public PaymentMethod $paymentMethod,
         public ?string $bankAccount,

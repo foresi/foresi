@@ -42,7 +42,7 @@ final readonly class MailVariables
     public function names(MailTemplateKind $kind = MailTemplateKind::Invoice): array
     {
         return match ($kind) {
-            MailTemplateKind::Invoice => self::NAMES,
+            MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument => self::NAMES,
             MailTemplateKind::Reminder => [...array_values(array_diff(self::NAMES, [self::LINK])), ...self::REMINDER_NAMES, self::LINK],
         };
     }

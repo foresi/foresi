@@ -89,8 +89,9 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Column(name: 'issue_date', type: 'date_immutable')]
     private \DateTimeImmutable $issueDate;
 
-    #[ORM\Column(name: 'tax_point_date', type: 'date_immutable')]
-    private \DateTimeImmutable $taxPointDate;
+    // NULL on an advance invoice, which is no tax document.
+    #[ORM\Column(name: 'tax_point_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $taxPointDate;
 
     #[ORM\Column(name: 'due_date', type: 'date_immutable')]
     private \DateTimeImmutable $dueDate;
@@ -179,6 +180,7 @@ class Invoice implements TenantOwned, Audited
         $this->id = Id::generate();
         $this->kind = $series->kind();
         $this->numberKey = NumberKey::of($this->number);
+        $this->refuseWrongTaxPoint($content);
         $this->issueDate = $content->issueDate;
         $this->taxPointDate = $content->taxPointDate;
         $this->dueDate = $content->dueDate;
@@ -191,9 +193,10 @@ class Invoice implements TenantOwned, Audited
     public function change(InvoiceChange $change): void
     {
         $this->refuseTrashed();
+        $this->refuseWrongTaxPoint($change);
         // A new object for the same day would count as a change and reach the audit log.
         $this->issueDate = $this->keepDay($this->issueDate, $change->issueDate);
-        $this->taxPointDate = $this->keepDay($this->taxPointDate, $change->taxPointDate);
+        $this->taxPointDate = $change->taxPointDate instanceof \DateTimeImmutable ? $this->keepDay($this->taxPointDate ?? $change->taxPointDate, $change->taxPointDate) : null;
         $this->dueDate = $this->keepDay($this->dueDate, $change->dueDate);
         $this->applyContent($change);
         ++$this->version;
@@ -407,9 +410,20 @@ class Invoice implements TenantOwned, Audited
         return $this->issueDate;
     }
 
-    public function taxPointDate(): \DateTimeImmutable
+    /**
+     * Null on an advance invoice, which is no tax document.
+     */
+    public function taxPointDate(): ?\DateTimeImmutable
     {
         return $this->taxPointDate;
+    }
+
+    /**
+     * The day the VAT rates of the lines were taken on.
+     */
+    public function rateDate(): \DateTimeImmutable
+    {
+        return $this->taxPointDate ?? $this->issueDate;
     }
 
     public function dueDate(): \DateTimeImmutable
@@ -549,6 +563,16 @@ class Invoice implements TenantOwned, Audited
     {
         if ($this->isTrashed()) {
             throw new \DomainException('A document in the trash takes no change until it is restored.');
+        }
+    }
+
+    /**
+     * @throws \DomainException for a tax document without a tax point, or an advance with one
+     */
+    private function refuseWrongTaxPoint(InvoiceChange $content): void
+    {
+        if ($this->kind->isTaxDocument() !== $content->taxPointDate instanceof \DateTimeImmutable) {
+            throw new \DomainException('A tax document has a tax point, and an advance invoice has none.');
         }
     }
 

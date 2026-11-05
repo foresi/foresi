@@ -312,8 +312,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
      */
     private function narrowed(InvoiceFilter $filter, array $firms): array
     {
-        $where = '1 = 1';
-        $parameters = [];
+        $where = 'i.kind = :kind';
+        $parameters = ['kind' => [$filter->kind->value, null]];
         if (null !== $filter->firmId && isset($firms[$filter->firmId])) {
             $where .= ' AND i.firm = :firm';
             $parameters['firm'] = [$filter->firmId, null];

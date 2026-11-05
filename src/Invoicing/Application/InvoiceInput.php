@@ -62,15 +62,30 @@ final readonly class InvoiceInput
     }
 
     /**
-     * The editable fields of a document, once IssueRules accepted this input.
+     * The day the rates are looked up on: the tax point of a tax document, the issue
+     * date of an advance invoice; null for a tax document whose tax point is missing,
+     * which IssueRules refuses.
+     *
+     * @param DocumentKind $kind what the document is: on an edit, what it was issued as
      */
-    public function change(Party $customerParty, DocumentParty $customer): InvoiceChange
+    public function rateDate(DocumentKind $kind): ?\DateTimeImmutable
+    {
+        return $kind->isTaxDocument() ? $this->taxPointDate : $this->issueDate;
+    }
+
+    /**
+     * The editable fields of a document, once IssueRules accepted this input. A
+     * document that is no tax document drops the tax point.
+     *
+     * @param DocumentKind $kind what the document is: on an edit, what it was issued as
+     */
+    public function change(Party $customerParty, DocumentParty $customer, DocumentKind $kind): InvoiceChange
     {
         return new InvoiceChange(
             $customerParty,
             $customer,
             $this->issueDate,
-            $this->taxPointDate ?? throw new \LogicException('IssueRules refuses a missing tax point.'),
+            $kind->isTaxDocument() ? $this->taxPointDate ?? throw new \LogicException('IssueRules refuses a missing tax point.') : null,
             $this->dueDate ?? throw new \LogicException('IssueRules refuses a missing due date.'),
             $this->paymentMethod,
             PaymentMethod::BankTransfer === $this->paymentMethod && null !== $this->bankAccount ? Iban::fromString($this->bankAccount)->toString() : null,

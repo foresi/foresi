@@ -29,6 +29,7 @@ use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
@@ -70,6 +71,8 @@ final class InvoiceListController extends AbstractController
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
     public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
+    /** The list of each kind of document, as iDoklad keeps one per kind. */
+    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -90,10 +93,14 @@ final class InvoiceListController extends AbstractController
     ) {
     }
 
-    #[Route('/invoices', name: 'app_invoices', methods: ['GET'])]
-    public function index(Request $request): Response
+    #[Route('/invoices', name: 'app_invoices', defaults: ['kind' => 'invoice'], methods: ['GET'])]
+    #[Route('/advances', name: 'app_advances', defaults: ['kind' => 'advance'], methods: ['GET'])]
+    #[Route('/tax-documents', name: 'app_tax_documents', defaults: ['kind' => 'payment_tax_document'], methods: ['GET'])]
+    public function index(Request $request, string $kind): Response
     {
         $this->denyUnlessStaff();
+        $kind = DocumentKind::from($kind);
+        $route = self::ROUTES[$kind->value];
         $tab = $request->query->getString('tab', InvoiceFilter::ALL);
         $tab = \in_array($tab, InvoiceFilter::TABS, true) ? $tab : InvoiceFilter::ALL;
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
@@ -103,12 +110,13 @@ final class InvoiceListController extends AbstractController
         // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
         $toSend = '1' === $request->query->getString('toSend');
 
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend));
+        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind));
         $firm = isset($page->firms[$firm]) ? $firm : '';
         $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
-        $here = 1 === $page->page ? $query : $query + ['page' => (string) $page->page];
+        // What an action carries back names the kind, so it returns to this list.
+        $here = (1 === $page->page ? $query : $query + ['page' => (string) $page->page]) + (DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]);
         $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
         $reminders = InvoiceFilter::TRASH === $tab ? [] : $this->sends->remindersFor(array_values(array_map(
@@ -124,13 +132,17 @@ final class InvoiceListController extends AbstractController
             'sort' => $sort,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
-            'tabs' => $this->tabs($page, $tab, $query),
-            'columns' => $this->columns($tab, $sort, $query, $severalFirms),
+            'kind' => $kind->value,
+            'route' => $route,
+            'titleKey' => 'invoice.list.title_'.$kind->value,
+            'newHref' => $kind->isIssuedByPerson() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
+            'tabs' => $this->tabs($page, $tab, $query, $route),
+            'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
-            'baseUrl' => $this->generateUrl('app_invoices', $query),
+            'baseUrl' => $this->generateUrl($route, $query),
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
-            'toSendHref' => $this->generateUrl('app_invoices', $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
+            'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
             'filtered' => '' !== $text || '' !== $firm || $toSend,
         ]);
     }
@@ -246,11 +258,26 @@ final class InvoiceListController extends AbstractController
     private function listUrl(string $return): string
     {
         parse_str($return, $query);
+        [$route, $parameters] = self::routeOf($query);
 
-        return $this->generateUrl('app_invoices', array_filter(
-            array_intersect_key($query, array_flip(self::LIST_QUERY)),
-            \is_string(...),
-        ));
+        return $this->generateUrl($route, $parameters);
+    }
+
+    /**
+     * The list a query that travelled through the browser comes back to: the route of
+     * its kind of document, with only the known parts of the query.
+     *
+     * @param array<mixed> $query
+     *
+     * @return array{string, array<string, string>}
+     */
+    public static function routeOf(array $query): array
+    {
+        $kind = DocumentKind::tryFrom(\is_string($query['kind'] ?? null) ? $query['kind'] : '') ?? DocumentKind::Invoice;
+        /** @var array<string, string> $parameters */
+        $parameters = array_filter(array_intersect_key($query, array_flip(self::LIST_QUERY)), \is_string(...));
+
+        return [self::ROUTES[$kind->value], $parameters];
     }
 
     /**
@@ -266,13 +293,13 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function tabs(InvoicePage $page, string $tab, array $query): array
+    private function tabs(InvoicePage $page, string $tab, array $query, string $route): array
     {
         $tabs = [];
         foreach (InvoiceFilter::TABS as $key) {
             $tabs[] = [
                 'label' => $this->translator->trans('invoice.list.tab.'.$key),
-                'href' => $this->generateUrl('app_invoices', ['tab' => InvoiceFilter::ALL === $key ? null : $key] + $query),
+                'href' => $this->generateUrl($route, ['tab' => InvoiceFilter::ALL === $key ? null : $key] + $query),
                 'count' => $page->tabCounts[$key],
                 'active' => $key === $tab,
             ];
@@ -291,23 +318,23 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function columns(string $tab, string $sort, array $query, bool $severalFirms): array
+    private function columns(string $tab, string $sort, array $query, bool $severalFirms, string $route): array
     {
         $trash = InvoiceFilter::TRASH === $tab;
-        $columns = [$this->column('number', $sort, $query, sortable: true)];
+        $columns = [$this->column('number', $sort, $query, sortable: true, route: $route)];
         if ($severalFirms) {
             $columns[] = $this->column('firm', $sort, $query, phone: false) + ['truncate' => true];
         }
-        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false) + ['truncate' => true];
+        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false, route: $route) + ['truncate' => true];
         if ($trash) {
             $columns[] = $this->column('deletedBy', $sort, $query, phone: false) + ['truncate' => true];
             $columns[] = $this->column('deletedAt', $sort, $query, phone: false);
             $columns[] = $this->column('reason', $sort, $query, phone: false) + ['truncate' => true];
         } else {
-            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false) + ['wide' => true];
-            $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false);
+            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false, route: $route) + ['wide' => true];
+            $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false, route: $route);
         }
-        $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
+        $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right', route: $route);
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
             $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
@@ -321,7 +348,7 @@ final class InvoiceListController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function column(string $key, string $sort, array $query, bool $sortable = false, string $align = 'left', bool $phone = true): array
+    private function column(string $key, string $sort, array $query, bool $sortable = false, string $align = 'left', bool $phone = true, string $route = 'app_invoices'): array
     {
         $column = ['key' => $key, 'label' => $this->translator->trans('invoice.list.column.'.$key), 'align' => $align, 'phone' => $phone];
         if (!$sortable) {
@@ -332,7 +359,7 @@ final class InvoiceListController extends AbstractController
         return $column + [
             'sortable' => true,
             'sort' => $sort === $key ? 'asc' : ($sort === '-'.$key ? 'desc' : null),
-            'href' => $this->generateUrl('app_invoices', ['sort' => $next] + $query),
+            'href' => $this->generateUrl($route, ['sort' => $next] + $query),
         ];
     }
 

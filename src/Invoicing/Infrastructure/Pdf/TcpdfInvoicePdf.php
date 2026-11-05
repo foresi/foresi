@@ -15,6 +15,7 @@ use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\IssuedDocument;
 use App\Invoicing\Application\RenderedPdf;
 use App\Invoicing\Application\UndrawableDocument;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\NumberKey;
@@ -97,13 +98,13 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             $template = $this->twig->load(self::TEMPLATE);
 
             $bytes = $this->engine->document(
-                $this->trans('invoice.pdf.document_title', ['number' => $document->number]),
+                $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]),
                 $document->language->value,
                 $template->renderBlock('body', ['doc' => $view]),
                 $file instanceof \App\Invoicing\Application\ElectronicFile ? new EmbeddedFile($file->name, $file->content, $file->mime) : null,
                 null === $payload ? null : new QrFigure($payload, $this->trans('invoice.pdf.qr_alt', ['number' => $document->number]), self::QR_X, self::QR_Y, self::QR_SIZE_MM),
                 trim($template->renderBlock('head', ['doc' => $view])),
-                fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number]), 'page' => (string) $page, 'pages' => (string) $pages]),
+                fn (int $page, int $pages): string => $this->trans('invoice.pdf.footer', ['title' => $this->trans('invoice.pdf.document_title', ['number' => $document->number, 'kind' => $document->kind->value]), 'page' => (string) $page, 'pages' => (string) $pages]),
             );
 
             return new RenderedPdf($bytes, NumberKey::of($document->number).($file instanceof \App\Invoicing\Application\ElectronicFile ? '-isdoc.pdf' : '.pdf'));
@@ -138,12 +139,14 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'orderSize' => $this->stepped($document->orderNumber, self::ORDER_WIDTH_MM, self::ORDER_SIZES),
             'recapColumns' => $recapColumns,
             'payer' => $payer,
-            'title' => $this->trans($payer ? 'invoice.pdf.title_tax' : 'invoice.pdf.title'),
+            'title' => $this->trans(TranslatedDocumentTitles::keyOf($document)),
+            // Martin's iDoklad advances carry the recap with this line: they are no tax document.
+            'recapNote' => DocumentKind::Advance === $document->kind && $payer ? $this->trans('invoice.pdf.advance_recap_note') : null,
             'number' => $document->number,
             'issuer' => $this->party($document->issuer, $payer),
             'customer' => $this->party($document->customer, $payer),
             'issueDate' => $this->format->date($document->issueDate, $document->language),
-            'taxPointDate' => $this->format->date($document->taxPointDate, $document->language),
+            'taxPointDate' => $document->taxPointDate instanceof \DateTimeImmutable ? $this->format->date($document->taxPointDate, $document->language) : null,
             'taxPointLabel' => $this->trans($payer ? 'invoice.pdf.tax_point' : 'invoice.pdf.supply_date'),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'account' => $country->domesticAccount($document->bankAccount ?? ''),

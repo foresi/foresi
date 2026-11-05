@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentTotals;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
@@ -200,7 +201,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $values = new LineValues($line->price(), $line->quantity(), $line->priceType(), $line->treatment(), $line->rate(), $line->discount());
         $amounts = new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross());
         $customerParty = $invoice->customerParty();
-        $change = $this->input()->change($customerParty, $invoice->customer());
+        $change = $this->input()->change($customerParty, $invoice->customer(), DocumentKind::Invoice);
         $tries = [
             'change' => static fn () => $invoice->change($change),
             'totals' => static fn () => $invoice->assignTotals($totals),

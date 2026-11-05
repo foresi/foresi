@@ -94,6 +94,24 @@ final class FirmMailControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testTheAdvanceAndTaxDocumentTemplatesAreEditedLikeTheInvoice(): void
+    {
+        $firm = $this->signedInFirm();
+        $crawler = $this->client->request('GET', $this->url($firm));
+        self::assertSame('Zálohová faktura {Číslo dokladu}', $crawler->filter('#advance-subject-cs')->attr('value'));
+        self::assertSame('Tax document {Document number}', $crawler->filter('#tax_document-subject-en')->attr('value'));
+
+        $this->saveTemplates($firm, ['advance_subject' => ['cs' => 'Záloha {Číslo dokladu}'], 'advance_body' => ['cs' => "Záloha {Částka k úhradě}.\n{Odkaz na doklad}"]]);
+
+        self::assertResponseRedirects($this->url($firm));
+        self::assertSame(
+            [['kind' => 'advance', 'language' => 'cs', 'subject' => 'Záloha {number}', 'body' => "Záloha {amount_total}.\n{link}"]],
+            $this->connection()->fetchAllAssociative('SELECT kind, language, subject, body FROM mail_template'),
+        );
+        $this->client->request('GET', $this->url($firm));
+        self::assertSelectorExists('form#mail-reset-advance-cs input[name="kind"][value="advance"]');
+    }
+
     public function testThePageHasBothTabsAndTheChips(): void
     {
         $firm = $this->signedInFirm();
@@ -114,10 +132,15 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSelectorTextContains('#body-en-help', '{Link to the document}');
         // One toolbar per language, named with it, and one Tab stop in each.
         self::assertSame(
-            ['variables-cs language-cs', 'variables-en language-en', 'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en'],
+            [
+                'variables-cs language-cs', 'variables-en language-en',
+                'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en',
+                'variables-advance-cs kind-advance-cs language-advance-cs', 'variables-advance-en kind-advance-en language-advance-en',
+                'variables-tax_document-cs kind-tax_document-cs language-tax_document-cs', 'variables-tax_document-en kind-tax_document-en language-tax_document-en',
+            ],
             $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
         );
-        self::assertSame(['0', '0', '0', '0'], $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
+        self::assertSame(array_fill(0, 8, '0'), $crawler->filter('[role="toolbar"] button[tabindex="0"]')->each(static fn ($chip): string => (string) $chip->attr('tabindex')));
         $chips = $crawler->filter('[role="toolbar"][aria-labelledby] button[type="button"][data-token]');
         self::assertSame(['{Číslo dokladu}', '{Odkaz na doklad}', '{Document number}'], [$chips->first()->attr('data-token'), $chips->eq(19)->attr('data-token'), $chips->eq(20)->attr('data-token')]);
     }
