@@ -2,14 +2,15 @@
 {#
     A whole number with − and + beside it, as iDoklad's "Opakovat každý" and "Splatnost". The buttons
     show with JavaScript only (recurring-schedule#step) and stay out of the Tab order: the field takes
-    the number typed as well. Takes id, label, value, min, max, maxlength, and optionally help, error
-    and extra (a string of extra attributes of the field).
+    the number typed as well. A row of the form: the label in the label column, the short stepper in
+    the field column. Takes id, label, value, min, max, maxlength, and optionally help, error and extra
+    (a string of extra attributes of the field).
 #}
 {% set describedBy = [help|default(null) ? id ~ '-help' : null, error|default(null) ? id ~ '-error' : null]|filter(v => v)|join(' ') %}
-<twig:Ui:Field :id="id" :label="label" :help="help|default(null)" :error="error|default(null)">
+<twig:Ui:Field :id="id" :label="label" :help="help|default(null)" :error="error|default(null)" :row="true" width="short">
     <div class="flex items-center gap-1.5">
         <twig:Ui:IconButton icon="minus" :label="'recurring.step.less'|trans({field: label})" tabindex="-1" hidden data-recurring-schedule-target="stepper" data-action="recurring-schedule#step" data-recurring-schedule-field-param="{{ id }}" data-recurring-schedule-delta-param="-1" />
-        <input type="text" id="{{ id }}" name="{{ id }}" value="{{ value }}" inputmode="numeric" autocomplete="off" maxlength="{{ maxlength }}" data-min="{{ min }}" data-max="{{ max }}"{% if error|default(null) %} aria-invalid="true"{% endif %}{% if describedBy %} aria-describedby="{{ describedBy }}"{% endif %} class="num h-control w-20 rounded-control border bg-white px-2.5 text-center text-ink {{ error|default(null) ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" {{ extra|default('')|raw }}>
+        <input type="text" id="{{ id }}" name="{{ id }}" value="{{ value }}" inputmode="numeric" autocomplete="off" maxlength="{{ maxlength }}" data-min="{{ min }}" data-max="{{ max }}"{% if error|default(null) %} aria-invalid="true"{% endif %}{% if describedBy %} aria-describedby="{{ describedBy }}"{% endif %} class="num h-control w-16 rounded-control border bg-white px-2.5 text-center text-ink {{ error|default(null) ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" {{ extra|default('')|raw }}>
         <twig:Ui:IconButton icon="plus" :label="'recurring.step.more'|trans({field: label})" tabindex="-1" hidden data-recurring-schedule-target="stepper" data-action="recurring-schedule#step" data-recurring-schedule-field-param="{{ id }}" data-recurring-schedule-delta-param="1" />
     </div>
 </twig:Ui:Field>

@@ -210,7 +210,7 @@
                         {% if corrects %}<p class="m-0 text-small font-medium text-ink {{ offset }}" data-corrects>{{ 'correction.corrects'|trans({number: corrects}) }}</p>{% endif %}
                         <twig:Ui:TextInput name="correctionReason" id="correctionReason" :row="true" width="long" :label="'correction.field.reason'|trans" :help="'correction.field.reason_help'|trans" :value="values.correctionReason|default('')" :error="errorFields.correctionReason|default(null)" :required="true" maxlength="500" />
                         {# Cards with a text each do not fit a label column: the legend stays above them, in the field column. #}
-                        <div class="md:pl-[calc(var(--spacing-label)+1rem)]"><twig:Ui:RadioCards name="correctionType" id="correctionType" :legend="'correction.field.type'|trans" :options="correctionTypes" :value="values.correctionType|default('change')" :error="errorFields.correctionType|default(null)" /></div>
+                        <div class="{{ offset }}"><twig:Ui:RadioCards name="correctionType" id="correctionType" :legend="'correction.field.type'|trans" :options="correctionTypes" :value="values.correctionType|default('change')" :error="errorFields.correctionType|default(null)" /></div>
                         <twig:Ui:TextInput name="decisiveDate" id="decisiveDate" type="date" :row="true" width="short" :label="'correction.field.decisive_date'|trans" :help="'correction.field.decisive_date_help'|trans" :value="values.decisiveDate|default('')" :error="errorFields.decisiveDate|default(null)" :required="true" />
                     {% endif %}
                 </div>
@@ -277,7 +277,7 @@
                     {# As iDoklad's "Add advance deduction": the customer's paid advances, one tax document each. #}
                     {% if deductible is not empty %}
                         <div class="flex flex-wrap items-end gap-2" data-deductions>
-                            <div class="min-w-0 flex-1 sm:max-w-md"><twig:Ui:Select name="deduction" id="deduction" :label="'invoice.deduction.label'|trans" :help="'invoice.deduction.help'|trans" :options="deductible" /></div>
+                            <div class="min-w-0 flex-1 sm:max-w-field-medium"><twig:Ui:Select name="deduction" id="deduction" :label="'invoice.deduction.label'|trans" :help="'invoice.deduction.help'|trans" :options="deductible" /></div>
                             <twig:Ui:Button type="submit" name="_action" value="deduct" icon="minus">{{ 'invoice.deduction.add'|trans }}</twig:Ui:Button>
                         </div>
                     {% elseif mayDeduct and not values.customerId %}

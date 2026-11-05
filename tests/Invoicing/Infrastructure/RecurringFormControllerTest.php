@@ -240,7 +240,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->openNew();
 
         $titles = $this->client->getCrawler()->filter('form#recurring-form section h3')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame(['Issuer', 'Invoice template', 'Repeat issuing', 'Sending the invoice', 'Dates', 'My payment details', 'Lines'], $titles);
+        self::assertSame(['Repeat issuing', 'Sending the invoice', 'Dates', 'My payment details'], $titles);
         $ids = $this->client->getCrawler()->filter('form#recurring-form [id]')->each(static fn ($node): string => (string) $node->attr('id'));
         $order = array_values(array_intersect($ids, ['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod']));
         self::assertSame(['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod'], $order);
