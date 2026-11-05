@@ -54,6 +54,15 @@ enum DocumentKind: string
     }
 
     /**
+     * Whether the document stands on its own, so it can be copied or repeated; a
+     * tax document on payment and a correction always follow another document.
+     */
+    public function standsAlone(): bool
+    {
+        return self::Invoice === $this || self::Advance === $this;
+    }
+
+    /**
      * The name of the series a firm gets for this kind without setting one up; the
      * screens translate it.
      */

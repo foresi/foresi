@@ -201,8 +201,8 @@ final class InvoiceController extends AbstractController
     {
         $this->denyUnlessStaff();
         $source = $this->invoice($id);
-        if (!$source->kind()->isIssuedByPerson()) {
-            throw new NotFoundHttpException('A tax document on payment comes from its payment only.');
+        if (!$source->kind()->standsAlone()) {
+            throw new NotFoundHttpException('A document that follows another one is not copied.');
         }
         try {
             $context = $this->newContext($source->firm(), $source->kind());

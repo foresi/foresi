@@ -26,6 +26,7 @@ final class DocumentKindTest extends TestCase
         self::assertSame([true, false, true], [DocumentKind::Advance->isPayable(), DocumentKind::Advance->isTaxDocument(), DocumentKind::Advance->isIssuedByPerson()]);
         self::assertSame([false, true, false], [DocumentKind::PaymentTaxDocument->isPayable(), DocumentKind::PaymentTaxDocument->isTaxDocument(), DocumentKind::PaymentTaxDocument->isIssuedByPerson()]);
         self::assertSame([false, true, true], [DocumentKind::CorrectionDocument->isPayable(), DocumentKind::CorrectionDocument->isTaxDocument(), DocumentKind::CorrectionDocument->isIssuedByPerson()]);
+        self::assertSame([true, true, false, false], array_map(static fn (DocumentKind $kind): bool => $kind->standsAlone(), DocumentKind::cases()));
     }
 
     public function testEachKindHasAStandardSeriesOfItsOwn(): void

@@ -150,7 +150,7 @@ final class InvoiceListController extends AbstractController
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
             // A corrective document is issued from the document it corrects, never from a blank form.
-            'newHref' => $kind->isIssuedByPerson() && DocumentKind::CorrectionDocument !== $kind ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
+            'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
             'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null, DocumentKind::PaymentTaxDocument === $kind ? \count($this->uncorrected->on($this->today())) : null),
             'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
@@ -613,7 +613,7 @@ final class InvoiceListController extends AbstractController
             return array_values(array_filter([
                 ['label' => $this->label('restore'), 'href' => $this->generateUrl('app_invoice_restore', $id), 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => $fields],
                 $pdf,
-                $row->kind->isIssuedByPerson() ? $copy : null,
+                $row->kind->standsAlone() ? $copy : null,
                 $history,
             ]));
         }
@@ -630,8 +630,8 @@ final class InvoiceListController extends AbstractController
         if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
             $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
-        // A tax document on payment comes from its payment only: nothing is issued from it.
-        if ($row->kind->isIssuedByPerson()) {
+        // A tax document on payment or a correction follows another document: nothing is issued from it.
+        if ($row->kind->standsAlone()) {
             $actions[] = $copy;
             $actions[] = $recurring;
         }
