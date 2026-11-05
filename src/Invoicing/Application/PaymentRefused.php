@@ -10,8 +10,8 @@ namespace App\Invoicing\Application;
 
 /**
  * A payment was not recorded, and nothing of it was stored; or a document with
- * payments was not moved to the trash. The reason is one of the constants, a
- * stable name the screen translates.
+ * payments was not moved to the trash, or one of a cancelled payment not out of
+ * it. The reason is one of the constants, a stable name the screen translates.
  */
 final class PaymentRefused extends \DomainException
 {
@@ -30,6 +30,8 @@ final class PaymentRefused extends \DomainException
     public const string NO_MOVEMENT = 'no_movement';
     /** The document has payments, so it cannot go to the trash. */
     public const string HAS_PAYMENTS = 'has_payments';
+    /** The payment a tax document taxes is cancelled, so the document stays in the trash. */
+    public const string CANCELLED = 'cancelled';
 
     public function __construct(public readonly string $reason)
     {

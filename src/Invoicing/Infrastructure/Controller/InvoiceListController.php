@@ -255,8 +255,13 @@ final class InvoiceListController extends AbstractController
         $this->checkToken($request);
         if (!$invoice->isTrashed()) {
             $this->addFlash('warning', $this->translator->trans('invoice.list.not_in_trash'));
-        } else {
+
+            return $this->toList($request->request->getString('return'));
+        }
+        try {
             $this->addFlash('success', $this->translator->trans('invoice.flash.restored', ['number' => $this->trash->restore($id)->number()]));
+        } catch (PaymentRefused $refused) {
+            $this->addFlash('error', $this->translator->trans('invoice.payment.refused.'.$refused->reason));
         }
 
         return $this->toList($request->request->getString('return'));

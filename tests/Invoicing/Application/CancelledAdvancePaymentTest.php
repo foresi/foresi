@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentState;
 
 /**
@@ -74,5 +75,43 @@ final class CancelledAdvancePaymentTest extends AdvanceTestCase
         $this->pay($advance, '1210.00', '2026-11-20');
 
         self::assertSame(['D820260001', 'D820260002'], array_map(static fn (\App\Invoicing\Domain\Invoice $document): string => $document->number(), $this->taxDocumentsOf($advance)));
+    }
+
+    public function testATaxDocumentOfACancelledPaymentStaysInTheTrash(): void
+    {
+        $advance = $this->advance([$this->line('1000.00')]);
+        $this->cancel->cancel($this->pay($advance, '1210.00')->id());
+
+        try {
+            $this->trash->restore($this->onlyTaxDocumentOf($advance)->id());
+            self::fail('Expected the restore to be refused.');
+        } catch (PaymentRefused $refused) {
+            self::assertSame(PaymentRefused::CANCELLED, $refused->reason);
+        }
+        self::assertTrue($this->onlyTaxDocumentOf($advance)->isTrashed());
+    }
+
+    public function testATaxDocumentTrashedWhileItsPaymentStandsComesBack(): void
+    {
+        $advance = $this->advance([$this->line('1000.00')]);
+        $this->pay($advance, '1210.00');
+        $this->trash->trash($this->onlyTaxDocumentOf($advance)->id(), 'Sent by mistake');
+
+        $this->trash->restore($this->onlyTaxDocumentOf($advance)->id());
+
+        self::assertFalse($this->onlyTaxDocumentOf($advance)->isTrashed());
+    }
+
+    public function testRestoringAKeptTaxDocumentOfACancelledPaymentChangesNothing(): void
+    {
+        $advance = $this->advance([$this->line('1000.00')]);
+        $payment = $this->pay($advance, '1210.00');
+        $this->delivered->mark($this->onlyTaxDocumentOf($advance)->id());
+        $this->cancel->cancel($payment->id());
+        $version = $this->onlyTaxDocumentOf($advance)->version();
+
+        $this->trash->restore($this->onlyTaxDocumentOf($advance)->id());
+
+        self::assertSame($version, $this->onlyTaxDocumentOf($advance)->version());
     }
 }

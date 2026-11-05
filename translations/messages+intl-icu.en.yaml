@@ -1495,6 +1495,7 @@ invoice:
   payment:
     refused:
       has_payments: This invoice has payments. Remove the payments first.
+      cancelled: The payment of this tax document is cancelled, so it stays in the trash.
       no_allocation: The payment pays no invoice.
       amount_mismatch: The parts of the payment do not add up to its amount.
       not_positive: Enter an amount above zero.

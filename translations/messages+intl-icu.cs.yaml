@@ -1495,6 +1495,7 @@ invoice:
   payment:
     refused:
       has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
+      cancelled: Platba tohoto daňového dokladu je zrušená, doklad proto zůstane v koši.
       no_allocation: Úhrada nehradí žádnou fakturu.
       amount_mismatch: Části úhrady nedávají dohromady její částku.
       not_positive: Zadejte částku větší než nula.

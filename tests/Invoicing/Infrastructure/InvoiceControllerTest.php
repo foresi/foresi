@@ -1176,6 +1176,29 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-needs-correction]', 'It needs a corrective tax document.');
     }
 
+    public function testATaxDocumentOfACancelledPaymentStaysInTheTrash(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $advance = $this->paidAdvanceWithoutTaxDocument();
+            $this->em()->clear();
+            $this->context->switchTo($this->tenant);
+            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
+            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
+            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
+            $tax->byHand($advance->id(), $payment);
+            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+        });
+        $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'trash']);
+
+        $this->client->submit($crawler->filter('main table form[action$="/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/tax-documents?tab=trash');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main [role="alert"]', 'The payment of this tax document is cancelled, so it stays in the trash.');
+        self::assertSelectorTextContains('main table', 'D820260001');
+    }
+
     public function testATaxDocumentCannotBeCopiedAndOffersNoPayment(): void
     {
         $this->signedIn();
