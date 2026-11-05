@@ -1,0 +1,187 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Invoicing\Application;
+
+use App\Invoicing\Domain\CorrectionType;
+use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\TaxTreatment;
+use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Domain\VatRegime;
+use App\Party\Domain\LegalEntity;
+
+/**
+ * What a corrective tax document must be, on top of what every document must be.
+ * It corrects an issued invoice in place, of the same firm and customer, at the
+ * rates of that invoice (§42(7)(a)): its tax point is the decisive date of a change
+ * (§42) or the tax point of the invoice for an error (§43). Per rate and treatment,
+ * the invoice and all its corrections never go below zero. It reads and never writes.
+ */
+final readonly class CorrectionRules
+{
+    public function __construct(private InvoiceStore $store, private LinePricing $pricing)
+    {
+    }
+
+    /**
+     * The day the rates of a correction are taken on: that of the invoice it corrects.
+     * Null when the document is no correction, or its invoice is unknown.
+     */
+    public function rateDate(InvoiceInput $input, ?Invoice $existing = null): ?\DateTimeImmutable
+    {
+        if (DocumentKind::CorrectionDocument !== ($existing?->kind() ?? $input->kind)) {
+            return null;
+        }
+
+        return $this->original($input)?->rateDate();
+    }
+
+    /**
+     * @param Invoice|null $existing the correction being edited
+     *
+     * @return list<IssueProblem>
+     */
+    public function check(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country): array
+    {
+        $correction = $input->correction;
+        if (DocumentKind::CorrectionDocument !== ($existing?->kind() ?? $input->kind)) {
+            return $correction instanceof CorrectionInput ? [new IssueProblem('document', 'invoice.problem.correction_kind')] : [];
+        }
+        if (!$correction instanceof CorrectionInput || '' === $correction->correctedInvoiceId) {
+            return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_link_missing')];
+        }
+        if ($existing instanceof Invoice && $existing->correctedInvoiceId() !== $correction->correctedInvoiceId) {
+            return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_link_locked')];
+        }
+        $original = $this->original($input);
+        if (!$original instanceof Invoice || DocumentKind::Invoice !== $original->kind() || $original->isTrashed()) {
+            return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_original_invalid')];
+        }
+        $problems = [...$this->texts($correction), ...$this->taxPoint($input, $correction, $original)];
+        if ($original->firm()->id() !== $firm->id()) {
+            $problems[] = new IssueProblem('firm', 'invoice.problem.correction_firm');
+        }
+        if ($original->customerParty()->id() !== $input->customerId) {
+            $problems[] = new IssueProblem('customer', 'invoice.problem.correction_customer');
+        }
+
+        return [...$problems, ...$this->lines($input, $original, $existing, $regime, $country)];
+    }
+
+    /**
+     * Writes the correction onto its document, on an issue and on an edit alike.
+     */
+    public static function record(Invoice $invoice, CorrectionInput $correction): void
+    {
+        $type = $correction->type ?? throw new \LogicException('CorrectionRules refuses a missing type.');
+        $date = $correction->decisiveDate ?? throw new \LogicException('CorrectionRules refuses a missing decisive date.');
+        $invoice->corrects($correction->correctedInvoiceId, trim($correction->reason), $type, $date);
+    }
+
+    private function original(InvoiceInput $input): ?Invoice
+    {
+        $id = $input->correction->correctedInvoiceId ?? '';
+        if ('' === $id) {
+            return null;
+        }
+        try {
+            return $this->store->get($id);
+        } catch (UnknownInvoice) {
+            return null;
+        }
+    }
+
+    /**
+     * @return list<IssueProblem>
+     */
+    private function texts(CorrectionInput $correction): array
+    {
+        $problems = [];
+        if ('' === trim($correction->reason)) {
+            $problems[] = new IssueProblem('correctionReason', 'invoice.problem.correction_reason_missing');
+        } elseif (mb_strlen(trim($correction->reason)) > Invoice::MAX_CORRECTION_REASON_LENGTH) {
+            $problems[] = new IssueProblem('correctionReason', 'invoice.problem.too_long');
+        }
+        if (!$correction->type instanceof CorrectionType) {
+            $problems[] = new IssueProblem('correctionType', 'invoice.problem.correction_type_missing');
+        }
+        if (!$correction->decisiveDate instanceof \DateTimeImmutable) {
+            $problems[] = new IssueProblem('decisiveDate', 'invoice.problem.correction_decisive_date_missing');
+        }
+
+        return $problems;
+    }
+
+    /**
+     * @return list<IssueProblem>
+     */
+    private function taxPoint(InvoiceInput $input, CorrectionInput $correction, Invoice $original): array
+    {
+        $expected = match ($correction->type) {
+            CorrectionType::Change => $correction->decisiveDate,
+            CorrectionType::Error => $original->taxPointDate(),
+            null => null,
+        };
+        if (!$expected instanceof \DateTimeImmutable || !$input->taxPointDate instanceof \DateTimeImmutable) {
+            return [];
+        }
+
+        return $expected->format('Y-m-d') === $input->taxPointDate->format('Y-m-d') ? [] : [new IssueProblem('taxPointDate', 'invoice.problem.correction_tax_point')];
+    }
+
+    /**
+     * Each line keeps a rate and treatment of the invoice, and no rate and treatment
+     * goes below zero across the invoice and its corrections.
+     *
+     * @return list<IssueProblem>
+     */
+    private function lines(InvoiceInput $input, Invoice $original, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country): array
+    {
+        $left = [];
+        foreach ($this->store->lines($original) as $line) {
+            $key = $this->key($line->treatment(), $line->rateKind());
+            $left[$key] = ($left[$key] ?? 0) + $line->net()->minor();
+        }
+        $problems = [];
+        foreach ($input->lines as $index => $line) {
+            if (!\array_key_exists($this->key($line->treatment, $line->rateKind), $left)) {
+                $problems[] = new IssueProblem('lines.'.$index.'.vat', 'invoice.problem.correction_rate_unknown');
+            }
+        }
+        if ([] !== $problems) {
+            return $problems;
+        }
+        foreach ($this->store->correctionsOf($original) as $other) {
+            if ($other->id() === $existing?->id()) {
+                continue;
+            }
+            foreach ($this->store->lines($other) as $line) {
+                $key = $this->key($line->treatment(), $line->rateKind());
+                $left[$key] = ($left[$key] ?? 0) + $line->net()->minor();
+            }
+        }
+        try {
+            $priced = $this->pricing->priced($input->lines, $regime, $country, $original->rateDate());
+        } catch (\OverflowException|\DomainException) {
+            // The amounts of the lines say so on their own.
+            return [];
+        }
+        foreach ($priced as $line) {
+            $key = $this->key($line->input->treatment, $line->input->rateKind);
+            $left[$key] += $line->amounts->net->minor();
+        }
+
+        return array_any($left, static fn (int $net): bool => $net < 0) ? [new IssueProblem('lines', 'invoice.problem.correction_over_original')] : [];
+    }
+
+    private function key(TaxTreatment $treatment, ?VatRateKind $kind): string
+    {
+        return $treatment->value.'|'.($kind->value ?? '');
+    }
+}

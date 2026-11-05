@@ -78,6 +78,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceControllerTest extends WebTestCase
 {
     /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
+    /** CorrectionRules refuses these, on the form of a corrective tax document only. */
+    private const array REFUSED_FOR_CORRECTIONS = ['invoice.problem.correction_kind', 'invoice.problem.correction_link_missing', 'invoice.problem.correction_link_locked', 'invoice.problem.correction_original_invalid', 'invoice.problem.correction_firm', 'invoice.problem.correction_customer', 'invoice.problem.correction_reason_missing', 'invoice.problem.correction_type_missing', 'invoice.problem.correction_decisive_date_missing', 'invoice.problem.correction_tax_point', 'invoice.problem.correction_rate_unknown', 'invoice.problem.correction_over_original'];
     private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
@@ -924,7 +926,7 @@ final class InvoiceControllerTest extends WebTestCase
         $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/translations/messages+intl-icu.en.yaml');
         $translated = array_map(static fn (string $key): string => 'invoice.problem.'.$key, array_keys($messages['invoice']['problem']));
 
-        self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE)));
+        self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE, self::REFUSED_FOR_CORRECTIONS)));
     }
 
     public function testFirmProblemsLinkToTheFirmInANewTabAndTheFormStays(): void
@@ -1160,6 +1162,35 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame(['1 opravný doklad', '2 opravné doklady', '5 opravných dokladů'], $counted('cs'));
         self::assertSame(['1 corrective document', '2 corrective documents', '5 corrective documents'], $counted('en'));
         self::assertSame('Opravné doklady', $translator->trans('nav.item.corrections', locale: 'cs'));
+    }
+
+    public function testAnInvoiceOpensItsCorrectionNegatedAndSavesItLinked(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertCount(1, $crawler->filter('a[href="/invoices/'.$source->id().'/correct"]'));
+        $this->client->request('GET', '/invoices/'.$source->id().'/correct');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-corrects]', 'Corrects document no. '.$source->number());
+        $values = $this->currentValues();
+        self::assertSame('correction_document', $values['kind']);
+        self::assertSame($source->id(), $values['correctedInvoiceId'] ?? null);
+        self::assertSame('change', $values['correctionType'] ?? null);
+        self::assertStringStartsWith('-', $values['lines'][0]['quantity']);
+
+        $this->save(['correctionReason' => ''] + $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('main', 'Say why the invoice is being corrected.');
+
+        $this->save(['correctionReason' => 'Returned goods'] + $values);
+        self::assertResponseRedirects('/corrections');
+        $correction = $this->invoices()[1];
+        self::assertSame(DocumentKind::CorrectionDocument, $correction->kind());
+        self::assertSame($source->id(), $correction->correctedInvoiceId());
+        self::assertTrue($correction->payable()->isNegative());
     }
 
     public function testTheTaxDocumentListTellsSettledFromUnsettled(): void

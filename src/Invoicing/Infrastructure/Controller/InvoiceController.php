@@ -14,6 +14,7 @@ use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
+use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\Deductible;
@@ -42,6 +43,7 @@ use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
@@ -99,7 +101,7 @@ final class InvoiceController extends AbstractController
     /** The title of the form of each kind of document, with its number. */
     private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title', 'correction_document' => 'correction.title'];
     /** The title of the form of a new document of a kind a person issues. */
-    private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new'];
+    private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new', 'correction_document' => 'correction.new'];
     /** The dialog a saved form opens once over itself: the send dialog of save and send. */
     public const string OPEN_DIALOG_FLASH = 'open_dialog';
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
@@ -143,6 +145,7 @@ final class InvoiceController extends AbstractController
         private readonly AmountText $amounts,
         private readonly DocumentChain $chain,
         private readonly AdvanceDocuments $advanceDocuments,
+        private readonly CorrectInvoice $corrections,
     ) {
     }
 
@@ -206,6 +209,28 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+    }
+
+    /**
+     * The form of a corrective tax document of an invoice: the invoice with its lines
+     * negated, to edit down. Nothing is written until Save.
+     */
+    #[Route('/invoices/{id}/correct', name: 'app_invoice_correct', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function correct(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        $source = $this->invoice($id);
+        if (!CorrectInvoice::corrects($source)) {
+            throw new NotFoundHttpException('Only an invoice that is not in the trash is corrected.');
+        }
+        try {
+            $context = $this->newContext($source->firm(), DocumentKind::CorrectionDocument);
+            $draft = $this->corrections->valuesFrom($source);
+        } catch (UnsupportedCountry) {
+            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+        }
+
+        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source, false), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     /**
@@ -339,6 +364,7 @@ final class InvoiceController extends AbstractController
             $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
         }
         $matches = $this->typedCustomers($request, $context->firm, $action);
+        $this->correctionTaxPoint($request, $context);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
         $values['copyOf'] = $request->request->getString('copyOf');
@@ -606,6 +632,8 @@ final class InvoiceController extends AbstractController
             'stale' => $stale,
             'copyNotices' => $this->copyNotices($values, $context),
             'copyOf' => $values['copyOf'] ?? '',
+            'corrects' => $this->correctedNumber($values, $context),
+            'correctionTypes' => array_map(fn (CorrectionType $type): array => ['value' => $type->value, 'label' => $this->translator->trans('correction.type.'.$type->value), 'text' => $this->translator->trans('correction.type.'.$type->value.'_text')], CorrectionType::cases()),
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
@@ -713,6 +741,41 @@ final class InvoiceController extends AbstractController
             || $values['textBefore'] !== $settings->textBefore()
             || $values['textAfter'] !== $settings->textAfter()
             || DocumentLanguage::Czech->value !== $values['language'];
+    }
+
+    /**
+     * An error is taxed on the tax point of the invoice it corrects (§43), whatever
+     * the form sent.
+     */
+    private function correctionTaxPoint(Request $request, InvoiceFormContext $context): void
+    {
+        if (DocumentKind::CorrectionDocument !== $context->kind || CorrectionType::Error->value !== $request->request->getString('correctionType')) {
+            return;
+        }
+        try {
+            $original = $this->store->get($request->request->getString('correctedInvoiceId'));
+        } catch (UnknownInvoice) {
+            return;
+        }
+        $request->request->set('taxPointDate', $original->taxPointDate()?->format('Y-m-d') ?? '');
+    }
+
+    /**
+     * The number of the invoice a corrective tax document corrects, for the form to name.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function correctedNumber(array $values, InvoiceFormContext $context): ?string
+    {
+        $id = $values['correctedInvoiceId'] ?? '';
+        if (DocumentKind::CorrectionDocument !== $context->kind || !\is_string($id) || '' === $id) {
+            return null;
+        }
+        try {
+            return $this->store->get($id)->number();
+        } catch (UnknownInvoice) {
+            return null;
+        }
     }
 
     /**

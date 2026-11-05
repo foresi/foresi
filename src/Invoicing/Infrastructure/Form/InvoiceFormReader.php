@@ -8,8 +8,10 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Form;
 
+use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
@@ -95,7 +97,10 @@ final readonly class InvoiceFormReader
         if ('' === $values['issueDate']) {
             $errors['issueDate'] = 'invoice.problem.issue_date_missing';
         }
-        $taxPoint = $this->date($values['taxPointDate'], 'taxPointDate', $errors);
+        $kind = self::kind($values['kind']);
+        $correction = DocumentKind::CorrectionDocument === $kind ? $this->correction($values, $errors) : null;
+        // The tax point of a change is its decisive date (§42); that of an error is the original's, which the save sets.
+        $taxPoint = CorrectionType::Change === $correction?->type ? $correction->decisiveDate : $this->date($values['taxPointDate'], 'taxPointDate', $errors);
         $dueDate = $this->date($values['dueDate'], 'dueDate', $errors);
         $method = PaymentMethod::tryFrom($values['paymentMethod']);
         if (!$method instanceof PaymentMethod) {
@@ -128,12 +133,24 @@ final readonly class InvoiceFormReader
             $language ?? DocumentLanguage::Czech,
             $lines->lines,
             '' !== $peek && $values['variableSymbol'] === VariableSymbol::fromNumber($peek),
-            self::kind($values['kind']),
+            $kind,
             TaxOnReceiptChoice::tryFrom($values['taxOnReceipt']),
+            $correction,
         );
         $version = $this->text($post, 'version');
 
         return new InvoiceSubmission($values, $errors, $input, ctype_digit($version) ? (int) $version : 0);
+    }
+
+    /**
+     * @param array{correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string} $values
+     * @param array<string, string>                                                                                     $errors
+     */
+    private function correction(array $values, array &$errors): CorrectionInput
+    {
+        $date = $this->date($values['decisiveDate'], 'decisiveDate', $errors);
+
+        return new CorrectionInput($values['correctedInvoiceId'], $values['correctionReason'], CorrectionType::tryFrom($values['correctionType']), $date);
     }
 
     public function __construct(private LocaleSwitcher $locales)
@@ -182,7 +199,7 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
@@ -193,7 +210,9 @@ final readonly class InvoiceFormReader
             'customerId' => $field('customerId'), 'customerQuery' => $field('customerQuery'), 'customerEdit' => $field('customerEdit'), 'dueDateSet' => $field('dueDateSet'),
             'issueDate' => $field('issueDate'), 'taxPointDate' => $field('taxPointDate'), 'dueDate' => $field('dueDate'), 'paymentMethod' => $field('paymentMethod'), 'bankAccount' => $field('bankAccount'),
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),
-            'textBefore' => $field('textBefore'), 'textAfter' => $field('textAfter'), 'language' => $field('language'), 'customer' => $customer, 'lines' => $rows,
+            'textBefore' => $field('textBefore'), 'textAfter' => $field('textAfter'), 'language' => $field('language'),
+            'correctedInvoiceId' => $field('correctedInvoiceId'), 'correctionReason' => $field('correctionReason'), 'correctionType' => $field('correctionType'), 'decisiveDate' => $field('decisiveDate'),
+            'customer' => $customer, 'lines' => $rows,
         ];
     }
 

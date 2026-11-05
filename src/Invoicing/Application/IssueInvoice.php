@@ -55,6 +55,7 @@ final readonly class IssueInvoice
         private ClockInterface $clock,
         private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
+        private CorrectionRules $corrections,
     ) {
     }
 
@@ -83,9 +84,12 @@ final readonly class IssueInvoice
             $regime = VatRegime::of($firm->vatStatus());
             $issuer = DocumentParty::ofIssuer($firm, $settings);
             $content = $input->change($party, $customer, $series->kind());
+            $rateDate = $this->corrections->rateDate($input) ?? $content->rateDate();
+            // A person's corrective tax document names what it corrects in the same transaction.
+            $origin ??= $input->correction instanceof CorrectionInput ? new CorrectionOrigin($input->correction) : null;
 
-            return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin): Invoice {
-                $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin);
+            return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin, $rateDate): Invoice {
+                $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin, $rateDate);
                 $this->contacts->makeCustomer($party, $firm);
                 $origin?->recordIn($invoice);
 
@@ -94,7 +98,7 @@ final readonly class IssueInvoice
         });
     }
 
-    private function write(InvoiceInput $input, LegalEntity $firm, Series $series, VatRegime $regime, TotalRounding $rounding, DocumentParty $issuer, InvoiceChange $content, ?IssueOrigin $origin): Invoice
+    private function write(InvoiceInput $input, LegalEntity $firm, Series $series, VatRegime $regime, TotalRounding $rounding, DocumentParty $issuer, InvoiceChange $content, ?IssueOrigin $origin, \DateTimeImmutable $rateDate): Invoice
     {
         // A default series that is not stored yet goes first: the counter refers to it.
         if (null === $input->seriesId) {
@@ -115,7 +119,7 @@ final readonly class IssueInvoice
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         $invoice = new Invoice($firm, $series, $number, $regime, $rounding, $home, $issuer, $content, $this->actor->userId(), $now);
         $this->store->add($invoice);
-        $lines = $this->pricing->priced($input->lines, $regime, $country, $content->rateDate());
+        $lines = $this->pricing->priced($input->lines, $regime, $country, $rateDate);
         foreach ($lines as $position => $line) {
             $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));
         }

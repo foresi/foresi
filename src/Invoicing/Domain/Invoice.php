@@ -405,6 +405,26 @@ class Invoice implements TenantOwned, Audited
     }
 
     /**
+     * Names what a corrective tax document corrects, why, how and the day of the
+     * fact. An edit may reword it, never move it to another document.
+     *
+     * @throws \DomainException for another kind, or for another corrected document
+     */
+    public function corrects(string $invoiceId, string $reason, CorrectionType $type, \DateTimeImmutable $decisiveDate): void
+    {
+        if (DocumentKind::CorrectionDocument !== $this->kind) {
+            throw new \DomainException('Only a corrective tax document corrects a document.');
+        }
+        if (null !== $this->correctedInvoiceId && $invoiceId !== $this->correctedInvoiceId) {
+            throw new \DomainException('A corrective tax document keeps the document it corrects.');
+        }
+        $this->correctedInvoiceId = $invoiceId;
+        $this->correctionReason = $reason;
+        $this->correctionType = $type;
+        $this->decisiveDate = $this->decisiveDate instanceof \DateTimeImmutable && $this->decisiveDate->format('Y-m-d') === $decisiveDate->format('Y-m-d') ? $this->decisiveDate : $decisiveDate;
+    }
+
+    /**
      * The document a corrective tax document corrects.
      */
     public function correctedInvoiceId(): ?string

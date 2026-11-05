@@ -56,6 +56,13 @@ interface InvoiceStore
 
     public function addLine(InvoiceLine $line): void;
 
+    /**
+     * The corrective tax documents of an invoice that are not in the trash.
+     *
+     * @return list<Invoice>
+     */
+    public function correctionsOf(Invoice $original): array;
+
     public function removeLine(InvoiceLine $line): void;
 
     public function addAbandoned(AbandonedNumber $number): void;

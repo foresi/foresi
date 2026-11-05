@@ -740,6 +740,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->idsForPeriod($firm, $from, $to);
             }
 
+            public function correctionsOf(Invoice $original): array
+            {
+                return $this->store->correctionsOf($original);
+            }
+
             public function lastFirmOf(string $userId): ?LegalEntity
             {
                 return null;
@@ -762,6 +767,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(\Psr\Clock\ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
             $this->deductions(),
+            $container->get(\App\Invoicing\Application\CorrectionRules::class),
         );
 
         try {

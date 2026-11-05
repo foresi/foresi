@@ -573,6 +573,9 @@ final class InvoiceListController extends AbstractController
             $actions[] = $copy;
             $actions[] = $recurring;
         }
+        if (DocumentKind::Invoice === $row->kind) {
+            $actions[] = ['label' => $this->label('correct'), 'href' => $this->generateUrl('app_invoice_correct', $id), 'method' => 'GET', 'plain' => true];
+        }
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
                 'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),

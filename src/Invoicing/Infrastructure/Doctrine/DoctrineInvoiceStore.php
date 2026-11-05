@@ -206,6 +206,16 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         return $ids;
     }
 
+    public function correctionsOf(Invoice $original): array
+    {
+        /** @var list<Invoice> $corrections */
+        $corrections = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.correctedInvoiceId = :id AND i.deletedAt IS NULL ORDER BY i.numberKey, i.id')
+            ->setParameter('id', $original->id())
+            ->getResult();
+
+        return $corrections;
+    }
+
     public function lastFirmOf(string $userId): ?LegalEntity
     {
         $firm = $this->em->createQuery('SELECT f FROM '.LegalEntity::class.' f, '.Invoice::class.' i WHERE i.firm = f AND i.createdBy = :user AND f.archivedAt IS NULL ORDER BY i.createdAt DESC, i.id DESC')

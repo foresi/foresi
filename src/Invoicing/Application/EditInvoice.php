@@ -39,6 +39,7 @@ final readonly class EditInvoice
         private ConflictRetry $retry,
         private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
+        private CorrectionRules $corrections,
     ) {
     }
 
@@ -94,7 +95,10 @@ final readonly class EditInvoice
         $invoice->change($input->variableSymbolFollowsNumber ? $change->withVariableSymbol(VariableSymbol::fromNumber($invoice->number())) : $change);
         $country = $this->countries->for($invoice->issuer()->address->countryCode);
         $regime = $invoice->vatRegime();
-        $lines = $this->pricing->priced($input->lines, $regime, $country, $change->rateDate());
+        $lines = $this->pricing->priced($input->lines, $regime, $country, $this->corrections->rateDate($input, $invoice) ?? $change->rateDate());
+        if ($input->correction instanceof CorrectionInput) {
+            CorrectionRules::record($invoice, $input->correction);
+        }
         $stored = [];
         foreach ($this->store->lines($invoice) as $line) {
             $stored[$line->position()] = $line;

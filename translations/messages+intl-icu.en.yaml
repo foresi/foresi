@@ -1284,6 +1284,7 @@ invoice:
       pay: Pay
       pdf: PDF
       copy: Copy
+      correct: Issue a corrective document
       delivered: Mark as delivered
       history: History
       delete: Delete
@@ -1638,6 +1639,18 @@ invoice:
     number_taken: This number has been used in this firm already.
     numbers_exhausted: This series has no numbers left.
     payable_negative: The total must not be negative.
+    correction_kind: Only a corrective tax document names a corrected document.
+    correction_link_missing: Choose the invoice this document corrects.
+    correction_link_locked: A corrective document keeps the invoice it corrects.
+    correction_original_invalid: Only an issued invoice that is not in the trash can be corrected.
+    correction_firm: The correction must be issued by the firm of the invoice.
+    correction_customer: The correction must be for the customer of the invoice.
+    correction_reason_missing: Say why the invoice is being corrected.
+    correction_type_missing: Choose whether this is a change after issue or an error on the document.
+    correction_decisive_date_missing: Enter the decisive date.
+    correction_tax_point: The tax point of a change is its decisive date; that of an error is the tax point of the invoice.
+    correction_rate_unknown: Use a VAT rate that is on the corrected invoice.
+    correction_over_original: This would credit more than the invoice and its corrections leave at one of its VAT rates.
     payment_method_invalid: Choose a payment method.
     price_invalid: Enter a price with up to two decimals.
     price_type_invalid: Choose a price type.
@@ -2389,6 +2402,20 @@ advance:
         {link}
 correction:
   title: 'Corrective tax document {number}'
+  new: New corrective tax document
+  card: Correction
+  corrects: 'Corrects document no. {number}'
+  field:
+    reason: Reason for the correction
+    reason_help: Printed on the document, up to 500 characters.
+    type: Type of correction
+    decisive_date: Decisive date
+    decisive_date_help: The day of the fact that changed the supply.
+  type:
+    change: Change after issue
+    change_text: Something changed after the supply; taxed on the decisive date.
+    error: Error on the document
+    error_text: The invoice was wrong; taxed in its original period.
 tax_document:
   needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
   cancelled_reason: The payment it taxed was cancelled.

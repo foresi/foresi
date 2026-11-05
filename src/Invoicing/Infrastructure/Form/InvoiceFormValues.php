@@ -15,6 +15,7 @@ use App\Invoicing\Application\InvoiceDraftValues;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\NewInvoiceDefaults;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
@@ -76,6 +77,10 @@ final readonly class InvoiceFormValues
             'textBefore' => $draft->textBefore,
             'textAfter' => $draft->textAfter,
             'lines' => array_map($this->lineOfDraft(...), $draft->lines),
+            'correctedInvoiceId' => $draft->correctedInvoiceId ?? '',
+            'correctionReason' => '',
+            'correctionType' => CorrectionType::Change->value,
+            'decisiveDate' => $draft->taxPointDate->format('Y-m-d'),
         ];
     }
 
@@ -84,14 +89,15 @@ final readonly class InvoiceFormValues
      *
      * @return array<string, mixed>
      */
-    public function ofCopy(InvoiceDraftValues $draft, LegalEntity $firm, Invoice $source): array
+    public function ofCopy(InvoiceDraftValues $draft, LegalEntity $firm, Invoice $source, bool $copy = true): array
     {
         $values = $this->ofDraft($draft);
         $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
         if ($party instanceof Party) {
             $values = $this->withCustomerShown($values, $this->picker->option($party, $firm));
         }
-        $values['copyOf'] = $source->id();
+        // A corrective tax document is no copy: it says so with its link instead.
+        $values['copyOf'] = $copy ? $source->id() : '';
 
         return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
     }
@@ -127,6 +133,10 @@ final readonly class InvoiceFormValues
             'textBefore' => $invoice->textBefore(),
             'textAfter' => $invoice->textAfter(),
             'lines' => array_map($this->lineOfInvoice(...), $this->store->lines($invoice)),
+            'correctedInvoiceId' => $invoice->correctedInvoiceId() ?? '',
+            'correctionReason' => $invoice->correctionReason() ?? '',
+            'correctionType' => $invoice->correctionType()->value ?? CorrectionType::Change->value,
+            'decisiveDate' => $invoice->decisiveDate()?->format('Y-m-d') ?? '',
         ];
     }
 

@@ -1284,6 +1284,7 @@ invoice:
       pay: Uhradit
       pdf: PDF
       copy: Kopírovat
+      correct: Vystavit opravný doklad
       delivered: Označit jako doručené
       history: Historie
       delete: Smazat
@@ -1638,6 +1639,18 @@ invoice:
     number_taken: Toto číslo už bylo v této firmě použito.
     numbers_exhausted: V této řadě už nezbývají čísla.
     payable_negative: Celková částka nesmí být záporná.
+    correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.
+    correction_link_missing: Vyberte fakturu, kterou tento doklad opravuje.
+    correction_link_locked: Opravný doklad zůstává u faktury, kterou opravuje.
+    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši.
+    correction_firm: Opravu musí vystavit firma faktury.
+    correction_customer: Oprava musí být pro odběratele faktury.
+    correction_reason_missing: Uveďte důvod opravy.
+    correction_type_missing: Vyberte, zda jde o změnu po vystavení, nebo o chybu na dokladu.
+    correction_decisive_date_missing: Vyplňte rozhodné datum.
+    correction_tax_point: DUZP změny je její rozhodné datum, DUZP chyby je DUZP faktury.
+    correction_rate_unknown: Použijte sazbu DPH, která je na opravované faktuře.
+    correction_over_original: Dobropis by u některé sazby DPH přesáhl, co zbývá z faktury a jejích oprav.
     payment_method_invalid: Vyberte způsob platby.
     price_invalid: Zadejte cenu nejvýše na dvě desetinná místa.
     price_type_invalid: Vyberte typ ceny.
@@ -2389,6 +2402,20 @@ advance:
         {link}
 correction:
   title: 'Opravný daňový doklad {number}'
+  new: Nový opravný daňový doklad
+  card: Oprava
+  corrects: 'Opravuje doklad č. {number}'
+  field:
+    reason: Důvod opravy
+    reason_help: Tiskne se na doklad, nejvýše 500 znaků.
+    type: Druh opravy
+    decisive_date: Rozhodné datum
+    decisive_date_help: Den skutečnosti, která změnila plnění.
+  type:
+    change: Změna po vystavení
+    change_text: Po uskutečnění plnění se něco změnilo; daní se k rozhodnému datu.
+    error: Chyba na dokladu
+    error_text: Faktura byla chybná; daní se v původním období.
 tax_document:
   needs_correction: Platba tohoto daňového dokladu byla zrušena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
   cancelled_reason: Platba, ke které byl vystaven, byla zrušena.
