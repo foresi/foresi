@@ -987,6 +987,17 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertCount(0, $this->client->getCrawler()->filter('a[href="'.$bankUrl.'"]'));
     }
 
+    public function testThePaymentDetailsShowTheAccountNumberAndIbanOnce(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-number]', '19-2000145399/0800');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
+        self::assertSelectorCount(1, '[data-account-iban]');
+    }
+
     public function testAnAccountAddedInAnotherTabIsUsedByTheOpenForm(): void
     {
         $this->signedIn();

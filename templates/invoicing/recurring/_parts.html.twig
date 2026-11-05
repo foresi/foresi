@@ -12,26 +12,6 @@
     </p>
 {% endmacro %}
 
-{# The chosen account as the invoice prints it, read-only: rows of the form, terms in the label column. #}
-{% macro account(account) %}
-    {% set rowClass = 'grid content-start gap-1.5 md:grid-cols-[var(--spacing-label)_minmax(0,1fr)] md:gap-x-4' %}
-    {% set termClass = 'text-small font-medium text-ink md:text-right' %}
-    <dl id="recurring-account" class="m-0 grid gap-1.5" data-recurring-live>
-        {% if account %}
-            {% if account.number %}
-                <div class="{{ rowClass }}">
-                    <dt class="{{ termClass }}">{{ 'recurring.payment.account_number'|trans }}</dt>
-                    <dd class="num m-0 break-all text-ink" data-account-number>{{ account.number }}</dd>
-                </div>
-            {% endif %}
-            <div class="{{ rowClass }}">
-                <dt class="{{ termClass }}">{{ 'recurring.payment.iban'|trans }}</dt>
-                <dd class="num m-0 break-all text-ink" data-account-iban>{{ account.iban }}</dd>
-            </div>
-        {% endif %}
-    </dl>
-{% endmacro %}
-
 {# The variables of a period as chips; one goes into the field that had the focus last: the description, a text or an item. #}
 {% macro variables(id, variables, focus) %}
     <div class="flex flex-wrap items-center gap-1">

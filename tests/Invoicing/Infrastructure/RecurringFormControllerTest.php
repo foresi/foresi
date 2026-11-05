@@ -317,8 +317,8 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextSame('#recurring-account [data-account-number]', '19-2000145399/0800');
-        self::assertSelectorTextSame('#recurring-account [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-number]', '19-2000145399/0800');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
     }
 
     public function testCreatingStoresTheTemplateAndGoesToTheList(): void

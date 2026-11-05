@@ -343,6 +343,13 @@ export default class extends Controller {
         this.bankRowTarget.classList.toggle('hidden', this.paymentMethodTarget.value !== 'bank_transfer');
     }
 
+    // The number and IBAN rows of the chosen account (_bank_account.html.twig).
+    bankAccountChanged(event) {
+        this.bankRowTarget.querySelectorAll('[data-bank-details]').forEach((details) => {
+            details.classList.toggle('hidden', details.dataset.bankDetails !== event.target.value);
+        });
+    }
+
     field(name) {
         return this.element.querySelector(`[name="${name}"]`);
     }

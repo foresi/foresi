@@ -232,23 +232,8 @@
                     </twig:Ui:FieldGroup>
                     <twig:Ui:FieldGroup :title="'recurring.card.payment'|trans">
                         <twig:Ui:Select name="paymentMethod" id="paymentMethod" :row="true" width="medium" :label="'invoice.field.paymentMethod'|trans" :options="paymentMethods" :value="values.paymentMethod" :error="errorFields.paymentMethod|default(null)" data-invoice-form-target="paymentMethod" data-action="change->invoice-form#paymentChanged" />
-                        <div class="{% if values.paymentMethod != 'bank_transfer' %}hidden{% endif %}" data-invoice-form-target="bankRow">
-                            {% if bankAccounts is empty %}
-                                <input type="hidden" name="bankAccount" value="">
-                                <twig:Ui:Field id="bankAccount" :row="true" :plain="true" width="medium" :label="'invoice.field.bankAccount'|trans">
-                                    <twig:Ui:Alert tone="warning" data-bank-note>
-                                        <span>{{ 'invoice.field.bankAccount_none'|trans }}</span>
-                                        {% if bankUrl %}<a href="{{ bankUrl }}" target="_blank" rel="noopener" id="bank-account-settings" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'invoice.field.bankAccount_add'|trans }}</a>{% endif %}
-                                    </twig:Ui:Alert>
-                                </twig:Ui:Field>
-                            {% elseif bankAccounts|length > 1 %}
-                                <twig:Ui:Select name="bankAccount" id="bankAccount" :row="true" width="medium" :label="'invoice.field.bankAccount'|trans" :options="bankAccounts" :value="values.bankAccount" :error="errorFields.bankAccount|default(null)" />
-                            {% else %}
-                                <input type="hidden" name="bankAccount" value="{{ values.bankAccount }}">
-                                <twig:Ui:Field id="bankAccount" :row="true" :plain="true" :label="'invoice.field.bankAccount'|trans" :error="errorFields.bankAccount|default(null)">
-                                    <p class="num m-0 flex items-center break-all md:min-h-control text-ink" id="bankAccount" tabindex="-1">{{ values.bankAccount }}</p>
-                                </twig:Ui:Field>
-                            {% endif %}
+                        <div class="grid gap-3{% if values.paymentMethod != 'bank_transfer' %} hidden{% endif %}" data-invoice-form-target="bankRow">
+                            {{ include('invoicing/_bank_account.html.twig') }}
                         </div>
                         <twig:Ui:Field id="currency" :row="true" :plain="true" :label="'invoice.field.currency'|trans">
                             <p class="m-0 flex items-center text-ink md:min-h-control">{{ currency }}</p>
