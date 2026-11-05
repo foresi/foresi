@@ -14,7 +14,10 @@ namespace App\Invoicing\Domain;
  *
  * An invoice is the tax document of a supply. An advance invoice asks for payment
  * before the supply and is no tax document; a tax document on payment taxes a
- * payment received on an advance, and is paid by that payment. Every rule that
+ * payment received on an advance, and is paid by that payment. A corrective tax
+ * document corrects an issued document: its lines are the differences, so it is a
+ * credit note when they are negative and a debit note when positive; its money
+ * follows the document it corrects, so it asks for none itself. Every rule that
  * differs by kind asks the kind, never the series or the number.
  */
 enum DocumentKind: string
@@ -22,13 +25,14 @@ enum DocumentKind: string
     case Invoice = 'invoice';
     case Advance = 'advance';
     case PaymentTaxDocument = 'payment_tax_document';
+    case CorrectionDocument = 'correction_document';
 
     /**
      * Whether the document asks for money: it is paired, reminded and overdue.
      */
     public function isPayable(): bool
     {
-        return self::PaymentTaxDocument !== $this;
+        return self::PaymentTaxDocument !== $this && self::CorrectionDocument !== $this;
     }
 
     /**
@@ -59,6 +63,7 @@ enum DocumentKind: string
             self::Invoice => 'standard',
             self::Advance => 'standard_advance',
             self::PaymentTaxDocument => 'standard_payment_tax_document',
+            self::CorrectionDocument => 'standard_correction_document',
         };
     }
 
@@ -72,6 +77,7 @@ enum DocumentKind: string
             self::Invoice => '{YYYY}{NNNN}',
             self::Advance => 'Z9{YYYY}{NNNN}',
             self::PaymentTaxDocument => 'D8{YYYY}{NNNN}',
+            self::CorrectionDocument => 'O7{YYYY}{NNNN}',
         };
     }
 

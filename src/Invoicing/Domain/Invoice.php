@@ -49,6 +49,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 #[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
+#[ORM\Index(name: 'idx_invoice_corrected', columns: ['corrected_invoice_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -59,6 +60,7 @@ class Invoice implements TenantOwned, Audited
     public const int MAX_ORDER_NUMBER_LENGTH = 64;
     public const int MAX_CONSTANT_SYMBOL_LENGTH = 10;
     public const int MAX_REASON_LENGTH = 500;
+    public const int MAX_CORRECTION_REASON_LENGTH = 500;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -167,6 +169,19 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'deducts_advances', type: 'boolean', options: ['default' => false])]
     private bool $deductsAdvances = false;
+
+    // Only a corrective tax document names the document it corrects, why, how and the day of the fact.
+    #[ORM\Column(name: 'corrected_invoice_id', type: 'guid', nullable: true)]
+    private ?string $correctedInvoiceId = null;
+
+    #[ORM\Column(name: 'correction_reason', type: 'text', nullable: true)]
+    private ?string $correctionReason = null;
+
+    #[ORM\Column(name: 'correction_type', type: 'string', length: 8, nullable: true, enumType: CorrectionType::class)]
+    private ?CorrectionType $correctionType = null;
+
+    #[ORM\Column(name: 'decisive_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $decisiveDate = null;
 
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
@@ -387,6 +402,32 @@ class Invoice implements TenantOwned, Audited
     public function deductedByInvoiceId(): ?string
     {
         return $this->deductedByInvoiceId;
+    }
+
+    /**
+     * The document a corrective tax document corrects.
+     */
+    public function correctedInvoiceId(): ?string
+    {
+        return $this->correctedInvoiceId;
+    }
+
+    public function correctionReason(): ?string
+    {
+        return $this->correctionReason;
+    }
+
+    public function correctionType(): ?CorrectionType
+    {
+        return $this->correctionType;
+    }
+
+    /**
+     * The day of the fact that a corrective tax document corrects.
+     */
+    public function decisiveDate(): ?\DateTimeImmutable
+    {
+        return $this->decisiveDate;
     }
 
     public function recurringInvoiceId(): ?string

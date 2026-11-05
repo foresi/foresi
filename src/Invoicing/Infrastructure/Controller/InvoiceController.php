@@ -97,7 +97,7 @@ final class InvoiceController extends AbstractController
     public const string FORM_TOKEN = 'invoice_form';
     private const array SAVING = ['save', 'save_send', 'save_pdf'];
     /** The title of the form of each kind of document, with its number. */
-    private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title'];
+    private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title', 'correction_document' => 'correction.title'];
     /** The title of the form of a new document of a kind a person issues. */
     private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new'];
     /** The dialog a saved form opens once over itself: the send dialog of save and send. */

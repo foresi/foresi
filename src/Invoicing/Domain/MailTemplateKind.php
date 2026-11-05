@@ -28,6 +28,8 @@ enum MailTemplateKind: string
             DocumentKind::Invoice => self::Invoice,
             DocumentKind::Advance => self::Advance,
             DocumentKind::PaymentTaxDocument => self::PaymentTaxDocument,
+            // Until a corrective document has a template of its own.
+            DocumentKind::CorrectionDocument => self::Invoice,
         };
     }
 }

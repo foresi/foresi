@@ -51,6 +51,7 @@ final readonly class InvoiceFilter
             DocumentKind::Invoice => self::TABS,
             DocumentKind::Advance => [self::ALL, self::PAID, self::UNPAID, self::OVERDUE, self::UNSETTLED, self::TRASH],
             DocumentKind::PaymentTaxDocument => [self::ALL, self::SETTLED, self::UNSETTLED, self::TRASH],
+            DocumentKind::CorrectionDocument => [self::ALL, self::TRASH],
         };
     }
 }

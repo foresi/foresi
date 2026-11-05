@@ -37,6 +37,7 @@ nav:
     invoices: Invoices
     advances: Advance invoices
     tax_documents: Tax documents
+    corrections: Corrective documents
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
@@ -941,10 +942,12 @@ series:
     standard: Standard
     standard_advance: Advance invoices
     standard_payment_tax_document: Tax documents on payment
+    standard_correction_document: Corrective documents
   kind:
     invoice: Invoice
     advance: Advance invoice
     payment_tax_document: Tax document on payment
+    correction_document: Corrective tax document
   column:
     name: Name
     kind: Documents
@@ -1173,6 +1176,7 @@ invoice:
     title: Invoice
     title_advance: Advance invoice
     title_payment_tax_document: Tax document on received payment
+    title_correction_document: Corrective tax document
     advance_recap_note: VAT breakdown is informative only, this is not a tax document.
     supplier: Supplier
     customer: Customer
@@ -1230,12 +1234,13 @@ invoice:
     title_invoice: Invoices
     title_advance: Advance invoices
     title_payment_tax_document: Tax documents on payment
+    title_correction_document: Corrective documents
     views: Invoice lists
     all_firms: All firms
     search: Search
     search_label: Search invoices
     search_placeholder: Number, customer or description
-    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
+    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
@@ -1290,6 +1295,7 @@ invoice:
       all_title_invoice: No invoices here
       all_title_advance: No advance invoices here
       all_title_payment_tax_document: No tax documents here
+      all_title_correction_document: No corrective documents here
       filtered_title: No invoice matches
       filtered_text: Try other words or another firm.
       reset: Show all invoices
@@ -2381,6 +2387,8 @@ advance:
         {sender_name}
 
         {link}
+correction:
+  title: 'Corrective tax document {number}'
 tax_document:
   needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
   cancelled_reason: The payment it taxed was cancelled.

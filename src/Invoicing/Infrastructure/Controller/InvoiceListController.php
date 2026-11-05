@@ -78,7 +78,7 @@ final class InvoiceListController extends AbstractController
     /** The tab of the advances that wait for a tax document. */
     private const string MISSING = 'needs_tax_document';
     /** The list of each kind of document, as iDoklad keeps one per kind. */
-    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents'];
+    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -104,6 +104,7 @@ final class InvoiceListController extends AbstractController
     #[Route('/invoices', name: 'app_invoices', defaults: ['kind' => 'invoice'], methods: ['GET'])]
     #[Route('/advances', name: 'app_advances', defaults: ['kind' => 'advance'], methods: ['GET'])]
     #[Route('/tax-documents', name: 'app_tax_documents', defaults: ['kind' => 'payment_tax_document'], methods: ['GET'])]
+    #[Route('/corrections', name: 'app_corrections', defaults: ['kind' => 'correction_document'], methods: ['GET'])]
     public function index(Request $request, string $kind): Response
     {
         $this->denyUnlessStaff();
@@ -143,7 +144,8 @@ final class InvoiceListController extends AbstractController
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
-            'newHref' => $kind->isIssuedByPerson() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
+            // A corrective document is issued from the document it corrects, never from a blank form.
+            'newHref' => $kind->isIssuedByPerson() && DocumentKind::CorrectionDocument !== $kind ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
             'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null),
             'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),

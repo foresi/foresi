@@ -1137,6 +1137,31 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', $advance->number());
     }
 
+    public function testTheCorrectionListIsEmptyAndFollowsTheTaxDocumentsInTheNavigation(): void
+    {
+        $this->signedIn();
+        $this->issued();
+
+        $crawler = $this->client->request('GET', '/corrections');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Corrective documents');
+        self::assertSelectorTextContains('main', 'No corrective documents here');
+        self::assertSame(['All0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorNotExists('main a[href^="/invoices/new"]');
+        self::assertSelectorExists('nav a[href="/corrections"][aria-current="page"]');
+        $links = $crawler->filter('nav a')->each(static fn ($link): string => (string) $link->attr('href'));
+        $taxDocuments = array_search('/tax-documents', $links, true);
+        self::assertIsInt($taxDocuments);
+        self::assertSame($taxDocuments + 1, array_search('/corrections', $links, true));
+
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $counted = static fn (string $locale): array => array_map(static fn (int $total): string => $translator->trans('invoice.list.summary', ['total' => $total, 'kind' => 'correction_document'], null, $locale), [1, 2, 5]);
+        self::assertSame(['1 opravný doklad', '2 opravné doklady', '5 opravných dokladů'], $counted('cs'));
+        self::assertSame(['1 corrective document', '2 corrective documents', '5 corrective documents'], $counted('en'));
+        self::assertSame('Opravné doklady', $translator->trans('nav.item.corrections', locale: 'cs'));
+    }
+
     public function testTheTaxDocumentListTellsSettledFromUnsettled(): void
     {
         $this->signedIn();

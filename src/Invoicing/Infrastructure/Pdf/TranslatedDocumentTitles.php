@@ -37,6 +37,7 @@ final readonly class TranslatedDocumentTitles implements DocumentTitles
         return match ($document->kind) {
             DocumentKind::Advance => 'invoice.pdf.title_advance',
             DocumentKind::PaymentTaxDocument => 'invoice.pdf.title_payment_tax_document',
+            DocumentKind::CorrectionDocument => 'invoice.pdf.title_correction_document',
             DocumentKind::Invoice => VatRegime::Payer === $document->regime ? 'invoice.pdf.title_tax' : 'invoice.pdf.title',
         };
     }

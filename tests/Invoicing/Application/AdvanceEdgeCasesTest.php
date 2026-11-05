@@ -226,7 +226,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
 
     public function testEachDocumentKindHasItsMailTemplate(): void
     {
-        self::assertSame([MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument], array_map(MailTemplateKind::forDocument(...), DocumentKind::cases()));
+        self::assertSame([MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument, MailTemplateKind::Invoice], array_map(MailTemplateKind::forDocument(...), DocumentKind::cases()));
     }
 
     public function testOnlyAnInvoiceThatDeductsAndIsNotTrashedIsSettledByAdvances(): void
