@@ -134,9 +134,9 @@ final class FirmMailControllerTest extends WebTestCase
         self::assertSame(
             [
                 'variables-cs language-cs', 'variables-en language-en',
-                'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en',
                 'variables-advance-cs kind-advance-cs language-advance-cs', 'variables-advance-en kind-advance-en language-advance-en',
                 'variables-tax_document-cs kind-tax_document-cs language-tax_document-cs', 'variables-tax_document-en kind-tax_document-en language-tax_document-en',
+                'variables-reminder-cs kind-reminder-cs language-reminder-cs', 'variables-reminder-en kind-reminder-en language-reminder-en',
             ],
             $crawler->filter('[role="toolbar"]')->each(static fn ($toolbar): string => (string) $toolbar->attr('aria-labelledby')),
         );

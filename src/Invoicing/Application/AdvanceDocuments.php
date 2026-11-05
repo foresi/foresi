@@ -61,4 +61,10 @@ interface AdvanceDocuments
      * @return array{taxDocuments: list<string>, advances: list<string>} ids, oldest first
      */
     public function deductibleFor(string $firmId, string $customerId, ?string $except): array;
+
+    /**
+     * Whether a firm has a tax document or an advance invoice out of the trash that
+     * no invoice deducts, whoever its customer.
+     */
+    public function firmHasUndeducted(string $firmId): bool;
 }

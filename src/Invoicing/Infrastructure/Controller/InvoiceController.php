@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
@@ -141,6 +142,7 @@ final class InvoiceController extends AbstractController
         private readonly RequestStack $request,
         private readonly AmountText $amounts,
         private readonly DocumentChain $chain,
+        private readonly AdvanceDocuments $advanceDocuments,
     ) {
     }
 
@@ -633,6 +635,8 @@ final class InvoiceController extends AbstractController
             'figures' => $this->shownFigures($context, $values, $taxPoint),
             'currencyNotice' => $this->currencyNotice($context, $values),
             'deductible' => $this->deductibleOptions($context, $values),
+            // Without a customer yet: a refresh with the customer picked lists what it may deduct.
+            'mayDeduct' => DocumentKind::Invoice === $context->kind && $this->advanceDocuments->firmHasUndeducted($firm->id()),
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));

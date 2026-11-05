@@ -1062,7 +1062,7 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $values = $this->openNew(['kind' => 'advance']);
         self::assertSelectorTextContains('label[for="taxOnReceipt"]', 'Tax document on payment');
-        self::assertSelectorTextContains('#taxOnReceipt-help', 'unless the customer is a private person');
+        self::assertSelectorTextContains('#taxOnReceipt-help', 'None for a private person or a domestic reverse charge');
         $values['customerId'] = $this->customer->id();
         $values['customerQuery'] = 'Example Customer a.s.';
         $values['taxOnReceipt'] = 'skip';

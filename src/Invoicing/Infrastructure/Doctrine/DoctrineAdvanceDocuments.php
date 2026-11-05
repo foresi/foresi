@@ -40,6 +40,17 @@ final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
         );
     }
 
+    public function firmHasUndeducted(string $firmId): bool
+    {
+        $found = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.kind IN (:kinds) AND i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL')
+            ->setParameter('firm', $firmId)
+            ->setParameter('kinds', [DocumentKind::Advance->value, DocumentKind::PaymentTaxDocument->value])
+            ->setMaxResults(1)
+            ->getOneOrNullResult();
+
+        return null !== $found;
+    }
+
     public function deductibleFor(string $firmId, string $customerId, ?string $except): array
     {
         $free = '(i.deductedByInvoiceId IS NULL'.(null === $except ? ')' : ' OR i.deductedByInvoiceId = :except)');

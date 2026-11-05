@@ -988,8 +988,10 @@ invoice:
     no_tax_document: bez daňového dokladu
     not_settled: Zatím nevyúčtováno
   deduction:
+    pick_first: Firma má zálohy k odečtení. Vyberte odběratele a zobrazte jeho zálohy.
+    show: "Zobrazit zálohy odběratele"
     label: Odečíst zálohu
-    help: Uhrazené zálohy odběratele, každý daňový doklad jednou. Jeho položky se přidají se záporným znaménkem.
+    help: Každý daňový doklad jednou, odečtený po sazbách
     add: Odečíst
     option: '{same, select, yes {Záloha {number}} other {Daňový doklad {number}, záloha {advance}}}, {amount}'
   public:
@@ -2267,7 +2269,7 @@ reminder:
     amount_due: Zbývá uhradit
   field:
     advances: Upomínat i zálohové faktury
-    advances_help: Zálohové faktury po splatnosti dostanou stejné upomínky. Daňové doklady k platbě jsou uhrazené a upomínky nedostávají.
+    advances_help: Daňové doklady k platbě upomínky nedostávají
     enabled: Posílat upomínky automaticky
     enabled_help: Upomínky dostanou jen faktury se splatností ode dne zapnutí.
     first: První upomínka
@@ -2345,7 +2347,7 @@ advance:
     rules: Podle pravidel
     issue: Vystavit ke každé platbě
     skip: Žádný, plnění ještě není známé
-    help: Podle pravidel dostane plátce DPH daňový doklad ke každé platbě, kromě plateb od soukromé osoby a tuzemského přenesení daňové povinnosti.
+    help: Nevzniká u soukromé osoby a tuzemského přenesení daně
     now_arises: '{crossBorder, select, yes {Každá platba dostane daňový doklad do 15 dnů od konce měsíce platby.} other {Každá platba dostane daňový doklad do 15 dnů od přijetí platby.}}'
     now_none:
       non_payer: Bez daňového dokladu, firma není plátce DPH.
