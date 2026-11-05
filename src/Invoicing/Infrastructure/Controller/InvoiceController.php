@@ -289,7 +289,9 @@ final class InvoiceController extends AbstractController
         }
 
         try {
-            return $this->json($this->figures->of($lines->lines, $context, $taxPoint ?? $this->today($context)));
+            $rateDate = $this->correctedRateDate($request->request->getString('correctedInvoiceId'), $context) ?? $taxPoint ?? $this->today($context);
+
+            return $this->json($this->figures->of($lines->lines, $context, $rateDate));
         } catch (\OverflowException|\DomainException) {
             return $this->json(['errors' => ['lines']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -861,8 +863,24 @@ final class InvoiceController extends AbstractController
         // An advance invoice takes the rates of its issue date: it has no tax point.
         $field = $context->hasTaxPoint() ? 'taxPointDate' : 'issueDate';
         $date = \is_string($values[$field]) ? $this->reader->date($values[$field], $field, $errors) : null;
+        $corrected = $values['correctedInvoiceId'] ?? '';
 
-        return $date ?? $this->today($context);
+        return $this->correctedRateDate(\is_string($corrected) ? $corrected : '', $context) ?? $date ?? $this->today($context);
+    }
+
+    /**
+     * A correction is priced at the rates of the invoice it corrects, never those of today.
+     */
+    private function correctedRateDate(string $id, InvoiceFormContext $context): ?\DateTimeImmutable
+    {
+        if (DocumentKind::CorrectionDocument !== $context->kind || '' === $id) {
+            return null;
+        }
+        try {
+            return $this->store->get($id)->rateDate();
+        } catch (UnknownInvoice) {
+            return null;
+        }
     }
 
     /**

@@ -157,6 +157,42 @@ final readonly class CorrectionRules
         if ([] !== $problems) {
             return $problems;
         }
+
+        return $this->overOriginal($input, $original, $existing, $regime, $country, $left) ? [new IssueProblem('lines', 'invoice.problem.correction_over_original')] : [];
+    }
+
+    /**
+     * The cap once more, inside the write transaction: the row of the invoice is
+     * locked first, so a correction saved meanwhile is counted and two saves of
+     * the same invoice's corrections run one after the other.
+     *
+     * @param Invoice|null $existing the correction being edited
+     *
+     * @throws IssueRefused when the corrections of the invoice would go below zero
+     */
+    public function claim(InvoiceInput $input, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country): void
+    {
+        $id = $input->correction->correctedInvoiceId ?? '';
+        if ('' === $id || DocumentKind::CorrectionDocument !== ($existing?->kind() ?? $input->kind)) {
+            return;
+        }
+        $this->store->lockRow($id);
+        $original = $this->store->get($id);
+        $left = [];
+        foreach ($this->store->lines($original) as $line) {
+            $key = $this->key($line->treatment(), $line->rateKind());
+            $left[$key] = ($left[$key] ?? 0) + $line->net()->minor();
+        }
+        if ($this->overOriginal($input, $original, $existing, $regime, $country, $left)) {
+            throw new IssueRefused([new IssueProblem('lines', 'invoice.problem.correction_over_original')]);
+        }
+    }
+
+    /**
+     * @param array<string, int> $left the net of the invoice per rate and treatment
+     */
+    private function overOriginal(InvoiceInput $input, Invoice $original, ?Invoice $existing, VatRegime $regime, InvoicingCountry $country, array $left): bool
+    {
         foreach ($this->store->correctionsOf($original) as $other) {
             if ($other->id() === $existing?->id()) {
                 continue;
@@ -170,14 +206,14 @@ final readonly class CorrectionRules
             $priced = $this->pricing->priced($input->lines, $regime, $country, $original->rateDate());
         } catch (\OverflowException|\DomainException) {
             // The amounts of the lines say so on their own.
-            return [];
+            return false;
         }
         foreach ($priced as $line) {
             $key = $this->key($line->input->treatment, $line->input->rateKind);
-            $left[$key] += $line->amounts->net->minor();
+            $left[$key] = ($left[$key] ?? 0) + $line->amounts->net->minor();
         }
 
-        return array_any($left, static fn (int $net): bool => $net < 0) ? [new IssueProblem('lines', 'invoice.problem.correction_over_original')] : [];
+        return array_any($left, static fn (int $net): bool => $net < 0);
     }
 
     private function key(TaxTreatment $treatment, ?VatRateKind $kind): string

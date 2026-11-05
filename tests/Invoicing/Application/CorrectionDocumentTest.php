@@ -10,16 +10,27 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\CorrectionInput;
+use App\Invoicing\Application\CorrectionRules;
+use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoicePage;
+use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\IssueRules;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\LinePricing;
+use App\Invoicing\Application\StoredInvoice;
+use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
+use App\Party\Domain\LegalEntity;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
@@ -131,6 +142,22 @@ final class CorrectionDocumentTest extends InvoiceTestCase
         self::assertSame(-82000, $last->payable()->minor());
     }
 
+    /**
+     * Two credits saved at once: the second one's rules ran before the first one
+     * committed, so only the check under the lock of the invoice sees the first.
+     */
+    public function testTheSecondOfTwoCreditsSavedAtOnceIsRefused(): void
+    {
+        $original = $this->original();
+        $this->issue->issue($this->correction($original, [$this->credit('600.00')]));
+        $issue = $this->withRulesBlindToCorrections();
+
+        $this->assertRefusedFor('invoice.problem.correction_over_original', fn (): Invoice => $issue->issue($this->correction($original, [$this->credit('500.00')])));
+
+        $this->em->clear();
+        self::assertCount(1, $this->store->correctionsOf($this->store->get($original->id())));
+    }
+
     public function testADebitNoteMakesRoomForACredit(): void
     {
         $original = $this->original();
@@ -195,6 +222,113 @@ final class CorrectionDocumentTest extends InvoiceTestCase
         self::assertSame(['-1.0000', '-1.0000'], array_map(static fn (LineInput $line): string => $line->quantity->toDecimal(), $draft->lines));
         self::assertSame([VatRateKind::Base, VatRateKind::Reduced], array_map(static fn (LineInput $line): ?VatRateKind => $line->rateKind, $draft->lines));
         self::assertSame([100000, 50000], array_map(static fn (LineInput $line): int => $line->price->minor(), $draft->lines));
+    }
+
+    /**
+     * IssueInvoice whose rules see no corrections, as rules that ran before another
+     * correction committed; the check under the lock reads the store as it is.
+     */
+    private function withRulesBlindToCorrections(): IssueInvoice
+    {
+        $container = self::getContainer();
+        $blind = new readonly class($this->store) implements InvoiceStore {
+            public function __construct(private InvoiceStore $store)
+            {
+            }
+
+            public function get(string $id): Invoice
+            {
+                return $this->store->get($id);
+            }
+
+            public function lock(string $id): Invoice
+            {
+                return $this->store->lock($id);
+            }
+
+            public function lockRow(string $id): void
+            {
+                $this->store->lockRow($id);
+            }
+
+            public function snapshot(string $id): StoredInvoice
+            {
+                return $this->store->snapshot($id);
+            }
+
+            public function add(Invoice $invoice): void
+            {
+                $this->store->add($invoice);
+            }
+
+            public function lines(Invoice $invoice): array
+            {
+                return $this->store->lines($invoice);
+            }
+
+            public function addLine(InvoiceLine $line): void
+            {
+                $this->store->addLine($line);
+            }
+
+            public function correctionsOf(Invoice $original): array
+            {
+                return [];
+            }
+
+            public function removeLine(InvoiceLine $line): void
+            {
+                $this->store->removeLine($line);
+            }
+
+            public function addAbandoned(AbandonedNumber $number): void
+            {
+                $this->store->addAbandoned($number);
+            }
+
+            public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
+            {
+                return $this->store->numberTaken($firm, $key, $except);
+            }
+
+            public function page(InvoiceFilter $filter): InvoicePage
+            {
+                return $this->store->page($filter);
+            }
+
+            public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+            {
+                return $this->store->idsForPeriod($firm, $from, $to);
+            }
+
+            public function lastFirmOf(string $userId): ?LegalEntity
+            {
+                return $this->store->lastFirmOf($userId);
+            }
+        };
+        $rules = $this->built(IssueRules::class, ['corrections' => new CorrectionRules($blind, $container->get(LinePricing::class))]);
+
+        return $this->built(IssueInvoice::class, ['rules' => $rules, 'deductions' => $this->deductions()]);
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T>      $class
+     * @param array<string, mixed> $given
+     *
+     * @return T
+     */
+    private function built(string $class, array $given): object
+    {
+        $reflection = new \ReflectionClass($class);
+        $arguments = [];
+        foreach ($reflection->getConstructor()?->getParameters() ?? [] as $parameter) {
+            $type = $parameter->getType();
+            $arguments[] = $given[$parameter->getName()] ?? ($type instanceof \ReflectionNamedType ? self::getContainer()->get($type->getName()) : null);
+        }
+
+        return $reflection->newInstanceArgs($arguments);
     }
 
     private function original(): Invoice

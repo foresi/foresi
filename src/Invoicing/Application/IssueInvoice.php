@@ -92,6 +92,7 @@ final readonly class IssueInvoice
                 $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin, $rateDate);
                 $this->contacts->makeCustomer($party, $firm);
                 $origin?->recordIn($invoice);
+                $this->corrections->claim($input, null, $regime, $this->countries->for($firm->address()->countryCode));
 
                 return $invoice;
             });

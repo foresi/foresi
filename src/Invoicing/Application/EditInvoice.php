@@ -98,6 +98,7 @@ final readonly class EditInvoice
         $lines = $this->pricing->priced($input->lines, $regime, $country, $this->corrections->rateDate($input, $invoice) ?? $change->rateDate());
         if ($input->correction instanceof CorrectionInput) {
             CorrectionRules::record($invoice, $input->correction);
+            $this->corrections->claim($input, $invoice, $regime, $country);
         }
         $stored = [];
         foreach ($this->store->lines($invoice) as $line) {

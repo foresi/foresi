@@ -740,6 +740,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->idsForPeriod($firm, $from, $to);
             }
 
+            public function lockRow(string $id): void
+            {
+                $this->store->lockRow($id);
+            }
+
             public function correctionsOf(Invoice $original): array
             {
                 return $this->store->correctionsOf($original);

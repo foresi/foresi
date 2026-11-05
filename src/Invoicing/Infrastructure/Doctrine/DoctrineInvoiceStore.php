@@ -79,6 +79,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         return $invoice instanceof Invoice ? $invoice : throw new UnknownInvoice();
     }
 
+    public function lockRow(string $id): void
+    {
+        if (1 !== $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()])) {
+            throw new UnknownInvoice();
+        }
+    }
+
     public function lock(string $id): Invoice
     {
         $this->refusePendingChanges();
