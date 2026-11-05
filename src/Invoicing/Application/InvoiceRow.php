@@ -38,6 +38,18 @@ final readonly class InvoiceRow
         public SendMark $sendMark = SendMark::None,
         public DocumentKind $kind = DocumentKind::Invoice,
         public bool $settledByAdvances = false,
+        /** What its corrective documents not in the trash add to what it asks for. */
+        public ?Money $corrections = null,
     ) {
+    }
+
+    /**
+     * What is still to pay after the corrections: below zero when there is something to refund.
+     */
+    public function remaining(): Money
+    {
+        $due = $this->corrections instanceof Money ? $this->payable->plus($this->corrections) : $this->payable;
+
+        return $due->minus($this->paid);
     }
 }

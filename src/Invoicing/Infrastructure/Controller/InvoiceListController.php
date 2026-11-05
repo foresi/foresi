@@ -303,7 +303,7 @@ final class InvoiceListController extends AbstractController
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice)))),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice)))),
         ]);
     }
 
@@ -461,10 +461,19 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
-        $status = $row->settledByAdvances && !$row->trashed ? InvoiceStatus::SettledByAdvances : InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
+        $status = match (true) {
+            DocumentKind::CorrectionDocument === $row->kind => InvoiceStatus::ofCorrection($row->trashed),
+            $row->settledByAdvances && !$row->trashed => InvoiceStatus::SettledByAdvances,
+            default => InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment),
+        };
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
-        // A part payment says what is left; overdue or not, that is what someone acts on.
-        $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;
+        // A part payment says what is left; overdue or not, that is what someone acts on. A refund says how much.
+        $left = match (true) {
+            $row->trashed => null,
+            PaymentState::PartlyPaid === $row->payment => $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->remaining())]),
+            PaymentState::ToRefund === $row->payment => $this->translator->trans('invoice.payment.to_refund', ['amount' => $this->amounts->shown(Money::ofMinor(-$row->remaining()->minor(), $row->payable->currency()))]),
+            default => null,
+        };
         $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left])];
         $badge = null === $left ? $badge : $badge.' · '.$left;
         if ($severalFirms) {
@@ -516,7 +525,7 @@ final class InvoiceListController extends AbstractController
      */
     private function badge(Invoice $invoice): array
     {
-        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice));
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }

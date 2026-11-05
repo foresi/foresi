@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Shared\Domain\Money;
 
@@ -26,6 +27,8 @@ enum InvoiceStatus: string
     case Overdue = 'overdue';
     case Paid = 'paid';
     case Overpaid = 'overpaid';
+    /** Its corrections brought what is due below what was paid. */
+    case ToRefund = 'to_refund';
     case Trashed = 'trashed';
     /** Its deducted advances cover what it is for: nothing is left to pay, or there is a difference to refund. */
     case SettledByAdvances = 'settled_by_advances';
@@ -37,6 +40,7 @@ enum InvoiceStatus: string
     {
         return match (true) {
             $trashed => self::Trashed,
+            PaymentState::ToRefund === $payment => self::ToRefund,
             PaymentState::Overpaid === $payment => self::Overpaid,
             PaymentState::Paid === $payment => self::Paid,
             $overdue => self::Overdue,
@@ -47,11 +51,23 @@ enum InvoiceStatus: string
     }
 
     /**
-     * @param \DateTimeImmutable $today in the time zone of the country that issued the document
-     * @param Money              $paid  as InvoicePayments::paidOf() gives it
+     * A corrective document is never owing, paid or overdue: its money follows its invoice.
      */
-    public static function ofInvoice(Invoice $invoice, \DateTimeImmutable $today, Money $paid): self
+    public static function ofCorrection(bool $trashed): self
     {
+        return $trashed ? self::Trashed : self::Issued;
+    }
+
+    /**
+     * @param \DateTimeImmutable $today       in the time zone of the country that issued the document
+     * @param Money              $paid        as InvoicePayments::paidOf() gives it
+     * @param Money|null         $corrections as InvoicePayments::correctionsOf() gives it
+     */
+    public static function ofInvoice(Invoice $invoice, \DateTimeImmutable $today, Money $paid, ?Money $corrections = null): self
+    {
+        if (DocumentKind::CorrectionDocument === $invoice->kind()) {
+            return self::ofCorrection($invoice->isTrashed());
+        }
         if (!$invoice->isTrashed() && $invoice->deductsAdvances() && $invoice->payable()->minor() <= 0) {
             return self::SettledByAdvances;
         }
@@ -60,7 +76,7 @@ enum InvoiceStatus: string
             $invoice->isDelivered(),
             $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
-            PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid),
+            PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid, $corrections),
         );
     }
 
@@ -70,7 +86,7 @@ enum InvoiceStatus: string
             self::Issued => 'gray',
             self::Delivered, self::Paid, self::SettledByAdvances => 'green',
             self::Overdue => 'red',
-            self::Trashed, self::PartlyPaid, self::Overpaid => 'amber',
+            self::Trashed, self::PartlyPaid, self::Overpaid, self::ToRefund => 'amber',
         };
     }
 }

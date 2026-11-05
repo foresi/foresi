@@ -44,7 +44,7 @@ final readonly class PublicDocument
         public string $variableSymbol,
         public ?string $paymentCode,
         public PaymentState $payment,
-        /** What is still to pay in minor units, never below zero. */
+        /** What is still to pay in minor units after the corrections, never below zero. */
         public int $remainingMinor,
         /** The day the last payment not cancelled came in, or null without one. */
         public ?\DateTimeImmutable $lastPaidOn,
@@ -57,6 +57,10 @@ final readonly class PublicDocument
         /** The base, tax and total of the document: on a correction, its differences. */
         public int $netMinor = 0,
         public int $vatMinor = 0,
+        /** What the corrective documents of an invoice not in the trash add to what it asks for. */
+        public int $correctionsMinor = 0,
+        /** Of a corrective document: its invoice is now paid above what is due, so the difference goes back. */
+        public bool $originalToRefund = false,
     ) {
     }
 

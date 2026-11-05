@@ -146,6 +146,78 @@ final class PaymentBalancesTest extends InvoiceBalancesContract
         self::assertSame(121000, $owed->minor());
     }
 
+    public function testACreditNoteLowersWhatIsLeftOnAnUnpaidInvoice(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $credit = $this->correctionOf($invoice, '-400.00');
+        $this->em->clear();
+
+        $owed = $this->balances()->outstanding([$invoice->id(), $credit->id()]);
+
+        self::assertSame(72600, $owed[$invoice->id()]->minor(), '1 210 less 484');
+        self::assertSame(0, $owed[$credit->id()]->minor(), 'the credit note owes nothing itself');
+    }
+
+    public function testACreditNoteLowersWhatIsLeftOnAPartPaidInvoice(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->pay($invoice->id(), '500.00');
+        $this->correctionOf($invoice, '-400.00');
+        $this->em->clear();
+
+        self::assertSame(22600, $this->balances()->outstanding([$invoice->id()])[$invoice->id()]->minor());
+    }
+
+    public function testACreditNoteOnAPaidInvoiceLeavesNothingToPay(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->pay($invoice->id(), '1210.00');
+        $this->correctionOf($invoice, '-400.00');
+        $this->em->clear();
+
+        self::assertSame(0, $this->balances()->outstanding([$invoice->id()])[$invoice->id()]->minor());
+    }
+
+    public function testADebitNoteRaisesWhatIsLeftOnItsInvoiceAndOwesNothingItself(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->pay($invoice->id(), '1210.00');
+        $debit = $this->correctionOf($invoice, '200.00');
+        $this->em->clear();
+
+        $owed = $this->balances()->outstanding([$invoice->id(), $debit->id()]);
+
+        self::assertSame(24200, $owed[$invoice->id()]->minor());
+        self::assertSame(0, $owed[$debit->id()]->minor());
+    }
+
+    public function testATrashedCorrectionNoLongerCounts(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $credit = $this->correctionOf($invoice, '-400.00');
+        $this->trashInvoice($credit->id());
+        $this->em->clear();
+
+        self::assertSame(121000, $this->balances()->outstanding([$invoice->id()])[$invoice->id()]->minor());
+    }
+
+    public function testTheConditionFollowsTheCorrections(): void
+    {
+        $credited = $this->issue->issue($this->input());
+        $this->correctionOf($credited, '-1000.00');
+        $partly = $this->issue->issue($this->input());
+        $this->correctionOf($partly, '-400.00');
+        $debited = $this->issue->issue($this->input());
+        $this->pay($debited->id(), '1210.00');
+        $this->correctionOf($debited, '200.00');
+        $this->em->clear();
+
+        $owing = $this->connection()->fetchFirstColumn('SELECT inv.id FROM invoice inv WHERE '.self::getContainer()->get(OwingInvoiceCondition::class)->owing('inv'));
+
+        self::assertEqualsCanonicalizing([$partly->id(), $debited->id()], $owing, 'a fully credited invoice and the corrections themselves owe nothing');
+        self::assertSame(0, $this->balances()->outstanding([$credited->id()])[$credited->id()]->minor());
+    }
+
     private function pay(string $invoiceId, string $amount): Payment
     {
         $czk = Money::of($amount, Currency::CZK);

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Invoicing\Application\AdvanceDeductions;
+use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
@@ -19,6 +20,7 @@ use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Percent;
@@ -165,6 +167,25 @@ abstract class InvoiceTestCase extends KernelTestCase
         string $text = 'Work',
     ): LineInput {
         return new LineInput($text, Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), $type, $treatment, $kind, $supplyCode, Percent::fromString('0'));
+    }
+
+    /**
+     * A credit note (a negative difference) or a debit note (a positive one) of the
+     * base rate, issued on 20 November 2026.
+     */
+    protected function correctionOf(Invoice $original, string $difference): Invoice
+    {
+        $negative = str_starts_with($difference, '-');
+        $line = new LineInput('Work', Quantity::fromString($negative ? '-1' : '1'), 'h', Money::of(ltrim($difference, '-'), Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+        return $this->issue->issue($this->input([$line], [
+            'seriesId' => null,
+            'kind' => DocumentKind::CorrectionDocument,
+            'issueDate' => new \DateTimeImmutable('2026-11-20'),
+            'taxPointDate' => new \DateTimeImmutable('2026-11-20'),
+            'variableSymbol' => '',
+            'correction' => new CorrectionInput($original->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-20')),
+        ]));
     }
 
     /**

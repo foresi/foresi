@@ -713,7 +713,7 @@ final class InvoiceController extends AbstractController
             return null;
         }
         // Overdue by the tenant's day, as the reminders count it (ADR 0017).
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice));
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice), $this->payments->correctionsOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }

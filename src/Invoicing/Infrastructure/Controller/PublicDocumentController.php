@@ -107,7 +107,8 @@ final class PublicDocumentController extends AbstractController
         $credit = $document->isCreditNote();
         // What a correction asks for follows the invoice it corrects, so it is never paid itself.
         $settled = !$document->isCorrection() && ($document->payment->isSettled() || $byAdvances);
-        $partly = PaymentState::PartlyPaid === $document->payment;
+        // A correction changes what is left as a part payment does: the page and no stored code tell it.
+        $partly = PaymentState::PartlyPaid === $document->payment || (0 !== $document->correctionsMinor && !$settled);
         $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled && !$credit ? $document->bankAccount : null;
         $remaining = $partly ? $this->format->money(Money::ofMinor($document->remainingMinor, $document->currency), $document->language) : null;
 
@@ -118,6 +119,7 @@ final class PublicDocumentController extends AbstractController
             'kind' => $document->kind->value,
             'payable' => $document->asksForPayment(),
             'credit' => $credit,
+            'creditNote' => $document->originalToRefund ? 'invoice.public.credit_note_refund_note' : 'invoice.public.credit_note_note',
             'correction' => $document->isCorrection() ? $this->correction($document) : null,
             // What the payment box of the PDF says, and whether anything falls due.
             'amountLabel' => match (true) {

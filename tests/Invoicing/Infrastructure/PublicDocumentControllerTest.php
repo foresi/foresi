@@ -513,11 +513,30 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertMatchesRegularExpression('/^Rozdíl celkem -1\x{a0}210,00\x{a0}Kč$/u', $differences[2]);
         self::assertSame(['K vrácení'], $crawler->filter('main dl[data-amount] dt')->each(static fn ($dt): string => $dt->text()), 'no due date');
         self::assertMatchesRegularExpression('/^1\x{a0}210,00\x{a0}Kč$/u', $crawler->filter('main dl[data-amount] dd')->text());
-        self::assertSelectorTextSame('[data-paid-note]', 'Dobropis snižuje, co máte uhradit. Nic neplaťte.');
+        self::assertSelectorTextSame('[data-paid-note]', 'Snižuje částku k úhradě dokladu '.$sent['original'].'. Nic neplaťte.');
         self::assertSelectorNotExists('[data-paid-status]');
         self::assertSelectorNotExists('#payment-title');
         self::assertSelectorNotExists('figure svg');
         self::assertNull($this->connection()->fetchOne('SELECT payment_code FROM invoice_send WHERE id = ?', [$sent['send']]));
+    }
+
+    public function testACreditNoteOfAPaidInvoiceSaysTheAmountGoesBack(): void
+    {
+        $sent = $this->sentCorrection('-1', paidFirst: true);
+
+        $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorTextSame('[data-paid-note]', 'Částku vám vrátíme.');
+    }
+
+    public function testTheInvoiceAsksForWhatItsCorrectionsLeave(): void
+    {
+        $sent = $this->sentCorrection('-0.5');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['originalToken']);
+
+        self::assertMatchesRegularExpression('/^605,00\x{a0}Kč$/u', $crawler->filter('[data-remaining] dd')->text());
+        self::assertSelectorNotExists('figure svg', 'the stored code asks for the whole amount');
     }
 
     public function testADebitNoteAsksForPaymentWithTheCode(): void
@@ -777,11 +796,14 @@ final class PublicDocumentControllerTest extends WebTestCase
     /**
      * An invoice of 1 210 Kč and its correction of one line of 1 000 Kč, the quantity given, sent.
      *
-     * @return array{send: string, invoice: string, token: string, number: string, original: string}
+     * @return array{send: string, invoice: string, token: string, number: string, original: string, originalToken: string}
      */
-    private function sentCorrection(string $quantity): array
+    private function sentCorrection(string $quantity, bool $paidFirst = false): array
     {
         $original = $this->queuedDocument();
+        if ($paidFirst) {
+            $this->paid($original['invoice'], '1210.00');
+        }
         $correction = $this->inTenant(function () use ($original, $quantity): Invoice {
             [$firm, , $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
             $day = new \DateTimeImmutable('2026-11-03');
@@ -792,7 +814,7 @@ final class PublicDocumentControllerTest extends WebTestCase
 
         $number = $this->inTenant(static fn (): string => self::getContainer()->get(InvoiceStore::class)->get($original['invoice'])->number());
 
-        return [...$this->sentOf($correction), 'original' => $number];
+        return [...$this->sentOf($correction), 'original' => $number, 'originalToken' => $original['token']];
     }
 
     private function issuedAdvance(): Invoice

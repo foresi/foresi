@@ -72,7 +72,9 @@ final readonly class DoctrineCandidates implements Candidates
         $parameters['payableKinds'] = array_values(array_map(static fn (DocumentKind $kind): string => $kind->value, array_filter(DocumentKind::cases(), static fn (DocumentKind $kind): bool => $kind->isPayable())));
         $query = $this->em->createQuery(
             'SELECT i.id AS id, i.number AS number, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, '
-            .'(SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL) AS paid '
+            .'(SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL) AS paid, '
+            // A credit note lowers what is left and a debit note raises it; neither is a candidate itself.
+            .'(SELECT COALESCE(SUM(c.payableMinor), 0) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = i.id AND c.deletedAt IS NULL) AS corrections '
             .'FROM '.Invoice::class.' i '
             .'WHERE '.$where.' '
             .'ORDER BY i.dueDate, i.number, i.id',
@@ -80,13 +82,13 @@ final readonly class DoctrineCandidates implements Candidates
         foreach ($parameters as $name => $value) {
             $query->setParameter($name, $value);
         }
-        /** @var list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, paid: int|numeric-string}> $rows */
+        /** @var list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, paid: int|numeric-string, corrections: int|numeric-string}> $rows */
         $rows = $query->getArrayResult();
 
         $candidates = [];
         foreach ($rows as $row) {
-            // Overpaid invoices have less than nothing left: no candidate either.
-            $remaining = (int) $row['payable'] - (int) $row['paid'];
+            // Overpaid or credited invoices have nothing left: no candidate either.
+            $remaining = (int) $row['payable'] + (int) $row['corrections'] - (int) $row['paid'];
             if ($remaining > 0) {
                 $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($remaining, $row['currency']), $row['customer'], $row['issueDate']);
             }

@@ -1149,7 +1149,7 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Corrective documents');
         self::assertSelectorTextContains('main', 'No corrective documents here');
-        self::assertSame(['All0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['All0', 'To refund0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
         self::assertSelectorNotExists('main a[href^="/invoices/new"]');
         self::assertSelectorExists('nav a[href="/corrections"][aria-current="page"]');
         $links = $crawler->filter('nav a')->each(static fn ($link): string => (string) $link->attr('href'));

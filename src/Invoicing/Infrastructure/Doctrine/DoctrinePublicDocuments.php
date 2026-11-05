@@ -42,7 +42,13 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
                 WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor,
             (SELECT MAX(p.received_on) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
-                WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS last_paid_on
+                WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS last_paid_on,
+            (SELECT COALESCE(SUM(c.payable_minor), 0) FROM invoice c WHERE c.corrected_invoice_id = s.invoice_id AND c.deleted_at IS NULL) AS corrections_minor,
+            (SELECT o.payable_minor FROM invoice i JOIN invoice o ON o.id = i.corrected_invoice_id WHERE i.id = s.invoice_id AND o.deleted_at IS NULL) AS original_payable_minor,
+            (SELECT COALESCE(SUM(c.payable_minor), 0) FROM invoice i JOIN invoice c ON c.corrected_invoice_id = i.corrected_invoice_id
+                WHERE i.id = s.invoice_id AND c.deleted_at IS NULL) AS original_corrections_minor,
+            (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM invoice i JOIN payment_allocation a ON a.invoice_id = i.corrected_invoice_id
+                JOIN payment p ON p.id = a.payment_id WHERE i.id = s.invoice_id AND p.cancelled_at IS NULL) AS original_paid_minor
         FROM invoice_send s
         WHERE (token_hash = :hash OR copy_token_hash = :hash) AND revoked_at IS NULL AND status <> :cancelled
         SQL;
@@ -67,6 +73,14 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         $paid = (int) $this->text($row, 'paid_minor');
         $lastPaidOn = $this->optional($row, 'last_paid_on');
         $kind = DocumentKind::from($this->text($row, 'kind'));
+        $corrections = (int) $this->text($row, 'corrections_minor');
+        $originalPayable = $this->optional($row, 'original_payable_minor');
+        // Its invoice was paid above what the corrections leave due: the difference goes back.
+        $originalToRefund = null !== $originalPayable && PaymentState::ToRefund === PaymentState::of(
+            Money::ofMinor((int) $originalPayable, $currency),
+            Money::ofMinor((int) $this->text($row, 'original_paid_minor'), $currency),
+            Money::ofMinor((int) $this->text($row, 'original_corrections_minor'), $currency),
+        );
 
         return new PublicDocument(
             $this->text($row, 'id'),
@@ -87,8 +101,8 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             trim($this->text($row, 'variable_symbol')),
             $this->optional($row, 'payment_code'),
             // The invoice in the currency it was sent in: a document keeps its currency.
-            PaymentState::ofDocument($kind, Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency)),
-            $kind->isPayable() ? max(0, $payable - $paid) : 0,
+            PaymentState::ofDocument($kind, Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency), Money::ofMinor($corrections, $currency)),
+            $kind->isPayable() ? max(0, $payable + $corrections - $paid) : 0,
             null === $lastPaidOn ? null : new \DateTimeImmutable(substr($lastPaidOn, 0, 10)),
             $kind,
             // A boolean of PostgreSQL, an integer of SQLite.
@@ -97,6 +111,8 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             $this->optional($row, 'correction_reason'),
             (int) $this->text($row, 'net_minor'),
             (int) $this->text($row, 'vat_minor'),
+            $corrections,
+            $originalToRefund,
         );
     }
 

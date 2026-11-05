@@ -1022,7 +1022,8 @@ invoice:
     download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
     paid_note: 'Paid {date}, nothing to pay'
     do_not_pay: Do not pay, the document is already paid
-    credit_note_note: The credit note lowers what you owe. Do not pay it.
+    credit_note_note: 'It lowers the amount to pay on document {number}. Do not pay it.'
+    credit_note_refund_note: We will refund the amount to you.
     viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} correction_document {Corrective tax document {number} as PDF} other {Invoice {number} as PDF}}'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
@@ -1267,6 +1268,7 @@ invoice:
       overdue: Overdue
       settled: Settled
       unsettled: Unsettled
+      to_refund: To refund
       trash: Trash
     column:
       sent: E-mail
@@ -1288,6 +1290,7 @@ invoice:
       overdue: Overdue
       paid: Paid
       overpaid: Overpaid
+      to_refund: To refund
       trashed: In the trash
     action:
       edit: Edit
@@ -1552,6 +1555,7 @@ invoice:
     trashed: 'Invoice {number} is in the trash. Restore it first.'
     nothing_due: 'Invoice {number} has nothing to pay.'
     left: '{amount} left to pay'
+    to_refund: '{amount} to refund'
     panel:
       title: Payments
       movement: Show the bank movement
@@ -1560,6 +1564,7 @@ invoice:
       paid: Paid
       remaining: Left to pay
       overpaid: Overpaid by
+      to_refund: To refund
       written_off: 'written off {amount}'
       bank: Bank movement
       remove: Remove

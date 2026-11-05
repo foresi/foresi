@@ -1022,7 +1022,8 @@ invoice:
     download_paid: '{kind, select, advance {Stáhnout zálohovou fakturu (uhrazená)} payment_tax_document {Stáhnout daňový doklad} other {Stáhnout fakturu (uhrazená)}}'
     paid_note: 'Uhrazeno {date}, není co platit'
     do_not_pay: Neplaťte, doklad je již uhrazen
-    credit_note_note: Dobropis snižuje, co máte uhradit. Nic neplaťte.
+    credit_note_note: 'Snižuje částku k úhradě dokladu {number}. Nic neplaťte.'
+    credit_note_refund_note: Částku vám vrátíme.
     viewer: '{kind, select, advance {Zálohová faktura {number} jako PDF} payment_tax_document {Daňový doklad {number} jako PDF} correction_document {Opravný daňový doklad {number} jako PDF} other {Faktura {number} jako PDF}}'
     fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
     notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
@@ -1267,6 +1268,7 @@ invoice:
       overdue: Po splatnosti
       settled: Vyúčtované
       unsettled: Nevyúčtované
+      to_refund: K vrácení
       trash: Koš
     column:
       sent: E-mail
@@ -1288,6 +1290,7 @@ invoice:
       overdue: Po splatnosti
       paid: Uhrazeno
       overpaid: Přeplaceno
+      to_refund: K vrácení
       trashed: V koši
     action:
       edit: Upravit
@@ -1552,6 +1555,7 @@ invoice:
     trashed: 'Faktura {number} je v koši. Nejdřív ji obnovte.'
     nothing_due: 'Faktura {number} nemá nic k úhradě.'
     left: 'zbývá {amount}'
+    to_refund: 'k vrácení {amount}'
     panel:
       title: Úhrady
       movement: Zobrazit bankovní pohyb
@@ -1560,6 +1564,7 @@ invoice:
       paid: Uhrazeno
       remaining: Zbývá uhradit
       overpaid: Přeplaceno o
+      to_refund: K vrácení
       written_off: 'odepsáno {amount}'
       bank: Bankovní pohyb
       remove: Odebrat

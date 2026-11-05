@@ -75,7 +75,7 @@
             <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({kind: kind}, 'messages', locale) }}</twig:Ui:Button>
             {# The PDF is the one sent, payment details and all. #}
             {% if credit %}
-                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.credit_note_note'|trans({}, 'messages', locale) }}</p>
+                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ creditNote|trans({number: document.correctedNumber}, 'messages', locale) }}</p>
             {% elseif not payable %}
                 <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.do_not_pay'|trans({}, 'messages', locale) }}</p>
             {% elseif paidOn %}
