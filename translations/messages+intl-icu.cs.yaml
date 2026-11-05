@@ -995,11 +995,12 @@ invoice:
     add: Odečíst
     option: '{same, select, yes {Záloha {number}} other {Daňový doklad {number}, záloha {advance}}}, {amount}'
   public:
-    title: 'Faktura {number}'
+    title: '{kind, select, advance {Zálohová faktura {number}} payment_tax_document {Daňový doklad {number}} other {Faktura {number}}}'
     from: Od
     for: 'Pro {customer}'
     paid: Uhrazeno
     amount: K úhradě
+    amount_paid: Celkem uhrazeno
     due: Splatnost
     remaining: Zbývá uhradit
     payment:
@@ -1011,9 +1012,10 @@ invoice:
       qr: Naskenujte v aplikaci banky (QR Platba)
     open: Otevřít PDF
     download: Stáhnout
-    download_paid: Stáhnout fakturu (uhrazená)
+    download_paid: '{kind, select, advance {Stáhnout zálohovou fakturu (uhrazená)} payment_tax_document {Stáhnout daňový doklad} other {Stáhnout fakturu (uhrazená)}}'
     paid_note: 'Uhrazeno {date}, není co platit'
-    viewer: 'Faktura {number} jako PDF'
+    do_not_pay: Neplaťte, doklad je již uhrazen
+    viewer: '{kind, select, advance {Zálohová faktura {number} jako PDF} payment_tax_document {Daňový doklad {number} jako PDF} other {Faktura {number} jako PDF}}'
     fallback: Prohlížeč neumí PDF zobrazit přímo na stránce. Otevřete ho tlačítkem.
     notice: 'Odkaz od firmy {issuer} je určený vám: kdo ho má, může doklad otevřít, proto ho prosím nepřeposílejte.'
     gone:

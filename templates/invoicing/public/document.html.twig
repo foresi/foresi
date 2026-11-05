@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'invoicing/public/layout.html.twig' %}
 
-{% set title = 'invoice.public.title'|trans({number: document.number}, 'messages', locale) %}
+{% set title = 'invoice.public.title'|trans({number: document.number, kind: kind}, 'messages', locale) %}
 
 {% block title %}{{ title }} · {{ document.issuerName }}{% endblock %}
 
@@ -33,13 +33,16 @@
 
         <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6">
             <div class="min-w-0">
-                <dt class="text-small text-muted">{{ 'invoice.public.amount'|trans({}, 'messages', locale) }}</dt>
+                <dt class="text-small text-muted">{{ (payable ? 'invoice.public.amount' : 'invoice.public.amount_paid')|trans({}, 'messages', locale) }}</dt>
                 <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ amount }}</dd>
             </div>
-            <div class="min-w-0">
-                <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
-                <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ dueDate }}</dd>
-            </div>
+            {# A tax document on payment is paid by its payment: nothing falls due. #}
+            {% if payable %}
+                <div class="min-w-0">
+                    <dt class="text-small text-muted">{{ 'invoice.public.due'|trans({}, 'messages', locale) }}</dt>
+                    <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ dueDate }}</dd>
+                </div>
+            {% endif %}
             {% if remaining %}
                 <div class="min-w-0" data-remaining>
                     <dt class="text-small text-muted">{{ 'invoice.public.remaining'|trans({}, 'messages', locale) }}</dt>
@@ -50,9 +53,11 @@
 
         <div class="flex flex-col gap-2 border-t border-divider bg-head p-4 sm:flex-row sm:items-center sm:px-6">
             <twig:Ui:Button variant="primary" icon="receipt-text" :href="open" class="w-full sm:w-auto">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
-            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({}, 'messages', locale) }}</twig:Ui:Button>
+            <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({kind: kind}, 'messages', locale) }}</twig:Ui:Button>
             {# The PDF is the one sent, payment details and all. #}
-            {% if paidOn %}
+            {% if not payable %}
+                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.do_not_pay'|trans({}, 'messages', locale) }}</p>
+            {% elseif paidOn %}
                 <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.paid_note'|trans({date: paidOn}, 'messages', locale) }}</p>
             {% endif %}
         </div>
@@ -96,7 +101,7 @@
     {% endif %}
 
     {# Phones show embedded PDFs poorly, so there the buttons above are the way in. The embed never counts as read. #}
-    <object data="{{ pdf }}" type="application/pdf" title="{{ 'invoice.public.viewer'|trans({number: document.number}, 'messages', locale) }}" class="hidden aspect-[210/297] w-full rounded-panel border border-container bg-white shadow-raised md:block">
+    <object data="{{ pdf }}" type="application/pdf" title="{{ 'invoice.public.viewer'|trans({number: document.number, kind: kind}, 'messages', locale) }}" class="hidden aspect-[210/297] w-full rounded-panel border border-container bg-white shadow-raised md:block">
         <div class="grid h-full place-content-center justify-items-center gap-3 p-6 text-center">
             <p class="m-0 max-w-sm text-body text-text">{{ 'invoice.public.fallback'|trans({}, 'messages', locale) }}</p>
             <twig:Ui:Button variant="primary" icon="receipt-text" :href="open">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>

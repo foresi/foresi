@@ -48,6 +48,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * code; a part payment shows what remains and asks for that, without the code,
  * which asks for the whole amount. The PDF is the one sent and stays as it was, so
  * next to its download a paid invoice says when it was paid and that nothing is due.
+ * A tax document on payment is paid by its payment: like its PDF, the page says not
+ * to pay it, with neither a due date nor a way to pay.
  */
 final class PublicDocumentController extends AbstractController
 {
@@ -106,6 +108,8 @@ final class PublicDocumentController extends AbstractController
             'locale' => $language,
             'stylesheet' => $this->stylesheet(),
             'document' => $document,
+            'kind' => $document->kind->value,
+            'payable' => $document->kind->isPayable(),
             'amount' => $this->amount($document),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'pdf' => $this->generateUrl(self::PDF, ['token' => $token]),

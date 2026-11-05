@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PublicDocument;
 use App\Invoicing\Application\PublicDocuments;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\DocumentLanguage;
@@ -32,6 +33,7 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         SELECT id, tenant_id, token_hash, issuer_name, document_number, customer_name, amount_minor, currency, due_date, language, pdf_key, pdf_sha256,
             payment_method, bank_account, domestic_account, variable_symbol, payment_code,
             (SELECT i.payable_minor FROM invoice i WHERE i.id = s.invoice_id) AS payable_minor,
+            (SELECT i.kind FROM invoice i WHERE i.id = s.invoice_id) AS kind,
             (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
                 WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor,
             (SELECT MAX(p.received_on) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
@@ -59,6 +61,7 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
         $payable = (int) $this->text($row, 'payable_minor');
         $paid = (int) $this->text($row, 'paid_minor');
         $lastPaidOn = $this->optional($row, 'last_paid_on');
+        $kind = DocumentKind::from($this->text($row, 'kind'));
 
         return new PublicDocument(
             $this->text($row, 'id'),
@@ -79,9 +82,10 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             trim($this->text($row, 'variable_symbol')),
             $this->optional($row, 'payment_code'),
             // The invoice in the currency it was sent in: a document keeps its currency.
-            PaymentState::of(Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency)),
-            max(0, $payable - $paid),
+            PaymentState::ofDocument($kind, Money::ofMinor($payable, $currency), Money::ofMinor($paid, $currency)),
+            $kind->isPayable() ? max(0, $payable - $paid) : 0,
             null === $lastPaidOn ? null : new \DateTimeImmutable(substr($lastPaidOn, 0, 10)),
+            $kind,
         );
     }
 

@@ -995,11 +995,12 @@ invoice:
     add: Deduct
     option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
   public:
-    title: 'Invoice {number}'
+    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} other {Invoice {number}}}'
     from: From
     for: 'For {customer}'
     paid: Paid
     amount: Amount to pay
+    amount_paid: Total paid
     due: Due date
     remaining: Left to pay
     payment:
@@ -1011,9 +1012,10 @@ invoice:
       qr: Scan in your banking app (QR Platba)
     open: Open PDF
     download: Download
-    download_paid: Download invoice (paid)
+    download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
     paid_note: 'Paid {date}, nothing to pay'
-    viewer: 'Invoice {number} as PDF'
+    do_not_pay: Do not pay, the document is already paid
+    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} other {Invoice {number} as PDF}}'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
     gone:

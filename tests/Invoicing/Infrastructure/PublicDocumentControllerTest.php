@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\LinkTokens;
@@ -24,6 +26,7 @@ use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\LinkAudience;
 use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\PaymentSource;
@@ -402,6 +405,46 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertCount(0, $payment->filter('figure svg'));
     }
 
+    /**
+     * A tax document is paid by the payment it taxes, and its PDF says not to pay it,
+     * so the page asks for nothing either.
+     */
+    public function testATaxDocumentSaysItIsPaidAndAsksForNothing(): void
+    {
+        $sent = $this->sentTaxDocument();
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextSame('h1', 'Daňový doklad '.$sent['number']);
+        self::assertSelectorTextSame('[data-paid-status]', 'Uhrazeno');
+        self::assertSelectorTextSame('[data-paid-note]', 'Neplaťte, doklad je již uhrazen');
+        self::assertSame(['Celkem uhrazeno'], $crawler->filter('main dl dt')->each(static fn ($dt): string => $dt->text()), 'no amount to pay and no due date');
+        self::assertSelectorNotExists('#payment-title');
+        self::assertSelectorNotExists('figure svg');
+        self::assertSelectorNotExists('[data-remaining]');
+        self::assertSame('Stáhnout daňový doklad', $crawler->filter('a[href$="/download"]')->text());
+        self::assertSame('Daňový doklad '.$sent['number'].' jako PDF', $crawler->filter('object')->attr('title'));
+    }
+
+    public function testAnAdvanceAsksForPaymentAsItsPdfDoes(): void
+    {
+        $sent = $this->sentAdvance();
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorTextSame('h1', 'Zálohová faktura '.$sent['number']);
+        self::assertSame(['K úhradě', 'Splatnost'], $crawler->filter('main dl dt')->slice(0, 2)->each(static fn ($dt): string => $dt->text()));
+        self::assertCount(1, $crawler->filter('section[aria-labelledby="payment-title"] figure svg'), 'its PDF carries the QR code too');
+        self::assertSame('Stáhnout', $crawler->filter('a[href$="/download"]')->text());
+
+        $this->paid($sent['invoice'], '1210.00');
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorNotExists('#payment-title');
+        self::assertSame('Stáhnout zálohovou fakturu (uhrazená)', $crawler->filter('a[href$="/download"]')->text());
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
@@ -582,6 +625,63 @@ final class PublicDocumentControllerTest extends WebTestCase
                 'token' => $tokens->token($send->id(), LinkAudience::Customer),
                 'copyToken' => $copy ? $tokens->token($send->id(), LinkAudience::Copy) : null,
             ];
+        });
+    }
+
+    /**
+     * An advance of 1 210 Kč, sent.
+     *
+     * @return array{send: string, invoice: string, token: string, number: string}
+     */
+    private function sentAdvance(): array
+    {
+        $advance = $this->inTenant(fn (): Invoice => $this->issuedAdvance());
+
+        return $this->sentOf($advance);
+    }
+
+    /**
+     * The tax document of a payment of an advance, sent.
+     *
+     * @return array{send: string, invoice: string, token: string, number: string}
+     */
+    private function sentTaxDocument(): array
+    {
+        $document = $this->inTenant(function (): Invoice {
+            $advance = $this->issuedAdvance();
+            $money = Money::of('1210.00', Currency::CZK);
+            $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($advance->firm()->id(), new \DateTimeImmutable('2026-11-02'), $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), $money)]));
+            $id = self::getContainer()->get(AdvanceDocuments::class)->taxDocumentOf($advance->id(), $payment->id());
+            self::assertNotNull($id);
+
+            return self::getContainer()->get(InvoiceStore::class)->get($id);
+        });
+
+        return $this->sentOf($document);
+    }
+
+    private function issuedAdvance(): Invoice
+    {
+        [$firm, , $customer] = $this->firm ??= $this->newFirm();
+        $day = new \DateTimeImmutable('2026-11-01');
+        $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+        return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm, null, null, $customer, null, $day, null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance));
+    }
+
+    /**
+     * @return array{send: string, invoice: string, token: string, number: string}
+     */
+    private function sentOf(Invoice $document): array
+    {
+        return $this->inTenant(static function () use ($document): array {
+            $container = self::getContainer();
+            $send = $container->get(SendInvoice::class)->send(new SendRequest($document->id(), ['billing@example.com'], [], false, 'Document '.$document->number(), "Document {$document->number()}\n{link}"));
+            $mail = $container->get('messenger.transport.mail');
+            self::assertInstanceOf(InMemoryTransport::class, $mail);
+            new RunMessages($mail, $container->get(MessageBusInterface::class))->run();
+
+            return ['send' => $send->id(), 'invoice' => $document->id(), 'token' => $container->get(LinkTokens::class)->token($send->id(), LinkAudience::Customer), 'number' => $document->number()];
         });
     }
 
