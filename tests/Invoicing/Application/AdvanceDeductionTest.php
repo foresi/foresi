@@ -144,9 +144,13 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         $this->trash->trash($first->id(), 'Wrong amount');
         $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$lines]));
 
-        $this->expectException(\DomainException::class);
-
-        $this->trash->restore($first->id());
+        try {
+            $this->trash->restore($first->id());
+            self::fail('Expected the restore to be refused.');
+        } catch (IssueRefused $refused) {
+            self::assertSame('invoice.problem.already_deducted', $refused->problems[0]->key);
+        }
+        self::assertTrue($this->reloaded($first)->isTrashed());
     }
 
     public function testAnEditedInvoiceStillOffersWhatItDeducts(): void

@@ -64,9 +64,9 @@ final readonly class TrashInvoice
     /**
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
-     * @throws PaymentRefused   with CANCELLED for a tax document whose payment is cancelled
-     * @throws \DomainException when another invoice deducts what it deducted meanwhile
-     * @throws UnknownInvoice   also for an invoice of another tenant
+     * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled
+     * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile
+     * @throws UnknownInvoice also for an invoice of another tenant
      */
     public function restore(string $id): Invoice
     {
@@ -97,10 +97,6 @@ final readonly class TrashInvoice
             $ids[(string) $line->deducts()] = true;
         }
         unset($ids['']);
-        try {
-            $this->deductions->claim($invoice, array_map(strval(...), array_keys($ids)));
-        } catch (IssueRefused) {
-            throw new \DomainException('Another invoice deducts an advance this one deducted.');
-        }
+        $this->deductions->claim($invoice, array_map(strval(...), array_keys($ids)));
     }
 }

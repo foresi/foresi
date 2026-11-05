@@ -1221,6 +1221,25 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame(['1 tax document', '2 tax documents', '5 tax documents'], $counted('payment_tax_document', 'en'));
     }
 
+    public function testRestoringAnInvoiceWhoseAdvanceAnotherInvoiceDeductsSaysSo(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $first = $this->savedDeducting();
+        $this->scoped(static fn (): Invoice => self::getContainer()->get(TrashInvoice::class)->trash($first->id(), 'Wrong amount'));
+        $this->savedDeducting();
+        $crawler = $this->client->request('GET', '/invoices', ['tab' => 'trash']);
+
+        $this->client->submit($crawler->filter('main table form[action="/invoices/'.$first->id().'/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/invoices?tab=trash');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main [role="alert"]', 'An advance on this invoice is deducted by another invoice already.');
+        self::assertSelectorTextContains('main table', $first->number());
+    }
+
     public function testATaxDocumentCannotBeCopiedAndOffersNoPayment(): void
     {
         $this->signedIn();
@@ -1299,6 +1318,21 @@ final class InvoiceControllerTest extends WebTestCase
 
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'This payment has its tax document already.');
+    }
+
+    /**
+     * A final invoice saved through the form that deducts the one tax document on offer.
+     */
+    private function savedDeducting(): Invoice
+    {
+        $before = array_map(static fn (Invoice $invoice): string => $invoice->id(), $this->invoices());
+        $this->client->request('POST', '/invoices/new', array_merge($this->filled(), ['_action' => 'refresh']));
+        $option = (string) $this->client->getCrawler()->filter('select[name="deduction"] option')->attr('value');
+        $this->client->request('POST', '/invoices/new', array_merge($this->currentValues(), ['_action' => 'deduct', 'deduction' => $option]));
+        $this->save($this->currentValues());
+        self::assertResponseRedirects('/invoices');
+
+        return array_values(array_filter($this->invoices(), static fn (Invoice $invoice): bool => !\in_array($invoice->id(), $before, true)))[0];
     }
 
     private function paidAdvanceWithoutTaxDocument(): Invoice

@@ -262,6 +262,9 @@ final class InvoiceListController extends AbstractController
             $this->addFlash('success', $this->translator->trans('invoice.flash.restored', ['number' => $this->trash->restore($id)->number()]));
         } catch (PaymentRefused $refused) {
             $this->addFlash('error', $this->translator->trans('invoice.payment.refused.'.$refused->reason));
+        } catch (IssueRefused $refused) {
+            // Another invoice deducts an advance this one deducted: it stays in the trash.
+            $this->addFlash('error', $this->translator->trans($refused->problems[0]->key, $refused->problems[0]->parameters));
         }
 
         return $this->toList($request->request->getString('return'));
