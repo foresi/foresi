@@ -1,16 +1,30 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The figures come from the server, here and in every recount; the browser only puts them in place. #}
-<div class="ml-auto grid w-full max-w-md gap-1.5" aria-live="polite" data-invoice-form-target="totals">
-    <p class="m-0 text-small font-medium text-badge-amber-text" hidden data-invoice-form-target="stale">{{ 'invoice.total.stale'|trans }}</p>
+{#
+    The figures come from the server, here and in every recount; the browser only puts them in place.
+    As iDoklad's: right-aligned labels that end at one point, and amounts in a fixed column whose right
+    edge is the line total column's (the margin is the actions column of _lines.html.twig plus the cell
+    padding). Every row of the totals uses the row and amount classes below, so any later row lines up.
+#}
+{% set row = 'flex items-baseline justify-end gap-6 text-right' %}
+{% set amount = 'num w-40 shrink-0 whitespace-nowrap' %}
+<div class="ml-auto grid w-full gap-1 sm:w-fit xl:mr-[6.25rem]" aria-live="polite" data-invoice-form-target="totals"
+    data-row-class="{{ row }}" data-amount-class="{{ amount }}"
+    data-base-label="{{ 'invoice.total.base'|trans({rate: '__RATE__'}) }}" data-vat-label="{{ 'invoice.total.rate_vat'|trans({rate: '__RATE__'}) }}">
+    <p class="m-0 text-right text-small font-medium text-badge-amber-text" hidden data-invoice-form-target="stale">{{ 'invoice.total.stale'|trans }}</p>
     <div class="grid gap-1 text-small text-muted{% if figures.summaries is empty %} hidden{% endif %}" data-invoice-form-target="summaries">
         {% for summary in figures.summaries %}
-            <div class="flex justify-between gap-4"><span>{{ summary.label }}</span><span class="num">{{ summary.base }}{% if summary.vat %} · {{ summary.vat }}{% endif %}</span></div>
+            {% if summary.vat %}
+                <div class="{{ row }}"><span>{{ 'invoice.total.base'|trans({rate: summary.label}) }}</span><span class="{{ amount }}">{{ summary.base }}</span></div>
+                <div class="{{ row }}"><span>{{ 'invoice.total.rate_vat'|trans({rate: summary.label}) }}</span><span class="{{ amount }}">{{ summary.vat }}</span></div>
+            {% else %}
+                <div class="{{ row }}"><span>{{ summary.label }}</span><span class="{{ amount }}">{{ summary.base }}</span></div>
+            {% endif %}
         {% endfor %}
     </div>
     {% if payer %}
-        <div class="flex justify-between gap-4"><span>{{ 'invoice.total.net'|trans }}</span><span class="num" data-total="net" data-invoice-form-target="net">{{ figures.net }}</span></div>
-        <div class="flex justify-between gap-4"><span>{{ 'invoice.total.vat'|trans }}</span><span class="num" data-total="vat" data-invoice-form-target="vat">{{ figures.vat }}</span></div>
+        <div class="{{ row }} mt-1 border-t border-divider pt-2"><span>{{ 'invoice.total.net'|trans }}</span><span class="{{ amount }}" data-total="net" data-invoice-form-target="net">{{ figures.net }}</span></div>
+        <div class="{{ row }}"><span>{{ 'invoice.total.vat'|trans }}</span><span class="{{ amount }}" data-total="vat" data-invoice-form-target="vat">{{ figures.vat }}</span></div>
     {% endif %}
-    <div class="flex justify-between gap-4{% if figures.rounding is null %} hidden{% endif %}" data-invoice-form-target="roundingRow"><span>{{ 'invoice.total.rounding'|trans }}</span><span class="num" data-total="rounding" data-invoice-form-target="rounding">{{ figures.rounding }}</span></div>
-    <div class="flex justify-between gap-4 border-t border-divider pt-2 text-body font-semibold text-ink"><span>{{ 'invoice.total.payable'|trans }}</span><span class="num" data-total="payable" data-invoice-form-target="payable">{{ figures.payable }}</span></div>
+    <div class="{{ row }}{% if figures.rounding is null %} hidden{% endif %}" data-invoice-form-target="roundingRow"><span>{{ 'invoice.total.rounding'|trans }}</span><span class="{{ amount }}" data-total="rounding" data-invoice-form-target="rounding">{{ figures.rounding }}</span></div>
+    <div class="{{ row }} mt-1 text-heading font-semibold text-ink"><span>{{ 'invoice.total.payable'|trans }}</span><span class="{{ amount }}" data-total="payable" data-invoice-form-target="payable">{{ figures.payable }}</span></div>
 </div>

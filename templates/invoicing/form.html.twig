@@ -263,81 +263,63 @@
                     <twig:Ui:Textarea name="textBefore" id="textBefore" :row="true" width="long" :label="'invoice.field.textBefore'|trans" :value="values.textBefore" :error="errorFields.textBefore|default(null)" :rows="2" />
                     <twig:Ui:Textarea name="textAfter" id="textAfter" :row="true" width="long" :label="'invoice.field.textAfter'|trans" :value="values.textAfter" :error="errorFields.textAfter|default(null)" :rows="2" />
                 </twig:Ui:Disclosure>
-            </twig:Ui:Card>
 
-            {% if datesInLines %}<twig:Ui:Alert tone="warning" role="status" data-line-dates>{{ 'invoice.copy.line_dates'|trans }}</twig:Ui:Alert>{% endif %}
-            <twig:Ui:Card :title="'invoice.card.lines'|trans" icon="receipt-text">
-                <table class="block w-full xl:table xl:table-fixed" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
-                    <thead class="max-xl:sr-only">
-                        <tr class="text-left text-small font-medium text-muted">
-                            <th scope="col" class="p-1 font-medium">{{ 'invoice.line.text'|trans }}</th>
-                            <th scope="col" class="w-28 p-1 text-right font-medium">{{ 'invoice.line.price'|trans }}</th>
-                            <th scope="col" class="w-20 p-1 text-right font-medium">{{ 'invoice.line.quantity'|trans }}</th>
-                            <th scope="col" class="w-16 p-1 font-medium">{{ 'invoice.line.unit'|trans }}</th>
-                            {% if payer %}
-                                <th scope="col" class="w-32 p-1 font-medium">{{ 'invoice.line.priceType'|trans }}</th>
-                                <th scope="col" class="w-40 p-1 font-medium">{{ 'invoice.line.vat'|trans }}</th>
-                            {% endif %}
-                            <th scope="col" class="w-32 p-1 text-right font-medium">{{ (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans }}</th>
-                            <th scope="col" class="w-24 p-1"><span class="sr-only">{{ 'invoice.line.actions'|trans }}</span></th>
-                        </tr>
-                    </thead>
-                    {% for line in values.lines %}
-                        {{ include('invoicing/_line.html.twig', {index: loop.index0, line: line, total: figures.lines[loop.index0].total|default(''), discount: figures.lines[loop.index0].discount|default('')}) }}
-                    {% endfor %}
-                </table>
-                <template data-invoice-form-target="lineTemplate">{{ include('invoicing/_line.html.twig', {index: '__INDEX__', line: emptyLine, total: '', discount: ''}) }}</template>
-                <div class="mt-3 grid items-start gap-4 sm:grid-cols-[auto_minmax(0,1fr)]">
+
+                {# Part of the same surface, as iDoklad: a plain heading, the lines, the buttons, then the totals. #}
+                <section class="mt-6 grid gap-3 border-t border-divider pt-5" aria-labelledby="invoice-lines-heading" data-lines-section>
+                    <h2 id="invoice-lines-heading" class="m-0 text-heading font-semibold text-ink">{{ 'invoice.card.lines'|trans }} (<span data-invoice-form-target="lineCount">{{ values.lines|length }}</span>)</h2>
+                    {% if datesInLines %}<twig:Ui:Alert tone="warning" role="status" data-line-dates>{{ 'invoice.copy.line_dates'|trans }}</twig:Ui:Alert>{% endif %}
+                    {{ include('invoicing/_lines.html.twig') }}
                     <div class="grid justify-items-start gap-1.5">
                         <twig:Ui:Button type="submit" id="invoice-new-line" name="_action" value="add_line" icon="plus" :disabled="values.lines|length >= maxLines" data-invoice-form-target="addLine" data-action="invoice-form#addLine:prevent">{{ 'invoice.line.add'|trans }}</twig:Ui:Button>
                         <p class="m-0 text-caption text-muted"{% if values.lines|length < maxLines %} hidden{% endif %} data-invoice-form-target="lineLimit">{{ 'invoice.line_limit'|trans }}</p>
                     </div>
+                    {# As iDoklad's "Add advance deduction": the customer's paid advances, one tax document each. #}
+                    {% if deductible is not empty %}
+                        <div class="flex flex-wrap items-end gap-2" data-deductions>
+                            <div class="min-w-0 flex-1 sm:max-w-md"><twig:Ui:Select name="deduction" id="deduction" :label="'invoice.deduction.label'|trans" :help="'invoice.deduction.help'|trans" :options="deductible" /></div>
+                            <twig:Ui:Button type="submit" name="_action" value="deduct" icon="minus">{{ 'invoice.deduction.add'|trans }}</twig:Ui:Button>
+                        </div>
+                    {% elseif mayDeduct and not values.customerId %}
+                        <div class="flex flex-wrap items-center gap-2" data-deductions>
+                            <p class="m-0 text-small text-muted">{{ 'invoice.deduction.pick_first'|trans }}</p>
+                            <twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'invoice.deduction.show'|trans }}</twig:Ui:Button>
+                        </div>
+                    {% endif %}
                     {{ include('invoicing/_totals.html.twig') }}
-                </div>
-                {# As iDoklad's "Add advance deduction": the customer's paid advances, one tax document each. #}
-                {% if deductible is not empty %}
-                    <div class="mt-4 flex flex-wrap items-end gap-2 border-t border-divider pt-4" data-deductions>
-                        <div class="min-w-0 flex-1 sm:max-w-md"><twig:Ui:Select name="deduction" id="deduction" :label="'invoice.deduction.label'|trans" :help="'invoice.deduction.help'|trans" :options="deductible" /></div>
-                        <twig:Ui:Button type="submit" name="_action" value="deduct" icon="minus">{{ 'invoice.deduction.add'|trans }}</twig:Ui:Button>
-                    </div>
-                {% elseif mayDeduct and not values.customerId %}
-                    <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-divider pt-4" data-deductions>
-                        <p class="m-0 text-small text-muted">{{ 'invoice.deduction.pick_first'|trans }}</p>
-                        <twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'invoice.deduction.show'|trans }}</twig:Ui:Button>
-                    </div>
+                </section>
+
+                {% if errors is not empty %}
+                    <twig:Ui:Alert tone="error" role="alert" class="sticky bottom-24 z-20 max-h-52 overflow-y-auto shadow-floating max-sm:bottom-32" data-error-summary data-invoice-form-target="errors">
+                        <div class="mb-1 flex items-center justify-between gap-2">
+                            <p class="m-0 font-semibold">{{ 'invoice.errors_title'|trans }}</p>
+                            <twig:Ui:IconButton icon="x" :label="'invoice.errors_close'|trans" variant="ghost" size="sm" data-action="invoice-form#closeErrors" />
+                        </div>
+                        <ul class="m-0 grid list-none gap-0.5 p-0 font-normal">
+                            {% for error in errors %}
+                                <li>
+                                    {%- if error.link is null %}{{ error.field }}
+                                    {%- elseif error.link.external %}<a href="{{ error.link.href }}" target="_blank" rel="noopener" data-error-link class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
+                                    {%- else %}<a href="{{ error.link.href }}" data-error-link data-action="invoice-form#goToField:prevent" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>
+                                    {%- endif %}: {{ error.message -}}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </twig:Ui:Alert>
                 {% endif %}
+
+                <twig:Ui:ActionBar :end="true" class="-mx-4 -mb-4 mt-6">
+                    <twig:Ui:Button :href="path(listRoute)" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                    <div class="relative" data-controller="dropdown">
+                        <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
+                        <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
+                            <button type="submit" name="_action" value="save_send" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_send'|trans }}</button>
+                            <button type="submit" name="_action" value="save_pdf" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_pdf'|trans }}</button>
+                        </div>
+                    </div>
+                    <twig:Ui:Button type="submit" id="invoice-save" name="_action" value="save" variant="primary" data-save>{{ 'invoice.save'|trans }}</twig:Ui:Button>
+                </twig:Ui:ActionBar>
             </twig:Ui:Card>
-
-            {% if errors is not empty %}
-                <twig:Ui:Alert tone="error" role="alert" class="sticky bottom-24 z-20 max-h-52 overflow-y-auto shadow-floating max-sm:bottom-32" data-error-summary data-invoice-form-target="errors">
-                    <div class="mb-1 flex items-center justify-between gap-2">
-                        <p class="m-0 font-semibold">{{ 'invoice.errors_title'|trans }}</p>
-                        <twig:Ui:IconButton icon="x" :label="'invoice.errors_close'|trans" variant="ghost" size="sm" data-action="invoice-form#closeErrors" />
-                    </div>
-                    <ul class="m-0 grid list-none gap-0.5 p-0 font-normal">
-                        {% for error in errors %}
-                            <li>
-                                {%- if error.link is null %}{{ error.field }}
-                                {%- elseif error.link.external %}<a href="{{ error.link.href }}" target="_blank" rel="noopener" data-error-link class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}<span class="sr-only"> ({{ 'invoice.opens_new_tab'|trans }})</span></a>
-                                {%- else %}<a href="{{ error.link.href }}" data-error-link data-action="invoice-form#goToField:prevent" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ error.field }}</a>
-                                {%- endif %}: {{ error.message -}}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </twig:Ui:Alert>
-            {% endif %}
-
-            <twig:Ui:ActionBar :end="true">
-                <twig:Ui:Button :href="path(listRoute)" id="invoice-cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
-                <div class="relative" data-controller="dropdown">
-                    <twig:Ui:Button id="invoice-more" aria-haspopup="menu" aria-expanded="false" aria-controls="invoice-more-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.more_actions'|trans }}{{ ux_icon('lucide:chevron-up', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
-                    <div id="invoice-more-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="invoice-more" class="absolute bottom-full right-0 z-50 mb-1.5 w-max rounded-panel border border-container bg-white p-1.5 shadow-floating">
-                        <button type="submit" name="_action" value="save_send" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_send'|trans }}</button>
-                        <button type="submit" name="_action" value="save_pdf" role="menuitem" tabindex="-1" class="block w-full cursor-pointer rounded-control px-2.5 py-1.5 text-left text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'invoice.save_pdf'|trans }}</button>
-                    </div>
-                </div>
-                <twig:Ui:Button type="submit" id="invoice-save" name="_action" value="save" variant="primary" data-save>{{ 'invoice.save'|trans }}</twig:Ui:Button>
-            </twig:Ui:ActionBar>
             {# Last on purpose: PHP cuts a form at max_input_vars, and without this field the server knows. #}
             <input type="hidden" name="_complete" value="1">
         </form>

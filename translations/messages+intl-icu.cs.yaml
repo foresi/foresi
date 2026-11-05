@@ -1604,6 +1604,8 @@ invoice:
     cs: Čeština
     en: Angličtina
   total:
+    base: 'Základ {rate}'
+    rate_vat: 'DPH {rate}'
     net: Bez DPH
     vat: DPH
     rounding: Zaokrouhlení

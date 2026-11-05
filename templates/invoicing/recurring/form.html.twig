@@ -212,26 +212,7 @@
             <twig:Ui:Card :title="'invoice.card.lines'|trans" icon="receipt-text">
                 {% import 'invoicing/recurring/_parts.html.twig' as parts %}
                 <div class="mb-3">{{ parts.variables('recurring-variables-lines', variables, focus) }}</div>
-                <table class="block w-full xl:table xl:table-fixed" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
-                    <thead class="max-xl:sr-only">
-                        <tr class="text-left text-small font-medium text-muted">
-                            <th scope="col" class="p-1 font-medium">{{ 'invoice.line.text'|trans }}</th>
-                            <th scope="col" class="w-28 p-1 text-right font-medium">{{ 'invoice.line.price'|trans }}</th>
-                            <th scope="col" class="w-20 p-1 text-right font-medium">{{ 'invoice.line.quantity'|trans }}</th>
-                            <th scope="col" class="w-16 p-1 font-medium">{{ 'invoice.line.unit'|trans }}</th>
-                            {% if payer %}
-                                <th scope="col" class="w-32 p-1 font-medium">{{ 'invoice.line.priceType'|trans }}</th>
-                                <th scope="col" class="w-40 p-1 font-medium">{{ 'invoice.line.vat'|trans }}</th>
-                            {% endif %}
-                            <th scope="col" class="w-32 p-1 text-right font-medium">{{ (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans }}</th>
-                            <th scope="col" class="w-24 p-1"><span class="sr-only">{{ 'invoice.line.actions'|trans }}</span></th>
-                        </tr>
-                    </thead>
-                    {% for line in values.lines %}
-                        {{ include('invoicing/_line.html.twig', {index: loop.index0, line: line, total: figures.lines[loop.index0].total|default(''), discount: figures.lines[loop.index0].discount|default(''), textAttributes: chipField}) }}
-                    {% endfor %}
-                </table>
-                <template data-invoice-form-target="lineTemplate">{{ include('invoicing/_line.html.twig', {index: '__INDEX__', line: emptyLine, total: '', discount: '', textAttributes: chipField}) }}</template>
+                {{ include('invoicing/_lines.html.twig', {textAttributes: chipField}) }}
                 <div class="mt-3 grid items-start gap-4 sm:grid-cols-[auto_minmax(0,1fr)]">
                     <div class="grid justify-items-start gap-1.5">
                         <twig:Ui:Button type="submit" id="invoice-new-line" name="_action" value="add_line" icon="plus" :disabled="values.lines|length >= maxLines" data-invoice-form-target="addLine" data-action="invoice-form#addLine:prevent">{{ 'invoice.line.add'|trans }}</twig:Ui:Button>

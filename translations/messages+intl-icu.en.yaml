@@ -1604,6 +1604,8 @@ invoice:
     cs: Czech
     en: English
   total:
+    base: 'Base {rate}'
+    rate_vat: 'VAT {rate}'
     net: Without VAT
     vat: VAT
     rounding: Rounding

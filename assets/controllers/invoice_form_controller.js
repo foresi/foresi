@@ -19,7 +19,7 @@ const CONTACT_CHANNEL = 'foresi-contact-created';
  */
 export default class extends Controller {
     static targets = [
-        'line', 'lines', 'lineTemplate', 'totals', 'summaries', 'net', 'vat', 'rounding', 'roundingRow', 'payable',
+        'line', 'lines', 'lineCount', 'lineTemplate', 'totals', 'summaries', 'net', 'vat', 'rounding', 'roundingRow', 'payable',
         'stale', 'addLine', 'lineLimit', 'dueDateSet', 'originalSeries', 'originalNumber', 'numberPeek', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
         'errors', 'paymentMethod', 'bankRow', 'language', 'customerBox', 'summary', 'contactLink', 'notice', 'noticeText', 'noScript',
     ];
@@ -97,17 +97,29 @@ export default class extends Controller {
         this.roundingRowTarget.classList.toggle('hidden', figures.rounding === null);
         this.payableTarget.textContent = figures.payable;
         this.summariesTarget.classList.toggle('hidden', figures.summaries.length === 0);
-        this.summariesTarget.replaceChildren(...figures.summaries.map((summary) => this.summaryRow(summary)));
+        this.summariesTarget.replaceChildren(...figures.summaries.flatMap((summary) => this.summaryRows(summary)));
     }
 
-    summaryRow(summary) {
+    // A rate shows its base and its VAT on rows of their own, as the server renders them.
+    summaryRows(summary) {
+        if (summary.vat === '') {
+            return [this.totalRow(summary.label, summary.base)];
+        }
+        const { baseLabel, vatLabel } = this.totalsTarget.dataset;
+        return [
+            this.totalRow(baseLabel.replace('__RATE__', summary.label), summary.base),
+            this.totalRow(vatLabel.replace('__RATE__', summary.label), summary.vat),
+        ];
+    }
+
+    totalRow(text, figure) {
         const row = document.createElement('div');
-        row.className = 'flex justify-between gap-4';
+        row.className = this.totalsTarget.dataset.rowClass;
         const label = document.createElement('span');
-        label.textContent = summary.label;
+        label.textContent = text;
         const amount = document.createElement('span');
-        amount.className = 'num';
-        amount.textContent = summary.vat === '' ? summary.base : `${summary.base} · ${summary.vat}`;
+        amount.className = this.totalsTarget.dataset.amountClass;
+        amount.textContent = figure;
         row.append(label, amount);
         return row;
     }
@@ -500,6 +512,9 @@ export default class extends Controller {
             });
         });
         this.showSupplyCodes();
+        if (this.hasLineCountTarget) {
+            this.lineCountTarget.textContent = String(this.lineTargets.length);
+        }
         const full = this.lineTargets.length >= this.maxLinesValue;
         this.addLineTarget.disabled = full;
         this.lineLimitTarget.hidden = !full;
