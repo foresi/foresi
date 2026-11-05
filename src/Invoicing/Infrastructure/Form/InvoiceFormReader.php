@@ -58,7 +58,7 @@ final readonly class InvoiceFormReader
     private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
     private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
     private const string DATE = '/^20\d{2}-\d{2}-\d{2}$/D';
-    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount'];
+    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount', 'deducts'];
     private const array CUSTOMER_FIELDS = ['name', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode', 'email', 'phone', 'web', 'registerEntry'];
 
     /**
@@ -262,6 +262,7 @@ final readonly class InvoiceFormReader
                 $kind,
                 '' === $row['supplyCode'] ? null : $row['supplyCode'],
                 $this->discount($row['discount'], $field, $errors),
+                Uuid::isValid($row['deducts']) ? $row['deducts'] : null,
             );
         }
 

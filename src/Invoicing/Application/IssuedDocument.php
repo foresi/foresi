@@ -63,6 +63,7 @@ final readonly class IssuedDocument
         public bool $trashed = false,
         public ?Money $leftToPay = null,
         public ?string $advanceNumber = null,
+        public bool $deductsAdvances = false,
     ) {
     }
 

@@ -451,7 +451,7 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
-        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
+        $status = $row->settledByAdvances && !$row->trashed ? InvoiceStatus::SettledByAdvances : InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
         // A part payment says what is left; overdue or not, that is what someone acts on.
         $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;

@@ -46,6 +46,7 @@ final readonly class IssueRules
         private InvoiceSends $sends,
         private FirmBankAccounts $accounts,
         private LineRules $shared,
+        private DeductibleAdvances $deductible,
     ) {
     }
 
@@ -67,7 +68,7 @@ final readonly class IssueRules
         if (!$country instanceof InvoicingCountry) {
             return [...$problems, new IssueProblem('firm', 'invoice.problem.firm_country_unsupported')];
         }
-        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy)];
+        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy), ...$this->deductions($input, $firm, $existing)];
         $regime = $existing?->vatRegime() ?? VatRegime::of($firm->vatStatus());
         $rateDate = $input->rateDate($existing?->kind() ?? $input->kind);
         $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode, $rateDate)];
@@ -185,6 +186,26 @@ final readonly class IssueRules
         }
 
         return null === $input->typedNumber ? [] : $this->typedNumber(trim($input->typedNumber), $series, $input->issueDate, $firm, $existing);
+    }
+
+    /**
+     * Only an invoice deducts, and only what its customer may deduct now: a tax
+     * document or a paid advance without VAT of the firm, deducted by no other invoice.
+     *
+     * @return list<IssueProblem>
+     */
+    private function deductions(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): array
+    {
+        $ids = AdvanceDeductions::deducted($input->lines);
+        if ([] === $ids) {
+            return [];
+        }
+        if (DocumentKind::Invoice !== ($existing?->kind() ?? $input->kind)) {
+            return [new IssueProblem('lines', 'invoice.problem.deduction_invalid')];
+        }
+        $offered = array_map(static fn (Deductible $deductible): string => $deductible->id, $this->deductible->for($firm, $input->customerId, $existing, $input->language));
+
+        return [] === array_diff($ids, $offered) ? [] : [new IssueProblem('lines', 'invoice.problem.deduction_invalid')];
     }
 
     /**

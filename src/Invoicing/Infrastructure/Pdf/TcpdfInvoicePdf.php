@@ -179,6 +179,8 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'toPay' => $this->format->money($document->toPay(), $document->language),
             'toPayLabel' => $this->trans(match (true) {
                 !$document->kind->isPayable() => 'invoice.pdf.do_not_pay',
+                $document->deductsAdvances && $document->payable->isNegative() => 'invoice.pdf.to_refund',
+                $document->deductsAdvances && $document->payable->isZero() => 'invoice.pdf.settled_by_advances',
                 $document->leftToPay instanceof Money => 'invoice.pdf.left_to_pay',
                 default => 'invoice.pdf.payable',
             }),

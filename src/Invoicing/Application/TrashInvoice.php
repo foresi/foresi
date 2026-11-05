@@ -11,6 +11,7 @@ namespace App\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceLine;
 use App\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
@@ -31,6 +32,7 @@ final readonly class TrashInvoice
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private AdvanceDeductions $deductions,
     ) {
     }
 
@@ -51,6 +53,7 @@ final readonly class TrashInvoice
             }
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             $invoice->trash($now, $this->actor->userId(), $reason);
+            $this->deductions->release($invoice);
             $this->sends->cancelQueued($invoice, $now);
             $this->sends->revokeAll($invoice, $now);
 
@@ -61,15 +64,33 @@ final readonly class TrashInvoice
     /**
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws \DomainException when another invoice deducts what it deducted meanwhile
+     * @throws UnknownInvoice   also for an invoice of another tenant
      */
     public function restore(string $id): Invoice
     {
         return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id): Invoice {
             $invoice = $this->store->lock($id);
+            $wasTrashed = $invoice->isTrashed();
             $invoice->restore();
+            if ($wasTrashed) {
+                $this->reclaim($invoice);
+            }
 
             return $invoice;
         }));
+    }
+
+    /**
+     * A restored invoice deducts again what it deducted, unless another invoice took it meanwhile.
+     */
+    private function reclaim(Invoice $invoice): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map(static fn (InvoiceLine $line): ?string => $line->deducts(), $this->store->lines($invoice)), \is_string(...))));
+        try {
+            $this->deductions->claim($invoice, $ids);
+        } catch (IssueRefused) {
+            throw new \DomainException('Another invoice deducts an advance this one deducted.');
+        }
     }
 }

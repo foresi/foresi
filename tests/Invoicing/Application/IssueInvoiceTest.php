@@ -761,6 +761,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(\App\Audit\Application\AuditActor::class),
             $container->get(\Psr\Clock\ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
+            $this->deductions(),
         );
 
         try {

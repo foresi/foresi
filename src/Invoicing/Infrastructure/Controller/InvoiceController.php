@@ -15,6 +15,8 @@ use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
+use App\Invoicing\Application\Deductible;
+use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceHistory;
@@ -45,6 +47,7 @@ use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\VariableSymbol;
+use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFigures;
 use App\Invoicing\Infrastructure\Form\InvoiceFormContext;
@@ -70,6 +73,7 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -132,6 +136,9 @@ final class InvoiceController extends AbstractController
         private readonly OwnerCheck $owner,
         private readonly InvoiceFormOptions $options,
         private readonly AdvanceTaxation $taxation,
+        private readonly DeductibleAdvances $deductible,
+        private readonly RequestStack $request,
+        private readonly AmountText $amounts,
     ) {
     }
 
@@ -411,6 +418,13 @@ final class InvoiceController extends AbstractController
                 $values = $this->values->forFirm($values, $context->firm, $submission->input->issueDate);
                 $this->addFlash('warning', $this->translator->trans('invoice.firm_changed'));
             }
+        } elseif ('deduct' === $action) {
+            $chosen = $this->request->getCurrentRequest()?->request->getString('deduction') ?? '';
+            foreach ($this->deductibleFor($context, $values) as $deductible) {
+                if ($deductible->id === $chosen) {
+                    $values = $this->values->withDeduction($values, $deductible);
+                }
+            }
         } else {
             $values = $this->values->withRowAction($values, $action, $context->regime, $this->newLinesAreReverseCharge($context, $values));
         }
@@ -615,6 +629,7 @@ final class InvoiceController extends AbstractController
             'countries' => $this->countryOptions(),
             'figures' => $this->shownFigures($context, $values, $taxPoint),
             'currencyNotice' => $this->currencyNotice($context, $values),
+            'deductible' => $this->deductibleOptions($context, $values),
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
         ], new Response(status: $status));
@@ -778,6 +793,43 @@ final class InvoiceController extends AbstractController
         $date = \is_string($values[$field]) ? $this->reader->date($values[$field], $field, $errors) : null;
 
         return $date ?? $this->today($context);
+    }
+
+    /**
+     * What the customer on the form has to deduct and the form does not deduct yet;
+     * only an invoice deducts.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return list<Deductible>
+     */
+    private function deductibleFor(InvoiceFormContext $context, array $values): array
+    {
+        $customer = \is_string($values['customerId'] ?? null) ? $values['customerId'] : '';
+        if (DocumentKind::Invoice !== $context->kind || !Uuid::isValid($customer)) {
+            return [];
+        }
+        $language = DocumentLanguage::tryFrom(\is_string($values['language'] ?? null) ? $values['language'] : '') ?? DocumentLanguage::Czech;
+        /** @var list<array<string, string>> $rows */
+        $rows = \is_array($values['lines'] ?? null) ? $values['lines'] : [];
+        $taken = array_map(static fn (array $row): string => $row['deducts'] ?? '', $rows);
+
+        return array_values(array_filter($this->deductible->for($context->firm, $customer, $context->invoice, $language), static fn (Deductible $deductible): bool => !\in_array($deductible->id, $taken, true)));
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, string>
+     */
+    private function deductibleOptions(InvoiceFormContext $context, array $values): array
+    {
+        $options = [];
+        foreach ($this->deductibleFor($context, $values) as $deductible) {
+            $options[$deductible->id] = $this->translator->trans('invoice.deduction.option', ['number' => $deductible->number, 'advance' => $deductible->advanceNumber, 'amount' => $this->amounts->shown($deductible->amount), 'same' => $deductible->number === $deductible->advanceNumber ? 'yes' : 'no']);
+        }
+
+        return $options;
     }
 
     /**

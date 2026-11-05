@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Form;
 
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
+use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\InvoiceDraftValues;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\LineInput;
@@ -134,7 +135,28 @@ final readonly class InvoiceFormValues
      */
     public function emptyLine(VatRegime $regime, bool $reverseCharge): array
     {
-        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => $this->newLineVat($regime, $reverseCharge), 'supplyCode' => '', 'discount' => ''];
+        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => $this->newLineVat($regime, $reverseCharge), 'supplyCode' => '', 'discount' => '', 'deducts' => ''];
+    }
+
+    /**
+     * The lines that deduct an advance, after the lines there are; an empty first
+     * row gives way to them, as a row nobody filled in is no line.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, mixed>
+     */
+    public function withDeduction(array $values, Deductible $deductible): array
+    {
+        /** @var list<array<string, string>> $rows */
+        $rows = $values['lines'];
+        $rows = array_values(array_filter($rows, static fn (array $row): bool => '' !== $row['text'].$row['price'].$row['unit'].$row['discount']));
+        foreach ($deductible->lines as $line) {
+            $rows[] = $this->lineOfDraft($line);
+        }
+        $values['lines'] = \array_slice($rows, 0, InvoiceFormReader::MAX_LINES);
+
+        return $values;
     }
 
     /**
@@ -367,6 +389,7 @@ final readonly class InvoiceFormValues
             'vat' => $this->vatChoice($line->treatment, $line->rateKind),
             'supplyCode' => $line->supplyCode ?? '',
             'discount' => 0 === $line->discount->basisPoints() ? '' : $this->amounts->trimmed($line->discount->decimal()),
+            'deducts' => $line->deducts ?? '',
         ];
     }
 
@@ -384,6 +407,7 @@ final readonly class InvoiceFormValues
             'vat' => $this->vatChoice($line->treatment(), $line->rateKind()),
             'supplyCode' => $line->supplyCode() ?? '',
             'discount' => 0 === $line->discount()->basisPoints() ? '' : $this->amounts->trimmed($line->discount()->decimal()),
+            'deducts' => $line->deducts() ?? '',
         ];
     }
 

@@ -294,7 +294,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
      */
     private function settled(string $suffix): string
     {
-        return '(i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+        return '((i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')) OR (i.deductsAdvances = true AND i.payableMinor <= 0))';
     }
 
     /**
@@ -302,7 +302,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
      */
     private function unsettled(string $suffix): string
     {
-        return '(i.payableMinor <= 0 OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+        return '((i.payableMinor <= 0 AND i.deductsAdvances = false) OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
     }
 
     /**
@@ -374,6 +374,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
         $paid = Money::ofMinor($paidMinor, $invoice->currency());
         $payment = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
+        $byAdvances = $invoice->deductsAdvances() && $invoice->payable()->minor() <= 0;
 
         return new InvoiceRow(
             $invoice->id(),
@@ -384,7 +385,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->dueDate(),
             $invoice->payable(),
             $invoice->isDelivered(),
-            !$invoice->isTrashed() && !$payment->isSettled() && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
+            !$invoice->isTrashed() && !$payment->isSettled() && !$byAdvances && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
             $paid,
             $payment,
@@ -393,6 +394,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->deletedReason(),
             $mark,
             $invoice->kind(),
+            $byAdvances,
         );
     }
 }

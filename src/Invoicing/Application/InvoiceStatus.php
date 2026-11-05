@@ -27,6 +27,8 @@ enum InvoiceStatus: string
     case Paid = 'paid';
     case Overpaid = 'overpaid';
     case Trashed = 'trashed';
+    /** Its deducted advances cover what it is for: nothing is left to pay, or there is a difference to refund. */
+    case SettledByAdvances = 'settled_by_advances';
 
     /**
      * @param bool $overdue past its due date; a settled payment state outranks it
@@ -50,6 +52,10 @@ enum InvoiceStatus: string
      */
     public static function ofInvoice(Invoice $invoice, \DateTimeImmutable $today, Money $paid): self
     {
+        if (!$invoice->isTrashed() && $invoice->deductsAdvances() && $invoice->payable()->minor() <= 0) {
+            return self::SettledByAdvances;
+        }
+
         return self::of(
             $invoice->isDelivered(),
             $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
@@ -62,7 +68,7 @@ enum InvoiceStatus: string
     {
         return match ($this) {
             self::Issued => 'gray',
-            self::Delivered, self::Paid => 'green',
+            self::Delivered, self::Paid, self::SettledByAdvances => 'green',
             self::Overdue => 'red',
             self::Trashed, self::PartlyPaid, self::Overpaid => 'amber',
         };

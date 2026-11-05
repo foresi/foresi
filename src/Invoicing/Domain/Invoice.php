@@ -48,6 +48,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['tenant_id', 'recurring_invoice_id', 'recurring_occurrence'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
+#[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -158,6 +159,14 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'payment_id', type: 'guid', nullable: true)]
     private ?string $paymentId = null;
+
+    // Claimed by the invoice that deducts this tax document or advance, by a statement that refuses a second claim.
+    #[AuditExcluded]
+    #[ORM\Column(name: 'deducted_by_invoice_id', type: 'guid', nullable: true)]
+    private ?string $deductedByInvoiceId = null;
+
+    #[ORM\Column(name: 'deducts_advances', type: 'boolean', options: ['default' => false])]
+    private bool $deductsAdvances = false;
 
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
@@ -356,6 +365,28 @@ class Invoice implements TenantOwned, Audited
     public function paymentId(): ?string
     {
         return $this->paymentId;
+    }
+
+    /**
+     * Whether lines of this invoice deduct advances: a payable of zero or less is
+     * then settled by them.
+     */
+    public function markDeductions(bool $deducts): void
+    {
+        $this->deductsAdvances = $deducts;
+    }
+
+    public function deductsAdvances(): bool
+    {
+        return $this->deductsAdvances;
+    }
+
+    /**
+     * The invoice that deducts this tax document or advance invoice.
+     */
+    public function deductedByInvoiceId(): ?string
+    {
+        return $this->deductedByInvoiceId;
     }
 
     public function recurringInvoiceId(): ?string

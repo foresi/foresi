@@ -37,6 +37,7 @@ final readonly class InvoiceRow
         public ?string $deletedReason = null,
         public SendMark $sendMark = SendMark::None,
         public DocumentKind $kind = DocumentKind::Invoice,
+        public bool $settledByAdvances = false,
     ) {
     }
 }

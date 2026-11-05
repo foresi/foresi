@@ -38,6 +38,7 @@ final readonly class EditInvoice
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ContactSettingsForFirm $contacts,
+        private AdvanceDeductions $deductions,
     ) {
     }
 
@@ -101,9 +102,9 @@ final readonly class EditInvoice
         foreach ($lines as $position => $line) {
             $typed = $line->input;
             if (isset($stored[$position])) {
-                $stored[$position]->revise($typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts);
+                $stored[$position]->revise($typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts);
             } else {
-                $this->store->addLine(new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts));
+                $this->store->addLine(new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts));
             }
         }
         foreach ($stored as $position => $line) {
@@ -112,5 +113,6 @@ final readonly class EditInvoice
             }
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $invoice->rounding(), $country));
+        $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
     }
 }

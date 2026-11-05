@@ -262,6 +262,13 @@
                     </div>
                     {{ include('invoicing/_totals.html.twig') }}
                 </div>
+                {# As iDoklad's "Add advance deduction": the customer's paid advances, one tax document each. #}
+                {% if deductible is not empty %}
+                    <div class="mt-4 flex flex-wrap items-end gap-2 border-t border-divider pt-4" data-deductions>
+                        <div class="min-w-0 flex-1 sm:max-w-md"><twig:Ui:Select name="deduction" id="deduction" :label="'invoice.deduction.label'|trans" :help="'invoice.deduction.help'|trans" :options="deductible" /></div>
+                        <twig:Ui:Button type="submit" name="_action" value="deduct" icon="minus">{{ 'invoice.deduction.add'|trans }}</twig:Ui:Button>
+                    </div>
+                {% endif %}
             </twig:Ui:Card>
 
             {% if errors is not empty %}

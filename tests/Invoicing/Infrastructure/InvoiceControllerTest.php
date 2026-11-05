@@ -78,7 +78,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceControllerTest extends WebTestCase
 {
     /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
-    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown'];
+    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
@@ -1168,6 +1168,33 @@ final class InvoiceControllerTest extends WebTestCase
         $actions = $crawler->filter('main table [href]')->each(static fn ($link): string => (string) $link->attr('href'));
         self::assertNotContains('/invoices/'.$document->id().'/copy', $actions);
         self::assertNotContains('/invoices/'.$document->id().'/pay', $actions);
+    }
+
+    public function testTheInvoiceFormDeductsAPaidAdvance(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $values = $this->filled();
+        $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'refresh']));
+        $options = $this->client->getCrawler()->filter('select[name="deduction"] option');
+        self::assertCount(1, $options);
+        self::assertStringContainsString('Tax document D820260001, advance Z920260001', $options->text());
+
+        $this->client->request('POST', '/invoices/new', array_merge($this->currentValues(), ['_action' => 'deduct', 'deduction' => (string) $options->attr('value')]));
+
+        self::assertSelectorNotExists('select[name="deduction"]');
+        $deducting = $this->currentValues();
+        self::assertSame('-1210.00', $deducting['lines'][1]['price']);
+        self::assertSame((string) $options->attr('value'), $deducting['lines'][1]['deducts']);
+        $this->save($deducting);
+        self::assertResponseRedirects('/invoices');
+        $final = array_values(array_filter($this->invoices(), static fn (Invoice $invoice): bool => DocumentKind::Invoice === $invoice->kind()))[0];
+        self::assertSame(0, $final->payable()->minor());
+        self::assertTrue($final->deductsAdvances());
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorTextContains('main table', 'Settled by advances');
     }
 
     public function testIssuingATaxDocumentTwiceSaysItExists(): void

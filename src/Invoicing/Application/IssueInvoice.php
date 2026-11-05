@@ -54,6 +54,7 @@ final readonly class IssueInvoice
         private AuditActor $actor,
         private ClockInterface $clock,
         private ContactSettingsForFirm $contacts,
+        private AdvanceDeductions $deductions,
     ) {
     }
 
@@ -116,9 +117,10 @@ final readonly class IssueInvoice
         $this->store->add($invoice);
         $lines = $this->pricing->priced($input->lines, $regime, $country, $content->rateDate());
         foreach ($lines as $position => $line) {
-            $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts));
+            $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $country));
+        $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
 
         return $invoice;
     }

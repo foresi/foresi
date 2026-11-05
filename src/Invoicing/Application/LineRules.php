@@ -157,7 +157,8 @@ final readonly class LineRules
             return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
         }
 
-        return $totals->payable->isNegative() ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
+        // Advances deducted beyond the supply leave a difference to refund (§37a(2)(b)).
+        return $totals->payable->isNegative() && [] === AdvanceDeductions::deducted($lines) ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
     }
 
     public static function vatIdOf(?string $vatId): ?VatId

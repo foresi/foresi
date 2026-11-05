@@ -979,6 +979,11 @@ series:
     next_below_counter: 'This number is already used. The next free one is {next}.'
     kind: Choose the kind of documents.
 invoice:
+  deduction:
+    label: Deduct an advance
+    help: The customer's paid advances, each tax document once. Its lines are added with a minus.
+    add: Deduct
+    option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
   public:
     title: 'Invoice {number}'
     from: From
@@ -1170,10 +1175,13 @@ invoice:
     payable: Total to pay
     left_to_pay: Left to pay
     do_not_pay: Do not pay, the document is already paid
+    to_refund: Difference to refund
+    settled_by_advances: Settled by advances, nothing to pay
     total_paid: Total paid
     for_advance: 'To advance invoice {number}'
     tax_point_payment: Date of receipt of payment (tax point)
     tax_document_line: 'Tax document on received payment of advance invoice {number}, variable symbol {symbol}'
+    deduction_line: '{document, select, none {Deduction of advance invoice {number}, variable symbol {symbol}} other {Deduction of advance, variable symbol {symbol} (tax document {document})}}'
     item: Description
     quantity: Qty
     unit: Unit
@@ -1240,6 +1248,7 @@ invoice:
       deletedAt: Deleted
       reason: Reason
     status:
+      settled_by_advances: Settled by advances
       issued: Issued
       delivered: Delivered
       partly_paid: Partly paid
@@ -1610,6 +1619,8 @@ invoice:
     series_archived: This series is archived.
     series_kind: This series numbers another kind of document.
     tax_document_fixed: A tax document on payment follows its payment and cannot be changed.
+    already_deducted: An advance on this invoice is deducted by another invoice already.
+    deduction_invalid: 'This advance cannot be deducted here: it belongs to another customer, is deducted elsewhere, or is not paid.'
     tax_document_exists: This payment has its tax document already.
     no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
     payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.

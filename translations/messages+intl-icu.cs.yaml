@@ -979,6 +979,11 @@ series:
     next_below_counter: 'Toto číslo je už použité. Další volné je {next}.'
     kind: Vyberte druh dokladů.
 invoice:
+  deduction:
+    label: Odečíst zálohu
+    help: Uhrazené zálohy odběratele, každý daňový doklad jednou. Jeho položky se přidají se záporným znaménkem.
+    add: Odečíst
+    option: '{same, select, yes {Záloha {number}} other {Daňový doklad {number}, záloha {advance}}}, {amount}'
   public:
     title: 'Faktura {number}'
     from: Od
@@ -1170,10 +1175,13 @@ invoice:
     payable: Celkem k úhradě
     left_to_pay: Zbývá uhradit
     do_not_pay: Neplaťte, doklad je již uhrazen
+    to_refund: Rozdíl k vrácení
+    settled_by_advances: Uhrazeno zálohami, nic nehraďte
     total_paid: Celkem uhrazeno
     for_advance: 'K zálohové faktuře {number}'
     tax_point_payment: Datum přijetí platby (DUZP)
     tax_document_line: 'Daňový doklad k přijaté platbě zálohové faktury {number}, VS {symbol}'
+    deduction_line: '{document, select, none {Odpočet zálohové faktury {number}, VS {symbol}} other {Odpočet zálohy VS {symbol} (daňový doklad {document})}}'
     item: Označení dodávky
     quantity: Počet
     unit: m. j.
@@ -1240,6 +1248,7 @@ invoice:
       deletedAt: Smazáno
       reason: Důvod
     status:
+      settled_by_advances: Uhrazeno zálohami
       issued: Vystaveno
       delivered: Doručeno
       partly_paid: Částečně uhrazeno
@@ -1610,6 +1619,8 @@ invoice:
     series_archived: Tato řada je archivovaná.
     series_kind: Tato řada čísluje jiný druh dokladů.
     tax_document_fixed: Daňový doklad k platbě odpovídá své platbě a nelze ho měnit.
+    already_deducted: Záloha z této faktury je už odečtená na jiné faktuře.
+    deduction_invalid: 'Tuto zálohu tu nelze odečíst: patří jinému odběrateli, je odečtená jinde, nebo není uhrazená.'
     tax_document_exists: Tato platba už svůj daňový doklad má.
     no_tax_on_receipt: Z této platby DPH nevznikla, daňový doklad proto nedostane.
     payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
