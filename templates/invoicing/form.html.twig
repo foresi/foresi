@@ -49,6 +49,7 @@
         {% set notices %}
             {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
             {% for message in app.flashes('warning') %}<twig:Ui:Alert tone="warning" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+            {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
             {% if stale %}
                 <twig:Ui:Alert tone="error" role="alert" data-reload-prompt>
                     <span>{{ 'invoice.problem.changed_meanwhile'|trans }}</span>
@@ -57,7 +58,12 @@
             {% endif %}
             {% for notice in copyNotices %}<twig:Ui:Alert tone="warning" role="status" data-copy-notice>{{ notice|trans }}</twig:Ui:Alert>{% endfor %}
             {% if trashed %}<twig:Ui:Alert tone="warning">{{ 'invoice.problem.trashed'|trans }}</twig:Ui:Alert>{% endif %}
-            {% if needsCorrection %}<twig:Ui:Alert tone="error" data-needs-correction>{{ 'tax_document.needs_correction'|trans }}</twig:Ui:Alert>{% endif %}
+            {% if needsCorrection %}
+                <twig:Ui:Alert tone="error" data-needs-correction>
+                    <span>{{ 'tax_document.needs_correction'|trans }}</span>
+                    <a href="{{ path('app_invoice_correct', {id: invoice.id}) }}" data-correct-tax-document class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'tax_document.correct'|trans }}</a>
+                </twig:Ui:Alert>
+            {% endif %}
             {% if changedAfterSend|default(null) %}<twig:Ui:Alert tone="warning" data-changed-after-send>{{ 'invoice.changed_after_send'|trans({date: changedAfterSend}) }}</twig:Ui:Alert>{% endif %}
         {% endset %}
         {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}

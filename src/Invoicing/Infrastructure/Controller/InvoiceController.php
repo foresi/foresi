@@ -15,6 +15,8 @@ use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CorrectInvoice;
+use App\Invoicing\Application\CorrectionDue;
+use App\Invoicing\Application\CorrectPaymentTaxDocument;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\Deductible;
@@ -146,6 +148,7 @@ final class InvoiceController extends AbstractController
         private readonly DocumentChain $chain,
         private readonly AdvanceDocuments $advanceDocuments,
         private readonly CorrectInvoice $corrections,
+        private readonly CorrectPaymentTaxDocument $taxCorrections,
     ) {
     }
 
@@ -221,7 +224,13 @@ final class InvoiceController extends AbstractController
         $this->denyUnlessStaff();
         $source = $this->invoice($id);
         if (!CorrectInvoice::corrects($source)) {
-            throw new NotFoundHttpException('Only an invoice that is not in the trash is corrected.');
+            throw new NotFoundHttpException('Only an invoice that is not in the trash, or a delivered tax document on payment, is corrected.');
+        }
+        // A deduction holds the tax document: the final invoice releases it first.
+        if (DocumentKind::PaymentTaxDocument === $source->kind() && null !== $source->deductedByInvoiceId()) {
+            $this->addFlash('error', $this->translator->trans('invoice.problem.correction_deducted'));
+
+            return $this->redirectToRoute('app_invoice_edit', ['id' => $source->id()]);
         }
         try {
             $context = $this->newContext($source->firm(), DocumentKind::CorrectionDocument);
@@ -229,8 +238,12 @@ final class InvoiceController extends AbstractController
         } catch (UnsupportedCountry) {
             return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
         }
+        $values = $this->values->ofCopy($draft, $source->firm(), $source, false);
+        if (DocumentKind::PaymentTaxDocument === $source->kind()) {
+            $values['correctionReason'] = $this->taxCorrections->reasonFor($source);
+        }
 
-        return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source, false), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+        return $this->form($context, $values, [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     /**
@@ -640,7 +653,7 @@ final class InvoiceController extends AbstractController
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
             // Delivered before its payment was cancelled: it needs a corrective document.
-            'needsCorrection' => null !== $invoice?->paymentId() && !$invoice->isTrashed() && $this->payments->get($invoice->paymentId())->isCancelled(),
+            'needsCorrection' => $invoice instanceof Invoice && $this->taxCorrections->due($invoice) instanceof CorrectionDue,
             'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
             'kind' => $context->kind->value,

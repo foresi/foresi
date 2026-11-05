@@ -21,7 +21,7 @@ use App\Invoicing\Domain\Quantity;
  */
 final readonly class CorrectInvoice
 {
-    public function __construct(private NewInvoiceDefaults $defaults, private InvoiceStore $store)
+    public function __construct(private NewInvoiceDefaults $defaults, private InvoiceStore $store, private CorrectPaymentTaxDocument $taxDocuments)
     {
     }
 
@@ -30,7 +30,7 @@ final readonly class CorrectInvoice
      */
     public static function corrects(Invoice $source): bool
     {
-        return DocumentKind::Invoice === $source->kind() && !$source->isTrashed();
+        return CorrectionRules::correctable($source);
     }
 
     /**
@@ -40,9 +40,12 @@ final readonly class CorrectInvoice
     public function valuesFrom(Invoice $source): InvoiceDraftValues
     {
         if (!self::corrects($source)) {
-            throw new \DomainException('Only an invoice that is not in the trash is corrected.');
+            throw new \DomainException('Only an invoice that is not in the trash, or a delivered tax document on payment, is corrected.');
         }
         $draft = $this->defaults->for($source->firm(), kind: DocumentKind::CorrectionDocument);
+        if (DocumentKind::PaymentTaxDocument === $source->kind()) {
+            return $this->ofTaxDocument($draft, $source);
+        }
 
         return $draft->with([
             'customerId' => $source->customerParty()->id(),
@@ -53,6 +56,30 @@ final readonly class CorrectInvoice
             'lines' => array_values(array_map($this->negated(...), array_filter($this->store->lines($source), static fn (InvoiceLine $line): bool => null === $line->deducts()))),
             'correctedInvoiceId' => $source->id(),
         ]);
+    }
+
+    /**
+     * A tax document on payment opens with what is due on it, dated on the day of the
+     * fact, at the rates of the receipt; the reason is the controller's to fill in.
+     */
+    private function ofTaxDocument(InvoiceDraftValues $draft, Invoice $source): InvoiceDraftValues
+    {
+        $due = $this->taxDocuments->due($source);
+        $values = [
+            'customerId' => $source->customerParty()->id(),
+            'paymentMethod' => $source->paymentMethod(),
+            'bankAccount' => $source->bankAccount() ?? $draft->bankAccount,
+            'variableSymbol' => $source->variableSymbol(),
+            'description' => $source->description(),
+            'language' => $source->language(),
+            'lines' => $this->taxDocuments->linesFor($source),
+            'correctedInvoiceId' => $source->id(),
+        ];
+        if ($due instanceof CorrectionDue) {
+            $values += ['issueDate' => $due->decisiveDate, 'taxPointDate' => $due->decisiveDate, 'dueDate' => $due->decisiveDate];
+        }
+
+        return $draft->with($values);
     }
 
     private function negated(InvoiceLine $line): LineInput

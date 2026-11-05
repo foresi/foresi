@@ -56,8 +56,9 @@ interface InvoicePayments
     /**
      * What may go back to the customer as a refund: what was paid above what is due
      * on an invoice whose corrections brought it below what was paid (to refund), or
-     * on a final invoice whose deducted advances exceed it (difference to refund).
-     * Zero for anything else, a plain overpayment included.
+     * on a final invoice whose deducted advances exceed it (difference to refund),
+     * and what was paid on an advance invoice no final invoice deducts. Zero for
+     * anything else, a plain overpayment included.
      */
     public function toRefundOf(Invoice $invoice): Money;
 

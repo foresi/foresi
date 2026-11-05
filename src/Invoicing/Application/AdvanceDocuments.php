@@ -67,4 +67,13 @@ interface AdvanceDocuments
      * no invoice deducts, whoever its customer.
      */
     public function firmHasUndeducted(string $firmId): bool;
+
+    /**
+     * The delivered tax documents on payments out of the trash whose payment was
+     * cancelled or whose advance has a refund not cancelled: those that may need a
+     * corrective tax document. Whether they still do is for the caller to tell.
+     *
+     * @return list<string> ids
+     */
+    public function correctionCandidates(): array;
 }

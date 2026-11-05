@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 use App\Invoicing\Application\InvoicePaymentLine;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\UnknownPayment;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
@@ -117,6 +118,12 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         $none = Money::ofMinor(0, $invoice->currency());
         if ($invoice->isTrashed() || !$invoice->kind()->isPayable()) {
             return $none;
+        }
+        // An advance no final invoice deducts goes back as a whole: its tax documents are corrected.
+        if (DocumentKind::Advance === $invoice->kind()) {
+            $paid = $this->paidOf($invoice);
+
+            return null === $invoice->deductedByInvoiceId() && $paid->minor() > 0 ? $paid : $none;
         }
         $corrections = $this->correctionsOf($invoice);
         $remaining = $invoice->payable()->plus($corrections)->minus($this->paidOf($invoice));

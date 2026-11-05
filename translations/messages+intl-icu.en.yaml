@@ -1667,7 +1667,9 @@ invoice:
     correction_kind: Only a corrective tax document names a corrected document.
     correction_link_missing: Choose the invoice this document corrects.
     correction_link_locked: A corrective document keeps the invoice it corrects.
-    correction_original_invalid: Only an issued invoice that is not in the trash can be corrected.
+    correction_original_invalid: Only an issued invoice that is not in the trash, or a delivered tax document on payment, can be corrected.
+    correction_deducted: A final invoice deducts this tax document. Release the deduction first by moving the final invoice to the trash or removing the deduction from it.
+    correction_payment_change: A tax document on payment is corrected as a change after the supply, on the day the payment was cancelled or refunded.
     correction_firm: The correction must be issued by the firm of the invoice.
     correction_customer: The correction must be for the customer of the invoice.
     correction_reason_missing: Say why the invoice is being corrected.
@@ -2442,7 +2444,27 @@ correction:
     error: Error on the document
     error_text: The invoice was wrong; taxed in its original period.
 tax_document:
-  needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
+  waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
+  needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.
+  correct: Issue a corrective document
+  refunded_reason: The payment it taxed was refunded before the customer got it.
+  correction:
+    cancelled: Advance payment cancelled
+    refunded: Advance payment refunded
+  uncorrected:
+    tab: Waiting for correction
+    title: Tax documents on payment waiting for correction
+    intro: When an advance payment is cancelled or refunded after the customer got its tax document, a corrective tax document is issued within 15 days of the cancellation or refund. A document a final invoice deducts is corrected once the deduction is released.
+    empty: No tax document is waiting for correction.
+    deducted: deducted on a final invoice
+    notice: '{late, select, yes {{count, plural, one {A tax document is} other {# tax documents are}} past the deadline for correction.} other {{count, plural, one {A tax document waits} other {# tax documents wait}} for a corrective document, the first by {date}.}}'
+    column:
+      number: Tax document
+      customer: Customer
+      decisiveDate: Decisive date
+      amount: Amount
+      deadline: Deadline
+      daysLeft: Days left
   cancelled_reason: The payment it taxed was cancelled.
   title: 'Tax document {number}'
   card:

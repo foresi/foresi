@@ -18,8 +18,10 @@ use App\Party\Domain\LegalEntity;
 
 /**
  * What a corrective tax document must be, on top of what every document must be.
- * It corrects an issued invoice in place, of the same firm and customer, at the
- * rates of that invoice (§42(7)(a)): its tax point is the decisive date of a change
+ * It corrects an issued invoice in place, or a delivered tax document on payment
+ * that no final invoice deducts, of the same firm and customer, at the rates of
+ * that document (§42(7)(a); for a tax document on payment those of the receipt,
+ * §42(7)(b)): its tax point is the decisive date of a change
  * (§42) or the tax point of the invoice for an error (§43). Per rate and treatment,
  * the invoice and all its corrections never go below zero. It reads and never writes.
  */
@@ -60,8 +62,15 @@ final readonly class CorrectionRules
             return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_link_locked')];
         }
         $original = $this->original($input);
-        if (!$original instanceof Invoice || DocumentKind::Invoice !== $original->kind() || $original->isTrashed()) {
+        if (!$original instanceof Invoice || !self::correctable($original)) {
             return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_original_invalid')];
+        }
+        // A deduction on a final invoice holds the tax document until it is released.
+        if (DocumentKind::PaymentTaxDocument === $original->kind() && null !== $original->deductedByInvoiceId()) {
+            return [new IssueProblem('correctedInvoiceId', 'invoice.problem.correction_deducted')];
+        }
+        if (DocumentKind::PaymentTaxDocument === $original->kind() && CorrectionType::Error === $correction->type) {
+            return [new IssueProblem('correctionType', 'invoice.problem.correction_payment_change')];
         }
         $problems = [...$this->texts($correction), ...$this->taxPoint($input, $correction, $original)];
         if ($original->firm()->id() !== $firm->id()) {
@@ -82,6 +91,15 @@ final readonly class CorrectionRules
         $type = $correction->type ?? throw new \LogicException('CorrectionRules refuses a missing type.');
         $date = $correction->decisiveDate ?? throw new \LogicException('CorrectionRules refuses a missing decisive date.');
         $invoice->corrects($correction->correctedInvoiceId, trim($correction->reason), $type, $date);
+    }
+
+    /**
+     * What a correction may correct: an invoice in place, or a tax document on
+     * payment the customer got.
+     */
+    public static function correctable(Invoice $original): bool
+    {
+        return (DocumentKind::Invoice === $original->kind() && !$original->isTrashed()) || CorrectPaymentTaxDocument::corrects($original);
     }
 
     private function original(InvoiceInput $input): ?Invoice

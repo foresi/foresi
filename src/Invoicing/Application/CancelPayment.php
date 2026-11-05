@@ -27,8 +27,8 @@ use Psr\Clock\ClockInterface;
  * lock would refuse to wait); neither the source nor the invoices of a payment ever
  * change, so what was read still holds under the locks.
  *
- * Its tax documents are locked last, and those the customer never got go to the
- * trash with the payment.
+ * Its tax documents are locked last: those the customer never got go to the trash
+ * with the payment, and those they got are corrected.
  */
 final readonly class CancelPayment
 {
@@ -42,6 +42,7 @@ final readonly class CancelPayment
         private PaymentSourceRelease $release,
         private AdvanceDocuments $documents,
         private PaymentTaxDocumentTexts $texts,
+        private CorrectPaymentTaxDocument $corrections,
     ) {
     }
 
@@ -78,8 +79,9 @@ final readonly class CancelPayment
 
     /**
      * A tax document on the payment that never reached the customer goes to the
-     * trash with it. One that did stays as it is and needs a corrective document,
-     * which its page asks for; corrections are a step of their own.
+     * trash with it. One that did stays as it is and gets its corrective tax document
+     * here, at a savepoint; one a final invoice deducts, or a rule refused, waits for
+     * it among the uncorrected ones.
      *
      * @param list<string> $ids
      */
@@ -88,7 +90,12 @@ final readonly class CancelPayment
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         foreach ($ids as $id) {
             $document = $this->store->get($id);
-            if (!$document->isDelivered() && !$document->isTrashed()) {
+            if ($document->isTrashed()) {
+                continue;
+            }
+            if ($document->isDelivered()) {
+                $this->corrections->automatically($document);
+            } else {
                 $document->trash($now, $this->actor->userId(), $this->texts->cancelledReason($document));
             }
         }

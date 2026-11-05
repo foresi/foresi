@@ -37,4 +37,14 @@ final readonly class TranslatedPaymentTaxDocumentTexts implements PaymentTaxDocu
     {
         return $this->translator->trans('tax_document.cancelled_reason', locale: $document->language()->value);
     }
+
+    public function refundedReason(Invoice $document): string
+    {
+        return $this->translator->trans('tax_document.refunded_reason', locale: $document->language()->value);
+    }
+
+    public function correctionReason(Invoice $document, bool $refunded): string
+    {
+        return $this->translator->trans($refunded ? 'tax_document.correction.refunded' : 'tax_document.correction.cancelled', locale: $document->language()->value);
+    }
 }

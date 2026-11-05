@@ -1667,7 +1667,9 @@ invoice:
     correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.
     correction_link_missing: Vyberte fakturu, kterou tento doklad opravuje.
     correction_link_locked: Opravný doklad zůstává u faktury, kterou opravuje.
-    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši.
+    correction_original_invalid: Opravit lze jen vystavenou fakturu, která není v koši, nebo doručený daňový doklad k platbě.
+    correction_deducted: Daňový doklad je odečtený na konečné faktuře. Nejdřív odečet uvolněte, tedy konečnou fakturu přesuňte do koše nebo odečet z ní odeberte.
+    correction_payment_change: Daňový doklad k platbě se opravuje jako změna po vystavení, ke dni zrušení nebo vrácení platby.
     correction_firm: Opravu musí vystavit firma faktury.
     correction_customer: Oprava musí být pro odběratele faktury.
     correction_reason_missing: Uveďte důvod opravy.
@@ -2442,7 +2444,27 @@ correction:
     error: Chyba na dokladu
     error_text: Faktura byla chybná; daní se v původním období.
 tax_document:
-  needs_correction: Platba tohoto daňového dokladu byla zrušena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
+  waiting_notice: '{late, select, yes {{count, plural, one {Doklad je} few {# doklady jsou} other {# dokladů je}} po termínu daňového nebo opravného dokladu.} other {{count, plural, one {Doklad čeká} few {# doklady čekají} other {# dokladů čeká}} na daňový nebo opravný doklad, první do {date}.}}'
+  needs_correction: Platba tohoto daňového dokladu byla zrušena nebo vrácena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
+  correct: Vystavit opravný doklad
+  refunded_reason: Platba, ke které byl vystaven, byla vrácena dřív, než ho odběratel dostal.
+  correction:
+    cancelled: Zrušení platby zálohy
+    refunded: Vrácení platby zálohy
+  uncorrected:
+    tab: Čeká na opravu
+    title: Daňové doklady k platbě, které čekají na opravu
+    intro: Když se platba zálohy zruší nebo vrátí poté, co odběratel dostal daňový doklad, vystaví se opravný daňový doklad do 15 dnů ode dne zrušení nebo vrácení. Doklad odečtený na konečné faktuře se opraví až po uvolnění odečtu.
+    empty: Žádný daňový doklad na opravu nečeká.
+    deducted: odečtený na konečné faktuře
+    notice: '{late, select, yes {{count, plural, one {Daňový doklad je} few {# daňové doklady jsou} other {# daňových dokladů je}} po termínu opravy.} other {{count, plural, one {Daňový doklad čeká} few {# daňové doklady čekají} other {# daňových dokladů čeká}} na opravný doklad, první do {date}.}}'
+    column:
+      number: Daňový doklad
+      customer: Odběratel
+      decisiveDate: Rozhodné datum
+      amount: Částka
+      deadline: Termín
+      daysLeft: Zbývá dní
   cancelled_reason: Platba, ke které byl vystaven, byla zrušena.
   title: 'Daňový doklad {number}'
   card:
