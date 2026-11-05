@@ -73,7 +73,7 @@
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">
-                    <span class="num">{{ 'invoice.list.summary'|trans({total: page.total}) }}</span>
+                    <span class="num">{{ 'invoice.list.summary'|trans({total: page.total, kind: kind}) }}</span>
                     <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                 </twig:block>
             </twig:Ui:DataTable>

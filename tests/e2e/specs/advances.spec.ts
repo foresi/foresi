@@ -39,6 +39,7 @@ test.describe.serial('advances and tax documents on payment', () => {
       await page.goto('/advances');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zálohové faktury');
       await expect(page.getByRole('link', { name: /Chybí daňový doklad/ })).toContainText('1');
+      await expect(page.locator('[data-table-footer]')).toContainText('2 zálohové faktury');
       await expectNoSeriousViolations(page);
       await expectNoSidewaysScroll(page);
       await page.screenshot({ path: `${SHOTS}/advances-list-${name}.png`, fullPage: true });
@@ -120,6 +121,7 @@ test.describe.serial('advances and tax documents on payment', () => {
     await page.goto('/tax-documents');
     await page.getByRole('link', { name: /^Vyúčtované/ }).click();
     await expect(page.locator('tbody tr')).toHaveCount(2);
+    await expect(page.locator('[data-table-footer]')).toContainText('2 daňové doklady');
     await page.goto('/advances?tab=unsettled');
     await expect(page.locator('main')).toContainText('Vše je vyúčtováno');
   });

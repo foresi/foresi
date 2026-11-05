@@ -1232,7 +1232,7 @@ invoice:
     search: Hledat
     search_label: Hledat ve fakturách
     search_placeholder: Číslo, zákazník nebo popis
-    summary: '{total, plural, one {# faktura} few {# faktury} other {# faktur}}'
+    summary: '{kind, select, advance {{total, plural, one {# zálohová faktura} few {# zálohové faktury} other {# zálohových faktur}}} payment_tax_document {{total, plural, one {# daňový doklad} few {# daňové doklady} other {# daňových dokladů}}} other {{total, plural, one {# faktura} few {# faktury} other {# faktur}}}}'
     reason_missing: Napište, proč fakturu mažete.
     delete_delivered: Doručený doklad nelze smazat.
     not_in_trash: Tato faktura v koši není.

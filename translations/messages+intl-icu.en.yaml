@@ -1232,7 +1232,7 @@ invoice:
     search: Search
     search_label: Search invoices
     search_placeholder: Number, customer or description
-    summary: '{total, plural, one {# invoice} other {# invoices}}'
+    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.

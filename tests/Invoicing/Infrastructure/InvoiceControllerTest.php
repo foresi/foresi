@@ -1199,6 +1199,28 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', 'D820260001');
     }
 
+    public function testTheFooterOfEachListCountsItsKind(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $this->client->request('GET', '/advances');
+        self::assertSelectorTextContains('[data-table-footer]', '1 advance invoice');
+        $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('[data-table-footer]', '1 tax document');
+
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $counted = static fn (string $kind, string $locale): array => array_map(static fn (int $total): string => $translator->trans('invoice.list.summary', ['total' => $total, 'kind' => $kind], null, $locale), [1, 2, 5]);
+        self::assertSame(['1 faktura', '2 faktury', '5 faktur'], $counted('invoice', 'cs'));
+        self::assertSame(['1 zálohová faktura', '2 zálohové faktury', '5 zálohových faktur'], $counted('advance', 'cs'));
+        self::assertSame(['1 daňový doklad', '2 daňové doklady', '5 daňových dokladů'], $counted('payment_tax_document', 'cs'));
+        self::assertSame(['1 invoice', '2 invoices', '5 invoices'], $counted('invoice', 'en'));
+        self::assertSame(['1 advance invoice', '2 advance invoices', '5 advance invoices'], $counted('advance', 'en'));
+        self::assertSame(['1 tax document', '2 tax documents', '5 tax documents'], $counted('payment_tax_document', 'en'));
+    }
+
     public function testATaxDocumentCannotBeCopiedAndOffersNoPayment(): void
     {
         $this->signedIn();
