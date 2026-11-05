@@ -73,6 +73,25 @@ final readonly class InvoiceFormOptions
     }
 
     /**
+     * The series a recurring template may issue in: those of invoices and of advance
+     * invoices, and $own, which may be archived.
+     *
+     * @return array<string, string>
+     */
+    public function recurringSeries(LegalEntity $firm, ?Series $own = null): array
+    {
+        $options = $this->series($firm, DocumentKind::Invoice === $own?->kind() ? $own : null);
+        foreach ($this->catalog->forFirm($firm, DocumentKind::Advance) as $series) {
+            $options[$series->id()] = $this->seriesName($series);
+        }
+        if ($own instanceof Series && DocumentKind::Advance === $own->kind()) {
+            $options[$own->id()] = $this->seriesName($own);
+        }
+
+        return $options;
+    }
+
+    /**
      * @return array<string, string>
      */
     public function vat(InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array

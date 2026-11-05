@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\VatRegime;
@@ -141,7 +140,8 @@ final readonly class RecurringRules
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
-        if (DocumentKind::Invoice !== $series->kind()) {
+        // A template issues invoices or advance invoices, as iDoklad's does; never tax documents on payment.
+        if (!$series->kind()->isIssuedByPerson()) {
             return [new IssueProblem('series', 'invoice.problem.series_kind')];
         }
 

@@ -224,6 +224,17 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame(['invoice.problem.series_kind'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['seriesId' => $taxDocuments->id()]))));
     }
 
+    public function testAnAdvanceSeriesIsAccepted(): void
+    {
+        $advances = new Series($this->firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+        $this->em->persist($advances);
+        $this->em->flush();
+
+        $template = $this->save->create($this->recurringInput(overrides: ['seriesId' => $advances->id()]));
+
+        self::assertSame($advances->id(), $template->series()?->id());
+    }
+
     public function testAnUnknownCustomerIsRefused(): void
     {
         self::assertSame(['invoice.problem.customer_unknown'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->create($this->recurringInput(overrides: ['customerId' => Id::generate()]))));

@@ -674,7 +674,7 @@ final class RecurringFormController extends AbstractController
      */
     private function seriesOptions(LegalEntity $firm, ?RecurringInvoice $template): array
     {
-        return $this->options->series($firm, $template?->series());
+        return $this->options->recurringSeries($firm, $template?->series());
     }
 
     /**
