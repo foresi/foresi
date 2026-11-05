@@ -33,6 +33,7 @@ final readonly class InvoiceChange
         public string $textBefore,
         public string $textAfter,
         public DocumentLanguage $language,
+        public ?TaxOnReceiptChoice $taxOnReceipt = null,
     ) {
     }
 
@@ -65,6 +66,7 @@ final readonly class InvoiceChange
             $text($this->textBefore),
             $text($this->textAfter),
             $this->language,
+            $this->taxOnReceipt,
         );
     }
 
@@ -85,6 +87,7 @@ final readonly class InvoiceChange
             $this->textBefore,
             $this->textAfter,
             $this->language,
+            $this->taxOnReceipt,
         );
     }
 }

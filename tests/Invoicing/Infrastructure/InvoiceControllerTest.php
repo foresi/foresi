@@ -26,6 +26,7 @@ use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesCounter;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
@@ -1047,6 +1048,36 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame(121000, $advance->payable()->minor());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main table', 'Z920260001');
+    }
+
+    public function testTheAdvanceFormAsksAboutTaxDocumentsOnPayment(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        self::assertSelectorTextContains('label[for="taxOnReceipt"]', 'Tax document on payment');
+        self::assertSelectorTextContains('#taxOnReceipt-help', 'unless the customer is a private person');
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['taxOnReceipt'] = 'skip';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+
+        $this->save($values);
+
+        $advance = $this->onlyInvoice();
+        self::assertSame(TaxOnReceiptChoice::Skip, $advance->taxOnReceipt());
+        $this->openEdit($advance);
+        self::assertSame('skip', $this->client->getCrawler()->filter('select[name="taxOnReceipt"] option[selected]')->attr('value'));
+        self::assertSelectorTextContains('#taxOnReceipt-help', 'No tax document, the supply is not known yet.');
+    }
+
+    public function testAnInvoiceFormDoesNotAskAboutTaxDocumentsOnPayment(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorNotExists('select[name="taxOnReceipt"]');
+        self::assertSelectorExists('input[type="hidden"][name="taxOnReceipt"]');
     }
 
     public function testATaxDocumentCannotBeStartedFromTheForm(): void

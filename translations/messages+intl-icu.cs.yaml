@@ -2291,6 +2291,18 @@ reminder:
     settled: 'Faktura {number} je uhrazená, upomínku proto nedostane.'
     taken: 'Mezitím odešla do fronty upomínka {taken}. Zkontrolujte text upomínky {step} a odešlete ji.'
 advance:
+  tax_on_receipt:
+    label: Daňový doklad k platbě
+    rules: Podle pravidel
+    issue: Vystavit ke každé platbě
+    skip: Žádný, plnění ještě není známé
+    help: Podle pravidel dostane plátce DPH daňový doklad ke každé platbě, kromě plateb od soukromé osoby a tuzemského přenesení daňové povinnosti.
+    now_arises: '{crossBorder, select, yes {Každá platba dostane daňový doklad do 15 dnů od konce měsíce platby.} other {Každá platba dostane daňový doklad do 15 dnů od přijetí platby.}}'
+    now_none:
+      non_payer: Bez daňového dokladu, firma není plátce DPH.
+      unknown_supply: Bez daňového dokladu, plnění ještě není známé.
+      consumer: Bez daňového dokladu, odběratel je soukromá osoba.
+      domestic_reverse_charge: Bez daňového dokladu, DPH přizná odběratel při plnění.
   new: Nová zálohová faktura
   title: 'Zálohová faktura {number}'
   card:

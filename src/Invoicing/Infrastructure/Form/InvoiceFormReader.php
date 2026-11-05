@@ -16,6 +16,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Domain\VatRateKind;
@@ -128,6 +129,7 @@ final readonly class InvoiceFormReader
             $lines->lines,
             '' !== $peek && $values['variableSymbol'] === VariableSymbol::fromNumber($peek),
             self::kind($values['kind']),
+            TaxOnReceiptChoice::tryFrom($values['taxOnReceipt']),
         );
         $version = $this->text($post, 'version');
 
@@ -180,14 +182,14 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, firmShown: string, kind: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
         $field = fn (string $name): string => trim($this->text($post, $name));
 
         return [
-            'firmId' => $field('firmId'), 'firmShown' => $field('firmShown'), 'kind' => $field('kind'), 'seriesId' => $field('seriesId'), 'number' => $field('number'), 'numberPeek' => $field('numberPeek'),
+            'firmId' => $field('firmId'), 'firmShown' => $field('firmShown'), 'kind' => $field('kind'), 'taxOnReceipt' => $field('taxOnReceipt'), 'seriesId' => $field('seriesId'), 'number' => $field('number'), 'numberPeek' => $field('numberPeek'),
             'customerId' => $field('customerId'), 'customerQuery' => $field('customerQuery'), 'customerEdit' => $field('customerEdit'), 'dueDateSet' => $field('dueDateSet'),
             'issueDate' => $field('issueDate'), 'taxPointDate' => $field('taxPointDate'), 'dueDate' => $field('dueDate'), 'paymentMethod' => $field('paymentMethod'), 'bankAccount' => $field('bankAccount'),
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),

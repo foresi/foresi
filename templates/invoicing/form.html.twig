@@ -198,6 +198,12 @@
                         {% if hasTaxPoint %}
                             <twig:Ui:TextInput name="taxPointDate" id="taxPointDate" type="date" :label="(payer ? 'invoice.field.taxPointDate' : 'invoice.field.supplyDate')|trans" :value="values.taxPointDate" :error="errorFields.taxPointDate|default(null)" :required="true" data-invoice-form-target="taxPointDate" data-action="input->invoice-form#taxPointTyped" />
                         {% endif %}
+                        {% if taxOnReceiptOptions is not empty %}
+                            {% set taxHelp = taxOnReceiptNow is null ? 'advance.tax_on_receipt.help'|trans : (taxOnReceiptNow.arises ? 'advance.tax_on_receipt.now_arises'|trans({crossBorder: taxOnReceiptNow.crossBorder ? 'yes' : 'no'}) : ('advance.tax_on_receipt.now_none.' ~ taxOnReceiptNow.reason)|trans) %}
+                            <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2"><twig:Ui:Select name="taxOnReceipt" id="taxOnReceipt" :label="'advance.tax_on_receipt.label'|trans" :help="taxHelp" :options="taxOnReceiptOptions" :value="values.taxOnReceipt" /></div>
+                        {% else %}
+                            <input type="hidden" name="taxOnReceipt" value="{{ values.taxOnReceipt }}">
+                        {% endif %}
                         <twig:Ui:TextInput name="dueDate" id="dueDate" type="date" :label="'invoice.field.dueDate'|trans" :value="values.dueDate" :error="errorFields.dueDate|default(null)" :required="true" data-invoice-form-target="dueDate" data-action="input->invoice-form#dueDateTyped" />
                         <twig:Ui:Select name="paymentMethod" id="paymentMethod" :label="'invoice.field.paymentMethod'|trans" :options="paymentMethods" :value="values.paymentMethod" :error="errorFields.paymentMethod|default(null)" data-invoice-form-target="paymentMethod" data-action="change->invoice-form#paymentChanged" />
                         <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2{% if values.paymentMethod != 'bank_transfer' %} hidden{% endif %}" data-invoice-form-target="bankRow">

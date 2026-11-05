@@ -2291,6 +2291,18 @@ reminder:
     settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
     taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'
 advance:
+  tax_on_receipt:
+    label: Tax document on payment
+    rules: By the rules
+    issue: Issue on every payment
+    skip: None, the supply is not known yet
+    help: By the rules a VAT payer gets a tax document on every payment, unless the customer is a private person or the supply is a domestic reverse charge.
+    now_arises: '{crossBorder, select, yes {Each payment gets a tax document, due within 15 days after the end of the month of the payment.} other {Each payment gets a tax document, due within 15 days of the payment.}}'
+    now_none:
+      non_payer: No tax document, the firm is no VAT payer.
+      unknown_supply: No tax document, the supply is not known yet.
+      consumer: No tax document, the customer is a private person.
+      domestic_reverse_charge: No tax document, the customer accounts for the VAT at supply.
   new: New advance invoice
   title: 'Advance invoice {number}'
   card:

@@ -11,6 +11,7 @@ namespace App\Invoicing\Application;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\InvoiceChange;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\Iban;
 use App\Party\Domain\Party;
@@ -57,6 +58,7 @@ final readonly class InvoiceInput
         array $lines,
         public bool $variableSymbolFollowsNumber = false,
         public DocumentKind $kind = DocumentKind::Invoice,
+        public ?TaxOnReceiptChoice $taxOnReceipt = null,
     ) {
         $this->lines = array_values($lines);
     }
@@ -96,6 +98,7 @@ final readonly class InvoiceInput
             $this->textBefore,
             $this->textAfter,
             $this->language,
+            $this->taxOnReceipt,
         );
     }
 }

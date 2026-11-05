@@ -147,6 +147,10 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Column(name: 'deleted_reason', type: 'text', nullable: true)]
     private ?string $deletedReason = null;
 
+    // Only an advance invoice holds a choice; NULL follows the rules.
+    #[ORM\Column(name: 'tax_on_receipt', type: 'string', length: 8, nullable: true, enumType: TaxOnReceiptChoice::class)]
+    private ?TaxOnReceiptChoice $taxOnReceipt;
+
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
 
@@ -476,6 +480,15 @@ class Invoice implements TenantOwned, Audited
         return $this->language;
     }
 
+    /**
+     * What a person chose about tax documents on the payments of an advance invoice;
+     * null follows the rules, and is all any other document holds.
+     */
+    public function taxOnReceipt(): ?TaxOnReceiptChoice
+    {
+        return $this->taxOnReceipt;
+    }
+
     public function net(): Money
     {
         return Money::ofMinor($this->netMinor, $this->currency);
@@ -552,6 +565,7 @@ class Invoice implements TenantOwned, Audited
         $this->textBefore = $content->textBefore;
         $this->textAfter = $content->textAfter;
         $this->language = $content->language;
+        $this->taxOnReceipt = DocumentKind::Advance === $this->kind ? $content->taxOnReceipt : null;
     }
 
     private function keepDay(\DateTimeImmutable $stored, \DateTimeImmutable $given): \DateTimeImmutable

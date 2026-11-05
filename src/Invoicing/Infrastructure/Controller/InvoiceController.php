@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
@@ -42,6 +43,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\Series;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\VariableSymbol;
 use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFigures;
@@ -129,6 +131,7 @@ final class InvoiceController extends AbstractController
         private readonly PaymentPanel $panel,
         private readonly OwnerCheck $owner,
         private readonly InvoiceFormOptions $options,
+        private readonly AdvanceTaxation $taxation,
     ) {
     }
 
@@ -589,6 +592,9 @@ final class InvoiceController extends AbstractController
             'kind' => $context->kind->value,
             'listRoute' => InvoiceListController::ROUTES[$context->kind->value],
             'hasTaxPoint' => $context->hasTaxPoint(),
+            // Asked on an advance invoice of a VAT payer only, as Fakturoid asks for the follow-up of an advance.
+            'taxOnReceiptOptions' => DocumentKind::Advance === $context->kind && $context->isPayer() ? $this->taxOnReceiptOptions() : [],
+            'taxOnReceiptNow' => $invoice instanceof Invoice && DocumentKind::Advance === $invoice->kind() ? $this->taxation->of($invoice) : null,
             'titleKey' => self::TITLES[$context->kind->value],
             'newKey' => self::NEW_TITLES[$context->kind->value] ?? 'invoice.new',
             'issuerCountry' => $this->issuerCountry($context),
@@ -767,6 +773,18 @@ final class InvoiceController extends AbstractController
         $date = \is_string($values[$field]) ? $this->reader->date($values[$field], $field, $errors) : null;
 
         return $date ?? $this->today($context);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function taxOnReceiptOptions(): array
+    {
+        return [
+            '' => $this->translator->trans('advance.tax_on_receipt.rules'),
+            TaxOnReceiptChoice::Issue->value => $this->translator->trans('advance.tax_on_receipt.issue'),
+            TaxOnReceiptChoice::Skip->value => $this->translator->trans('advance.tax_on_receipt.skip'),
+        ];
     }
 
     /**
