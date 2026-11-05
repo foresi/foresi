@@ -1125,6 +1125,35 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
     }
 
+    public function testTheAdvanceListShowsWhatNoFinalInvoiceDeductedYet(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances', ['tab' => 'unsettled']);
+
+        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Needs tax document1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorExists('main nav a[href="/advances?tab=unsettled"][aria-current="page"]');
+        self::assertSelectorTextContains('main table', $advance->number());
+    }
+
+    public function testTheTaxDocumentListTellsSettledFromUnsettled(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'settled']);
+
+        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorTextContains('main', 'Nothing is settled yet');
+        $this->client->request('GET', '/tax-documents', ['tab' => 'unsettled']);
+        self::assertSelectorTextContains('main table', 'D820260001');
+        $this->client->request('GET', '/tax-documents', ['tab' => 'unpaid']);
+        self::assertSelectorExists('main nav a[href="/tax-documents"][aria-current="page"]');
+    }
+
     public function testADeliveredTaxDocumentOfACancelledPaymentAsksForACorrection(): void
     {
         $this->signedIn();

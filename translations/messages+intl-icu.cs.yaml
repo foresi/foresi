@@ -1244,6 +1244,8 @@ invoice:
       paid: Uhrazené
       unpaid: Neuhrazené
       overdue: Po splatnosti
+      settled: Vyúčtované
+      unsettled: Nevyúčtované
       trash: Koš
     column:
       sent: E-mail
@@ -1292,6 +1294,10 @@ invoice:
       paid_text: Uhrazené faktury se tu objeví, jakmile zaznamenáte úhradu.
       unpaid_title: Vše je uhrazeno
       unpaid_text: Žádná faktura nečeká na peníze.
+      settled_title: Zatím nic není vyúčtováno
+      settled_text: Daňový doklad se tu objeví, jakmile ho odečte konečná faktura.
+      unsettled_title: Vše je vyúčtováno
+      unsettled_text: Nic uhrazeného nečeká na odečtení v konečné faktuře.
   trash:
     title: 'Smazat fakturu {number}'
     keeps: Přesune se do koše a nechá si číslo, které se už nikdy nepoužije.

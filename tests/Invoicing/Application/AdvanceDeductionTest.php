@@ -12,14 +12,18 @@ use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
+use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoicePdf;
+use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Domain\DocumentLanguage;
@@ -252,6 +256,89 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         self::assertSame(['Z920260001', '920260001', '3000.00'], [...$this->texts($xml, '//i:NonTaxedDeposits/i:NonTaxedDeposit/i:ID'), ...$this->texts($xml, '//i:NonTaxedDeposit/i:VariableSymbol'), ...$this->texts($xml, '//i:NonTaxedDeposit/i:DepositAmount')]);
         self::assertSame(['5000.00', '3000.00', '2000.00'], [...$this->texts($xml, '//i:LegalMonetaryTotal/i:DifferenceTaxInclusiveAmount'), ...$this->texts($xml, '//i:LegalMonetaryTotal/i:PaidDepositsAmount'), ...$this->texts($xml, '//i:LegalMonetaryTotal/i:PayableAmount')]);
         self::assertSame(['1'], $this->texts($xml, '//i:InvoiceLines/i:InvoiceLine/i:ID'));
+    }
+
+    public function testTheUnsettledAdvancesAreThePaidOnesNoFinalInvoiceDeductedYet(): void
+    {
+        $this->advance([$this->line('1000.00')]);
+        $taxed = $this->advance([$this->line('1000.00')]);
+        $this->taxDocumentFor($taxed, '1210.00');
+        $partly = $this->advance([$this->line('2000.00')]);
+        $this->pay($partly, '1000.00');
+        $deducted = $this->taxDocumentFor($this->advance([$this->line('500.00')]), '605.00');
+        $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($deducted)]));
+        $cancelled = $this->advance([$this->line('700.00')]);
+        $this->cancel->cancel($this->pay($cancelled, '847.00')->id());
+        // No VAT arose on it, so it waits without a tax document until the advance itself is deducted.
+        $skipped = $this->advance([$this->line('300.00')], ['taxOnReceipt' => TaxOnReceiptChoice::Skip]);
+        $this->pay($skipped, '363.00');
+
+        $page = $this->listed(DocumentKind::Advance, InvoiceFilter::UNSETTLED);
+
+        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::UNSETTLED, InvoiceFilter::TRASH], array_keys($page->tabCounts));
+        self::assertSame(3, $page->tabCounts[InvoiceFilter::UNSETTLED]);
+        self::assertEqualsCanonicalizing([$taxed->id(), $partly->id(), $skipped->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $page->rows));
+        self::assertSame(3, $page->total);
+    }
+
+    public function testAnAdvanceDeductedItselfIsSettled(): void
+    {
+        $firm = $this->firm(VatStatus::NotRegistered, null, registrationNumber: '12345687');
+        $this->em->flush();
+        $advance = $this->advance([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null)], ['firmId' => $firm->id()]);
+        $this->pay($advance, '3000.00');
+        self::assertSame(1, $this->listed(DocumentKind::Advance, InvoiceFilter::UNSETTLED)->tabCounts[InvoiceFilter::UNSETTLED]);
+        $offered = self::getContainer()->get(DeductibleAdvances::class)->for($firm, $this->customer->id(), null, DocumentLanguage::Czech);
+
+        $this->issue->issue($this->input([$this->line('5000.00', treatment: TaxTreatment::NotApplicable, kind: null), ...$offered[0]->lines], ['firmId' => $firm->id(), 'seriesId' => null]));
+
+        self::assertSame(0, $this->listed(DocumentKind::Advance, InvoiceFilter::UNSETTLED)->tabCounts[InvoiceFilter::UNSETTLED]);
+    }
+
+    public function testTheTaxDocumentsAreSettledOnceAFinalInvoiceDeductsThem(): void
+    {
+        $open = $this->taxDocumentFor($this->advance([$this->line('1000.00')]), '1210.00');
+        $deducted = $this->taxDocumentFor($this->advance([$this->line('500.00')]), '605.00');
+        $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($deducted)]));
+        // Its payment is gone, so no final invoice will deduct it: it waits for a corrective tax document.
+        $corrected = $this->advance([$this->line('700.00')]);
+        $payment = $this->pay($corrected, '847.00');
+        $this->delivered->mark($this->onlyTaxDocumentOf($corrected)->id());
+        $this->cancel->cancel($payment->id());
+        $trashed = $this->advance([$this->line('800.00')]);
+        $this->cancel->cancel($this->pay($trashed, '968.00')->id());
+
+        $settled = $this->listed(DocumentKind::PaymentTaxDocument, InvoiceFilter::SETTLED);
+        $unsettled = $this->listed(DocumentKind::PaymentTaxDocument, InvoiceFilter::UNSETTLED);
+
+        self::assertSame([InvoiceFilter::ALL => 3, InvoiceFilter::SETTLED => 1, InvoiceFilter::UNSETTLED => 1, InvoiceFilter::TRASH => 1], $settled->tabCounts);
+        self::assertSame([$deducted->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $settled->rows));
+        self::assertSame([$open->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $unsettled->rows));
+    }
+
+    public function testEachKindListsTheTabsThatMeanSomethingForIt(): void
+    {
+        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::Invoice));
+        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::UNSETTLED, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::Advance));
+        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::PaymentTaxDocument));
+    }
+
+    public function testATabOfAnotherKindListsTheWholeKind(): void
+    {
+        $this->issue->issue($this->input());
+        $this->issue->issue($this->input());
+
+        $page = $this->listed(DocumentKind::Invoice, InvoiceFilter::UNSETTLED);
+
+        self::assertSame(2, $page->total);
+        self::assertArrayNotHasKey(InvoiceFilter::UNSETTLED, $page->tabCounts);
+    }
+
+    private function listed(DocumentKind $kind, string $tab): InvoicePage
+    {
+        $this->em->clear();
+
+        return $this->store->page(new InvoiceFilter(null, $tab, '', InvoiceFilter::DEFAULT_SORT, 1, kind: $kind));
     }
 
     private function isdocOf(Invoice $invoice): string

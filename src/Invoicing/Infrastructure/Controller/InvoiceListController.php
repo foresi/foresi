@@ -110,7 +110,7 @@ final class InvoiceListController extends AbstractController
         $kind = DocumentKind::from($kind);
         $route = self::ROUTES[$kind->value];
         $tab = $request->query->getString('tab', InvoiceFilter::ALL);
-        $tab = \in_array($tab, InvoiceFilter::TABS, true) ? $tab : InvoiceFilter::ALL;
+        $tab = \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL;
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
         $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
         $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
@@ -366,7 +366,7 @@ final class InvoiceListController extends AbstractController
     private function tabs(InvoicePage $page, string $tab, array $query, string $route, ?int $missing = null): array
     {
         $tabs = [];
-        foreach (InvoiceFilter::TABS as $key) {
+        foreach (array_keys($page->tabCounts) as $key) {
             $tabs[] = [
                 'label' => $this->translator->trans('invoice.list.tab.'.$key),
                 'href' => $this->generateUrl($route, ['tab' => InvoiceFilter::ALL === $key ? null : $key] + $query),

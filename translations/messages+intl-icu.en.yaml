@@ -1244,6 +1244,8 @@ invoice:
       paid: Paid
       unpaid: Unpaid
       overdue: Overdue
+      settled: Settled
+      unsettled: Unsettled
       trash: Trash
     column:
       sent: E-mail
@@ -1292,6 +1294,10 @@ invoice:
       paid_text: Paid invoices show here once you record a payment.
       unpaid_title: Everything is paid
       unpaid_text: No invoice is waiting for its money.
+      settled_title: Nothing is settled yet
+      settled_text: A tax document shows here once a final invoice deducts it.
+      unsettled_title: Everything is settled
+      unsettled_text: Nothing paid waits to be deducted on a final invoice.
   trash:
     title: 'Delete invoice {number}'
     keeps: It moves to the trash and keeps its number, which is never used again.

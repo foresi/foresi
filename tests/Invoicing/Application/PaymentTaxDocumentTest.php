@@ -289,7 +289,7 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
 
         $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
 
-        self::assertSame([InvoiceFilter::ALL => 1, InvoiceFilter::PAID => 1, InvoiceFilter::UNPAID => 0, InvoiceFilter::OVERDUE => 0, InvoiceFilter::TRASH => 0], $page->tabCounts);
+        self::assertSame([InvoiceFilter::ALL => 1, InvoiceFilter::SETTLED => 0, InvoiceFilter::UNSETTLED => 1, InvoiceFilter::TRASH => 0], $page->tabCounts);
         self::assertSame(PaymentState::Paid, $page->rows[0]->payment);
         self::assertFalse($page->rows[0]->overdue);
         self::assertSame(DocumentKind::PaymentTaxDocument, $page->rows[0]->kind);

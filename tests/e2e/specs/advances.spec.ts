@@ -76,6 +76,10 @@ test.describe.serial('advances and tax documents on payment', () => {
     await dialog.getByRole('button', { name: 'Zaznamenat úhradu' }).click();
     await expect(page.locator('main').getByRole('status')).toContainText('Z920260001');
 
+    await page.goto('/advances?tab=unsettled');
+    await expect(page.getByRole('link', { name: /^Nevyúčtované/ })).toContainText('2');
+    await expect(page.locator('tbody')).toContainText('Z920260001');
+
     await page.goto('/tax-documents');
     await expect(page.locator('tbody')).toContainText('D820260002');
     await expect(row(page, 'D820260002').getByRole('link', { name: 'Uhradit' })).toHaveCount(0);
@@ -112,5 +116,11 @@ test.describe.serial('advances and tax documents on payment', () => {
 
     await expect(page).toHaveURL(/\/invoices$/);
     await expect(row(page, '20260001')).toContainText('Uhrazeno zálohami');
+
+    await page.goto('/tax-documents');
+    await page.getByRole('link', { name: /^Vyúčtované/ }).click();
+    await expect(page.locator('tbody tr')).toHaveCount(2);
+    await page.goto('/advances?tab=unsettled');
+    await expect(page.locator('main')).toContainText('Vše je vyúčtováno');
   });
 });
