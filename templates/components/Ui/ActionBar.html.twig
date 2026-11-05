@@ -6,7 +6,7 @@
     zoom) get it in normal flow.
 #}
 {% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
-<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-container bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-floating max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+<div {{ attributes.defaults({class: (end ? 'sm:ml-auto sm:w-fit ' : '') ~ 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-container bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-floating max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
     {% if statusHtml|trim is not empty %}
         <p class="m-0 min-w-0 text-small text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
     {% endif %}

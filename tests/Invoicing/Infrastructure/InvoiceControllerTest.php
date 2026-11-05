@@ -1614,8 +1614,6 @@ final class InvoiceControllerTest extends WebTestCase
      */
     public static function moreDetails(): iterable
     {
-        yield 'an order number' => [['orderNumber' => 'PO-1']];
-        yield 'a description of its own' => [['description' => 'Something else']];
         yield 'a constant symbol' => [['constantSymbol' => '0308']];
         yield 'a text after' => [['textAfter' => 'Thanks']];
         yield 'a mistake inside' => [['variableSymbol' => 'abc']];
@@ -1637,13 +1635,15 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('details[data-more-details][open]');
     }
 
-    public function testADescriptionLikeTheFirstLineStaysClosed(): void
+    public function testTheOrderNumberAndDescriptionKeepMoreDetailsClosed(): void
     {
         $this->signedIn();
 
-        $this->save(array_merge($this->filled(), ['description' => 'Work', '_action' => 'refresh']));
+        $this->save(array_merge($this->filled(), ['orderNumber' => 'PO-1', 'description' => 'Something else', '_action' => 'refresh']));
 
         self::assertSelectorNotExists('details[data-more-details][open]');
+        self::assertSelectorExists('[data-customer-block] #orderNumber');
+        self::assertSelectorExists('[data-customer-block] #description');
     }
 
     public function testTheTotalColumnSaysWhatItHolds(): void

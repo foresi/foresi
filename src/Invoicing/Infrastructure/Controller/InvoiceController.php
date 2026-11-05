@@ -106,7 +106,7 @@ final class InvoiceController extends AbstractController
     private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new', 'correction_document' => 'correction.new'];
     /** The dialog a saved form opens once over itself: the send dialog of save and send. */
     public const string OPEN_DIALOG_FLASH = 'open_dialog';
-    private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
+    private const array MORE_FIELDS = ['variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
 
     public function __construct(
         private readonly LegalEntities $firms,
@@ -733,7 +733,8 @@ final class InvoiceController extends AbstractController
 
     /**
      * "More details" opens for a mistake inside it and for anything that is not what
-     * the form starts with. An empty description follows the first line.
+     * the form starts with. The order number and the description are in the
+     * customer block, always in view.
      *
      * @param array<string, mixed>  $values
      * @param array<string, string> $errorFields
@@ -744,14 +745,10 @@ final class InvoiceController extends AbstractController
             return true;
         }
         $settings = $this->settings->for($context->firm);
-        /** @var list<array<string, string>> $lines */
-        $lines = $values['lines'];
         $number = '' !== $values['number'] ? $values['number'] : $values['numberPeek'];
         \assert(\is_string($number));
 
-        return '' !== $values['orderNumber']
-            || !\in_array($values['description'], ['', $lines[0]['text'] ?? ''], true)
-            || $values['variableSymbol'] !== VariableSymbol::fromNumber($number)
+        return $values['variableSymbol'] !== VariableSymbol::fromNumber($number)
             || $values['constantSymbol'] !== $settings->constantSymbol()
             || $values['textBefore'] !== $settings->textBefore()
             || $values['textAfter'] !== $settings->textAfter()

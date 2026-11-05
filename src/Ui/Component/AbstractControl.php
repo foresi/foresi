@@ -29,6 +29,10 @@ abstract class AbstractControl
     public ?string $errorRef = null;
     public bool $required = false;
     public bool $disabled = false;
+    /** A horizontal row: the label left of the field (see Field). */
+    public bool $row = false;
+    /** short, medium or long (see Field). */
+    public ?string $width = null;
 
     private bool $focused = false;
 

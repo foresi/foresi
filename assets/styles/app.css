@@ -94,6 +94,12 @@
     --spacing-row: 44px;
     --spacing-badge: 22px;
 
+    /* Form rows: the label column of a horizontal row, and field widths by expected content. */
+    --spacing-label: 160px;
+    --spacing-field-short: 12rem;
+    --spacing-field-medium: 20rem;
+    --spacing-field-long: 32rem;
+
     /* Type: size / line height. */
     --text-*: initial;
     --text-caption: 12px;

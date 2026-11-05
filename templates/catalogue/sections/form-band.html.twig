@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:Card>
+    <twig:Ui:TextInput name="cat-band-customer" label="Odběratel" :row="true" width="long" :required="true" value="Example Company s.r.o." />
+    <twig:Ui:FormBand class="mt-5">
+        <twig:Ui:FieldGroup title="Datumy">
+            <twig:Ui:TextInput name="cat-band-issue" type="date" label="Datum vystavení" :row="true" width="short" value="2026-11-05" />
+        </twig:Ui:FieldGroup>
+        <twig:Ui:FieldGroup title="Moje platební údaje">
+            <twig:Ui:Select name="cat-band-method" label="Platba" :row="true" width="medium" :options="{a: 'Převodem'}" />
+            <twig:Ui:Field id="cat-band-currency" label="Měna" :row="true" :plain="true"><p class="m-0 flex items-center text-ink md:min-h-control">CZK</p></twig:Ui:Field>
+        </twig:Ui:FieldGroup>
+    </twig:Ui:FormBand>
+</twig:Ui:Card>
+{% endblock %}{% endembed %}
+</div>

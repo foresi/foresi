@@ -16,12 +16,15 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * under the content when the page is short. The buttons go in the content
  * block in reading order (Back or Cancel first, the primary action last), so
  * the primary ends up on the right. An optional short status text, given as
- * "status" or in the block "status", is shown on the left.
+ * "status" or in the block "status", is shown on the left. "end" docks a
+ * bar of only buttons at the bottom right, as iDoklad does, instead of
+ * across the whole content width; it is then the last element of its form.
  */
 #[AsTwigComponent]
 final class ActionBar
 {
     public ?string $status = null;
+    public bool $end = false;
 
     public function statusText(): ?string
     {

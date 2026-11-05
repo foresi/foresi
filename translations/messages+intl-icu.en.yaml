@@ -153,6 +153,9 @@ catalogue:
     unsaved: Unsaved changes
     confirm: Confirmation
     open: Open
+    widths: Widths and rows
+    closed: Closed
+    end: Bottom right
 
 format:
   date: 'Y-m-d'
@@ -1388,6 +1391,7 @@ invoice:
   save_pdf: PDF and save
   more_actions: More actions
   more: More details
+  more_show: Show more details
   firm_apply: Use this firm
   rate: '{rate}%'
   errors_title: The invoice cannot be saved yet
