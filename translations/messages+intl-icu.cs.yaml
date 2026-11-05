@@ -1518,6 +1518,7 @@ invoice:
     not_applicable: Mimo DPH
   payment:
     refused:
+      refund_too_large: Vrácení je vyšší, než kolik je na faktuře k vrácení.
       has_payments: Faktura má úhrady. Nejdřív úhrady odeberte.
       cancelled: Platba tohoto daňového dokladu je zrušená, doklad proto zůstane v koši.
       no_allocation: Úhrada nehradí žádnou fakturu.
@@ -1556,7 +1557,14 @@ invoice:
     nothing_due: 'Faktura {number} nemá nic k úhradě.'
     left: 'zbývá {amount}'
     to_refund: 'k vrácení {amount}'
+    refund:
+      title: 'Vrácení k faktuře {number}'
+      page_card: Vrácení
+      date: Datum vrácení
+      submit: Zaznamenat vrácení
+      nothing: 'Faktura {number} nemá nic k vrácení.'
     panel:
+      refund: Zaznamenat vrácení
       title: Úhrady
       movement: Zobrazit bankovní pohyb
       pay: Uhradit
@@ -1577,6 +1585,7 @@ invoice:
       remove_accept: Odebrat úhradu
       keep: Ponechat
     flash:
+      refunded: 'Vrácení {amount} k faktuře {number} je zaznamenané.'
       recorded: 'Úhrada {amount} k faktuře {number} je zaznamenaná.'
       settled: 'Úhrada {amount} k faktuře {number} je zaznamenaná. Rozdíl {difference} se odepsal.'
       overpaid: 'Úhrada {amount} je zaznamenaná. Faktura {number} je přeplacená o {over}.'

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Money;
@@ -20,7 +21,7 @@ final readonly class PaymentRequest
     /**
      * @param \DateTimeImmutable      $receivedOn     the day, as a date in the country of the firm
      * @param string|null             $bankMovementId the movement a bank payment came from; null for any other
-     * @param list<AllocationRequest> $allocations
+     * @param list<AllocationRequest> $allocations    positive parts for a refund too: the direction carries the sign
      */
     public function __construct(
         public string $firmId,
@@ -31,6 +32,7 @@ final readonly class PaymentRequest
         public ?string $bankMovementId,
         public string $note,
         public array $allocations,
+        public PaymentDirection $direction = PaymentDirection::Incoming,
     ) {
     }
 }

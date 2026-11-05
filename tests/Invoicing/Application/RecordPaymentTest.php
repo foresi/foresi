@@ -40,6 +40,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\LockLog;
 use App\Tests\Banking\Support\LoggingInvoiceStore;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -608,6 +609,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $container->get(AuditActor::class),
             Clock::get(),
             $taxDocuments,
+            $container->get(EventDispatcherInterface::class),
         );
     }
 

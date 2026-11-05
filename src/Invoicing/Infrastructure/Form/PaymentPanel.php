@@ -25,7 +25,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * screen when the bank module is there; Invoicing knows that screen by its route only.
  *
  * @phpstan-type PanelLine array{id: string, date: string, datetime: string, amount: string, settlement: ?string, method: string, bank: bool, movement: ?string, confirm: array{title: string, text: string, accept: string, cancel: string, tone: string}, label: string}
- * @phpstan-type Panel array{lines: list<PanelLine>, paid: string, remaining: ?string, overpaid: ?string, toRefund: ?string, payable: bool, settled: bool}
+ * @phpstan-type Panel array{lines: list<PanelLine>, paid: string, remaining: ?string, overpaid: ?string, toRefund: ?string, payable: bool, settled: bool, refundable: bool}
  */
 final readonly class PaymentPanel
 {
@@ -67,9 +67,11 @@ final readonly class PaymentPanel
             'remaining' => $remaining->isNegative() || $remaining->isZero() ? null : $this->amounts->shown($remaining),
             'overpaid' => $remaining->isNegative() && PaymentState::ToRefund !== $state ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
             'toRefund' => PaymentState::ToRefund === $state ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
-            // Nothing to pay on it, or in the trash: nothing to record either.
-            'payable' => $invoice->kind()->isPayable() && !$invoice->isTrashed() && !$invoice->payable()->isNegative() && !$invoice->payable()->isZero(),
+            // Nothing to pay on it, credited down to nothing, or in the trash: nothing to record either.
+            'payable' => $invoice->kind()->isPayable() && !$invoice->isTrashed() && 0 < $invoice->payable()->minor() && 0 < $invoice->payable()->plus($corrections)->minor(),
             'settled' => $state->isSettled(),
+            // To refund after its corrections, or a final invoice its advances exceed.
+            'refundable' => $invoice->kind()->isPayable() && 0 < $this->payments->toRefundOf($invoice)->minor(),
         ];
     }
 

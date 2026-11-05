@@ -212,6 +212,11 @@ final class PairingChoicesTest extends BankingTestCase
             {
                 return $this->test->openRead($text, $ids, $limit);
             }
+
+            public function refunds(string $firmId, ?string $variableSymbol): array
+            {
+                return [];
+            }
         };
         $rules = new readonly class($smallDifference) implements FirmPairingRules {
             public function __construct(private bool $smallDifference)

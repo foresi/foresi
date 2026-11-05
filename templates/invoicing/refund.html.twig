@@ -1,0 +1,53 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The refund dialog, the pay dialog's fields without the write-off: date, amount, method and note.
+    What is to refund is filled in and is the most it takes. It opens over the invoice; the same URL
+    is a page of its own without JavaScript.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title'|trans, href: cancel}, {label: invoice.number}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = true %}
+
+{% block title %}{{ 'invoice.payment.refund.title'|trans({number: invoice.number}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="refund-form" action="{{ path('app_invoice_refund', {id: invoice.id}) }}" class="grid grid-cols-1 gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoicePaymentController::FORM_TOKEN')) }}">
+        <input type="hidden" name="_submission" value="{{ token }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        <p class="m-0 text-text" data-refund-summary>
+            <span class="block min-w-0 truncate">{{ invoice.customer.name }}</span>
+            <span class="num text-muted">{{ 'invoice.payment.to_refund'|trans({amount: toRefund}) }}</span>
+        </p>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <twig:Ui:TextInput name="receivedOn" id="refund-receivedOn" type="date" :label="'invoice.payment.refund.date'|trans" :value="values.receivedOn" :error="errors.receivedOn|default(null)" :required="true" :max="today" />
+            <twig:Ui:TextInput name="amount" id="refund-amount" :label="'invoice.payment.field.amount'|trans ~ ' (' ~ unit ~ ')'" :value="values.amount" :error="errors.amount|default(null)" :required="true" inputmode="decimal" autocomplete="off" class="num text-right" :autofocus="errors is empty" data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished" />
+        </div>
+        <twig:Ui:Select name="method" id="refund-method" :label="'invoice.payment.field.method'|trans" :options="methods" :value="values.method" :error="errors.method|default(null)" />
+        <twig:Ui:Textarea name="note" id="refund-note" :label="'invoice.payment.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" :maxlength="maxNote" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" id="refund-submit" form="refund-form" variant="primary" icon="banknote">{{ 'invoice.payment.refund.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-xl grid-cols-1 gap-4">
+        <twig:Ui:Card :title="'invoice.payment.refund.page_card'|trans" icon="banknote">{{ body }}</twig:Ui:Card>
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="cancel">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" id="refund-submit" form="refund-form" variant="primary" icon="banknote">{{ 'invoice.payment.refund.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

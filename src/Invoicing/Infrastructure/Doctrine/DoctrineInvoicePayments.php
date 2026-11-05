@@ -112,6 +112,20 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         return $invoice->payable()->plus($this->correctionsOf($invoice))->minus($this->paidOf($invoice));
     }
 
+    public function toRefundOf(Invoice $invoice): Money
+    {
+        $none = Money::ofMinor(0, $invoice->currency());
+        if ($invoice->isTrashed() || !$invoice->kind()->isPayable()) {
+            return $none;
+        }
+        $corrections = $this->correctionsOf($invoice);
+        $remaining = $invoice->payable()->plus($corrections)->minus($this->paidOf($invoice));
+        $refundable = (!$corrections->isZero() && $invoice->payable()->minor() > 0)
+            || ($invoice->deductsAdvances() && $invoice->payable()->minor() <= 0);
+
+        return $refundable && $remaining->isNegative() ? Money::ofMinor(-$remaining->minor(), $remaining->currency()) : $none;
+    }
+
     public function linesOf(Invoice $invoice): array
     {
         /** @var list<PaymentAllocation> $allocations */

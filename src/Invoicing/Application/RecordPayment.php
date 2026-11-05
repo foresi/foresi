@@ -13,12 +13,14 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Records a payment and splits it over invoices of one firm. What the request alone
@@ -36,6 +38,11 @@ use Psr\Clock\ClockInterface;
  * A payment of an advance invoice on which VAT arises gets its tax document in the
  * same transaction, one per advance it pays. A document a rule refuses is left
  * out and the payment stays: the advance then waits for its document by hand.
+ *
+ * A refund sends money back on invoices with something to refund, never more than
+ * that, checked under their locks; it writes nothing off. A refund of an advance
+ * issues no tax document: correcting the one on the payment is a step of its own,
+ * which listens for AdvanceRefunded, dispatched in the same transaction.
  */
 final readonly class RecordPayment
 {
@@ -48,6 +55,7 @@ final readonly class RecordPayment
         private AuditActor $actor,
         private ClockInterface $clock,
         private IssuePaymentTaxDocument $taxDocuments,
+        private EventDispatcherInterface $events,
     ) {
     }
 
@@ -78,17 +86,23 @@ final readonly class RecordPayment
             }
             foreach ($request->allocations as $allocation) {
                 $this->checkSettlement($firm, $invoices[$allocation->invoiceId], $allocation);
+                $this->checkRefund($request, $invoices[$allocation->invoiceId], $allocation);
             }
 
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-            $payment = new Payment($firm, $request->receivedOn, $request->amount, $request->method, $request->source, $request->bankMovementId, $request->note, $this->actor->userId(), $now);
+            $payment = new Payment($firm, $request->receivedOn, $request->amount, $request->method, $request->source, $request->bankMovementId, $request->note, $this->actor->userId(), $now, $request->direction);
             $this->payments->add($payment);
             foreach ($request->allocations as $allocation) {
                 $this->payments->addAllocation(new PaymentAllocation($payment, $invoices[$allocation->invoiceId], $allocation->amount, $allocation->settlement));
             }
             // The one path every payment takes, by hand or from the bank: an advance gets its tax document here.
             foreach ($request->allocations as $allocation) {
-                if (DocumentKind::Advance === $invoices[$allocation->invoiceId]->kind()) {
+                if (DocumentKind::Advance !== $invoices[$allocation->invoiceId]->kind()) {
+                    continue;
+                }
+                if ($payment->isRefund()) {
+                    $this->events->dispatch(new AdvanceRefunded($payment->id(), $allocation->invoiceId, $allocation->amount));
+                } else {
                     $this->taxDocuments->forPayment($payment, $allocation->invoiceId, $allocation->amount);
                 }
             }
@@ -122,7 +136,7 @@ final readonly class RecordPayment
         if ($allocated !== $request->amount->minor()) {
             throw new PaymentRefused(PaymentRefused::AMOUNT_MISMATCH);
         }
-        if (1 !== \count($request->allocations) && array_any($request->allocations, $this->settles(...))) {
+        if ((1 !== \count($request->allocations) || PaymentDirection::Refund === $request->direction) && array_any($request->allocations, $this->settles(...))) {
             throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
         }
     }
@@ -147,6 +161,13 @@ final readonly class RecordPayment
         $closing = $invoice->payable()->minor() - $this->payments->paidOf($invoice)->minor() - $allocation->amount->minor();
         if (null === $limit || abs($settlement) > $limit || $settlement !== $closing) {
             throw new PaymentRefused(PaymentRefused::SETTLEMENT_NOT_ALLOWED);
+        }
+    }
+
+    private function checkRefund(PaymentRequest $request, Invoice $invoice, AllocationRequest $allocation): void
+    {
+        if (PaymentDirection::Refund === $request->direction && $allocation->amount->minor() > $this->payments->toRefundOf($invoice)->minor()) {
+            throw new PaymentRefused(PaymentRefused::REFUND_TOO_LARGE);
         }
     }
 

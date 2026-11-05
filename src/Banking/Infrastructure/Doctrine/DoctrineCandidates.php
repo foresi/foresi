@@ -20,7 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 /**
  * One query through the ORM, so the tenant filter narrows the invoices and the
  * payments both. What is paid is summed as the invoice list sums it: amounts and
- * settlements of allocations whose payment is not cancelled.
+ * settlements of allocations whose payment is not cancelled, a refund's below zero.
  */
 final readonly class DoctrineCandidates implements Candidates
 {
@@ -60,6 +60,30 @@ final readonly class DoctrineCandidates implements Candidates
         return \array_slice($this->candidates($where, $parameters), 0, max(0, $limit));
     }
 
+    public function refunds(string $firmId, ?string $variableSymbol): array
+    {
+        $where = 'i.firm = :firm AND i.deletedAt IS NULL';
+        $parameters = ['firm' => $firmId];
+        if (null !== $variableSymbol) {
+            $where .= ' AND (TRIM(LEADING \'0\' FROM i.variableSymbol) = :symbol OR EXISTS (SELECT 1 FROM '.Invoice::class.' cs'
+                .' WHERE cs.correctedInvoiceId = i.id AND cs.deletedAt IS NULL AND TRIM(LEADING \'0\' FROM cs.variableSymbol) = :symbol))';
+            $parameters['symbol'] = $variableSymbol;
+        }
+        $candidates = [];
+        foreach ($this->rows($where, $parameters) as $row) {
+            // As InvoicePayments::toRefundOf() counts it: below what was paid after corrections, or advances beyond a final invoice.
+            $payable = (int) $row['payable'];
+            $corrections = (int) $row['corrections'];
+            $toRefund = (int) $row['paid'] - $payable - $corrections;
+            $refundable = (0 !== $corrections && $payable > 0) || ($row['deductsAdvances'] && $payable <= 0);
+            if ($refundable && $toRefund > 0) {
+                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($toRefund, $row['currency']), $row['customer'], $row['issueDate']);
+            }
+        }
+
+        return $candidates;
+    }
+
     /**
      * @param array<string, mixed> $parameters
      *
@@ -67,11 +91,30 @@ final readonly class DoctrineCandidates implements Candidates
      */
     private function candidates(string $where, array $parameters): array
     {
+        $candidates = [];
+        foreach ($this->rows($where, $parameters) as $row) {
+            // Overpaid or credited invoices have nothing left: no candidate either.
+            $remaining = (int) $row['payable'] + (int) $row['corrections'] - (int) $row['paid'];
+            if ($remaining > 0) {
+                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($remaining, $row['currency']), $row['customer'], $row['issueDate']);
+            }
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     *
+     * @return list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, paid: int|numeric-string, corrections: int|numeric-string}>
+     */
+    private function rows(string $where, array $parameters): array
+    {
         // Only what asks for money: a tax document on payment is paid by the payment it taxes.
         $where .= ' AND i.kind IN (:payableKinds)';
         $parameters['payableKinds'] = array_values(array_map(static fn (DocumentKind $kind): string => $kind->value, array_filter(DocumentKind::cases(), static fn (DocumentKind $kind): bool => $kind->isPayable())));
         $query = $this->em->createQuery(
-            'SELECT i.id AS id, i.number AS number, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, '
+            'SELECT i.id AS id, i.number AS number, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, i.deductsAdvances AS deductsAdvances, '
             .'(SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL) AS paid, '
             // A credit note lowers what is left and a debit note raises it; neither is a candidate itself.
             .'(SELECT COALESCE(SUM(c.payableMinor), 0) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = i.id AND c.deletedAt IS NULL) AS corrections '
@@ -82,18 +125,9 @@ final readonly class DoctrineCandidates implements Candidates
         foreach ($parameters as $name => $value) {
             $query->setParameter($name, $value);
         }
-        /** @var list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, paid: int|numeric-string, corrections: int|numeric-string}> $rows */
+        /** @var list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, paid: int|numeric-string, corrections: int|numeric-string}> $rows */
         $rows = $query->getArrayResult();
 
-        $candidates = [];
-        foreach ($rows as $row) {
-            // Overpaid or credited invoices have nothing left: no candidate either.
-            $remaining = (int) $row['payable'] + (int) $row['corrections'] - (int) $row['paid'];
-            if ($remaining > 0) {
-                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($remaining, $row['currency']), $row['customer'], $row['issueDate']);
-            }
-        }
-
-        return $candidates;
+        return $rows;
     }
 }

@@ -456,11 +456,19 @@ final class BankMovementController extends AbstractController
         ];
     }
 
+    private function refundsOffered(BankMovement $movement): bool
+    {
+        $options = $this->choices->of($movement);
+
+        return [] !== $options->suggested || [] !== $options->others;
+    }
+
     private function unpairable(BankMovement $movement): ?string
     {
         return match (true) {
-            !$movement->isIncoming() => PairingRefused::NOT_INCOMING,
             MovementState::Paired === $movement->state() => PairingRefused::ALREADY_PAIRED,
+            // Outgoing money pairs only as a refund, so only while something is to refund.
+            !$movement->isIncoming() && (MovementState::Recorded !== $movement->state() || !$this->refundsOffered($movement)) => PairingRefused::NOT_INCOMING,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
             UnmatchedReason::Rejected === $movement->unmatchedReason(), MessageTrust::Failed === $movement->trust() => PairingRefused::REJECTED,

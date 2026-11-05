@@ -10,12 +10,14 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PaymentSource;
@@ -484,6 +486,57 @@ final class InvoicePaymentControllerTest extends WebTestCase
         }
         $this->client->request('POST', '/invoices/'.$id.'/payments/'.$id.'/cancel');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testTheRefundActionRecordsWhatIsToRefundAndRefusesMore(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->paid($invoice, '1210.00');
+        $this->credited($invoice, '-400.00');
+
+        $panel = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit')->filter('[data-payments]');
+        self::assertCount(1, $panel->filter('#invoice-refund'), 'to refund, the panel offers the refund');
+        self::assertCount(0, $panel->filter('#invoice-pay'));
+        $url = '/invoices/'.$invoice->id().'/refund';
+        $this->client->request('GET', $url, server: self::DIALOG);
+        $values = new Crawler((string) $this->client->getResponse()->getContent(), 'http://localhost/')->filter('form#refund-form')->form()->getPhpValues();
+        self::assertSame('484.00', $values['amount'], 'what is to refund is filled in');
+
+        $this->client->request('POST', $url, ['amount' => '484.01'] + $values, server: self::DIALOG);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form#refund-form', 'more than is to refund');
+
+        $this->client->request('POST', $url, $values, server: self::DIALOG);
+        self::assertResponseIsSuccessful();
+        $rows = $this->allocations();
+        self::assertSame([121000, -48400], array_column($rows, 'amount_minor'), 'the refund lowers what was paid');
+        self::assertSame('refund', $this->scalar('SELECT direction FROM payment WHERE amount_minor = 48400'));
+        $panel = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit')->filter('[data-payments]');
+        self::assertCount(0, $panel->filter('#invoice-refund'), 'nothing is left to refund');
+        self::assertCount(2, $panel->filter('[data-payment]'));
+    }
+
+    public function testAFullyCreditedUnpaidInvoiceOffersNeitherPayNorRefund(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+        $this->credited($invoice, '-1000.00');
+
+        $panel = $this->client->request('GET', '/invoices/'.$invoice->id().'/edit')->filter('[data-payments]');
+
+        self::assertCount(0, $panel->filter('#invoice-pay'));
+        self::assertCount(0, $panel->filter('#invoice-refund'));
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/refund');
+        self::assertResponseRedirects('/invoices/'.$invoice->id().'/edit');
+    }
+
+    private function credited(Invoice $invoice, string $difference): void
+    {
+        $this->scoped(function () use ($invoice, $difference): void {
+            $line = new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of(ltrim($difference, '-'), Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-02'), new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Credit', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, correction: new CorrectionInput($invoice->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-02'))));
+        });
     }
 
     private function nb(string $text): string

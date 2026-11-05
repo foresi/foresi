@@ -26,6 +26,8 @@ final class PaymentRefused extends \DomainException
     public const string FUTURE_DATE = 'future_date';
     public const string SETTLEMENT_NOT_ALLOWED = 'settlement_not_allowed';
     public const string NOTE_TOO_LONG = 'note_too_long';
+    /** A refund above what is to refund on the invoice, or on one with nothing to refund. */
+    public const string REFUND_TOO_LARGE = 'refund_too_large';
     /** A bank payment without its movement, or another payment naming one. */
     public const string NO_MOVEMENT = 'no_movement';
     /** The document has payments, so it cannot go to the trash. */

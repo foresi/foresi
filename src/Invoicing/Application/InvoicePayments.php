@@ -54,6 +54,14 @@ interface InvoicePayments
     public function remainingOf(Invoice $invoice): Money;
 
     /**
+     * What may go back to the customer as a refund: what was paid above what is due
+     * on an invoice whose corrections brought it below what was paid (to refund), or
+     * on a final invoice whose deducted advances exceed it (difference to refund).
+     * Zero for anything else, a plain overpayment included.
+     */
+    public function toRefundOf(Invoice $invoice): Money;
+
+    /**
      * @return list<InvoicePaymentLine> the payments not cancelled, oldest first
      */
     public function linesOf(Invoice $invoice): array;

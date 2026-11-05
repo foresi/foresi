@@ -1518,6 +1518,7 @@ invoice:
     not_applicable: Outside VAT
   payment:
     refused:
+      refund_too_large: The refund is more than is to refund on the invoice.
       has_payments: This invoice has payments. Remove the payments first.
       cancelled: The payment of this tax document is cancelled, so it stays in the trash.
       no_allocation: The payment pays no invoice.
@@ -1556,7 +1557,14 @@ invoice:
     nothing_due: 'Invoice {number} has nothing to pay.'
     left: '{amount} left to pay'
     to_refund: '{amount} to refund'
+    refund:
+      title: 'Refund on invoice {number}'
+      page_card: Refund
+      date: Date refunded
+      submit: Record refund
+      nothing: 'Invoice {number} has nothing to refund.'
     panel:
+      refund: Record refund
       title: Payments
       movement: Show the bank movement
       pay: Pay
@@ -1577,6 +1585,7 @@ invoice:
       remove_accept: Remove payment
       keep: Keep it
     flash:
+      refunded: 'Refund of {amount} on invoice {number} recorded.'
       recorded: 'A payment of {amount} was recorded for invoice {number}.'
       settled: 'A payment of {amount} was recorded for invoice {number}. The difference of {difference} was written off.'
       overpaid: 'A payment of {amount} was recorded. Invoice {number} is overpaid by {over}.'

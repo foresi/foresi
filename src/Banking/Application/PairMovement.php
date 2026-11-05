@@ -21,6 +21,7 @@ use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\Payment;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PaymentMethod;
@@ -29,6 +30,10 @@ use App\Party\Domain\PaymentMethod;
  * Pays invoices from an incoming movement: as a person split it, or by itself when
  * the matcher has one answer. The payment and the paired movement are stored
  * together or not at all.
+ *
+ * An outgoing movement a person pairs records a refund on invoices with something
+ * to refund; one on any other invoice is refused as not incoming. It is never
+ * paired by itself.
  *
  * The locks go in one order everywhere: the movement first, then its invoices by
  * ascending id, as RecordPayment takes them. The candidates and the decision are
@@ -76,11 +81,17 @@ final readonly class PairMovement
     {
         try {
             return $this->retry->run(fn (): Payment => $this->work->run(function () use ($movementId, $allocations, $checkedInBank): Payment {
-                $this->refuseUnpairable($this->movements->lock($movementId), $checkedInBank);
+                $movement = $this->movements->lock($movementId);
+                $this->refuseUnpairable($movement, $checkedInBank);
+                $incoming = $movement->isIncoming();
                 foreach ($this->lockInvoices(array_map(static fn (AllocationRequest $allocation): string => $allocation->invoiceId, $allocations)) as $invoiceId) {
-                    // Read under its lock: an invoice paid meanwhile takes no more.
-                    if ($this->payments->remainingOf($this->store->get($invoiceId))->minor() <= 0) {
+                    $invoice = $this->store->get($invoiceId);
+                    // Read under its lock: an invoice paid meanwhile takes no more, and one refunded meanwhile gives no more back.
+                    if ($incoming && $this->payments->remainingOf($invoice)->minor() <= 0) {
                         throw new PairingRefused(PairingRefused::INVOICE_SETTLED);
+                    }
+                    if (!$incoming && $this->payments->toRefundOf($invoice)->minor() <= 0) {
+                        throw new PairingRefused(PairingRefused::NOT_INCOMING);
                     }
                 }
 
@@ -203,6 +214,7 @@ final readonly class PairMovement
             $movement->id(),
             '',
             $allocations,
+            $movement->isIncoming() ? PaymentDirection::Incoming : PaymentDirection::Refund,
         ));
         // Recording started the session over: the movement is read again to be changed.
         $this->movements->get($movementId)->pairWith($payment->id());
@@ -229,7 +241,7 @@ final readonly class PairMovement
     private function refuseUnpairable(BankMovement $movement, bool $checkedInBank): void
     {
         $refusal = match (true) {
-            !$movement->isIncoming() => PairingRefused::NOT_INCOMING,
+            !$movement->isIncoming() && MovementState::Recorded !== $movement->state() && MovementState::Paired !== $movement->state() => PairingRefused::NOT_INCOMING,
             MovementState::Paired === $movement->state(), $this->movements->hasLivePayment($movement->id()) => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
