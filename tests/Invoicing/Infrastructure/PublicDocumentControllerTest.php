@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\FirmInvoicingSettings;
@@ -25,6 +26,7 @@ use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\SendInvoice;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
@@ -489,6 +491,51 @@ final class PublicDocumentControllerTest extends WebTestCase
         self::assertSelectorExists('#payment-title');
     }
 
+    /**
+     * A credit note follows its PDF: titled, naming what it corrects and its
+     * differences, with what goes back and no way to pay.
+     */
+    public function testACreditNoteShowsItsParticularsAndAsksForNothing(): void
+    {
+        $sent = $this->sentCorrection('-1');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextSame('h1', 'Opravný daňový doklad '.$sent['number']);
+        self::assertSelectorTextSame('[data-correction-kind]', 'dobropis');
+        self::assertSelectorTextSame('[data-corrects]', 'Opravuje doklad č. '.$sent['original']);
+        self::assertSelectorTextSame('[data-correction-reason]', 'Důvod opravy: Returned goods');
+        $differences = $crawler->filter('[data-differences] div')->each(static fn ($row): string => $row->filter('dt')->text().' '.$row->filter('dd')->text());
+        self::assertCount(3, $differences);
+        self::assertMatchesRegularExpression('/^Rozdíl základu daně -1\x{a0}000,00\x{a0}Kč$/u', $differences[0]);
+        self::assertMatchesRegularExpression('/^Rozdíl daně -210,00\x{a0}Kč$/u', $differences[1]);
+        self::assertMatchesRegularExpression('/^Rozdíl celkem -1\x{a0}210,00\x{a0}Kč$/u', $differences[2]);
+        self::assertSame(['K vrácení'], $crawler->filter('main dl[data-amount] dt')->each(static fn ($dt): string => $dt->text()), 'no due date');
+        self::assertMatchesRegularExpression('/^1\x{a0}210,00\x{a0}Kč$/u', $crawler->filter('main dl[data-amount] dd')->text());
+        self::assertSelectorTextSame('[data-paid-note]', 'Dobropis snižuje, co máte uhradit. Nic neplaťte.');
+        self::assertSelectorNotExists('[data-paid-status]');
+        self::assertSelectorNotExists('#payment-title');
+        self::assertSelectorNotExists('figure svg');
+        self::assertNull($this->connection()->fetchOne('SELECT payment_code FROM invoice_send WHERE id = ?', [$sent['send']]));
+    }
+
+    public function testADebitNoteAsksForPaymentWithTheCode(): void
+    {
+        $sent = $this->sentCorrection('1');
+
+        $crawler = $this->client->request('GET', '/d/'.$sent['token']);
+
+        self::assertSelectorTextSame('h1', 'Opravný daňový doklad '.$sent['number']);
+        self::assertSelectorTextSame('[data-correction-kind]', 'vrubopis');
+        self::assertSelectorTextSame('[data-corrects]', 'Opravuje doklad č. '.$sent['original']);
+        self::assertCount(3, $crawler->filter('[data-differences] div'));
+        self::assertSame(['K úhradě', 'Splatnost'], $crawler->filter('main dl[data-amount] dt')->each(static fn ($dt): string => $dt->text()));
+        self::assertSelectorNotExists('[data-paid-status]');
+        self::assertSelectorNotExists('[data-paid-note]');
+        self::assertCount(1, $crawler->filter('section[aria-labelledby="payment-title"] figure svg'));
+    }
+
     public function testCashOrCardShowsNoPaymentBlock(): void
     {
         foreach ([PaymentMethod::Cash, PaymentMethod::Card] as $method) {
@@ -725,6 +772,27 @@ final class PublicDocumentControllerTest extends WebTestCase
         });
 
         return $this->sentOf($final);
+    }
+
+    /**
+     * An invoice of 1 210 Kč and its correction of one line of 1 000 Kč, the quantity given, sent.
+     *
+     * @return array{send: string, invoice: string, token: string, number: string, original: string}
+     */
+    private function sentCorrection(string $quantity): array
+    {
+        $original = $this->queuedDocument();
+        $correction = $this->inTenant(function () use ($original, $quantity): Invoice {
+            [$firm, , $customer] = $this->firm ?? throw new \LogicException('The firm is missing.');
+            $day = new \DateTimeImmutable('2026-11-03');
+            $line = new LineInput('Work', Quantity::fromString($quantity), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($firm, null, null, $customer, null, $day, $day, new \DateTimeImmutable('2026-11-17'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::CorrectionDocument, null, new CorrectionInput($original['invoice'], 'Returned goods', CorrectionType::Change, $day)));
+        });
+
+        $number = $this->inTenant(static fn (): string => self::getContainer()->get(InvoiceStore::class)->get($original['invoice'])->number());
+
+        return [...$this->sentOf($correction), 'original' => $number];
     }
 
     private function issuedAdvance(): Invoice

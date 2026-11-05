@@ -91,11 +91,12 @@ final readonly class CzechInvoicing implements InvoicingCountry
     }
 
     /**
-     * None on a document that asks for nothing: a tax document on payment is paid.
+     * None on a document that asks for nothing: a tax document on payment is paid,
+     * and a credit note lowers what is owed. A debit note asks for what it adds.
      */
     public function paymentCode(IssuedDocument $document): ?string
     {
-        return $document->kind->isPayable() ? $this->qr->for($document) : null;
+        return $document->asksForPayment() ? $this->qr->for($document) : null;
     }
 
     /**

@@ -19,7 +19,9 @@ use App\Shared\Domain\Currency;
  * scalars only, read across tenants without making one active. The payment state
  * and what remains to pay are today's, of the invoice as it stands now; a tax
  * document on payment is paid by its payment, as its PDF says, and an invoice its
- * advances cover in full is settled by them.
+ * advances cover in full is settled by them. A corrective tax document shows what
+ * it corrects and its differences; a credit note asks for nothing, a debit note
+ * for what it adds.
  */
 final readonly class PublicDocument
 {
@@ -49,7 +51,34 @@ final readonly class PublicDocument
         public DocumentKind $kind,
         /** Whether lines of the invoice deduct advances. */
         public bool $deductsAdvances,
+        /** The number of the document a corrective tax document corrects. */
+        public ?string $correctedNumber = null,
+        public ?string $correctionReason = null,
+        /** The base, tax and total of the document: on a correction, its differences. */
+        public int $netMinor = 0,
+        public int $vatMinor = 0,
     ) {
+    }
+
+    public function isCorrection(): bool
+    {
+        return DocumentKind::CorrectionDocument === $this->kind;
+    }
+
+    /**
+     * A corrective tax document below zero: as its PDF says, it asks for no payment.
+     */
+    public function isCreditNote(): bool
+    {
+        return $this->isCorrection() && $this->amountMinor < 0;
+    }
+
+    /**
+     * Whether the document asks for money: a payable kind, or a debit note.
+     */
+    public function asksForPayment(): bool
+    {
+        return $this->kind->isPayable() || ($this->isCorrection() && 0 < $this->amountMinor);
     }
 
     /**

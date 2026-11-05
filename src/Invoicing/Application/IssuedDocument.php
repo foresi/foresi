@@ -29,9 +29,10 @@ final readonly class IssuedDocument
     /**
      * @param list<InvoiceLine>                                                         $lines
      * @param list<RateSummary>                                                         $summaries
-     * @param string|null                                                               $advanceNumber the advance invoice a tax document on payment taxes a payment of
-     * @param array<string, array{number: string, variableSymbol: string, taxed: bool}> $deposits      what deduction lines deduct, by id:
-     *                                                                                                 a tax document is taxed, an advance invoice is not
+     * @param string|null                                                               $advanceNumber   the advance invoice a tax document on payment taxes a payment of
+     * @param array<string, array{number: string, variableSymbol: string, taxed: bool}> $deposits        what deduction lines deduct, by id:
+     *                                                                                                   a tax document is taxed, an advance invoice is not
+     * @param string|null                                                               $correctedNumber the document a corrective tax document corrects
      */
     public function __construct(
         public string $id,
@@ -67,7 +68,27 @@ final readonly class IssuedDocument
         public ?string $advanceNumber = null,
         public bool $deductsAdvances = false,
         public array $deposits = [],
+        public ?string $correctedNumber = null,
+        public ?string $correctionReason = null,
+        public ?\DateTimeImmutable $decisiveDate = null,
     ) {
+    }
+
+    /**
+     * A corrective tax document below zero: it lowers what is owed and asks for no payment.
+     */
+    public function isCreditNote(): bool
+    {
+        return DocumentKind::CorrectionDocument === $this->kind && $this->payable->isNegative();
+    }
+
+    /**
+     * Whether the document asks the customer to pay it: a payable kind, or a
+     * corrective tax document that adds to what is owed.
+     */
+    public function asksForPayment(): bool
+    {
+        return $this->kind->isPayable() || (DocumentKind::CorrectionDocument === $this->kind && 0 < $this->payable->minor());
     }
 
     /**

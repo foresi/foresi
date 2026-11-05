@@ -31,6 +31,8 @@
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
                 <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
                 {% if doc.advanceNumber %}<p style="{{ s.small }}">{{ 'invoice.pdf.for_advance'|trans({number: doc.advanceNumber}) }}</p>{% endif %}
+                {% if doc.subtitle %}<p style="{{ s.strong }}">{{ doc.subtitle }}</p>{% endif %}
+                {% if doc.correction and doc.correction.corrects %}<p style="{{ s.small }}">{{ doc.correction.corrects }}</p>{% endif %}
                 <table cellpadding="0"><tr><td height="9mm"></td></tr></table>
                 {{ t.party(doc.customer, 'invoice.pdf.customer'|trans, doc, s, false) }}
                 <table cellpadding="0"><tr><td height="6mm"></td></tr></table>
@@ -83,6 +85,8 @@
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
                 <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
                 {% if doc.advanceNumber %}<p style="{{ s.small }}">{{ 'invoice.pdf.for_advance'|trans({number: doc.advanceNumber}) }}</p>{% endif %}
+                {% if doc.subtitle %}<p style="{{ s.strong }}">{{ doc.subtitle }}</p>{% endif %}
+                {% if doc.correction and doc.correction.corrects %}<p style="{{ s.small }}">{{ doc.correction.corrects }}</p>{% endif %}
             </td>
         </tr>
     </table>
@@ -93,6 +97,10 @@
                 <p style="{{ on }}">{{ doc.toPayLabel }}</p>
                 <p style="font-family:interdisplay;font-size:{{ wide }};color:#ffffff;margin:0;white-space:nowrap;">{{ doc.toPay }}</p>
             </td>
+            {# A credit note asks for no payment: no due date and no account to pay to. #}
+            {% if doc.creditNote %}
+            <td width="60%"></td>
+            {% else %}
             <td width="20%">
                 <p style="{{ on }}">{{ 'invoice.pdf.due_date'|trans }}</p>
                 <p style="{{ onValue }}">{{ doc.dueDate }}</p>
@@ -105,6 +113,7 @@
                 {% if doc.variableSymbol %}<p style="{{ on }}margin-top:6pt;">{{ 'invoice.pdf.variable_symbol'|trans }}</p><p style="{{ onValue }}">{{ doc.variableSymbol }}</p>{% endif %}
                 {% if doc.constantSymbol %}<p style="{{ on }}">{{ 'invoice.pdf.constant_symbol'|trans }}: {{ doc.constantSymbol }}</p>{% endif %}
             </td>
+            {% endif %}
         </tr>
     </table>
     <table cellpadding="0"><tr><td height="7mm"></td></tr></table>
@@ -124,6 +133,20 @@
         </tr>
     </table>
     <table cellpadding="0"><tr><td height="5mm"></td></tr></table>
+    {# The particulars of §45: why, the day of the fact, and the differences the lines make. #}
+    {% if doc.correction %}
+        {% if doc.correction.reason %}<p style="{{ s.text }}">{{ doc.correction.reason }}</p>{% endif %}
+        {% if doc.correction.decisiveDate %}<p style="{{ s.text }}">{{ doc.correction.decisiveDate }}</p>{% endif %}
+        <table cellpadding="0"><tr><td height="3mm"></td></tr></table>
+        <table cellpadding="6" style="background-color:#f4f2ec;" nobr="true">
+            <tr>
+                <td width="33%"><span style="{{ s.label }}">{{ 'invoice.pdf.difference_base'|trans }}</span><br><span style="{{ s.strong }}white-space:nowrap;">{{ doc.correction.base }}</span></td>
+                <td width="34%"><span style="{{ s.label }}">{{ 'invoice.pdf.difference_vat'|trans }}</span><br><span style="{{ s.strong }}white-space:nowrap;">{{ doc.correction.vat }}</span></td>
+                <td width="33%"><span style="{{ s.label }}">{{ 'invoice.pdf.difference_total'|trans }}</span><br><span style="{{ s.strong }}white-space:nowrap;">{{ doc.correction.total }}</span></td>
+            </tr>
+        </table>
+        <table cellpadding="0"><tr><td height="5mm"></td></tr></table>
+    {% endif %}
     {% if doc.description or doc.textBefore %}
         {{ t.description(doc, s) }}
         <table cellpadding="0"><tr><td height="3mm"></td></tr></table>

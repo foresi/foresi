@@ -75,6 +75,9 @@ final readonly class IssuedDocumentFactory
             null === $invoice->advanceInvoiceId() ? null : $this->store->get($invoice->advanceInvoiceId())->number(),
             $invoice->deductsAdvances(),
             $this->deposits($lines),
+            null === $invoice->correctedInvoiceId() ? null : $this->store->get($invoice->correctedInvoiceId())->number(),
+            $invoice->correctionReason(),
+            $invoice->decisiveDate(),
         );
     }
 

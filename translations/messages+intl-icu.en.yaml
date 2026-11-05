@@ -998,7 +998,7 @@ invoice:
     add: Deduct
     option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
   public:
-    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} other {Invoice {number}}}'
+    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} correction_document {Corrective tax document {number}} other {Invoice {number}}}'
     from: From
     for: 'For {customer}'
     paid: Paid
@@ -1007,6 +1007,7 @@ invoice:
     settled_by_advances: Settled by advances
     settled_by_advances_note: Settled by advances, nothing to pay
     to_refund: Difference to refund
+    to_return: To be refunded
     due: Due date
     remaining: Left to pay
     payment:
@@ -1021,7 +1022,8 @@ invoice:
     download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
     paid_note: 'Paid {date}, nothing to pay'
     do_not_pay: Do not pay, the document is already paid
-    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} other {Invoice {number} as PDF}}'
+    credit_note_note: The credit note lowers what you owe. Do not pay it.
+    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} correction_document {Corrective tax document {number} as PDF} other {Invoice {number} as PDF}}'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
     gone:
@@ -1171,12 +1173,21 @@ invoice:
     footer: '{title} · Page {page}/{pages}'
     unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
     trashed: IN THE TRASH – NOT A VALID DOCUMENT
-    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} other {Invoice}} {number}'
+    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} correction_document {Corrective tax document} other {Invoice}} {number}'
     title_tax: Invoice - tax document
     title: Invoice
     title_advance: Advance invoice
     title_payment_tax_document: Tax document on received payment
     title_correction_document: Corrective tax document
+    credit_note: credit note
+    debit_note: debit note
+    corrects: 'Corrects document no. {number}'
+    correction_reason: 'Reason for correction: {reason}'
+    decisive_date: 'Date of the decisive fact: {date}'
+    difference_base: Difference in tax base
+    difference_vat: Difference in tax
+    difference_total: Total difference
+    to_return: To be refunded
     advance_recap_note: VAT breakdown is informative only, this is not a tax document.
     supplier: Supplier
     customer: Customer

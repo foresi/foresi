@@ -35,6 +35,10 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             (SELECT i.payable_minor FROM invoice i WHERE i.id = s.invoice_id) AS payable_minor,
             (SELECT i.kind FROM invoice i WHERE i.id = s.invoice_id) AS kind,
             (SELECT i.deducts_advances FROM invoice i WHERE i.id = s.invoice_id) AS deducts_advances,
+            (SELECT i.net_minor FROM invoice i WHERE i.id = s.invoice_id) AS net_minor,
+            (SELECT i.vat_minor FROM invoice i WHERE i.id = s.invoice_id) AS vat_minor,
+            (SELECT i.correction_reason FROM invoice i WHERE i.id = s.invoice_id) AS correction_reason,
+            (SELECT o.number FROM invoice i JOIN invoice o ON o.id = i.corrected_invoice_id WHERE i.id = s.invoice_id) AS corrected_number,
             (SELECT COALESCE(SUM(a.amount_minor + a.settlement_minor), 0) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
                 WHERE a.invoice_id = s.invoice_id AND p.cancelled_at IS NULL) AS paid_minor,
             (SELECT MAX(p.received_on) FROM payment_allocation a JOIN payment p ON p.id = a.payment_id
@@ -89,6 +93,10 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
             $kind,
             // A boolean of PostgreSQL, an integer of SQLite.
             \in_array($row['deducts_advances'], [true, 1, '1', 't', 'true'], true),
+            $this->optional($row, 'corrected_number'),
+            $this->optional($row, 'correction_reason'),
+            (int) $this->text($row, 'net_minor'),
+            (int) $this->text($row, 'vat_minor'),
         );
     }
 
