@@ -12,6 +12,7 @@ A firm's reminder settings hold:
 | First reminder | 7 days | 1 to 365 days after the due date |
 | Next reminders | 7 days | 1 to 365 days after the previous reminder |
 | Minimum amount | none | an amount in the firm's home currency, or blank |
+| Remind advance invoices too | off | on or off |
 
 At most 10 reminders go out per invoice, counting those sent by hand.
 
@@ -25,6 +26,8 @@ The reminder run starts at **08:00** in the organisation's time zone every day (
 - the day has come: the due date plus the first delay for the first reminder, the previous reminder's day plus the next delay after that.
 
 One reminder per invoice per run, so a day the worker missed never sends two at once. Reminder *n* is recorded with its step, unique per invoice, so two runs never send the same step.
+
+Advance invoices are reminded by the same rule only when the firm switches that on; iDoklad reminds them by hand only. A tax document on payment is paid by its payment and is never reminded. An invoice settled by deducted advances owes nothing.
 
 A trashed invoice owes nothing and is never reminded. An invoice paid in full, or overpaid, owes nothing either and is never reminded, by hand or by the run.
 

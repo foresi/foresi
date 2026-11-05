@@ -4,7 +4,7 @@ This page says what the invoices of this release do and do not do. It is a state
 
 ## What is supported
 
-- Document type: an invoice. Other types (advance invoice, tax document for a payment, correction) are not in this release.
+- Document types: an invoice, an advance invoice and a tax document on a received payment. Corrections are not in this release. See [Advances](#advances) and ADR 21.
 - Countries: invoices issued by a firm seated in the Czech Republic. The country rules live in a country module, so others can be added.
 - VAT regimes: a VAT payer, and a firm that is not a VAT payer (documents without VAT). A firm with the status identified person cannot issue invoices yet.
 - Tax treatments per line: standard rate, reverse charge (with its supply code), exempt and not applicable. VAT is not rounded to whole crowns; the total can be rounded to a whole crown, as a setting of the firm.
@@ -23,9 +23,20 @@ This page says what the invoices of this release do and do not do. It is a state
 - **Status.** One derived status per document, the most relevant: in the trash, overpaid, paid, overdue, partly paid, delivered, issued. An invoice is overdue only while something is left to pay.
 - **Payments.** "Pay" in the row menu records a payment by hand: date, amount, method and note. A part payment and an overpayment are allowed. Payments from bank notification e-mails are paired by themselves when the rules leave one answer. The invoice lists its payments, each can be removed, and an invoice with payments cannot go to the trash. See [bank-pairing.md](bank-pairing.md).
 
+## Advances
+
+- **Advance invoice.** Sales, Advance invoices, New. It asks for payment before the supply and is no tax document: it has no tax point, its VAT rates are those of its issue date, its PDF says under the VAT recap that the recap is informative only, its QR code carries no tax fields, and it has no ISDOC file. It numbers in its own series (standard `Z9{YYYY}{NNNN}`), is sent with its own mail template, and is paid and paired like an invoice. Reminders take it when the firm switches that on.
+- **Tax document on payment.** Every payment recorded on an advance, by hand or from the bank, gets a tax document in the same step: its own series (standard `D8{YYYY}{NNNN}`), the advance's variable symbol, the day of receipt as its tax point, and the amount received split over the rates of the advance in proportion, VAT taken out of the gross amount. It says it is already paid, has no QR code, and is never paired, reminded or overdue. It cannot be edited; it follows its payment.
+- **When VAT arises.** A firm that is no VAT payer, a customer who is a private person and an advance whose every line is a domestic reverse charge get no tax document. On the advance, "Tax document on payment" can say the supply is not known yet (none) or ask for the documents anyway; the form shows what the rules say for a saved advance. The deadline is 15 days from the payment, or 15 days from the end of its month when every line is a reverse charge to a customer abroad.
+- **Waiting for a tax document.** A tax document a rule refused (an archived standard series, say) leaves the payment recorded. The advance then waits in Advance invoices, Needs tax document, with the days left, and a notice on every page names the first deadline. "Issue tax document" issues it there.
+- **Cancelled payment.** Its tax document goes to the trash while the customer has not got it. A delivered one stays and asks for a corrective tax document.
+- **Settling.** On a new or edited invoice, "Deduct an advance" offers the customer's tax documents and the paid advances on which no VAT arose. Each adds negative lines, one per rate, so the VAT recap is net of the advances. A document is deducted by one invoice only; trashing the invoice frees it. The total may reach zero or less: the invoice then has no QR code, says it is settled by advances, and a negative total is a difference to refund. The ISDOC file carries the deposits per tax document and rate.
+- **Links.** Each document of a chain shows the advance, its payments with their tax documents, and the invoice that deducts them.
+- **Accountant.** The bulk download takes invoices and tax documents by tax point; advances have none and stay out.
+
 ## ISDOC statement
 
-Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own writer. The producer is named in the file. The files are validated against the published schema in the tests. The file uses the extension `LocalReverseChargeCode` and `LocalReverseChargeFlag` for a domestic reverse charge. Which parts of the format other programs read, and how, differs between programs; check the import with yours before relying on it.
+Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own writer. Advance invoices and tax documents on payment have no ISDOC file. A final invoice lists the supply as its lines and the deducted advances as `TaxedDeposits` (tax documents, per rate) and `NonTaxedDeposits` (advances without VAT), with the per-rate `AlreadyClaimed` and `Difference` amounts. The producer is named in the file. The files are validated against the published schema in the tests. The file uses the extension `LocalReverseChargeCode` and `LocalReverseChargeFlag` for a domestic reverse charge. Which parts of the format other programs read, and how, differs between programs; check the import with yours before relying on it.
 
 ## Limits of this release
 
@@ -36,7 +47,7 @@ Foresi produces ISDOC version 6.0.2, document type 1 (invoice), with its own wri
 - The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
 - A document in the trash prints with a mark, without the QR code and without the ISDOC file.
 - Foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), payments and bank pairing in [bank-pairing.md](bank-pairing.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which follow the recorded payments, in [reminders.md](reminders.md).
-- Tax documents on payment, advances, bulk payment and payments in another currency than the invoice's are not included. Bank notifications are read for Komerční banka only.
+- Corrective tax documents, the refund of an invoice over-covered by advances, bulk payment and payments in another currency than the invoice's are not included. Bank notifications are read for Komerční banka only.
 - The rounding rules, the reverse charge and the numbering are implemented as described in the ADRs; whether they are right for your situation is for your adviser to confirm.
 
 ## Bulk download and time limits
