@@ -11,10 +11,15 @@ namespace App\Invoicing\Application;
 use App\Invoicing\Domain\Invoice;
 
 /**
- * The text of the line of a tax document on payment, in the language of the
- * advance invoice it taxes a payment of.
+ * The texts a tax document on payment gets, in the language of the document: the
+ * one of the advance invoice it taxes a payment of.
  */
 interface PaymentTaxDocumentTexts
 {
     public function lineText(Invoice $advance): string;
+
+    /**
+     * Why a tax document went to the trash with its cancelled payment.
+     */
+    public function cancelledReason(Invoice $document): string;
 }

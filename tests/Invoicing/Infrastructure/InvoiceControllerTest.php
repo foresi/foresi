@@ -11,10 +11,13 @@ namespace App\Tests\Invoicing\Infrastructure;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\PaymentRequest;
@@ -1120,6 +1123,28 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame('Needs tax document1', trim($tab->text()));
         $this->client->request('GET', '/invoices');
         self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
+    }
+
+    public function testADeliveredTaxDocumentOfACancelledPaymentAsksForACorrection(): void
+    {
+        $this->signedIn();
+        $document = $this->scoped(function (): Invoice {
+            $advance = $this->paidAdvanceWithoutTaxDocument();
+            $this->em()->clear();
+            $this->context->switchTo($this->tenant);
+            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
+            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
+            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
+            $document = $tax->byHand($advance->id(), $payment);
+            self::getContainer()->get(MarkDelivered::class)->mark($document->id());
+            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+
+            return $document;
+        });
+
+        $this->openEdit($document);
+
+        self::assertSelectorTextContains('[data-needs-correction]', 'It needs a corrective tax document.');
     }
 
     public function testIssuingATaxDocumentTwiceSaysItExists(): void

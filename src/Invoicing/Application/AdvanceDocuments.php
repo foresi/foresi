@@ -30,4 +30,11 @@ interface AdvanceDocuments
      * @return list<array{advanceId: string, paymentId: string}>
      */
     public function paidWithoutTaxDocument(): array;
+
+    /**
+     * The tax documents on a payment, in the trash too, by id.
+     *
+     * @return list<string> ids
+     */
+    public function taxDocumentsOfPayment(string $paymentId): array;
 }

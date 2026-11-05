@@ -30,6 +30,16 @@ final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
         return \is_array($id) && \is_string($id['id'] ?? null) ? $id['id'] : null;
     }
 
+    public function taxDocumentsOfPayment(string $paymentId): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE i.paymentId = :payment ORDER BY i.id')
+            ->setParameter('payment', $paymentId)
+            ->getSingleColumnResult();
+
+        return $ids;
+    }
+
     public function paidWithoutTaxDocument(): array
     {
         /** @var list<array{advanceId: string, paymentId: string}> $rows */

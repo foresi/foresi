@@ -2346,6 +2346,8 @@ advance:
 
         {link}
 tax_document:
+  needs_correction: Platba tohoto daňového dokladu byla zrušena poté, co ho odběratel dostal. Je potřeba opravný daňový doklad.
+  cancelled_reason: Platba, ke které byl vystaven, byla zrušena.
   title: 'Daňový doklad {number}'
   card:
     template: Daňový doklad k platbě

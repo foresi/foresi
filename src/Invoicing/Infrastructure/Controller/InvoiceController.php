@@ -587,6 +587,8 @@ final class InvoiceController extends AbstractController
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
+            // Delivered before its payment was cancelled: it needs a corrective document.
+            'needsCorrection' => null !== $invoice?->paymentId() && !$invoice->isTrashed() && $this->payments->get($invoice->paymentId())->isCancelled(),
             'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
             'kind' => $context->kind->value,

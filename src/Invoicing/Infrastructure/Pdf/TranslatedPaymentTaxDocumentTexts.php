@@ -26,4 +26,9 @@ final readonly class TranslatedPaymentTaxDocumentTexts implements PaymentTaxDocu
     {
         return $this->translator->trans('invoice.pdf.tax_document_line', ['number' => $advance->number(), 'symbol' => $advance->variableSymbol()], locale: $advance->language()->value);
     }
+
+    public function cancelledReason(Invoice $document): string
+    {
+        return $this->translator->trans('tax_document.cancelled_reason', locale: $document->language()->value);
+    }
 }

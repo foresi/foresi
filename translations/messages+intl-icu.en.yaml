@@ -2346,6 +2346,8 @@ advance:
 
         {link}
 tax_document:
+  needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
+  cancelled_reason: The payment it taxed was cancelled.
   title: 'Tax document {number}'
   card:
     template: Tax document on payment
