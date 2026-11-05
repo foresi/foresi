@@ -71,6 +71,7 @@ final readonly class IssuedDocumentFactory
             $invoice->payable(),
             $invoice->isTrashed(),
             $owed instanceof Money && $owed->minor() < $invoice->payable()->minor() ? $owed : null,
+            null === $invoice->advanceInvoiceId() ? null : $this->store->get($invoice->advanceInvoiceId())->number(),
         );
     }
 }

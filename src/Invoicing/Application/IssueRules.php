@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
@@ -98,6 +99,10 @@ final readonly class IssueRules
         if ($existing?->isTrashed() ?? false) {
             $problems[] = new IssueProblem('document', 'invoice.problem.trashed');
         }
+        // It follows its payment, which a change could only contradict; step 6 corrects it.
+        if (DocumentKind::PaymentTaxDocument === $existing?->kind()) {
+            $problems[] = new IssueProblem('document', 'invoice.problem.tax_document_fixed');
+        }
         if (($existing?->kind() ?? $input->kind)->isTaxDocument() && !$input->taxPointDate instanceof \DateTimeImmutable) {
             $problems[] = new IssueProblem('taxPointDate', 'invoice.problem.tax_point_missing');
         }
@@ -115,7 +120,9 @@ final readonly class IssueRules
         } elseif ('' !== $input->constantSymbol && !ctype_digit($input->constantSymbol)) {
             $problems[] = new IssueProblem('constantSymbol', 'invoice.problem.constant_symbol_invalid');
         }
-        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$this->accountAllowed($input->bankAccount, $firm, $existing)) {
+        // A tax document on payment asks for nothing, so it needs no account of the firm.
+        $paid = !($existing?->kind() ?? $input->kind)->isPayable() && null === $input->bankAccount;
+        if (PaymentMethod::BankTransfer === $input->paymentMethod && !$paid && !$this->accountAllowed($input->bankAccount, $firm, $existing)) {
             $problems[] = new IssueProblem('bankAccount', 'invoice.problem.bank_account_foreign');
         }
 
@@ -167,6 +174,9 @@ final readonly class IssueRules
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
+        if (!$existing instanceof Invoice && null === $input->seriesId && $this->standardNameTaken($series, $firm)) {
+            return [new IssueProblem('series', 'invoice.problem.series_archived')];
+        }
         if ($series->kind() !== ($existing?->kind() ?? $input->kind)) {
             return [new IssueProblem('series', 'invoice.problem.series_kind')];
         }
@@ -175,6 +185,17 @@ final readonly class IssueRules
         }
 
         return null === $input->typedNumber ? [] : $this->typedNumber(trim($input->typedNumber), $series, $input->issueDate, $firm, $existing);
+    }
+
+    /**
+     * Whether the standard series a firm would get by itself cannot be stored, as an
+     * archived series of the firm has its name.
+     */
+    private function standardNameTaken(Series $series, LegalEntity $firm): bool
+    {
+        $every = $this->catalog->everyForFirm($firm);
+
+        return !\in_array($series, $every, true) && array_any($every, static fn (Series $other): bool => $other->name() === $series->name());
     }
 
     private function series(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): ?Series

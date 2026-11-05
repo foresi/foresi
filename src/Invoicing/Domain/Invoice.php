@@ -46,6 +46,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_occurrence', columns: ['tenant_id', 'recurring_invoice_id', 'recurring_occurrence'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
+#[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -150,6 +152,12 @@ class Invoice implements TenantOwned, Audited
     // Only an advance invoice holds a choice; NULL follows the rules.
     #[ORM\Column(name: 'tax_on_receipt', type: 'string', length: 8, nullable: true, enumType: TaxOnReceiptChoice::class)]
     private ?TaxOnReceiptChoice $taxOnReceipt;
+
+    #[ORM\Column(name: 'advance_invoice_id', type: 'guid', nullable: true)]
+    private ?string $advanceInvoiceId = null;
+
+    #[ORM\Column(name: 'payment_id', type: 'guid', nullable: true)]
+    private ?string $paymentId = null;
 
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
@@ -317,6 +325,37 @@ class Invoice implements TenantOwned, Audited
         }
         $this->recurringInvoiceId = $recurringId;
         $this->recurringOccurrence = new \DateTimeImmutable($occurrence->format('Y-m-d'));
+    }
+
+    /**
+     * Names the advance invoice and the payment a tax document on payment taxes. Set
+     * once, at issue; the pair is unique, so no payment is taxed twice.
+     *
+     * @throws \DomainException for another kind of document, or one that taxes a payment already
+     */
+    public function taxesPayment(string $advanceId, string $paymentId): void
+    {
+        if (DocumentKind::PaymentTaxDocument !== $this->kind || null !== $this->paymentId) {
+            throw new \DomainException('Only a tax document on payment taxes a payment, and only one.');
+        }
+        $this->advanceInvoiceId = $advanceId;
+        $this->paymentId = $paymentId;
+    }
+
+    /**
+     * The advance invoice whose payment a tax document on payment taxes.
+     */
+    public function advanceInvoiceId(): ?string
+    {
+        return $this->advanceInvoiceId;
+    }
+
+    /**
+     * The payment a tax document on payment taxes.
+     */
+    public function paymentId(): ?string
+    {
+        return $this->paymentId;
     }
 
     public function recurringInvoiceId(): ?string

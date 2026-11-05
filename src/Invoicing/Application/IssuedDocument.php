@@ -29,6 +29,7 @@ final readonly class IssuedDocument
     /**
      * @param list<InvoiceLine> $lines
      * @param list<RateSummary> $summaries
+     * @param string|null       $advanceNumber the advance invoice a tax document on payment taxes a payment of
      */
     public function __construct(
         public string $id,
@@ -61,6 +62,7 @@ final readonly class IssuedDocument
         public Money $payable,
         public bool $trashed = false,
         public ?Money $leftToPay = null,
+        public ?string $advanceNumber = null,
     ) {
     }
 

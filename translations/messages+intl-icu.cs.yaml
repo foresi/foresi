@@ -1169,6 +1169,11 @@ invoice:
     order_number: Číslo objednávky
     payable: Celkem k úhradě
     left_to_pay: Zbývá uhradit
+    do_not_pay: Neplaťte, doklad je již uhrazen
+    total_paid: Celkem uhrazeno
+    for_advance: 'K zálohové faktuře {number}'
+    tax_point_payment: Datum přijetí platby (DUZP)
+    tax_document_line: 'Daňový doklad k přijaté platbě zálohové faktury {number}, VS {symbol}'
     item: Označení dodávky
     quantity: Počet
     unit: m. j.
@@ -1603,6 +1608,7 @@ invoice:
     reverse_charge_payer: Přenesená daň vyžaduje vystavitele, který je plátcem DPH.
     series_archived: Tato řada je archivovaná.
     series_kind: Tato řada čísluje jiný druh dokladů.
+    tax_document_fixed: Daňový doklad k platbě odpovídá své platbě a nelze ho měnit.
     series_of_another_firm: Tato řada patří jiné firmě.
     series_unknown: Vyberte číselnou řadu.
     supply_code_invalid: Vyberte kód plnění.

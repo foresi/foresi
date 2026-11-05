@@ -371,7 +371,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     {
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
         $paid = Money::ofMinor($paidMinor, $invoice->currency());
-        $payment = PaymentState::of($invoice->payable(), $paid);
+        $payment = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
 
         return new InvoiceRow(
             $invoice->id(),

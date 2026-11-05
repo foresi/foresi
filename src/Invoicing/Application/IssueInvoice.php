@@ -65,6 +65,10 @@ final readonly class IssueInvoice
      */
     public function issue(InvoiceInput $input, ?IssueOrigin $origin = null): Invoice
     {
+        if (!$input->kind->isIssuedByPerson() && !$origin instanceof PaymentTaxDocumentOrigin) {
+            throw new \LogicException('A tax document on payment is issued for a payment only.');
+        }
+
         return $this->retry->run(function () use ($input, $origin): Invoice {
             $firm = $this->firms->get($input->firmId);
             $problems = $this->rules->check($input, $firm);

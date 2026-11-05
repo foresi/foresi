@@ -1169,6 +1169,11 @@ invoice:
     order_number: Order number
     payable: Total to pay
     left_to_pay: Left to pay
+    do_not_pay: Do not pay, the document is already paid
+    total_paid: Total paid
+    for_advance: 'To advance invoice {number}'
+    tax_point_payment: Date of receipt of payment (tax point)
+    tax_document_line: 'Tax document on received payment of advance invoice {number}, variable symbol {symbol}'
     item: Description
     quantity: Qty
     unit: Unit
@@ -1603,6 +1608,7 @@ invoice:
     reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
     series_archived: This series is archived.
     series_kind: This series numbers another kind of document.
+    tax_document_fixed: A tax document on payment follows its payment and cannot be changed.
     series_of_another_firm: This series belongs to another firm.
     series_unknown: Choose a series.
     supply_code_invalid: Choose the supply code.

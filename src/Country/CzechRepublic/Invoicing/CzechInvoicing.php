@@ -90,9 +90,12 @@ final readonly class CzechInvoicing implements InvoicingCountry
         return null === $parts ? null : $parts['number'].'/'.$parts['bankCode'];
     }
 
+    /**
+     * None on a document that asks for nothing: a tax document on payment is paid.
+     */
     public function paymentCode(IssuedDocument $document): ?string
     {
-        return $this->qr->for($document);
+        return $document->kind->isPayable() ? $this->qr->for($document) : null;
     }
 
     /**

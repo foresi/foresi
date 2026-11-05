@@ -54,7 +54,7 @@ enum InvoiceStatus: string
             $invoice->isDelivered(),
             $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
-            PaymentState::of($invoice->payable(), $paid),
+            PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid),
         );
     }
 

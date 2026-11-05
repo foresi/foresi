@@ -30,6 +30,7 @@
                 <table cellpadding="0"><tr><td height="9mm"></td></tr></table>
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
                 <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
+                {% if doc.advanceNumber %}<p style="{{ s.small }}">{{ 'invoice.pdf.for_advance'|trans({number: doc.advanceNumber}) }}</p>{% endif %}
                 <table cellpadding="0"><tr><td height="9mm"></td></tr></table>
                 {{ t.party(doc.customer, 'invoice.pdf.customer'|trans, doc, s, false) }}
                 <table cellpadding="0"><tr><td height="6mm"></td></tr></table>
@@ -81,6 +82,7 @@
             <td width="50%" align="right">
                 <h1 style="font-family:intertnum;font-weight:normal;font-size:9pt;color:#5e625c;margin:0;">{{ doc.title }}</h1>
                 <p style="font-family:interdisplay;font-size:{{ doc.numberSize }}pt;color:#1e2320;margin:0;white-space:nowrap;">{{ doc.number }}</p>
+                {% if doc.advanceNumber %}<p style="{{ s.small }}">{{ 'invoice.pdf.for_advance'|trans({number: doc.advanceNumber}) }}</p>{% endif %}
             </td>
         </tr>
     </table>
@@ -153,7 +155,7 @@
                     sum: 'font-weight:bold;background-color:#f4f2ec;',
                 }) }}
                 {% if doc.recapNote %}<p style="{{ s.label }}text-align:right;margin:3pt 0 0 0;">{{ doc.recapNote }}</p>{% endif %}
-                <p style="font-family:intertnum;font-weight:bold;font-size:11pt;text-align:right;color:#2f4a3a;margin:6pt 0 0 0;">{{ 'invoice.pdf.payable'|trans }}: {{ doc.payable }}</p>
+                <p style="font-family:intertnum;font-weight:bold;font-size:11pt;text-align:right;color:#2f4a3a;margin:6pt 0 0 0;">{{ doc.payableLabel }}: {{ doc.payable }}</p>
             </td>
         </tr>
     </table>

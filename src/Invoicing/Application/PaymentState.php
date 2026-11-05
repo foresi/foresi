@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Shared\Domain\CurrencyMismatch;
 use App\Shared\Domain\Money;
 
@@ -42,6 +43,17 @@ enum PaymentState: string
             $received === $due => self::Paid,
             default => self::Overpaid,
         };
+    }
+
+    /**
+     * The state of a document of a kind: a tax document on payment is paid by the
+     * payment it taxes, so it is paid whatever is allocated to it.
+     *
+     * @throws CurrencyMismatch
+     */
+    public static function ofDocument(DocumentKind $kind, Money $payable, Money $paid): self
+    {
+        return self::of($payable, $kind->isPayable() ? $paid : $payable);
     }
 
     /**

@@ -18,6 +18,7 @@ use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentSourceRelease;
@@ -592,6 +593,9 @@ final class RecordPaymentTest extends InvoiceTestCase
     private function recordingWith(LockLog $log): RecordPayment
     {
         $container = self::getContainer();
+        // The one the container wires, as phpstan's container inlines it.
+        $taxDocuments = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue($container->get(RecordPayment::class));
+        self::assertInstanceOf(IssuePaymentTaxDocument::class, $taxDocuments);
 
         return new RecordPayment(
             new LoggingInvoiceStore($this->store, $log),
@@ -601,6 +605,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $container->get(ConflictRetry::class),
             $container->get(AuditActor::class),
             Clock::get(),
+            $taxDocuments,
         );
     }
 

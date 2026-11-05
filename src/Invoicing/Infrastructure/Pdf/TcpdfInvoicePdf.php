@@ -147,7 +147,14 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'customer' => $this->party($document->customer, $payer),
             'issueDate' => $this->format->date($document->issueDate, $document->language),
             'taxPointDate' => $document->taxPointDate instanceof \DateTimeImmutable ? $this->format->date($document->taxPointDate, $document->language) : null,
-            'taxPointLabel' => $this->trans($payer ? 'invoice.pdf.tax_point' : 'invoice.pdf.supply_date'),
+            'taxPointLabel' => $this->trans(match (true) {
+                DocumentKind::PaymentTaxDocument === $document->kind => 'invoice.pdf.tax_point_payment',
+                $payer => 'invoice.pdf.tax_point',
+                default => 'invoice.pdf.supply_date',
+            }),
+            'advanceNumber' => $document->advanceNumber,
+            // Paid by the payment it taxes, as iDoklad says on it.
+            'payableLabel' => $this->trans($document->kind->isPayable() ? 'invoice.pdf.payable' : 'invoice.pdf.total_paid'),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'account' => $country->domesticAccount($document->bankAccount ?? ''),
             'iban' => $document->bankAccount,
@@ -170,7 +177,11 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'payable' => $this->format->money($document->payable, $document->language),
             // The payment box asks for what is left once part is paid, under its own label; the totals keep the whole payable.
             'toPay' => $this->format->money($document->toPay(), $document->language),
-            'toPayLabel' => $this->trans($document->leftToPay instanceof Money ? 'invoice.pdf.left_to_pay' : 'invoice.pdf.payable'),
+            'toPayLabel' => $this->trans(match (true) {
+                !$document->kind->isPayable() => 'invoice.pdf.do_not_pay',
+                $document->leftToPay instanceof Money => 'invoice.pdf.left_to_pay',
+                default => 'invoice.pdf.payable',
+            }),
             'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
             'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
         ];
