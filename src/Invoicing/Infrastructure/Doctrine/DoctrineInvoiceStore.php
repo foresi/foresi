@@ -21,10 +21,13 @@ use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\AbandonedNumber;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\NumberKey;
+use App\Invoicing\Domain\Payment;
+use App\Invoicing\Domain\PaymentAllocation;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Party\Domain\LegalEntity;
@@ -162,37 +165,23 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         [$overdue, $overdueParameters] = $this->overdue($todays);
         [$where, $parameters] = $this->narrowed($filter, $firms);
 
-        $counts = $this->em->createQuery(
-            'SELECT SUM(CASE WHEN i.deletedAt IS NULL THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$this->settled('c1').' THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$this->unsettled('c2').' THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unsettled('c3').' THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN i.deletedAt IS NOT NULL THEN 1 ELSE 0 END) FROM '.Invoice::class.' i WHERE '.$where,
-        );
-        $this->bind($counts, [...$parameters, ...$overdueParameters]);
+        // Each kind counts its own tabs; a tab it lacks lists the whole kind.
+        $tabs = InvoiceFilter::tabsOf($filter->kind);
+        $tab = \in_array($filter->tab, $tabs, true) ? $filter->tab : InvoiceFilter::ALL;
+        $sums = array_map(fn (string $key, int $index): string => 'SUM(CASE WHEN '.$this->inTab($key, $filter->kind, 'c'.$index, $overdue).' THEN 1 ELSE 0 END)', $tabs, array_keys($tabs));
+        $counts = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.Invoice::class.' i WHERE '.$where);
+        $this->bind($counts, \in_array(InvoiceFilter::OVERDUE, $tabs, true) ? [...$parameters, ...$overdueParameters] : $parameters);
         /** @var list<numeric-string|int|null> $values */
         $values = array_values((array) $counts->getSingleResult(Query::HYDRATE_ARRAY));
-        $tabCounts = [
-            InvoiceFilter::ALL => (int) $values[0],
-            InvoiceFilter::PAID => (int) $values[1],
-            InvoiceFilter::UNPAID => (int) $values[2],
-            InvoiceFilter::OVERDUE => (int) $values[3],
-            InvoiceFilter::TRASH => (int) $values[4],
-        ];
+        $tabCounts = array_combine($tabs, array_map(intval(...), $values));
 
-        $total = $tabCounts[$filter->tab] ?? $tabCounts[InvoiceFilter::ALL];
+        $total = $tabCounts[$tab];
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
 
-        $condition = $where.match ($filter->tab) {
-            InvoiceFilter::TRASH => ' AND i.deletedAt IS NOT NULL',
-            InvoiceFilter::PAID => ' AND i.deletedAt IS NULL AND '.$this->settled('l'),
-            InvoiceFilter::UNPAID => ' AND i.deletedAt IS NULL AND '.$this->unsettled('l'),
-            InvoiceFilter::OVERDUE => ' AND i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unsettled('l'),
-            default => ' AND i.deletedAt IS NULL',
-        };
+        $condition = $where.' AND '.$this->inTab($tab, $filter->kind, 'l', $overdue);
         $list = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
-        $this->bind($list, InvoiceFilter::OVERDUE === $filter->tab ? [...$parameters, ...$overdueParameters] : $parameters);
+        $this->bind($list, InvoiceFilter::OVERDUE === $tab ? [...$parameters, ...$overdueParameters] : $parameters);
 
         /** @var list<Invoice> $invoices */
         $invoices = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
@@ -288,19 +277,58 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     }
 
     /**
-     * Paid in full or more: Paid and Overpaid. A document with nothing to pay is never settled.
+     * What a tab of the list of a kind holds.
      */
-    private function settled(string $suffix): string
+    private function inTab(string $tab, DocumentKind $kind, string $suffix, string $overdue): string
     {
-        return '(i.payableMinor > 0 AND i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+        return match ($tab) {
+            InvoiceFilter::TRASH => 'i.deletedAt IS NOT NULL',
+            InvoiceFilter::PAID => 'i.deletedAt IS NULL AND '.$this->paid($suffix),
+            InvoiceFilter::UNPAID => 'i.deletedAt IS NULL AND '.$this->unpaid($suffix),
+            InvoiceFilter::OVERDUE => 'i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unpaid($suffix),
+            InvoiceFilter::SETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NOT NULL',
+            InvoiceFilter::UNSETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $suffix),
+            default => 'i.deletedAt IS NULL',
+        };
+    }
+
+    /**
+     * Paid in full or more: Paid and Overpaid, as a tax document on payment always is. A document
+     * with nothing to pay is never settled.
+     */
+    private function paid(string $suffix): string
+    {
+        return '((i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')) OR (i.deductsAdvances = true AND i.payableMinor <= 0))';
     }
 
     /**
      * Unpaid and PartlyPaid: what is still to pay, or what has nothing to pay.
      */
-    private function unsettled(string $suffix): string
+    private function unpaid(string $suffix): string
     {
-        return '(i.payableMinor <= 0 OR i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')';
+        return '((i.payableMinor <= 0 AND i.deductsAdvances = false) OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+    }
+
+    /**
+     * Not deducted yet, what a final invoice may still deduct: a tax document of a payment
+     * not cancelled; an advance with such a tax document, or with a payment not cancelled
+     * that has none, because no VAT arose on it or its tax document waits to be issued.
+     */
+    private function deductible(DocumentKind $kind, string $suffix): string
+    {
+        if (DocumentKind::PaymentTaxDocument === $kind) {
+            return \sprintf('EXISTS (SELECT dp%1$s.id FROM %2$s dp%1$s WHERE dp%1$s.id = i.paymentId AND dp%1$s.cancelledAt IS NULL)', $suffix, Payment::class);
+        }
+
+        return \sprintf(
+            '(EXISTS (SELECT dt%1$s.id FROM %2$s dt%1$s, %3$s dp%1$s WHERE dt%1$s.advanceInvoiceId = i.id AND dp%1$s.id = dt%1$s.paymentId AND dt%1$s.deletedAt IS NULL AND dt%1$s.deductedByInvoiceId IS NULL AND dp%1$s.cancelledAt IS NULL)'
+            .' OR EXISTS (SELECT da%1$s.id FROM %4$s da%1$s JOIN da%1$s.payment dq%1$s WHERE da%1$s.invoice = i AND dq%1$s.cancelledAt IS NULL'
+            .' AND NOT EXISTS (SELECT dn%1$s.id FROM %2$s dn%1$s WHERE dn%1$s.advanceInvoiceId = i.id AND dn%1$s.paymentId = dq%1$s.id AND dn%1$s.deletedAt IS NULL)))',
+            $suffix,
+            Invoice::class,
+            Payment::class,
+            PaymentAllocation::class,
+        );
     }
 
     /**
@@ -312,8 +340,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
      */
     private function narrowed(InvoiceFilter $filter, array $firms): array
     {
-        $where = '1 = 1';
-        $parameters = [];
+        $where = 'i.kind = :kind';
+        $parameters = ['kind' => [$filter->kind->value, null]];
         if (null !== $filter->firmId && isset($firms[$filter->firmId])) {
             $where .= ' AND i.firm = :firm';
             $parameters['firm'] = [$filter->firmId, null];
@@ -371,7 +399,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     {
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
         $paid = Money::ofMinor($paidMinor, $invoice->currency());
-        $payment = PaymentState::of($invoice->payable(), $paid);
+        $payment = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
+        $byAdvances = $invoice->deductsAdvances() && $invoice->payable()->minor() <= 0;
 
         return new InvoiceRow(
             $invoice->id(),
@@ -382,7 +411,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->dueDate(),
             $invoice->payable(),
             $invoice->isDelivered(),
-            !$invoice->isTrashed() && !$payment->isSettled() && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
+            !$invoice->isTrashed() && !$payment->isSettled() && !$byAdvances && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
             $paid,
             $payment,
@@ -390,6 +419,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->deletedBy(),
             $invoice->deletedReason(),
             $mark,
+            $invoice->kind(),
+            $byAdvances,
         );
     }
 }

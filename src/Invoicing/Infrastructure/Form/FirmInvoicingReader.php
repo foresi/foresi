@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Form;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TotalRounding;
@@ -67,9 +68,13 @@ final readonly class FirmInvoicingReader
             'startYear' => trim($post->getString('startYear')),
             'nextNumber' => trim($post->getString('nextNumber')),
             'default' => $post->has('default') ? '1' : '',
+            'kind' => $post->getString('kind', DocumentKind::Invoice->value),
         ];
 
         $errors = [];
+        if (!DocumentKind::tryFrom($values['kind']) instanceof DocumentKind) {
+            $errors['kind'] = ['series.error.kind'];
+        }
         if ('' === $values['name']) {
             $errors['name'] = ['party.error.required'];
         } elseif (mb_strlen($values['name']) > Series::MAX_NAME_LENGTH) {

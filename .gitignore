@@ -35,3 +35,6 @@
 /tests/e2e/playwright-report/
 /tests/e2e/.auth/
 ###< tests/e2e ###
+
+# macOS screenshots are review candidates only; CI checks the Linux baselines.
+/tests/e2e/screenshots/*-darwin/

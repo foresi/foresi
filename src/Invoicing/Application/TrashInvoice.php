@@ -19,7 +19,8 @@ use Psr\Clock\ClockInterface;
  * way, and the audit log explains the gap. Trash stops the sends still queued and
  * ends every link of the invoice, in the same transaction; restoring brings no
  * link back, and sending again makes a new one. A document with payments is not a
- * mistake to bin: they are removed first.
+ * mistake to bin: they are removed first. A tax document of a cancelled payment
+ * stays in the trash.
  */
 final readonly class TrashInvoice
 {
@@ -31,6 +32,7 @@ final readonly class TrashInvoice
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private AdvanceDeductions $deductions,
     ) {
     }
 
@@ -51,6 +53,7 @@ final readonly class TrashInvoice
             }
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             $invoice->trash($now, $this->actor->userId(), $reason);
+            $this->deductions->release($invoice);
             $this->sends->cancelQueued($invoice, $now);
             $this->sends->revokeAll($invoice, $now);
 
@@ -61,15 +64,39 @@ final readonly class TrashInvoice
     /**
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
+     * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled
+     * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile
      * @throws UnknownInvoice also for an invoice of another tenant
      */
     public function restore(string $id): Invoice
     {
         return $this->retry->run(fn (): Invoice => $this->work->run(function () use ($id): Invoice {
             $invoice = $this->store->lock($id);
+            $wasTrashed = $invoice->isTrashed();
+            // It taxes a payment that is gone: back in the list it would tax nothing.
+            $payment = $invoice->paymentId();
+            if ($wasTrashed && null !== $payment && $this->payments->get($payment)->isCancelled()) {
+                throw new PaymentRefused(PaymentRefused::CANCELLED);
+            }
             $invoice->restore();
+            if ($wasTrashed) {
+                $this->reclaim($invoice);
+            }
 
             return $invoice;
         }));
+    }
+
+    /**
+     * A restored invoice deducts again what it deducted, unless another invoice took it meanwhile.
+     */
+    private function reclaim(Invoice $invoice): void
+    {
+        $ids = [];
+        foreach ($this->store->lines($invoice) as $line) {
+            $ids[(string) $line->deducts()] = true;
+        }
+        unset($ids['']);
+        $this->deductions->claim($invoice, array_map(strval(...), array_keys($ids)));
     }
 }

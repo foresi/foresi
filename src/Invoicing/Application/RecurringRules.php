@@ -140,6 +140,10 @@ final readonly class RecurringRules
         if ($series->firm()->id() !== $firm->id()) {
             return [new IssueProblem('series', 'invoice.problem.series_of_another_firm')];
         }
+        // A template issues invoices or advance invoices, as iDoklad's does; never tax documents on payment.
+        if (!$series->kind()->isIssuedByPerson()) {
+            return [new IssueProblem('series', 'invoice.problem.series_kind')];
+        }
 
         return $series->isArchived() ? [new IssueProblem('series', 'invoice.problem.series_archived')] : [];
     }

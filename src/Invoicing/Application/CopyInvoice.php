@@ -47,7 +47,8 @@ final readonly class CopyInvoice
     public function valuesFrom(Invoice $source): InvoiceDraftValues
     {
         $firm = $source->firm();
-        $draft = $this->defaults->for($firm);
+        // A copy is of the same kind: an advance invoice copies to an advance invoice.
+        $draft = $this->defaults->for($firm, kind: $source->kind());
         $notices = $firm->isArchived() ? ['invoice.copy.firm_archived'] : [];
 
         $series = $source->series();

@@ -54,9 +54,10 @@ final readonly class PaymentPanel
      */
     public function of(Invoice $invoice): array
     {
-        $paid = $this->payments->paidOf($invoice);
+        // A tax document on payment is paid by the payment it taxes, which is allocated to the advance.
+        $paid = $invoice->kind()->isPayable() ? $this->payments->paidOf($invoice) : $invoice->payable();
         $remaining = $invoice->payable()->minus($paid);
-        $state = PaymentState::of($invoice->payable(), $paid);
+        $state = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
         $format = $this->translator->trans('format.date');
 
         return [
@@ -65,7 +66,7 @@ final readonly class PaymentPanel
             'remaining' => $remaining->isNegative() || $remaining->isZero() ? null : $this->amounts->shown($remaining),
             'overpaid' => $remaining->isNegative() ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
             // Nothing to pay on it, or in the trash: nothing to record either.
-            'payable' => !$invoice->isTrashed() && !$invoice->payable()->isNegative() && !$invoice->payable()->isZero(),
+            'payable' => $invoice->kind()->isPayable() && !$invoice->isTrashed() && !$invoice->payable()->isNegative() && !$invoice->payable()->isZero(),
             'settled' => $state->isSettled(),
         ];
     }

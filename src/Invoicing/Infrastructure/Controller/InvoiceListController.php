@@ -21,7 +21,11 @@ use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
+use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\MissingTaxDocument;
+use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecurringInvoices;
@@ -29,6 +33,7 @@ use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
@@ -70,6 +75,10 @@ final class InvoiceListController extends AbstractController
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
     public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
+    /** The tab of the advances that wait for a tax document. */
+    private const string MISSING = 'needs_tax_document';
+    /** The list of each kind of document, as iDoklad keeps one per kind. */
+    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -87,15 +96,21 @@ final class InvoiceListController extends AbstractController
         private readonly InvoicePayments $payments,
         private readonly RecurringInvoices $recurring,
         private readonly TenantClock $tenantClock,
+        private readonly MissingTaxDocuments $missing,
+        private readonly IssuePaymentTaxDocument $taxDocuments,
     ) {
     }
 
-    #[Route('/invoices', name: 'app_invoices', methods: ['GET'])]
-    public function index(Request $request): Response
+    #[Route('/invoices', name: 'app_invoices', defaults: ['kind' => 'invoice'], methods: ['GET'])]
+    #[Route('/advances', name: 'app_advances', defaults: ['kind' => 'advance'], methods: ['GET'])]
+    #[Route('/tax-documents', name: 'app_tax_documents', defaults: ['kind' => 'payment_tax_document'], methods: ['GET'])]
+    public function index(Request $request, string $kind): Response
     {
         $this->denyUnlessStaff();
+        $kind = DocumentKind::from($kind);
+        $route = self::ROUTES[$kind->value];
         $tab = $request->query->getString('tab', InvoiceFilter::ALL);
-        $tab = \in_array($tab, InvoiceFilter::TABS, true) ? $tab : InvoiceFilter::ALL;
+        $tab = \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL;
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
         $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
         $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
@@ -103,12 +118,13 @@ final class InvoiceListController extends AbstractController
         // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
         $toSend = '1' === $request->query->getString('toSend');
 
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend));
+        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind));
         $firm = isset($page->firms[$firm]) ? $firm : '';
         $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
-        $here = 1 === $page->page ? $query : $query + ['page' => (string) $page->page];
+        // What an action carries back names the kind, so it returns to this list.
+        $here = (1 === $page->page ? $query : $query + ['page' => (string) $page->page]) + (DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]);
         $severalFirms = \count($page->firms) > 1;
         $names = InvoiceFilter::TRASH === $tab ? $this->users->namesOf($this->deletedBy($page)) : [];
         $reminders = InvoiceFilter::TRASH === $tab ? [] : $this->sends->remindersFor(array_values(array_map(
@@ -124,15 +140,81 @@ final class InvoiceListController extends AbstractController
             'sort' => $sort,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
-            'tabs' => $this->tabs($page, $tab, $query),
-            'columns' => $this->columns($tab, $sort, $query, $severalFirms),
+            'kind' => $kind->value,
+            'route' => $route,
+            'titleKey' => 'invoice.list.title_'.$kind->value,
+            'newHref' => $kind->isIssuedByPerson() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
+            'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null),
+            'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
-            'baseUrl' => $this->generateUrl('app_invoices', $query),
+            'baseUrl' => $this->generateUrl($route, $query),
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
-            'toSendHref' => $this->generateUrl('app_invoices', $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
+            'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
             'filtered' => '' !== $text || '' !== $firm || $toSend,
         ]);
+    }
+
+    /**
+     * The paid advance invoices that wait for a tax document, soonest deadline first.
+     */
+    #[Route('/advances/needs-tax-document', name: 'app_advances_missing', methods: ['GET'])]
+    public function missing(): Response
+    {
+        $this->denyUnlessStaff();
+        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::Advance));
+        $missing = $this->missing->on($this->today());
+        $date = $this->translator->trans('format.date');
+        $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('advance.missing.column.'.$key), 'align' => \in_array($key, ['received', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'receivedOn', 'received', 'deadline', 'daysLeft']);
+
+        return $this->render('invoicing/missing_tax_documents.html.twig', [
+            'tabs' => $this->tabs($page, self::MISSING, [], self::ROUTES[DocumentKind::Advance->value], \count($missing)),
+            'columns' => $columns,
+            'rows' => array_map(fn (MissingTaxDocument $row): array => [
+                'id' => $row->advanceId.'-'.$row->paymentId,
+                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->advanceId]),
+                'plain' => true,
+                'label' => $row->advanceNumber,
+                'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->received), $this->daysLeft($row)]),
+                'cells' => [
+                    'number' => $row->advanceNumber,
+                    'customer' => $row->customerName,
+                    'receivedOn' => $row->receivedOn->format($date),
+                    'received' => $this->amounts->shown($row->received),
+                    'deadline' => $row->deadline->format($date),
+                    'daysLeft' => ['text' => $this->daysLeft($row), 'tone' => $row->isLate() ? 'red' : ($row->daysLeft <= 3 ? 'amber' : 'gray')],
+                ],
+                'actions' => [[
+                    'label' => $this->translator->trans('advance.missing.issue'),
+                    'href' => $this->generateUrl('app_advance_tax_document', ['id' => $row->advanceId, 'payment' => $row->paymentId]),
+                    'method' => 'POST',
+                    'icon' => 'file-signature',
+                ]],
+            ], $missing),
+        ]);
+    }
+
+    /**
+     * Issues the tax document a payment of an advance is still waiting for.
+     */
+    #[Route('/advances/{id}/payments/{payment}/tax-document', name: 'app_advance_tax_document', requirements: ['id' => Requirement::UUID_V7, 'payment' => Requirement::UUID_V7], methods: ['POST'])]
+    public function issueTaxDocument(string $id, string $payment, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->invoice($id);
+        $this->checkToken($request);
+        try {
+            $document = $this->taxDocuments->byHand($id, $payment);
+        } catch (IssueRefused $refused) {
+            foreach ($refused->problems as $problem) {
+                $this->addFlash('error', $this->translator->trans($problem->key, $problem->parameters));
+            }
+
+            return $this->redirectToRoute('app_advances_missing');
+        }
+        $this->addFlash('success', $this->translator->trans('advance.missing.issued', ['number' => $document->number()]));
+
+        return $this->redirectToRoute('app_advances_missing');
     }
 
     #[Route('/invoices/{id}/trash', name: 'app_invoice_trash', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -173,8 +255,16 @@ final class InvoiceListController extends AbstractController
         $this->checkToken($request);
         if (!$invoice->isTrashed()) {
             $this->addFlash('warning', $this->translator->trans('invoice.list.not_in_trash'));
-        } else {
+
+            return $this->toList($request->request->getString('return'));
+        }
+        try {
             $this->addFlash('success', $this->translator->trans('invoice.flash.restored', ['number' => $this->trash->restore($id)->number()]));
+        } catch (PaymentRefused $refused) {
+            $this->addFlash('error', $this->translator->trans('invoice.payment.refused.'.$refused->reason));
+        } catch (IssueRefused $refused) {
+            // Another invoice deducts an advance this one deducted: it stays in the trash.
+            $this->addFlash('error', $this->translator->trans($refused->problems[0]->key, $refused->problems[0]->parameters));
         }
 
         return $this->toList($request->request->getString('return'));
@@ -246,11 +336,26 @@ final class InvoiceListController extends AbstractController
     private function listUrl(string $return): string
     {
         parse_str($return, $query);
+        [$route, $parameters] = self::routeOf($query);
 
-        return $this->generateUrl('app_invoices', array_filter(
-            array_intersect_key($query, array_flip(self::LIST_QUERY)),
-            \is_string(...),
-        ));
+        return $this->generateUrl($route, $parameters);
+    }
+
+    /**
+     * The list a query that travelled through the browser comes back to: the route of
+     * its kind of document, with only the known parts of the query.
+     *
+     * @param array<mixed> $query
+     *
+     * @return array{string, array<string, string>}
+     */
+    public static function routeOf(array $query): array
+    {
+        $kind = DocumentKind::tryFrom(\is_string($query['kind'] ?? null) ? $query['kind'] : '') ?? DocumentKind::Invoice;
+        /** @var array<string, string> $parameters */
+        $parameters = array_filter(array_intersect_key($query, array_flip(self::LIST_QUERY)), \is_string(...));
+
+        return [self::ROUTES[$kind->value], $parameters];
     }
 
     /**
@@ -266,16 +371,25 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function tabs(InvoicePage $page, string $tab, array $query): array
+    private function tabs(InvoicePage $page, string $tab, array $query, string $route, ?int $missing = null): array
     {
         $tabs = [];
-        foreach (InvoiceFilter::TABS as $key) {
+        foreach (array_keys($page->tabCounts) as $key) {
             $tabs[] = [
                 'label' => $this->translator->trans('invoice.list.tab.'.$key),
-                'href' => $this->generateUrl('app_invoices', ['tab' => InvoiceFilter::ALL === $key ? null : $key] + $query),
+                'href' => $this->generateUrl($route, ['tab' => InvoiceFilter::ALL === $key ? null : $key] + $query),
                 'count' => $page->tabCounts[$key],
                 'active' => $key === $tab,
             ];
+        }
+        // The advances that wait for a tax document: their own list, as iDoklad gives tax documents theirs.
+        if (null !== $missing) {
+            array_splice($tabs, \count($tabs) - 1, 0, [[
+                'label' => $this->translator->trans('advance.missing.tab'),
+                'href' => $this->generateUrl('app_advances_missing'),
+                'count' => $missing,
+                'active' => self::MISSING === $tab,
+            ]]);
         }
 
         return $tabs;
@@ -291,23 +405,23 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function columns(string $tab, string $sort, array $query, bool $severalFirms): array
+    private function columns(string $tab, string $sort, array $query, bool $severalFirms, string $route): array
     {
         $trash = InvoiceFilter::TRASH === $tab;
-        $columns = [$this->column('number', $sort, $query, sortable: true)];
+        $columns = [$this->column('number', $sort, $query, sortable: true, route: $route)];
         if ($severalFirms) {
             $columns[] = $this->column('firm', $sort, $query, phone: false) + ['truncate' => true];
         }
-        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false) + ['truncate' => true];
+        $columns[] = $this->column('customer', $sort, $query, sortable: true, phone: false, route: $route) + ['truncate' => true];
         if ($trash) {
             $columns[] = $this->column('deletedBy', $sort, $query, phone: false) + ['truncate' => true];
             $columns[] = $this->column('deletedAt', $sort, $query, phone: false);
             $columns[] = $this->column('reason', $sort, $query, phone: false) + ['truncate' => true];
         } else {
-            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false) + ['wide' => true];
-            $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false);
+            $columns[] = $this->column('issueDate', $sort, $query, sortable: true, phone: false, route: $route) + ['wide' => true];
+            $columns[] = $this->column('dueDate', $sort, $query, sortable: true, phone: false, route: $route);
         }
-        $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right');
+        $columns[] = $this->column('payable', $sort, $query, sortable: true, align: 'right', route: $route);
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
             $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
@@ -321,7 +435,7 @@ final class InvoiceListController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function column(string $key, string $sort, array $query, bool $sortable = false, string $align = 'left', bool $phone = true): array
+    private function column(string $key, string $sort, array $query, bool $sortable = false, string $align = 'left', bool $phone = true, string $route = 'app_invoices'): array
     {
         $column = ['key' => $key, 'label' => $this->translator->trans('invoice.list.column.'.$key), 'align' => $align, 'phone' => $phone];
         if (!$sortable) {
@@ -332,7 +446,7 @@ final class InvoiceListController extends AbstractController
         return $column + [
             'sortable' => true,
             'sort' => $sort === $key ? 'asc' : ($sort === '-'.$key ? 'desc' : null),
-            'href' => $this->generateUrl('app_invoices', ['sort' => $next] + $query),
+            'href' => $this->generateUrl($route, ['sort' => $next] + $query),
         ];
     }
 
@@ -345,7 +459,7 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
-        $status = InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
+        $status = $row->settledByAdvances && !$row->trashed ? InvoiceStatus::SettledByAdvances : InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
         // A part payment says what is left; overdue or not, that is what someone acts on.
         $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;
@@ -432,19 +546,19 @@ final class InvoiceListController extends AbstractController
         $copy = ['label' => $this->label('copy'), 'href' => $this->generateUrl('app_invoice_copy', $id), 'method' => 'GET', 'plain' => true];
         $history = ['label' => $this->label('history'), 'href' => $this->generateUrl('app_invoice_history', $id), 'method' => 'GET'];
         if ($row->trashed) {
-            return [
+            return array_values(array_filter([
                 ['label' => $this->label('restore'), 'href' => $this->generateUrl('app_invoice_restore', $id), 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => $fields],
                 $pdf,
-                $copy,
+                $row->kind->isIssuedByPerson() ? $copy : null,
                 $history,
-            ];
+            ]));
         }
 
         $send = ['label' => $this->label('send'), 'href' => $this->generateUrl('app_invoice_send', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         $recurring = ['label' => $this->translator->trans('recurring.form.from_invoice'), 'href' => $this->generateUrl('app_recurring_new', ['from' => $row->id]), 'method' => 'GET', 'plain' => true];
         $actions = [['label' => $this->label('edit'), 'href' => $this->generateUrl('app_invoice_edit', $id), 'method' => 'GET', 'icon' => 'pencil', 'plain' => true], $pdf];
         // Offered while something is still to pay, as iDoklad's Pay is.
-        if (!$row->payment->isSettled() && !$row->payable->isZero() && !$row->payable->isNegative()) {
+        if ($row->kind->isPayable() && !$row->payment->isSettled() && !$row->payable->isZero() && !$row->payable->isNegative()) {
             $actions[] = ['label' => $this->label('pay'), 'href' => $this->generateUrl('app_invoice_pay', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'icon' => 'banknote', 'dialog' => true];
         }
         $actions[] = $send;
@@ -452,8 +566,11 @@ final class InvoiceListController extends AbstractController
         if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
             $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
-        $actions[] = $copy;
-        $actions[] = $recurring;
+        // A tax document on payment comes from its payment only: nothing is issued from it.
+        if ($row->kind->isIssuedByPerson()) {
+            $actions[] = $copy;
+            $actions[] = $recurring;
+        }
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
                 'title' => $this->translator->trans('invoice.list.delivered_confirm', ['number' => $row->number]),
@@ -467,6 +584,13 @@ final class InvoiceListController extends AbstractController
         }
 
         return $actions;
+    }
+
+    private function daysLeft(MissingTaxDocument $row): string
+    {
+        return $row->isLate()
+            ? $this->translator->trans('advance.missing.days_late', ['days' => -$row->daysLeft])
+            : $this->translator->trans('advance.missing.days_left', ['days' => $row->daysLeft]);
     }
 
     private function label(string $action): string

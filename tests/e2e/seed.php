@@ -73,6 +73,7 @@ use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxPointRule;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
@@ -549,6 +550,27 @@ $entityManager->getConnection()->executeStatement("UPDATE recurring_invoice SET 
 // Issued today for review, so it waits under "To send".
 $held = $recurring('Consulting {month/year}', '5000.00', $every(RecurrenceUnit::Month, first: $today), RecurringDelivery::Review);
 $issueRecurring->issue($held->id(), $today, $today);
+$context->reset();
+
+// The tenant of the advances spec: a payer firm and one customer, an advance Z920260001 of
+// 1 210 Kč the spec pays, and an advance Z920260002 paid before its supply was known, so it
+// waits for its tax document; the spec issues it from the list.
+$advancesTenant = $tenantWithOwner('Example Advances', 'advances@example.com', 'Advances Example');
+$context->switchTo($advancesTenant);
+$advancesFirm = new LegalEntity('Example Advances s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(9), VatStatus::Registered, 'Example register, entry C 9753');
+$entityManager->persist($advancesFirm);
+$firmAccount($advancesFirm);
+$entityManager->flush();
+$advancesCustomer = $createParty->createFrom($party(PartyKind::Company, 'Example Advance Buyer a.s.', [PartyRole::Customer], 'buyer@example.com', 14, '12345679', 'CZ12345679'));
+$advanceOf = static fn (string $description, ?TaxOnReceiptChoice $choice): Invoice => $issueInvoice->issue(new InvoiceInput($advancesFirm->id(), null, null, $advancesCustomer->id(), null, $day, null, $day->modify('+14 days'), PaymentMethod::BankTransfer, 'CZ6508000000192000145399', '', '', '', $description, '', '', DocumentLanguage::Czech, [
+    new LineInput($description, Quantity::fromString('1'), 'ks', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0')),
+], true, DocumentKind::Advance, $choice));
+$advanceOf('First milestone', null);
+$waiting = $advanceOf('Second milestone', TaxOnReceiptChoice::Skip);
+$money = Money::of('1210.00', Currency::CZK);
+$recordPayment->record(new PaymentRequest($advancesFirm->id(), $day, $money, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($waiting->id(), $money)]));
+// The supply is known now: by the rules VAT arose on the payment, which has no tax document yet.
+$entityManager->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$waiting->id()]);
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

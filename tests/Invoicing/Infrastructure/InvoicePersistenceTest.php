@@ -33,6 +33,7 @@ use Doctrine\DBAL\Driver\Exception as DriverFailure;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\ParameterType;
 
 final class InvoicePersistenceTest extends InvoiceTestCase
 {
@@ -179,9 +180,11 @@ final class InvoicePersistenceTest extends InvoiceTestCase
         $row = $connection->fetchAssociative('SELECT * FROM invoice WHERE id = ?', [$first->id()]);
         self::assertIsArray($row);
         $row['id'] = '01963c5e-0000-7000-8000-000000000001';
+        // PostgreSQL refuses a boolean bound as a string.
+        $types = array_map(static fn (mixed $value): ParameterType => \is_bool($value) ? ParameterType::BOOLEAN : ParameterType::STRING, $row);
 
         $this->expectException(UniqueConstraintViolationException::class);
-        $connection->insert('invoice', $row);
+        $connection->insert('invoice', $row, $types);
     }
 
     public function testTheSameNumberIsFineInAnotherFirm(): void

@@ -35,6 +35,8 @@ nav:
     dashboard: Dashboard
     contacts: Address book
     invoices: Invoices
+    advances: Advance invoices
+    tax_documents: Tax documents
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
@@ -937,12 +939,22 @@ series:
   first: 'No series yet. The first invoice of this firm gets the number {number} in a standard series.'
   name:
     standard: Standard
+    standard_advance: Advance invoices
+    standard_payment_tax_document: Tax documents on payment
+  kind:
+    invoice: Invoice
+    advance: Advance invoice
+    payment_tax_document: Tax document on payment
   column:
     name: Name
+    kind: Documents
     format: Format
     next: Next number
     default: Default
   field:
+    kind: Documents
+    kind_help: The kind of document this series numbers
+    kind_locked_help: The kind of documents of a series stays
     name: Name
     format: Format
     format_help: "Tokens '{YYYY} {YY} {MM} {DD}' and one '{NNNN}'"
@@ -951,7 +963,7 @@ series:
     nextNumber_help: Empty keeps the count. Skipped numbers are not used
     startYear: Year
     startYear_help: A format without a year ignores it
-    default: Default series for new invoices
+    default: Default series for new documents of its kind
     default_help: Takes over from the current default series
     default_kept_help: To change it, make another series the default
   flash:
@@ -965,13 +977,33 @@ series:
     next_number: Enter a whole number from 1 to 2147483647.
     start_year: Enter a year from 2000 to 2099.
     next_below_counter: 'This number is already used. The next free one is {next}.'
+    kind: Choose the kind of documents.
 invoice:
+  links:
+    title: Links
+    advance: Advance invoice
+    payments: Payments
+    final: Final invoice
+    none: No payment yet
+    no_tax_document: no tax document
+    not_settled: Not settled yet
+  deduction:
+    pick_first: The firm has advances to deduct. Pick the customer, then show theirs.
+    show: "Show the customer's advances"
+    label: Deduct an advance
+    help: Each tax document once, deducted per rate
+    add: Deduct
+    option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
   public:
-    title: 'Invoice {number}'
+    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} other {Invoice {number}}}'
     from: From
     for: 'For {customer}'
     paid: Paid
     amount: Amount to pay
+    amount_paid: Total paid
+    settled_by_advances: Settled by advances
+    settled_by_advances_note: Settled by advances, nothing to pay
+    to_refund: Difference to refund
     due: Due date
     remaining: Left to pay
     payment:
@@ -983,9 +1015,10 @@ invoice:
       qr: Scan in your banking app (QR Platba)
     open: Open PDF
     download: Download
-    download_paid: Download invoice (paid)
+    download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
     paid_note: 'Paid {date}, nothing to pay'
-    viewer: 'Invoice {number} as PDF'
+    do_not_pay: Do not pay, the document is already paid
+    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} other {Invoice {number} as PDF}}'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
     gone:
@@ -1135,9 +1168,12 @@ invoice:
     footer: '{title} · Page {page}/{pages}'
     unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
     trashed: IN THE TRASH – NOT A VALID DOCUMENT
-    document_title: 'Invoice {number}'
+    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} other {Invoice}} {number}'
     title_tax: Invoice - tax document
     title: Invoice
+    title_advance: Advance invoice
+    title_payment_tax_document: Tax document on received payment
+    advance_recap_note: VAT breakdown is informative only, this is not a tax document.
     supplier: Supplier
     customer: Customer
     registration_number: Reg. No.
@@ -1153,6 +1189,14 @@ invoice:
     order_number: Order number
     payable: Total to pay
     left_to_pay: Left to pay
+    do_not_pay: Do not pay, the document is already paid
+    to_refund: Difference to refund
+    settled_by_advances: Settled by advances, nothing to pay
+    total_paid: Total paid
+    for_advance: 'To advance invoice {number}'
+    tax_point_payment: Date of receipt of payment (tax point)
+    tax_document_line: 'Tax document on received payment of advance invoice {number}, variable symbol {symbol}'
+    deduction_line: '{document, select, none {Deduction of advance invoice {number}, variable symbol {symbol}} other {Deduction of advance, variable symbol {symbol} (tax document {document})}}'
     item: Description
     quantity: Qty
     unit: Unit
@@ -1183,12 +1227,15 @@ invoice:
     line_dates: The lines hold a date or a month from the original. Check that it still applies.
   list:
     title: Invoices
+    title_invoice: Invoices
+    title_advance: Advance invoices
+    title_payment_tax_document: Tax documents on payment
     views: Invoice lists
     all_firms: All firms
     search: Search
     search_label: Search invoices
     search_placeholder: Number, customer or description
-    summary: '{total, plural, one {# invoice} other {# invoices}}'
+    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
@@ -1202,6 +1249,8 @@ invoice:
       paid: Paid
       unpaid: Unpaid
       overdue: Overdue
+      settled: Settled
+      unsettled: Unsettled
       trash: Trash
     column:
       sent: E-mail
@@ -1216,6 +1265,7 @@ invoice:
       deletedAt: Deleted
       reason: Reason
     status:
+      settled_by_advances: Settled by advances
       issued: Issued
       delivered: Delivered
       partly_paid: Partly paid
@@ -1237,6 +1287,9 @@ invoice:
       title: No invoices yet
       text: Issue the first one. Saving gives it its number.
       all_title: No invoices here
+      all_title_invoice: No invoices here
+      all_title_advance: No advance invoices here
+      all_title_payment_tax_document: No tax documents here
       filtered_title: No invoice matches
       filtered_text: Try other words or another firm.
       reset: Show all invoices
@@ -1246,6 +1299,10 @@ invoice:
       paid_text: Paid invoices show here once you record a payment.
       unpaid_title: Everything is paid
       unpaid_text: No invoice is waiting for its money.
+      settled_title: Nothing is settled yet
+      settled_text: A tax document shows here once a final invoice deducts it.
+      unsettled_title: Everything is settled
+      unsettled_text: Nothing paid waits to be deducted on a final invoice.
   trash:
     title: 'Delete invoice {number}'
     keeps: It moves to the trash and keeps its number, which is never used again.
@@ -1441,12 +1498,14 @@ invoice:
   payment:
     refused:
       has_payments: This invoice has payments. Remove the payments first.
+      cancelled: The payment of this tax document is cancelled, so it stays in the trash.
       no_allocation: The payment pays no invoice.
       amount_mismatch: The parts of the payment do not add up to its amount.
       not_positive: Enter an amount above zero.
       wrong_firm: The invoice belongs to another firm.
       currency_mismatch: The payment is in another currency than the invoice.
       trashed: The invoice is in the trash.
+      not_payable: A tax document on payment is paid by its payment already.
       future_date: A payment cannot come from the future.
       settlement_not_allowed: The difference changed meanwhile, so it was not written off. Check the amount and try again.
       note_too_long: 'Keep the note under {max} characters.'
@@ -1580,6 +1639,13 @@ invoice:
     reverse_charge_customer_vat_id: Reverse charge needs a customer with a VAT ID.
     reverse_charge_payer: Reverse charge needs an issuer who pays VAT.
     series_archived: This series is archived.
+    series_kind: This series numbers another kind of document.
+    tax_document_fixed: A tax document on payment follows its payment and cannot be changed.
+    already_deducted: An advance on this invoice is deducted by another invoice already.
+    deduction_invalid: 'This advance cannot be deducted here: it belongs to another customer, is deducted elsewhere, or is not paid.'
+    tax_document_exists: This payment has its tax document already.
+    no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
+    payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
     series_of_another_firm: This series belongs to another firm.
     series_unknown: Choose a series.
     supply_code_invalid: Choose the supply code.
@@ -2214,6 +2280,8 @@ reminder:
     reminder_step: Reminder number
     amount_due: Amount due
   field:
+    advances: Remind advance invoices too
+    advances_help: Tax documents on payment are never reminded
     enabled: Send reminders automatically
     enabled_help: Only invoices due from the switch-on day get reminders.
     first: First reminder
@@ -2267,3 +2335,66 @@ reminder:
     limit: 'Invoice {number} has had {max} reminders, the most there can be.'
     settled: 'Invoice {number} has nothing left to pay, so it gets no reminder.'
     taken: 'Reminder {taken} was queued meanwhile. Check the text of reminder {step} and send it.'
+advance:
+  missing:
+    tab: Needs tax document
+    title: Paid advances without a tax document
+    intro: A payment of an advance on which VAT arose needs a tax document within 15 days of the payment, or of the end of its month when the supply takes place abroad.
+    empty: Every paid advance has its tax document.
+    issue: Issue tax document
+    issued: 'Tax document {number} is issued.'
+    days_left: '{days, plural, =0 {Due today} one {# day left} other {# days left}}'
+    days_late: '{days, plural, one {# day late} other {# days late}}'
+    notice: '{late, select, yes {{count, plural, one {A paid advance is} other {# paid advances are}} past the deadline for a tax document.} other {{count, plural, one {A paid advance waits} other {# paid advances wait}} for a tax document, the first by {date}.}}'
+    notice_link: Show them
+    column:
+      number: Advance invoice
+      customer: Customer
+      receivedOn: Paid on
+      received: Amount
+      deadline: Deadline
+      daysLeft: Days left
+  tax_on_receipt:
+    label: Tax document on payment
+    rules: By the rules
+    issue: Issue on every payment
+    skip: None, the supply is not known yet
+    help: None for a private person or a domestic reverse charge
+    now_arises: '{crossBorder, select, yes {Each payment gets a tax document, due within 15 days after the end of the month of the payment.} other {Each payment gets a tax document, due within 15 days of the payment.}}'
+    now_none:
+      non_payer: No tax document, the firm is no VAT payer.
+      unknown_supply: No tax document, the supply is not known yet.
+      consumer: No tax document, the customer is a private person.
+      domestic_reverse_charge: No tax document, the customer accounts for the VAT at supply.
+  new: New advance invoice
+  title: 'Advance invoice {number}'
+  card:
+    template: Advance invoice
+  templates_help: An advance invoice goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Advance invoice {number}'
+      body: |-
+        Based on our agreement I am sending advance invoice no. {number} for {amount_total}, due on {due_date}. Once the payment arrives you will get a tax document for it.
+
+        Thank you,
+        {sender_name}
+
+        {link}
+tax_document:
+  needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
+  cancelled_reason: The payment it taxed was cancelled.
+  title: 'Tax document {number}'
+  card:
+    template: Tax document on payment
+  templates_help: A tax document goes out in the language of the document.
+  mail:
+    default:
+      subject: 'Tax document {number}'
+      body: |-
+        Thank you for your payment. I am sending tax document no. {number} for the payment of {amount_total}. It is paid already; there is nothing more to pay.
+
+        Thank you,
+        {sender_name}
+
+        {link}

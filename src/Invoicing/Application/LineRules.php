@@ -122,7 +122,7 @@ final readonly class LineRules
             }
             if (TaxTreatment::ReverseCharge === $line->treatment) {
                 $problems = [...$problems, ...$this->reverseCharge($line, $field, $regime, $country, $customerVatId, $issuerCountry, $taxPoint)];
-            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment) {
+            } elseif (VatRegime::Payer === $regime && TaxTreatment::NotApplicable === $line->treatment && null === $line->deducts) {
                 $problems[] = new IssueProblem($field.'.vat', 'invoice.problem.vat_invalid');
             } elseif (VatRegime::Payer === $regime && $line->treatment->hasRate() && !$this->hasRate($line, $country, $taxPoint)) {
                 $problems[] = new IssueProblem($field.'.rate', 'invoice.problem.line_rate_missing');
@@ -157,7 +157,8 @@ final readonly class LineRules
             return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
         }
 
-        return $totals->payable->isNegative() ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
+        // Advances deducted beyond the supply leave a difference to refund (§37a(2)(b)).
+        return $totals->payable->isNegative() && [] === AdvanceDeductions::deducted($lines) ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
     }
 
     public static function vatIdOf(?string $vatId): ?VatId

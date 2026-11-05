@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentTotals;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
@@ -131,7 +132,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
                 return '01963c5e-0000-7000-8000-00000000000a';
             }
         };
-        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'));
+        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions());
 
         $trash->trash($invoice->id(), 'Wrong customer');
 
@@ -200,7 +201,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $values = new LineValues($line->price(), $line->quantity(), $line->priceType(), $line->treatment(), $line->rate(), $line->discount());
         $amounts = new LineAmounts($line->unitNet(), $line->net(), $line->vat(), $line->gross());
         $customerParty = $invoice->customerParty();
-        $change = $this->input()->change($customerParty, $invoice->customer());
+        $change = $this->input()->change($customerParty, $invoice->customer(), DocumentKind::Invoice);
         $tries = [
             'change' => static fn () => $invoice->change($change),
             'totals' => static fn () => $invoice->assignTotals($totals),

@@ -29,8 +29,10 @@
                     <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
                 {% endif %}
 
-                {{ _self.templateCard('invoice', 'firm.mail.card.invoice'|trans, 'receipt-text', languages, templates, errors, chip_class) }}
-                {{ _self.templateCard('reminder', 'reminder.card.template'|trans, 'clock-3', reminderLanguages, reminderTemplates, errors, chip_class) }}
+                {# The documents first, the invoice, the advance invoice and the tax document on its payment; then the reminder with its settings. #}
+                {% for card in cards|filter(card => card.kind != 'reminder')|merge(cards|filter(card => card.kind == 'reminder')) %}
+                    {{ _self.templateCard(card.kind, card.title|trans, card.help|trans, card.icon, card.languages, card.templates, errors, chip_class) }}
+                {% endfor %}
 
                 {% if remindersCard %}
                     <twig:Ui:Card :title="'reminder.card.settings'|trans" icon="calendar" id="reminders-card">
@@ -41,6 +43,7 @@
                                 <twig:Ui:TextInput name="reminders[everyDays]" id="reminders-every" inputmode="numeric" maxlength="3" :label="'reminder.field.every'|trans" :help="'reminder.field.every_help'|trans" :value="reminders.everyDays" :error="errors['reminders-every']|default(null)" required />
                                 <twig:Ui:TextInput name="reminders[minimum]" id="reminders-minimum" inputmode="decimal" maxlength="20" :label="'reminder.field.minimum'|trans({currency: homeCurrency})" :help="'reminder.field.minimum_help'|trans" :value="reminders.minimum" :error="errors['reminders-minimum']|default(null)" />
                             </div>
+                            <twig:Ui:Checkbox name="reminders[advances]" id="reminders-advances" :label="'reminder.field.advances'|trans" :help="'reminder.field.advances_help'|trans" value="1" :checked="reminders.advances|default('') == '1'" />
                             <p class="m-0 text-small text-muted">{{ 'reminder.at_most'|trans({count: maxReminders}) }}</p>
 
                             <section id="reminders-preview" class="grid gap-2 border-t border-divider pt-4" aria-labelledby="reminders-preview-title">
@@ -81,13 +84,15 @@
                     </twig:Ui:Card>
                 {% endif %}
 
+
                 <twig:Ui:ActionBar>
                     <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
                     <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
                 </twig:Ui:ActionBar>
             </form>
-            {% for kind, kindLanguages in {invoice: languages, reminder: reminderLanguages} %}
-                {% for language in kindLanguages|filter(language => language.custom) %}
+            {% for card in cards %}
+                {% set kind = card.kind %}
+                {% for language in card.languages|filter(language => language.custom) %}
                     <form id="mail-reset-{{ kind == 'invoice' ? '' : kind ~ '-' }}{{ language.code }}" method="post" action="{{ action }}" data-turbo-confirm="{{ 'firm.mail.reset_confirm'|trans({language: language.label}) }}" data-confirm-text="{{ 'firm.mail.reset_confirm_text'|trans }}" data-confirm-accept="{{ 'firm.mail.reset_confirm_accept'|trans }}" data-confirm-cancel="{{ 'firm.mail.reset_confirm_cancel'|trans }}" data-confirm-tone="danger" hidden>
                         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\FirmMailController::TEMPLATES_TOKEN')) }}">
                         <input type="hidden" name="section" value="templates">
@@ -166,11 +171,11 @@
     (subject[cs], #subject-cs); another kind starts them with its own (reminder_subject[cs],
     #reminder-subject-cs), and its toolbars are named with the kind too.
 #}
-{% macro templateCard(kind, title, icon, languages, templates, errors, chip_class) %}
+{% macro templateCard(kind, title, help, icon, languages, templates, errors, chip_class) %}
     {% set names = kind == 'invoice' ? '' : kind ~ '_' %}
     {% set ids = kind == 'invoice' ? '' : kind ~ '-' %}
     <twig:Ui:Card :title="title" :icon="icon">
-        <p class="m-0 mb-3 text-small text-muted">{{ (kind == 'invoice' ? 'firm.mail.templates_help' : 'reminder.templates_help')|trans }}</p>
+        <p class="m-0 mb-3 text-small text-muted">{{ help }}</p>
         <div class="grid gap-5">
             {% for language in languages %}
                 {% set code = language.code %}

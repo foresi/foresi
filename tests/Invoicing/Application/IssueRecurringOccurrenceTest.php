@@ -79,6 +79,22 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         self::assertSame(['2027-01-01', '2026-12-01', 1], [$stored['next_occurrence'], $stored['last_occurrence'], $stored['issued_count']]);
     }
 
+    public function testATemplateInAnAdvanceSeriesIssuesAdvances(): void
+    {
+        $advances = new Series($this->firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+        $this->em->persist($advances);
+        $this->em->flush();
+        $template = $this->save->create($this->recurringInput(overrides: ['seriesId' => $advances->id()]));
+        self::mockTime('2026-12-03 09:00:00');
+
+        $advance = $this->occurrences->issue($template->id(), new \DateTimeImmutable('2026-12-01'));
+
+        self::assertInstanceOf(Invoice::class, $advance);
+        $row = $this->invoiceRow($advance->id());
+        self::assertSame(['advance', 'ZF20260001', '2026-12-03', null], [$row['kind'], $row['number'], $row['issue_date'], $row['tax_point_date']]);
+        self::assertSame([['Hosting 12/2026', '21.00']], array_map(static fn (array $line): array => [$line['text'], $line['rate']], $this->invoiceLines($advance->id())));
+    }
+
     public function testTheTaxPointCanBeTheLastDayOfTheMonth(): void
     {
         $template = $this->save->create($this->recurringInput(overrides: ['taxPoint' => TaxPointRule::LastDayOfMonth, 'dueDays' => 0]));

@@ -10,22 +10,30 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\IssueInvoice;
+use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\MarkDelivered;
+use App\Invoicing\Application\PaymentRequest;
+use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesCounter;
 use App\Invoicing\Domain\SeriesFormat;
+use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
@@ -64,13 +72,13 @@ use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
+ * @phpstan-type Form array{lines: list<array<string, string>>, customer: array<string, string>, firmId: string, kind: string, numberPeek: string, seriesId: string, customerId: string, customerQuery: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, language: string, description: string, orderNumber: string, dueDateSet: string, ...}
  * @phpstan-type Figures array{lines: list<array{total: string, discount: string}>, summaries: list<array{label: string, base: string, vat: string}>, net: string, vat: ?string, rounding: ?string, payable: string}
  */
 final class InvoiceControllerTest extends WebTestCase
 {
-    /** Refused while saving, under the "version" or "form" field, or kept for a later step. */
-    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted'];
+    /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
+    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
@@ -1014,6 +1022,438 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorNotExists('#invoice-form');
     }
 
+    public function testTheAdvanceFormHasNoTaxPointAndNumbersInItsOwnSeries(): void
+    {
+        $this->signedIn();
+
+        $values = $this->openNew(['kind' => 'advance']);
+
+        self::assertSelectorTextContains('h1', 'Advance invoice Z920260001');
+        self::assertSelectorNotExists('input[name="taxPointDate"]');
+        self::assertSame('advance', $values['kind']);
+        self::assertSame('Z920260001', $values['numberPeek']);
+        self::assertSame('920260001', $values['variableSymbol']);
+        self::assertSame(['Advance invoices'], $this->client->getCrawler()->filter('select[name="seriesId"] option')->each(static fn ($option): string => trim($option->text())));
+        self::assertSelectorExists('a#invoice-cancel[href="/advances"]');
+    }
+
+    public function testSavingTheAdvanceFormIssuesAnAdvanceWithoutATaxPoint(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'First milestone', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+
+        $this->save($values);
+
+        self::assertResponseRedirects('/advances');
+        $advance = $this->onlyInvoice();
+        self::assertSame(DocumentKind::Advance, $advance->kind());
+        self::assertSame('Z920260001', $advance->number());
+        self::assertNull($advance->taxPointDate());
+        self::assertSame(121000, $advance->payable()->minor());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main table', 'Z920260001');
+    }
+
+    public function testTheAdvanceFormAsksAboutTaxDocumentsOnPayment(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        self::assertSelectorTextContains('label[for="taxOnReceipt"]', 'Tax document on payment');
+        self::assertSelectorTextContains('#taxOnReceipt-help', 'None for a private person or a domestic reverse charge');
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['taxOnReceipt'] = 'skip';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+
+        $this->save($values);
+
+        $advance = $this->onlyInvoice();
+        self::assertSame(TaxOnReceiptChoice::Skip, $advance->taxOnReceipt());
+        $this->openEdit($advance);
+        self::assertSame('skip', $this->client->getCrawler()->filter('select[name="taxOnReceipt"] option[selected]')->attr('value'));
+        self::assertSelectorTextContains('#taxOnReceipt-help', 'No tax document, the supply is not known yet.');
+    }
+
+    public function testAnInvoiceFormDoesNotAskAboutTaxDocumentsOnPayment(): void
+    {
+        $this->signedIn();
+
+        $this->openNew();
+
+        self::assertSelectorNotExists('select[name="taxOnReceipt"]');
+        self::assertSelectorExists('input[type="hidden"][name="taxOnReceipt"]');
+    }
+
+    public function testAPaidAdvanceWithoutATaxDocumentIsListedAndIssuedFromThere(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Paid advances without a tax document');
+        self::assertSelectorTextContains('main table', 'Z920260001');
+        self::assertSelectorTextContains('main table', '14 days left');
+        self::assertSelectorExists('main nav a[href="/advances/needs-tax-document"][aria-current="page"]');
+        self::assertSelectorTextContains('[data-shell-notices]', 'A paid advance waits for a tax document, the first by 2026-11-15.');
+        $form = $crawler->filter('form[action$="/tax-document"]')->form();
+
+        $this->client->submit($form);
+
+        self::assertResponseRedirects('/advances/needs-tax-document');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Tax document D820260001 is issued.');
+        self::assertSelectorTextContains('main', 'Every paid advance has its tax document.');
+        $documents = $this->scoped(fn (): array => $this->em()->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.advanceInvoiceId = :advance')->setParameter('advance', $advance->id())->getResult());
+        self::assertCount(1, $documents);
+    }
+
+    public function testTheAdvanceListLinksToTheAdvancesWaitingForATaxDocument(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances');
+
+        $tab = $crawler->filter('main nav a[href="/advances/needs-tax-document"]');
+        self::assertSame('Needs tax document1', trim($tab->text()));
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorNotExists('main nav a[href="/advances/needs-tax-document"]');
+    }
+
+    public function testTheAdvanceListShowsWhatNoFinalInvoiceDeductedYet(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+
+        $crawler = $this->client->request('GET', '/advances', ['tab' => 'unsettled']);
+
+        self::assertSame(['All1', 'Paid1', 'Unpaid0', 'Overdue0', 'Unsettled1', 'Needs tax document1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorExists('main nav a[href="/advances?tab=unsettled"][aria-current="page"]');
+        self::assertSelectorTextContains('main table', $advance->number());
+    }
+
+    public function testTheTaxDocumentListTellsSettledFromUnsettled(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'settled']);
+
+        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorTextContains('main', 'Nothing is settled yet');
+        $this->client->request('GET', '/tax-documents', ['tab' => 'unsettled']);
+        self::assertSelectorTextContains('main table', 'D820260001');
+        $this->client->request('GET', '/tax-documents', ['tab' => 'unpaid']);
+        self::assertSelectorExists('main nav a[href="/tax-documents"][aria-current="page"]');
+    }
+
+    public function testADeliveredTaxDocumentOfACancelledPaymentAsksForACorrection(): void
+    {
+        $this->signedIn();
+        $document = $this->scoped(function (): Invoice {
+            $advance = $this->paidAdvanceWithoutTaxDocument();
+            $this->em()->clear();
+            $this->context->switchTo($this->tenant);
+            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
+            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
+            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
+            $document = $tax->byHand($advance->id(), $payment);
+            self::getContainer()->get(MarkDelivered::class)->mark($document->id());
+            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+
+            return $document;
+        });
+
+        $this->openEdit($document);
+
+        self::assertSelectorTextContains('[data-needs-correction]', 'It needs a corrective tax document.');
+    }
+
+    public function testATaxDocumentOfACancelledPaymentStaysInTheTrash(): void
+    {
+        $this->signedIn();
+        $this->scoped(function (): void {
+            $advance = $this->paidAdvanceWithoutTaxDocument();
+            $this->em()->clear();
+            $this->context->switchTo($this->tenant);
+            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
+            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
+            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
+            $tax->byHand($advance->id(), $payment);
+            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+        });
+        $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'trash']);
+
+        $this->client->submit($crawler->filter('main table form[action$="/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/tax-documents?tab=trash');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main [role="alert"]', 'The payment of this tax document is cancelled, so it stays in the trash.');
+        self::assertSelectorTextContains('main table', 'D820260001');
+    }
+
+    public function testTheFooterOfEachListCountsItsKind(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $this->client->request('GET', '/advances');
+        self::assertSelectorTextContains('[data-table-footer]', '1 advance invoice');
+        $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('[data-table-footer]', '1 tax document');
+
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $counted = static fn (string $kind, string $locale): array => array_map(static fn (int $total): string => $translator->trans('invoice.list.summary', ['total' => $total, 'kind' => $kind], null, $locale), [1, 2, 5]);
+        self::assertSame(['1 faktura', '2 faktury', '5 faktur'], $counted('invoice', 'cs'));
+        self::assertSame(['1 zálohová faktura', '2 zálohové faktury', '5 zálohových faktur'], $counted('advance', 'cs'));
+        self::assertSame(['1 daňový doklad', '2 daňové doklady', '5 daňových dokladů'], $counted('payment_tax_document', 'cs'));
+        self::assertSame(['1 invoice', '2 invoices', '5 invoices'], $counted('invoice', 'en'));
+        self::assertSame(['1 advance invoice', '2 advance invoices', '5 advance invoices'], $counted('advance', 'en'));
+        self::assertSame(['1 tax document', '2 tax documents', '5 tax documents'], $counted('payment_tax_document', 'en'));
+    }
+
+    public function testRestoringAnInvoiceWhoseAdvanceAnotherInvoiceDeductsSaysSo(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $first = $this->savedDeducting();
+        $this->scoped(static fn (): Invoice => self::getContainer()->get(TrashInvoice::class)->trash($first->id(), 'Wrong amount'));
+        $this->savedDeducting();
+        $crawler = $this->client->request('GET', '/invoices', ['tab' => 'trash']);
+
+        $this->client->submit($crawler->filter('main table form[action="/invoices/'.$first->id().'/restore"]')->first()->form());
+
+        self::assertResponseRedirects('/invoices?tab=trash');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main [role="alert"]', 'An advance on this invoice is deducted by another invoice already.');
+        self::assertSelectorTextContains('main table', $first->number());
+    }
+
+    public function testATaxDocumentCannotBeCopiedAndOffersNoPayment(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $document = $this->scoped(function () use ($advance): Invoice {
+            $found = $this->em()->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.advanceInvoiceId = :advance')->setParameter('advance', $advance->id())->getSingleResult();
+            self::assertInstanceOf(Invoice::class, $found);
+
+            return $found;
+        });
+
+        $this->client->request('GET', '/invoices/'.$document->id().'/copy');
+        self::assertResponseStatusCodeSame(404);
+
+        $crawler = $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('main table', 'D820260001');
+        $actions = $crawler->filter('main table [href]')->each(static fn ($link): string => (string) $link->attr('href'));
+        self::assertNotContains('/invoices/'.$document->id().'/copy', $actions);
+        self::assertNotContains('/invoices/'.$document->id().'/pay', $actions);
+    }
+
+    public function testTheInvoiceFormDeductsAPaidAdvance(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+        $values = $this->filled();
+        $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'refresh']));
+        $options = $this->client->getCrawler()->filter('select[name="deduction"] option');
+        self::assertCount(1, $options);
+        self::assertStringContainsString('Tax document D820260001, advance Z920260001', $options->text());
+
+        $this->client->request('POST', '/invoices/new', array_merge($this->currentValues(), ['_action' => 'deduct', 'deduction' => (string) $options->attr('value')]));
+
+        self::assertSelectorNotExists('select[name="deduction"]');
+        $deducting = $this->currentValues();
+        self::assertSame('-1210.00', $deducting['lines'][1]['price']);
+        self::assertSame((string) $options->attr('value'), $deducting['lines'][1]['deducts']);
+        $this->save($deducting);
+        self::assertResponseRedirects('/invoices');
+        $final = array_values(array_filter($this->invoices(), static fn (Invoice $invoice): bool => DocumentKind::Invoice === $invoice->kind()))[0];
+        self::assertSame(0, $final->payable()->minor());
+        self::assertTrue($final->deductsAdvances());
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorTextContains('main table', 'Settled by advances');
+    }
+
+    public function testEveryDocumentOfTheChainShowsItsLinks(): void
+    {
+        $this->signedIn();
+        $advance = $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $this->client->submit($crawler->filter('form[action$="/tax-document"]')->form());
+
+        $this->client->request('GET', '/invoices/'.$advance->id().'/edit');
+
+        self::assertSelectorTextContains('[data-links]', 'Links');
+        self::assertSelectorTextContains('[data-links] [aria-current="page"]', 'Z920260001');
+        self::assertSelectorTextContains('[data-links] a', 'D820260001');
+        self::assertSelectorTextContains('[data-links]', '1,210.00');
+        self::assertSelectorTextContains('[data-links]', 'Not settled yet');
+    }
+
+    public function testIssuingATaxDocumentTwiceSaysItExists(): void
+    {
+        $this->signedIn();
+        $this->paidAdvanceWithoutTaxDocument();
+        $crawler = $this->client->request('GET', '/advances/needs-tax-document');
+        $form = $crawler->filter('form[action$="/tax-document"]')->form();
+        $this->client->submit($form);
+
+        $this->client->submit($form);
+
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'This payment has its tax document already.');
+    }
+
+    /**
+     * A final invoice saved through the form that deducts the one tax document on offer.
+     */
+    private function savedDeducting(): Invoice
+    {
+        $before = array_map(static fn (Invoice $invoice): string => $invoice->id(), $this->invoices());
+        $this->client->request('POST', '/invoices/new', array_merge($this->filled(), ['_action' => 'refresh']));
+        $option = (string) $this->client->getCrawler()->filter('select[name="deduction"] option')->attr('value');
+        $this->client->request('POST', '/invoices/new', array_merge($this->currentValues(), ['_action' => 'deduct', 'deduction' => $option]));
+        $this->save($this->currentValues());
+        self::assertResponseRedirects('/invoices');
+
+        return array_values(array_filter($this->invoices(), static fn (Invoice $invoice): bool => !\in_array($invoice->id(), $before, true)))[0];
+    }
+
+    private function paidAdvanceWithoutTaxDocument(): Invoice
+    {
+        return $this->scoped(function (): Invoice {
+            $line = new LineInput('Milestone', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+            $advance = self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput($this->firm->id(), null, null, $this->customer->id(), null, new \DateTimeImmutable('2026-11-01'), null, new \DateTimeImmutable('2026-11-15'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Milestone', '', '', DocumentLanguage::Czech, [$line], true, DocumentKind::Advance, TaxOnReceiptChoice::Skip));
+            self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-10-31'), Money::of('1210.00', Currency::CZK), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($advance->id(), Money::of('1210.00', Currency::CZK))]));
+            // The supply is known now: by the rules VAT arose on the payment.
+            $this->em()->getConnection()->executeStatement('UPDATE invoice SET tax_on_receipt = NULL WHERE id = ?', [$advance->id()]);
+
+            return $advance;
+        });
+    }
+
+    public function testATaxDocumentCannotBeStartedFromTheForm(): void
+    {
+        $this->signedIn();
+
+        $values = $this->openNew(['kind' => 'payment_tax_document']);
+
+        self::assertSame('invoice', $values['kind']);
+        self::assertSelectorExists('input[name="taxPointDate"]');
+    }
+
+    public function testAnAdvanceRecountsOnItsIssueDate(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $values['taxPointDate'] = 'not a date';
+
+        $this->client->request('POST', '/invoices/recount', $values);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('1,210.00 Kč', $this->nbsp($this->json()['payable']));
+    }
+
+    public function testTheNextNumberOfAKindWithoutASeriesComesFromItsStandardSeries(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/next-number', ['date' => '2026-11-01', 'series' => '', 'firm' => $this->firm->id(), 'kind' => 'advance']);
+
+        self::assertSame(['number' => 'Z920260001', 'variableSymbol' => '920260001'], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
+    }
+
+    public function testACopyOfAnAdvanceIsAnAdvance(): void
+    {
+        $this->signedIn();
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $this->save($values);
+
+        $copy = $this->openCopy($this->onlyInvoice());
+
+        self::assertSame('advance', $copy['kind']);
+        self::assertSame('Z920260002', $copy['numberPeek']);
+        self::assertSelectorNotExists('input[name="taxPointDate"]');
+    }
+
+    public function testEachListShowsOnlyItsKind(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+        $values = $this->openNew(['kind' => 'advance']);
+        $values['customerId'] = $this->customer->id();
+        $values['customerQuery'] = 'Example Customer a.s.';
+        $values['lines'][0] = array_merge($values['lines'][0], ['text' => 'Work', 'price' => '1000,00', 'quantity' => '1', 'unit' => 'h']);
+        $this->save($values);
+
+        $this->client->request('GET', '/invoices');
+        self::assertSelectorTextContains('main table', '20260001');
+        self::assertSelectorTextNotContains('main table', 'Z920260001');
+        self::assertSelectorExists('main a[href="/invoices/export"]');
+
+        $this->client->request('GET', '/advances');
+        self::assertSelectorTextContains('h1', 'Advance invoices');
+        self::assertSelectorTextContains('main table', 'Z920260001');
+        self::assertCount(1, $this->client->getCrawler()->filter('main table tbody tr'));
+        self::assertSelectorExists('main a[href="/invoices/new?kind=advance"]');
+        self::assertSelectorNotExists('main a[href="/invoices/export"]');
+        self::assertSelectorExists('nav a[href="/advances"][aria-current="page"]');
+
+        $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('h1', 'Tax documents on payment');
+        self::assertSelectorTextContains('main', 'No tax documents here');
+        self::assertSelectorNotExists('main a[href^="/invoices/new"]');
+    }
+
+    public function testATabOfTheAdvanceListStaysOnIt(): void
+    {
+        $this->signedIn();
+        $this->save($this->filled());
+
+        $crawler = $this->client->request('GET', '/advances', ['tab' => 'unpaid']);
+
+        self::assertResponseIsSuccessful();
+        self::assertContains('/advances?tab=paid', $crawler->filter('main nav a')->each(static fn ($link): string => (string) $link->attr('href')));
+    }
+
+    public function testASeriesOfAnotherKindLeavesTheInvoiceFormOpen(): void
+    {
+        $this->signedIn(series: false);
+        $this->scoped(function (): void {
+            $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('The firm is missing.');
+            $advances = new Series($firm, 'Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance);
+            $advances->archive();
+            $this->em()->persist($advances);
+            $this->em()->persist(new Series($firm, 'More advances', SeriesFormat::fromString('ZG{YYYY}{NNNN}'), DocumentKind::Advance));
+            $this->em()->flush();
+        });
+
+        $crawler = $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorExists('#invoice-form');
+        self::assertSame(['Standard'], $crawler->filter('select[name="seriesId"] option')->each(static fn ($option): string => trim($option->text())));
+    }
+
     public function testAFirmWithoutSeriesStillOpensTheForm(): void
     {
         $this->signedIn(series: false);
@@ -1804,7 +2244,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $reopened = $this->currentValues();
         self::assertSame('20270001', $reopened['number'] ?? null);
-        self::assertSame('20270001', $reopened['numberPeek'] ?? null);
+        self::assertSame('20270001', $reopened['numberPeek']);
         self::assertSame('20270001', $reopened['variableSymbol']);
         self::assertSelectorTextContains('main', 'The firm changed');
     }

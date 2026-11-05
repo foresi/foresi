@@ -393,11 +393,9 @@ final class InvoicePaymentController extends AbstractController
     private function listUrl(string $return): string
     {
         parse_str($return, $query);
+        [$route, $parameters] = InvoiceListController::routeOf($query);
 
-        return $this->generateUrl('app_invoices', array_filter(
-            array_intersect_key($query, array_flip(InvoiceListController::LIST_QUERY)),
-            \is_string(...),
-        ));
+        return $this->generateUrl($route, $parameters);
     }
 
     private function invoice(string $id): Invoice

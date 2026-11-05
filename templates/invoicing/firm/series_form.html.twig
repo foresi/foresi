@@ -18,6 +18,7 @@
 
         <twig:Ui:Card :title="'series.card'|trans" icon="tag">
             <div class="grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2"><twig:Ui:Select name="kind" id="kind" :label="'series.field.kind'|trans" :help="editing ? 'series.field.kind_locked_help'|trans : 'series.field.kind_help'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" :disabled="editing" /></div>
                 <div class="sm:col-span-2"><twig:Ui:TextInput name="name" id="name" :label="'series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="100" required /></div>
                 <div class="sm:col-span-2"><twig:Ui:TextInput name="format" id="format" :label="'series.field.format'|trans" :help="locked ? 'series.field.format_locked_help'|trans : 'series.field.format_help'|trans" :value="values.format" :error="errors.format|default(null)" :disabled="locked" maxlength="64" required autocomplete="off" /></div>
                 <twig:Ui:TextInput name="startYear" id="startYear" :label="'series.field.startYear'|trans" :help="'series.field.startYear_help'|trans" :value="values.startYear" :error="errors.startYear|default(null)" inputmode="numeric" maxlength="4" />

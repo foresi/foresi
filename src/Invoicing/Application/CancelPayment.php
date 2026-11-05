@@ -26,6 +26,9 @@ use Psr\Clock\ClockInterface;
  * transaction, so the locks come first in it (on SQLite a read before the first write
  * lock would refuse to wait); neither the source nor the invoices of a payment ever
  * change, so what was read still holds under the locks.
+ *
+ * Its tax documents are locked last, and those the customer never got go to the
+ * trash with the payment.
  */
 final readonly class CancelPayment
 {
@@ -37,6 +40,8 @@ final readonly class CancelPayment
         private AuditActor $actor,
         private ClockInterface $clock,
         private PaymentSourceRelease $release,
+        private AdvanceDocuments $documents,
+        private PaymentTaxDocumentTexts $texts,
     ) {
     }
 
@@ -48,9 +53,13 @@ final readonly class CancelPayment
         $this->retry->run(function () use ($paymentId): void {
             $source = $this->payments->get($paymentId);
             $ids = $this->payments->invoiceIdsOf($paymentId);
-            $this->work->run(function () use ($paymentId, $source, $ids): void {
+            $taxDocuments = $this->documents->taxDocumentsOfPayment($paymentId);
+            $this->work->run(function () use ($paymentId, $source, $ids, $taxDocuments): void {
                 $this->release->lockSource($source);
                 foreach ($ids as $id) {
+                    $this->store->lock($id);
+                }
+                foreach ($taxDocuments as $id) {
                     $this->store->lock($id);
                 }
                 $payment = $this->payments->get($paymentId);
@@ -62,7 +71,26 @@ final readonly class CancelPayment
                 if (PaymentSource::BankMovement === $payment->source()) {
                     $this->release->released($payment);
                 }
+                $this->dropTaxDocuments($taxDocuments);
             });
         });
+    }
+
+    /**
+     * A tax document on the payment that never reached the customer goes to the
+     * trash with it. One that did stays as it is and needs a corrective document,
+     * which its page asks for; corrections are a step of their own.
+     *
+     * @param list<string> $ids
+     */
+    private function dropTaxDocuments(array $ids): void
+    {
+        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        foreach ($ids as $id) {
+            $document = $this->store->get($id);
+            if (!$document->isDelivered() && !$document->isTrashed()) {
+                $document->trash($now, $this->actor->userId(), $this->texts->cancelledReason($document));
+            }
+        }
     }
 }

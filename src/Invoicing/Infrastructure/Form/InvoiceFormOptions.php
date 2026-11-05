@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Form;
 
 use App\Invoicing\Application\SeriesCatalog;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\VatRateKind;
@@ -51,22 +52,43 @@ final readonly class InvoiceFormOptions
     }
 
     /**
-     * The active series of the firm, and $own, which may be archived. A firm that has
-     * none yet offers its default, which the first save stores.
+     * The active series of the firm of one kind, and $own, which may be archived and
+     * decides the kind. A firm that has none of the kind yet offers its default,
+     * which the first save stores.
      *
      * @return array<string, string>
      */
-    public function series(LegalEntity $firm, ?Series $own = null): array
+    public function series(LegalEntity $firm, ?Series $own = null, DocumentKind $kind = DocumentKind::Invoice): array
     {
+        $kind = $own?->kind() ?? $kind;
         $options = [];
-        foreach ($this->catalog->forFirm($firm) as $series) {
+        foreach ($this->catalog->forFirm($firm, $kind) as $series) {
             $options[$series->id()] = $this->seriesName($series);
         }
         if ($own instanceof Series) {
             $options[$own->id()] = $this->seriesName($own);
         }
 
-        return [] === $options ? ['' => $this->translator->trans('series.name.standard')] : $options;
+        return [] === $options ? ['' => $this->translator->trans('series.name.'.$kind->standardSeriesName())] : $options;
+    }
+
+    /**
+     * The series a recurring template may issue in: those of invoices and of advance
+     * invoices, and $own, which may be archived.
+     *
+     * @return array<string, string>
+     */
+    public function recurringSeries(LegalEntity $firm, ?Series $own = null): array
+    {
+        $options = $this->series($firm, DocumentKind::Invoice === $own?->kind() ? $own : null);
+        foreach ($this->catalog->forFirm($firm, DocumentKind::Advance) as $series) {
+            $options[$series->id()] = $this->seriesName($series);
+        }
+        if ($own instanceof Series && DocumentKind::Advance === $own->kind()) {
+            $options[$own->id()] = $this->seriesName($own);
+        }
+
+        return $options;
     }
 
     /**
@@ -151,7 +173,7 @@ final readonly class InvoiceFormOptions
 
     private function seriesName(Series $series): string
     {
-        return Series::STANDARD === $series->name() ? $this->translator->trans('series.name.standard') : $series->name();
+        return DocumentKind::isStandardSeriesName($series->name()) ? $this->translator->trans('series.name.'.$series->name()) : $series->name();
     }
 
     private function rateLabel(InvoiceFormContext $context, VatRateKind $kind, \DateTimeImmutable $taxPoint): string

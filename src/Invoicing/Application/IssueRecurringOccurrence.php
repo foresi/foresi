@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PeriodText;
 use App\Invoicing\Domain\RecurringInvoice;
@@ -121,6 +122,7 @@ final readonly class IssueRecurringOccurrence
             $template->language(),
             $lines,
             variableSymbolFollowsNumber: true,
+            kind: $template->series()?->kind() ?? DocumentKind::Invoice,
         );
     }
 }
