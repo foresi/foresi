@@ -22,7 +22,7 @@ use Psr\Clock\ClockInterface;
  * FX rate of the receipt (§42(7)(b)), as a change dated on the day of the fact.
  *
  * Refunds go back on the latest payments of the advance first. A tax document the
- * customer never got goes to the trash instead. One that a final invoice deducts is
+ * customer never got goes to the trash instead, replaced by one for what stays paid. One that a final invoice deducts is
  * not corrected until the deduction is released; it waits, as do those a rule
  * refused, among the uncorrected ones.
  */
@@ -37,6 +37,7 @@ final readonly class CorrectPaymentTaxDocument
         private IssueInvoice $issue,
         private Savepoint $savepoint,
         private ClockInterface $clock,
+        private IssuePaymentTaxDocument $taxDocuments,
     ) {
     }
 
@@ -105,7 +106,6 @@ final readonly class CorrectPaymentTaxDocument
     public function afterRefund(string $advanceId): void
     {
         $advance = $this->store->get($advanceId);
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
         foreach (array_reverse($this->payments->linesOf($advance)) as $line) {
             if ($line->allocated->isNegative()) {
                 continue;
@@ -120,10 +120,35 @@ final readonly class CorrectPaymentTaxDocument
             }
             if ($document->isDelivered()) {
                 $this->automatically($document);
-            } elseif ($this->netOf($advance, $line->paymentId)[0] < $line->allocated->minor()) {
-                $document->trash($now, null, $this->texts->refundedReason($document));
+            } else {
+                $this->replace($document, $line->paymentId, $line->allocated->minor());
             }
         }
+    }
+
+    /**
+     * A tax document the customer never got goes to the trash once the refund reaches
+     * its payment. When part of the payment stays paid, the document gives the
+     * payment up and a new one taxes what stays, on the day of receipt, at a
+     * savepoint as on payment; a refusal leaves the payment among those that need a
+     * tax document.
+     */
+    private function replace(Invoice $document, string $paymentId, int $allocated): void
+    {
+        $advanceId = $document->advanceInvoiceId() ?? throw new \LogicException('A tax document on payment names its advance.');
+        $stays = $this->netOf($this->store->get($advanceId), $paymentId)[0];
+        if ($stays >= $allocated) {
+            return;
+        }
+        $document->trash(\DateTimeImmutable::createFromInterface($this->clock->now()), null, $this->texts->refundedReason($document));
+        if ($stays <= 0) {
+            return;
+        }
+        $document->givesUpPayment();
+        $payment = $this->payments->get($paymentId);
+        $currency = $document->currency();
+        // The savepoint stores the trash first, so the payment is free for its new document.
+        $this->savepoint->run(fn (): ?Invoice => $this->taxDocuments->forPayment($payment, $advanceId, Money::ofMinor($stays, $currency)));
     }
 
     /**

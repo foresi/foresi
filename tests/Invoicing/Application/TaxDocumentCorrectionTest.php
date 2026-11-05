@@ -92,6 +92,32 @@ final class TaxDocumentCorrectionTest extends AdvanceTestCase
         self::assertSame([], $this->waiting());
     }
 
+    public function testAPartRefundBeforeDeliveryReissuesTheTaxDocumentForWhatStaysPaid(): void
+    {
+        $advance = $this->advance([$this->line('10000.00')]);
+        $this->pay($advance, '12100.00', '2026-11-10');
+
+        $this->refund($advance, '2100.00', '2026-11-18');
+
+        $live = array_values(array_filter($this->taxDocumentsOf($advance), static fn (Invoice $document): bool => !$document->isTrashed()));
+        self::assertCount(1, $live);
+        self::assertSame(1000000, $live[0]->gross()->minor());
+        self::assertSame('2026-11-10', $live[0]->taxPointDate()?->format('Y-m-d'), 'taxed on the receipt as before');
+        self::assertCount(2, $this->taxDocumentsOf($advance), 'the first stays in the trash');
+        self::assertSame([], $this->waiting());
+    }
+
+    public function testAReplacedTaxDocumentStaysInTheTrash(): void
+    {
+        $advance = $this->advance([$this->line('10000.00')]);
+        $this->pay($advance, '12100.00', '2026-11-10');
+        $this->refund($advance, '2100.00', '2026-11-18');
+        $trashed = array_values(array_filter($this->taxDocumentsOf($advance), static fn (Invoice $document): bool => $document->isTrashed()));
+
+        $this->expectException(\App\Invoicing\Application\PaymentRefused::class);
+        $this->trash->restore($trashed[0]->id());
+    }
+
     public function testADeductedTaxDocumentWaitsForItsCorrection(): void
     {
         $advance = $this->advance([$this->line('1000.00')]);

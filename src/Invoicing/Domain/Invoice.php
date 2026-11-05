@@ -367,6 +367,29 @@ class Invoice implements TenantOwned, Audited
     }
 
     /**
+     * A tax document on payment that went to the trash when part of its payment was
+     * refunded before the customer got it gives its payment up to the one issued for
+     * what stays paid. It keeps its advance, and never taxes a payment again.
+     *
+     * @throws \DomainException for another kind of document, or one not in the trash
+     */
+    public function givesUpPayment(): void
+    {
+        if (DocumentKind::PaymentTaxDocument !== $this->kind || !$this->isTrashed()) {
+            throw new \DomainException('Only a tax document on payment in the trash gives up its payment.');
+        }
+        $this->paymentId = null;
+    }
+
+    /**
+     * Whether a tax document on payment gave its payment up to another one.
+     */
+    public function isReplaced(): bool
+    {
+        return DocumentKind::PaymentTaxDocument === $this->kind && null !== $this->advanceInvoiceId && null === $this->paymentId;
+    }
+
+    /**
      * The advance invoice whose payment a tax document on payment taxes.
      */
     public function advanceInvoiceId(): ?string

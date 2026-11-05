@@ -64,7 +64,7 @@ final readonly class TrashInvoice
     /**
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
-     * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled
+     * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled, or that was replaced
      * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile
      * @throws UnknownInvoice also for an invoice of another tenant
      */
@@ -75,7 +75,8 @@ final readonly class TrashInvoice
             $wasTrashed = $invoice->isTrashed();
             // It taxes a payment that is gone: back in the list it would tax nothing.
             $payment = $invoice->paymentId();
-            if ($wasTrashed && null !== $payment && $this->payments->get($payment)->isCancelled()) {
+            // One replaced after a part refund would tax the same payment twice.
+            if ($wasTrashed && ((null !== $payment && $this->payments->get($payment)->isCancelled()) || $invoice->isReplaced())) {
                 throw new PaymentRefused(PaymentRefused::CANCELLED);
             }
             $invoice->restore();
