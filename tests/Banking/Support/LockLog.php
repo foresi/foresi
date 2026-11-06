@@ -48,6 +48,11 @@ final class LockLog implements Candidates
         return $this->candidates->open($firmId, $currency, $text, $ids, $limit);
     }
 
+    public function refunds(string $firmId, ?string $variableSymbol): array
+    {
+        return $this->candidates->refunds($firmId, $variableSymbol);
+    }
+
     public function locked(string $invoiceId): void
     {
         $this->entries[] = 'lock:'.$invoiceId;

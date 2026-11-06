@@ -623,6 +623,20 @@ final class SendInvoiceTest extends SendingTestCase
         self::assertSame('Invoice link}', $this->sent($invoice, ['subject' => 'Invoice link}'])->subject());
     }
 
+    public function testACreditNoteIsSentWithoutPaymentDetailsAndADebitNoteWithThem(): void
+    {
+        $original = $this->issue->issue($this->input());
+        $credit = $this->correctionOf($original, '-400.00');
+        $debit = $this->correctionOf($original, '200.00');
+
+        $creditRow = $this->row($this->sent($credit)->id());
+        $debitRow = $this->row($this->sent($debit)->id());
+
+        self::assertSame([null, null], [$creditRow['domestic_account'], $creditRow['payment_code']]);
+        self::assertNotNull($debitRow['domestic_account']);
+        self::assertStringStartsWith('SPD*', self::text($debitRow, 'payment_code'));
+    }
+
     private function assertNothingStoredOrQueued(): void
     {
         self::assertSame(0, $this->sendCount());

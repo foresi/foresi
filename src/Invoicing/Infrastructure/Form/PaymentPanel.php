@@ -25,7 +25,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * screen when the bank module is there; Invoicing knows that screen by its route only.
  *
  * @phpstan-type PanelLine array{id: string, date: string, datetime: string, amount: string, settlement: ?string, method: string, bank: bool, movement: ?string, confirm: array{title: string, text: string, accept: string, cancel: string, tone: string}, label: string}
- * @phpstan-type Panel array{lines: list<PanelLine>, paid: string, remaining: ?string, overpaid: ?string, payable: bool, settled: bool}
+ * @phpstan-type Panel array{lines: list<PanelLine>, paid: string, remaining: ?string, overpaid: ?string, toRefund: ?string, payable: bool, settled: bool, refundable: bool}
  */
 final readonly class PaymentPanel
 {
@@ -56,18 +56,22 @@ final readonly class PaymentPanel
     {
         // A tax document on payment is paid by the payment it taxes, which is allocated to the advance.
         $paid = $invoice->kind()->isPayable() ? $this->payments->paidOf($invoice) : $invoice->payable();
-        $remaining = $invoice->payable()->minus($paid);
-        $state = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
+        $corrections = $invoice->kind()->isPayable() ? $this->payments->correctionsOf($invoice) : Money::ofMinor(0, $invoice->currency());
+        $remaining = $invoice->payable()->plus($corrections)->minus($paid);
+        $state = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid, $corrections);
         $format = $this->translator->trans('format.date');
 
         return [
             'lines' => array_map(fn (InvoicePaymentLine $line): array => $this->line($invoice, $line, $format), $this->payments->linesOf($invoice)),
             'paid' => $this->amounts->shown($paid),
             'remaining' => $remaining->isNegative() || $remaining->isZero() ? null : $this->amounts->shown($remaining),
-            'overpaid' => $remaining->isNegative() ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
-            // Nothing to pay on it, or in the trash: nothing to record either.
-            'payable' => $invoice->kind()->isPayable() && !$invoice->isTrashed() && !$invoice->payable()->isNegative() && !$invoice->payable()->isZero(),
+            'overpaid' => $remaining->isNegative() && PaymentState::ToRefund !== $state ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
+            'toRefund' => PaymentState::ToRefund === $state ? $this->amounts->shown(Money::ofMinor(-$remaining->minor(), $remaining->currency())) : null,
+            // Nothing to pay on it, credited down to nothing, or in the trash: nothing to record either.
+            'payable' => $invoice->kind()->isPayable() && !$invoice->isTrashed() && 0 < $invoice->payable()->minor() && 0 < $invoice->payable()->plus($corrections)->minor(),
             'settled' => $state->isSettled(),
+            // To refund after its corrections, or a final invoice its advances exceed.
+            'refundable' => $invoice->kind()->isPayable() && 0 < $this->payments->toRefundOf($invoice)->minor(),
         ];
     }
 

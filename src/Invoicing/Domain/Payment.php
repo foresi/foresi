@@ -19,8 +19,9 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Money a firm received, once. Which invoices it pays is told by its allocations,
- * whose amounts add up to the amount of the payment. A payment is never deleted:
+ * Money a firm received, once, or sent back as a refund. Which invoices it pays, or
+ * refunds, is told by its allocations, whose amounts add up to the amount of the
+ * payment. The amount is positive either way: the direction carries the sign. A payment is never deleted:
  * cancelling it removes its allocations and keeps the row, with who and when, so a
  * bank movement it came from can be paired again and the log stays whole.
  *
@@ -86,6 +87,8 @@ class Payment implements TenantOwned, Audited
         private readonly ?string $createdBy,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
+        #[ORM\Column(type: 'string', length: 8, enumType: PaymentDirection::class, options: ['default' => 'incoming'])]
+        private readonly PaymentDirection $direction = PaymentDirection::Incoming,
     ) {
         if ($amount->isZero() || $amount->isNegative()) {
             throw new \InvalidArgumentException('A payment is a positive amount.');
@@ -138,6 +141,16 @@ class Payment implements TenantOwned, Audited
     public function amount(): Money
     {
         return Money::ofMinor($this->amountMinor, $this->currency);
+    }
+
+    public function direction(): PaymentDirection
+    {
+        return $this->direction;
+    }
+
+    public function isRefund(): bool
+    {
+        return PaymentDirection::Refund === $this->direction;
     }
 
     public function method(): PaymentMethod

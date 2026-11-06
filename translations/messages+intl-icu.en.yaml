@@ -37,6 +37,7 @@ nav:
     invoices: Invoices
     advances: Advance invoices
     tax_documents: Tax documents
+    corrections: Corrective documents
     firms: My firms
     import: Import and export
     sent_mail: Sent e-mails
@@ -941,10 +942,12 @@ series:
     standard: Standard
     standard_advance: Advance invoices
     standard_payment_tax_document: Tax documents on payment
+    standard_correction_document: Corrective documents
   kind:
     invoice: Invoice
     advance: Advance invoice
     payment_tax_document: Tax document on payment
+    correction_document: Corrective tax document
   column:
     name: Name
     kind: Documents
@@ -995,7 +998,7 @@ invoice:
     add: Deduct
     option: '{same, select, yes {Advance {number}} other {Tax document {number}, advance {advance}}}, {amount}'
   public:
-    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} other {Invoice {number}}}'
+    title: '{kind, select, advance {Advance invoice {number}} payment_tax_document {Tax document {number}} correction_document {Corrective tax document {number}} other {Invoice {number}}}'
     from: From
     for: 'For {customer}'
     paid: Paid
@@ -1004,6 +1007,7 @@ invoice:
     settled_by_advances: Settled by advances
     settled_by_advances_note: Settled by advances, nothing to pay
     to_refund: Difference to refund
+    to_return: To be refunded
     due: Due date
     remaining: Left to pay
     payment:
@@ -1018,7 +1022,9 @@ invoice:
     download_paid: '{kind, select, advance {Download advance invoice (paid)} payment_tax_document {Download tax document} other {Download invoice (paid)}}'
     paid_note: 'Paid {date}, nothing to pay'
     do_not_pay: Do not pay, the document is already paid
-    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} other {Invoice {number} as PDF}}'
+    credit_note_note: 'It lowers the amount to pay on document {number}. Do not pay it.'
+    credit_note_refund_note: We will refund the amount to you.
+    viewer: '{kind, select, advance {Advance invoice {number} as PDF} payment_tax_document {Tax document {number} as PDF} correction_document {Corrective tax document {number} as PDF} other {Invoice {number} as PDF}}'
     fallback: This browser cannot show the PDF on the page. Open it with the button.
     notice: 'This link from {issuer} is meant for you: anyone who has it can open the document, so please do not forward it.'
     gone:
@@ -1168,11 +1174,21 @@ invoice:
     footer: '{title} · Page {page}/{pages}'
     unsupported_country: 'Invoice {number} cannot be printed: this installation has no rules for the country of its issuer.'
     trashed: IN THE TRASH – NOT A VALID DOCUMENT
-    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} other {Invoice}} {number}'
+    document_title: '{kind, select, advance {Advance invoice} payment_tax_document {Tax document} correction_document {Corrective tax document} other {Invoice}} {number}'
     title_tax: Invoice - tax document
     title: Invoice
     title_advance: Advance invoice
     title_payment_tax_document: Tax document on received payment
+    title_correction_document: Corrective tax document
+    credit_note: credit note
+    debit_note: debit note
+    corrects: 'Corrects document no. {number}'
+    correction_reason: 'Reason for correction: {reason}'
+    decisive_date: 'Date of the decisive fact: {date}'
+    difference_base: Difference in tax base
+    difference_vat: Difference in tax
+    difference_total: Total difference
+    to_return: To be refunded
     advance_recap_note: VAT breakdown is informative only, this is not a tax document.
     supplier: Supplier
     customer: Customer
@@ -1230,12 +1246,13 @@ invoice:
     title_invoice: Invoices
     title_advance: Advance invoices
     title_payment_tax_document: Tax documents on payment
+    title_correction_document: Corrective documents
     views: Invoice lists
     all_firms: All firms
     search: Search
     search_label: Search invoices
     search_placeholder: Number, customer or description
-    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
+    summary: '{kind, select, advance {{total, plural, one {# advance invoice} other {# advance invoices}}} payment_tax_document {{total, plural, one {# tax document} other {# tax documents}}} correction_document {{total, plural, one {# corrective document} other {# corrective documents}}} other {{total, plural, one {# invoice} other {# invoices}}}}'
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
@@ -1251,6 +1268,7 @@ invoice:
       overdue: Overdue
       settled: Settled
       unsettled: Unsettled
+      to_refund: To refund
       trash: Trash
     column:
       sent: E-mail
@@ -1272,6 +1290,7 @@ invoice:
       overdue: Overdue
       paid: Paid
       overpaid: Overpaid
+      to_refund: To refund
       trashed: In the trash
     action:
       edit: Edit
@@ -1279,6 +1298,7 @@ invoice:
       pay: Pay
       pdf: PDF
       copy: Copy
+      correct: Issue a corrective document
       delivered: Mark as delivered
       history: History
       delete: Delete
@@ -1290,6 +1310,7 @@ invoice:
       all_title_invoice: No invoices here
       all_title_advance: No advance invoices here
       all_title_payment_tax_document: No tax documents here
+      all_title_correction_document: No corrective documents here
       filtered_title: No invoice matches
       filtered_text: Try other words or another firm.
       reset: Show all invoices
@@ -1497,6 +1518,7 @@ invoice:
     not_applicable: Outside VAT
   payment:
     refused:
+      refund_too_large: The refund is more than is to refund on the invoice.
       has_payments: This invoice has payments. Remove the payments first.
       cancelled: The payment of this tax document is cancelled, so it stays in the trash.
       no_allocation: The payment pays no invoice.
@@ -1534,7 +1556,15 @@ invoice:
     trashed: 'Invoice {number} is in the trash. Restore it first.'
     nothing_due: 'Invoice {number} has nothing to pay.'
     left: '{amount} left to pay'
+    to_refund: '{amount} to refund'
+    refund:
+      title: 'Refund on invoice {number}'
+      page_card: Refund
+      date: Date refunded
+      submit: Record refund
+      nothing: 'Invoice {number} has nothing to refund.'
     panel:
+      refund: Record refund
       title: Payments
       movement: Show the bank movement
       pay: Pay
@@ -1542,6 +1572,7 @@ invoice:
       paid: Paid
       remaining: Left to pay
       overpaid: Overpaid by
+      to_refund: To refund
       written_off: 'written off {amount}'
       bank: Bank movement
       remove: Remove
@@ -1554,6 +1585,7 @@ invoice:
       remove_accept: Remove payment
       keep: Keep it
     flash:
+      refunded: 'Refund of {amount} on invoice {number} recorded.'
       recorded: 'A payment of {amount} was recorded for invoice {number}.'
       settled: 'A payment of {amount} was recorded for invoice {number}. The difference of {difference} was written off.'
       overpaid: 'A payment of {amount} was recorded. Invoice {number} is overpaid by {over}.'
@@ -1632,6 +1664,20 @@ invoice:
     number_taken: This number has been used in this firm already.
     numbers_exhausted: This series has no numbers left.
     payable_negative: The total must not be negative.
+    correction_kind: Only a corrective tax document names a corrected document.
+    correction_link_missing: Choose the invoice this document corrects.
+    correction_link_locked: A corrective document keeps the invoice it corrects.
+    correction_original_invalid: Only an issued invoice that is not in the trash, or a delivered tax document on payment, can be corrected.
+    correction_deducted: A final invoice deducts this tax document. Release the deduction first by moving the final invoice to the trash or removing the deduction from it.
+    correction_payment_change: A tax document on payment is corrected as a change after the supply, on the day the payment was cancelled or refunded.
+    correction_firm: The correction must be issued by the firm of the invoice.
+    correction_customer: The correction must be for the customer of the invoice.
+    correction_reason_missing: Say why the invoice is being corrected.
+    correction_type_missing: Choose whether this is a change after issue or an error on the document.
+    correction_decisive_date_missing: Enter the decisive date.
+    correction_tax_point: The tax point of a change is its decisive date; that of an error is the tax point of the invoice.
+    correction_rate_unknown: Use a VAT rate that is on the corrected invoice.
+    correction_over_original: This would credit more than the invoice and its corrections leave at one of its VAT rates.
     payment_method_invalid: Choose a payment method.
     price_invalid: Enter a price with up to two decimals.
     price_type_invalid: Choose a price type.
@@ -2381,8 +2427,58 @@ advance:
         {sender_name}
 
         {link}
+correction:
+  title: 'Corrective tax document {number}'
+  new: New corrective tax document
+  card: Correction
+  corrects: 'Corrects document no. {number}'
+  field:
+    reason: Reason for the correction
+    reason_help: Printed on the document, up to 500 characters.
+    type: Type of correction
+    decisive_date: Decisive date
+    decisive_date_help: The day of the fact that changed the supply.
+  type:
+    change: Change after issue
+    change_text: Something changed after the supply; taxed on the decisive date.
+    error: Error on the document
+    error_text: The invoice was wrong; taxed in its original period.
+  variable:
+    original_number: Number of the corrected document
+  mail:
+    card: Corrective tax document
+    templates_help: A correction goes out in the language of the document.
+    default:
+      subject: 'Corrective tax document {number}'
+      body: |-
+        I am sending corrective tax document no. {number} to document no. {original_number} for {amount_total}.
+
+        Thank you,
+        {sender_name}
+
+        {link}
 tax_document:
-  needs_correction: The payment of this tax document was cancelled after the customer got it. It needs a corrective tax document.
+  waiting_notice: '{late, select, yes {{count, plural, one {A document is} other {# documents are}} past the deadline for a tax or corrective document.} other {{count, plural, one {A document waits} other {# documents wait}} for a tax or corrective document, the first by {date}.}}'
+  needs_correction: The payment of this tax document was cancelled or refunded after the customer got it. It needs a corrective tax document.
+  correct: Issue a corrective document
+  refunded_reason: The payment it taxed was refunded before the customer got it.
+  correction:
+    cancelled: Advance payment cancelled
+    refunded: Advance payment refunded
+  uncorrected:
+    tab: Waiting for correction
+    title: Tax documents on payment waiting for correction
+    intro: When an advance payment is cancelled or refunded after the customer got its tax document, a corrective tax document is issued within 15 days of the cancellation or refund. A document a final invoice deducts is corrected once the deduction is released.
+    empty: No tax document is waiting for correction.
+    deducted: deducted on a final invoice
+    notice: '{late, select, yes {{count, plural, one {A tax document is} other {# tax documents are}} past the deadline for correction.} other {{count, plural, one {A tax document waits} other {# tax documents wait}} for a corrective document, the first by {date}.}}'
+    column:
+      number: Tax document
+      customer: Customer
+      decisiveDate: Decisive date
+      amount: Amount
+      deadline: Deadline
+      daysLeft: Days left
   cancelled_reason: The payment it taxed was cancelled.
   title: 'Tax document {number}'
   card:

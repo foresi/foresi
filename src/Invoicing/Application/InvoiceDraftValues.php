@@ -23,8 +23,9 @@ final readonly class InvoiceDraftValues
 {
     /**
      * @param list<LineInput> $lines
-     * @param Currency|null   $currencyNotice the other currency the contact prefers; the document stays in $currency
-     * @param list<string>    $notices        translation keys of what the form must say when it opens
+     * @param Currency|null   $currencyNotice     the other currency the contact prefers; the document stays in $currency
+     * @param list<string>    $notices            translation keys of what the form must say when it opens
+     * @param string|null     $correctedInvoiceId the invoice a corrective tax document corrects
      */
     public function __construct(
         public string $firmId,
@@ -48,6 +49,7 @@ final readonly class InvoiceDraftValues
         public string $description = '',
         public array $notices = [],
         public DocumentKind $kind = DocumentKind::Invoice,
+        public ?string $correctedInvoiceId = null,
     ) {
     }
 

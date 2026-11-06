@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Pdf;
 
+use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuedDocument;
@@ -15,6 +16,8 @@ use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\RenderedPdf;
 use App\Invoicing\Application\UndrawableDocument;
+use App\Invoicing\Domain\CorrectionType;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
@@ -638,6 +641,73 @@ final class InvoicePdfTest extends InvoiceTestCase
         self::assertStringNotContainsString('Zbývá uhradit', $this->textOf($factory->of($id, Money::of('1210.00', Currency::CZK))));
     }
 
+    public function testACreditNoteNamesWhatItCorrectsAndAsksForNothing(): void
+    {
+        [$original, $credit] = $this->corrected([$this->credit('400.00')]);
+        $rendered = $this->render($credit);
+        $text = PdfTools::text($rendered->bytes);
+
+        foreach ([
+            'Opravný daňový doklad', 'dobropis', $credit->number,
+            'Opravuje doklad č. '.$original->number,
+            'Důvod opravy: Returned goods',
+            'Datum rozhodné skutečnosti: 20. 11. 2026',
+            'Rozdíl základu daně', '-400,00 Kč',
+            'Rozdíl daně', '-84,00 Kč',
+            'Rozdíl celkem', '-484,00 Kč',
+            'K vrácení', '484,00 Kč',
+        ] as $expected) {
+            self::assertStringContainsString($expected, $text);
+        }
+        foreach (['vrubopis', 'QR Platba+F', 'Celkem k úhradě', 'Celkem uhrazeno', 'Datum splatnosti', 'Neplaťte'] as $absent) {
+            self::assertStringNotContainsString($absent, $text);
+        }
+        self::assertStringNotContainsString('/Figure', $rendered->bytes);
+        self::assertNull(self::getContainer()->get(InvoicingCountries::class)->for('CZ')->paymentCode($credit));
+    }
+
+    public function testACorrectionEmbedsItsIsdoc(): void
+    {
+        [, $credit] = $this->corrected([$this->credit('400.00')]);
+        $expected = self::getContainer()->get(InvoicingCountries::class)->for('CZ')->electronicFile($credit);
+        self::assertNotNull($expected);
+
+        $attachment = PdfTools::attachment($this->render($credit)->bytes);
+
+        self::assertSame('invoice.isdoc', $attachment['name']);
+        self::assertSame($expected->content, $attachment['content']);
+        self::assertStringContainsString('<DocumentType>2</DocumentType>', $attachment['content']);
+    }
+
+    public function testADebitNoteAsksForPaymentWithTheCode(): void
+    {
+        [$original, $debit] = $this->corrected([$this->line('200.00')]);
+        $rendered = $this->render($debit);
+        $text = PdfTools::text($rendered->bytes);
+
+        foreach ([
+            'Opravný daňový doklad', 'vrubopis',
+            'Opravuje doklad č. '.$original->number,
+            'Rozdíl základu daně', '200,00 Kč', 'Rozdíl daně', '42,00 Kč', 'Rozdíl celkem', '242,00 Kč',
+            'Celkem k úhradě', 'Datum splatnosti', 'QR Platba+F',
+        ] as $expected) {
+            self::assertStringContainsString($expected, $text);
+        }
+        self::assertStringNotContainsString('dobropis', $text);
+        self::assertStringNotContainsString('K vrácení', $text);
+        self::assertStringContainsString('AM:242.00', (string) self::getContainer()->get(InvoicingCountries::class)->for('CZ')->paymentCode($debit));
+    }
+
+    public function testAnEnglishCorrectionIsInEnglish(): void
+    {
+        [, $credit] = $this->corrected([$this->credit('400.00')], DocumentLanguage::English);
+        $text = $this->textOf($credit);
+
+        foreach (['Corrective tax document', 'credit note', 'Reason for correction: Returned goods', 'Difference in tax base', 'To be refunded'] as $expected) {
+            self::assertStringContainsString($expected, $text);
+        }
+    }
+
     public function testFileNameEndsWithIsdocPdf(): void
     {
         $rendered = $this->render($this->issued([$this->line()], ['typedNumber' => 'fa/2026-7']));
@@ -671,6 +741,30 @@ final class InvoicePdfTest extends InvoiceTestCase
     }
 
     /**
+     * An invoice of 1 000 at 21 % and its correction of the lines given, a change on 20 November 2026.
+     *
+     * @param list<LineInput> $lines
+     *
+     * @return array{IssuedDocument, IssuedDocument}
+     */
+    private function corrected(array $lines, DocumentLanguage $language = DocumentLanguage::Czech): array
+    {
+        $original = $this->issue->issue($this->input([$this->line()], ['variableSymbol' => '', 'language' => $language]));
+        $correction = $this->issue->issue($this->input($lines, [
+            'seriesId' => null,
+            'kind' => DocumentKind::CorrectionDocument,
+            'issueDate' => new \DateTimeImmutable('2026-11-20'),
+            'taxPointDate' => new \DateTimeImmutable('2026-11-20'),
+            'dueDate' => new \DateTimeImmutable('2026-12-04'),
+            'variableSymbol' => '',
+            'language' => $language,
+            'correction' => new CorrectionInput($original->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2026-11-20')),
+        ]));
+
+        return [$this->of($original->id()), $this->of($correction->id())];
+    }
+
+    /**
      * @param array<string, mixed> $overrides
      */
     private function issuedByNonPayer(array $overrides = [], string $price = '1000.00'): IssuedDocument
@@ -682,6 +776,11 @@ final class InvoicePdfTest extends InvoiceTestCase
             [$this->line($price, treatment: TaxTreatment::NotApplicable, kind: null)],
             [...['firmId' => $firm->id(), 'seriesId' => null], ...$overrides],
         );
+    }
+
+    private function credit(string $price): LineInput
+    {
+        return new LineInput('Work', Quantity::fromString('-1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
     }
 
     private function reverseCharge(?string $code): LineInput

@@ -14,6 +14,9 @@ use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CopyInvoice;
+use App\Invoicing\Application\CorrectInvoice;
+use App\Invoicing\Application\CorrectionDue;
+use App\Invoicing\Application\CorrectPaymentTaxDocument;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
 use App\Invoicing\Application\Deductible;
@@ -42,6 +45,7 @@ use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownSeries;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Domain\CorrectionType;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\NumberKey;
@@ -97,9 +101,9 @@ final class InvoiceController extends AbstractController
     public const string FORM_TOKEN = 'invoice_form';
     private const array SAVING = ['save', 'save_send', 'save_pdf'];
     /** The title of the form of each kind of document, with its number. */
-    private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title'];
+    private const array TITLES = ['invoice' => 'invoice.title', 'advance' => 'advance.title', 'payment_tax_document' => 'tax_document.title', 'correction_document' => 'correction.title'];
     /** The title of the form of a new document of a kind a person issues. */
-    private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new'];
+    private const array NEW_TITLES = ['invoice' => 'invoice.new', 'advance' => 'advance.new', 'correction_document' => 'correction.new'];
     /** The dialog a saved form opens once over itself: the send dialog of save and send. */
     public const string OPEN_DIALOG_FLASH = 'open_dialog';
     private const array MORE_FIELDS = ['description', 'orderNumber', 'variableSymbol', 'constantSymbol', 'language', 'textBefore', 'textAfter'];
@@ -143,6 +147,8 @@ final class InvoiceController extends AbstractController
         private readonly AmountText $amounts,
         private readonly DocumentChain $chain,
         private readonly AdvanceDocuments $advanceDocuments,
+        private readonly CorrectInvoice $corrections,
+        private readonly CorrectPaymentTaxDocument $taxCorrections,
     ) {
     }
 
@@ -195,8 +201,8 @@ final class InvoiceController extends AbstractController
     {
         $this->denyUnlessStaff();
         $source = $this->invoice($id);
-        if (!$source->kind()->isIssuedByPerson()) {
-            throw new NotFoundHttpException('A tax document on payment comes from its payment only.');
+        if (!$source->kind()->standsAlone()) {
+            throw new NotFoundHttpException('A document that follows another one is not copied.');
         }
         try {
             $context = $this->newContext($source->firm(), $source->kind());
@@ -206,6 +212,38 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->form($context, $this->values->ofCopy($draft, $source->firm(), $source), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+    }
+
+    /**
+     * The form of a corrective tax document of an invoice: the invoice with its lines
+     * negated, to edit down. Nothing is written until Save.
+     */
+    #[Route('/invoices/{id}/correct', name: 'app_invoice_correct', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function correct(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        $source = $this->invoice($id);
+        if (!CorrectInvoice::corrects($source)) {
+            throw new NotFoundHttpException('Only an invoice that is not in the trash, or a delivered tax document on payment, is corrected.');
+        }
+        // A deduction holds the tax document: the final invoice releases it first.
+        if (DocumentKind::PaymentTaxDocument === $source->kind() && null !== $source->deductedByInvoiceId()) {
+            $this->addFlash('error', $this->translator->trans('invoice.problem.correction_deducted'));
+
+            return $this->redirectToRoute('app_invoice_edit', ['id' => $source->id()]);
+        }
+        try {
+            $context = $this->newContext($source->firm(), DocumentKind::CorrectionDocument);
+            $draft = $this->corrections->valuesFrom($source);
+        } catch (UnsupportedCountry) {
+            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+        }
+        $values = $this->values->ofCopy($draft, $source->firm(), $source, false);
+        if (DocumentKind::PaymentTaxDocument === $source->kind()) {
+            $values['correctionReason'] = $this->taxCorrections->reasonFor($source);
+        }
+
+        return $this->form($context, $values, [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     /**
@@ -264,7 +302,9 @@ final class InvoiceController extends AbstractController
         }
 
         try {
-            return $this->json($this->figures->of($lines->lines, $context, $taxPoint ?? $this->today($context)));
+            $rateDate = $this->correctedRateDate($request->request->getString('correctedInvoiceId'), $context) ?? $taxPoint ?? $this->today($context);
+
+            return $this->json($this->figures->of($lines->lines, $context, $rateDate));
         } catch (\OverflowException|\DomainException) {
             return $this->json(['errors' => ['lines']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -339,6 +379,7 @@ final class InvoiceController extends AbstractController
             $request->request->set('bankAccount', $this->accounts->primaryOf($context->firm)?->iban() ?? '');
         }
         $matches = $this->typedCustomers($request, $context->firm, $action);
+        $this->correctionTaxPoint($request, $context);
         $submission = $this->reader->read($request, $context->currency);
         $values = $this->values->withoutHiddenCodes($this->withFormFields($submission->values, $context), $this->issuerCountry($context));
         $values['copyOf'] = $request->request->getString('copyOf');
@@ -606,11 +647,13 @@ final class InvoiceController extends AbstractController
             'stale' => $stale,
             'copyNotices' => $this->copyNotices($values, $context),
             'copyOf' => $values['copyOf'] ?? '',
+            'corrects' => $this->correctedNumber($values, $context),
+            'correctionTypes' => array_map(fn (CorrectionType $type): array => ['value' => $type->value, 'label' => $this->translator->trans('correction.type.'.$type->value), 'text' => $this->translator->trans('correction.type.'.$type->value.'_text')], CorrectionType::cases()),
             'datesInLines' => '' !== ($values['copyOf'] ?? '') && $this->hasDatesInLines($values),
             'delivered' => $invoice?->isDelivered() ?? false,
             'trashed' => $invoice?->isTrashed() ?? false,
             // Delivered before its payment was cancelled: it needs a corrective document.
-            'needsCorrection' => null !== $invoice?->paymentId() && !$invoice->isTrashed() && $this->payments->get($invoice->paymentId())->isCancelled(),
+            'needsCorrection' => $invoice instanceof Invoice && $this->taxCorrections->due($invoice) instanceof CorrectionDue,
             'changedAfterSend' => $this->changedAfterSend($context),
             'payer' => $context->isPayer(),
             'kind' => $context->kind->value,
@@ -683,7 +726,7 @@ final class InvoiceController extends AbstractController
             return null;
         }
         // Overdue by the tenant's day, as the reminders count it (ADR 0017).
-        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice));
+        $status = InvoiceStatus::ofInvoice($context->invoice, $this->tenantClock->today(), $this->payments->paidOf($context->invoice), $this->payments->correctionsOf($context->invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -713,6 +756,41 @@ final class InvoiceController extends AbstractController
             || $values['textBefore'] !== $settings->textBefore()
             || $values['textAfter'] !== $settings->textAfter()
             || DocumentLanguage::Czech->value !== $values['language'];
+    }
+
+    /**
+     * An error is taxed on the tax point of the invoice it corrects (§43), whatever
+     * the form sent.
+     */
+    private function correctionTaxPoint(Request $request, InvoiceFormContext $context): void
+    {
+        if (DocumentKind::CorrectionDocument !== $context->kind || CorrectionType::Error->value !== $request->request->getString('correctionType')) {
+            return;
+        }
+        try {
+            $original = $this->store->get($request->request->getString('correctedInvoiceId'));
+        } catch (UnknownInvoice) {
+            return;
+        }
+        $request->request->set('taxPointDate', $original->taxPointDate()?->format('Y-m-d') ?? '');
+    }
+
+    /**
+     * The number of the invoice a corrective tax document corrects, for the form to name.
+     *
+     * @param array<string, mixed> $values
+     */
+    private function correctedNumber(array $values, InvoiceFormContext $context): ?string
+    {
+        $id = $values['correctedInvoiceId'] ?? '';
+        if (DocumentKind::CorrectionDocument !== $context->kind || !\is_string($id) || '' === $id) {
+            return null;
+        }
+        try {
+            return $this->store->get($id)->number();
+        } catch (UnknownInvoice) {
+            return null;
+        }
     }
 
     /**
@@ -798,8 +876,24 @@ final class InvoiceController extends AbstractController
         // An advance invoice takes the rates of its issue date: it has no tax point.
         $field = $context->hasTaxPoint() ? 'taxPointDate' : 'issueDate';
         $date = \is_string($values[$field]) ? $this->reader->date($values[$field], $field, $errors) : null;
+        $corrected = $values['correctedInvoiceId'] ?? '';
 
-        return $date ?? $this->today($context);
+        return $this->correctedRateDate(\is_string($corrected) ? $corrected : '', $context) ?? $date ?? $this->today($context);
+    }
+
+    /**
+     * A correction is priced at the rates of the invoice it corrects, never those of today.
+     */
+    private function correctedRateDate(string $id, InvoiceFormContext $context): ?\DateTimeImmutable
+    {
+        if (DocumentKind::CorrectionDocument !== $context->kind || '' === $id) {
+            return null;
+        }
+        try {
+            return $this->store->get($id)->rateDate();
+        } catch (UnknownInvoice) {
+            return null;
+        }
     }
 
     /**

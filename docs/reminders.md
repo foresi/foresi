@@ -29,6 +29,8 @@ One reminder per invoice per run, so a day the worker missed never sends two at 
 
 Advance invoices are reminded by the same rule only when the firm switches that on; iDoklad reminds them by hand only. A tax document on payment is paid by its payment and is never reminded. An invoice settled by deducted advances owes nothing.
 
+A corrective tax document is never reminded itself. Its invoice owes its total plus its corrections outside the trash, less what was paid: a credit note lowers what is reminded, a fully credited invoice owes nothing, and an invoice to refund is never reminded.
+
 A trashed invoice owes nothing and is never reminded. An invoice paid in full, or overpaid, owes nothing either and is never reminded, by hand or by the run.
 
 The reminder uses the firm's **Reminder** template in the document's language, on the templates tab beside the invoice template. Besides the invoice variables it offers the days overdue, the reminder number and the amount due, which is what is left to pay. Reminders run against the same daily budget of the firm as other system sends, which take at most 80% of it.

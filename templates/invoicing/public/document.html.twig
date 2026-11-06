@@ -18,6 +18,10 @@
         <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 border-b border-divider p-4 sm:p-6">
             <div class="min-w-0">
                 <h1 id="document-title" class="m-0 break-words text-title font-semibold text-ink">{{ title }}</h1>
+                {% if correction %}
+                    <p class="m-0 mt-1 text-body font-medium text-ink" data-correction-kind>{{ correction.kind|trans({}, 'messages', locale) }}</p>
+                    {% if correction.corrects %}<p class="m-0 mt-1 text-body text-muted" data-corrects>{{ 'invoice.pdf.corrects'|trans({number: correction.corrects}, 'messages', locale) }}</p>{% endif %}
+                {% endif %}
                 <p class="m-0 mt-1 text-body text-muted">{{ 'invoice.public.for'|trans({customer: document.customerName}, 'messages', locale) }}</p>
             </div>
             {# Paid in full, or more: the customer needs to do nothing. A part payment says nothing here. #}
@@ -31,7 +35,22 @@
             {% endblock %}
         </div>
 
-        <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6">
+        {# The particulars of a corrective tax document, as its PDF states them. #}
+        {% if correction %}
+            <div class="border-b border-divider p-4 sm:p-6">
+                {% if correction.reason %}<p class="m-0 break-words text-body text-text" data-correction-reason>{{ 'invoice.pdf.correction_reason'|trans({reason: correction.reason}, 'messages', locale) }}</p>{% endif %}
+                <dl class="m-0 mt-4 grid grid-cols-1 gap-4 rounded-control bg-head p-4 sm:grid-cols-3" data-differences>
+                    {% for key, value in {difference_base: correction.base, difference_vat: correction.vat, difference_total: correction.total} %}
+                        <div class="min-w-0">
+                            <dt class="text-small text-muted">{{ ('invoice.pdf.' ~ key)|trans({}, 'messages', locale) }}</dt>
+                            <dd class="num m-0 mt-1 text-body font-semibold text-ink">{{ value }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            </div>
+        {% endif %}
+
+        <dl class="m-0 grid grid-cols-2 gap-4 p-4 sm:gap-6 sm:p-6" data-amount>
             <div class="min-w-0">
                 <dt class="text-small text-muted">{{ amountLabel|trans({}, 'messages', locale) }}</dt>
                 <dd class="num m-0 mt-1 text-figure font-semibold text-ink">{{ amount }}</dd>
@@ -55,7 +74,9 @@
             <twig:Ui:Button variant="primary" icon="receipt-text" :href="open" class="w-full sm:w-auto">{{ 'invoice.public.open'|trans({}, 'messages', locale) }}</twig:Ui:Button>
             <twig:Ui:Button icon="download" :href="download" class="w-full sm:w-auto">{{ (paid ? 'invoice.public.download_paid' : 'invoice.public.download')|trans({kind: kind}, 'messages', locale) }}</twig:Ui:Button>
             {# The PDF is the one sent, payment details and all. #}
-            {% if not payable %}
+            {% if credit %}
+                <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ creditNote|trans({number: document.correctedNumber}, 'messages', locale) }}</p>
+            {% elseif not payable %}
                 <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.do_not_pay'|trans({}, 'messages', locale) }}</p>
             {% elseif paidOn %}
                 <p class="m-0 text-small text-muted sm:ml-2" data-paid-note>{{ 'invoice.public.paid_note'|trans({date: paidOn}, 'messages', locale) }}</p>

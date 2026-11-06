@@ -34,8 +34,11 @@
                 <div class="flex gap-1.5"><dt class="text-muted">{{ 'invoice.payment.panel.paid'|trans }}</dt><dd class="num m-0 font-medium text-ink">{{ payments.paid }}</dd></div>
                 {% if payments.remaining %}<div class="flex gap-1.5"><dt class="text-muted">{{ 'invoice.payment.panel.remaining'|trans }}</dt><dd class="num m-0 font-medium text-ink" data-payments-remaining>{{ payments.remaining }}</dd></div>{% endif %}
                 {% if payments.overpaid %}<div class="flex gap-1.5"><dt class="text-badge-amber-text">{{ 'invoice.payment.panel.overpaid'|trans }}</dt><dd class="num m-0 font-medium text-badge-amber-text">{{ payments.overpaid }}</dd></div>{% endif %}
+                {% if payments.toRefund %}<div class="flex gap-1.5"><dt class="text-badge-amber-text">{{ 'invoice.payment.panel.to_refund'|trans }}</dt><dd class="num m-0 font-medium text-badge-amber-text">{{ payments.toRefund }}</dd></div>{% endif %}
             </dl>
-            {% if payments.payable and not payments.settled %}
+            {% if payments.refundable %}
+                <twig:Ui:Button :href="path('app_invoice_refund', {id: invoice.id})" icon="banknote" data-dialog aria-haspopup="dialog" id="invoice-refund">{{ 'invoice.payment.panel.refund'|trans }}</twig:Ui:Button>
+            {% elseif payments.payable and not payments.settled %}
                 <twig:Ui:Button :href="path('app_invoice_pay', {id: invoice.id})" icon="banknote" data-dialog aria-haspopup="dialog" id="invoice-pay">{{ 'invoice.payment.panel.pay'|trans }}</twig:Ui:Button>
             {% endif %}
         </div>

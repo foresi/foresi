@@ -38,4 +38,18 @@ interface Candidates
      * @return list<Candidate>
      */
     public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array;
+
+    /**
+     * The invoices of the firm in the active tenant that are not in the trash and
+     * have something to refund, as InvoicePayments::toRefundOf() counts it, in every
+     * currency, oldest due first. The remaining amount of each is what is to refund.
+     * With a symbol, only those that carry it or have a corrective document outside
+     * the trash that carries it, leading zeros aside: a customer or a bank may quote
+     * the credit note's symbol, which follows its number.
+     *
+     * @param string|null $variableSymbol digits without leading zeros, or null for all of them
+     *
+     * @return list<Candidate>
+     */
+    public function refunds(string $firmId, ?string $variableSymbol): array;
 }

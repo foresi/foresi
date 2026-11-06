@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title_payment_tax_document'|trans, href: path('app_tax_documents')}, {label: 'tax_document.uncorrected.tab'|trans}] %}
+
+{% block title %}{{ 'tax_document.uncorrected.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    <div class="grid grid-cols-1 gap-4">
+        <twig:Ui:Tabs :items="tabs" :label="'invoice.list.views'|trans" class="min-w-0" />
+        <p class="m-0 text-small text-muted">{{ 'tax_document.uncorrected.intro'|trans }}</p>
+        <twig:Ui:DataTable :caption="'tax_document.uncorrected.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="circle-check" :title="'tax_document.uncorrected.empty'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

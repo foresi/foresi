@@ -141,6 +141,18 @@ final class SendDraftTest extends SendingTestCase
         self::assertSame(DocumentLanguage::English, $draft->language);
     }
 
+    public function testACorrectionGoesOutWithItsOwnTemplateNamingTheOriginal(): void
+    {
+        $original = $this->issue->issue($this->input());
+        $credit = $this->correctionOf($original, '-400.00');
+
+        $draft = $this->draft()->for($credit);
+
+        self::assertSame('Opravný daňový doklad '.$credit->number(), $draft->subject);
+        self::assertStringStartsWith('Zasílám Vám opravný daňový doklad č. '.$credit->number().' k dokladu č. '.$original->number().' na částku ', $draft->body);
+        self::assertStringEndsWith('{link}', $draft->body);
+    }
+
     public function testTheFirmsOwnTemplateIsUsed(): void
     {
         $templates = self::getContainer()->get(\App\Invoicing\Application\MailTemplates::class);

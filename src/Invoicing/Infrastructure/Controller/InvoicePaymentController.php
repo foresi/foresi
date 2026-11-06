@@ -23,6 +23,7 @@ use App\Invoicing\Application\UnknownPayment;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Infrastructure\Form\AmountText;
 use App\Party\Domain\PaymentMethod;
@@ -54,6 +55,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * A difference of a few coins either way can be written off so the invoice closes
  * exactly, as far as the issuer's country allows; a box offers it only then.
+ *
+ * Money sent back is recorded the same way from the invoice's panel when there is
+ * something to refund: the amount is what is to refund, and more is refused.
  *
  * @phpstan-type Values array{receivedOn: string, amount: string, method: string, note: string, settle: bool}
  */
@@ -96,7 +100,8 @@ final class InvoicePaymentController extends AbstractController
 
             return $this->toList($return);
         }
-        if ($invoice->isTrashed() || !$this->positive($invoice->payable())) {
+        // Credited down to nothing, it asks for no payment either.
+        if ($invoice->isTrashed() || !$this->positive($invoice->payable()) || !$this->positive($invoice->payable()->plus($this->payments->correctionsOf($invoice)))) {
             $this->addFlash('error', $this->translator->trans($invoice->isTrashed() ? 'invoice.payment.trashed' : 'invoice.payment.nothing_due', ['number' => $invoice->number()]));
 
             return $this->toList($return);
@@ -157,6 +162,102 @@ final class InvoicePaymentController extends AbstractController
         }
 
         return $this->toList($return);
+    }
+
+    /**
+     * Records money sent back on an invoice with something to refund: its
+     * corrections brought it below what was paid, or its deducted advances exceed it.
+     * Back on the invoice afterwards, where the panel lists the refund.
+     */
+    #[Route('/invoices/{id}/refund', name: 'app_invoice_refund', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function refund(string $id, Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $invoice = $this->invoice($id);
+        $post = $request->isMethod('POST');
+        if ($post) {
+            $this->checkToken($request);
+        }
+        $edit = $this->redirectToRoute('app_invoice_edit', ['id' => $invoice->id()]);
+        $token = $request->request->getString('_submission');
+        if ($post && $this->tokens->isIssued($token) && null !== $this->tokens->createdId($token)) {
+            $this->addFlash('warning', $this->translator->trans('invoice.payment.flash.already_recorded'));
+
+            return $edit;
+        }
+        $toRefund = $this->payments->toRefundOf($invoice);
+        if (!$this->positive($toRefund)) {
+            $this->addFlash('error', $this->translator->trans('invoice.payment.refund.nothing', ['number' => $invoice->number()]));
+
+            return $edit;
+        }
+        if (!$post) {
+            $values = ['receivedOn' => $this->todayOf($invoice)->format('Y-m-d'), 'amount' => $this->amounts->plain($toRefund), 'method' => $invoice->paymentMethod()->value, 'note' => '', 'settle' => false];
+
+            return $this->refundPage($invoice, $values, [], $this->tokens->issue(), Response::HTTP_OK);
+        }
+
+        $values = [
+            'receivedOn' => trim($request->request->getString('receivedOn')),
+            'amount' => trim($request->request->getString('amount')),
+            'method' => $request->request->getString('method'),
+            'note' => trim($request->request->getString('note')),
+            'settle' => false,
+        ];
+        if (!$this->tokens->isIssued($token)) {
+            return $this->refundPage($invoice, $values, [self::FORM => $this->translator->trans('party.error.expired')], $this->tokens->issue(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $errors = [];
+        $receivedOn = $this->date($values['receivedOn'], $invoice, $errors);
+        $amount = $this->amount($values['amount'], $invoice->currency(), $this->locales->getLocale(), $errors);
+        $method = PaymentMethod::tryFrom($values['method']);
+        if (!$method instanceof PaymentMethod) {
+            $errors['method'] = $this->translator->trans('invoice.payment.error.method');
+        }
+        if (mb_strlen($values['note']) > Payment::MAX_NOTE) {
+            $errors['note'] = $this->translator->trans('invoice.payment.error.note_too_long', ['max' => Payment::MAX_NOTE]);
+        }
+        if ($amount instanceof Money && $amount->minor() > $toRefund->minor()) {
+            $errors['amount'] = $this->translator->trans('invoice.payment.refused.refund_too_large');
+        }
+        if ([] !== $errors || !$receivedOn instanceof \DateTimeImmutable || !$amount instanceof Money || !$method instanceof PaymentMethod) {
+            return $this->refundPage($invoice, $values, $errors, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $payment = $this->record->record(new PaymentRequest($invoice->firm()->id(), $receivedOn, $amount, $method, PaymentSource::Manual, null, $values['note'], [new AllocationRequest($invoice->id(), $amount)], PaymentDirection::Refund));
+        } catch (PaymentRefused $refused) {
+            return $this->refundPage($this->invoice($id), $values, $this->refusal($refused), $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $this->tokens->complete($token, $payment->id());
+        $this->addFlash('success', $this->translator->trans('invoice.payment.flash.refunded', ['amount' => $this->amounts->shown($amount), 'number' => $invoice->number()]));
+
+        return $edit;
+    }
+
+    /**
+     * @param Values                $values
+     * @param array<string, string> $errors
+     */
+    private function refundPage(Invoice $invoice, array $values, array $errors, string $token, int $status): Response
+    {
+        $methods = [];
+        foreach (PaymentMethod::cases() as $method) {
+            $methods[$method->value] = $this->translator->trans('invoice.payment.'.$method->value);
+        }
+
+        return $this->render('invoicing/refund.html.twig', [
+            'invoice' => $invoice,
+            'values' => $values,
+            'errors' => $errors,
+            'token' => $token,
+            'cancel' => $this->generateUrl('app_invoice_edit', ['id' => $invoice->id()]),
+            'methods' => $methods,
+            'today' => $this->todayOf($invoice)->format('Y-m-d'),
+            'toRefund' => $this->amounts->shown($this->payments->toRefundOf($invoice)),
+            'unit' => $this->amounts->unit($invoice->currency()),
+            'maxNote' => Payment::MAX_NOTE,
+        ], new Response(status: $status));
     }
 
     /**
@@ -300,6 +401,7 @@ final class InvoicePaymentController extends AbstractController
             PaymentRefused::NOT_POSITIVE => 'amount',
             PaymentRefused::FUTURE_DATE => 'receivedOn',
             PaymentRefused::NOTE_TOO_LONG => 'note',
+            PaymentRefused::REFUND_TOO_LARGE => 'amount',
             // Another payment came in meanwhile: the difference is no longer the one ticked.
             PaymentRefused::SETTLEMENT_NOT_ALLOWED => 'settle',
             default => self::FORM,

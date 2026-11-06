@@ -33,9 +33,34 @@ interface InvoicePayments
     public function paidFor(array $invoiceIds): array;
 
     /**
-     * What is still to pay: below zero when it is overpaid.
+     * What the corrective documents of the invoice not in the trash add up to: below
+     * zero when credit notes outweigh debit notes.
+     */
+    public function correctionsOf(Invoice $invoice): Money;
+
+    /**
+     * One query for all of them.
+     *
+     * @param list<string> $invoiceIds
+     *
+     * @return array<string, int> minor units by invoice id; an invoice without corrections is left out
+     */
+    public function correctionsFor(array $invoiceIds): array;
+
+    /**
+     * What is still to pay, its corrections included: below zero when it is
+     * overpaid or there is something to refund.
      */
     public function remainingOf(Invoice $invoice): Money;
+
+    /**
+     * What may go back to the customer as a refund: what was paid above what is due
+     * on an invoice whose corrections brought it below what was paid (to refund), or
+     * on a final invoice whose deducted advances exceed it (difference to refund),
+     * and what was paid on an advance invoice no final invoice deducts. Zero for
+     * anything else, a plain overpayment included.
+     */
+    public function toRefundOf(Invoice $invoice): Money;
 
     /**
      * @return list<InvoicePaymentLine> the payments not cancelled, oldest first

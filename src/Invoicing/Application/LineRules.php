@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\TaxTreatment;
@@ -139,7 +140,7 @@ final readonly class LineRules
      *
      * @return list<IssueProblem>
      */
-    public function amounts(array $lines, VatRegime $regime, TotalRounding $rounding, InvoicingCountry $country, \DateTimeImmutable $taxPoint): array
+    public function amounts(array $lines, VatRegime $regime, TotalRounding $rounding, InvoicingCountry $country, \DateTimeImmutable $taxPoint, DocumentKind $kind = DocumentKind::Invoice): array
     {
         try {
             $priced = $this->pricing->priced($lines, $regime, $country, $taxPoint);
@@ -157,8 +158,8 @@ final readonly class LineRules
             return [new IssueProblem('lines', 'invoice.problem.amount_out_of_range')];
         }
 
-        // Advances deducted beyond the supply leave a difference to refund (§37a(2)(b)).
-        return $totals->payable->isNegative() && [] === AdvanceDeductions::deducted($lines) ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
+        // Advances deducted beyond the supply leave a difference to refund (§37a(2)(b)); a credit note is negative by itself.
+        return $totals->payable->isNegative() && DocumentKind::CorrectionDocument !== $kind && [] === AdvanceDeductions::deducted($lines) ? [new IssueProblem('lines', 'invoice.problem.payable_negative')] : [];
     }
 
     public static function vatIdOf(?string $vatId): ?VatId

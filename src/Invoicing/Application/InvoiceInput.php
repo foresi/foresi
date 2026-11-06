@@ -31,11 +31,12 @@ final readonly class InvoiceInput
     public array $lines;
 
     /**
-     * @param array<LineInput> $lines                       keys are discarded
-     * @param bool             $variableSymbolFollowsNumber the symbol was not typed: the save derives it from
-     *                                                      the number it really gives, which a form only previews
-     * @param DocumentKind     $kind                        what a new document is; its series must be of this
-     *                                                      kind, and without one it takes the default of it
+     * @param array<LineInput>     $lines                       keys are discarded
+     * @param bool                 $variableSymbolFollowsNumber the symbol was not typed: the save derives it from
+     *                                                          the number it really gives, which a form only previews
+     * @param DocumentKind         $kind                        what a new document is; its series must be of this
+     *                                                          kind, and without one it takes the default of it
+     * @param CorrectionInput|null $correction                  what a corrective tax document corrects; other kinds have none
      */
     public function __construct(
         public string $firmId,
@@ -59,6 +60,7 @@ final readonly class InvoiceInput
         public bool $variableSymbolFollowsNumber = false,
         public DocumentKind $kind = DocumentKind::Invoice,
         public ?TaxOnReceiptChoice $taxOnReceipt = null,
+        public ?CorrectionInput $correction = null,
     ) {
         $this->lines = array_values($lines);
     }

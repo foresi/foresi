@@ -89,9 +89,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     public function render(IssuedDocument $document): RenderedPdf
     {
         $country = $this->countries->for($document->issuer->address->countryCode);
-        // A document in the trash is no longer one to pay or to import.
+        // A document in the trash is no longer one to pay or to import, and a credit note asks for no payment.
         $file = $document->trashed ? null : $country->electronicFile($document);
-        $payload = $document->trashed ? null : $country->paymentCode($document);
+        $payload = $document->trashed || $document->isCreditNote() ? null : $country->paymentCode($document);
 
         return $this->locales->runWithLocale($document->language->value, function () use ($document, $country, $file, $payload): RenderedPdf {
             $view = $this->view($document, $country, null !== $payload);
@@ -117,6 +117,10 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
     private function view(IssuedDocument $document, InvoicingCountry $country, bool $hasQr): array
     {
         $payer = VatRegime::Payer === $document->regime;
+        $correction = DocumentKind::CorrectionDocument === $document->kind;
+        $credit = $document->isCreditNote();
+        // A credit note asks for nothing: what it shows is what goes back.
+        $asked = $credit ? Money::ofMinor(-$document->toPay()->minor(), $document->currency) : $document->toPay();
         $hasDiscount = array_any($document->lines, static fn (InvoiceLine $line): bool => 0 < $line->discount()->basisPoints());
 
         $lines = array_map($this->line(...), $document->lines);
@@ -140,6 +144,9 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'recapColumns' => $recapColumns,
             'payer' => $payer,
             'title' => $this->trans(TranslatedDocumentTitles::keyOf($document)),
+            'subtitle' => $correction ? $this->trans($credit ? 'invoice.pdf.credit_note' : 'invoice.pdf.debit_note') : null,
+            'correction' => $correction ? $this->correction($document) : null,
+            'creditNote' => $credit,
             // Martin's iDoklad advances carry the recap with this line: they are no tax document.
             'recapNote' => DocumentKind::Advance === $document->kind && $payer ? $this->trans('invoice.pdf.advance_recap_note') : null,
             'number' => $document->number,
@@ -154,7 +161,11 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             }),
             'advanceNumber' => $document->advanceNumber,
             // Paid by the payment it taxes, as iDoklad says on it.
-            'payableLabel' => $this->trans($document->kind->isPayable() ? 'invoice.pdf.payable' : 'invoice.pdf.total_paid'),
+            'payableLabel' => $this->trans(match (true) {
+                $credit => 'invoice.pdf.to_return',
+                $document->kind->isPayable() || $correction => 'invoice.pdf.payable',
+                default => 'invoice.pdf.total_paid',
+            }),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'account' => $country->domesticAccount($document->bankAccount ?? ''),
             'iban' => $document->bankAccount,
@@ -174,10 +185,12 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             'net' => $totals['base'],
             'vat' => $totals['vat'],
             'gross' => $totals['total'],
-            'payable' => $this->format->money($document->payable, $document->language),
+            'payable' => $this->format->money($credit ? $asked : $document->payable, $document->language),
             // The payment box asks for what is left once part is paid, under its own label; the totals keep the whole payable.
-            'toPay' => $this->format->money($document->toPay(), $document->language),
+            'toPay' => $this->format->money($asked, $document->language),
             'toPayLabel' => $this->trans(match (true) {
+                $credit => 'invoice.pdf.to_return',
+                $correction => 'invoice.pdf.payable',
                 !$document->kind->isPayable() => 'invoice.pdf.do_not_pay',
                 $document->deductsAdvances && $document->payable->isNegative() => 'invoice.pdf.to_refund',
                 $document->deductsAdvances && $document->payable->isZero() => 'invoice.pdf.settled_by_advances',
@@ -186,6 +199,24 @@ final readonly class TcpdfInvoicePdf implements InvoicePdf
             }),
             'logo' => $this->image($document->issuer->logo, self::LOGO_BOX, $document->issuer->name),
             'stamp' => $this->image($document->issuer->stamp, self::STAMP_BOX, $this->trans('invoice.pdf.stamp_alt', ['name' => $document->issuer->name])),
+        ];
+    }
+
+    /**
+     * The particulars a corrective tax document states: what it corrects, why, the
+     * day of the fact, and its differences from its own totals.
+     *
+     * @return array{corrects: string|null, reason: string|null, decisiveDate: string|null, base: string, vat: string, total: string}
+     */
+    private function correction(IssuedDocument $document): array
+    {
+        return [
+            'corrects' => null === $document->correctedNumber ? null : $this->trans('invoice.pdf.corrects', ['number' => $document->correctedNumber]),
+            'reason' => null === $document->correctionReason ? null : $this->trans('invoice.pdf.correction_reason', ['reason' => $document->correctionReason]),
+            'decisiveDate' => $document->decisiveDate instanceof \DateTimeImmutable ? $this->trans('invoice.pdf.decisive_date', ['date' => $this->format->date($document->decisiveDate, $document->language)]) : null,
+            'base' => $this->format->money($document->net, $document->language),
+            'vat' => $this->format->money($document->vat, $document->language),
+            'total' => $this->format->money($document->gross, $document->language),
         ];
     }
 

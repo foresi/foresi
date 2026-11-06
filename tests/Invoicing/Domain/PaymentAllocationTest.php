@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Domain;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
@@ -35,6 +36,20 @@ final class PaymentAllocationTest extends InvoiceTestCase
         $allocation = new PaymentAllocation($this->payment(Currency::CZK), $this->invoice, Money::of('100.00', Currency::CZK), Money::of('0.50', Currency::CZK));
 
         self::assertSame([10000, 50], [$allocation->amount()->minor(), $allocation->settlement()->minor()]);
+    }
+
+    public function testARefundTakesAZeroSettlement(): void
+    {
+        $allocation = new PaymentAllocation($this->payment(Currency::CZK, PaymentDirection::Refund), $this->invoice, Money::of('100.00', Currency::CZK), Money::of('0.00', Currency::CZK));
+
+        self::assertSame([-10000, 0], [$allocation->amount()->minor(), $allocation->settlement()->minor()]);
+    }
+
+    public function testARefundWritesNothingOff(): void
+    {
+        $this->expectExceptionObject(new \InvalidArgumentException('A refund writes nothing off.'));
+
+        new PaymentAllocation($this->payment(Currency::CZK, PaymentDirection::Refund), $this->invoice, Money::of('100.00', Currency::CZK), Money::of('0.50', Currency::CZK));
     }
 
     public function testAnInvoiceInAnotherCurrencyThanThePaymentIsRefused(): void
@@ -81,8 +96,8 @@ final class PaymentAllocationTest extends InvoiceTestCase
         $allocation->tenantId();
     }
 
-    private function payment(Currency $currency): Payment
+    private function payment(Currency $currency, PaymentDirection $direction = PaymentDirection::Incoming): Payment
     {
-        return new Payment($this->firm, new \DateTimeImmutable('2026-11-20'), Money::of('100.00', $currency), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'));
+        return new Payment($this->firm, new \DateTimeImmutable('2026-11-20'), Money::of('100.00', $currency), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', null, new \DateTimeImmutable('2026-11-20 10:00'), $direction);
     }
 }

@@ -39,6 +39,14 @@ interface InvoiceStore
     public function lock(string $id): Invoice;
 
     /**
+     * Locks the row of an invoice until the transaction ends, inside a transaction
+     * that has written already: unlike lock(), it keeps what the session holds.
+     *
+     * @throws UnknownInvoice also for an invoice of another tenant
+     */
+    public function lockRow(string $id): void;
+
+    /**
      * The invoice and its lines in one statement, so a save that commits meanwhile
      * shows entirely or not at all. It starts the session over, as lock() does.
      *
@@ -55,6 +63,13 @@ interface InvoiceStore
     public function lines(Invoice $invoice): array;
 
     public function addLine(InvoiceLine $line): void;
+
+    /**
+     * The corrective tax documents of an invoice that are not in the trash.
+     *
+     * @return list<Invoice>
+     */
+    public function correctionsOf(Invoice $original): array;
 
     public function removeLine(InvoiceLine $line): void;
 

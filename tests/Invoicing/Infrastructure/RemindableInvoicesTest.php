@@ -121,6 +121,18 @@ final class RemindableInvoicesTest extends InvoiceTestCase
         self::assertSame(0, self::getContainer()->get(InvoiceBalances::class)->outstanding([$document])[$document]->minor());
     }
 
+    public function testAFullyCreditedInvoiceAndItsCorrectionsAreNeverReminded(): void
+    {
+        $credited = $this->deliveredDue('2026-11-15');
+        $this->delivered->mark($this->correctionOf($credited, '-1000.00')->id());
+        $debited = $this->deliveredDue('2026-11-16');
+        $this->delivered->mark($this->correctionOf($debited, '200.00')->id());
+        $this->em->clear();
+
+        self::assertSame([$debited->id()], array_map(static fn (RemindableInvoice $due): string => $due->invoiceId, $this->remindable->due($this->firm, $this->settings(), $this->today(), 50)));
+        self::assertSame(0, self::getContainer()->get(InvoiceBalances::class)->outstanding([$credited->id()])[$credited->id()]->minor());
+    }
+
     public function testAPageStartsAfterTheLastInvoiceOfThePreviousOne(): void
     {
         $first = $this->deliveredDue('2026-11-14');

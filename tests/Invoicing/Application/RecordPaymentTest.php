@@ -14,6 +14,7 @@ use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\CorrectPaymentTaxDocument;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoicePayments;
@@ -40,6 +41,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Banking\Support\LockLog;
 use App\Tests\Banking\Support\LoggingInvoiceStore;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -608,6 +610,7 @@ final class RecordPaymentTest extends InvoiceTestCase
             $container->get(AuditActor::class),
             Clock::get(),
             $taxDocuments,
+            $container->get(EventDispatcherInterface::class),
         );
     }
 
@@ -670,16 +673,18 @@ final class RecordPaymentTest extends InvoiceTestCase
     /**
      * What CancelPayment needs for the tax documents of a payment, as the container wires it.
      *
-     * @return array{AdvanceDocuments, PaymentTaxDocumentTexts}
+     * @return array{AdvanceDocuments, PaymentTaxDocumentTexts, CorrectPaymentTaxDocument}
      */
     private function taxDocumentParts(): array
     {
         $wired = self::getContainer()->get(CancelPayment::class);
         $documents = new \ReflectionProperty(CancelPayment::class, 'documents')->getValue($wired);
         $texts = new \ReflectionProperty(CancelPayment::class, 'texts')->getValue($wired);
+        $corrections = new \ReflectionProperty(CancelPayment::class, 'corrections')->getValue($wired);
         self::assertInstanceOf(AdvanceDocuments::class, $documents);
         self::assertInstanceOf(PaymentTaxDocumentTexts::class, $texts);
+        self::assertInstanceOf(CorrectPaymentTaxDocument::class, $corrections);
 
-        return [$documents, $texts];
+        return [$documents, $texts, $corrections];
     }
 }

@@ -79,6 +79,13 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         return $invoice instanceof Invoice ? $invoice : throw new UnknownInvoice();
     }
 
+    public function lockRow(string $id): void
+    {
+        if (1 !== $this->em->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()])) {
+            throw new UnknownInvoice();
+        }
+    }
+
     public function lock(string $id): Invoice
     {
         $this->refusePendingChanges();
@@ -180,18 +187,25 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $page = max(1, min($filter->page, $pages));
 
         $condition = $where.' AND '.$this->inTab($tab, $filter->kind, 'l', $overdue);
-        $list = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
+        // What the corrections add comes with each row: the page keeps its number of queries.
+        $list = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
+            .' FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
         $this->bind($list, InvoiceFilter::OVERDUE === $tab ? [...$parameters, ...$overdueParameters] : $parameters);
 
-        /** @var list<Invoice> $invoices */
-        $invoices = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
+        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
+        $results = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
+        $invoices = array_map(static fn (array $result): Invoice => $result[0], $results);
+        $corrections = [];
+        foreach ($results as $result) {
+            $corrections[$result[0]->id()] = (int) $result['corrections'];
+        }
 
         // One query for the marks of the whole page, and one for what it has been paid.
         $ids = array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices);
         $marks = $this->sends->marksFor($ids);
         $paid = $this->payments->paidFor($ids);
 
-        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
+        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, $corrections[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
     }
 
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
@@ -204,6 +218,16 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             ->getSingleColumnResult();
 
         return $ids;
+    }
+
+    public function correctionsOf(Invoice $original): array
+    {
+        /** @var list<Invoice> $corrections */
+        $corrections = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.correctedInvoiceId = :id AND i.deletedAt IS NULL ORDER BY i.numberKey, i.id')
+            ->setParameter('id', $original->id())
+            ->getResult();
+
+        return $corrections;
     }
 
     public function lastFirmOf(string $userId): ?LegalEntity
@@ -288,25 +312,44 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             InvoiceFilter::OVERDUE => 'i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unpaid($suffix),
             InvoiceFilter::SETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NOT NULL',
             InvoiceFilter::UNSETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $suffix),
+            InvoiceFilter::TO_REFUND => 'i.deletedAt IS NULL AND '.$this->toRefund($suffix),
             default => 'i.deletedAt IS NULL',
         };
     }
 
     /**
-     * Paid in full or more: Paid and Overpaid, as a tax document on payment always is. A document
-     * with nothing to pay is never settled.
+     * Paid in full or more: Paid, Overpaid and ToRefund, as a tax document on payment always is,
+     * and so is an invoice credited down to nothing. A document with nothing to pay is never settled.
      */
     private function paid(string $suffix): string
     {
-        return '((i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR i.payableMinor <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')) OR (i.deductsAdvances = true AND i.payableMinor <= 0))';
+        return '((i.payableMinor > 0 AND (i.kind = \''.DocumentKind::PaymentTaxDocument->value.'\' OR '.DoctrineInvoicePayments::dueOfInvoiceDql($suffix).' <= '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).')) OR (i.deductsAdvances = true AND i.payableMinor <= 0))';
     }
 
     /**
-     * Unpaid and PartlyPaid: what is still to pay, or what has nothing to pay.
+     * Unpaid and PartlyPaid: what is still to pay after its corrections, or what has nothing to pay.
      */
     private function unpaid(string $suffix): string
     {
-        return '((i.payableMinor <= 0 AND i.deductsAdvances = false) OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND i.payableMinor > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+        return '((i.payableMinor <= 0 AND i.deductsAdvances = false) OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND '.DoctrineInvoicePayments::dueOfInvoiceDql($suffix).' > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+    }
+
+    /**
+     * A credit note whose invoice is now ToRefund: paid above what its corrections leave due.
+     */
+    private function toRefund(string $suffix): string
+    {
+        $original = 'ro'.$suffix;
+
+        return \sprintf(
+            '(i.payableMinor < 0 AND EXISTS (SELECT %1$s.id FROM %2$s %1$s WHERE %1$s.id = i.correctedInvoiceId AND %1$s.deletedAt IS NULL AND %1$s.payableMinor > 0'
+            .' AND %3$s > 0 AND %4$s > %5$s))',
+            $original,
+            Invoice::class,
+            DoctrineInvoicePayments::paidOfInvoiceDql('r'.$suffix, $original),
+            DoctrineInvoicePayments::paidOfInvoiceDql('s'.$suffix, $original),
+            DoctrineInvoicePayments::dueOfInvoiceDql('r'.$suffix, $original),
+        );
     }
 
     /**
@@ -395,11 +438,12 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     /**
      * @param array<string, \DateTimeImmutable> $todays by country
      */
-    private function row(Invoice $invoice, array $todays, SendMark $mark, int $paidMinor): InvoiceRow
+    private function row(Invoice $invoice, array $todays, SendMark $mark, int $paidMinor, int $correctionsMinor): InvoiceRow
     {
         $today = $todays[$invoice->issuer()->address->countryCode] ?? null;
         $paid = Money::ofMinor($paidMinor, $invoice->currency());
-        $payment = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid);
+        $corrections = Money::ofMinor($correctionsMinor, $invoice->currency());
+        $payment = PaymentState::ofDocument($invoice->kind(), $invoice->payable(), $paid, $corrections);
         $byAdvances = $invoice->deductsAdvances() && $invoice->payable()->minor() <= 0;
 
         return new InvoiceRow(
@@ -411,7 +455,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->dueDate(),
             $invoice->payable(),
             $invoice->isDelivered(),
-            !$invoice->isTrashed() && !$payment->isSettled() && !$byAdvances && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
+            !$invoice->isTrashed() && $invoice->kind()->isPayable() && !$payment->isSettled() && !$byAdvances && null !== $today && $invoice->dueDate()->format('Y-m-d') < $today->format('Y-m-d'),
             $invoice->isTrashed(),
             $paid,
             $payment,
@@ -421,6 +465,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $mark,
             $invoice->kind(),
             $byAdvances,
+            $corrections,
         );
     }
 }

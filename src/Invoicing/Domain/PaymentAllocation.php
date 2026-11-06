@@ -22,6 +22,10 @@ use Doctrine\ORM\Mapping as ORM;
  * but was never received, so it stays outside the sum of the payment. It may be
  * negative, when a little more came than was due. An allocation is part of the
  * history of its invoice.
+ *
+ * The amount is stored with the sign of its effect on what was paid: negative for
+ * a refund, so every sum of allocations is what the invoice was paid less what went
+ * back. A refund writes nothing off.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'payment_allocation')]
@@ -44,7 +48,9 @@ class PaymentAllocation implements TenantOwned, Audited, AuditRooted
     private int $settlementMinor;
 
     /**
-     * @throws \InvalidArgumentException for an amount that is not positive, or an amount in another currency than the payment and the invoice
+     * @param Money $amount the part of the payment, positive whichever way the payment went
+     *
+     * @throws \InvalidArgumentException for an amount that is not positive, an amount in another currency than the payment and the invoice, or a refund that writes something off
      */
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Payment::class)]
@@ -63,8 +69,11 @@ class PaymentAllocation implements TenantOwned, Audited, AuditRooted
         if ($amount->isZero() || $amount->isNegative()) {
             throw new \InvalidArgumentException('An allocation takes a positive part of the payment.');
         }
+        if ($payment->isRefund() && $settlement instanceof Money && !$settlement->isZero()) {
+            throw new \InvalidArgumentException('A refund writes nothing off.');
+        }
         $this->id = Id::generate();
-        $this->amountMinor = $amount->minor();
+        $this->amountMinor = $payment->isRefund() ? -$amount->minor() : $amount->minor();
         $this->settlementMinor = $settlement?->minor() ?? 0;
     }
 
@@ -88,6 +97,9 @@ class PaymentAllocation implements TenantOwned, Audited, AuditRooted
         return $this->invoice;
     }
 
+    /**
+     * What it adds to what the invoice was paid: below zero for a refund.
+     */
     public function amount(): Money
     {
         return Money::ofMinor($this->amountMinor, $this->invoice->currency());

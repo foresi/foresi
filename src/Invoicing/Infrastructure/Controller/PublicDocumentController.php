@@ -51,7 +51,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * A tax document on payment is paid by its payment: like its PDF, the page says not
  * to pay it, with neither a due date nor a way to pay. So does an invoice its
  * advances cover, which reads as settled by them, a total below zero as a
- * difference to refund.
+ * difference to refund. A corrective tax document shows, as its PDF does, what it
+ * corrects, why and its differences; a credit note shows what goes back and asks
+ * for no payment, a debit note asks for what it adds like an invoice.
  */
 final class PublicDocumentController extends AbstractController
 {
@@ -102,9 +104,12 @@ final class PublicDocumentController extends AbstractController
         // Cash and card are paid on the spot: no account to pay to. A paid invoice
         // asks for nothing more, so it shows no way to pay it twice.
         $byAdvances = $document->isSettledByAdvances();
-        $settled = $document->payment->isSettled() || $byAdvances;
-        $partly = PaymentState::PartlyPaid === $document->payment;
-        $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled ? $document->bankAccount : null;
+        $credit = $document->isCreditNote();
+        // What a correction asks for follows the invoice it corrects, so it is never paid itself.
+        $settled = !$document->isCorrection() && ($document->payment->isSettled() || $byAdvances);
+        // A correction changes what is left as a part payment does: the page and no stored code tell it.
+        $partly = PaymentState::PartlyPaid === $document->payment || (0 !== $document->correctionsMinor && !$settled);
+        $iban = PaymentMethod::BankTransfer === $document->paymentMethod && !$settled && !$credit ? $document->bankAccount : null;
         $remaining = $partly ? $this->format->money(Money::ofMinor($document->remainingMinor, $document->currency), $document->language) : null;
 
         return $this->secured($this->render('invoicing/public/document.html.twig', [
@@ -112,17 +117,22 @@ final class PublicDocumentController extends AbstractController
             'stylesheet' => $this->stylesheet(),
             'document' => $document,
             'kind' => $document->kind->value,
-            'payable' => $document->kind->isPayable(),
+            'payable' => $document->asksForPayment(),
+            'credit' => $credit,
+            'creditNote' => $document->originalToRefund ? 'invoice.public.credit_note_refund_note' : 'invoice.public.credit_note_note',
+            'correction' => $document->isCorrection() ? $this->correction($document) : null,
             // What the payment box of the PDF says, and whether anything falls due.
             'amountLabel' => match (true) {
+                $credit => 'invoice.public.to_return',
+                $document->isCorrection() => 'invoice.public.amount',
                 !$document->kind->isPayable() => 'invoice.public.amount_paid',
                 $byAdvances && $document->amountMinor < 0 => 'invoice.public.to_refund',
                 $byAdvances => 'invoice.public.settled_by_advances_note',
                 default => 'invoice.public.amount',
             },
-            'due' => $document->kind->isPayable() && !$byAdvances,
+            'due' => $document->asksForPayment() && !$byAdvances,
             'byAdvances' => $byAdvances,
-            'amount' => $this->amount($document),
+            'amount' => $this->format->money(Money::ofMinor($credit ? -$document->amountMinor : $document->amountMinor, $document->currency), $document->language),
             'dueDate' => $this->format->date($document->dueDate, $document->language),
             'pdf' => $this->generateUrl(self::PDF, ['token' => $token]),
             'open' => $this->generateUrl(self::OPEN, ['token' => $token]),
@@ -199,11 +209,23 @@ final class PublicDocumentController extends AbstractController
     }
 
     /**
-     * The amount as the PDF shows it: crowns as "Kč" on a Czech document.
+     * What a corrective tax document states on its PDF: what it corrects, why, and
+     * its differences in base, tax and total.
+     *
+     * @return array{kind: string, corrects: string|null, reason: string|null, base: string, vat: string, total: string}
      */
-    private function amount(PublicDocument $document): string
+    private function correction(PublicDocument $document): array
     {
-        return $this->format->money(Money::ofMinor($document->amountMinor, $document->currency), $document->language);
+        $money = fn (int $minor): string => $this->format->money(Money::ofMinor($minor, $document->currency), $document->language);
+
+        return [
+            'kind' => $document->isCreditNote() ? 'invoice.pdf.credit_note' : 'invoice.pdf.debit_note',
+            'corrects' => $document->correctedNumber,
+            'reason' => $document->correctionReason,
+            'base' => $money($document->netMinor),
+            'vat' => $money($document->vatMinor),
+            'total' => $money($document->netMinor + $document->vatMinor),
+        ];
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -108,5 +109,20 @@ final readonly class DoctrineAdvanceDocuments implements AdvanceDocuments
             ->getArrayResult();
 
         return $rows;
+    }
+
+    public function correctionCandidates(): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->em->createQuery(
+            'SELECT i.id FROM '.Invoice::class.' i, '.Payment::class.' p WHERE p.id = i.paymentId AND i.kind = :tax AND i.deletedAt IS NULL AND i.deliveredAt IS NOT NULL'
+            .' AND (p.cancelledAt IS NOT NULL OR EXISTS (SELECT a.id FROM '.PaymentAllocation::class.' a JOIN a.payment r WHERE IDENTITY(a.invoice) = i.advanceInvoiceId AND r.direction = :refund AND r.cancelledAt IS NULL))'
+            .' ORDER BY i.numberKey',
+        )
+            ->setParameter('tax', DocumentKind::PaymentTaxDocument->value)
+            ->setParameter('refund', PaymentDirection::Refund->value)
+            ->getSingleColumnResult();
+
+        return $ids;
     }
 }

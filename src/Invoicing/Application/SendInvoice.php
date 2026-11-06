@@ -109,7 +109,8 @@ final readonly class SendInvoice
             } catch (UndrawableDocument|UnsupportedCountry) {
                 throw new SendRefused(SendRefused::UNDRAWABLE);
             }
-            $payment = [null === $document->bankAccount ? null : $country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
+            // A credit note asks for no payment, so its link shows neither the account nor the QR code.
+            $payment = !$document->asksForPayment() || null === $document->bankAccount ? [null, null] : [$country->domesticAccount($document->bankAccount), $country->paymentCode($document)];
             // On behalf of someone, the copy goes to them only while they still work here.
             $copyUser = $userId ?? (null !== $request->onBehalfOf && $this->staff->isStaffMember($request->onBehalfOf) ? $request->onBehalfOf : null);
             $user = null === $copyUser ? null : $this->users->findById($copyUser);

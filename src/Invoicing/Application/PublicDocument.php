@@ -19,7 +19,9 @@ use App\Shared\Domain\Currency;
  * scalars only, read across tenants without making one active. The payment state
  * and what remains to pay are today's, of the invoice as it stands now; a tax
  * document on payment is paid by its payment, as its PDF says, and an invoice its
- * advances cover in full is settled by them.
+ * advances cover in full is settled by them. A corrective tax document shows what
+ * it corrects and its differences; a credit note asks for nothing, a debit note
+ * for what it adds.
  */
 final readonly class PublicDocument
 {
@@ -42,14 +44,45 @@ final readonly class PublicDocument
         public string $variableSymbol,
         public ?string $paymentCode,
         public PaymentState $payment,
-        /** What is still to pay in minor units, never below zero. */
+        /** What is still to pay in minor units after the corrections, never below zero. */
         public int $remainingMinor,
         /** The day the last payment not cancelled came in, or null without one. */
         public ?\DateTimeImmutable $lastPaidOn,
         public DocumentKind $kind,
         /** Whether lines of the invoice deduct advances. */
         public bool $deductsAdvances,
+        /** The number of the document a corrective tax document corrects. */
+        public ?string $correctedNumber,
+        public ?string $correctionReason,
+        /** The base, tax and total of the document: on a correction, its differences. */
+        public int $netMinor,
+        public int $vatMinor,
+        /** What the corrective documents of an invoice not in the trash add to what it asks for. */
+        public int $correctionsMinor,
+        /** Of a corrective document: its invoice is now paid above what is due, so the difference goes back. */
+        public bool $originalToRefund,
     ) {
+    }
+
+    public function isCorrection(): bool
+    {
+        return DocumentKind::CorrectionDocument === $this->kind;
+    }
+
+    /**
+     * A corrective tax document below zero: as its PDF says, it asks for no payment.
+     */
+    public function isCreditNote(): bool
+    {
+        return $this->isCorrection() && $this->amountMinor < 0;
+    }
+
+    /**
+     * Whether the document asks for money: a payable kind, or a debit note.
+     */
+    public function asksForPayment(): bool
+    {
+        return $this->kind->isPayable() || ($this->isCorrection() && 0 < $this->amountMinor);
     }
 
     /**

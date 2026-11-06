@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Doctrine;
 use App\Invoicing\Application\InvoicePaymentLine;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\UnknownPayment;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
@@ -28,12 +29,28 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
      * identification variable of the invoice is "i", and the suffix keeps the aliases
      * of each use apart, as one query may hold it several times.
      */
-    public static function paidOfInvoiceDql(string $suffix): string
+    public static function paidOfInvoiceDql(string $suffix, string $invoice = 'i'): string
     {
         return \sprintf(
-            '(SELECT COALESCE(SUM(pa%1$s.amountMinor + pa%1$s.settlementMinor), 0) FROM %2$s pa%1$s JOIN pa%1$s.payment pp%1$s WHERE pa%1$s.invoice = i AND pp%1$s.cancelledAt IS NULL)',
+            '(SELECT COALESCE(SUM(pa%1$s.amountMinor + pa%1$s.settlementMinor), 0) FROM %2$s pa%1$s JOIN pa%1$s.payment pp%1$s WHERE pa%1$s.invoice = %3$s AND pp%1$s.cancelledAt IS NULL)',
             $suffix,
             PaymentAllocation::class,
+            $invoice,
+        );
+    }
+
+    /**
+     * What an invoice asks for after its corrective documents not in the trash, for
+     * the same queries: its payable and theirs in one subquery, as DQL cannot add to
+     * a subquery.
+     */
+    public static function dueOfInvoiceDql(string $suffix, string $invoice = 'i'): string
+    {
+        return \sprintf(
+            '(SELECT COALESCE(SUM(pd%1$s.payableMinor), 0) FROM %2$s pd%1$s WHERE pd%1$s.id = %3$s.id OR (pd%1$s.correctedInvoiceId = %3$s.id AND pd%1$s.deletedAt IS NULL))',
+            $suffix,
+            Invoice::class,
+            $invoice,
         );
     }
 
@@ -66,9 +83,54 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         return $paid;
     }
 
+    public function correctionsOf(Invoice $invoice): Money
+    {
+        return Money::ofMinor($this->correctionsFor([$invoice->id()])[$invoice->id()] ?? 0, $invoice->currency());
+    }
+
+    public function correctionsFor(array $invoiceIds): array
+    {
+        if ([] === $invoiceIds) {
+            return [];
+        }
+        /** @var list<array{invoice: string, corrections: numeric-string|int}> $rows */
+        $rows = $this->em->createQuery(
+            'SELECT c.correctedInvoiceId AS invoice, SUM(c.payableMinor) AS corrections FROM '.Invoice::class.' c '
+            .'WHERE c.correctedInvoiceId IN (:ids) AND c.deletedAt IS NULL GROUP BY c.correctedInvoiceId',
+        )
+            ->setParameter('ids', $invoiceIds)
+            ->getArrayResult();
+        $corrections = [];
+        foreach ($rows as $row) {
+            $corrections[$row['invoice']] = (int) $row['corrections'];
+        }
+
+        return $corrections;
+    }
+
     public function remainingOf(Invoice $invoice): Money
     {
-        return $invoice->payable()->minus($this->paidOf($invoice));
+        return $invoice->payable()->plus($this->correctionsOf($invoice))->minus($this->paidOf($invoice));
+    }
+
+    public function toRefundOf(Invoice $invoice): Money
+    {
+        $none = Money::ofMinor(0, $invoice->currency());
+        if ($invoice->isTrashed() || !$invoice->kind()->isPayable()) {
+            return $none;
+        }
+        // An advance no final invoice deducts goes back as a whole: its tax documents are corrected.
+        if (DocumentKind::Advance === $invoice->kind()) {
+            $paid = $this->paidOf($invoice);
+
+            return null === $invoice->deductedByInvoiceId() && $paid->minor() > 0 ? $paid : $none;
+        }
+        $corrections = $this->correctionsOf($invoice);
+        $remaining = $invoice->payable()->plus($corrections)->minus($this->paidOf($invoice));
+        $refundable = (!$corrections->isZero() && $invoice->payable()->minor() > 0)
+            || ($invoice->deductsAdvances() && $invoice->payable()->minor() <= 0);
+
+        return $refundable && $remaining->isNegative() ? Money::ofMinor(-$remaining->minor(), $remaining->currency()) : $none;
     }
 
     public function linesOf(Invoice $invoice): array

@@ -50,6 +50,7 @@ final class InvoiceStatusTest extends TestCase
                     foreach ([false, true] as $delivered) {
                         $expected = match (true) {
                             $trashed => InvoiceStatus::Trashed,
+                            PaymentState::ToRefund === $payment => InvoiceStatus::ToRefund,
                             PaymentState::Overpaid === $payment => InvoiceStatus::Overpaid,
                             PaymentState::Paid === $payment => InvoiceStatus::Paid,
                             $overdue => InvoiceStatus::Overdue,
@@ -86,5 +87,12 @@ final class InvoiceStatusTest extends TestCase
         self::assertSame('green', InvoiceStatus::Paid->tone());
         self::assertSame('amber', InvoiceStatus::PartlyPaid->tone());
         self::assertSame('amber', InvoiceStatus::Overpaid->tone());
+        self::assertSame('amber', InvoiceStatus::ToRefund->tone());
+    }
+
+    public function testACorrectionIsOnlyIssuedOrTrashed(): void
+    {
+        self::assertSame(InvoiceStatus::Issued, InvoiceStatus::ofCorrection(false));
+        self::assertSame(InvoiceStatus::Trashed, InvoiceStatus::ofCorrection(true));
     }
 }

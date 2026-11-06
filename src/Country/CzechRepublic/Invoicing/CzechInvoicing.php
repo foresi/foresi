@@ -91,19 +91,20 @@ final readonly class CzechInvoicing implements InvoicingCountry
     }
 
     /**
-     * None on a document that asks for nothing: a tax document on payment is paid.
+     * None on a document that asks for nothing: a tax document on payment is paid,
+     * and a credit note lowers what is owed. A debit note asks for what it adds.
      */
     public function paymentCode(IssuedDocument $document): ?string
     {
-        return $document->kind->isPayable() ? $this->qr->for($document) : null;
+        return $document->asksForPayment() ? $this->qr->for($document) : null;
     }
 
     /**
-     * Only an invoice carries ISDOC: an advance invoice and a tax document on payment
-     * go without, as iDoklad sends them.
+     * An invoice and a corrective tax document carry ISDOC: an advance invoice and a
+     * tax document on payment go without, as iDoklad sends them.
      */
     public function electronicFile(IssuedDocument $document): ?ElectronicFile
     {
-        return DocumentKind::Invoice === $document->kind ? new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml') : null;
+        return \in_array($document->kind, [DocumentKind::Invoice, DocumentKind::CorrectionDocument], true) ? new ElectronicFile('invoice.isdoc', $this->isdoc->write($document), 'text/xml') : null;
     }
 }

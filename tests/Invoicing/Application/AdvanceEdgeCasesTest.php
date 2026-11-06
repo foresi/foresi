@@ -15,6 +15,7 @@ use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\CorrectPaymentTaxDocument;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\DocumentChain;
 use App\Invoicing\Application\InvoiceStatus;
@@ -226,7 +227,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
 
     public function testEachDocumentKindHasItsMailTemplate(): void
     {
-        self::assertSame([MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument], array_map(MailTemplateKind::forDocument(...), DocumentKind::cases()));
+        self::assertSame([MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument, MailTemplateKind::CorrectionDocument], array_map(MailTemplateKind::forDocument(...), DocumentKind::cases()));
     }
 
     public function testOnlyAnInvoiceThatDeductsAndIsNotTrashedIsSettledByAdvances(): void
@@ -284,8 +285,10 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $wired = $container->get(CancelPayment::class);
         $documents = new \ReflectionProperty(CancelPayment::class, 'documents')->getValue($wired);
         $texts = new \ReflectionProperty(CancelPayment::class, 'texts')->getValue($wired);
+        $corrections = new \ReflectionProperty(CancelPayment::class, 'corrections')->getValue($wired);
         self::assertInstanceOf(AdvanceDocuments::class, $documents);
         self::assertInstanceOf(PaymentTaxDocumentTexts::class, $texts);
+        self::assertInstanceOf(CorrectPaymentTaxDocument::class, $corrections);
         $cancel = new CancelPayment(
             $this->payments,
             new LoggingInvoiceStore($this->store, $log),
@@ -296,6 +299,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
             $container->get(PaymentSourceRelease::class),
             $documents,
             $texts,
+            $corrections,
         );
 
         $cancel->cancel($payment->id());

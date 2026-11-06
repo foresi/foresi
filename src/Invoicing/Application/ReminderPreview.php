@@ -91,7 +91,8 @@ final readonly class ReminderPreview
     {
         $invoice = $this->store->get($id);
         $paid = $this->payments->paidOf($invoice);
-        $payment = PaymentState::of($invoice->payable(), $paid);
+        $corrections = $this->payments->correctionsOf($invoice);
+        $payment = PaymentState::of($invoice->payable(), $paid, $corrections);
 
         return new InvoiceRow(
             $invoice->id(),
@@ -106,6 +107,7 @@ final readonly class ReminderPreview
             $invoice->isTrashed(),
             $paid,
             $payment,
+            corrections: $corrections,
         );
     }
 }

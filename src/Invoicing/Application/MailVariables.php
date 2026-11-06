@@ -17,7 +17,8 @@ use App\Shared\Domain\Money;
  * firm after issue changes no mail about it. Amounts and dates read exactly as on
  * its PDF. {amount_total} is what the customer pays, after rounding. A reminder
  * has three more: the days past the due date, which reminder it is, and what is
- * still to be paid; an invoice template does not know them.
+ * still to be paid; an invoice template does not know them. A corrective tax
+ * document has one more, the number of the document it corrects.
  */
 final readonly class MailVariables
 {
@@ -44,6 +45,7 @@ final readonly class MailVariables
         return match ($kind) {
             MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument => self::NAMES,
             MailTemplateKind::Reminder => [...array_values(array_diff(self::NAMES, [self::LINK])), ...self::REMINDER_NAMES, self::LINK],
+            MailTemplateKind::CorrectionDocument => [...array_values(array_diff(self::NAMES, [self::LINK])), 'original_number', self::LINK],
         };
     }
 
@@ -77,6 +79,16 @@ final readonly class MailVariables
             'reminder_step' => (string) $step,
             'amount_due' => $this->format->money($due, $document->language),
         ];
+    }
+
+    /**
+     * Every variable of a corrective tax document except the link.
+     *
+     * @return array<string, string>
+     */
+    public function valuesForCorrection(IssuedDocument $document, string $senderName): array
+    {
+        return $this->valuesFor($document, $senderName) + ['original_number' => $document->correctedNumber ?? ''];
     }
 
     /**

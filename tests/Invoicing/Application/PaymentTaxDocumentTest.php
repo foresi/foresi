@@ -133,6 +133,16 @@ final class PaymentTaxDocumentTest extends AdvanceTestCase
         self::assertSame([], $this->taxDocumentsOf($invoice));
     }
 
+    public function testAnAdvanceAfterAnInvoiceInOnePaymentStillGetsItsTaxDocument(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $advance = $this->advance([$this->line('1000.00')]);
+
+        $this->pay($invoice, '1210.00', more: [$advance->id() => '1210.00']);
+
+        self::assertSame([['21.00', 100000, 21000, 121000]], $this->figuresOf($this->onlyTaxDocumentOf($advance)));
+    }
+
     public function testAnInvoiceGetsNoTaxDocument(): void
     {
         $invoice = $this->issue->issue($this->input());

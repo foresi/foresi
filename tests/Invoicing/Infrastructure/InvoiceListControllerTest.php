@@ -490,7 +490,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
         self::assertSame('false', $row->filter('a[aria-label="PDF"]')->attr('data-turbo'));
         self::assertSame('/invoices/'.$invoice->id().'/pdf', $row->filter('a[aria-label="PDF"]')->attr('href'));
-        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
@@ -688,7 +688,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertStringContainsString('Delivered', $row->text());
-        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'History'], $this->menu($row));
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'History'], $this->menu($row));
         self::assertCount(1, $row->filter('a[aria-label="Edit"]'));
     }
 

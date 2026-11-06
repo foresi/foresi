@@ -79,6 +79,7 @@ final class FirmMailController extends AbstractController
         'reminder' => ['title' => 'reminder.card.template', 'help' => 'reminder.templates_help', 'icon' => 'clock-3'],
         'advance' => ['title' => 'advance.card.template', 'help' => 'advance.templates_help', 'icon' => 'banknote'],
         'tax_document' => ['title' => 'tax_document.card.template', 'help' => 'tax_document.templates_help', 'icon' => 'file-signature'],
+        'correction' => ['title' => 'correction.mail.card', 'help' => 'correction.mail.templates_help', 'icon' => 'file-pen-line'],
     ];
 
     public function __construct(

@@ -25,6 +25,18 @@ interface PaymentTaxDocumentTexts
     public function cancelledReason(Invoice $document): string;
 
     /**
+     * Why a tax document went to the trash when its payment went back before the
+     * customer got it.
+     */
+    public function refundedReason(Invoice $document): string;
+
+    /**
+     * The reason on the corrective tax document of a tax document on payment whose
+     * payment was cancelled, or refunded.
+     */
+    public function correctionReason(Invoice $document, bool $refunded): string;
+
+    /**
      * The text of a line of a final invoice that deducts a tax document on payment,
      * or an advance invoice on which no VAT arose, in the final invoice's language.
      */

@@ -42,6 +42,8 @@ final class PairingChoicesTest extends BankingTestCase
     private array $found = [];
     /** @var list<array{string, list<string>, int}> every read of open invoices: the text, the ids and the limit */
     private array $reads = [];
+    /** @var list<Candidate> the invoices of the firm with something to refund */
+    private array $refunds = [];
 
     public function testSuggestionsComeBySymbolThenAmountThenCustomerAndTheRestAreOthers(): void
     {
@@ -193,6 +195,24 @@ final class PairingChoicesTest extends BankingTestCase
         self::assertSame(99, $this->choices($this->movement('1210.00'), smallDifference: true)->settlementLimit);
     }
 
+    public function testAnOutgoingMovementIsOfferedTheRefundsInItsCurrencyAsTheSearchFindsThem(): void
+    {
+        $this->refunds = [
+            new Candidate('E', '2026-E', new \DateTimeImmutable('2026-11-15'), Money::of('100.00', Currency::EUR), 'Other Buyer s.r.o.', new \DateTimeImmutable('2026-11-01')),
+            $this->candidate('R1', '100.00'),
+            $this->candidate('R2', '200.00', 'Žluťoučký kůň s.r.o.'),
+            $this->candidate('R3', '300.00', 'ŽLUTÝ PES a.s.'),
+        ];
+        $outgoing = $this->movement('1000.00', vs: null, direction: MovementDirection::Outgoing);
+
+        self::assertSame([['R1', null], ['R2', null], ['R3', null]], $this->offered($this->choices($outgoing)->others), 'the refund in euros is left out');
+        self::assertSame([['R1', null]], $this->offered($this->choices($outgoing, ' 2026-r1 OTHER ')->others), 'the number and the name read as one text');
+        self::assertSame([['R2', null]], $this->offered($this->choices($outgoing, 'ŽLUŤ')->others), 'the search in capitals');
+        self::assertSame([['R3', null]], $this->offered($this->choices($outgoing, 'žlutý')->others), 'the name in capitals');
+        self::assertSame([['R1', null], ['R3', null]], $this->offered($this->choices($outgoing, 'R1', ['R3'])->others), 'what was ticked stays offered after what the search finds');
+        self::assertSame([], $this->reads, 'no unpaid invoices are read');
+    }
+
     /**
      * @param list<string> $kept
      */
@@ -211,6 +231,11 @@ final class PairingChoicesTest extends BankingTestCase
             public function open(string $firmId, Currency $currency, string $text, array $ids, int $limit): array
             {
                 return $this->test->openRead($text, $ids, $limit);
+            }
+
+            public function refunds(string $firmId, ?string $variableSymbol): array
+            {
+                return null === $variableSymbol ? $this->test->refundsRead() : $this->test->symbolRead();
             }
         };
         $rules = new readonly class($smallDifference) implements FirmPairingRules {
@@ -236,6 +261,14 @@ final class PairingChoicesTest extends BankingTestCase
     }
 
     /**
+     * @return list<Candidate>
+     */
+    public function refundsRead(): array
+    {
+        return $this->refunds;
+    }
+
+    /**
      * The ticked ones are read as new objects, as another query would give them.
      *
      * @param list<string> $ids
@@ -257,9 +290,11 @@ final class PairingChoicesTest extends BankingTestCase
         return new Candidate($id, '2026-'.$id, new \DateTimeImmutable($due), $this->czk($remaining), $customerName, new \DateTimeImmutable('2026-11-01'));
     }
 
-    private function movement(string $amount, ?string $counterName = null, ?string $vs = '20260001'): BankMovement
+    private function movement(string $amount, ?string $counterName = null, ?string $vs = '20260001', MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
-        return new BankMovement($this->account, null, MovementDirection::Incoming, $this->czk($amount), new \DateTimeImmutable('2026-11-20'), null, null, $counterName, $vs, null, null, null, null, str_repeat('a', 64), MessageTrust::Verified, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);
+        $incoming = MovementDirection::Incoming === $direction;
+
+        return new BankMovement($this->account, null, $direction, $this->czk($amount), new \DateTimeImmutable('2026-11-20'), null, null, $counterName, $vs, null, null, null, null, str_repeat('a', 64), MessageTrust::Verified, 'dmarc', $incoming ? MovementState::Unmatched : MovementState::Recorded, $incoming ? UnmatchedReason::NoInvoice : null);
     }
 
     /**

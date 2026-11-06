@@ -31,6 +31,8 @@ use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Application\UncorrectedTaxDocument;
+use App\Invoicing\Application\UncorrectedTaxDocuments;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\DocumentKind;
@@ -77,8 +79,10 @@ final class InvoiceListController extends AbstractController
     public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
     /** The tab of the advances that wait for a tax document. */
     private const string MISSING = 'needs_tax_document';
+    /** The tab of the tax documents on payment that wait for a corrective one. */
+    private const string UNCORRECTED = 'needs_correction';
     /** The list of each kind of document, as iDoklad keeps one per kind. */
-    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents'];
+    public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
     public function __construct(
         private readonly InvoiceStore $store,
@@ -98,12 +102,14 @@ final class InvoiceListController extends AbstractController
         private readonly TenantClock $tenantClock,
         private readonly MissingTaxDocuments $missing,
         private readonly IssuePaymentTaxDocument $taxDocuments,
+        private readonly UncorrectedTaxDocuments $uncorrected,
     ) {
     }
 
     #[Route('/invoices', name: 'app_invoices', defaults: ['kind' => 'invoice'], methods: ['GET'])]
     #[Route('/advances', name: 'app_advances', defaults: ['kind' => 'advance'], methods: ['GET'])]
     #[Route('/tax-documents', name: 'app_tax_documents', defaults: ['kind' => 'payment_tax_document'], methods: ['GET'])]
+    #[Route('/corrections', name: 'app_corrections', defaults: ['kind' => 'correction_document'], methods: ['GET'])]
     public function index(Request $request, string $kind): Response
     {
         $this->denyUnlessStaff();
@@ -143,8 +149,9 @@ final class InvoiceListController extends AbstractController
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
-            'newHref' => $kind->isIssuedByPerson() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
-            'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null),
+            // A corrective document is issued from the document it corrects, never from a blank form.
+            'newHref' => $kind->standsAlone() ? $this->generateUrl('app_invoice_new', DocumentKind::Invoice === $kind ? [] : ['kind' => $kind->value]) : null,
+            'tabs' => $this->tabs($page, $tab, $query, $route, DocumentKind::Advance === $kind ? \count($this->missing->on($this->today())) : null, DocumentKind::PaymentTaxDocument === $kind ? \count($this->uncorrected->on($this->today())) : null),
             'columns' => $this->columns($tab, $sort, $query, $severalFirms, $route),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $severalFirms, $names, http_build_query($here), $reminders[$row->id] ?? null), $page->rows),
             'baseUrl' => $this->generateUrl($route, $query),
@@ -191,6 +198,45 @@ final class InvoiceListController extends AbstractController
                     'icon' => 'file-signature',
                 ]],
             ], $missing),
+        ]);
+    }
+
+    /**
+     * The delivered tax documents on payment that wait for a corrective tax document,
+     * soonest deadline first.
+     */
+    #[Route('/tax-documents/needs-correction', name: 'app_tax_documents_uncorrected', methods: ['GET'])]
+    public function uncorrected(): Response
+    {
+        $this->denyUnlessStaff();
+        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
+        $waiting = $this->uncorrected->on($this->today());
+        $date = $this->translator->trans('format.date');
+        $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('tax_document.uncorrected.column.'.$key), 'align' => \in_array($key, ['amount', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'decisiveDate', 'amount', 'deadline', 'daysLeft']);
+
+        return $this->render('invoicing/uncorrected_tax_documents.html.twig', [
+            'tabs' => $this->tabs($page, self::UNCORRECTED, [], self::ROUTES[DocumentKind::PaymentTaxDocument->value], null, \count($waiting)),
+            'columns' => $columns,
+            'rows' => array_map(fn (UncorrectedTaxDocument $row): array => [
+                'id' => $row->documentId,
+                'href' => $this->generateUrl('app_invoice_edit', ['id' => $row->documentId]),
+                'plain' => true,
+                'label' => $row->number,
+                'secondary' => $this->joined([$row->customerName, $this->amounts->shown($row->amount), $this->daysLeftOf($row->daysLeft)]),
+                'cells' => [
+                    'number' => $row->deducted ? $row->number.' · '.$this->translator->trans('tax_document.uncorrected.deducted') : $row->number,
+                    'customer' => $row->customerName,
+                    'decisiveDate' => $row->decisiveDate->format($date),
+                    'amount' => $this->amounts->shown($row->amount),
+                    'deadline' => $row->deadline->format($date),
+                    'daysLeft' => ['text' => $this->daysLeftOf($row->daysLeft), 'tone' => $row->isLate() ? 'red' : ($row->daysLeft <= 3 ? 'amber' : 'gray')],
+                ],
+                'actions' => [[
+                    'label' => $this->translator->trans('tax_document.correct'),
+                    'href' => $this->generateUrl('app_invoice_correct', ['id' => $row->documentId]),
+                    'icon' => 'file-signature',
+                ]],
+            ], $waiting),
         ]);
     }
 
@@ -301,7 +347,7 @@ final class InvoiceListController extends AbstractController
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
             'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice)))),
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice)))),
         ]);
     }
 
@@ -371,7 +417,7 @@ final class InvoiceListController extends AbstractController
      *
      * @return list<array<string, mixed>>
      */
-    private function tabs(InvoicePage $page, string $tab, array $query, string $route, ?int $missing = null): array
+    private function tabs(InvoicePage $page, string $tab, array $query, string $route, ?int $missing = null, ?int $uncorrected = null): array
     {
         $tabs = [];
         foreach (array_keys($page->tabCounts) as $key) {
@@ -389,6 +435,15 @@ final class InvoiceListController extends AbstractController
                 'href' => $this->generateUrl('app_advances_missing'),
                 'count' => $missing,
                 'active' => self::MISSING === $tab,
+            ]]);
+        }
+        // The tax documents that wait for a corrective one, the same way.
+        if (null !== $uncorrected) {
+            array_splice($tabs, \count($tabs) - 1, 0, [[
+                'label' => $this->translator->trans('tax_document.uncorrected.tab'),
+                'href' => $this->generateUrl('app_tax_documents_uncorrected'),
+                'count' => $uncorrected,
+                'active' => self::UNCORRECTED === $tab,
             ]]);
         }
 
@@ -459,10 +514,19 @@ final class InvoiceListController extends AbstractController
     private function row(InvoiceRow $row, string $tab, bool $severalFirms, array $names, string $return, ?array $reminders = null): array
     {
         $date = $this->translator->trans('format.date');
-        $status = $row->settledByAdvances && !$row->trashed ? InvoiceStatus::SettledByAdvances : InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment);
+        $status = match (true) {
+            DocumentKind::CorrectionDocument === $row->kind => InvoiceStatus::ofCorrection($row->trashed),
+            $row->settledByAdvances && !$row->trashed => InvoiceStatus::SettledByAdvances,
+            default => InvoiceStatus::of($row->delivered, $row->overdue, $row->trashed, $row->payment),
+        };
         $badge = $this->translator->trans('invoice.list.status.'.$status->value);
-        // A part payment says what is left; overdue or not, that is what someone acts on.
-        $left = PaymentState::PartlyPaid === $row->payment && !$row->trashed ? $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->payable->minus($row->paid))]) : null;
+        // A part payment says what is left; overdue or not, that is what someone acts on. A refund says how much.
+        $left = match (true) {
+            $row->trashed => null,
+            PaymentState::PartlyPaid === $row->payment => $this->translator->trans('invoice.payment.left', ['amount' => $this->amounts->shown($row->remaining())]),
+            PaymentState::ToRefund === $row->payment => $this->translator->trans('invoice.payment.to_refund', ['amount' => $this->amounts->shown(Money::ofMinor(-$row->remaining()->minor(), $row->payable->currency()))]),
+            default => null,
+        };
         $cells = ['number' => $row->number, 'customer' => $row->customerName, 'payable' => $this->amounts->shown($row->payable), 'status' => ['text' => $badge, 'tone' => $status->tone()] + (null === $left ? [] : ['hint' => $left])];
         $badge = null === $left ? $badge : $badge.' · '.$left;
         if ($severalFirms) {
@@ -514,7 +578,7 @@ final class InvoiceListController extends AbstractController
      */
     private function badge(Invoice $invoice): array
     {
-        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice));
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice));
 
         return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
@@ -549,7 +613,7 @@ final class InvoiceListController extends AbstractController
             return array_values(array_filter([
                 ['label' => $this->label('restore'), 'href' => $this->generateUrl('app_invoice_restore', $id), 'method' => 'POST', 'icon' => 'archive-restore', 'fields' => $fields],
                 $pdf,
-                $row->kind->isIssuedByPerson() ? $copy : null,
+                $row->kind->standsAlone() ? $copy : null,
                 $history,
             ]));
         }
@@ -566,10 +630,14 @@ final class InvoiceListController extends AbstractController
         if ($row->overdue && $reminders < FirmReminders::MAX_STEPS) {
             $actions[] = ['label' => $this->translator->trans('reminder.list.action'), 'href' => $this->generateUrl('app_invoice_remind', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
         }
-        // A tax document on payment comes from its payment only: nothing is issued from it.
-        if ($row->kind->isIssuedByPerson()) {
+        // A tax document on payment or a correction follows another document: nothing is issued from it.
+        if ($row->kind->standsAlone()) {
             $actions[] = $copy;
             $actions[] = $recurring;
+        }
+        // A delivered tax document on payment is corrected by hand as well, a moved advance say.
+        if (DocumentKind::Invoice === $row->kind || (DocumentKind::PaymentTaxDocument === $row->kind && $row->delivered)) {
+            $actions[] = ['label' => $this->label('correct'), 'href' => $this->generateUrl('app_invoice_correct', $id), 'method' => 'GET', 'plain' => true];
         }
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delivered'), 'href' => $this->generateUrl('app_invoice_delivered', $id), 'method' => 'POST', 'confirm' => [
@@ -588,9 +656,14 @@ final class InvoiceListController extends AbstractController
 
     private function daysLeft(MissingTaxDocument $row): string
     {
-        return $row->isLate()
-            ? $this->translator->trans('advance.missing.days_late', ['days' => -$row->daysLeft])
-            : $this->translator->trans('advance.missing.days_left', ['days' => $row->daysLeft]);
+        return $this->daysLeftOf($row->daysLeft);
+    }
+
+    private function daysLeftOf(int $days): string
+    {
+        return $days < 0
+            ? $this->translator->trans('advance.missing.days_late', ['days' => -$days])
+            : $this->translator->trans('advance.missing.days_left', ['days' => $days]);
     }
 
     private function label(string $action): string

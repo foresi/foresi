@@ -10,6 +10,8 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
 use App\Invoicing\Application\AdvanceDocuments;
+use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\InvoiceFilter;
@@ -21,12 +23,16 @@ use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\PaymentDirection;
+use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Party\Domain\DocumentLanguage;
+use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Tests\Support\IsdocSchema;
 use App\Tests\Support\PdfTools;
@@ -50,6 +56,16 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         self::assertSame($final->id(), $this->reloaded($document)->deductedByInvoiceId());
         self::assertSame($document->id(), $this->store->lines($stored)[1]->deducts());
         self::assertSame('Odpočet zálohy VS 920260001 (daňový doklad D820260001)', $this->store->lines($stored)[1]->text());
+    }
+
+    public function testACorrectionOfAFinalInvoiceLeavesItsDeductionsOut(): void
+    {
+        $document = $this->taxDocumentFor($this->advance([$this->line('1000.00')]), '1210.00');
+        $final = $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($document), $this->line('500.00', text: 'Travel')]));
+
+        $draft = self::getContainer()->get(CorrectInvoice::class)->valuesFrom($this->reloaded($final));
+
+        self::assertSame([['Work', -10000], ['Travel', -10000]], array_map(static fn (LineInput $line): array => [$line->text, $line->quantity->tenThousandths()], $draft->lines));
     }
 
     public function testATwoRateDocumentDeductsPerRate(): void
@@ -85,6 +101,20 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         self::assertSame(-21000, $final->vat()->minor());
         self::assertSame(InvoiceStatus::SettledByAdvances, InvoiceStatus::ofInvoice($final, new \DateTimeImmutable('2027-01-01'), $this->payments->paidOf($final)));
         self::assertStringContainsString('Rozdíl k vrácení', PdfTools::text(self::getContainer()->get(InvoicePdf::class)->render(self::getContainer()->get(IssuedDocumentFactory::class)->of($final->id()))->bytes));
+    }
+
+    public function testTheDifferenceToRefundIsRecordedAsARefund(): void
+    {
+        $document = $this->taxDocumentFor($this->advance([$this->line('2000.00')]), '2420.00');
+        $final = $this->reloaded($this->issue->issue($this->finalInput([$this->line('1000.00'), ...$this->deductionOf($document)])));
+        self::assertSame(121000, $this->payments->toRefundOf($final)->minor());
+
+        $this->record->record(new PaymentRequest($this->firm->id(), new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($final->id(), $this->czk('1210.00'))], PaymentDirection::Refund));
+
+        $final = $this->reloaded($final);
+        self::assertSame(-121000, $this->payments->paidOf($final)->minor());
+        self::assertSame(0, $this->payments->toRefundOf($final)->minor());
+        self::assertSame(0, $this->payments->remainingOf($final)->minor());
     }
 
     public function testANegativeTotalWithoutADeductionIsStillRefused(): void

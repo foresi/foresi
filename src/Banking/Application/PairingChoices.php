@@ -22,6 +22,10 @@ use App\Shared\Domain\Money;
  * invoice with its amount. One invoice takes the whole movement, whatever it
  * leaves or overpays; several take what each has left, oldest due first, and the
  * last one what remains.
+ *
+ * An outgoing movement is offered the invoices with something to refund the same
+ * way: by its symbol, the invoice's own or its credit note's, then by what is to
+ * refund equal to its amount, then the others.
  */
 final readonly class PairingChoices
 {
@@ -45,7 +49,10 @@ final readonly class PairingChoices
     {
         $amount = $movement->amount();
         $firmId = $movement->firm()->id();
-        $open = $this->candidates->open($firmId, $amount->currency(), '', [], 200);
+        $incoming = $movement->isIncoming();
+        $open = $incoming
+            ? $this->candidates->open($firmId, $amount->currency(), '', [], 200)
+            : array_filter($this->candidates->refunds($firmId, null), static fn (Candidate $candidate): bool => $candidate->remaining->currency() === $amount->currency());
 
         $suggested = [];
         foreach ($this->matcher->candidates($movement) as $candidate) {
@@ -65,13 +72,16 @@ final readonly class PairingChoices
         }
 
         $text = trim($text);
-        $others = [
+        $others = !$incoming ? array_filter($open, static fn (Candidate $candidate): bool => '' === $text || str_contains(mb_strtolower($candidate->number.' '.$candidate->customerName), mb_strtolower($text))) : [
             ...('' === $text
                 ? \array_slice(array_values(array_filter($open, static fn (Candidate $candidate): bool => !isset($suggested[$candidate->invoiceId]))), 0, self::OTHERS)
                 : $this->candidates->open($firmId, $amount->currency(), $text, [], self::FOUND)),
             // What was ticked stays offered, whatever the search finds.
             ...([] === $kept ? [] : $this->candidates->open($firmId, $amount->currency(), '', $kept, \count($kept))),
         ];
+        if (!$incoming) {
+            $others = [...$others, ...array_filter($open, static fn (Candidate $candidate): bool => \in_array($candidate->invoiceId, $kept, true))];
+        }
         $unique = [];
         foreach ($others as $candidate) {
             if (!isset($suggested[$candidate->invoiceId])) {

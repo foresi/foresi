@@ -57,15 +57,20 @@ final readonly class Matcher
 
     /**
      * The open invoices of the movement's firm with its variable symbol, in every
-     * currency, oldest due first. A movement without a symbol has none.
+     * currency, oldest due first. A movement without a symbol has none. For an
+     * outgoing movement, the invoices with something to refund that carry the
+     * symbol, or whose corrective document does, each with what is to refund.
      *
      * @return list<Candidate>
      */
     public function candidates(BankMovement $movement): array
     {
         $symbol = self::normalised($movement->variableSymbol());
+        if (null === $symbol) {
+            return [];
+        }
 
-        return null === $symbol ? [] : $this->candidates->withSymbol($movement->firm()->id(), $symbol);
+        return $movement->isIncoming() ? $this->candidates->withSymbol($movement->firm()->id(), $symbol) : $this->candidates->refunds($movement->firm()->id(), $symbol);
     }
 
     /**

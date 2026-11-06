@@ -43,7 +43,11 @@ final readonly class SendDraft
 
     public function for(Invoice $invoice): SendDraftValues
     {
-        return $this->draft($invoice, MailTemplateKind::forDocument($invoice->kind()), fn (IssuedDocument $document, string $sender): array => $this->variables->valuesFor($document, $sender));
+        $kind = MailTemplateKind::forDocument($invoice->kind());
+
+        return $this->draft($invoice, $kind, fn (IssuedDocument $document, string $sender): array => MailTemplateKind::CorrectionDocument === $kind
+            ? $this->variables->valuesForCorrection($document, $sender)
+            : $this->variables->valuesFor($document, $sender));
     }
 
     /**

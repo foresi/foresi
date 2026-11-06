@@ -203,7 +203,11 @@
             // Equivalent mutants: a key and its value come from the same branch of the pattern; an empty side fails the
             // count check of the newest ARC set below.
             "App\\Banking\\Application\\AuthenticationResultsParser::result::150",
-            "App\\Banking\\Application\\MailAuthentication::arcVouches::211"
+            "App\\Banking\\Application\\MailAuthentication::arcVouches::211",
+            // Equivalent mutants: a tax document on payment out of the trash always names its payment and its advance,
+            // and one with something owed after a refund always has the day of that refund.
+            "App\\Invoicing\\Application\\CorrectPaymentTaxDocument::due::62",
+            "App\\Invoicing\\Application\\CorrectPaymentTaxDocument::due::76"
         ]},
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
         // string fails the check of its column below.

@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
+use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\FirmInvoicingSettings;
@@ -78,6 +79,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class InvoiceControllerTest extends WebTestCase
 {
     /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
+    /** CorrectionRules refuses these, on the form of a corrective tax document only. */
+    private const array REFUSED_FOR_CORRECTIONS = ['invoice.problem.correction_kind', 'invoice.problem.correction_link_missing', 'invoice.problem.correction_link_locked', 'invoice.problem.correction_original_invalid', 'invoice.problem.correction_firm', 'invoice.problem.correction_customer', 'invoice.problem.correction_reason_missing', 'invoice.problem.correction_type_missing', 'invoice.problem.correction_decisive_date_missing', 'invoice.problem.correction_tax_point', 'invoice.problem.correction_rate_unknown', 'invoice.problem.correction_over_original', 'invoice.problem.correction_deducted', 'invoice.problem.correction_payment_change'];
     private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
@@ -924,7 +927,7 @@ final class InvoiceControllerTest extends WebTestCase
         $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/translations/messages+intl-icu.en.yaml');
         $translated = array_map(static fn (string $key): string => 'invoice.problem.'.$key, array_keys($messages['invoice']['problem']));
 
-        self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE)));
+        self::assertSame([], array_values(array_diff($translated, $keys, self::REFUSED_ELSEWHERE, self::REFUSED_FOR_CORRECTIONS)));
     }
 
     public function testFirmProblemsLinkToTheFirmInANewTabAndTheFormStays(): void
@@ -1137,6 +1140,60 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', $advance->number());
     }
 
+    public function testTheCorrectionListIsEmptyAndFollowsTheTaxDocumentsInTheNavigation(): void
+    {
+        $this->signedIn();
+        $this->issued();
+
+        $crawler = $this->client->request('GET', '/corrections');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Corrective documents');
+        self::assertSelectorTextContains('main', 'No corrective documents here');
+        self::assertSame(['All0', 'To refund0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSelectorNotExists('main a[href^="/invoices/new"]');
+        self::assertSelectorExists('nav a[href="/corrections"][aria-current="page"]');
+        $links = $crawler->filter('nav a')->each(static fn ($link): string => (string) $link->attr('href'));
+        $taxDocuments = array_search('/tax-documents', $links, true);
+        self::assertIsInt($taxDocuments);
+        self::assertSame($taxDocuments + 1, array_search('/corrections', $links, true));
+
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $counted = static fn (string $locale): array => array_map(static fn (int $total): string => $translator->trans('invoice.list.summary', ['total' => $total, 'kind' => 'correction_document'], null, $locale), [1, 2, 5]);
+        self::assertSame(['1 opravný doklad', '2 opravné doklady', '5 opravných dokladů'], $counted('cs'));
+        self::assertSame(['1 corrective document', '2 corrective documents', '5 corrective documents'], $counted('en'));
+        self::assertSame('Opravné doklady', $translator->trans('nav.item.corrections', locale: 'cs'));
+    }
+
+    public function testAnInvoiceOpensItsCorrectionNegatedAndSavesItLinked(): void
+    {
+        $this->signedIn();
+        $source = $this->issued();
+
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertCount(1, $crawler->filter('a[href="/invoices/'.$source->id().'/correct"]'));
+        $this->client->request('GET', '/invoices/'.$source->id().'/correct');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-corrects]', 'Corrects document no. '.$source->number());
+        $values = $this->currentValues();
+        self::assertSame('correction_document', $values['kind']);
+        self::assertSame($source->id(), $values['correctedInvoiceId'] ?? null);
+        self::assertSame('change', $values['correctionType'] ?? null);
+        self::assertStringStartsWith('-', $values['lines'][0]['quantity']);
+
+        $this->save(['correctionReason' => ''] + $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('main', 'Say why the invoice is being corrected.');
+
+        $this->save(['correctionReason' => 'Returned goods'] + $values);
+        self::assertResponseRedirects('/corrections');
+        $correction = $this->invoices()[1];
+        self::assertSame(DocumentKind::CorrectionDocument, $correction->kind());
+        self::assertSame($source->id(), $correction->correctedInvoiceId());
+        self::assertTrue($correction->payable()->isNegative());
+    }
+
     public function testTheTaxDocumentListTellsSettledFromUnsettled(): void
     {
         $this->signedIn();
@@ -1146,7 +1203,7 @@ final class InvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/tax-documents', ['tab' => 'settled']);
 
-        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
+        self::assertSame(['All1', 'Settled0', 'Unsettled1', 'Waiting for correction0', 'Trash0'], $crawler->filter('main nav a')->each(static fn ($link): string => trim($link->text())));
         self::assertSelectorTextContains('main', 'Nothing is settled yet');
         $this->client->request('GET', '/tax-documents', ['tab' => 'unsettled']);
         self::assertSelectorTextContains('main table', 'D820260001');
@@ -1154,26 +1211,106 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('main nav a[href="/tax-documents"][aria-current="page"]');
     }
 
-    public function testADeliveredTaxDocumentOfACancelledPaymentAsksForACorrection(): void
+    public function testADeliveredTaxDocumentOfACancelledPaymentGetsItsCorrection(): void
     {
         $this->signedIn();
-        $document = $this->scoped(function (): Invoice {
-            $advance = $this->paidAdvanceWithoutTaxDocument();
-            $this->em()->clear();
-            $this->context->switchTo($this->tenant);
-            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf(self::getContainer()->get(InvoiceStore::class)->get($advance->id()))[0]->paymentId;
-            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
-            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
-            $document = $tax->byHand($advance->id(), $payment);
-            self::getContainer()->get(MarkDelivered::class)->mark($document->id());
-            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+        $document = $this->cancelledTaxDocument(deducted: false);
 
-            return $document;
-        });
+        $this->openEdit($document);
+
+        self::assertSelectorNotExists('[data-needs-correction]');
+        $corrections = $this->scoped(fn (): array => self::getContainer()->get(InvoiceStore::class)->correctionsOf(self::getContainer()->get(InvoiceStore::class)->get($document->id())));
+        self::assertCount(1, $corrections);
+        self::assertSame('Zrušení platby zálohy', $corrections[0]->correctionReason());
+    }
+
+    public function testADeductedTaxDocumentOfACancelledPaymentAsksForACorrection(): void
+    {
+        $this->signedIn();
+        $document = $this->cancelledTaxDocument(deducted: true);
 
         $this->openEdit($document);
 
         self::assertSelectorTextContains('[data-needs-correction]', 'It needs a corrective tax document.');
+        self::assertSelectorExists('[data-needs-correction] a[data-correct-tax-document][href="/invoices/'.$document->id().'/correct"]');
+        self::assertSelectorTextContains('[data-correct-tax-document]', 'Issue a corrective document');
+    }
+
+    public function testADeductedTaxDocumentRefusesTheCorrectionUntilTheDeductionIsReleased(): void
+    {
+        $this->signedIn();
+        $document = $this->cancelledTaxDocument(deducted: true);
+
+        $this->client->request('GET', '/invoices/'.$document->id().'/correct');
+
+        self::assertResponseRedirects('/invoices/'.$document->id().'/edit');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Release the deduction first');
+    }
+
+    public function testAReleasedTaxDocumentOpensItsCorrectionPrefilled(): void
+    {
+        $this->signedIn();
+        $document = $this->cancelledTaxDocument(deducted: true);
+        $this->scoped(function () use ($document): void {
+            self::getContainer()->get(AdvanceDocuments::class)->releaseDeductions((string) $this->store()->get($document->id())->deductedByInvoiceId(), []);
+        });
+
+        $this->client->request('GET', '/invoices/'.$document->id().'/correct');
+
+        self::assertResponseIsSuccessful();
+        $values = $this->currentValues();
+        self::assertSame('correction_document', $values['kind']);
+        self::assertSame($document->id(), $values['correctedInvoiceId'] ?? null);
+        self::assertSame('Zrušení platby zálohy', $values['correctionReason'] ?? null);
+        self::assertSame('change', $values['correctionType'] ?? null);
+    }
+
+    public function testTheTaxDocumentsListHasATabOfThoseWaitingForCorrection(): void
+    {
+        $this->signedIn();
+        $document = $this->cancelledTaxDocument(deducted: true);
+
+        $crawler = $this->client->request('GET', '/tax-documents/needs-correction');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('main nav a[href="/tax-documents/needs-correction"][aria-current="page"]');
+        self::assertStringContainsString($document->number(), $crawler->filter('main table')->text());
+        self::assertStringContainsString('deducted on a final invoice', $crawler->filter('main table')->text());
+        self::assertSelectorExists('main table a[href="/invoices/'.$document->id().'/correct"]');
+        $this->client->request('GET', '/tax-documents');
+        self::assertSelectorTextContains('main nav a[href="/tax-documents/needs-correction"]', '1');
+        self::assertSelectorTextContains('body', 'A tax document waits for a corrective document');
+    }
+
+    /**
+     * A delivered tax document whose payment was cancelled; when deducted, by the
+     * advance itself standing in for a final invoice, it waits for its correction.
+     */
+    private function cancelledTaxDocument(bool $deducted): Invoice
+    {
+        return $this->scoped(function () use ($deducted): Invoice {
+            $advance = $this->paidAdvanceWithoutTaxDocument();
+            $this->em()->clear();
+            $this->context->switchTo($this->tenant);
+            $payment = self::getContainer()->get(InvoicePayments::class)->linesOf($this->store()->get($advance->id()))[0]->paymentId;
+            $tax = new \ReflectionProperty(RecordPayment::class, 'taxDocuments')->getValue(self::getContainer()->get(RecordPayment::class));
+            self::assertInstanceOf(IssuePaymentTaxDocument::class, $tax);
+            $document = $tax->byHand($advance->id(), $payment);
+            self::getContainer()->get(MarkDelivered::class)->mark($document->id());
+            if ($deducted) {
+                self::assertTrue(self::getContainer()->get(AdvanceDocuments::class)->claimDeduction($document->id(), $advance->id()));
+            }
+            self::getContainer()->get(CancelPayment::class)->cancel($payment);
+            $this->em()->clear();
+
+            return $this->store()->get($document->id());
+        });
+    }
+
+    private function store(): InvoiceStore
+    {
+        return self::getContainer()->get(InvoiceStore::class);
     }
 
     public function testATaxDocumentOfACancelledPaymentStaysInTheTrash(): void

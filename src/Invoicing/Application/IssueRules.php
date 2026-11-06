@@ -47,6 +47,7 @@ final readonly class IssueRules
         private FirmBankAccounts $accounts,
         private LineRules $shared,
         private DeductibleAdvances $deductible,
+        private CorrectionRules $corrections,
     ) {
     }
 
@@ -70,13 +71,16 @@ final readonly class IssueRules
         }
         $problems = [...$problems, ...$this->printing($input, $firm, $existing, $copy), ...$this->deductions($input, $firm, $existing)];
         $regime = $existing?->vatRegime() ?? VatRegime::of($firm->vatStatus());
-        $rateDate = $input->rateDate($existing?->kind() ?? $input->kind);
+        $kind = $existing?->kind() ?? $input->kind;
+        // A correction takes the rates of the invoice it corrects, never those of today.
+        $rateDate = DocumentKind::CorrectionDocument === $kind ? $this->corrections->rateDate($input, $existing) : $input->rateDate($kind);
+        $problems = [...$problems, ...$this->corrections->check($input, $firm, $existing, $regime, $country)];
         $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $copy?->vatId, $existing?->issuer()->address->countryCode ?? $firm->address()->countryCode, $rateDate)];
         if ([] !== $problems || !$rateDate instanceof \DateTimeImmutable) {
             return $problems;
         }
 
-        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country, $rateDate);
+        return $this->shared->amounts($input->lines, $regime, $existing?->rounding() ?? $this->settings->for($firm)->rounding(), $country, $rateDate, $kind);
     }
 
     /**

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Invoicing\Application\PaymentState;
+use App\Invoicing\Domain\DocumentKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\CurrencyMismatch;
 use App\Shared\Domain\Money;
@@ -56,10 +57,53 @@ final class PaymentStateTest extends TestCase
         self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor($payable, Currency::CZK), Money::ofMinor($paid, Currency::CZK)));
     }
 
-    public function testOnlyPaidAndOverpaidAreSettled(): void
+    /**
+     * An invoice of 1 210 with a credit note of -484 or a debit note of +242.
+     *
+     * @return iterable<string, array{int, int, PaymentState}>
+     */
+    public static function corrected(): iterable
+    {
+        yield 'credit, nothing paid' => [-48400, 0, PaymentState::Unpaid];
+        yield 'credit, part paid' => [-48400, 50000, PaymentState::PartlyPaid];
+        yield 'credit, the rest paid' => [-48400, 72600, PaymentState::Paid];
+        yield 'credit after a payment in full' => [-48400, 121000, PaymentState::ToRefund];
+        yield 'credited in full, nothing paid' => [-121000, 0, PaymentState::Paid];
+        yield 'credited in full after a part payment' => [-121000, 100, PaymentState::ToRefund];
+        yield 'debit after a payment in full' => [24200, 121000, PaymentState::PartlyPaid];
+        yield 'debit paid too' => [24200, 145200, PaymentState::Paid];
+        yield 'credited in full after one minor unit paid' => [-121000, 1, PaymentState::ToRefund];
+        yield 'credited in full after a refund of more than was paid' => [-121000, -100, PaymentState::Paid];
+        yield 'credited beyond the invoice, nothing paid' => [-121100, 0, PaymentState::Paid];
+        yield 'no correction, overpaid' => [0, 121001, PaymentState::Overpaid];
+    }
+
+    #[DataProvider('corrected')]
+    public function testCorrectionsChangeWhatIsDue(int $corrections, int $paid, PaymentState $state): void
+    {
+        self::assertSame($state, PaymentState::of(Money::ofMinor(121000, Currency::CZK), Money::ofMinor($paid, Currency::CZK), Money::ofMinor($corrections, Currency::CZK)));
+    }
+
+    public function testACorrectionOfANothingPayableDocumentShowsNoPaymentState(): void
+    {
+        self::assertSame(PaymentState::Unpaid, PaymentState::of(Money::ofMinor(0, Currency::CZK), Money::ofMinor(0, Currency::CZK), Money::ofMinor(-100, Currency::CZK)));
+    }
+
+    public function testACorrectiveDocumentHasNoPaymentStateOfItsOwn(): void
+    {
+        self::assertSame(PaymentState::Unpaid, PaymentState::ofDocument(DocumentKind::CorrectionDocument, Money::ofMinor(24200, Currency::CZK), Money::ofMinor(24200, Currency::CZK)));
+    }
+
+    public function testACorrectionInAnotherCurrencyIsRefused(): void
+    {
+        $this->expectException(CurrencyMismatch::class);
+        PaymentState::of(Money::ofMinor(100, Currency::CZK), Money::ofMinor(0, Currency::CZK), Money::ofMinor(-100, Currency::EUR));
+    }
+
+    public function testOnlyPaidOverpaidAndToRefundAreSettled(): void
     {
         self::assertSame(
-            ['unpaid' => false, 'partly_paid' => false, 'paid' => true, 'overpaid' => true],
+            ['unpaid' => false, 'partly_paid' => false, 'paid' => true, 'overpaid' => true, 'to_refund' => true],
             array_combine(array_map(static fn (PaymentState $state): string => $state->value, PaymentState::cases()), array_map(static fn (PaymentState $state): bool => $state->isSettled(), PaymentState::cases())),
         );
     }

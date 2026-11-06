@@ -49,6 +49,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_invoice_taxed_payment', columns: ['advance_invoice_id', 'payment_id'])]
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 #[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
+#[ORM\Index(name: 'idx_invoice_corrected', columns: ['corrected_invoice_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -59,6 +60,7 @@ class Invoice implements TenantOwned, Audited
     public const int MAX_ORDER_NUMBER_LENGTH = 64;
     public const int MAX_CONSTANT_SYMBOL_LENGTH = 10;
     public const int MAX_REASON_LENGTH = 500;
+    public const int MAX_CORRECTION_REASON_LENGTH = 500;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -167,6 +169,19 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'deducts_advances', type: 'boolean', options: ['default' => false])]
     private bool $deductsAdvances = false;
+
+    // Only a corrective tax document names the document it corrects, why, how and the day of the fact.
+    #[ORM\Column(name: 'corrected_invoice_id', type: 'guid', nullable: true)]
+    private ?string $correctedInvoiceId = null;
+
+    #[ORM\Column(name: 'correction_reason', type: 'text', nullable: true)]
+    private ?string $correctionReason = null;
+
+    #[ORM\Column(name: 'correction_type', type: 'string', length: 8, nullable: true, enumType: CorrectionType::class)]
+    private ?CorrectionType $correctionType = null;
+
+    #[ORM\Column(name: 'decisive_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $decisiveDate = null;
 
     #[ORM\Column(name: 'recurring_invoice_id', type: 'guid', nullable: true)]
     private ?string $recurringInvoiceId = null;
@@ -352,6 +367,29 @@ class Invoice implements TenantOwned, Audited
     }
 
     /**
+     * A tax document on payment that went to the trash when part of its payment was
+     * refunded before the customer got it gives its payment up to the one issued for
+     * what stays paid. It keeps its advance, and never taxes a payment again.
+     *
+     * @throws \DomainException for another kind of document, or one not in the trash
+     */
+    public function givesUpPayment(): void
+    {
+        if (DocumentKind::PaymentTaxDocument !== $this->kind || !$this->isTrashed()) {
+            throw new \DomainException('Only a tax document on payment in the trash gives up its payment.');
+        }
+        $this->paymentId = null;
+    }
+
+    /**
+     * Whether a tax document on payment gave its payment up to another one.
+     */
+    public function isReplaced(): bool
+    {
+        return DocumentKind::PaymentTaxDocument === $this->kind && null !== $this->advanceInvoiceId && null === $this->paymentId;
+    }
+
+    /**
      * The advance invoice whose payment a tax document on payment taxes.
      */
     public function advanceInvoiceId(): ?string
@@ -387,6 +425,52 @@ class Invoice implements TenantOwned, Audited
     public function deductedByInvoiceId(): ?string
     {
         return $this->deductedByInvoiceId;
+    }
+
+    /**
+     * Names what a corrective tax document corrects, why, how and the day of the
+     * fact. An edit may reword it, never move it to another document.
+     *
+     * @throws \DomainException for another kind, or for another corrected document
+     */
+    public function corrects(string $invoiceId, string $reason, CorrectionType $type, \DateTimeImmutable $decisiveDate): void
+    {
+        if (DocumentKind::CorrectionDocument !== $this->kind) {
+            throw new \DomainException('Only a corrective tax document corrects a document.');
+        }
+        if (null !== $this->correctedInvoiceId && $invoiceId !== $this->correctedInvoiceId) {
+            throw new \DomainException('A corrective tax document keeps the document it corrects.');
+        }
+        $this->correctedInvoiceId = $invoiceId;
+        $this->correctionReason = $reason;
+        $this->correctionType = $type;
+        $this->decisiveDate = $this->decisiveDate instanceof \DateTimeImmutable && $this->decisiveDate->format('Y-m-d') === $decisiveDate->format('Y-m-d') ? $this->decisiveDate : $decisiveDate;
+    }
+
+    /**
+     * The document a corrective tax document corrects.
+     */
+    public function correctedInvoiceId(): ?string
+    {
+        return $this->correctedInvoiceId;
+    }
+
+    public function correctionReason(): ?string
+    {
+        return $this->correctionReason;
+    }
+
+    public function correctionType(): ?CorrectionType
+    {
+        return $this->correctionType;
+    }
+
+    /**
+     * The day of the fact that a corrective tax document corrects.
+     */
+    public function decisiveDate(): ?\DateTimeImmutable
+    {
+        return $this->decisiveDate;
     }
 
     public function recurringInvoiceId(): ?string
