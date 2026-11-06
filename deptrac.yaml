@@ -75,6 +75,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Import/Infrastructure/.*
+    # Reads iDoklad accounts into a snapshot for the import; the vendor's names stay here.
+    - name: IdokladDomain
+      collectors:
+        - type: directory
+          value: src/Idoklad/Domain/.*
+    - name: IdokladApplication
+      collectors:
+        - type: directory
+          value: src/Idoklad/Application/.*
+    - name: IdokladInfrastructure
+      collectors:
+        - type: directory
+          value: src/Idoklad/Infrastructure/.*
     - name: IdentityDomain
       collectors:
         - type: directory
@@ -314,6 +327,28 @@ deptrac:
       - AuditApplication
       # The import screens and the finish notice in the app shell.
       - Ui
+    IdokladDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      # The credentials and the snapshot belong to a firm.
+      - PartyDomain
+    IdokladApplication:
+      - IdokladDomain
+      - SharedDomain
+      - TenancyDomain
+      - PartyDomain
+      - PartyApplication
+      # The client secret is sealed with the keys of the mail server passwords.
+      - InvoicingApplication
+    IdokladInfrastructure:
+      - IdokladDomain
+      - IdokladApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - SharedDomain
+      - PartyDomain
     IdentityDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain
