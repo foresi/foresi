@@ -16,6 +16,7 @@ use App\Invoicing\Domain\VariableSymbol;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
+use Psr\Clock\ClockInterface;
 
 /**
  * Saving an issued invoice. Firm, regime, rounding and the copy of the issuer stay
@@ -40,6 +41,7 @@ final readonly class EditInvoice
         private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -92,7 +94,7 @@ final readonly class EditInvoice
 
     private function save(Invoice $invoice, InvoiceInput $input, InvoiceChange $change): void
     {
-        $invoice->change($input->variableSymbolFollowsNumber ? $change->withVariableSymbol(VariableSymbol::fromNumber($invoice->number())) : $change);
+        $invoice->change($input->variableSymbolFollowsNumber ? $change->withVariableSymbol(VariableSymbol::fromNumber($invoice->number())) : $change, \DateTimeImmutable::createFromInterface($this->clock->now()));
         $country = $this->countries->for($invoice->issuer()->address->countryCode);
         $regime = $invoice->vatRegime();
         $lines = $this->pricing->priced($input->lines, $regime, $country, $this->corrections->rateDate($input, $invoice) ?? $change->rateDate());

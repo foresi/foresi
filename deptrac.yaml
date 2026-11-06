@@ -162,7 +162,7 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Brick\\(Money|Math)\\
-    # Spreadsheet reading; only the Import module's infrastructure may use it.
+    # Spreadsheets; only the infrastructure of Import and of Invoicing (the list for the accountant) may use it.
     - name: VendorOpenSpout
       collectors:
         - type: classLike
@@ -410,6 +410,7 @@ deptrac:
       - PartyDomain
       - Ui
       - VendorTecnick
+      - VendorOpenSpout
       # A failed delivery is recorded in the tenant of its message.
       - TenancyDomain
       - TenantStamp

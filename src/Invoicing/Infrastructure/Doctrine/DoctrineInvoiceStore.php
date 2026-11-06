@@ -14,7 +14,11 @@ use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\InvoiceSumLine;
+use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\ListedDocument;
+use App\Invoicing\Application\ListedDocuments;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\StoredInvoice;
@@ -22,15 +26,20 @@ use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
+use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\RateSummary;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
+use App\Invoicing\Domain\TaxTreatment;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
@@ -48,8 +57,12 @@ use Psr\Clock\ClockInterface;
  * What an invoice has been paid is summed in SQL for the tabs and for overdue, one
  * subquery per use, and read in one more query for the rows of a page. A document
  * paid in full or more is settled: it is never overdue.
+ *
+ * The sums of a list group its lines in SQL by treatment, rate, currency and exchange
+ * rate, under the same conditions as its page; only those groups come back, and each
+ * is converted to the home currency exactly, rounded once at the end.
  */
-final readonly class DoctrineInvoiceStore implements InvoiceStore
+final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocuments
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
     private const string COUNTRY = 'i.issuer.address.countryCode';
@@ -174,7 +187,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
 
         // Each kind counts its own tabs; a tab it lacks lists the whole kind.
         $tabs = InvoiceFilter::tabsOf($filter->kind);
-        $tab = \in_array($filter->tab, $tabs, true) ? $filter->tab : InvoiceFilter::ALL;
+        $tab = $this->tabOf($filter);
         $sums = array_map(fn (string $key, int $index): string => 'SUM(CASE WHEN '.$this->inTab($key, $filter->kind, 'c'.$index, $overdue).' THEN 1 ELSE 0 END)', $tabs, array_keys($tabs));
         $counts = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.Invoice::class.' i WHERE '.$where);
         $this->bind($counts, \in_array(InvoiceFilter::OVERDUE, $tabs, true) ? [...$parameters, ...$overdueParameters] : $parameters);
@@ -186,11 +199,11 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $pages = max(1, (int) ceil($total / self::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
 
-        $condition = $where.' AND '.$this->inTab($tab, $filter->kind, 'l', $overdue);
+        [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
         // What the corrections add comes with each row: the page keeps its number of queries.
         $list = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
             .' FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
-        $this->bind($list, InvoiceFilter::OVERDUE === $tab ? [...$parameters, ...$overdueParameters] : $parameters);
+        $this->bind($list, $listed);
 
         /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
         $results = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
@@ -208,6 +221,141 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, $corrections[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
     }
 
+    public function sums(InvoiceFilter $filter): InvoiceSums
+    {
+        [$firms, $todays] = $this->issuers();
+        [$overdue, $overdueParameters] = $this->overdue($todays);
+        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
+
+        $count = $this->em->createQuery('SELECT COUNT(i.id) FROM '.Invoice::class.' i WHERE '.$condition);
+        $this->bind($count, $listed);
+        $groups = $this->em->createQuery('SELECT l.treatment AS treatment, l.rate AS rate, i.currency AS currency, i.exchangeRate AS exchangeRate,'
+            .' SUM(l.netMinor) AS net, SUM(l.vatMinor) AS vat, SUM(l.grossMinor) AS gross'
+            .' FROM '.InvoiceLine::class.' l JOIN l.invoice i WHERE '.$condition.' GROUP BY i.id, l.treatment, l.rate, i.currency, i.exchangeRate');
+        $this->bind($groups, $listed);
+
+        // Each document converts at its own rate, as its summary in the pack does, before the sums add up.
+        /** @var array<string, array{treatment: TaxTreatment, rate: ?string, net: Money, vat: Money, gross: Money}> $lines */
+        $lines = [];
+        $zero = Money::ofMinor(0, Currency::CZK);
+        [$net, $vat, $gross] = [$zero, $zero, $zero];
+        /** @var list<array{treatment: TaxTreatment, rate: ?string, currency: Currency, exchangeRate: string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $rows */
+        $rows = $groups->getResult(Query::HYDRATE_ARRAY);
+        foreach ($rows as $row) {
+            $key = $row['treatment']->value.'|'.$row['rate'];
+            $line = $lines[$key] ?? ['net' => $zero, 'vat' => $zero, 'gross' => $zero];
+            $home = static fn (int|string $minor): Money => Money::ofMinor((int) $minor, Currency::CZK)->multipliedBy($row['exchangeRate']);
+            $lines[$key] = ['treatment' => $row['treatment'], 'rate' => $row['rate'], 'net' => $line['net']->plus($home($row['net'])), 'vat' => $line['vat']->plus($home($row['vat'])), 'gross' => $line['gross']->plus($home($row['gross']))];
+            $net = $net->plus($home($row['net']));
+            $vat = $vat->plus($home($row['vat']));
+            $gross = $gross->plus($home($row['gross']));
+        }
+        // The standard rates from the highest, then the treatments without one in their order.
+        $order = array_flip(array_map(static fn (TaxTreatment $treatment): string => $treatment->value, TaxTreatment::cases()));
+        uasort($lines, static fn (array $a, array $b): int => [$order[$a['treatment']->value], -(float) $a['rate']] <=> [$order[$b['treatment']->value], -(float) $b['rate']]);
+
+        $views = array_values(array_map(fn (array $line): InvoiceSumLine => new InvoiceSumLine($line['treatment'], null === $line['rate'] ? null : Percent::fromString($line['rate']), $line['net'], $line['vat'], $line['gross']), $lines));
+
+        return new InvoiceSums((int) $count->getSingleScalarResult(), $net, $vat, $gross, $views);
+    }
+
+    public function listedIds(InvoiceFilter $filter): array
+    {
+        [$firms, $todays] = $this->issuers();
+        [$overdue, $overdueParameters] = $this->overdue($todays);
+        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
+
+        $query = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
+        $this->bind($query, $listed);
+        /** @var list<string> $ids */
+        $ids = $query->getSingleColumnResult();
+
+        return $ids;
+    }
+
+    public function listedRates(InvoiceFilter $filter): array
+    {
+        return $this->sums($filter)->lines;
+    }
+
+    /**
+     * The rows as page() builds them, one query for the documents with what their
+     * corrections add, one for their lines summed per treatment and rate, one for the
+     * marks and one for what they have been paid.
+     */
+    public function listedDocuments(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+        [, $todays] = $this->issuers();
+        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
+        $results = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
+            .' FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getResult();
+        /** @var list<array{invoice: string, treatment: TaxTreatment, rate: ?string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $groups */
+        $groups = $this->em->createQuery('SELECT IDENTITY(l.invoice) AS invoice, l.treatment AS treatment, l.rate AS rate, SUM(l.netMinor) AS net, SUM(l.vatMinor) AS vat, SUM(l.grossMinor) AS gross'
+            .' FROM '.InvoiceLine::class.' l WHERE l.invoice IN (:ids) GROUP BY l.invoice, l.treatment, l.rate')
+            ->setParameter('ids', $ids)
+            ->getResult(Query::HYDRATE_ARRAY);
+        $summaries = [];
+        foreach ($groups as $group) {
+            $summaries[$group['invoice']][] = $group;
+        }
+        $found = array_map(static fn (array $result): string => $result[0]->id(), $results);
+        $marks = $this->sends->marksFor($found);
+        $paid = $this->payments->paidFor($found);
+
+        $documents = [];
+        foreach ($results as $result) {
+            $invoice = $result[0];
+            $documents[$invoice->id()] = new ListedDocument(
+                $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, (int) $result['corrections']),
+                $invoice->customer()->registrationNumber,
+                $invoice->customer()->vatId,
+                $invoice->taxPointDate(),
+                $invoice->currency(),
+                $invoice->exchangeRate(),
+                $invoice->net(),
+                $invoice->vat(),
+                $invoice->gross(),
+                $this->summaries($invoice->currency(), $summaries[$invoice->id()] ?? []),
+            );
+            // Read once and written out: kept, a long list would fill the session.
+            $this->em->detach($invoice);
+        }
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($documents[$id])) {
+                $ordered[] = $documents[$id];
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * A treatment without a rate keeps none, as InvoiceCalculator::summaries() has it.
+     *
+     * @param list<array{invoice: string, treatment: TaxTreatment, rate: ?string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $groups
+     *
+     * @return list<RateSummary>
+     */
+    private function summaries(Currency $currency, array $groups): array
+    {
+        return array_map(static fn (array $group): RateSummary => new RateSummary(
+            $group['treatment'],
+            $group['treatment']->hasRate() && null !== $group['rate'] ? Percent::fromString($group['rate']) : null,
+            Money::ofMinor((int) $group['net'], $currency),
+            Money::ofMinor((int) $group['vat'], $currency),
+            Money::ofMinor((int) $group['gross'], $currency),
+        ), $groups);
+    }
+
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         /** @var list<string> $ids */
@@ -218,6 +366,23 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             ->getSingleColumnResult();
 
         return $ids;
+    }
+
+    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+    {
+        $dql = 'SELECT i.id, i.kind FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.deletedAt IS NULL'
+            .' AND ((i.kind = :advance AND i.issueDate >= :from AND i.issueDate <= :to) OR (i.kind <> :advance AND i.taxPointDate >= :from AND i.taxPointDate <= :to))'
+            .($pending ? ' AND (i.exportedAt IS NULL OR i.changedAfterExportAt IS NOT NULL)' : '')
+            .' ORDER BY i.numberKey, i.id';
+        /** @var list<array{id: string, kind: DocumentKind}> $rows */
+        $rows = $this->em->createQuery($dql)
+            ->setParameter('firm', $firm->id())
+            ->setParameter('advance', DocumentKind::Advance)
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getArrayResult();
+
+        return array_column($rows, 'kind', 'id');
     }
 
     public function correctionsOf(Invoice $original): array
@@ -375,6 +540,29 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
     }
 
     /**
+     * The tab a filter shows: one its kind lacks lists the whole kind.
+     */
+    private function tabOf(InvoiceFilter $filter): string
+    {
+        return \in_array($filter->tab, InvoiceFilter::tabsOf($filter->kind), true) ? $filter->tab : InvoiceFilter::ALL;
+    }
+
+    /**
+     * What a list shows, the same for its page and its sums: what narrowed() leaves, in the tab.
+     *
+     * @param array<string, array{mixed, string|null}> $parameters
+     * @param array<string, array{mixed, string|null}> $overdueParameters
+     *
+     * @return array{string, array<string, array{mixed, string|null}>}
+     */
+    private function listed(InvoiceFilter $filter, string $where, array $parameters, string $overdue, array $overdueParameters): array
+    {
+        $tab = $this->tabOf($filter);
+
+        return [$where.' AND '.$this->inTab($tab, $filter->kind, 'l', $overdue), InvoiceFilter::OVERDUE === $tab ? [...$parameters, ...$overdueParameters] : $parameters];
+    }
+
+    /**
      * What firm, text and the to-send filter leave: the tabs count within this.
      *
      * @param array<string, string> $firms
@@ -395,6 +583,19 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
                 .' AND NOT EXISTS (SELECT s.id FROM '.InvoiceSend::class.' s WHERE s.invoice = i AND s.purpose = :invoicePurpose AND s.status IN (:deliveringStatuses))';
             $parameters['invoicePurpose'] = [SendPurpose::Invoice->value, null];
             $parameters['deliveringStatuses'] = [[SendStatus::Queued->value, SendStatus::Sent->value], null];
+        }
+        $where .= match ($filter->export) {
+            ExportState::NotExported => ' AND i.exportedAt IS NULL',
+            ExportState::Exported => ' AND i.exportedAt IS NOT NULL AND i.changedAfterExportAt IS NULL',
+            ExportState::Changed => ' AND i.changedAfterExportAt IS NOT NULL',
+            null => '',
+        };
+        if (null !== $filter->month) {
+            // A tax document belongs to the month of its tax point, an advance to that of its issue.
+            $start = new \DateTimeImmutable($filter->month.'-01');
+            $where .= \sprintf(' AND %1$s >= :monthStart AND %1$s < :monthEnd', $filter->kind->isTaxDocument() ? 'i.taxPointDate' : 'i.issueDate');
+            $parameters['monthStart'] = [$start, Types::DATE_IMMUTABLE];
+            $parameters['monthEnd'] = [$start->modify('first day of next month'), Types::DATE_IMMUTABLE];
         }
         $text = trim($filter->text);
         if ('' === $text) {
@@ -466,6 +667,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->kind(),
             $byAdvances,
             $corrections,
+            $invoice->exportedAt(),
+            $invoice->changedAfterExportAt(),
         );
     }
 }

@@ -203,7 +203,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
         $customerParty = $invoice->customerParty();
         $change = $this->input()->change($customerParty, $invoice->customer(), DocumentKind::Invoice);
         $tries = [
-            'change' => static fn () => $invoice->change($change),
+            'change' => static fn () => $invoice->change($change, new \DateTimeImmutable('2026-11-06 12:00')),
             'totals' => static fn () => $invoice->assignTotals($totals),
             'number' => static fn (): ?\App\Invoicing\Domain\AbandonedNumber => $invoice->changeNumber($series, 'X-1'),
             'delivered' => static fn () => $invoice->markDelivered(new \DateTimeImmutable('2026-11-04')),

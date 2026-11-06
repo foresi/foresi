@@ -12,6 +12,24 @@ dashboard:
   empty:
     title: Your dashboard is on its way
     text: Once there is data in this organisation, the overview will appear here.
+  invoicing:
+    title: Invoicing
+    note: Amounts in CZK, months by the tax point.
+    show: Show
+    invoiced: 'Invoiced – {month}'
+    base: 'Base {amount}'
+    unpaid: Unpaid
+    overdue: Overdue
+    documents: '{count, plural, one {# document} other {# documents}}'
+    vat: 'Output VAT – {month}'
+    age_30: Overdue up to 30 days
+    age_60: Overdue 31–60 days
+    age_over: Overdue over 60 days
+    debtors: Top debtors
+    debtors_empty: No customer owes anything.
+    pending: '{month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
+    pending_firm: '{firm}: {month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
+    pending_link: Pass to the accountant
 auth:
   logout: Sign out
 registry:
@@ -1160,18 +1178,79 @@ invoice:
       rate_limited: Too many sends in a short time. Try again in a moment.
       undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
       reminder_taken: This reminder of the invoice has been queued already.
+  export_state:
+    label: Accountant export
+    all: All
+    not_exported: Not exported
+    exported: Exported
+    changed: Changed after export
+    hint:
+      exported: 'Exported for the accountant {date}'
+      changed: 'Edited {date}, after the export for the accountant'
   export:
-    incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
+    incomplete: 'Documents {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole month.'
     title: Documents for the accountant
     link: For the accountant
-    intro: Downloads a ZIP of the invoice PDFs with their ISDOC for a period, by tax point date. Documents in the trash stay out. Nothing is sent anywhere.
-    from: From
-    to: To
+    intro: Downloads a ZIP of the PDFs and ISDOC of one month with a list of them. Tax documents fall in the month of their tax point, advance invoices in the month of their issue. Documents in the trash stay out. Nothing is sent anywhere; the documents are marked exported.
+    month: Month
+    month_help: By tax point; advance invoices by issue date
+    scope:
+      legend: Documents
+      pending: Not yet exported
+      pending_text: New documents and those edited after their export
+      all: All of the month
+      all_text: Also those the accountant has already had
+    counts: In the ZIP
+    count_total: Total
+    refresh: Count again
     submit: Download ZIP
-    empty: No invoices of this firm in this period.
-    date_invalid: Enter a valid date.
-    backwards: The end of the period cannot come before its start.
-    too_long: 'A period has at most {days} days.'
+    empty: No documents of this firm to export in this month.
+    month_invalid: Enter a valid month.
+    folder:
+      invoice: invoices
+      advance: advance-invoices
+      payment_tax_document: tax-documents
+      correction_document: corrective-documents
+    currency: '{code}'
+    list_file: list.xlsx
+    sheet:
+      documents: Documents
+      recap: VAT recap
+    column:
+      number: Number
+      kind: Kind
+      customer: Customer
+      registration: Registration number
+      vat_id: VAT number
+      issue_date: Issue date
+      tax_point: Tax point
+      due_date: Due date
+      currency: Currency
+      exchange_rate: Exchange rate
+      base: Base
+      vat: VAT
+      total: Total
+      payable: To pay
+      state: Export state before
+    recap:
+      treatment: Treatment
+      rate: Rate (%)
+      base: 'Base ({currency})'
+      vat: 'VAT ({currency})'
+      total: 'Total ({currency})'
+      sum: Total
+  list_export:
+    button: Export
+    csv: Export as CSV
+    xlsx: 'Export as Excel (XLSX)'
+    all_months: all
+    decimal: '.'
+    paid: Paid
+    left: Left to pay
+    state: Export state
+    rate: '{rate, number} %'
+    rate_base: 'Base {label}'
+    rate_vat: 'VAT {label}'
   pdf:
     undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
     footer: '{title} · Page {page}/{pages}'
@@ -1259,6 +1338,7 @@ invoice:
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
+    not_exported: This document has no export state.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
     delivered_confirm: 'Mark invoice {number} as delivered?'
@@ -1275,6 +1355,7 @@ invoice:
       trash: Trash
     column:
       sent: E-mail
+      export: Export
       number: Number
       firm: Firm
       customer: Customer
@@ -1306,6 +1387,7 @@ invoice:
       history: History
       delete: Delete
       restore: Restore
+      clear_export: Clear export state
     empty:
       title: No invoices yet
       text: Issue the first one. Saving gives it its number.
@@ -1343,6 +1425,8 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
+    exported: '{who} exported the invoice for the accountant'
+    export_cleared: '{who} cleared the export state'
     paid: '{who}: payment of {amount} recorded'
     payment_cancelled: '{who}: payment of {amount} removed'
     send: '{who} sent an e-mail to {recipients}'
@@ -1393,6 +1477,16 @@ invoice:
   more: More details
   more_show: Show more details
   firm_apply: Use this firm
+  month:
+    label: Month
+  sums:
+    title: Sums of the list
+    count: Documents
+    base: Base
+    vat: VAT
+    total: Total
+    rate: Rate
+    note: In CZK at each document's exchange rate, all pages
   rate: '{rate}%'
   errors_title: The invoice cannot be saved yet
   cut_off: The form was too large to arrive whole, so nothing was saved.
@@ -1417,6 +1511,7 @@ invoice:
     trashed: 'Invoice {number} is in the trash.'
     restored: 'Invoice {number} is back in the list.'
     delivered: 'Invoice {number} is marked as delivered.'
+    export_cleared: 'Document {number} has no export state now; the next export takes it.'
   card:
     issuer: Issuer
     customer: Customer

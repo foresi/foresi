@@ -16,6 +16,7 @@ use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\IssueRules;
 use App\Invoicing\Application\LineInput;
@@ -358,9 +359,19 @@ final class CorrectionDocumentTest extends InvoiceTestCase
                 return $this->store->page($filter);
             }
 
+            public function sums(InvoiceFilter $filter): InvoiceSums
+            {
+                return $this->store->sums($filter);
+            }
+
             public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
             {
                 return $this->store->idsForPeriod($firm, $from, $to);
+            }
+
+            public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+            {
+                return $this->store->forAccountant($firm, $from, $to, $pending);
             }
 
             public function lastFirmOf(string $userId): ?LegalEntity

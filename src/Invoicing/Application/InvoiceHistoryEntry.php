@@ -22,6 +22,8 @@ final readonly class InvoiceHistoryEntry
     public const string DELIVERED = 'delivered';
     public const string PAID = 'paid';
     public const string PAYMENT_CANCELLED = 'payment_cancelled';
+    public const string EXPORTED = 'exported';
+    public const string EXPORT_CLEARED = 'export_cleared';
 
     /**
      * @param string|null              $userName    null when no person did it

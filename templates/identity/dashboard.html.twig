@@ -4,5 +4,16 @@
 {% block title %}{{ 'dashboard.title'|trans }}{% endblock %}
 
 {% block content %}
-    <twig:Ui:EmptyState icon="layout-grid" :title="'dashboard.empty.title'|trans" :text="'dashboard.empty.text'|trans" />
+    {# The modules contribute the sections (App\Ui\Dashboard); with none to show the page waits for data. #}
+    {% set app_shell = shell() %}
+    {% set sections = dashboard_sections(app_shell ? app_shell.tenantActive : false) %}
+    {% if sections is empty %}
+        <twig:Ui:EmptyState icon="layout-grid" :title="'dashboard.empty.title'|trans" :text="'dashboard.empty.text'|trans" />
+    {% else %}
+        <div class="grid grid-cols-1 gap-4">
+            {% for section in sections %}
+                {{ include(section.template, section.context, with_context = false) }}
+            {% endfor %}
+        </div>
+    {% endif %}
 {% endblock %}

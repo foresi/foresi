@@ -10,6 +10,8 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
+use App\Invoicing\Application\DocumentExports;
+use App\Invoicing\Application\ExportDocumentList;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
@@ -20,9 +22,12 @@ use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\InvoiceSumLine;
+use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\IssueRefused;
+use App\Invoicing\Application\ListFileFormat;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\MissingTaxDocument;
 use App\Invoicing\Application\MissingTaxDocuments;
@@ -36,10 +41,12 @@ use App\Invoicing\Application\UncorrectedTaxDocuments;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
@@ -49,9 +56,12 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -76,7 +86,7 @@ final class InvoiceListController extends AbstractController
     private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export', 'month'];
     /** The tab of the advances that wait for a tax document. */
     private const string MISSING = 'needs_tax_document';
     /** The tab of the tax documents on payment that wait for a corrective one. */
@@ -103,6 +113,8 @@ final class InvoiceListController extends AbstractController
         private readonly MissingTaxDocuments $missing,
         private readonly IssuePaymentTaxDocument $taxDocuments,
         private readonly UncorrectedTaxDocuments $uncorrected,
+        private readonly DocumentExports $exports,
+        private readonly ExportDocumentList $listExport,
     ) {
     }
 
@@ -115,18 +127,11 @@ final class InvoiceListController extends AbstractController
         $this->denyUnlessStaff();
         $kind = DocumentKind::from($kind);
         $route = self::ROUTES[$kind->value];
-        $tab = $request->query->getString('tab', InvoiceFilter::ALL);
-        $tab = \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL;
-        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
-        $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
-        $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
-        $firm = $request->query->getString('firm');
-        // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
-        $toSend = '1' === $request->query->getString('toSend');
-
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind));
+        $filter = $this->filterOf($request->query, $kind);
+        [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
+        $page = $this->store->page($filter);
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         // What an action carries back names the kind, so it returns to this list.
@@ -146,6 +151,11 @@ final class InvoiceListController extends AbstractController
             'sort' => $sort,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
+            'export' => $export->value ?? '',
+            'exportStates' => ['' => $this->translator->trans('invoice.export_state.all')] + array_combine(
+                array_map(static fn (ExportState $state): string => $state->value, ExportState::cases()),
+                array_map(fn (ExportState $state): string => $this->translator->trans('invoice.export_state.'.$state->value), ExportState::cases()),
+            ),
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
@@ -158,8 +168,64 @@ final class InvoiceListController extends AbstractController
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
-            'filtered' => '' !== $text || '' !== $firm || $toSend,
+            'month' => $month ?? '',
+            // An empty list adds up to nothing to show, and saves the queries.
+            'sums' => 0 === $page->total ? null : $this->sums($this->store->sums($filter)),
+            'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,
         ]);
+    }
+
+    /**
+     * Downloads exactly what the list shows, its filter posted back: the same tab, firm,
+     * month, export state, text and order, over all pages. It is streamed and read in
+     * batches, so a long list needs no limit. The name says the kind and the month only.
+     */
+    #[Route('/invoices/list-export', name: 'app_invoices_list_export', methods: ['POST'])]
+    public function exportList(Request $request): StreamedResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $kind = DocumentKind::tryFrom($request->request->getString('kind')) ?? throw new NotFoundHttpException();
+        $filter = $this->filterOf($request->request, $kind);
+        $format = 'xlsx' === $request->request->getString('format') ? ListFileFormat::Xlsx : ListFileFormat::Csv;
+        $name = \sprintf('%s_%s.%s', $this->translator->trans('invoice.export.folder.'.$kind->value), $filter->month ?? $this->translator->trans('invoice.list_export.all_months'), $format->value);
+
+        // The request has ended by the time the response streams, and its locale with it.
+        $locale = $request->getLocale();
+        $response = new StreamedResponse(function () use ($filter, $format, $locale): void {
+            $this->listExport->write($filter, $format, 'php://output', $locale);
+        });
+        $response->headers->set('Content-Type', ListFileFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $name));
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
+    }
+
+    /**
+     * The filter of a list from its query, or from the form of its download: anything
+     * it does not know falls back to the whole list.
+     *
+     * @param InputBag<string> $input
+     */
+    private function filterOf(InputBag $input, DocumentKind $kind): InvoiceFilter
+    {
+        $tab = $input->getString('tab', InvoiceFilter::ALL);
+        $sort = $input->getString('sort', InvoiceFilter::DEFAULT_SORT);
+        $firm = $input->getString('firm');
+
+        return new InvoiceFilter(
+            '' === $firm ? null : $firm,
+            \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL,
+            trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
+            \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT,
+            max(1, $input->getInt('page', 1)),
+            // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
+            '1' === $input->getString('toSend'),
+            $kind,
+            ExportState::tryFrom($input->getString('export')),
+            InvoiceFilter::monthOf($input->getString('month')),
+        );
     }
 
     /**
@@ -335,6 +401,25 @@ final class InvoiceListController extends AbstractController
         return $this->toList($return);
     }
 
+    /**
+     * The next pack for the accountant takes the document again.
+     */
+    #[Route('/invoices/{id}/clear-export', name: 'app_invoice_clear_export', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function clearExport(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $invoice = $this->invoice($id);
+        $this->checkToken($request);
+        if (ExportState::NotExported === $invoice->exportState()) {
+            $this->addFlash('warning', $this->translator->trans('invoice.list.not_exported'));
+
+            return $this->toList($request->request->getString('return'));
+        }
+        $this->addFlash('success', $this->translator->trans('invoice.flash.export_cleared', ['number' => $this->exports->clear($id)->number()]));
+
+        return $this->toList($request->request->getString('return'));
+    }
+
     #[Route('/invoices/{id}/history', name: 'app_invoice_history', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function showHistory(string $id): Response
     {
@@ -402,6 +487,31 @@ final class InvoiceListController extends AbstractController
         $parameters = array_filter(array_intersect_key($query, array_flip(self::LIST_QUERY)), \is_string(...));
 
         return [self::ROUTES[$kind->value], $parameters];
+    }
+
+    /**
+     * What the list adds up to, as shown under it: the totals, then a line per treatment and rate.
+     *
+     * @return array{facts: list<array{label: string, value: string, big?: bool}>, lines: list<array{label: string, base: string, vat: string, total: string}>}
+     */
+    private function sums(InvoiceSums $sums): array
+    {
+        return [
+            'facts' => [
+                ['label' => $this->translator->trans('invoice.sums.count'), 'value' => (string) $sums->count],
+                ['label' => $this->translator->trans('invoice.sums.base'), 'value' => $this->amounts->shown($sums->base)],
+                ['label' => $this->translator->trans('invoice.sums.vat'), 'value' => $this->amounts->shown($sums->vat)],
+                ['label' => $this->translator->trans('invoice.sums.total'), 'value' => $this->amounts->shown($sums->total), 'big' => true],
+            ],
+            'lines' => array_map(fn (InvoiceSumLine $line): array => [
+                'label' => $line->rate instanceof Percent
+                    ? $this->translator->trans('invoice.rate', ['rate' => $this->amounts->trimmed($line->rate->decimal())])
+                    : $this->translator->trans('invoice.vat.'.$line->treatment->value),
+                'base' => $this->amounts->shown($line->base),
+                'vat' => $this->amounts->shown($line->vat),
+                'total' => $this->amounts->shown($line->total),
+            ], $sums->lines),
+        ];
     }
 
     /**
@@ -480,6 +590,7 @@ final class InvoiceListController extends AbstractController
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
             $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
+            $columns[] = $this->column('export', $sort, $query, phone: false) + ['wide' => true];
         }
 
         return $columns;
@@ -554,12 +665,14 @@ final class InvoiceListController extends AbstractController
                 ];
                 $mark = $sent['text'];
             }
+            $export = $this->exportCell($row);
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
                 'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
                 'sent' => $sent,
+                'export' => $export,
             ];
-            $secondary = $this->joined([$row->customerName, $due, $badge, $mark]);
+            $secondary = $this->joined([$row->customerName, $due, $badge, $mark, $export['text'] ?? null]);
         }
 
         return [
@@ -570,6 +683,29 @@ final class InvoiceListController extends AbstractController
             'secondary' => $secondary,
             'cells' => $cells,
             'actions' => $this->actions($row, $return, $reminders['count'] ?? 0),
+        ];
+    }
+
+    /**
+     * What the accountant has of the row, with the moment that says so in the tenant's time.
+     * A document never exported shows nothing; a change after the export asks for a look.
+     *
+     * @return array{text: string, icon: string, tone: string, hint: string}|null
+     */
+    private function exportCell(InvoiceRow $row): ?array
+    {
+        $moment = $row->changedAfterExportAt ?? $row->exportedAt;
+        if (!$moment instanceof \DateTimeImmutable) {
+            return null;
+        }
+        $changed = $row->changedAfterExportAt instanceof \DateTimeImmutable;
+        $state = $row->exportState()->value;
+
+        return [
+            'text' => $this->translator->trans('invoice.export_state.'.$state),
+            'icon' => $changed ? 'file-pen-line' : 'archive',
+            'tone' => $changed ? 'amber' : 'gray',
+            'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->tenantClock->timezone())->format($this->translator->trans('format.datetime'))]),
         ];
     }
 
@@ -646,6 +782,9 @@ final class InvoiceListController extends AbstractController
                 'accept' => $this->translator->trans('invoice.list.delivered_confirm_accept'),
             ], 'fields' => $fields];
         }
+        if (ExportState::NotExported !== $row->exportState()) {
+            $actions[] = ['label' => $this->label('clear_export'), 'href' => $this->generateUrl('app_invoice_clear_export', $id), 'method' => 'POST', 'fields' => $fields];
+        }
         $actions[] = $history;
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
@@ -700,6 +839,8 @@ final class InvoiceListController extends AbstractController
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
                 InvoiceHistoryEntry::PAID => 'banknote',
                 InvoiceHistoryEntry::PAYMENT_CANCELLED => 'banknote-x',
+                InvoiceHistoryEntry::EXPORTED => 'archive',
+                InvoiceHistoryEntry::EXPORT_CLEARED => 'archive-restore',
                 default => 'pencil',
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),

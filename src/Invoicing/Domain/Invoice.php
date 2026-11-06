@@ -33,6 +33,11 @@ use Doctrine\ORM\Mapping as ORM;
  * tables; deliveredAt is what sending sets. A number is unique in a firm, trash
  * included. Create invoices through IssueInvoice.
  *
+ * The export marks say what the accountant has: when the document was last
+ * exported, and when it was first edited after that. They record a handover, not a
+ * change of the document, so they hold in the trash too and leave the version
+ * alone: a form opened before an export still saves.
+ *
  * An invoice issued from a recurring template names the template and the date of
  * its occurrence, unique in a tenant, so no occurrence is ever issued twice. The
  * trash keeps both, so trashing never lets the occurrence come again. Ordinary
@@ -42,6 +47,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'invoice')]
 #[ORM\Index(name: 'idx_invoice_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_firm_date', columns: ['tenant_id', 'legal_entity_id', 'issue_date'])]
+#[ORM\Index(name: 'idx_invoice_firm_tax_point', columns: ['tenant_id', 'legal_entity_id', 'tax_point_date'])]
 #[ORM\Index(name: 'idx_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
@@ -146,6 +152,13 @@ class Invoice implements TenantOwned, Audited
     #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $deletedAt = null;
 
+    #[ORM\Column(name: 'exported_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $exportedAt = null;
+
+    // Set only while exportedAt is: the first edit of the content after the export.
+    #[ORM\Column(name: 'changed_after_export_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $changedAfterExportAt = null;
+
     #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
     private ?string $deletedBy = null;
 
@@ -224,9 +237,12 @@ class Invoice implements TenantOwned, Audited
     }
 
     /**
+     * Every save of the content, whether or not it changed a value: an exported
+     * document is then changed after its export, from the first such save on.
+     *
      * @throws \DomainException for an invoice in the trash
      */
-    public function change(InvoiceChange $change): void
+    public function change(InvoiceChange $change, \DateTimeImmutable $at): void
     {
         $this->refuseTrashed();
         $this->refuseWrongTaxPoint($change);
@@ -235,6 +251,9 @@ class Invoice implements TenantOwned, Audited
         $this->taxPointDate = $change->taxPointDate instanceof \DateTimeImmutable ? $this->keepDay($this->taxPointDate ?? $change->taxPointDate, $change->taxPointDate) : null;
         $this->dueDate = $this->keepDay($this->dueDate, $change->dueDate);
         $this->applyContent($change);
+        if ($this->exportedAt instanceof \DateTimeImmutable) {
+            $this->changedAfterExportAt ??= $at;
+        }
         ++$this->version;
     }
 
@@ -320,6 +339,21 @@ class Invoice implements TenantOwned, Audited
         $this->deletedBy = $userId;
         $this->deletedReason = $reason;
         ++$this->version;
+    }
+
+    /**
+     * Exporting again takes the new moment and forgets an edit before it.
+     */
+    public function markExported(\DateTimeImmutable $at): void
+    {
+        $this->exportedAt = $at;
+        $this->changedAfterExportAt = null;
+    }
+
+    public function clearExport(): void
+    {
+        $this->exportedAt = null;
+        $this->changedAfterExportAt = null;
     }
 
     /**
@@ -674,6 +708,21 @@ class Invoice implements TenantOwned, Audited
     public function deliveredAt(): ?\DateTimeImmutable
     {
         return $this->deliveredAt;
+    }
+
+    public function exportedAt(): ?\DateTimeImmutable
+    {
+        return $this->exportedAt;
+    }
+
+    public function changedAfterExportAt(): ?\DateTimeImmutable
+    {
+        return $this->changedAfterExportAt;
+    }
+
+    public function exportState(): ExportState
+    {
+        return ExportState::of($this->exportedAt, $this->changedAfterExportAt);
     }
 
     public function deletedAt(): ?\DateTimeImmutable

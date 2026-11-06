@@ -9,6 +9,25 @@
 {% block actions %}
     {% if not firstRun %}
         {% if kind == 'invoice' %}<twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>{% endif %}
+        {# Downloads what the list shows, on all its pages, as the address book exports. #}
+        {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+        {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head' %}
+        <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" class="relative" data-controller="dropdown" data-list-export>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+            <input type="hidden" name="kind" value="{{ kind }}">
+            {% for name, value in {tab: tab, firm: firm, q: text, sort: sort, toSend: toSend ? '1' : '', export: export, month: month} %}
+                {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
+            {% endfor %}
+            <twig:Ui:Button icon="download" id="list-export-button" aria-haspopup="menu" aria-expanded="false" aria-controls="list-export-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.list_export.button'|trans }}{{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
+            <div id="list-export-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="list-export-button" class="absolute right-0 top-full z-50 mt-1.5 w-max min-w-full rounded-panel border border-container bg-white p-1.5 shadow-floating">
+                <button type="submit" name="format" value="csv" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
+                    <span>{{ 'invoice.list_export.csv'|trans }}</span>
+                </button>
+                <button type="submit" name="format" value="xlsx" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
+                    <span>{{ 'invoice.list_export.xlsx'|trans }}</span>
+                </button>
+            </div>
+        </form>
         {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
     {% endif %}
 {% endblock %}
@@ -36,6 +55,9 @@
                     {% if firms is not empty %}
                         <div class="w-full sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
                     {% endif %}
+                    {# A browser without a month picker shows a text field that takes the same YYYY-MM. #}
+                    <div class="w-full sm:w-40"><twig:Ui:TextInput type="month" name="month" id="invoice-month" :label="'invoice.month.label'|trans" :value="month" placeholder="YYYY-MM" pattern="[0-9]{4}-[0-9]{2}" /></div>
+                    <div class="w-full sm:w-44"><twig:Ui:Select name="export" id="invoice-export" :label="'invoice.export_state.label'|trans" :options="exportStates" :value="export" /></div>
                     <twig:Ui:SearchField name="q" :value="text" :label="'invoice.list.search_label'|trans" :placeholder="'invoice.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
                     <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
                 </form>
@@ -77,6 +99,36 @@
                     <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
                 </twig:block>
             </twig:Ui:DataTable>
+
+            {% if sums %}
+                {# What the whole list adds up to, every page of it, in the home currency. #}
+                <section data-list-sums aria-labelledby="invoice-sums-title" class="grid gap-2">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <h2 id="invoice-sums-title" class="text-small font-semibold text-ink">{{ 'invoice.sums.title'|trans }}</h2>
+                        <p class="m-0 text-caption text-muted">{{ 'invoice.sums.note'|trans }}</p>
+                    </div>
+                    <twig:Ui:FactsGrid :items="sums.facts" />
+                    {% if sums.lines is not empty %}
+                        {# ARIA table roles: the rows of the list stay the only rows of a table on the page. It scrolls sideways on a phone, so the keyboard can reach it (tabindex). #}
+                        <div role="table" aria-labelledby="invoice-sums-title" data-sum-lines tabindex="0" class="overflow-x-auto rounded-panel border border-container bg-white text-small {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">
+                            <div role="row" class="grid grid-cols-[minmax(6rem,1fr)_repeat(3,minmax(0,auto))] gap-x-4 bg-head px-4 py-2 text-caption text-muted sm:grid-cols-[minmax(0,1fr)_repeat(3,10rem)]">
+                                <span role="columnheader" class="font-medium">{{ 'invoice.sums.rate'|trans }}</span>
+                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.base'|trans }}</span>
+                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.vat'|trans }}</span>
+                                <span role="columnheader" class="text-right font-medium">{{ 'invoice.sums.total'|trans }}</span>
+                            </div>
+                            {% for line in sums.lines %}
+                                <div role="row" data-sum-line class="grid grid-cols-[minmax(6rem,1fr)_repeat(3,minmax(0,auto))] gap-x-4 border-t border-divider px-4 py-2 sm:grid-cols-[minmax(0,1fr)_repeat(3,10rem)]">
+                                    <span role="rowheader" class="text-ink">{{ line.label }}</span>
+                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.base }}</span>
+                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.vat }}</span>
+                                    <span role="cell" class="num whitespace-nowrap text-right">{{ line.total }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
         </div>
     {% endif %}
 {% endblock %}

@@ -12,6 +12,24 @@ dashboard:
   empty:
     title: Přehled se připravuje
     text: Jakmile v této organizaci budou data, objeví se tu přehled.
+  invoicing:
+    title: Fakturace
+    note: Částky v Kč, měsíce podle data zdanitelného plnění.
+    show: Zobrazit
+    invoiced: 'Vyfakturováno – {month}'
+    base: 'Základ {amount}'
+    unpaid: Neuhrazeno
+    overdue: Po splatnosti
+    documents: '{count, plural, one {# doklad} few {# doklady} other {# dokladů}}'
+    vat: 'DPH na výstupu – {month}'
+    age_30: Po splatnosti do 30 dnů
+    age_60: Po splatnosti 31–60 dnů
+    age_over: Po splatnosti přes 60 dnů
+    debtors: Největší dlužníci
+    debtors_empty: Žádný odběratel nic nedluží.
+    pending: '{month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
+    pending_firm: '{firm}: {month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
+    pending_link: Předat účetní
 registry:
   result:
     valid: Platné ve VIES
@@ -1160,18 +1178,79 @@ invoice:
       rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
       undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
       reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
+  export_state:
+    label: Export pro účetní
+    all: Vše
+    not_exported: Neexportováno
+    exported: Exportováno
+    changed: Změněno po exportu
+    hint:
+      exported: 'Exportováno účetní {date}'
+      changed: 'Upraveno {date}, po exportu pro účetní'
   export:
-    incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
+    incomplete: 'Doklady {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celý měsíc.'
     title: Doklady pro účetní
     link: Pro účetní
-    intro: Stáhne ZIP s PDF fakturami a jejich ISDOC za zvolené období podle data zdanitelného plnění. Doklady v koši zůstávají stranou. Nic se nikam neodesílá.
-    from: Od
-    to: Do
+    intro: Stáhne ZIP s PDF a ISDOC dokladů jednoho měsíce a jejich seznamem. Daňové doklady patří do měsíce data zdanitelného plnění, zálohové faktury do měsíce vystavení. Doklady v koši zůstávají stranou. Nic se nikam neodesílá; doklady se označí jako exportované.
+    month: Měsíc
+    month_help: Podle DUZP, zálohové faktury podle vystavení
+    scope:
+      legend: Doklady
+      pending: Dosud neexportované
+      pending_text: Nové doklady a ty upravené po exportu
+      all: Všechny za měsíc
+      all_text: I ty, které už účetní má
+    counts: V ZIPu
+    count_total: Celkem
+    refresh: Spočítat znovu
     submit: Stáhnout ZIP
-    empty: Za toto období tato firma nemá žádné faktury.
-    date_invalid: Zadejte platné datum.
-    backwards: Konec období nesmí být před jeho začátkem.
-    too_long: 'Období může mít nejvýše {days} dní.'
+    empty: Tato firma nemá v tomto měsíci žádné doklady k exportu.
+    month_invalid: Zadejte platný měsíc.
+    folder:
+      invoice: faktury
+      advance: zalohove-faktury
+      payment_tax_document: danove-doklady
+      correction_document: opravne-doklady
+    currency: '{code, select, CZK {Kc} other {{code}}}'
+    list_file: seznam.xlsx
+    sheet:
+      documents: Doklady
+      recap: Rekapitulace DPH
+    column:
+      number: Číslo
+      kind: Druh
+      customer: Odběratel
+      registration: IČO
+      vat_id: DIČ
+      issue_date: Datum vystavení
+      tax_point: DUZP
+      due_date: Splatnost
+      currency: Měna
+      exchange_rate: Kurz
+      base: Základ
+      vat: DPH
+      total: Celkem
+      payable: K úhradě
+      state: Stav exportu předtím
+    recap:
+      treatment: Režim
+      rate: Sazba (%)
+      base: 'Základ ({currency})'
+      vat: 'DPH ({currency})'
+      total: 'Celkem ({currency})'
+      sum: Celkem
+  list_export:
+    button: Exportovat
+    csv: Exportovat jako CSV
+    xlsx: 'Exportovat jako Excel (XLSX)'
+    all_months: vse
+    decimal: ','
+    paid: Uhrazeno
+    left: Zbývá uhradit
+    state: Stav exportu
+    rate: '{rate, number} %'
+    rate_base: 'Základ {label}'
+    rate_vat: 'DPH {label}'
   pdf:
     undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
     footer: '{title} · Strana {page}/{pages}'
@@ -1259,6 +1338,7 @@ invoice:
     reason_missing: Napište, proč fakturu mažete.
     delete_delivered: Doručený doklad nelze smazat.
     not_in_trash: Tato faktura v koši není.
+    not_exported: Tento doklad nemá příznak exportu.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
     delivered_confirm: 'Označit fakturu {number} jako doručenou?'
@@ -1275,6 +1355,7 @@ invoice:
       trash: Koš
     column:
       sent: E-mail
+      export: Export
       number: Číslo
       firm: Firma
       customer: Zákazník
@@ -1306,6 +1387,7 @@ invoice:
       history: Historie
       delete: Smazat
       restore: Obnovit
+      clear_export: Zrušit příznak exportu
     empty:
       title: Zatím žádné faktury
       text: Vystavte první. Uložením dostane své číslo.
@@ -1343,6 +1425,8 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    exported: '{who}: faktura exportována pro účetní'
+    export_cleared: '{who}: příznak exportu zrušen'
     paid: '{who}: úhrada {amount} zaznamenána'
     payment_cancelled: '{who}: úhrada {amount} odebrána'
     send: '{who}: e-mail na {recipients}'
@@ -1393,6 +1477,16 @@ invoice:
   more: Další údaje
   more_show: Zobrazit více detailů
   firm_apply: Použít tuto firmu
+  month:
+    label: Měsíc
+  sums:
+    title: Součty seznamu
+    count: Dokladů
+    base: Základ
+    vat: DPH
+    total: Celkem
+    rate: Sazba
+    note: V Kč podle kurzu každého dokladu, za všechny stránky
   rate: '{rate} %'
   errors_title: Fakturu zatím nelze uložit
   cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.
@@ -1417,6 +1511,7 @@ invoice:
     trashed: 'Faktura {number} je v koši.'
     restored: 'Faktura {number} je zpět v seznamu.'
     delivered: 'Faktura {number} je označená jako doručená.'
+    export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
   card:
     issuer: Vystavitel
     customer: Odběratel

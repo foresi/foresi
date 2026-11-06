@@ -9,12 +9,15 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 
 /**
  * Which documents a list shows: of one kind, of one firm or all, in which tab, matching what text,
  * in what order, on what page. A sort is a name of SORTS, with a minus for descending.
  * To send narrows any tab to the invoices a recurring template issued that were
- * never sent: held for review, or refused for sending.
+ * never sent: held for review, or refused for sending. An export state narrows any
+ * tab to the documents in it; null takes them all. A month, as YYYY-MM, narrows it to the
+ * documents of that month: a tax document by its tax point, an advance by its issue date.
  */
 final readonly class InvoiceFilter
 {
@@ -36,8 +39,16 @@ final readonly class InvoiceFilter
     public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
     public const string DEFAULT_SORT = '-issueDate';
 
-    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice)
+    public function __construct(public ?string $firmId, public string $tab, public string $text, public string $sort, public int $page, public bool $toSend = false, public DocumentKind $kind = DocumentKind::Invoice, public ?ExportState $export = null, public ?string $month = null)
     {
+    }
+
+    /**
+     * The month a query names, as YYYY-MM; anything else names none.
+     */
+    public static function monthOf(string $value): ?string
+    {
+        return 1 === preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/', $value) ? $value : null;
     }
 
     /**

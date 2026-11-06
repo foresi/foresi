@@ -69,7 +69,9 @@
             "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::372",
             "App\\Banking\\Application\\AuthenticationResultsParser::segments::85",
             "App\\Invoicing\\Application\\InvoiceHistory::minor::133",
-            "App\\Invoicing\\Application\\InvoiceHistory::minor::135"
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::135",
+            // Equivalent mutant: the sums of a filter add up all its pages, whatever page it names.
+            "App\\Invoicing\\Application\\InvoicingOverview::month::96"
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [
@@ -94,6 +96,8 @@
             // The same: an amount QR Platba takes is at most 9999999.99, ten characters, so its key never meets a
             // limit of 11.
             "App\\Country\\CzechRepublic\\Invoicing\\QrPlatba::for::64"
+        ,
+            "App\\Invoicing\\Application\\InvoicingOverview::month::96"
         ]},
         "LessThanOrEqualTo": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::114"]},
         "Plus": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::118"]},
@@ -262,8 +266,12 @@
         "Catch_": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::amount::375"]},
         // Equivalent mutant: Iban::fromString() upper-cases itself, and the domestic pattern does not depend on case.
         "UnwrapStrToUpper": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::iban::414"]},
-        // Equivalent mutant: a date without a time parses to the same midnight.
-        "ConcatOperandRemoval": {"ignore": ["App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474"]},
+        // Equivalent mutants: a date without a time parses to the same midnight; a working file of a pack named
+        // beside its directory instead of in it is as unique (the pack path is) and is deleted all the same.
+        "ConcatOperandRemoval": {"ignore": [
+            "App\\Country\\CzechRepublic\\Banking\\KbNotificationParser::bookedOn::474",
+            "App\\Invoicing\\Application\\InvoiceBundle::add::174"
+        ]},
         // Equivalent mutants: the subject is always exactly one character, and rawurlencode() output has no regex
         // metacharacters.
         "PregMatchRemoveCaret": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]},
