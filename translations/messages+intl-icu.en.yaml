@@ -2602,3 +2602,13 @@ tax_document:
         {sender_name}
 
         {link}
+idoklad:
+    import:
+        contact:
+            unknown_country: The country of the contact is not in the iDoklad snapshot.
+            ambiguous: More than one contact in Foresi has this name or registration number.
+        series:
+            unknown_type: Foresi does not issue documents of this iDoklad type.
+            invalid_format: The number format cannot be read as a series format.
+            invalid_counter: The year or the last number of the sequence is missing or out of range.
+            name_taken: The firm already has a series of this name with other numbers.

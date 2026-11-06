@@ -10,7 +10,9 @@ namespace App\Idoklad\Domain;
 
 /**
  * The lists of an iDoklad account a pull copies, by their API path. The lists
- * of documents carry their lines, so no document needs a detail call.
+ * of documents carry their lines, so no document needs a detail call. A contact
+ * names its country by an id of the account's code list, so the countries are
+ * copied too.
  */
 enum IdokladResource: string
 {
@@ -23,6 +25,7 @@ enum IdokladResource: string
     case RecurringInvoices = 'RecurringInvoices';
     case IssuedDocumentPayments = 'IssuedDocumentPayments';
     case Logs = 'Logs';
+    case Countries = 'Countries';
 
     public function path(): string
     {
@@ -36,7 +39,7 @@ enum IdokladResource: string
     public function changeFilter(): ?string
     {
         return match ($this) {
-            self::NumericSequences, self::IssuedDocumentPayments => null,
+            self::NumericSequences, self::IssuedDocumentPayments, self::Countries => null,
             self::Logs => 'DateFrom',
             default => 'DateLastChange',
         };

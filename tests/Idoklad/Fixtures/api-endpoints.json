@@ -8,6 +8,8 @@
     ["GET", "/Contacts/Default"],
     ["DELETE", "/Contacts/{id}"],
     ["GET", "/Contacts/{id}"],
+    ["GET", "/Countries"],
+    ["GET", "/Countries/{id}"],
     ["GET", "/CreditNotes"],
     ["PATCH", "/CreditNotes"],
     ["POST", "/CreditNotes"],

@@ -157,9 +157,9 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertTrue($pull->succeeded());
         self::assertSame([
             'Contacts' => 1, 'NumericSequences' => 1, 'IssuedInvoices' => 2, 'ProformaInvoices' => 2, 'IssuedTaxDocuments' => 0,
-            'CreditNotes' => 0, 'RecurringInvoices' => 0, 'IssuedDocumentPayments' => 1, 'Logs' => 1,
+            'CreditNotes' => 0, 'RecurringInvoices' => 0, 'IssuedDocumentPayments' => 1, 'Logs' => 1, 'Countries' => 1,
         ], $pull->counts());
-        self::assertSame(10, $pull->requestsUsed(), 'One request a page: nine lists, one of them two pages long.');
+        self::assertSame(11, $pull->requestsUsed(), 'One request a page: ten lists, one of them two pages long.');
         self::assertSame('2026-10-05T12:00:00', $pull->latestChange());
         self::assertNull($pull->changedSince());
         self::assertNull($pull->error());
@@ -207,6 +207,7 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertContains('/v3/Logs?page=1&pagesize=200&filter=(DateFrom~gt~2026-10-05T12:00:00)', $this->sent);
         self::assertContains('/v3/IssuedDocumentPayments?page=1&pagesize=200', $this->sent);
         self::assertContains('/v3/NumericSequences?page=1&pagesize=200', $this->sent);
+        self::assertContains('/v3/Countries?page=1&pagesize=200', $this->sent);
 
         $this->em->clear();
         $firm = $this->storedFirm();
@@ -348,6 +349,7 @@ final class IdokladSnapshotTest extends KernelTestCase
             '/v3/RecurringInvoices' => [$this->page([])],
             '/v3/IssuedDocumentPayments' => [$this->page([['Id' => 301, 'InvoiceId' => 102, 'DateOfPayment' => '2026-10-04T00:00:00', 'Metadata' => ['DateLastChange' => 'not a moment']]])],
             '/v3/Logs' => [$this->page([['Id' => 77, 'EntityType' => 0, 'ActionType' => 1, 'DateOfAction' => '2026-10-04T08:00:00']])],
+            '/v3/Countries' => [$this->page([['Id' => 2, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Czech Republic', 'DateLastChange' => '2026-01-01T00:00:00']])],
         ];
     }
 

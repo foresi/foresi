@@ -69,6 +69,9 @@ services:
         # A country module plugs into banking with the parsers of its banks' mail.
         App\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
+        # The stages of an iDoklad import; each one orders itself.
+        App\Idoklad\Application\Import\ImportStage:
+            tags: ['app.idoklad_import_stage']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -178,6 +181,8 @@ services:
         alias: limiter.inbound_mail_relay
     test.invoice_balances:
         alias: App\Invoicing\Application\InvoiceBalances
+    test.idoklad_import:
+        alias: App\Idoklad\Application\Import\RunIdokladImport
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -261,6 +266,17 @@ services:
     App\Idoklad\Infrastructure\Files\DiskIdokladFiles:
         arguments:
             $root: '%app.idoklad_files_dir%'
+    App\Idoklad\Application\Import\IdokladLinks:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladLinks
+    App\Idoklad\Application\Import\IdokladImportRuns:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladImportRuns
+    App\Idoklad\Application\Import\ImportTransaction:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineImportTransaction
+    App\Idoklad\Application\Import\ContactNames:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineContactNames
+    App\Idoklad\Application\Import\RunIdokladImport:
+        arguments:
+            $stages: !tagged_iterator app.idoklad_import_stage
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -646,6 +662,11 @@ when@test:
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory
+            public: true
+
+        # Nothing calls the iDoklad import yet; the screens that will are on their way.
+        test.idoklad_import:
+            alias: App\Idoklad\Application\Import\RunIdokladImport
             public: true
 
         # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and

@@ -2602,3 +2602,13 @@ tax_document:
         {sender_name}
 
         {link}
+idoklad:
+    import:
+        contact:
+            unknown_country: Stát kontaktu v kopii iDokladu chybí.
+            ambiguous: Tento název nebo IČO má ve Foresi víc kontaktů.
+        series:
+            unknown_type: Doklady tohoto typu iDokladu Foresi nevystavuje.
+            invalid_format: Formát čísla nejde přečíst jako formát řady.
+            invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
+            name_taken: Firma už má řadu tohoto názvu s jinými čísly.

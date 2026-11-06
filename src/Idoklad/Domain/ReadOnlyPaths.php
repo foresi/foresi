@@ -36,6 +36,8 @@ final class ReadOnlyPaths
         '/IssuedDocumentPayments/PaymentsForIssuedTaxDocument',
         '/Logs',
         '/Logs/{id}/{id}',
+        '/Countries',
+        '/Countries/{id}',
         '/Reports/IssuedInvoice/{id}/Pdf',
         '/Reports/ProformaInvoice/{id}/Pdf',
         '/Reports/IssuedTaxDocument/{id}/Pdf',

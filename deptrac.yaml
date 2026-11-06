@@ -340,11 +340,18 @@ deptrac:
       - TenancyDomain
       - PartyDomain
       - PartyApplication
-      # The client secret is sealed with the keys of the mail server passwords.
+      # The client secret is sealed with the keys of the mail server passwords,
+      # and the import creates series and moves their counters.
       - InvoicingApplication
+      - InvoicingDomain
+      # The import writes contacts through the contact import target, as a file import does.
+      - ImportApplication
+      - ImportDomain
     IdokladInfrastructure:
       - IdokladDomain
       - IdokladApplication
+      # The import transaction binds the tenant again after a failure.
+      - TenancyApplication
       - VendorSymfony
       - VendorDoctrine
       - SharedDomain
