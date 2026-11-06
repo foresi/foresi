@@ -2765,7 +2765,7 @@ idoklad:
         failed: Import se zastavil; nic se neuložilo
         stages: Podle oblasti
         years: Doklady podle roku
-        years_help: Celkem s DPH v domácí měně podle data vystavení, jak je uvádí iDoklad a jak je Foresi spočítalo nebo uložilo. Rozdíl vysvětlují odmítnuté a rozdílné doklady; doklady v jiných měnách se jen počítají.
+        years_help: Celkem s DPH podle data vystavení, iDoklad proti Foresi.
         no_documents: Žádné doklady nejsou stažené.
         refused: Odmítnuté záznamy
         mismatch: Záznamy s rozdílnými částkami

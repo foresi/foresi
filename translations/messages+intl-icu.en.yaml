@@ -2765,7 +2765,7 @@ idoklad:
         failed: The import stopped; nothing was stored
         stages: By section
         years: Documents by year
-        years_help: Totals with VAT in the home currency, by the day of issue, as iDoklad states them and as Foresi computed or stores them. Refused and differing documents explain a difference; documents in other currencies are only counted.
+        years_help: Totals with VAT by issue date, iDoklad against Foresi.
         no_documents: No documents downloaded.
         refused: Refused records
         mismatch: Records whose totals differ
