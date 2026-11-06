@@ -70,6 +70,12 @@ final readonly class ImportContext
         $this->report->add($stage, $externalId, $outcome, $targetId, $reasons, $values);
     }
 
+    /** When the run started: the moment of what the run itself marks. */
+    public function now(): \DateTimeImmutable
+    {
+        return $this->now;
+    }
+
     public function writesFiles(): bool
     {
         return $this->mode->writes();

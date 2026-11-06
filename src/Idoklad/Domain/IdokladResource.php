@@ -12,7 +12,8 @@ namespace App\Idoklad\Domain;
  * The lists of an iDoklad account a pull copies, by their API path. The lists
  * of documents carry their lines, so no document needs a detail call. A contact
  * names its country by an id of the account's code list, so the countries are
- * copied too.
+ * copied too, and a document its currency, payment option and constant symbol,
+ * so those code lists are as well.
  */
 enum IdokladResource: string
 {
@@ -26,6 +27,9 @@ enum IdokladResource: string
     case IssuedDocumentPayments = 'IssuedDocumentPayments';
     case Logs = 'Logs';
     case Countries = 'Countries';
+    case Currencies = 'Currencies';
+    case PaymentOptions = 'PaymentOptions';
+    case ConstantSymbols = 'ConstantSymbols';
 
     public function path(): string
     {
@@ -39,7 +43,7 @@ enum IdokladResource: string
     public function changeFilter(): ?string
     {
         return match ($this) {
-            self::NumericSequences, self::IssuedDocumentPayments, self::Countries => null,
+            self::NumericSequences, self::IssuedDocumentPayments, self::Countries, self::Currencies, self::PaymentOptions, self::ConstantSymbols => null,
             self::Logs => 'DateFrom',
             default => 'DateLastChange',
         };

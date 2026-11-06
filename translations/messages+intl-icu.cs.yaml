@@ -2607,6 +2607,18 @@ idoklad:
         contact:
             unknown_country: Stát kontaktu v kopii iDokladu chybí.
             ambiguous: Tento název nebo IČO má ve Foresi víc kontaktů.
+        documents:
+            series_unknown: Žádná importovaná číselná řada typu a roku dokladu neobsahuje jeho číslo.
+            customer_not_linked: Odběratel dokladu nebyl importován jako kontakt.
+            currency_not_home: Doklad není v domácí měně; zatím se importují jen doklady v domácí měně.
+            country_unknown: Stát odběratele nebo firmy na dokladu v kopii iDokladu chybí.
+            payment_option_unsupported: Způsob úhrady dokladu není převod, hotovost ani karta.
+            language_unsupported: Foresi nevystavuje doklady v jazyce tohoto dokladu.
+            zero_rate_unsupported: Řádek má nulovou sazbu DPH, jejíž režim kopie iDokladu neuvádí.
+            invalid_value: Datum, částka nebo typ ceny dokladu chybí nebo je mimo rozsah.
+            deducts_advances: Faktura odečítá zálohy; takové faktury se importují později.
+            credit_note_unsupported: Dobropisy se zatím neimportují.
+            pdf_unreadable: Uložené PDF dokladu nelze přečíst.
         series:
             unknown_type: Doklady tohoto typu iDokladu Foresi nevystavuje.
             invalid_format: Formát čísla nejde přečíst jako formát řady.

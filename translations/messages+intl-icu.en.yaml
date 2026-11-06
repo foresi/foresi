@@ -2607,6 +2607,18 @@ idoklad:
         contact:
             unknown_country: The country of the contact is not in the iDoklad snapshot.
             ambiguous: More than one contact in Foresi has this name or registration number.
+        documents:
+            series_unknown: No imported number series of the type and year of the document has its number.
+            customer_not_linked: The purchaser of the document was not imported as a contact.
+            currency_not_home: The document is not in the home currency; only home-currency documents are imported for now.
+            country_unknown: The country of the purchaser or of the firm on the document is not in the iDoklad snapshot.
+            payment_option_unsupported: The payment option of the document is not a bank transfer, cash or card.
+            language_unsupported: Foresi does not issue documents in the language of the document.
+            zero_rate_unsupported: A line has the zero VAT rate, whose treatment the snapshot does not say.
+            invalid_value: A date, amount or price type of the document is missing or out of range.
+            deducts_advances: The invoice deducts advances; such invoices are imported later.
+            credit_note_unsupported: Credit notes are not imported yet.
+            pdf_unreadable: The stored PDF of the document cannot be read.
         series:
             unknown_type: Foresi does not issue documents of this iDoklad type.
             invalid_format: The number format cannot be read as a series format.

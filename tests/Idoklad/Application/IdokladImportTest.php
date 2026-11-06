@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Idoklad\Application;
 
 use App\Idoklad\Application\Import\ContactsStage;
+use App\Idoklad\Application\Import\DocumentsStage;
 use App\Idoklad\Application\Import\IdokladImportRuns;
 use App\Idoklad\Application\Import\RunIdokladImport;
 use App\Idoklad\Application\Import\SeriesStage;
@@ -71,9 +72,9 @@ final class IdokladImportTest extends KernelTestCase
         $this->em->flush();
     }
 
-    public function testTheStagesRunContactsThenSeries(): void
+    public function testTheStagesRunContactsThenSeriesThenDocuments(): void
     {
-        self::assertSame([ContactsStage::KEY, SeriesStage::KEY], $this->import()->stages());
+        self::assertSame([ContactsStage::KEY, SeriesStage::KEY, DocumentsStage::KEY], $this->import()->stages());
     }
 
     public function testACompanyIsCreatedWithEverythingItBrings(): void
