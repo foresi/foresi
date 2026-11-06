@@ -1798,6 +1798,7 @@ invoice:
     already_deducted: An advance on this invoice is deducted by another invoice already.
     deduction_invalid: 'This advance cannot be deducted here: it belongs to another customer, is deducted elsewhere, or is not paid.'
     tax_document_exists: This payment has its tax document already.
+    tax_document_with_vat: The lines of a tax document on payment are priced with VAT.
     no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
     payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
     series_of_another_firm: This series belongs to another firm.
@@ -2616,7 +2617,9 @@ idoklad:
             language_unsupported: Foresi does not issue documents in the language of the document.
             zero_rate_unsupported: A line has the zero VAT rate, whose treatment the snapshot does not say.
             invalid_value: A date, amount or price type of the document is missing or out of range.
-            deducts_advances: The invoice deducts advances; such invoices are imported later.
+            payment_not_linked: The payment the tax document taxes was not imported.
+            advance_not_linked: The proforma invoice the document follows was not imported.
+            advance_not_deductible: 'Nothing of an advance the invoice accounts is left to deduct: no paid advance or tax document of it in Foresi.'
             credit_note_unsupported: Credit notes are not imported yet.
             pdf_unreadable: The stored PDF of the document cannot be read.
         series:
@@ -2624,6 +2627,12 @@ idoklad:
             invalid_format: The number format cannot be read as a series format.
             invalid_counter: The year or the last number of the sequence is missing or out of range.
             name_taken: The firm already has a series of this name with other numbers.
+        payments:
+            document_type_unsupported: The payment pays a document other than an issued invoice or a proforma invoice.
+            document_not_linked: The document the payment pays was not imported.
+            currency_not_home: The payment is not in the firm's home currency.
+            payment_option_unsupported: Foresi does not record payments of this payment option.
+            invalid_value: The date or the amount of the payment is missing.
         recurring:
             advance_unsupported: The template issues advance invoices, which Foresi does not repeat yet.
             unknown_type: Foresi does not repeat documents of this iDoklad type.

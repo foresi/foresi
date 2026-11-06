@@ -36,7 +36,7 @@ use App\Party\Domain\VatId;
  * keeps a firm from issuing something new today does: the firm's register entry
  * and VAT id now, an archived series or customer, an account the firm no longer
  * has, which it only needs to be an IBAN. It names its series and number, and it
- * deducts no advance, which is the import of advances to come.
+ * deducts only what its customer may deduct now, as any invoice does.
  */
 final readonly class IssueRules
 {
@@ -93,7 +93,7 @@ final readonly class IssueRules
         if (!$country instanceof InvoicingCountry) {
             return [...$problems, new IssueProblem('firm', 'invoice.problem.firm_country_unsupported')];
         }
-        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $import, $copy), ...$this->deductions($input, $firm, $existing, $import)];
+        $problems = [...$problems, ...$this->printing($input, $firm, $existing, $import, $copy), ...$this->deductions($input, $firm, $existing)];
         $regime = $existing?->vatRegime() ?? $import->regime ?? VatRegime::of($firm->vatStatus());
         $kind = $existing?->kind() ?? $input->kind;
         // A correction takes the rates of the invoice it corrects, never those of today.
@@ -234,13 +234,13 @@ final readonly class IssueRules
      *
      * @return list<IssueProblem>
      */
-    private function deductions(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing, ?ImportedDocumentInput $import): array
+    private function deductions(InvoiceInput $input, LegalEntity $firm, ?Invoice $existing): array
     {
         $ids = AdvanceDeductions::deducted($input->lines);
         if ([] === $ids) {
             return [];
         }
-        if (DocumentKind::Invoice !== ($existing?->kind() ?? $input->kind) || $import instanceof ImportedDocumentInput) {
+        if (DocumentKind::Invoice !== ($existing?->kind() ?? $input->kind)) {
             return [new IssueProblem('lines', 'invoice.problem.deduction_invalid')];
         }
         $offered = array_map(static fn (Deductible $deductible): string => $deductible->id, $this->deductible->for($firm, $input->customerId, $existing, $input->language));

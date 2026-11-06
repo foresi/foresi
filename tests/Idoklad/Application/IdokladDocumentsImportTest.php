@@ -239,8 +239,8 @@ final class IdokladDocumentsImportTest extends KernelTestCase
 
         self::assertSame([DocumentsStage::CURRENCY_NOT_HOME], $this->entry($run, 107)['reasons']);
         self::assertSame('EUR', $this->entry($run, 107)['values']['currency']);
-        self::assertSame([DocumentsStage::DEDUCTS_ADVANCES], $this->entry($run, 108)['reasons']);
-        self::assertSame([DocumentsStage::DEDUCTS_ADVANCES], $this->entry($run, 109)['reasons']);
+        self::assertSame([DocumentsStage::ADVANCE_NOT_LINKED], $this->entry($run, 108)['reasons']);
+        self::assertSame([DocumentsStage::ADVANCE_NOT_LINKED], $this->entry($run, 109)['reasons']);
         $credit = $this->entry($run, 301);
         self::assertSame([DocumentsStage::CREDIT_NOTE_UNSUPPORTED], $credit['reasons']);
         self::assertSame(['resource' => 'CreditNotes', 'document_number' => 'D20260001'], $credit['values']);

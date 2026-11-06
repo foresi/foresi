@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Application\AdvanceDeductions;
+use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\CustomerCopies;
 use App\Invoicing\Application\DocumentExports;
@@ -19,6 +21,7 @@ use App\Invoicing\Application\ImportedTotals;
 use App\Invoicing\Application\ImportIssuedDocument;
 use App\Invoicing\Application\ImportOutcome;
 use App\Invoicing\Application\InvoiceBundle;
+use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuedDocumentFactory;
@@ -305,6 +308,9 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             $container->get(ClockInterface::class),
             $container->get(ContactSettingsForFirm::class),
             $container->get(TenantContext::class),
+            $container->get(AdvanceDeductions::class),
+            $container->get(AdvanceDocuments::class),
+            $container->get(InvoicePayments::class),
         );
 
         try {

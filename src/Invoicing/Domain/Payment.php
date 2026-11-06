@@ -29,6 +29,9 @@ use Doctrine\ORM\Mapping as ORM;
  * pays through one payment that is not cancelled: live_bank_movement_id is the
  * movement while the payment is live and NULL once it is cancelled, and a plain
  * unique index over it keeps the rule, as primary_flag does for FirmBankAccount.
+ *
+ * A payment another system recorded is imported once, named by its source and its
+ * id there, with the run that brought it, so the run can be undone together.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'payment')]
@@ -37,6 +40,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_payment_bank_movement', columns: ['bank_movement_id'])]
 #[ORM\Index(name: 'idx_payment_firm', columns: ['legal_entity_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_payment_active_movement', columns: ['live_bank_movement_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_payment_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
+#[ORM\Index(name: 'idx_payment_import_run', columns: ['import_run_id'])]
 class Payment implements TenantOwned, Audited
 {
     public const int MAX_NOTE = 500;
@@ -63,6 +68,18 @@ class Payment implements TenantOwned, Audited
     /** The movement while the payment is live, NULL once it is cancelled: what the unique index holds. */
     #[ORM\Column(name: 'live_bank_movement_id', type: 'guid', nullable: true)]
     private ?string $liveBankMovementId;
+
+    #[ORM\Column(name: 'import_source', type: 'string', length: Invoice::MAX_IMPORT_SOURCE_LENGTH, nullable: true)]
+    private ?string $importSource = null;
+
+    #[ORM\Column(name: 'import_external_id', type: 'string', length: Invoice::MAX_IMPORT_EXTERNAL_ID_LENGTH, nullable: true)]
+    private ?string $importExternalId = null;
+
+    #[ORM\Column(name: 'import_run_id', type: 'guid', nullable: true)]
+    private ?string $importRunId = null;
+
+    #[ORM\Column(name: 'imported_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $importedAt = null;
 
     /**
      * @throws \InvalidArgumentException for an amount that is not positive, a note past MAX_NOTE, or a movement
@@ -116,6 +133,42 @@ class Payment implements TenantOwned, Audited
         $this->cancelledAt = $at;
         $this->cancelledBy = $userId;
         $this->liveBankMovementId = null;
+    }
+
+    /**
+     * Names where an imported payment came from, set once right after it was created.
+     *
+     * @throws \DomainException when the payment was imported already
+     */
+    public function importedFrom(string $source, string $externalId, string $runId, \DateTimeImmutable $at): void
+    {
+        if (null !== $this->importSource) {
+            throw new \DomainException('A payment is imported once.');
+        }
+        $this->importSource = $source;
+        $this->importExternalId = $externalId;
+        $this->importRunId = $runId;
+        $this->importedAt = $at;
+    }
+
+    public function importSource(): ?string
+    {
+        return $this->importSource;
+    }
+
+    public function importExternalId(): ?string
+    {
+        return $this->importExternalId;
+    }
+
+    public function importRunId(): ?string
+    {
+        return $this->importRunId;
+    }
+
+    public function importedAt(): ?\DateTimeImmutable
+    {
+        return $this->importedAt;
     }
 
     public function isCancelled(): bool

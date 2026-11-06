@@ -13,6 +13,7 @@ use App\Invoicing\Application\UndoBlocker;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
+use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
@@ -50,23 +51,44 @@ final readonly class DoctrineImportedDocuments implements ImportedDocuments
         return $invoices;
     }
 
+    public function findPayment(LegalEntity $firm, string $source, string $externalId): ?Payment
+    {
+        /** @var Payment|null $payment */
+        $payment = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.firm = :firm AND p.importSource = :source AND p.importExternalId = :external')
+            ->setParameter('firm', $firm->id())
+            ->setParameter('source', $source)
+            ->setParameter('external', $externalId)
+            ->getOneOrNullResult();
+
+        return $payment;
+    }
+
+    public function paymentsOfRun(string $runId): array
+    {
+        /** @var list<Payment> $payments */
+        $payments = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.importRunId = :run ORDER BY p.receivedOn, p.id')
+            ->setParameter('run', $runId)
+            ->getResult();
+
+        return $payments;
+    }
+
     public function dependents(Invoice $invoice): array
     {
-        $checks = [
-            UndoBlocker::PAYMENTS => 'SELECT COUNT(a.id) FROM '.PaymentAllocation::class.' a WHERE a.invoice = :id',
+        return $this->reasons([
+            UndoBlocker::PAYMENTS => 'SELECT COUNT(a.id) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = :id AND '.$this->otherRun('p'),
             UndoBlocker::SENDS => 'SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE s.invoice = :id',
             UndoBlocker::CORRECTIONS => 'SELECT COUNT(c.id) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = :id',
-            UndoBlocker::TAX_DOCUMENTS => 'SELECT COUNT(t.id) FROM '.Invoice::class.' t WHERE t.advanceInvoiceId = :id',
-            UndoBlocker::DEDUCTIONS => 'SELECT COUNT(l.id) FROM '.InvoiceLine::class.' l WHERE l.deductsInvoiceId = :id',
-        ];
-        $reasons = [];
-        foreach ($checks as $reason => $dql) {
-            if (0 < (int) $this->em->createQuery($dql)->setParameter('id', $invoice->id())->getSingleScalarResult()) {
-                $reasons[] = $reason;
-            }
-        }
+            UndoBlocker::TAX_DOCUMENTS => 'SELECT COUNT(t.id) FROM '.Invoice::class.' t WHERE t.advanceInvoiceId = :id AND '.$this->otherRun('t'),
+            UndoBlocker::DEDUCTIONS => 'SELECT COUNT(l.id) FROM '.InvoiceLine::class.' l JOIN l.invoice d WHERE l.deductsInvoiceId = :id AND '.$this->otherRun('d'),
+        ], $invoice->id(), $invoice->importRunId());
+    }
 
-        return $reasons;
+    public function paymentDependents(Payment $payment): array
+    {
+        return $this->reasons([
+            UndoBlocker::TAX_DOCUMENTS => 'SELECT COUNT(t.id) FROM '.Invoice::class.' t WHERE t.paymentId = :id AND '.$this->otherRun('t'),
+        ], $payment->id(), $payment->importRunId());
     }
 
     public function remove(Invoice $invoice): void
@@ -78,5 +100,43 @@ final readonly class DoctrineImportedDocuments implements ImportedDocuments
             $this->em->remove($line);
         }
         $this->em->remove($invoice);
+    }
+
+    public function removePayment(Payment $payment): void
+    {
+        $allocations = $this->em->createQuery('SELECT a FROM '.PaymentAllocation::class.' a WHERE a.payment = :id')
+            ->setParameter('id', $payment->id())
+            ->getResult();
+        foreach ($allocations as $allocation) {
+            $this->em->remove($allocation);
+        }
+        $this->em->remove($payment);
+    }
+
+    /**
+     * @param array<string, string> $checks DQL counting what stands on :id, by reason
+     *
+     * @return list<string>
+     */
+    private function reasons(array $checks, string $id, ?string $runId): array
+    {
+        $reasons = [];
+        foreach ($checks as $reason => $dql) {
+            $query = $this->em->createQuery($dql)->setParameter('id', $id);
+            if (str_contains($dql, ':run')) {
+                $query->setParameter('run', (string) $runId);
+            }
+            if (0 < (int) $query->getSingleScalarResult()) {
+                $reasons[] = $reason;
+            }
+        }
+
+        return $reasons;
+    }
+
+    /** What the run of the record did not bring: recorded here, or by another run. */
+    private function otherRun(string $alias): string
+    {
+        return '('.$alias.'.importRunId IS NULL OR '.$alias.'.importRunId <> :run)';
     }
 }

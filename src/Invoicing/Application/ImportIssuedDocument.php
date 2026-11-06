@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentTotals;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceChange;
 use App\Invoicing\Domain\InvoiceLine;
+use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Series;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\LegalEntities;
@@ -34,8 +36,11 @@ use Psr\Clock\ClockInterface;
  * sent and no reminder is planned, as reminders follow sends.
  *
  * A source and an id there are imported once: the second time answers that it was,
- * and changes nothing. Only an invoice or an advance invoice stands alone to be
- * imported; tax documents on payment and corrections follow other documents.
+ * and changes nothing. An invoice or an advance invoice stands alone; a tax
+ * document on payment comes with the advance and the payment it taxes, imported
+ * before it, and takes the place of the one Foresi would issue on that payment.
+ * Corrections are not imported. An invoice may deduct what its customer may
+ * deduct on the issuing path, and claims it as that path does.
  *
  * Each document is its own unit, under an audit correlation of its own, or the one
  * of the import running it.
@@ -60,6 +65,9 @@ final readonly class ImportIssuedDocument
         private ClockInterface $clock,
         private ContactSettingsForFirm $contacts,
         private TenantContext $tenants,
+        private AdvanceDeductions $deductions,
+        private AdvanceDocuments $advances,
+        private InvoicePayments $payments,
     ) {
     }
 
@@ -75,10 +83,11 @@ final readonly class ImportIssuedDocument
             if ($known instanceof Invoice) {
                 return ImportedDocumentResult::alreadyImported($known->id());
             }
-            if (!$input->kind->standsAlone()) {
+            $taxed = DocumentKind::PaymentTaxDocument === $input->kind && null !== $import->taxedAdvanceId && null !== $import->taxedPaymentId;
+            if (!$input->kind->standsAlone() && !$taxed) {
                 return ImportedDocumentResult::refused([new IssueProblem('document', 'invoice.problem.import_kind_unsupported')]);
             }
-            $problems = $this->rules->checkImported($import, $firm);
+            $problems = [...$this->taxedPayment($import), ...$this->rules->checkImported($import, $firm)];
             if ([] !== $problems) {
                 return ImportedDocumentResult::refused($problems);
             }
@@ -103,11 +112,34 @@ final readonly class ImportIssuedDocument
     }
 
     /**
+     * A tax document on payment taxes a live payment of its advance that has none
+     * yet, with lines priced with VAT, as Foresi prices them and its deduction reads them.
+     *
+     * @return list<IssueProblem>
+     */
+    private function taxedPayment(ImportedDocumentInput $import): array
+    {
+        if (null === $import->taxedAdvanceId || null === $import->taxedPaymentId) {
+            return [];
+        }
+        $advance = $this->store->get($import->taxedAdvanceId);
+        $paid = DocumentKind::Advance === $advance->kind() && array_any($this->payments->linesOf($advance), static fn (InvoicePaymentLine $line): bool => $line->paymentId === $import->taxedPaymentId);
+        if (!$paid) {
+            return [new IssueProblem('document', 'invoice.problem.payment_unknown')];
+        }
+        if (!array_all($import->document->lines, static fn (LineInput $line): bool => PriceType::WithVat === $line->priceType)) {
+            return [new IssueProblem('lines', 'invoice.problem.tax_document_with_vat')];
+        }
+
+        return null === $this->advances->taxDocumentOf($import->taxedAdvanceId, $import->taxedPaymentId) ? [] : [new IssueProblem('document', 'invoice.problem.tax_document_exists')];
+    }
+
+    /**
      * @param list<PricedLine> $lines
      *
      * @return string the id of the stored document
      *
-     * @throws IssueRefused when someone took the number meanwhile
+     * @throws IssueRefused when someone took the number, or another invoice what it deducts, meanwhile
      */
     private function stored(ImportedDocumentInput $import, LegalEntity $firm, Series $series, InvoiceChange $content, array $lines, Currency $home, DocumentTotals $totals): string
     {
@@ -123,6 +155,10 @@ final readonly class ImportIssuedDocument
                     $this->store->addLine(new InvoiceLine($invoice, $position, $line->input->text, $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));
                 }
                 $invoice->assignTotals($totals);
+                $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
+                if (null !== $import->taxedAdvanceId && null !== $import->taxedPaymentId) {
+                    $invoice->taxesPayment($import->taxedAdvanceId, $import->taxedPaymentId);
+                }
                 $invoice->importedFrom($import->source, $import->externalId, $import->runId, \DateTimeImmutable::createFromInterface($this->clock->now()), $import->deliveredAt, $import->exportedAt);
                 if (null !== $import->originalPdf) {
                     $invoice->keepOriginal($this->originals->store($tenant, $invoice->id(), $import->originalPdf), hash('sha256', $import->originalPdf));

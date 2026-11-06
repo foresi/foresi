@@ -1798,6 +1798,7 @@ invoice:
     already_deducted: Záloha z této faktury je už odečtená na jiné faktuře.
     deduction_invalid: 'Tuto zálohu tu nelze odečíst: patří jinému odběrateli, je odečtená jinde, nebo není uhrazená.'
     tax_document_exists: Tato platba už svůj daňový doklad má.
+    tax_document_with_vat: Řádky daňového dokladu k platbě mají cenu s DPH.
     no_tax_on_receipt: Z této platby DPH nevznikla, daňový doklad proto nedostane.
     payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
     series_of_another_firm: Tato řada patří jiné firmě.
@@ -2616,7 +2617,9 @@ idoklad:
             language_unsupported: Foresi nevystavuje doklady v jazyce tohoto dokladu.
             zero_rate_unsupported: Řádek má nulovou sazbu DPH, jejíž režim kopie iDokladu neuvádí.
             invalid_value: Datum, částka nebo typ ceny dokladu chybí nebo je mimo rozsah.
-            deducts_advances: Faktura odečítá zálohy; takové faktury se importují později.
+            payment_not_linked: Platba, kterou daňový doklad daní, nebyla importována.
+            advance_not_linked: Zálohová faktura, ke které doklad patří, nebyla importována.
+            advance_not_deductible: 'Ze zálohy, kterou faktura vyúčtovává, už nezbývá nic k odečtení: ve Foresi k ní není zaplacená záloha ani daňový doklad.'
             credit_note_unsupported: Dobropisy se zatím neimportují.
             pdf_unreadable: Uložené PDF dokladu nelze přečíst.
         series:
@@ -2624,6 +2627,12 @@ idoklad:
             invalid_format: Formát čísla nejde přečíst jako formát řady.
             invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
             name_taken: Firma už má řadu tohoto názvu s jinými čísly.
+        payments:
+            document_type_unsupported: Platba hradí jiný doklad než vydanou nebo zálohovou fakturu.
+            document_not_linked: Doklad, který platba hradí, nebyl importován.
+            currency_not_home: Platba není v domácí měně firmy.
+            payment_option_unsupported: Foresi platby tímto způsobem úhrady nezaznamenává.
+            invalid_value: Chybí datum nebo částka platby.
         recurring:
             advance_unsupported: Vzor vystavuje zálohové faktury, které Foresi zatím neopakuje.
             unknown_type: Doklady tohoto typu iDokladu Foresi neopakuje.
