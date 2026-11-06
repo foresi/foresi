@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'closed'} %}{% block sample %}
+<twig:Ui:Disclosure label="Zobrazit více detailů">
+    <twig:Ui:TextInput name="cat-disclosure-closed" label="Konstantní symbol" :row="true" width="short" />
+</twig:Ui:Disclosure>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'open'} %}{% block sample %}
+<twig:Ui:Disclosure label="Zobrazit více detailů" :open="true">
+    <twig:Ui:TextInput name="cat-disclosure-open" label="Konstantní symbol" :row="true" width="short" value="0308" />
+</twig:Ui:Disclosure>
+{% endblock %}{% endembed %}
+</div>

@@ -153,6 +153,9 @@ catalogue:
     unsaved: Neuložené změny
     confirm: Potvrzení
     open: Otevřený
+    widths: Šířky a řádky
+    closed: Zavřený
+    end: Vpravo dole
 
 format:
   date: "j.\u00A0n.\u00A0Y"
@@ -1388,6 +1391,7 @@ invoice:
   save_pdf: PDF a uložit
   more_actions: Další akce
   more: Další údaje
+  more_show: Zobrazit více detailů
   firm_apply: Použít tuto firmu
   rate: '{rate} %'
   errors_title: Fakturu zatím nelze uložit
@@ -1600,6 +1604,8 @@ invoice:
     cs: Čeština
     en: Angličtina
   total:
+    base: 'Základ {rate}'
+    rate_vat: 'DPH {rate}'
     net: Bez DPH
     vat: DPH
     rounding: Zaokrouhlení

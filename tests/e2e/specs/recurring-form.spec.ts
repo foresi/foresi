@@ -182,10 +182,10 @@ test.describe.serial('a recurring invoice', () => {
       await expectNoSidewaysScroll(page);
       await expectNoSeriousViolations(page);
       await page.screenshot({ path: `${SHOTS}/recurring-form-${name}.png`, fullPage: true });
-      await page.locator('section').filter({ has: page.locator('#unit') }).screenshot({ path: `${SHOTS}/recurring-schedule-${name}.png` });
-      await page.locator('section').filter({ has: page.locator('#sendToCustomer') }).screenshot({ path: `${SHOTS}/recurring-sending-${name}.png` });
-      await page.locator('section').filter({ has: page.locator('#dueDays') }).screenshot({ path: `${SHOTS}/recurring-dates-${name}.png` });
-      await page.locator('section').filter({ has: page.locator('#paymentMethod') }).screenshot({ path: `${SHOTS}/recurring-payment-${name}.png` });
+      await page.locator('[data-form-band] > section').filter({ has: page.locator('#unit') }).screenshot({ path: `${SHOTS}/recurring-schedule-${name}.png` });
+      await page.locator('[data-form-band] > section').filter({ has: page.locator('#sendToCustomer') }).screenshot({ path: `${SHOTS}/recurring-sending-${name}.png` });
+      await page.locator('[data-form-band] > section').filter({ has: page.locator('#dueDays') }).screenshot({ path: `${SHOTS}/recurring-dates-${name}.png` });
+      await page.locator('[data-form-band] > section').filter({ has: page.locator('#paymentMethod') }).screenshot({ path: `${SHOTS}/recurring-payment-${name}.png` });
 
       await preview(page).getByText('Přehled budoucích vystavení').click();
       await expect(allDates(page).locator('[data-preview-issue]')).toHaveCount(5);

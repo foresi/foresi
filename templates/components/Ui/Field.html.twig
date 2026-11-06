@@ -1,14 +1,32 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% set control = block('content') %}
-{% set labelHtml %}
-    <label for="{{ id }}" class="text-small font-medium text-ink">{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</label>
-{% endset %}
-<div {{ attributes.defaults({class: 'grid content-start gap-1.5'}) }}>
-    {% if inline %}
-        <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">{{ control|raw }}<span>{{ label }}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}</span></label>
-    {% else %}
-        {{ labelHtml }}{{ control|raw }}
-    {% endif %}
-    {% if help %}<p id="{{ id }}-help" class="text-caption text-muted">{{ help }}</p>{% endif %}
-    {% if error %}<p id="{{ id }}-error" role="alert" class="text-caption font-medium text-badge-red-text">{{ error }}</p>{% endif %}
-</div>
+{% set star %}{% if required %}<span class="ml-0.5 text-badge-red-text" aria-hidden="true">*</span>{% endif %}{% endset %}
+{% set widthClass = this.widthClass(width) %}
+{% if row %}
+    {# Label column, then the field column; help and error stay under the field. #}
+    {% set labelClass = 'text-small font-medium text-ink md:flex md:min-h-control md:items-center md:justify-end md:text-right' %}
+    <div {{ attributes.defaults({class: 'grid content-start gap-1.5 md:grid-cols-[var(--spacing-label)_minmax(0,1fr)] md:gap-x-4'}) }} data-field-row>
+        {% if plain %}
+            <span id="{{ id }}-label" class="{{ labelClass }}">{{ label }}</span>
+        {% else %}
+            <label for="{{ id }}" class="{{ labelClass }}"><span>{{ label }}{{ star }}</span></label>
+        {% endif %}
+        <div class="min-w-0 md:col-start-2 {{ widthClass }}">{{ control|raw }}</div>
+        {% if help %}<p id="{{ id }}-help" class="m-0 text-caption text-muted md:col-start-2 {{ widthClass }}">{{ help }}</p>{% endif %}
+        {% if error %}<p id="{{ id }}-error" role="alert" class="m-0 text-caption font-medium text-badge-red-text md:col-start-2 {{ widthClass }}">{{ error }}</p>{% endif %}
+    </div>
+{% else %}
+    <div {{ attributes.defaults({class: 'grid content-start gap-1.5'}) }}>
+        {% if inline %}
+            <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">{{ control|raw }}<span>{{ label }}{{ star }}</span></label>
+        {% elseif plain %}
+            <span id="{{ id }}-label" class="text-small font-medium text-ink">{{ label }}</span>
+            <div class="min-w-0 {{ widthClass }}">{{ control|raw }}</div>
+        {% else %}
+            <label for="{{ id }}" class="text-small font-medium text-ink">{{ label }}{{ star }}</label>
+            {% if widthClass %}<div class="min-w-0 {{ widthClass }}">{{ control|raw }}</div>{% else %}{{ control|raw }}{% endif %}
+        {% endif %}
+        {% if help %}<p id="{{ id }}-help" class="text-caption text-muted">{{ help }}</p>{% endif %}
+        {% if error %}<p id="{{ id }}-error" role="alert" class="text-caption font-medium text-badge-red-text">{{ error }}</p>{% endif %}
+    </div>
+{% endif %}

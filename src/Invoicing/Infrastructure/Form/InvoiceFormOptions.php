@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Form;
 
+use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\PriceType;
@@ -169,6 +170,28 @@ final readonly class InvoiceFormOptions
         }
 
         return array_combine($accounts, $accounts);
+    }
+
+    /**
+     * What the form shows of each account of bankAccounts(), by IBAN: its label,
+     * the number as people of the country write it (null abroad) and the IBAN in
+     * groups of four, as the invoice prints them. The name is what the select offers.
+     *
+     * @param list<string> $ibans
+     *
+     * @return array<string, array{label: string, number: ?string, iban: string, name: string}>
+     */
+    public function bankDetails(LegalEntity $firm, InvoicingCountry $country, array $ibans): array
+    {
+        $details = [];
+        foreach ($ibans as $iban) {
+            $label = $this->accounts->ofIban($firm, $iban)?->label() ?? '';
+            $number = $country->domesticAccount($iban);
+            $grouped = trim(chunk_split($iban, 4, ' '));
+            $details[$iban] = ['label' => $label, 'number' => $number, 'iban' => $grouped, 'name' => '' !== $label ? $label : ($number ?? $grouped)];
+        }
+
+        return $details;
     }
 
     private function seriesName(Series $series): string

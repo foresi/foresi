@@ -42,6 +42,7 @@ Planned as 0.5.0: the first release with invoices.
 
 - The invoice list with the tabs All, Overdue and Trash, search, a firm filter and row actions. A deletion asks for a reason, the trash shows who deleted a document, when and why, and each invoice has a history of who changed what, its lines included.
 - Copying an invoice: the form opens unsaved with the customer as the contact reads now, today's dates and the next number, and says when the lines hold a date or when the firm, series or customer can no longer be used.
+- The invoice, advance, correction and recurring forms share one layout, as iDoklad: labels beside the fields (above them on a phone), two bands of details, the lines and totals, and an action bar; the payment details show the account, its number and IBAN once.
 - The invoice form: save issues the document, with live totals from the server, a customer picker per firm, reverse charge with its supply code, and a form without VAT for a non-payer firm.
 - Any active contact can be invoiced, whatever its role; contacts archived for the firm cannot. Customers come first in the picker, and a saved invoice makes the contact a customer of that firm.
 - A contact created with the plus on the invoice form comes back picked, with its defaults, while the form keeps what was typed.

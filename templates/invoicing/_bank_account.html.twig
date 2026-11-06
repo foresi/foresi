@@ -1,0 +1,44 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The account of "Moje platební údaje", the same on every invoice form, as iDoklad: the select of the
+    accounts, or the one account's label as text, then its number and IBAN as the invoice prints them.
+    Every account has its rows; the form shows the chosen one's (invoice-form#bankAccountChanged).
+#}
+{% set chosen = values.bankAccount ?: (bankAccounts|keys|first) %}
+{% set rowClass = 'grid content-start gap-1.5 md:grid-cols-[var(--spacing-label)_minmax(0,1fr)] md:gap-x-4' %}
+{% set termClass = 'text-small font-medium text-ink md:text-right' %}
+{% if bankAccounts is empty %}
+    <input type="hidden" name="bankAccount" value="">
+    <twig:Ui:Field id="bankAccount" :row="true" :plain="true" width="medium" :label="'invoice.field.bankAccount'|trans">
+        <twig:Ui:Alert tone="warning" data-bank-note>
+            <span>{{ 'invoice.field.bankAccount_none'|trans }}</span>
+            {% if bankUrl %}<a href="{{ bankUrl }}" target="_blank" rel="noopener" id="bank-account-settings" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'invoice.field.bankAccount_add'|trans }}</a>{% endif %}
+        </twig:Ui:Alert>
+    </twig:Ui:Field>
+{% else %}
+    {% if bankAccounts|length > 1 %}
+        <twig:Ui:Select name="bankAccount" id="bankAccount" :row="true" width="medium" :label="'invoice.field.bankAccount'|trans" :options="bankDetails|map(account => account.name)" :value="chosen" :error="errorFields.bankAccount|default(null)" data-action="change->invoice-form#bankAccountChanged" />
+    {% else %}
+        {# One account: nothing to choose. Its label, when it has one; its numbers follow. #}
+        <input type="hidden" name="bankAccount" value="{{ chosen }}">
+        {% if bankDetails[chosen].label %}
+            <twig:Ui:Field id="bankAccount" :row="true" :plain="true" :label="'invoice.field.bankAccount'|trans" :error="errorFields.bankAccount|default(null)">
+                <p class="m-0 flex items-center break-all text-ink md:min-h-control" id="bankAccount" tabindex="-1">{{ bankDetails[chosen].label }}</p>
+            </twig:Ui:Field>
+        {% endif %}
+    {% endif %}
+    {% for iban, account in bankDetails %}
+        <dl class="m-0 grid gap-1.5{% if iban != chosen %} hidden{% endif %}" data-bank-details="{{ iban }}"{% if bankAccounts|length == 1 and not account.label %} id="bankAccount" tabindex="-1"{% endif %}>
+            {% if account.number %}
+                <div class="{{ rowClass }}">
+                    <dt class="{{ termClass }}">{{ 'recurring.payment.account_number'|trans }}</dt>
+                    <dd class="num m-0 break-all text-ink" data-account-number>{{ account.number }}</dd>
+                </div>
+            {% endif %}
+            <div class="{{ rowClass }}">
+                <dt class="{{ termClass }}">{{ 'recurring.payment.iban'|trans }}</dt>
+                <dd class="num m-0 break-all text-ink" data-account-iban>{{ account.iban }}</dd>
+            </div>
+        </dl>
+    {% endfor %}
+{% endif %}

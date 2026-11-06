@@ -987,6 +987,17 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertCount(0, $this->client->getCrawler()->filter('a[href="'.$bankUrl.'"]'));
     }
 
+    public function testThePaymentDetailsShowTheAccountNumberAndIbanOnce(): void
+    {
+        $this->signedIn();
+
+        $this->client->request('GET', '/invoices/new');
+
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-number]', '19-2000145399/0800');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
+        self::assertSelectorCount(1, '[data-account-iban]');
+    }
+
     public function testAnAccountAddedInAnotherTabIsUsedByTheOpenForm(): void
     {
         $this->signedIn();
@@ -1614,8 +1625,6 @@ final class InvoiceControllerTest extends WebTestCase
      */
     public static function moreDetails(): iterable
     {
-        yield 'an order number' => [['orderNumber' => 'PO-1']];
-        yield 'a description of its own' => [['description' => 'Something else']];
         yield 'a constant symbol' => [['constantSymbol' => '0308']];
         yield 'a text after' => [['textAfter' => 'Thanks']];
         yield 'a mistake inside' => [['variableSymbol' => 'abc']];
@@ -1637,13 +1646,15 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('details[data-more-details][open]');
     }
 
-    public function testADescriptionLikeTheFirstLineStaysClosed(): void
+    public function testTheOrderNumberAndDescriptionKeepMoreDetailsClosed(): void
     {
         $this->signedIn();
 
-        $this->save(array_merge($this->filled(), ['description' => 'Work', '_action' => 'refresh']));
+        $this->save(array_merge($this->filled(), ['orderNumber' => 'PO-1', 'description' => 'Something else', '_action' => 'refresh']));
 
         self::assertSelectorNotExists('details[data-more-details][open]');
+        self::assertSelectorExists('[data-customer-block] #orderNumber');
+        self::assertSelectorExists('[data-customer-block] #description');
     }
 
     public function testTheTotalColumnSaysWhatItHolds(): void

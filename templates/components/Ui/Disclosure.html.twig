@@ -1,0 +1,8 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<details {{ attributes.defaults({class: 'group'}) }}{% if open %} open{% endif %}>
+    <summary{% if summaryId %} id="{{ summaryId }}"{% endif %} class="mx-auto flex w-max cursor-pointer list-none items-center gap-1.5 rounded-control border border-control-line bg-white px-3 py-1.5 text-small font-medium text-ink hover:bg-head {{ constant('App\\Ui\\Component\\Style::FOCUS') }} [&::-webkit-details-marker]:hidden">
+        {{- label -}}
+        {{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted transition-transform group-open:rotate-180', 'aria-hidden': 'true'}) }}
+    </summary>
+    <div class="mt-4 grid gap-3">{% block content %}{% endblock %}</div>
+</details>

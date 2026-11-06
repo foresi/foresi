@@ -1,0 +1,5 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<section {{ attributes.defaults({class: 'grid min-w-0 content-start gap-3'}) }}>
+    {% if title %}<h3 class="m-0 text-body font-semibold text-ink md:pl-[calc(var(--spacing-label)+1rem)]">{{ title }}</h3>{% endif %}
+    {% block content %}{% endblock %}
+</section>

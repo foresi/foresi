@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The lines table, as iDoklad's: one fixed column grid for the header and every row, the drag
+    handle first, the text flexible, numbers right-aligned under right-aligned headers and the row
+    actions last. A header over an input is inset by the cell padding, the input padding and its
+    border, so its text starts or ends where the input's does. The totals end at the line total
+    column: their right margin is the width of the actions column plus the cell padding.
+    A recurring template's form passes textAttributes, which its variable chips need on the text cell.
+#}
+{% set overInput = 'py-1 px-[calc(0.25rem+0.625rem+1px)] font-medium' %}
+<table class="block w-full xl:table xl:table-fixed" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
+    <thead class="max-xl:sr-only">
+        <tr class="text-left text-small font-medium text-muted inset-shadow-rail">
+            <th scope="col" class="w-7 p-1"><span class="sr-only">{{ 'invoice.line.drag'|trans }}</span></th>
+            <th scope="col" class="{{ overInput }}">{{ 'invoice.line.text'|trans }}</th>
+            <th scope="col" class="w-28 text-right {{ overInput }}">{{ 'invoice.line.price'|trans }}</th>
+            <th scope="col" class="w-20 text-right {{ overInput }}">{{ 'invoice.line.quantity'|trans }}</th>
+            <th scope="col" class="w-20 {{ overInput }}">{{ 'invoice.line.unit'|trans }}</th>
+            {% if payer %}
+                <th scope="col" class="w-32 {{ overInput }}">{{ 'invoice.line.priceType'|trans }}</th>
+                <th scope="col" class="w-36 {{ overInput }}">{{ 'invoice.line.vat'|trans }}</th>
+            {% endif %}
+            <th scope="col" class="w-32 p-1 text-right font-medium">{{ (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans }}</th>
+            <th scope="col" class="w-24 p-1 text-right font-medium">{{ 'invoice.line.actions'|trans }}</th>
+        </tr>
+    </thead>
+    {% for line in values.lines %}
+        {{ include('invoicing/_line.html.twig', {index: loop.index0, line: line, total: figures.lines[loop.index0].total|default(''), discount: figures.lines[loop.index0].discount|default(''), textAttributes: textAttributes|default('')}) }}
+    {% endfor %}
+</table>
+<template data-invoice-form-target="lineTemplate">{{ include('invoicing/_line.html.twig', {index: '__INDEX__', line: emptyLine, total: '', discount: '', textAttributes: textAttributes|default('')}) }}</template>

@@ -55,7 +55,6 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
-use App\Party\Domain\PaymentMethod;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
 use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -188,12 +187,10 @@ final class RecurringFormController extends AbstractController
         $recipients = $this->recipients($firm, $request->request->getString('customerId'), $template);
         $this->withRecipients($request, $recipients);
         $preview = $this->previewOf($this->reader->read($request, $context->currency, $this->today()), $template);
-        $payment = PaymentMethod::tryFrom($request->request->getString('paymentMethod'));
 
         return $this->render('invoicing/recurring/_live.html.twig', [
             'preview' => $preview,
             'recipients' => $recipients,
-            'account' => $this->account($context, PaymentMethod::BankTransfer === $payment ? $request->request->getString('bankAccount') : ''),
         ], new Response(status: [] === $preview['problems'] ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
@@ -500,6 +497,7 @@ final class RecurringFormController extends AbstractController
             'paymentMethods' => $this->options->paymentMethods(),
             'languages' => $this->options->languages(),
             'bankAccounts' => $bankAccounts,
+            'bankDetails' => $this->options->bankDetails($firm, $context->country, array_keys($bankAccounts)),
             'figures' => $this->shownFigures($context, $values, $today),
             'emptyLine' => $this->values->emptyLine($context->regime, $this->newLinesAreReverseCharge($context, $values)),
             'maxLines' => InvoiceFormReader::MAX_LINES,
@@ -507,8 +505,6 @@ final class RecurringFormController extends AbstractController
             'taxPoints' => $this->choices(TaxPointRule::cases(), $context->isPayer() ? 'recurring.tax_point.' : 'recurring.supply_point.'),
             'ends' => $this->choices(RecurrenceEnd::cases(), 'recurring.end.'),
             'recipients' => $recipients,
-            // One account is not chosen in the form: it is the one the invoice prints.
-            'account' => $this->account($context, '' !== $previewRequest->request->getString('bankAccount') ? $previewRequest->request->getString('bankAccount') : (string) array_key_first($bankAccounts)),
             'variables' => $this->variables(),
             'preview' => $this->previewOf($this->reader->read($previewRequest, $context->currency, $today), $template),
         ], new Response(status: $status));
@@ -622,21 +618,6 @@ final class RecurringFormController extends AbstractController
         }
 
         return $wanted;
-    }
-
-    /**
-     * The chosen account of the firm as the invoice prints it: the domestic number
-     * when the country writes one, and the IBAN. Nothing for another payment.
-     *
-     * @return array{number: ?string, iban: string}|null
-     */
-    private function account(InvoiceFormContext $context, string $iban): ?array
-    {
-        if ('' === $iban) {
-            return null;
-        }
-
-        return ['number' => $context->country->domesticAccount($iban), 'iban' => trim(chunk_split($iban, 4, ' '))];
     }
 
     /**

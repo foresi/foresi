@@ -240,7 +240,7 @@ final class RecurringFormControllerTest extends WebTestCase
         $this->openNew();
 
         $titles = $this->client->getCrawler()->filter('form#recurring-form section h3')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame(['Issuer', 'Invoice template', 'Repeat issuing', 'Sending the invoice', 'Dates', 'My payment details', 'Lines'], $titles);
+        self::assertSame(['Repeat issuing', 'Sending the invoice', 'Dates', 'My payment details'], $titles);
         $ids = $this->client->getCrawler()->filter('form#recurring-form [id]')->each(static fn ($node): string => (string) $node->attr('id'));
         $order = array_values(array_intersect($ids, ['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod']));
         self::assertSame(['name', 'customer', 'orderNumber', 'description', 'unit', 'firstIssueOn', 'onLastDayOfMonth', 'every', 'recurring-preview', 'end', 'sendToCustomer', 'copyToMe', 'copyToOthers', 'dueDays', 'taxPoint', 'paymentMethod'], $order);
@@ -317,8 +317,8 @@ final class RecurringFormControllerTest extends WebTestCase
 
         $this->openNew();
 
-        self::assertSelectorTextSame('#recurring-account [data-account-number]', '19-2000145399/0800');
-        self::assertSelectorTextSame('#recurring-account [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-number]', '19-2000145399/0800');
+        self::assertSelectorTextSame('[data-bank-details]:not(.hidden) [data-account-iban]', 'CZ65 0800 0000 1920 0014 5399');
     }
 
     public function testCreatingStoresTheTemplateAndGoesToTheList(): void

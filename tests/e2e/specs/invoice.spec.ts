@@ -184,7 +184,7 @@ test.describe.serial('an invoice', () => {
     await expect(page.locator('#customer')).toHaveValue('Example Domestic a.s.');
     await expect(page.locator('[data-customer-summary]')).toContainText('12345679');
 
-    await tabThrough(page, ['customer-add', 'customerEdit', 'customer-contact', 'invoice-details', 'issueDate', 'taxPointDate', 'dueDate', 'paymentMethod', 'lines-0-text']);
+    await tabThrough(page, ['customer-add', 'customerEdit', 'customer-contact', 'orderNumber', 'description', 'issueDate', 'taxPointDate', 'dueDate', 'paymentMethod', 'invoice-details', 'lines-0-text']);
     await page.keyboard.type('Konzultace');
     await tabThrough(page, ['lines-0-price']);
     await page.keyboard.type('1000,10');

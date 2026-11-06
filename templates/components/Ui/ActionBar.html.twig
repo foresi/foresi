@@ -3,10 +3,15 @@
     A floating bar held a little above the bottom of the viewport (sticky, so it stays in normal flow
     on short pages), in the same style as the bulk bar. The action-bar controller marks it as stuck
     while the content scrolls under it, which adds the shadow. Low screens (landscape phones, high
-    zoom) get it in normal flow.
+    zoom) get it in normal flow. With "end" it is the footer of its surface instead: flush with the
+    bottom of the viewport and full width, so the content scrolls under an opaque strip rather than
+    behind a floating box, and at the end of the form it sits right under the last content.
 #}
 {% set statusHtml %}{% block status %}{{ this.statusText }}{% endblock %}{% endset %}
-<div {{ attributes.defaults({class: 'sticky bottom-3 z-20 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-panel border border-container bg-white px-4 py-2.5 transition-shadow data-[stuck]:shadow-floating max-sm:bottom-2 max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
+{% set shape = end
+    ? 'bottom-0 rounded-b-panel border-t border-divider py-3'
+    : 'bottom-3 mt-4 rounded-panel border border-container py-2.5 max-sm:bottom-2' %}
+<div {{ attributes.defaults({class: shape ~ ' sticky z-20 flex flex-wrap items-center gap-x-4 gap-y-2 bg-white px-4 transition-shadow data-[stuck]:shadow-floating max-sm:px-2.5 [@media(max-height:480px)]:static'}) }} data-action-bar data-controller="action-bar">
     {% if statusHtml|trim is not empty %}
         <p class="m-0 min-w-0 text-small text-muted max-sm:w-full" aria-live="polite" data-action-bar-status>{{ statusHtml }}</p>
     {% endif %}

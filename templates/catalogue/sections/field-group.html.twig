@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<twig:Ui:FieldGroup title="Datumy">
+    <twig:Ui:TextInput name="cat-group-issue" type="date" label="Datum vystavení" :row="true" width="short" :required="true" value="2026-11-05" />
+    <twig:Ui:TextInput name="cat-group-due" type="date" label="Datum splatnosti" :row="true" width="short" :required="true" value="2026-11-19" />
+</twig:Ui:FieldGroup>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'widths'} %}{% block sample %}
+<twig:Ui:FieldGroup>
+    <twig:Ui:TextInput name="cat-group-short" label="Short" :row="true" width="short" value="12345" />
+    <twig:Ui:Select name="cat-group-medium" label="Medium" :row="true" width="medium" :options="{a: 'Převodem'}" />
+    <twig:Ui:TextInput name="cat-group-long" label="Long" :row="true" width="long" help="Help sits under the field." value="Example Company s.r.o." />
+    <twig:Ui:TextInput name="cat-group-error" label="Error" :row="true" width="medium" error="Enter a valid number." value="abc" />
+    <twig:Ui:Field id="cat-group-plain" label="Read-only" :row="true" :plain="true"><p class="m-0 flex items-center text-ink md:min-h-control">CZK</p></twig:Ui:Field>
+</twig:Ui:FieldGroup>
+{% endblock %}{% endembed %}
+</div>
