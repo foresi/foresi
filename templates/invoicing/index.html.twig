@@ -9,6 +9,25 @@
 {% block actions %}
     {% if not firstRun %}
         {% if kind == 'invoice' %}<twig:Ui:Button icon="download" :href="path('app_invoice_export')">{{ 'invoice.export.link'|trans }}</twig:Ui:Button>{% endif %}
+        {# Downloads what the list shows, on all its pages, as the address book exports. #}
+        {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+        {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head' %}
+        <form method="post" action="{{ path('app_invoices_list_export') }}" data-turbo="false" class="relative" data-controller="dropdown" data-list-export>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN')) }}">
+            <input type="hidden" name="kind" value="{{ kind }}">
+            {% for name, value in {tab: tab, firm: firm, q: text, sort: sort, toSend: toSend ? '1' : '', export: export, month: month} %}
+                {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
+            {% endfor %}
+            <twig:Ui:Button icon="download" id="list-export-button" aria-haspopup="menu" aria-expanded="false" aria-controls="list-export-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">{{ 'invoice.list_export.button'|trans }}{{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}</twig:Ui:Button>
+            <div id="list-export-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="list-export-button" class="absolute right-0 top-full z-50 mt-1.5 w-max min-w-full rounded-panel border border-container bg-white p-1.5 shadow-floating">
+                <button type="submit" name="format" value="csv" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
+                    <span>{{ 'invoice.list_export.csv'|trans }}</span>
+                </button>
+                <button type="submit" name="format" value="xlsx" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
+                    <span>{{ 'invoice.list_export.xlsx'|trans }}</span>
+                </button>
+            </div>
+        </form>
         {% if newHref %}<twig:Ui:Button variant="primary" icon="plus" :href="newHref" data-turbo="false">{{ newKey|trans }}</twig:Ui:Button>{% endif %}
     {% endif %}
 {% endblock %}

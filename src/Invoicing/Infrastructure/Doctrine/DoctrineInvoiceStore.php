@@ -17,6 +17,8 @@ use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoiceSumLine;
 use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\ListedDocument;
+use App\Invoicing\Application\ListedDocuments;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\StoredInvoice;
@@ -32,6 +34,7 @@ use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Invoicing\Domain\Percent;
+use App\Invoicing\Domain\RateSummary;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\TaxTreatment;
@@ -59,7 +62,7 @@ use Psr\Clock\ClockInterface;
  * rate, under the same conditions as its page; only those groups come back, and each
  * is converted to the home currency exactly, rounded once at the end.
  */
-final readonly class DoctrineInvoiceStore implements InvoiceStore
+final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocuments
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
     private const string COUNTRY = 'i.issuer.address.countryCode';
@@ -255,6 +258,102 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
         $views = array_values(array_map(fn (array $line): InvoiceSumLine => new InvoiceSumLine($line['treatment'], null === $line['rate'] ? null : Percent::fromString($line['rate']), $line['net'], $line['vat'], $line['gross']), $lines));
 
         return new InvoiceSums((int) $count->getSingleScalarResult(), $net, $vat, $gross, $views);
+    }
+
+    public function listedIds(InvoiceFilter $filter): array
+    {
+        [$firms, $todays] = $this->issuers();
+        [$overdue, $overdueParameters] = $this->overdue($todays);
+        [$where, $parameters] = $this->narrowed($filter, $firms);
+        [$condition, $listed] = $this->listed($filter, $where, $parameters, $overdue, $overdueParameters);
+
+        $query = $this->em->createQuery('SELECT i.id FROM '.Invoice::class.' i WHERE '.$condition.' ORDER BY '.$this->order($filter->sort));
+        $this->bind($query, $listed);
+        /** @var list<string> $ids */
+        $ids = $query->getSingleColumnResult();
+
+        return $ids;
+    }
+
+    public function listedRates(InvoiceFilter $filter): array
+    {
+        return $this->sums($filter)->lines;
+    }
+
+    /**
+     * The rows as page() builds them, one query for the documents with what their
+     * corrections add, one for their lines summed per treatment and rate, one for the
+     * marks and one for what they have been paid.
+     */
+    public function listedDocuments(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+        [, $todays] = $this->issuers();
+        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
+        $results = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
+            .' FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getResult();
+        /** @var list<array{invoice: string, treatment: TaxTreatment, rate: ?string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $groups */
+        $groups = $this->em->createQuery('SELECT IDENTITY(l.invoice) AS invoice, l.treatment AS treatment, l.rate AS rate, SUM(l.netMinor) AS net, SUM(l.vatMinor) AS vat, SUM(l.grossMinor) AS gross'
+            .' FROM '.InvoiceLine::class.' l WHERE l.invoice IN (:ids) GROUP BY l.invoice, l.treatment, l.rate')
+            ->setParameter('ids', $ids)
+            ->getResult(Query::HYDRATE_ARRAY);
+        $summaries = [];
+        foreach ($groups as $group) {
+            $summaries[$group['invoice']][] = $group;
+        }
+        $found = array_map(static fn (array $result): string => $result[0]->id(), $results);
+        $marks = $this->sends->marksFor($found);
+        $paid = $this->payments->paidFor($found);
+
+        $documents = [];
+        foreach ($results as $result) {
+            $invoice = $result[0];
+            $documents[$invoice->id()] = new ListedDocument(
+                $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, (int) $result['corrections']),
+                $invoice->customer()->registrationNumber,
+                $invoice->customer()->vatId,
+                $invoice->taxPointDate(),
+                $invoice->currency(),
+                $invoice->exchangeRate(),
+                $invoice->net(),
+                $invoice->vat(),
+                $invoice->gross(),
+                $this->summaries($invoice->currency(), $summaries[$invoice->id()] ?? []),
+            );
+            // Read once and written out: kept, a long list would fill the session.
+            $this->em->detach($invoice);
+        }
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($documents[$id])) {
+                $ordered[] = $documents[$id];
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * A treatment without a rate keeps none, as InvoiceCalculator::summaries() has it.
+     *
+     * @param list<array{invoice: string, treatment: TaxTreatment, rate: ?string, net: int|numeric-string, vat: int|numeric-string, gross: int|numeric-string}> $groups
+     *
+     * @return list<RateSummary>
+     */
+    private function summaries(Currency $currency, array $groups): array
+    {
+        return array_map(static fn (array $group): RateSummary => new RateSummary(
+            $group['treatment'],
+            $group['treatment']->hasRate() && null !== $group['rate'] ? Percent::fromString($group['rate']) : null,
+            Money::ofMinor((int) $group['net'], $currency),
+            Money::ofMinor((int) $group['vat'], $currency),
+            Money::ofMinor((int) $group['gross'], $currency),
+        ), $groups);
     }
 
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array

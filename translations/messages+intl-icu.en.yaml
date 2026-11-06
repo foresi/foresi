@@ -12,6 +12,24 @@ dashboard:
   empty:
     title: Your dashboard is on its way
     text: Once there is data in this organisation, the overview will appear here.
+  invoicing:
+    title: Invoicing
+    note: Amounts in CZK, months by the tax point.
+    show: Show
+    invoiced: 'Invoiced – {month}'
+    base: 'Base {amount}'
+    unpaid: Unpaid
+    overdue: Overdue
+    documents: '{count, plural, one {# document} other {# documents}}'
+    vat: 'Output VAT – {month}'
+    age_30: Overdue up to 30 days
+    age_60: Overdue 31–60 days
+    age_over: Overdue over 60 days
+    debtors: Top debtors
+    debtors_empty: No customer owes anything.
+    pending: '{month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
+    pending_firm: '{firm}: {month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
+    pending_link: Pass to the accountant
 auth:
   logout: Sign out
 registry:
@@ -1221,6 +1239,18 @@ invoice:
       vat: 'VAT ({currency})'
       total: 'Total ({currency})'
       sum: Total
+  list_export:
+    button: Export
+    csv: Export as CSV
+    xlsx: 'Export as Excel (XLSX)'
+    all_months: all
+    decimal: '.'
+    paid: Paid
+    left: Left to pay
+    state: Export state
+    rate: '{rate, number} %'
+    rate_base: 'Base {label}'
+    rate_vat: 'VAT {label}'
   pdf:
     undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
     footer: '{title} · Page {page}/{pages}'

@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Application\DocumentExports;
+use App\Invoicing\Application\ExportDocumentList;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
@@ -26,6 +27,7 @@ use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\IssueRefused;
+use App\Invoicing\Application\ListFileFormat;
 use App\Invoicing\Application\MarkDelivered;
 use App\Invoicing\Application\MissingTaxDocument;
 use App\Invoicing\Application\MissingTaxDocuments;
@@ -54,9 +56,12 @@ use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
@@ -109,6 +114,7 @@ final class InvoiceListController extends AbstractController
         private readonly IssuePaymentTaxDocument $taxDocuments,
         private readonly UncorrectedTaxDocuments $uncorrected,
         private readonly DocumentExports $exports,
+        private readonly ExportDocumentList $listExport,
     ) {
     }
 
@@ -121,18 +127,8 @@ final class InvoiceListController extends AbstractController
         $this->denyUnlessStaff();
         $kind = DocumentKind::from($kind);
         $route = self::ROUTES[$kind->value];
-        $tab = $request->query->getString('tab', InvoiceFilter::ALL);
-        $tab = \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL;
-        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_TEXT));
-        $sort = $request->query->getString('sort', InvoiceFilter::DEFAULT_SORT);
-        $sort = \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT;
-        $firm = $request->query->getString('firm');
-        // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
-        $toSend = '1' === $request->query->getString('toSend');
-        $export = ExportState::tryFrom($request->query->getString('export'));
-        $month = InvoiceFilter::monthOf($request->query->getString('month'));
-
-        $filter = new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind, $export, $month);
+        $filter = $this->filterOf($request->query, $kind);
+        [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
         $page = $this->store->page($filter);
         $firm = isset($page->firms[$firm]) ? $firm : '';
         $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month], static fn (?string $value): bool => null !== $value);
@@ -177,6 +173,59 @@ final class InvoiceListController extends AbstractController
             'sums' => 0 === $page->total ? null : $this->sums($this->store->sums($filter)),
             'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,
         ]);
+    }
+
+    /**
+     * Downloads exactly what the list shows, its filter posted back: the same tab, firm,
+     * month, export state, text and order, over all pages. It is streamed and read in
+     * batches, so a long list needs no limit. The name says the kind and the month only.
+     */
+    #[Route('/invoices/list-export', name: 'app_invoices_list_export', methods: ['POST'])]
+    public function exportList(Request $request): StreamedResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $kind = DocumentKind::tryFrom($request->request->getString('kind')) ?? throw new NotFoundHttpException();
+        $filter = $this->filterOf($request->request, $kind);
+        $format = 'xlsx' === $request->request->getString('format') ? ListFileFormat::Xlsx : ListFileFormat::Csv;
+        $name = \sprintf('%s_%s.%s', $this->translator->trans('invoice.export.folder.'.$kind->value), $filter->month ?? $this->translator->trans('invoice.list_export.all_months'), $format->value);
+
+        // The request has ended by the time the response streams, and its locale with it.
+        $locale = $request->getLocale();
+        $response = new StreamedResponse(function () use ($filter, $format, $locale): void {
+            $this->listExport->write($filter, $format, 'php://output', $locale);
+        });
+        $response->headers->set('Content-Type', ListFileFormat::Xlsx === $format ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=utf-8');
+        $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $name));
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
+    }
+
+    /**
+     * The filter of a list from its query, or from the form of its download: anything
+     * it does not know falls back to the whole list.
+     *
+     * @param InputBag<string> $input
+     */
+    private function filterOf(InputBag $input, DocumentKind $kind): InvoiceFilter
+    {
+        $tab = $input->getString('tab', InvoiceFilter::ALL);
+        $sort = $input->getString('sort', InvoiceFilter::DEFAULT_SORT);
+        $firm = $input->getString('firm');
+
+        return new InvoiceFilter(
+            '' === $firm ? null : $firm,
+            \in_array($tab, InvoiceFilter::tabsOf($kind), true) ? $tab : InvoiceFilter::ALL,
+            trim(mb_substr($input->getString('q'), 0, self::MAX_TEXT)),
+            \in_array(ltrim($sort, '-'), InvoiceFilter::SORTS, true) ? $sort : InvoiceFilter::DEFAULT_SORT,
+            max(1, $input->getInt('page', 1)),
+            // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
+            '1' === $input->getString('toSend'),
+            $kind,
+            ExportState::tryFrom($input->getString('export')),
+            InvoiceFilter::monthOf($input->getString('month')),
+        );
     }
 
     /**

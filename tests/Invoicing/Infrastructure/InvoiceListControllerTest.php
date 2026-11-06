@@ -1253,7 +1253,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([$october->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
-        $month = $crawler->filter('input[name="month"]');
+        $month = $crawler->filter('#invoice-month');
         self::assertSame(['month', '2026-10', 'Month'], [$month->attr('type'), $month->attr('value'), $crawler->filter('label[for="invoice-month"]')->text()]);
         self::assertStringContainsString('month=2026-10', $crawler->filter('thead a')->first()->attr('href') ?? '');
         $return = $crawler->filter('tr[data-id="'.$october->id().'"] form input[name="return"]')->first()->attr('value');

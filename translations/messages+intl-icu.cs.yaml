@@ -12,6 +12,24 @@ dashboard:
   empty:
     title: Přehled se připravuje
     text: Jakmile v této organizaci budou data, objeví se tu přehled.
+  invoicing:
+    title: Fakturace
+    note: Částky v Kč, měsíce podle data zdanitelného plnění.
+    show: Zobrazit
+    invoiced: 'Vyfakturováno – {month}'
+    base: 'Základ {amount}'
+    unpaid: Neuhrazeno
+    overdue: Po splatnosti
+    documents: '{count, plural, one {# doklad} few {# doklady} other {# dokladů}}'
+    vat: 'DPH na výstupu – {month}'
+    age_30: Po splatnosti do 30 dnů
+    age_60: Po splatnosti 31–60 dnů
+    age_over: Po splatnosti přes 60 dnů
+    debtors: Největší dlužníci
+    debtors_empty: Žádný odběratel nic nedluží.
+    pending: '{month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
+    pending_firm: '{firm}: {month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
+    pending_link: Předat účetní
 registry:
   result:
     valid: Platné ve VIES
@@ -1221,6 +1239,18 @@ invoice:
       vat: 'DPH ({currency})'
       total: 'Celkem ({currency})'
       sum: Celkem
+  list_export:
+    button: Exportovat
+    csv: Exportovat jako CSV
+    xlsx: 'Exportovat jako Excel (XLSX)'
+    all_months: vse
+    decimal: ','
+    paid: Uhrazeno
+    left: Zbývá uhradit
+    state: Stav exportu
+    rate: '{rate, number} %'
+    rate_base: 'Základ {label}'
+    rate_vat: 'DPH {label}'
   pdf:
     undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
     footer: '{title} · Strana {page}/{pages}'
