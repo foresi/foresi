@@ -1170,17 +1170,57 @@ invoice:
       exported: 'Exported for the accountant {date}'
       changed: 'Edited {date}, after the export for the accountant'
   export:
-    incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
+    incomplete: 'Documents {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole month.'
     title: Documents for the accountant
     link: For the accountant
-    intro: Downloads a ZIP of the invoice PDFs with their ISDOC for a period, by tax point date. Documents in the trash stay out. Nothing is sent anywhere.
-    from: From
-    to: To
+    intro: Downloads a ZIP of the PDFs and ISDOC of one month with a list of them. Tax documents fall in the month of their tax point, advance invoices in the month of their issue. Documents in the trash stay out. Nothing is sent anywhere; the documents are marked exported.
+    month: Month
+    month_help: By tax point; advance invoices by issue date
+    scope:
+      legend: Documents
+      pending: Not yet exported
+      pending_text: New documents and those edited after their export
+      all: All of the month
+      all_text: Also those the accountant has already had
+    counts: In the ZIP
+    count_total: Total
+    refresh: Count again
     submit: Download ZIP
-    empty: No invoices of this firm in this period.
-    date_invalid: Enter a valid date.
-    backwards: The end of the period cannot come before its start.
-    too_long: 'A period has at most {days} days.'
+    empty: No documents of this firm to export in this month.
+    month_invalid: Enter a valid month.
+    folder:
+      invoice: invoices
+      advance: advance-invoices
+      payment_tax_document: tax-documents
+      correction_document: corrective-documents
+    currency: '{code}'
+    list_file: list.xlsx
+    sheet:
+      documents: Documents
+      recap: VAT recap
+    column:
+      number: Number
+      kind: Kind
+      customer: Customer
+      registration: Registration number
+      vat_id: VAT number
+      issue_date: Issue date
+      tax_point: Tax point
+      due_date: Due date
+      currency: Currency
+      exchange_rate: Exchange rate
+      base: Base
+      vat: VAT
+      total: Total
+      payable: To pay
+      state: Export state before
+    recap:
+      treatment: Treatment
+      rate: Rate (%)
+      base: 'Base ({currency})'
+      vat: 'VAT ({currency})'
+      total: 'Total ({currency})'
+      sum: Total
   pdf:
     undrawable: 'Invoice {number} cannot be printed: its values do not fit the table even in the smallest type.'
     footer: '{title} · Page {page}/{pages}'
@@ -1407,6 +1447,16 @@ invoice:
   more: More details
   more_show: Show more details
   firm_apply: Use this firm
+  month:
+    label: Month
+  sums:
+    title: Sums of the list
+    count: Documents
+    base: Base
+    vat: VAT
+    total: Total
+    rate: Rate
+    note: In CZK at each document's exchange rate, all pages
   rate: '{rate}%'
   errors_title: The invoice cannot be saved yet
   cut_off: The form was too large to arrive whole, so nothing was saved.

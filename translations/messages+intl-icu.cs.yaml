@@ -1170,17 +1170,57 @@ invoice:
       exported: 'Exportováno účetní {date}'
       changed: 'Upraveno {date}, po exportu pro účetní'
   export:
-    incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
+    incomplete: 'Doklady {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celý měsíc.'
     title: Doklady pro účetní
     link: Pro účetní
-    intro: Stáhne ZIP s PDF fakturami a jejich ISDOC za zvolené období podle data zdanitelného plnění. Doklady v koši zůstávají stranou. Nic se nikam neodesílá.
-    from: Od
-    to: Do
+    intro: Stáhne ZIP s PDF a ISDOC dokladů jednoho měsíce a jejich seznamem. Daňové doklady patří do měsíce data zdanitelného plnění, zálohové faktury do měsíce vystavení. Doklady v koši zůstávají stranou. Nic se nikam neodesílá; doklady se označí jako exportované.
+    month: Měsíc
+    month_help: Podle DUZP, zálohové faktury podle vystavení
+    scope:
+      legend: Doklady
+      pending: Dosud neexportované
+      pending_text: Nové doklady a ty upravené po exportu
+      all: Všechny za měsíc
+      all_text: I ty, které už účetní má
+    counts: V ZIPu
+    count_total: Celkem
+    refresh: Spočítat znovu
     submit: Stáhnout ZIP
-    empty: Za toto období tato firma nemá žádné faktury.
-    date_invalid: Zadejte platné datum.
-    backwards: Konec období nesmí být před jeho začátkem.
-    too_long: 'Období může mít nejvýše {days} dní.'
+    empty: Tato firma nemá v tomto měsíci žádné doklady k exportu.
+    month_invalid: Zadejte platný měsíc.
+    folder:
+      invoice: faktury
+      advance: zalohove-faktury
+      payment_tax_document: danove-doklady
+      correction_document: opravne-doklady
+    currency: '{code, select, CZK {Kc} other {{code}}}'
+    list_file: seznam.xlsx
+    sheet:
+      documents: Doklady
+      recap: Rekapitulace DPH
+    column:
+      number: Číslo
+      kind: Druh
+      customer: Odběratel
+      registration: IČO
+      vat_id: DIČ
+      issue_date: Datum vystavení
+      tax_point: DUZP
+      due_date: Splatnost
+      currency: Měna
+      exchange_rate: Kurz
+      base: Základ
+      vat: DPH
+      total: Celkem
+      payable: K úhradě
+      state: Stav exportu předtím
+    recap:
+      treatment: Režim
+      rate: Sazba (%)
+      base: 'Základ ({currency})'
+      vat: 'DPH ({currency})'
+      total: 'Celkem ({currency})'
+      sum: Celkem
   pdf:
     undrawable: 'Fakturu {number} nejde vytisknout: její hodnoty se nevejdou do tabulky ani nejmenším písmem.'
     footer: '{title} · Strana {page}/{pages}'
@@ -1407,6 +1447,16 @@ invoice:
   more: Další údaje
   more_show: Zobrazit více detailů
   firm_apply: Použít tuto firmu
+  month:
+    label: Měsíc
+  sums:
+    title: Součty seznamu
+    count: Dokladů
+    base: Základ
+    vat: DPH
+    total: Celkem
+    rate: Sazba
+    note: V Kč podle kurzu každého dokladu, za všechny stránky
   rate: '{rate} %'
   errors_title: Fakturu zatím nelze uložit
   cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.

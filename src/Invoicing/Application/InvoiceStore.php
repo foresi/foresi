@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\AbandonedNumber;
+use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Party\Domain\LegalEntity;
@@ -91,6 +92,11 @@ interface InvoiceStore
     public function page(InvoiceFilter $filter): InvoicePage;
 
     /**
+     * What the documents page() lists under the same filter add up to, over all pages.
+     */
+    public function sums(InvoiceFilter $filter): InvoiceSums;
+
+    /**
      * The invoices of a firm whose tax point falls in a period, both days included,
      * in the order of their numbers. The trash stays out. The tax point, because it
      * decides the VAT period.
@@ -98,6 +104,17 @@ interface InvoiceStore
      * @return list<string> ids
      */
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
+    /**
+     * The documents of a firm for the accountant in a period, both days included,
+     * in the order of their numbers: a tax document by its tax point, an advance
+     * invoice, which has none, by its issue date. The trash stays out.
+     *
+     * @param bool $pending only those never exported or edited after their export
+     *
+     * @return array<string, DocumentKind> kinds by id
+     */
+    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array;
 
     /**
      * The active firm the user issued in last.

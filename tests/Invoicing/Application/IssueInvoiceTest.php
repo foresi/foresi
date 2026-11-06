@@ -735,9 +735,19 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->page($filter);
             }
 
+            public function sums(\App\Invoicing\Application\InvoiceFilter $filter): \App\Invoicing\Application\InvoiceSums
+            {
+                return $this->store->sums($filter);
+            }
+
             public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
             {
                 return $this->store->idsForPeriod($firm, $from, $to);
+            }
+
+            public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+            {
+                return $this->store->forAccountant($firm, $from, $to, $pending);
             }
 
             public function lockRow(string $id): void

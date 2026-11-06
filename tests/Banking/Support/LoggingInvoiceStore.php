@@ -11,6 +11,7 @@ namespace App\Tests\Banking\Support;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoiceStore;
+use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\Invoice;
@@ -78,9 +79,19 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         return $this->store->page($filter);
     }
 
+    public function sums(InvoiceFilter $filter): InvoiceSums
+    {
+        return $this->store->sums($filter);
+    }
+
     public function idsForPeriod(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         return $this->store->idsForPeriod($firm, $from, $to);
+    }
+
+    public function forAccountant(LegalEntity $firm, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $pending): array
+    {
+        return $this->store->forAccountant($firm, $from, $to, $pending);
     }
 
     public function lockRow(string $id): void

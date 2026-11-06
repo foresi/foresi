@@ -47,6 +47,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'invoice')]
 #[ORM\Index(name: 'idx_invoice_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_invoice_firm_date', columns: ['tenant_id', 'legal_entity_id', 'issue_date'])]
+#[ORM\Index(name: 'idx_invoice_firm_tax_point', columns: ['tenant_id', 'legal_entity_id', 'tax_point_date'])]
 #[ORM\Index(name: 'idx_invoice_series', columns: ['series_id'])]
 #[ORM\Index(name: 'idx_invoice_customer', columns: ['customer_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_invoice_number', columns: ['legal_entity_id', 'number_key'])]
