@@ -50,6 +50,13 @@ final class FieldTest extends KernelTestCase
         $this->mountTwigComponent('Ui:Field', ['label' => 'X']);
     }
 
+    public function testUnknownWidthThrowsOnMount(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown field width "wide".');
+        $this->mountTwigComponent('Ui:Field', ['id' => 'x', 'label' => 'X', 'width' => 'wide']);
+    }
+
     public function testErrorIsAnAlert(): void
     {
         self::assertStringContainsString('id="x-error" role="alert"', (string) $this->renderTwigComponent('Ui:Field', ['id' => 'x', 'label' => 'X', 'error' => 'Bad'], 'C'));
