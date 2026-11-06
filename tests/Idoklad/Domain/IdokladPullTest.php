@@ -26,6 +26,9 @@ final class IdokladPullTest extends TestCase
         $pull->finish(new \DateTimeImmutable('2026-11-06 10:05:00'), 12);
         self::assertTrue($pull->succeeded());
         self::assertSame(12, $pull->requestsUsed());
+        $pull->addRequests(3);
+        $pull->addRequests(2);
+        self::assertSame(17, $pull->requestsUsed(), 'The PDFs add their requests to those of the lists.');
 
         $pull->finish(new \DateTimeImmutable('2026-11-06 10:06:00'), 13, str_repeat('é', 300));
         self::assertFalse($pull->succeeded());
@@ -36,6 +39,8 @@ final class IdokladPullTest extends TestCase
     {
         $pull = $this->pull('2026-10-01T00:00:00');
         self::assertNull($pull->latestChange());
+        $pull->noteChange('');
+        self::assertNull($pull->latestChange(), 'An empty moment is no change.');
 
         foreach (['2026-10-02T10:00:00.5', null, '2026-10-02T10:00:00', '2026-10-03T08:00:00', '2026-10-01T23:59:59.999'] as $change) {
             $pull->noteChange($change);

@@ -66,7 +66,7 @@ final readonly class PullIdokladSnapshot
      *
      * @throws IdokladFailure
      */
-    public function downloadPdfs(LegalEntity $firm, int $limit = 100): PdfDownload
+    public function downloadPdfs(LegalEntity $firm, int $limit): PdfDownload
     {
         $session = $this->open($firm);
         $downloaded = 0;

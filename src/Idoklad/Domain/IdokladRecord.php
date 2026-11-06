@@ -79,7 +79,7 @@ class IdokladRecord implements TenantOwned
         }
         $this->payload = $json;
         $this->pulledAt = $pulledAt;
-        $this->changedAt = self::changeOf($payload);
+        $this->changedAt = $this->changeOf($payload);
     }
 
     public function attachPdf(string $key, string $sha256): void
@@ -93,7 +93,7 @@ class IdokladRecord implements TenantOwned
      *
      * @param array<mixed> $payload
      */
-    public static function changeOf(array $payload): ?string
+    private function changeOf(array $payload): ?string
     {
         $metadata = $payload['Metadata'] ?? null;
         $change = \is_array($metadata) ? ($metadata['DateLastChange'] ?? null) : ($payload['DateOfAction'] ?? null);
@@ -126,7 +126,7 @@ class IdokladRecord implements TenantOwned
      */
     public function payload(): array
     {
-        $decoded = json_decode($this->payload, true, 512, \JSON_THROW_ON_ERROR);
+        $decoded = json_decode($this->payload, true, flags: \JSON_THROW_ON_ERROR);
         \assert(\is_array($decoded));
 
         return $decoded;

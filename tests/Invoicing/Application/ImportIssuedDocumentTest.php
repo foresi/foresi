@@ -50,6 +50,7 @@ use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
 use App\Tenancy\Application\TenantContext;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -143,6 +144,8 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
 
             self::assertSame(['invoice.problem.import_kind_unsupported'], $this->keys($result));
         }
+        $taxedCorrection = $this->imported(document: ['kind' => DocumentKind::CorrectionDocument], overrides: ['taxedAdvanceId' => '0192f0a0-0000-7000-8000-0000000000ab', 'taxedPaymentId' => '0192f0a0-0000-7000-8000-0000000000ac']);
+        self::assertSame(['invoice.problem.import_kind_unsupported'], $this->keys($this->import->import($taxedCorrection)), 'Only a tax document on payment taxes a payment.');
         self::assertSame(0, $this->invoiceCount());
     }
 
@@ -182,6 +185,32 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         $this->em->flush();
 
         self::assertContains('invoice.problem.firm_archived', $this->keys($this->import->import($this->imported())));
+        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', null, new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
+        $keys = $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noVatId])));
+        self::assertContains('invoice.problem.firm_archived', $keys);
+        self::assertContains('invoice.problem.firm_vat_id_missing', $keys, 'Every problem of the firm is named at once.');
+    }
+
+    public function testHalfATaxedPaymentTaxesNothing(): void
+    {
+        foreach (['taxedAdvanceId' => '0192f0a0-0000-7000-8000-0000000000ab', 'taxedPaymentId' => '0192f0a0-0000-7000-8000-0000000000ac'] as $field => $id) {
+            $result = $this->import->import($this->imported(document: ['typedNumber' => 'taxedAdvanceId' === $field ? '20240007' : '20240008'], overrides: [$field => $id, 'externalId' => $field]));
+
+            self::assertSame(ImportOutcome::Imported, $result->outcome, $field);
+            self::assertNull($this->stored($result)->paymentId(), $field);
+        }
+    }
+
+    public function testTheRoundingOfTheDocumentDecidesItsLimits(): void
+    {
+        // Rounded to whole units, as the firm rounds, the total would pass the largest amount.
+        $result = $this->import->import($this->imported(lines: [$this->line('999999999999.60', treatment: TaxTreatment::NotApplicable, kind: null)], overrides: [
+            'regime' => VatRegime::NonPayer,
+            'rounding' => TotalRounding::None,
+            'expected' => new ImportedTotals(99_999_999_999_960, 0, 99_999_999_999_960, 99_999_999_999_960),
+        ]));
+
+        self::assertSame(ImportOutcome::Imported, $result->outcome, implode(', ', $this->keys($result)));
     }
 
     public function testTheRegimeAndTheRoundingAreThoseOfTheDocument(): void
@@ -256,7 +285,17 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         self::assertStringContainsString('20260050', $isdocs[0]);
     }
 
-    public function testAFailedSaveTakesTheOriginalAlong(): void
+    /**
+     * @return iterable<string, array{string|null, int}>
+     */
+    public static function failedSaves(): iterable
+    {
+        yield 'with an original' => [self::PDF, 1];
+        yield 'without one' => [null, 0];
+    }
+
+    #[DataProvider('failedSaves')]
+    public function testAFailedSaveTakesTheOriginalAlong(?string $pdf, int $removed): void
     {
         $container = self::getContainer();
         $failing = new readonly class($container->get(TransactionalWork::class)) implements TransactionalWork {
@@ -314,12 +353,12 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         );
 
         try {
-            $import->import($this->imported(pdf: self::PDF));
+            $import->import($this->imported(pdf: $pdf));
             self::fail('Expected the save to fail.');
         } catch (\RuntimeException $failure) {
             self::assertSame('The commit failed.', $failure->getMessage());
         }
-        self::assertCount(1, $files->removed);
+        self::assertCount($removed, $files->removed);
     }
 
     public function testARunIsTakenBackWithItsOriginals(): void
@@ -356,6 +395,13 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
             new UndoBlocker($exported->id(), '20240009', UndoBlocker::EXPORTED),
         ], $blockers);
         self::assertSame(3, $this->invoiceCount());
+    }
+
+    public function testADocumentExportedThereBeforeTheImportIsTakenBack(): void
+    {
+        $this->import->import($this->imported(overrides: ['exportedAt' => new \DateTimeImmutable('2026-11-20 10:00:00')]));
+
+        self::assertSame([], $this->undo->undo(self::RUN), 'Only an export after the import stands on it.');
     }
 
     public function testARunIsKeptAfterThirtyDays(): void

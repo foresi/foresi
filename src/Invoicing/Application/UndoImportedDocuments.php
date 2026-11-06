@@ -101,7 +101,9 @@ final readonly class UndoImportedDocuments
      */
     private function blockersOf(Invoice $invoice): array
     {
-        $importedAt = $invoice->importedAt() ?? throw new \LogicException('A run holds imported documents only.');
+        // A run holds imported documents only.
+        $importedAt = $invoice->importedAt();
+        \assert($importedAt instanceof \DateTimeImmutable);
         $reasons = $this->imported->dependents($invoice);
         if ($importedAt->modify('+'.self::DAYS.' days') < $this->clock->now()) {
             $reasons[] = UndoBlocker::EXPIRED;
@@ -121,7 +123,9 @@ final readonly class UndoImportedDocuments
      */
     private function paymentBlockersOf(Payment $payment): array
     {
-        $importedAt = $payment->importedAt() ?? throw new \LogicException('A run holds imported payments only.');
+        // A run holds imported payments only.
+        $importedAt = $payment->importedAt();
+        \assert($importedAt instanceof \DateTimeImmutable);
         $reasons = $this->imported->paymentDependents($payment);
         if ($importedAt->modify('+'.self::DAYS.' days') < $this->clock->now()) {
             $reasons[] = UndoBlocker::EXPIRED;

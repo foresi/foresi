@@ -10,6 +10,7 @@ namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\DocumentTotals;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceChange;
@@ -22,6 +23,7 @@ use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
+use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
 use App\Tenancy\Application\TenantContext;
 use Psr\Clock\ClockInterface;
@@ -91,9 +93,13 @@ final readonly class ImportIssuedDocument
             if ([] !== $problems) {
                 return ImportedDocumentResult::refused($problems);
             }
-            $party = $this->parties->find($input->customerId) ?? throw new \LogicException('IssueRules refuses an unknown customer.');
-            $series = $this->catalog->get($input->seriesId ?? throw new \LogicException('IssueRules refuses an import without a series.'));
-            $customer = $this->copies->for($input, $party, $firm, null) ?? throw new \LogicException('IssueRules refuses a customer without an address.');
+            // IssueRules refuses an unknown customer, one without an address, and an import without a series.
+            $party = $this->parties->find($input->customerId);
+            \assert($party instanceof Party);
+            \assert(null !== $input->seriesId);
+            $series = $this->catalog->get($input->seriesId);
+            $customer = $this->copies->for($input, $party, $firm, null);
+            \assert($customer instanceof DocumentParty);
             $content = $input->change($party, $customer, $series->kind());
             $country = $this->countries->for($import->issuer->address->countryCode);
             $lines = $this->pricing->priced($input->lines, $import->regime, $country, $content->rateDate());

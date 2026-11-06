@@ -120,6 +120,8 @@ final class ImportPaymentTest extends AdvanceTestCase
         }
         self::assertSame(1, $this->rowsOf(Payment::class));
         self::assertSame(ImportOutcome::Imported, $this->import->import($this->payment($advance, ['receivedOn' => new \DateTimeImmutable('2026-11-20'), 'externalId' => 'today']))->outcome, 'Today in the firm\'s country is no future.');
+        $longest = $this->payment($this->issue->issue($this->input(overrides: ['variableSymbol' => '20260003'])), ['note' => str_repeat('ň', Payment::MAX_NOTE), 'externalId' => 'longest note']);
+        self::assertSame(ImportOutcome::Imported, $this->import->import($longest)->outcome, 'A note is counted in characters, up to the limit.');
     }
 
     public function testATaxDocumentIsLinkedToItsPaymentAndAdvanceWithItsNumber(): void
@@ -221,6 +223,8 @@ final class ImportPaymentTest extends AdvanceTestCase
         \Symfony\Component\Clock\Clock::set(new \Symfony\Component\Clock\MockClock('2026-12-20 10:00:01', 'UTC'));
 
         self::assertEquals([UndoBlocker::ofPayment((string) $payment, UndoBlocker::EXPIRED)], self::getContainer()->get(UndoImportedDocuments::class)->undo(self::RUN));
+        \Symfony\Component\Clock\Clock::set(new \Symfony\Component\Clock\MockClock('2026-12-20 10:00:00', 'UTC'));
+        self::assertSame([], self::getContainer()->get(UndoImportedDocuments::class)->undo(self::RUN), 'The thirtieth day is still within.');
     }
 
     /**

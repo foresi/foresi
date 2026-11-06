@@ -16,6 +16,7 @@ use App\Idoklad\Application\IdokladNotConnected;
 use App\Idoklad\Application\IdokladSnapshot;
 use App\Idoklad\Application\IdokladTariffWithoutApi;
 use App\Idoklad\Application\PullIdokladSnapshot;
+use App\Idoklad\Application\VerifyIdokladConnection;
 use App\Idoklad\Domain\IdokladConnection;
 use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
@@ -210,6 +211,9 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertContains('/v3/NumericSequences?page=1&pagesize=200', $this->sent);
         self::assertContains('/v3/Countries?page=1&pagesize=200', $this->sent);
         self::assertContains('/v3/Currencies?page=1&pagesize=200', $this->sent);
+        self::assertContains('/v3/PaymentOptions?page=1&pagesize=200', $this->sent);
+        self::assertContains('/v3/ConstantSymbols?page=1&pagesize=200', $this->sent);
+        self::assertContains('/v3/BankAccounts?page=1&pagesize=200', $this->sent);
 
         $this->em->clear();
         $firm = $this->storedFirm();
@@ -316,7 +320,7 @@ final class IdokladSnapshotTest extends KernelTestCase
 
         $this->expectException(IdokladFailure::class);
         $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
-        $this->pull()->downloadPdfs($this->firm);
+        $this->pull()->downloadPdfs($this->firm, 10);
     }
 
     public function testADocumentThatIsNotBase64StopsTheDownload(): void
@@ -328,7 +332,26 @@ final class IdokladSnapshotTest extends KernelTestCase
 
         $this->expectException(IdokladFailure::class);
         $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
-        $this->pull()->downloadPdfs($this->firm);
+        $this->pull()->downloadPdfs($this->firm, 10);
+    }
+
+    public function testAnAnswerThatIsNoTextStopsTheDownload(): void
+    {
+        $this->connect->connect($this->firm, 'example-client', self::SECRET);
+        $this->answerAll();
+        $this->pull()->pull($this->firm);
+        $this->answers['/v3/Reports/IssuedInvoice/101/Pdf'] = [$this->answer(['Pdf' => base64_encode(self::PDF)])];
+
+        $this->expectException(IdokladFailure::class);
+        $this->expectExceptionMessageIsOrContains('iDoklad returned a document that is not a PDF.');
+        $this->pull()->downloadPdfs($this->firm, 10);
+    }
+
+    public function testAFirmWithoutCredentialsCannotBeVerified(): void
+    {
+        $this->expectException(IdokladNotConnected::class);
+        $this->expectExceptionMessageIsOrContains('The firm has no iDoklad connection.');
+        self::getContainer()->get(VerifyIdokladConnection::class)->verify($this->firm);
     }
 
     /**
