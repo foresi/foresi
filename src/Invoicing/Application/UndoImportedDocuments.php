@@ -46,34 +46,47 @@ final readonly class UndoImportedDocuments
     }
 
     /**
+     * @param (callable(): list<UndoBlocker>)|null $along what else the undo takes back, in the same
+     *                                                    transaction once the documents are gone: blockers
+     *                                                    it answers, or a failure it throws, keep all of them
+     *
      * @return list<UndoBlocker> empty when the run was taken back; otherwise nothing changed
      */
-    public function undo(string $runId): array
+    public function undo(string $runId, ?callable $along = null): array
     {
         $removed = [];
-        $blockers = $this->retry->run(function () use ($runId, &$removed): array {
-            return $this->work->run(function () use ($runId, &$removed): array {
-                $removed = [];
-                $invoices = $this->imported->ofRun($runId);
-                $payments = $this->imported->paymentsOfRun($runId);
-                $blockers = [...array_merge(...array_map($this->blockersOf(...), $invoices)), ...array_merge(...array_map($this->paymentBlockersOf(...), $payments))];
-                if ([] !== $blockers) {
-                    return $blockers;
-                }
-                foreach ($invoices as $invoice) {
-                    $this->advances->releaseDeductions($invoice->id(), []);
-                }
-                foreach ($invoices as $invoice) {
-                    $removed[] = $invoice->id();
-                    $this->imported->remove($invoice);
-                }
-                foreach ($payments as $payment) {
-                    $this->imported->removePayment($payment);
-                }
+        try {
+            // Not an arrow function: it would take $removed by value.
+            $blockers = $this->retry->run(function () use ($runId, $along, &$removed): array {
+                return $this->work->run(function () use ($runId, $along, &$removed): array {
+                    $removed = [];
+                    $invoices = $this->imported->ofRun($runId);
+                    $payments = $this->imported->paymentsOfRun($runId);
+                    $blockers = [...array_merge(...array_map($this->blockersOf(...), $invoices)), ...array_merge(...array_map($this->paymentBlockersOf(...), $payments))];
+                    if ([] !== $blockers) {
+                        return $blockers;
+                    }
+                    foreach ($invoices as $invoice) {
+                        $this->advances->releaseDeductions($invoice->id(), []);
+                    }
+                    foreach ($invoices as $invoice) {
+                        $removed[] = $invoice->id();
+                        $this->imported->remove($invoice);
+                    }
+                    foreach ($payments as $payment) {
+                        $this->imported->removePayment($payment);
+                    }
+                    $blockers = null === $along ? [] : $along();
+                    if ([] !== $blockers) {
+                        throw new UndoRefused($blockers);
+                    }
 
-                return [];
+                    return [];
+                });
             });
-        });
+        } catch (UndoRefused $refused) {
+            return $refused->blockers;
+        }
         // The files go once the rows are gone for good.
         $tenant = $this->tenants->current()->toString();
         foreach ($removed as $id) {

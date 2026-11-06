@@ -25,9 +25,12 @@ final readonly class ImportedDocumentResult
     ) {
     }
 
-    public static function imported(string $invoiceId): self
+    /**
+     * @param ImportedTotals $computed what Foresi priced the stored document at
+     */
+    public static function imported(string $invoiceId, ImportedTotals $computed): self
     {
-        return new self(ImportOutcome::Imported, $invoiceId);
+        return new self(ImportOutcome::Imported, $invoiceId, computed: $computed);
     }
 
     public static function alreadyImported(string $invoiceId): self

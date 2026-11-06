@@ -229,7 +229,9 @@ final readonly class DocumentsStage implements ImportStage
         }
         // Imported before but no longer linked: the link is made again.
         $context->link($resource, $id, $result->invoiceId);
-        $context->report(self::KEY, $id, DocumentOutcome::Imported === $result->outcome ? ImportOutcome::Created : ImportOutcome::Matched, $result->invoiceId, values: $values);
+        // What Foresi priced it at, for the sums by year of a check.
+        $computed = $result->computed instanceof ImportedTotals ? $this->totals('computed', $result->computed) : [];
+        $context->report(self::KEY, $id, DocumentOutcome::Imported === $result->outcome ? ImportOutcome::Created : ImportOutcome::Matched, $result->invoiceId, values: $values + $computed);
     }
 
     /**

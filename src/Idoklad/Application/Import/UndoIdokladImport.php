@@ -15,14 +15,14 @@ use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\UndoBlocker;
 use App\Invoicing\Application\UndoImportedDocuments;
 use App\Invoicing\Application\UnknownRecurringInvoice;
+use App\Invoicing\Domain\RecurringInvoice;
 use App\Party\Application\LegalEntities;
-use App\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**
- * Takes back what an import run brought, for 30 days: its documents and
- * payments as Invoicing undoes them, all or none, then its recurring templates
- * that nobody touched since, and the links of what went, so a later run brings
+ * Takes back what an import run brought, for 30 days, in one transaction, all
+ * or none: its documents and payments as Invoicing undoes them, its recurring
+ * templates that nobody touched since, and the links of what went, so a later run brings
  * them again. A template edited, resumed or ended here stays, and so does its
  * link. Contacts and number series stay: other records may use them by now.
  */
@@ -37,7 +37,6 @@ final readonly class UndoIdokladImport
         private IdokladImportRuns $runs,
         private RecurringInvoices $templates,
         private LegalEntities $firms,
-        private TransactionalWork $work,
         private ClockInterface $clock,
     ) {
     }
@@ -64,13 +63,11 @@ final readonly class UndoIdokladImport
         if (!self::isUndoable($run, $this->now())) {
             throw new \DomainException('Only a run of the last 30 days that brought something and was not undone can be undone.');
         }
-        $blockers = $this->documents->undo($run->id());
-        if ([] !== $blockers) {
-            return $blockers;
-        }
         $runId = $run->id();
         $firmId = $run->firm()->id();
-        $this->work->run(function () use ($runId, $firmId): void {
+
+        // One transaction: a template that fails keeps the documents and payments too.
+        return $this->documents->undo($runId, function () use ($runId, $firmId): array {
             foreach ($this->links->ofRun($this->firms->get($firmId), $runId) as $link) {
                 if (\in_array($link->resource(), self::KEPT, true)) {
                     continue;
@@ -81,19 +78,19 @@ final readonly class UndoIdokladImport
                     } catch (UnknownRecurringInvoice) {
                         $template = null;
                     }
-                    if ($template instanceof \App\Invoicing\Domain\RecurringInvoice && !$template->isUntouchedImport()) {
+                    if ($template instanceof RecurringInvoice && !$template->isUntouchedImport()) {
                         continue;
                     }
-                    if ($template instanceof \App\Invoicing\Domain\RecurringInvoice) {
+                    if ($template instanceof RecurringInvoice) {
                         $this->templates->remove($template);
                     }
                 }
                 $this->links->remove($link);
             }
             $this->runs->find($runId)?->markUndone($this->now());
-        });
 
-        return [];
+            return [];
+        });
     }
 
     private function now(): \DateTimeImmutable

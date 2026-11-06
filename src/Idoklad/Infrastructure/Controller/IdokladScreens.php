@@ -16,8 +16,12 @@ use App\Idoklad\Domain\IdokladJobState;
 use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
+use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOutcome;
 use App\Invoicing\Application\DocumentFormat;
+use App\Invoicing\Application\ImportedInvoiceTotals;
+use App\Invoicing\Application\InvoicingCountries;
+use App\Invoicing\Application\StoredInvoiceTotal;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
@@ -48,12 +52,17 @@ final readonly class IdokladScreens
 
     private const array TOTALS = ['net', 'vat', 'gross', 'payable'];
 
+    /** The counts and sums of one year, in minor units of the home currency. */
+    private const array YEAR = ['idoklad' => 0, 'idokladSum' => 0, 'foresi' => 0, 'foresiSum' => 0, 'unexplained' => 0, 'foreign' => 0];
+
     /** Outcomes of what is in Foresi after the run. */
     private const array IMPORTED = [ImportOutcome::Created->value, ImportOutcome::Matched->value, ImportOutcome::AlreadyLinked->value];
 
     public function __construct(
         private IdokladSnapshot $snapshot,
         private RunIdokladImport $import,
+        private ImportedInvoiceTotals $stored,
+        private InvoicingCountries $countries,
         private DocumentFormat $format,
         private UrlGeneratorInterface $urls,
         private TranslatorInterface $translator,
@@ -174,13 +183,13 @@ final readonly class IdokladScreens
         $firm = $run->firm();
         $outcomes = array_map(static fn (ImportOutcome $outcome): string => $outcome->value, ImportOutcome::cases());
         $stageRows = [];
-        $totals = array_fill_keys($outcomes, 0);
+        $counted = array_fill_keys($outcomes, 0);
         foreach ($this->import->stages() as $stage) {
             $counts = $run->counts()[$stage] ?? [];
             $cells = ['stage' => $this->trans('idoklad.stage.'.$stage)];
             foreach ($outcomes as $outcome) {
                 $cells[$outcome] = $this->number($counts[$outcome] ?? 0);
-                $totals[$outcome] += $counts[$outcome] ?? 0;
+                $counted[$outcome] += $counts[$outcome] ?? 0;
             }
             $stageRows[] = ['id' => $stage, 'cells' => $cells];
         }
@@ -217,51 +226,107 @@ final readonly class IdokladScreens
             ];
         }
 
+        $home = $this->countries->for($firm->address()->countryCode)->homeCurrency();
+        $currencies = [];
+        foreach ($this->snapshot->records($firm, IdokladResource::Currencies) as $currency) {
+            $currencies[$currency->externalId()] = \is_string($currency->payload()['Code'] ?? null) ? $currency->payload()['Code'] : null;
+        }
+        /** @var array<int|string, array{idoklad: int, idokladSum: int, foresi: int, foresiSum: int, unexplained: int, foreign: int}> $years */
         $years = [];
         $overdue = 0;
+        $foreign = [];
+        $documentYears = [];
         foreach (self::DOCUMENTS as $resource) {
             foreach ($this->snapshot->records($firm, $resource) as $record) {
                 $payload = $record->payload();
                 $year = substr(\is_string($payload['DateOfIssue'] ?? null) ? $payload['DateOfIssue'] : '', 0, 4);
-                $total = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalWithVat'] ?? null) : null);
-                $years[$year] ??= ['idoklad' => 0, 'idokladSum' => 0, 'foresi' => 0, 'foresiSum' => 0];
-                ++$years[$year]['idoklad'];
-                $years[$year]['idokladSum'] += $total;
-                if (!isset($imported[$resource->value][$record->externalId()])) {
+                $years[$year] ??= self::YEAR;
+                $currency = $currencies[\is_int($payload['CurrencyId'] ?? null) ? $payload['CurrencyId'] : 0] ?? null;
+                if (null !== $currency && $home->value !== $currency) {
+                    // Refused anyway: only counted, as no sum in the home currency holds them.
+                    ++$years[$year]['foreign'];
+                    $foreign[$resource->value][$record->externalId()] = true;
+
                     continue;
                 }
-                ++$years[$year]['foresi'];
-                $years[$year]['foresiSum'] += $total;
-                if (IdokladResource::IssuedInvoices === $resource && $this->isOverdue($payload, $total, $today)) {
+                $documentYears[$resource->value][$record->externalId()] = $year;
+                $total = $this->minor(\is_array($payload['Prices'] ?? null) ? ($payload['Prices']['TotalWithVat'] ?? null) : null);
+                ++$years[$year]['idoklad'];
+                $years[$year]['idokladSum'] += $total;
+                if (IdokladResource::IssuedInvoices === $resource && isset($imported[$resource->value][$record->externalId()]) && $this->isOverdue($payload, $total, $today)) {
                     ++$overdue;
                 }
             }
         }
+
+        // Foresi's side: what it computed in a check, what it stores after a run,
+        // and what earlier runs stored for documents linked or matched since.
+        $stored = [];
+        $computed = [];
+        foreach ($run->report() as $entry) {
+            if ('documents' !== $entry['stage']) {
+                continue;
+            }
+            $resource = (string) ($entry['values']['resource'] ?? '');
+            if (isset($foreign[$resource][$entry['external_id']])) {
+                continue;
+            }
+            $year = $documentYears[$resource][$entry['external_id']] ?? null;
+            if (\in_array($entry['outcome'], [ImportOutcome::Refused->value, ImportOutcome::Mismatch->value], true) && null !== $year) {
+                $years[$year] ??= self::YEAR;
+                ++$years[$year]['unexplained'];
+            }
+            $mine = ImportOutcome::Created->value === $entry['outcome'] && ImportMode::Run !== $run->mode();
+            if ($mine && \is_int($entry['values']['computed_payable'] ?? null) && null !== $year) {
+                $computed[] = [$year, $entry['values']['computed_payable']];
+            }
+            if (\in_array($entry['outcome'], [ImportOutcome::Matched->value, ImportOutcome::AlreadyLinked->value], true) && null !== $entry['target_id']) {
+                $stored[] = $entry['target_id'];
+            }
+        }
+        $totals = ImportMode::Run === $run->mode() ? $this->stored->ofRun($run->id()) : [];
+        $seen = array_fill_keys(array_map(static fn (StoredInvoiceTotal $total): string => $total->invoiceId, $totals), true);
+        $totals = [...$totals, ...$this->stored->of(array_values(array_filter(array_unique($stored), static fn (string $id): bool => !isset($seen[$id]))))];
+        foreach ($totals as $total) {
+            if ($home !== $total->payable->currency()) {
+                continue;
+            }
+            $computed[] = [$total->issueDate->format('Y'), $total->payable->minor()];
+        }
+        foreach ($computed as [$year, $payable]) {
+            $years[$year] ??= self::YEAR;
+            ++$years[$year]['foresi'];
+            $years[$year]['foresiSum'] += $payable;
+        }
         krsort($years);
         $yearRows = [];
         foreach ($years as $year => $sums) {
+            $difference = $this->format->money(Money::ofMinor($sums['idokladSum'] - $sums['foresiSum'], $home), $language);
             $yearRows[] = ['id' => 'y'.$year, 'cells' => [
-                'year' => '' === $year ? '—' : $year,
+                'year' => '' === (string) $year ? '—' : (string) $year,
                 'idoklad' => $this->number($sums['idoklad']),
-                'idokladSum' => $this->format->money(Money::ofMinor($sums['idokladSum'], Currency::CZK), $language),
+                'idokladSum' => $this->format->money(Money::ofMinor($sums['idokladSum'], $home), $language),
                 'foresi' => $this->number($sums['foresi']),
-                'foresiSum' => $this->format->money(Money::ofMinor($sums['foresiSum'], Currency::CZK), $language),
+                'foresiSum' => $this->format->money(Money::ofMinor($sums['foresiSum'], $home), $language),
+                'difference' => $sums['idokladSum'] === $sums['foresiSum'] ? $difference : ['label' => $difference, 'tone' => 'red'],
+                'unexplained' => $this->number($sums['unexplained']),
+                'foreign' => $this->number($sums['foreign']),
             ]];
         }
 
         return [
             // The strip holds four: what was linked before is in the table by section.
-            'kpis' => array_map(fn (string $outcome): array => ['label' => $this->trans('idoklad.outcome.'.$outcome), 'value' => $this->number($totals[$outcome])], array_values(array_diff($outcomes, [ImportOutcome::AlreadyLinked->value]))),
+            'kpis' => array_map(fn (string $outcome): array => ['label' => $this->trans('idoklad.outcome.'.$outcome), 'value' => $this->number($counted[$outcome])], array_values(array_diff($outcomes, [ImportOutcome::AlreadyLinked->value]))),
             'stageColumns' => $stageColumns,
             'stageRows' => $stageRows,
-            'yearColumns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->trans('idoklad.report.column.'.$key), 'align' => 'year' === $key ? 'left' : 'right'], ['year', 'idoklad', 'idokladSum', 'foresi', 'foresiSum']),
+            'yearColumns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->trans('idoklad.report.column.'.$key), 'align' => 'year' === $key ? 'left' : 'right'], ['year', 'idoklad', 'idokladSum', 'foresi', 'foresiSum', 'difference', 'unexplained', 'foreign']),
             'yearRows' => $yearRows,
             'refused' => $this->labelled($groups['refused']),
             'mismatch' => $this->labelled($groups['mismatch']),
             'templates' => $templates,
-            'created' => $totals[ImportOutcome::Created->value],
-            'refusedCount' => $totals[ImportOutcome::Refused->value],
-            'mismatchCount' => $totals[ImportOutcome::Mismatch->value],
+            'created' => $counted[ImportOutcome::Created->value],
+            'refusedCount' => $counted[ImportOutcome::Refused->value],
+            'mismatchCount' => $counted[ImportOutcome::Mismatch->value],
             'overdue' => $overdue,
             'error' => $run->error(),
         ];

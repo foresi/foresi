@@ -91,7 +91,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertNull($run->error());
         $entry = $this->entry($run, 101);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
-        self::assertSame(['resource' => 'IssuedInvoices', 'document_number' => '20260008', 'sent_to_purchaser' => 0], $entry['values']);
+        self::assertSame(['resource' => 'IssuedInvoices', 'document_number' => '20260008', 'sent_to_purchaser' => 0, 'computed_net' => 200000, 'computed_vat' => 42000, 'computed_gross' => 242000, 'computed_payable' => 242000], $entry['values']);
         $invoice = $this->invoiceOf($entry['target_id']);
         self::assertSame(DocumentKind::Invoice, $invoice->kind());
         self::assertSame('20260008', $invoice->number());
@@ -150,6 +150,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
         $invoice = $this->invoiceOf($entry['target_id']);
         self::assertSame(33500, $invoice->payable()->minor());
+        self::assertSame(33500, $entry['values']['computed_payable'], 'What Foresi computed is kept for the sums by year.');
         self::assertSame(30000, $invoice->net()->minor());
         self::assertSame('Ing. Jana Example', $invoice->customer()->name, 'A person without a nickname is named from the parts.');
         self::assertNull($invoice->customer()->email);

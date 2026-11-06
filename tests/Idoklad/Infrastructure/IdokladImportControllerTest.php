@@ -11,6 +11,9 @@ namespace App\Tests\Idoklad\Infrastructure;
 use App\Identity\Domain\Role;
 use App\Idoklad\Application\ConnectIdoklad;
 use App\Idoklad\Application\IdokladJobRunner;
+use App\Idoklad\Application\Import\IdokladImportRuns;
+use App\Idoklad\Application\Import\IdokladLinks;
+use App\Idoklad\Application\Import\UndoIdokladImport;
 use App\Idoklad\Application\Message\ProcessIdokladJob;
 use App\Idoklad\Domain\IdokladConnection;
 use App\Idoklad\Domain\IdokladImportRun;
@@ -24,6 +27,10 @@ use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOutcome;
 use App\Idoklad\Domain\ImportReport;
+use App\Invoicing\Application\RecurringFilter;
+use App\Invoicing\Application\RecurringInvoices;
+use App\Invoicing\Application\RecurringPage;
+use App\Invoicing\Application\UndoImportedDocuments;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Recurrence;
@@ -32,7 +39,9 @@ use App\Invoicing\Domain\RecurrenceUnit;
 use App\Invoicing\Domain\RecurringContent;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
+use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\TaxPointRule;
+use App\Party\Application\LegalEntities;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\LegalEntity;
@@ -47,6 +56,7 @@ use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Import\Support\RunMessages;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
@@ -63,6 +73,7 @@ final class IdokladImportControllerTest extends WebTestCase
     private const string SECRET = 'example-client-secret-0123456789';
     private const int CZECHIA = 2;
     private const int CZK = 1;
+    private const int EUR = 2;
     private const int CASH = 3;
     private const int CUSTOMER = 501;
 
@@ -75,6 +86,9 @@ final class IdokladImportControllerTest extends WebTestCase
     /** The status iDoklad answers its API requests with. */
     private int $apiStatus = 200;
     private int $tokenStatus = 200;
+
+    /** Whether iDoklad's API fails as nothing expects. */
+    private bool $unexpected = false;
 
     /** @var list<string> */
     private array $sent = [];
@@ -245,7 +259,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $this->record(IdokladResource::IssuedInvoices, 102, ['DocumentNumber' => '20260002', 'DateOfIssue' => '2026-10-03', 'PartnerAddress' => ['NickName' => 'Example Buyer a.s.'], 'Prices' => ['TotalWithVat' => 560.0]]);
         $this->record(IdokladResource::IssuedInvoices, 103, ['DocumentNumber' => '20250009', 'DateOfIssue' => '2025-12-03', 'Prices' => ['TotalWithVat' => 100.0]]);
         $report = new ImportReport();
-        $report->add('documents', 101, ImportOutcome::Created, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260001']);
+        $report->add('documents', 101, ImportOutcome::Created, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260001', 'computed_payable' => 242000]);
         $report->add('documents', 102, ImportOutcome::Mismatch, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260002', 'expected_gross' => 56000, 'computed_gross' => 55900, 'expected_net' => 50000, 'computed_net' => 50000]);
         $report->add('documents', 103, ImportOutcome::Refused, reasons: ['idoklad.import.documents.currency_not_home'], values: ['resource' => 'IssuedInvoices', 'document_number' => '20250009', 'currency' => 'EUR']);
         $report->add('recurring', 7, ImportOutcome::Created, values: ['next_issues' => '2026-12-01,2027-01-01']);
@@ -263,11 +277,31 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertSelectorTextNotContains('[data-report-mismatch]', 'Without VAT');
         self::assertSelectorTextContains('[data-report-templates]', '1 Dec 2026');
         $years = $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->each(static fn ($cell): string => trim($cell->text()));
-        self::assertSame(['2026', '2', "2,980.00\u{a0}CZK", '1', "2,420.00\u{a0}CZK"], $years);
+        self::assertSame(['2026', '2', "2,980.00\u{a0}CZK", '1', "2,420.00\u{a0}CZK", "560.00\u{a0}CZK", '1', '0'], $years, 'The document that differs explains the difference.');
+        self::assertStringContainsString('red', (string) $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->eq(5)->filter('span')->attr('class'));
         self::assertSelectorTextContains('[data-overdue]', '1 imported invoice is overdue and unpaid.');
         self::assertSame('2026-11-06', $this->client->getCrawler()->filter('#remind_from')->attr('value'));
         self::assertSelectorExists('form#idoklad-run[data-turbo-confirm]');
         self::assertStringContainsString('2 records are created, 1 refused, 1 differ', (string) $this->client->getCrawler()->filter('form#idoklad-run')->attr('data-confirm-text'));
+    }
+
+    public function testACheckSumsByYearWhatForesiComputedAndLeavesOtherCurrenciesOut(): void
+    {
+        $this->connectedFirm();
+        $pull = $this->pull();
+        $this->record(IdokladResource::Currencies, self::CZK, ['Id' => self::CZK, 'Code' => 'CZK']);
+        $this->record(IdokladResource::Currencies, self::EUR, ['Id' => self::EUR, 'Code' => 'EUR']);
+        $this->record(IdokladResource::IssuedInvoices, 101, ['DocumentNumber' => '20260001', 'DateOfIssue' => '2026-10-01', 'CurrencyId' => self::CZK, 'Prices' => ['TotalWithVat' => 2420.0]]);
+        $this->record(IdokladResource::IssuedInvoices, 104, ['DocumentNumber' => '20260004', 'DateOfIssue' => '2026-10-04', 'CurrencyId' => self::EUR, 'Prices' => ['TotalWithVat' => 100.0]]);
+        $report = new ImportReport();
+        $report->add('documents', 101, ImportOutcome::Created, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260001', 'computed_payable' => 241900]);
+        $report->add('documents', 104, ImportOutcome::Refused, reasons: ['idoklad.import.documents.currency_not_home'], values: ['resource' => 'IssuedInvoices', 'document_number' => '20260004', 'currency' => 'EUR']);
+        $this->storeRun(ImportMode::Check, $report, $pull);
+
+        $this->client->request('GET', $this->url('/check'));
+
+        $years = $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->each(static fn ($cell): string => trim($cell->text()));
+        self::assertSame(['2026', '1', "2,420.00\u{a0}CZK", '1', "2,419.00\u{a0}CZK", "1.00\u{a0}CZK", '0', '1'], $years, 'Foresi\'s own total; the euro invoice is only counted.');
     }
 
     public function testACheckIsABackgroundJobOfThePulledSnapshot(): void
@@ -352,6 +386,136 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertResponseRedirects($this->url('/runs/'.$run));
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'This import can no longer be undone.');
+    }
+
+    public function testARunSumsByYearTheInvoicesStoredInForesi(): void
+    {
+        $run = $this->importedRun();
+        $this->client->request('GET', $this->url('/runs/'.$run));
+        $years = $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->each(static fn ($cell): string => trim($cell->text()));
+        self::assertSame(['2026', '1', "2,000.00\u{a0}CZK", '1', "2,000.00\u{a0}CZK", "0.00\u{a0}CZK", '0', '0'], $years);
+
+        $this->em()->getConnection()->executeStatement('UPDATE invoice SET payable_minor = 199900');
+        $this->client->request('GET', $this->url('/runs/'.$run));
+
+        $years = $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->each(static fn ($cell): string => trim($cell->text()));
+        self::assertSame(['2026', '1', "2,000.00\u{a0}CZK", '1', "1,999.00\u{a0}CZK", "1.00\u{a0}CZK", '0', '0'], $years, 'What is stored, not what the report says.');
+    }
+
+    public function testAnUndoTakesNothingBackWhenItsTemplatesFail(): void
+    {
+        $run = $this->importedRun();
+        $template = $this->template($run, 7, false);
+        $container = self::getContainer();
+        $real = $container->get(RecurringInvoices::class);
+        $failing = new readonly class($real) implements RecurringInvoices {
+            public function __construct(private RecurringInvoices $real)
+            {
+            }
+
+            public function get(string $id): RecurringInvoice
+            {
+                return $this->real->get($id);
+            }
+
+            public function lock(string $id): RecurringInvoice
+            {
+                return $this->real->lock($id);
+            }
+
+            public function current(string $id): RecurringInvoice
+            {
+                return $this->real->current($id);
+            }
+
+            public function lockDuringWrite(string $id): RecurringInvoice
+            {
+                return $this->real->lockDuringWrite($id);
+            }
+
+            public function occurrenceIssued(string $id, \DateTimeImmutable $occurrence): bool
+            {
+                return $this->real->occurrenceIssued($id, $occurrence);
+            }
+
+            public function add(RecurringInvoice $template): void
+            {
+                $this->real->add($template);
+            }
+
+            public function remove(RecurringInvoice $template): void
+            {
+                throw new \RuntimeException('Example failure of a template.');
+            }
+
+            public function lines(RecurringInvoice $template): array
+            {
+                return $this->real->lines($template);
+            }
+
+            public function addLine(RecurringInvoiceLine $line): void
+            {
+                $this->real->addLine($line);
+            }
+
+            public function removeLine(RecurringInvoiceLine $line): void
+            {
+                $this->real->removeLine($line);
+            }
+
+            public function due(\DateTimeImmutable $today): array
+            {
+                return $this->real->due($today);
+            }
+
+            public function page(RecurringFilter $filter): RecurringPage
+            {
+                return $this->real->page($filter);
+            }
+
+            public function failing(): int
+            {
+                return $this->real->failing();
+            }
+
+            public function inReview(?string $firmId = null): int
+            {
+                return $this->real->inReview($firmId);
+            }
+        };
+        $undo = new UndoIdokladImport($container->get(UndoImportedDocuments::class), $container->get(IdokladLinks::class), $container->get(IdokladImportRuns::class), $failing, $container->get(LegalEntities::class), $container->get(ClockInterface::class));
+
+        try {
+            $this->inTenant(fn (): array => $undo->undo($this->em()->find(IdokladImportRun::class, $run) ?? self::fail('The run is stored.')));
+            self::fail('The failure of a template travels on.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('Example failure of a template.', $failure->getMessage());
+        }
+
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM invoice'), 'The documents come back with the template.');
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM idoklad_link WHERE resource = 'IssuedInvoices'"));
+        self::assertSame([$template], $this->em()->getConnection()->fetchFirstColumn('SELECT id FROM recurring_invoice'));
+        self::assertSame(0, $this->rows('SELECT COUNT(*) FROM idoklad_import_run WHERE undone_at IS NOT NULL'));
+    }
+
+    public function testAnUnexpectedFailureEndsTheJobAndTravelsOn(): void
+    {
+        $this->connectedFirm();
+        $this->unexpected = true;
+
+        $this->client->request('POST', $this->url('/pull'), ['_token' => $this->token()]);
+        try {
+            $this->messages()->run();
+            self::fail('The failure travels on, so the worker logs it.');
+        } catch (\Throwable $failure) {
+            self::assertStringContainsString('Example unexpected failure.', $failure->getMessage().' '.$failure->getPrevious()?->getMessage());
+        }
+
+        $job = $this->latestJob();
+        self::assertSame(IdokladJobState::Failed, $job->state());
+        self::assertSame(IdokladJobRunner::UNEXPECTED, $job->error());
+        $this->client->request('GET', $this->url('/pull'));
+        self::assertSelectorTextContains('[data-job-error]', 'The job stopped on an unexpected error.');
     }
 
     public function testTheHistoryListsPullsAndRuns(): void
@@ -498,6 +662,9 @@ final class IdokladImportControllerTest extends WebTestCase
         $this->sent[] = $method.' '.urldecode($url);
         if (str_starts_with($url, 'https://identity.idoklad.cz/')) {
             return 200 === $this->tokenStatus ? new JsonMockResponse(['access_token' => 'example-token', 'expires_in' => 3600]) : new MockResponse('', ['http_code' => $this->tokenStatus]);
+        }
+        if ($this->unexpected) {
+            throw new \LogicException('Example unexpected failure.');
         }
         if (200 !== $this->apiStatus) {
             return new MockResponse('', ['http_code' => $this->apiStatus]);

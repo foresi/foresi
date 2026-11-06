@@ -104,7 +104,7 @@ final readonly class ImportIssuedDocument
             }
 
             try {
-                return ImportedDocumentResult::imported($this->stored($import, $firm, $series, $content, $lines, $country->homeCurrency(), $totals));
+                return ImportedDocumentResult::imported($this->stored($import, $firm, $series, $content, $lines, $country->homeCurrency(), $totals), $computed);
             } catch (IssueRefused $refused) {
                 return ImportedDocumentResult::refused($refused->problems);
             }
