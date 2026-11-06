@@ -96,7 +96,7 @@ final class AdvanceInvoiceTest extends InvoiceTestCase
         $copy = DocumentParty::ofCustomer($this->customer, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ'), null);
 
         try {
-            $advance->change($this->input()->change($this->customer, $copy, DocumentKind::Invoice));
+            $advance->change($this->input()->change($this->customer, $copy, DocumentKind::Invoice), new \DateTimeImmutable('2026-11-06 12:00'));
             self::fail('Expected the advance to refuse a tax point.');
         } catch (\DomainException $refused) {
             self::assertSame('A tax document has a tax point, and an advance invoice has none.', $refused->getMessage());
