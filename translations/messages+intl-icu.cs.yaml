@@ -1075,6 +1075,9 @@ invoice:
       read: Odběratel otevřel doklad
       failed: E-mail se nepodařilo odeslat
   changed_after_send: 'Faktura se od odeslání {date} změnila. Odkaz u odběratele ukazuje odeslanou verzi, proto ji pošlete znovu.'
+  imported_original: 'Doklad je importovaný. PDF je originál z {source}.'
+  import_source:
+    idoklad: iDokladu
   send_failure:
     password_unreadable: Heslo k poštovnímu serveru nejde s nastavenými klíči otevřít. Zadejte ho v nastavení e-mailů znovu.
     bad_address: Některá adresa zprávy není platná.
@@ -1764,6 +1767,9 @@ invoice:
     number_locked_sent: Řadu a číslo nelze změnit, odběratel už doklad dostal e-mailem.
     number_out_of_range: Toto číslo je mimo rozsah řady.
     number_taken: Toto číslo už bylo v této firmě použito.
+    import_number_missing: Importovaný doklad musí mít řadu i číslo.
+    import_issuer_incomplete: Dodavatel na importovaném dokladu nemá úplný název a adresu.
+    import_kind_unsupported: Tento druh dokladu se zatím neimportuje.
     numbers_exhausted: V této řadě už nezbývají čísla.
     payable_negative: Celková částka nesmí být záporná.
     correction_kind: Opravovaný doklad uvádí jen opravný daňový doklad.

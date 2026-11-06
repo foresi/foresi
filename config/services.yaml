@@ -28,6 +28,8 @@ parameters:
     app.inbound_mail_dir: '%kernel.share_dir%/inbound-mail'
     # The PDFs pulled from iDoklad accounts; never below public/. Back it up with the database.
     app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
+    # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
+    app.original_documents_dir: '%kernel.share_dir%/original-documents'
 
 services:
     # default configuration for services in *this* file
@@ -236,6 +238,16 @@ services:
     App\Invoicing\Infrastructure\Mail\DiskSentFiles:
         arguments:
             $root: '%app.sent_documents_dir%'
+    App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
+        arguments:
+            $root: '%app.original_documents_dir%'
+    # Drawn documents, except an imported one that kept the PDF of its source.
+    App\Invoicing\Application\InvoicePdf:
+        alias: App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
+    App\Invoicing\Infrastructure\Pdf\OriginalFirstInvoicePdf:
+        decorates: App\Invoicing\Application\InvoicePdf
+        arguments:
+            $drawn: '@.inner'
 
     # The importer reads iDoklad accounts; only GET of read-only paths, see ReadOnlyPaths.
     App\Idoklad\Application\IdokladClient:
@@ -370,6 +382,7 @@ when@test:
         # Inside the test cache, so a test never writes to the real share directory.
         app.firm_image_dir: '%kernel.cache_dir%/firm-images'
         app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
+        app.original_documents_dir: '%kernel.cache_dir%/original-documents'
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
         app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
         app.mail.allow_local_links: true
@@ -565,6 +578,14 @@ when@test:
             public: true
         App\Invoicing\Application\SentFiles:
             alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
+            public: true
+        App\Invoicing\Application\ImportIssuedDocument: { public: true }
+        App\Invoicing\Application\UndoImportedDocuments: { public: true }
+        App\Invoicing\Application\OriginalDocuments:
+            alias: App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments
+            public: true
+        App\Invoicing\Application\ImportedDocuments:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments
             public: true
         # Public for the iDoklad tests, which pull through a mocked HTTP client.
         App\Idoklad\Application\IdokladConnections:

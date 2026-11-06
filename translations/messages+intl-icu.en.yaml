@@ -1075,6 +1075,9 @@ invoice:
       read: The customer opened the document
       failed: The e-mail could not be sent
   changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  imported_original: 'This document was imported. Its PDF is the original from {source}.'
+  import_source:
+    idoklad: iDoklad
   send_failure:
     password_unreadable: The mail server password cannot be opened with the configured keys. Enter it again in the e-mail settings.
     bad_address: An address of the message is not valid.
@@ -1764,6 +1767,9 @@ invoice:
     number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
+    import_number_missing: An imported document needs its series and number.
+    import_issuer_incomplete: The supplier on the imported document has no complete name and address.
+    import_kind_unsupported: This kind of document is not imported yet.
     numbers_exhausted: This series has no numbers left.
     payable_negative: The total must not be negative.
     correction_kind: Only a corrective tax document names a corrected document.
