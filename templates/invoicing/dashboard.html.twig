@@ -1,0 +1,43 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The invoicing section of the start page (App\Invoicing\Infrastructure\Dashboard\InvoicingDashboard). #}
+<section data-dashboard-invoicing aria-labelledby="dashboard-invoicing-title" class="grid grid-cols-1 gap-3">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <h2 id="dashboard-invoicing-title" class="m-0 text-body font-semibold text-ink">{{ 'dashboard.invoicing.title'|trans }}</h2>
+            <p class="m-0 text-caption text-muted">{{ 'dashboard.invoicing.note'|trans }}</p>
+        </div>
+        {% if firms is not empty %}
+            <form method="get" action="{{ path('app_dashboard') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg">
+                <div class="min-w-0 flex-1 sm:w-52 sm:flex-none"><twig:Ui:Select name="firm" id="dashboard-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
+                <twig:Ui:Button type="submit">{{ 'dashboard.invoicing.show'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    </div>
+    {% if pending is not empty %}
+        <div data-dashboard-pending class="grid gap-2">
+            {% for reminder in pending %}
+                <twig:Ui:Alert tone="warning">
+                    <span>{{ reminder.text }}</span>
+                    <a href="{{ reminder.href }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'dashboard.invoicing.pending_link'|trans }}</a>
+                </twig:Ui:Alert>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <twig:Ui:KpiStrip :items="kpis" />
+    <twig:Ui:FactsGrid :items="facts" />
+    <twig:Ui:Card :title="'dashboard.invoicing.debtors'|trans" icon="users">
+        {% if debtors is empty %}
+            <p class="m-0 text-small text-muted">{{ 'dashboard.invoicing.debtors_empty'|trans }}</p>
+        {% else %}
+            <ol data-dashboard-debtors class="m-0 grid list-none gap-0 p-0">
+                {% for debtor in debtors %}
+                    <li class="flex min-w-0 items-baseline gap-3 border-b border-divider py-2 text-small last:border-b-0">
+                        <a href="{{ debtor.href }}" class="min-w-0 flex-1 truncate font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ constant('App\\Ui\\Component\\Style::FOCUS') }}" title="{{ debtor.name }}">{{ debtor.name }}</a>
+                        <span class="shrink-0 text-caption text-muted">{{ debtor.count }}</span>
+                        <span class="num shrink-0 font-semibold text-ink">{{ debtor.amount }}</span>
+                    </li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </twig:Ui:Card>
+</section>

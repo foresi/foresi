@@ -62,8 +62,9 @@ final class InvoiceExportController extends AbstractController
             return $this->download($request);
         }
 
-        $month = \DateTimeImmutable::createFromInterface($this->clock->now())->modify('first day of last month');
-        $firm = $this->defaults->firmFor($this->actor->userId());
+        // A link may name the firm and month, as the reminder on the start page does; else the last month.
+        $month = $this->month($request->query->getString('month')) ?? \DateTimeImmutable::createFromInterface($this->clock->now())->modify('first day of last month');
+        $firm = $this->linkedFirm($request->query->getString('firm')) ?? $this->defaults->firmFor($this->actor->userId());
 
         return $this->form($firm?->id() ?? '', $month->format('Y-m'), self::PENDING, $firm instanceof LegalEntity ? $this->bundle->counts($firm, $month, true) : null, null, null, Response::HTTP_OK);
     }
@@ -139,6 +140,18 @@ final class InvoiceExportController extends AbstractController
         $month = \DateTimeImmutable::createFromFormat(self::MONTH, $text.'-01');
 
         return false !== $month && $month->format('Y-m') === $text ? $month : null;
+    }
+
+    /**
+     * The firm a link names, if the tenant has it.
+     */
+    private function linkedFirm(string $id): ?LegalEntity
+    {
+        try {
+            return $this->firm($id);
+        } catch (NotFoundHttpException) {
+            return null;
+        }
     }
 
     private function firm(string $id): LegalEntity

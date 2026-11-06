@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Placeholder start page; the real dashboard comes later.
+ * The start page: the sections the modules contribute (App\Ui\Dashboard), or a
+ * placeholder until there is data.
  */
 final class DashboardController extends AbstractController
 {
