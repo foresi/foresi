@@ -123,6 +123,9 @@ shell:
     language: 'Switch language to {language}'
     switch_organisation: Switch organisation
     soon: Soon
+  worker:
+    down: 'The background worker is not running. Mail, recurring invoices and bank mail wait until it runs again.'
+    link: Show the status
 organisation:
   choose:
     title: Choose an organisation

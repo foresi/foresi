@@ -61,6 +61,12 @@ framework:
             limit: 600
             interval: '1 minute'
 
+        # The health endpoint, per client address: a monitor calls it every few minutes.
+        health:
+            policy: sliding_window
+            limit: 60
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -85,6 +91,8 @@ when@test:
                 storage_service: test.inbound_mail_storage
             inbound_mail_relay:
                 storage_service: test.inbound_mail_relay_storage
+            health:
+                storage_service: test.health_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tenancy\Infrastructure\Schedule;
 
+use App\Tenancy\Application\Schedule\Heartbeats;
 use App\Tenancy\Application\Schedule\RunScheduledJob;
 use App\Tenancy\Application\Schedule\ScheduledJob;
 use App\Tenancy\Application\Schedule\ScheduledJobRuns;
@@ -25,7 +26,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * run yet, stamped with that tenant. Each job is asked for the period in the
  * tenant's own zone. No tenant is ever activated here, and a
  * period that has run, or is queued already, sends nothing, so a tick stays cheap
- * and a busy worker is not handed the same period twice.
+ * and a busy worker is not handed the same period twice. Each tick is recorded,
+ * so the health check knows the schedule runs.
  */
 #[AsMessageHandler]
 final readonly class ScheduleTickHandler
@@ -38,6 +40,7 @@ final readonly class ScheduleTickHandler
         private ScheduledJobRuns $runs,
         private MessageBusInterface $bus,
         private ClockInterface $clock,
+        private Heartbeats $heartbeats,
         #[AutowireIterator('app.scheduled_job')]
         private iterable $jobs,
     ) {
@@ -45,6 +48,7 @@ final readonly class ScheduleTickHandler
 
     public function __invoke(ScheduleTick $tick): void
     {
+        $this->heartbeats->beat(Heartbeats::SCHEDULE);
         $now = $this->clock->now()->setTimezone(new \DateTimeZone('UTC'));
         foreach ($this->tenants->zones() as $id => $zone) {
             $tenant = TenantId::fromString($id);

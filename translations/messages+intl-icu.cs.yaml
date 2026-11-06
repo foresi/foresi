@@ -123,6 +123,9 @@ shell:
     language: 'Přepnout jazyk na {language}'
     switch_organisation: Přepnout organizaci
     soon: Brzy
+  worker:
+    down: 'Proces na pozadí neběží. E-maily, pravidelné faktury a bankovní pošta počkají, než se znovu spustí.'
+    link: Zobrazit stav
 organisation:
   choose:
     title: Vyberte organizaci

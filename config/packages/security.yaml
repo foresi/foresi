@@ -17,6 +17,10 @@ security:
         inbound_mail:
             pattern: ^/inbound/mail$
             stateless: true
+        # The health endpoint for an uptime monitor: no user and no session.
+        health:
+            pattern: ^/health$
+            stateless: true
         main:
             lazy: true
             provider: app_user_provider
@@ -51,6 +55,8 @@ security:
         - { path: ^/d/, roles: PUBLIC_ACCESS }
         # Raw bank mail from a relay, which proves itself with the webhook secret.
         - { path: ^/inbound/mail$, roles: PUBLIC_ACCESS }
+        # Numbers about the installation only, for an uptime monitor.
+        - { path: ^/health$, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:
