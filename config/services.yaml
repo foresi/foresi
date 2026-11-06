@@ -312,6 +312,8 @@ when@e2e:
         app.mail.allow_local_links: true
         # The bank mail of the seed, gone with the e2e cache that serve.sh starts from.
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
+        # The PDFs of the seeded iDoklad pull, gone with the e2e cache too.
+        app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
 
     services:
         _defaults:
@@ -319,6 +321,14 @@ when@e2e:
             autoconfigure: true
 
         App\Ui\Controller\CatalogueController: ~
+
+        # The seed stores an iDoklad pull; no browser test ever reaches iDoklad. A client with no
+        # responses fails every request, so a pull or a key check started in a spec fails at once.
+        App\Idoklad\Infrastructure\Http\HttpIdokladClient:
+            arguments:
+                $http: !service
+                    class: Symfony\Component\HttpClient\MockHttpClient
+                    arguments: [[]]
 
         App\Party\Application\CompanyRegistry:
             alias: App\Tests\Support\Registry\FakeCompanyRegistry
