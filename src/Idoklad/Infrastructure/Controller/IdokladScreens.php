@@ -424,7 +424,9 @@ final readonly class IdokladScreens
     private function title(?IdokladRecord $record, array $values, int $externalId): string
     {
         $payload = $record?->payload() ?? [];
-        foreach ([$values['document_number'] ?? null, $payload['DocumentNumber'] ?? null, $payload['CompanyName'] ?? null, $payload['Name'] ?? null] as $candidate) {
+        $setting = $payload['RecurringSetting'] ?? null;
+        $template = \is_array($setting) ? ($setting['TemplateName'] ?? null) : null;
+        foreach ([$values['document_number'] ?? null, $payload['DocumentNumber'] ?? null, $template, $payload['CompanyName'] ?? null, $payload['Name'] ?? null] as $candidate) {
             if (\is_string($candidate) && '' !== trim($candidate)) {
                 return $candidate;
             }

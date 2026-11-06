@@ -694,7 +694,7 @@ foreach ($idokladTenants as $idokladTenant) {
     $idokladRecord(IdokladResource::NumericSequences, 4, ['DocumentType' => 10, 'Name' => 'Daňové doklady', 'NumberFormat' => 'DRRRRNNNN', 'Year' => 2026, 'LastNumber' => 1, 'IsDefault' => true]);
     $idokladRecord(IdokladResource::IssuedInvoices, 101, $idokladDocument([]));
     $idokladRecord(IdokladResource::IssuedInvoices, 102, $idokladDocument(['DocumentNumber' => '20260009', 'DocumentSerialNumber' => 9, 'VariableSymbol' => '20260009', 'DateOfIssue' => '2026-10-10', 'DateOfTaxing' => '2026-10-10', 'DateOfMaturity' => '2026-10-24', 'Prices' => ['TotalWithoutVat' => 2000.0, 'TotalVat' => 421.0, 'TotalWithVat' => 2421.0]]));
-    $idokladRecord(IdokladResource::CreditNotes, 301, ['DocumentNumber' => 'O20260001']);
+    $idokladRecord(IdokladResource::CreditNotes, 301, ['DocumentNumber' => 'O20260001', 'DateOfIssue' => '2026-10-12']);
     // An advance has no tax point of its own; its tax document has.
     $idokladRecord(IdokladResource::ProformaInvoices, 201, array_diff_key($idokladDocument([
         'DocumentNumber' => 'Z20260003',

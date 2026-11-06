@@ -58,9 +58,9 @@ async function expectReport(page: Page): Promise<void> {
   const mismatch = page.locator('[data-report-mismatch]');
   await expect(mismatch).toContainText('20260009');
   await expect(mismatch).toContainText(/DPH: iDoklad 421,00\sKč, Foresi 420,00\sKč/);
-  // By year: four documents of 7 261 Kč in iDoklad, three of 4 840 Kč come over, the rest explained.
+  // By year: five documents of 7 261 Kč in iDoklad (the credit note carries no total), three of 4 840 Kč come over, the rest explained.
   const year = page.getByRole('table', { name: 'Doklady podle roku' }).locator('tbody tr').filter({ hasText: '2026' });
-  await expect(year.locator('td')).toHaveText(['2026', '4', /7\s261,00\sKč/, '3', /4\s840,00\sKč/, /2\s421,00\sKč/, '1', '0']);
+  await expect(year.locator('td')).toHaveText(['2026', '5', /7\s261,00\sKč/, '3', /4\s840,00\sKč/, /2\s421,00\sKč/, '2', '0']);
   // The template comes paused; its next issues follow on from iDoklad's last one.
   await expect(page.locator('[data-report-templates]')).toContainText('1. 11. 2026 · 1. 12. 2026');
 }

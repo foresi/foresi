@@ -262,6 +262,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $report->add('documents', 101, ImportOutcome::Created, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260001', 'computed_payable' => 242000]);
         $report->add('documents', 102, ImportOutcome::Mismatch, values: ['resource' => 'IssuedInvoices', 'document_number' => '20260002', 'expected_gross' => 56000, 'computed_gross' => 55900, 'expected_net' => 50000, 'computed_net' => 50000]);
         $report->add('documents', 103, ImportOutcome::Refused, reasons: ['idoklad.import.documents.currency_not_home'], values: ['resource' => 'IssuedInvoices', 'document_number' => '20250009', 'currency' => 'EUR']);
+        $this->record(IdokladResource::RecurringInvoices, 7, ['RecurringSetting' => ['TemplateName' => 'Monthly hosting']]);
         $report->add('recurring', 7, ImportOutcome::Created, values: ['next_issues' => '2026-12-01,2027-01-01']);
         $this->storeRun(ImportMode::Check, $report, $pull);
 
@@ -276,6 +277,7 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-report-mismatch]', "With VAT: iDoklad 560.00\u{a0}CZK, Foresi 559.00\u{a0}CZK");
         self::assertSelectorTextNotContains('[data-report-mismatch]', 'Without VAT');
         self::assertSelectorTextContains('[data-report-templates]', '1 Dec 2026');
+        self::assertSelectorTextContains('[data-report-templates]', 'Monthly hosting');
         $years = $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->each(static fn ($cell): string => trim($cell->text()));
         self::assertSame(['2026', '2', "2,980.00\u{a0}CZK", '1', "2,420.00\u{a0}CZK", "560.00\u{a0}CZK", '1', '0'], $years, 'The document that differs explains the difference.');
         self::assertStringContainsString('red', (string) $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->eq(5)->filter('span')->attr('class'));
