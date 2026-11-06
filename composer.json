@@ -21,6 +21,10 @@
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
         "openspout/openspout": "^5.12",
+        "scheb/2fa-backup-code": "^8.7",
+        "scheb/2fa-bundle": "^8.7",
+        "scheb/2fa-totp": "^8.7",
+        "scheb/2fa-trusted-device": "^8.7",
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
         "symfony/console": "7.4.*",
@@ -47,6 +51,7 @@
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
+        "tecnickcom/tc-lib-barcode": "^2.17.2",
         "tecnickcom/tc-lib-pdf": "^8.82.2",
         "zbateson/mail-mime-parser": "^4.0.8"
     },

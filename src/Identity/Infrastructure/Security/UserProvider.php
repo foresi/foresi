@@ -10,6 +10,7 @@ namespace App\Identity\Infrastructure\Security;
 
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
+use App\Shared\Application\Sealer;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -20,7 +21,7 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
  */
 final readonly class UserProvider implements UserProviderInterface
 {
-    public function __construct(private UserRepository $users)
+    public function __construct(private UserRepository $users, private Sealer $sealer)
     {
     }
 
@@ -31,7 +32,9 @@ final readonly class UserProvider implements UserProviderInterface
             throw new UserNotFoundException();
         }
 
-        return SecurityUser::fromUser($user);
+        $sealed = $user->totpSecretSealed();
+
+        return SecurityUser::fromUser($user, null === $sealed ? null : $this->sealer->open($sealed));
     }
 
     public function refreshUser(UserInterface $user): SecurityUser

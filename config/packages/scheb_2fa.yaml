@@ -1,0 +1,34 @@
+# Two-factor sign-in: a TOTP code from an authenticator app after the password,
+# recovery codes when the phone is lost, and an optional trusted browser.
+# https://symfony.com/bundles/SchebTwoFactorBundle/current/configuration.html
+scheb_two_factor:
+    security_tokens:
+        - Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken
+        - Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken
+    # A code is accepted once only, so one read over a shoulder never signs in twice.
+    code_reuse_cache: cache.app
+    code_reuse_cache_duration: 90
+    totp:
+        enabled: true
+        issuer: '%app.product_name%'
+        # Seconds a code stays good past its period, for phones whose clock is slightly off.
+        leeway: 15
+        template: identity/two_factor.html.twig
+    backup_codes:
+        enabled: true
+        manager: App\Identity\Infrastructure\Security\RecoveryCodeManager
+    # "Remember this browser": a signed cookie (JWT with APP_SECRET), 30 days;
+    # resetting a user's two-factor sign-in invalidates every such cookie.
+    trusted_device:
+        enabled: true
+        lifetime: 2592000
+        extend_lifetime: false
+        cookie_name: trusted_device
+        cookie_secure: auto
+        cookie_same_site: lax
+
+when@test:
+    scheb_two_factor:
+        trusted_device:
+            # Test only: the signing key must have 256 bits, more than the test APP_SECRET.
+            key: 'test-only-trusted-device-signing-key-0123456789'

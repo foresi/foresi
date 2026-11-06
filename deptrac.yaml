@@ -180,7 +180,7 @@ deptrac:
       collectors:
         - type: classLike
           value: ^OpenSpout\\
-    # PDF rendering; only the Invoicing module's infrastructure may use it.
+    # PDF rendering and barcodes; only the infrastructure of Invoicing (PDFs) and of Identity (the enrolment QR code) may use it.
     - name: VendorTecnick
       collectors:
         - type: classLike
@@ -379,6 +379,8 @@ deptrac:
       - AuditApplication
     IdentityInfrastructure:
       - SharedInfrastructure
+      # The QR code of the two-factor enrolment.
+      - VendorTecnick
       - IdentityDomain
       - IdentityApplication
       - VendorSymfony

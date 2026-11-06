@@ -2861,3 +2861,27 @@ idoklad:
         empty:
             title: Zatím nic
             text: Zde se ukážou stažení a importy z iDokladu.
+two_factor:
+  code:
+    title: Ověřovací kód
+    intro: Zadejte kód z ověřovací aplikace, nebo jeden ze záchranných kódů.
+    label: Kód
+    help: 6 číslic z aplikace, nebo záchranný kód
+    trusted: Zapamatovat si tento prohlížeč na 30 dní
+    submit: Ověřit
+    cancel: Odhlásit se
+    invalid: Tento kód neplatí. Zadejte aktuální.
+  setup:
+    title: Nastavení dvoufázového přihlášení
+    intro: Každé přihlášení si vyžádá kód z ověřovací aplikace. Naskenujte aplikací QR kód a zadejte kód, který zobrazí.
+    qr_label: QR kód pro ověřovací aplikaci
+    manual: Nebo zadejte do aplikace tento klíč ručně
+    code: Kód z aplikace
+    submit: Zapnout
+    code_invalid: Kód nesouhlasí. Zadejte kód, který aplikace ukazuje právě teď.
+    unavailable: 'Dvoufázové přihlášení nejde nastavit: server nemá klíč k zapečetění tajemství. Požádejte správce o nastavení MAIL_SECRET_KEYS.'
+  recovery:
+    title: Záchranné kódy
+    enabled: Dvoufázové přihlášení je zapnuté.
+    intro: Kódy si uložte na bezpečné místo. Každý vás jednou přihlásí, když přijdete o telefon. Zobrazují se jen teď.
+    continue: Pokračovat

@@ -202,6 +202,8 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
     App\Invoicing\Application\MailSecrets:
         alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    App\Shared\Application\Sealer:
+        alias: App\Shared\Infrastructure\Crypto\SodiumSealer
     App\Invoicing\Application\MailHostPolicy:
         alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
     App\Invoicing\Application\MailTemplates:
@@ -438,6 +440,9 @@ when@test:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.mail_test_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.two_factor_code_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.invoice_send_storage:

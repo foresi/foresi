@@ -33,6 +33,13 @@ framework:
             limit: 5
             interval: '1 minute'
 
+        # Codes of the two-factor sign-in, per user and never reset by the password:
+        # signing in again does not buy more guesses.
+        two_factor_code:
+            policy: sliding_window
+            limit: 5
+            interval: '5 minutes'
+
         # Documents sent by e-mail, per signed-in user and per firm.
         invoice_send:
             policy: sliding_window
@@ -81,6 +88,8 @@ when@test:
                 storage_service: test.registry_outgoing_storage
             mail_test:
                 storage_service: test.mail_test_storage
+            two_factor_code:
+                storage_service: test.two_factor_code_storage
             invoice_send:
                 storage_service: test.invoice_send_storage
             invoice_send_firm:
