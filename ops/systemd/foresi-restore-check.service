@@ -1,0 +1,14 @@
+# Restores the newest snapshot into a scratch database and checks it.
+[Unit]
+Description=Foresi restore check
+After=network-online.target postgresql.service foresi-backup.service
+Wants=network-online.target
+OnFailure=foresi-alert@%n.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+Environment=BACKUP_ENV_FILE=/etc/foresi/backup.env
+ExecStart=/srv/foresi/current/ops/restore-check.sh
+Nice=10

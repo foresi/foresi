@@ -1,0 +1,9 @@
+# Mails the journal of a failed unit to the operator. Needs a working
+# sendmail (for example msmtp-mta or postfix as a relay). %i is the unit.
+[Unit]
+Description=Mail the operator about the failure of %i
+
+[Service]
+Type=oneshot
+Environment=ALERT_TO=ops@example.com
+ExecStart=/bin/sh -c '{ printf "Subject: [foresi] %%s failed on %%s\n\n" "%i" "$(hostname)"; journalctl -u "%i" -n 80 --no-pager; } | /usr/sbin/sendmail "$ALERT_TO"'

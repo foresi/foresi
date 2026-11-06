@@ -1,0 +1,77 @@
+# Foresi deploy script for Ploi, with zero-downtime deployment turned on
+# (site > Settings). Paste it into the site's deploy script. See
+# docs/operations.md#ploi.
+#
+# How Ploi deploys with zero downtime, from its documentation and roadmap
+# (checked 2026-11-06):
+# - It keeps the releases in a folder named "{site_domain}-deploy", one folder
+#   per deployment named by its timestamp, and links the live one to the site
+#   directory with a symlink. It keeps three releases.
+#   https://ploi.io/documentation/deployment/how-does-zero-downtime-deployment-work
+# - The deploy script runs inside the new release BEFORE the symlink is
+#   switched; Ploi switches it after the script ends, and has no hook that runs
+#   after the switch.
+#   https://roadmap.ploi.io/projects/2-site-level-requests/items/238-execute-commands-after-zero-downtime-deployment
+# - A worker signalled from the new release does not stop, because the stop
+#   signal lands in the new release's cache while the workers read the old one
+#   (reported in the same roadmap item). So the signal is sent from the live
+#   release, and only after Ploi has switched the symlink (see the end).
+# The public documentation does not list the deploy script variables of a
+# zero-downtime site, so this script uses none and works from the current
+# directory. Ploi's editor offers its variables (for example the one that
+# reloads PHP-FPM); one may replace the RELOAD_FPM line below.
+#
+# Prepare once on the server, as the ploi user (paths for a site example.com):
+#   mkdir -p ~/example.com-deploy/shared/var/share ~/example.com-deploy/shared/var/imports
+#   install -m 600 /dev/null ~/example.com-deploy/shared/.env.local   # then fill it in
+# Web directory of the site: /public. Daemon (Ploi > Server > Daemons), user ploi:
+#   php /home/ploi/example.com/bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
+# The daemon's directory is the site symlink, resolved when the worker starts.
+
+set -euo pipefail
+
+RELEASE=$(pwd)
+DEPLOY_DIR=$(dirname "$RELEASE")          # ~/example.com-deploy
+SHARED="$DEPLOY_DIR/shared"
+SITE_LINK="$HOME/example.com"             # the site directory Ploi links to the live release
+PHP=php8.4
+RELOAD_FPM="echo '' | sudo -S service php8.4-fpm reload"
+export APP_ENV=prod APP_DEBUG=0 COMPOSER_NO_INTERACTION=1
+
+# Shared files and directories, linked into the release.
+ln -sfn "$SHARED/.env.local" "$RELEASE/.env.local"
+mkdir -p "$RELEASE/var"
+for dir in var/share var/imports; do
+    rm -rf "${RELEASE:?}/$dir"
+    ln -s "$SHARED/$dir" "$RELEASE/$dir"
+done
+
+composer install --no-dev --optimize-autoloader --classmap-authoritative --no-progress
+
+$PHP bin/console importmap:install
+$PHP bin/console tailwind:build --minify
+$PHP bin/console asset-map:compile
+$PHP bin/console cache:clear
+$PHP bin/console cache:warmup
+
+# Dump the database before pending migrations (ops/backup.sh, set up as in the guide).
+if ! $PHP bin/console doctrine:migrations:up-to-date >/dev/null 2>&1; then
+    "$RELEASE/ops/backup.sh" --tag pre-migrate
+    $PHP bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+fi
+
+# After Ploi switches the symlink: reload PHP-FPM and stop the workers of the
+# release that was live, from that release, so the daemon starts them on the
+# new one. Ploi switches right after this script, so wait in the background.
+LIVE=$(cd -P "$SITE_LINK" 2>/dev/null && pwd || true)
+nohup bash -c "
+    for _ in \$(seq 1 60); do
+        [ \"\$(cd -P '$SITE_LINK' && pwd)\" = '$RELEASE' ] && break
+        sleep 5
+    done
+    $RELOAD_FPM
+    if [ -n '$LIVE' ] && [ -d '$LIVE' ]; then (cd '$LIVE' && $PHP bin/console messenger:stop-workers); fi
+    $PHP '$RELEASE/bin/console' messenger:stop-workers
+" > "$DEPLOY_DIR/after-switch.log" 2>&1 &
+
+echo "Built $(git rev-parse --short HEAD 2>/dev/null || echo release) in $RELEASE"
