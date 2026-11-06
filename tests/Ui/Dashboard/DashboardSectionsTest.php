@@ -39,6 +39,14 @@ final class DashboardSectionsTest extends TestCase
         self::assertSame([], new DashboardSections([$provider])->all(false));
     }
 
+    public function testASectionWithoutAWeightWeighsNothing(): void
+    {
+        $sections = new DashboardSections([$this->provider(new DashboardSection('b.html.twig', weight: 1), new DashboardSection('a.html.twig'), new DashboardSection('c.html.twig', weight: -1))]);
+
+        self::assertSame(0, new DashboardSection('a.html.twig')->weight);
+        self::assertSame(['c.html.twig', 'a.html.twig', 'b.html.twig'], array_map(static fn (DashboardSection $section): string => $section->template, $sections->all(true)));
+    }
+
     public function testASectionNeedsATemplate(): void
     {
         $this->expectException(\InvalidArgumentException::class);

@@ -161,7 +161,7 @@ final readonly class InvoiceBundle
      */
     private function selection(LegalEntity $firm, \DateTimeImmutable $month, bool $pending): array
     {
-        $first = $month->setTime(0, 0)->modify('first day of this month');
+        $first = $month->modify('first day of this month');
 
         return $this->store->forAccountant($firm, $first, $first->modify('last day of this month'), $pending);
     }
@@ -181,13 +181,13 @@ final readonly class InvoiceBundle
     /**
      * Two documents with the same name are told apart by the number of the later one.
      *
-     * @param array<string, true> $taken
+     * @param list<string> $taken
      */
     private function unique(string $name, string $number, array &$taken): string
     {
         // A firm numbers each document once, so its number always tells two apart.
-        $candidate = isset($taken[$name]) ? $name.'_'.preg_replace('/[^A-Za-z0-9-]+/', '-', $number) : $name;
-        $taken[$candidate] = true;
+        $candidate = \in_array($name, $taken, true) ? $name.'_'.preg_replace('/[^A-Za-z0-9-]+/', '-', $number) : $name;
+        $taken[] = $candidate;
 
         return $candidate;
     }

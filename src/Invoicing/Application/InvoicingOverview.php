@@ -105,18 +105,18 @@ final readonly class InvoicingOverview
 
     /**
      * @param array<string, string> $firms name by id
+     * @param \DateTimeImmutable    $month its first day, at any time: the store compares days only
      *
      * @return list<PendingExport>
      */
     private function pending(array $firms, \DateTimeImmutable $month): array
     {
-        $from = $month->setTime(0, 0);
-        $to = $from->modify('last day of this month');
+        $to = $month->modify('last day of this month');
         $pending = [];
         foreach ($firms as $id => $name) {
-            $count = \count($this->store->forAccountant($this->firms->get($id), $from, $to, true));
+            $count = \count($this->store->forAccountant($this->firms->get($id), $month, $to, true));
             if ($count > 0) {
-                $pending[] = new PendingExport($id, $name, $from->format('Y-m'), $count);
+                $pending[] = new PendingExport($id, $name, $month->format('Y-m'), $count);
             }
         }
 

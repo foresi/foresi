@@ -33,7 +33,7 @@ final class VatRecap
                 continue;
             }
             foreach ($document->summaries as $summary) {
-                $key = $summary->treatment->value.'|'.($summary->rate?->basisPoints() ?? -1);
+                $key = implode('|', [$summary->treatment->value, $summary->rate?->basisPoints()]);
                 $base = self::converted($summary->base, $document->exchangeRate, $home);
                 $vat = self::converted($summary->vat, $document->exchangeRate, $home);
                 $gross = self::converted($summary->gross, $document->exchangeRate, $home);
@@ -44,7 +44,8 @@ final class VatRecap
             }
         }
         $order = array_flip(array_map(static fn (TaxTreatment $treatment): string => $treatment->value, TaxTreatment::cases()));
-        usort($lines, static fn (VatRecapLine $one, VatRecapLine $two): int => [$order[$one->treatment->value], -($one->rate?->basisPoints() ?? -1)] <=> [$order[$two->treatment->value], -($two->rate?->basisPoints() ?? -1)]);
+        // A higher rate first, so the rates are compared the other way round; a line without one comes after them all.
+        usort($lines, static fn (VatRecapLine $one, VatRecapLine $two): int => [$order[$one->treatment->value], $two->rate?->basisPoints() ?? \PHP_INT_MIN] <=> [$order[$two->treatment->value], $one->rate?->basisPoints() ?? \PHP_INT_MIN]);
 
         return $lines;
     }
