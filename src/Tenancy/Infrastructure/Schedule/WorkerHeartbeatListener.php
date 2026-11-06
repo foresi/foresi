@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace App\Tenancy\Infrastructure\Schedule;
 
 use App\Tenancy\Application\Schedule\Heartbeats;
+use Doctrine\DBAL\Exception as DbalException;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use Symfony\Component\Messenger\Event\WorkerStartedEvent;
@@ -17,7 +19,9 @@ use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 /**
  * Records that a worker runs: when it starts, then at most once every EVERY
  * seconds of its loop, which comes round at least every second while it waits,
- * so the database is written once a minute, not once a second.
+ * so the database is written once a minute, not once a second. A beat that
+ * cannot be written is logged and never stops the worker: the missing beat is
+ * what the health check then reports.
  */
 #[AsEventListener(WorkerStartedEvent::class)]
 #[AsEventListener(WorkerRunningEvent::class)]
@@ -30,6 +34,7 @@ final class WorkerHeartbeatListener
     public function __construct(
         private readonly Heartbeats $heartbeats,
         private readonly ClockInterface $clock,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -39,7 +44,13 @@ final class WorkerHeartbeatListener
         if (null !== $this->lastBeat && $now - $this->lastBeat < self::EVERY) {
             return;
         }
-        $this->heartbeats->beat(Heartbeats::WORKER);
+        try {
+            $this->heartbeats->beat(Heartbeats::WORKER);
+        } catch (DbalException $e) {
+            $this->logger->warning('The worker heartbeat could not be written.', ['exception' => $e]);
+
+            return;
+        }
         $this->lastBeat = $now;
     }
 }
