@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Shared\Domain\Money;
 
 /**
@@ -40,7 +41,14 @@ final readonly class InvoiceRow
         public bool $settledByAdvances = false,
         /** What its corrective documents not in the trash add to what it asks for. */
         public ?Money $corrections = null,
+        public ?\DateTimeImmutable $exportedAt = null,
+        public ?\DateTimeImmutable $changedAfterExportAt = null,
     ) {
+    }
+
+    public function exportState(): ExportState
+    {
+        return ExportState::of($this->exportedAt, $this->changedAfterExportAt);
     }
 
     /**

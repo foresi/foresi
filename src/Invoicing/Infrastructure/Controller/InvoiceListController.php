@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
+use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
@@ -36,6 +37,7 @@ use App\Invoicing\Application\UncorrectedTaxDocuments;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
@@ -76,7 +78,7 @@ final class InvoiceListController extends AbstractController
     private const array MARK_TONES = ['queued' => 'gray', 'sent' => 'gray', 'read' => 'green', 'failed' => 'red'];
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend'];
+    public const array LIST_QUERY = ['tab', 'firm', 'q', 'sort', 'page', 'toSend', 'export'];
     /** The tab of the advances that wait for a tax document. */
     private const string MISSING = 'needs_tax_document';
     /** The tab of the tax documents on payment that wait for a corrective one. */
@@ -103,6 +105,7 @@ final class InvoiceListController extends AbstractController
         private readonly MissingTaxDocuments $missing,
         private readonly IssuePaymentTaxDocument $taxDocuments,
         private readonly UncorrectedTaxDocuments $uncorrected,
+        private readonly DocumentExports $exports,
     ) {
     }
 
@@ -123,10 +126,11 @@ final class InvoiceListController extends AbstractController
         $firm = $request->query->getString('firm');
         // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
         $toSend = '1' === $request->query->getString('toSend');
+        $export = ExportState::tryFrom($request->query->getString('export'));
 
-        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind));
+        $page = $this->store->page(new InvoiceFilter('' === $firm ? null : $firm, $tab, $text, $sort, max(1, $request->query->getInt('page', 1)), $toSend, $kind, $export));
         $firm = isset($page->firms[$firm]) ? $firm : '';
-        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
         $toSendCount = $this->recurring->inReview('' === $firm ? null : $firm);
         // What an action carries back names the kind, so it returns to this list.
@@ -146,6 +150,11 @@ final class InvoiceListController extends AbstractController
             'sort' => $sort,
             'firm' => $firm,
             'firms' => $severalFirms ? ['' => $this->translator->trans('invoice.list.all_firms')] + $page->firms : [],
+            'export' => $export->value ?? '',
+            'exportStates' => ['' => $this->translator->trans('invoice.export_state.all')] + array_combine(
+                array_map(static fn (ExportState $state): string => $state->value, ExportState::cases()),
+                array_map(fn (ExportState $state): string => $this->translator->trans('invoice.export_state.'.$state->value), ExportState::cases()),
+            ),
             'kind' => $kind->value,
             'route' => $route,
             'titleKey' => 'invoice.list.title_'.$kind->value,
@@ -158,7 +167,7 @@ final class InvoiceListController extends AbstractController
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
-            'filtered' => '' !== $text || '' !== $firm || $toSend,
+            'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState,
         ]);
     }
 
@@ -335,6 +344,25 @@ final class InvoiceListController extends AbstractController
         return $this->toList($return);
     }
 
+    /**
+     * The next pack for the accountant takes the document again.
+     */
+    #[Route('/invoices/{id}/clear-export', name: 'app_invoice_clear_export', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function clearExport(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $invoice = $this->invoice($id);
+        $this->checkToken($request);
+        if (ExportState::NotExported === $invoice->exportState()) {
+            $this->addFlash('warning', $this->translator->trans('invoice.list.not_exported'));
+
+            return $this->toList($request->request->getString('return'));
+        }
+        $this->addFlash('success', $this->translator->trans('invoice.flash.export_cleared', ['number' => $this->exports->clear($id)->number()]));
+
+        return $this->toList($request->request->getString('return'));
+    }
+
     #[Route('/invoices/{id}/history', name: 'app_invoice_history', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function showHistory(string $id): Response
     {
@@ -480,6 +508,7 @@ final class InvoiceListController extends AbstractController
         $columns[] = $this->column('status', $sort, $query, phone: false);
         if (!$trash) {
             $columns[] = $this->column('sent', $sort, $query, phone: false) + ['wide' => true];
+            $columns[] = $this->column('export', $sort, $query, phone: false) + ['wide' => true];
         }
 
         return $columns;
@@ -554,12 +583,14 @@ final class InvoiceListController extends AbstractController
                 ];
                 $mark = $sent['text'];
             }
+            $export = $this->exportCell($row);
             $cells += [
                 'issueDate' => $row->issueDate->format($date),
                 'dueDate' => $row->overdue ? ['text' => $due, 'tone' => 'red', 'hint' => $overdue] : $due,
                 'sent' => $sent,
+                'export' => $export,
             ];
-            $secondary = $this->joined([$row->customerName, $due, $badge, $mark]);
+            $secondary = $this->joined([$row->customerName, $due, $badge, $mark, $export['text'] ?? null]);
         }
 
         return [
@@ -570,6 +601,29 @@ final class InvoiceListController extends AbstractController
             'secondary' => $secondary,
             'cells' => $cells,
             'actions' => $this->actions($row, $return, $reminders['count'] ?? 0),
+        ];
+    }
+
+    /**
+     * What the accountant has of the row, with the moment that says so in the tenant's time.
+     * A document never exported shows nothing; a change after the export asks for a look.
+     *
+     * @return array{text: string, icon: string, tone: string, hint: string}|null
+     */
+    private function exportCell(InvoiceRow $row): ?array
+    {
+        $moment = $row->changedAfterExportAt ?? $row->exportedAt;
+        if (!$moment instanceof \DateTimeImmutable) {
+            return null;
+        }
+        $changed = $row->changedAfterExportAt instanceof \DateTimeImmutable;
+        $state = $row->exportState()->value;
+
+        return [
+            'text' => $this->translator->trans('invoice.export_state.'.$state),
+            'icon' => $changed ? 'file-pen-line' : 'archive',
+            'tone' => $changed ? 'amber' : 'gray',
+            'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->tenantClock->timezone())->format($this->translator->trans('format.datetime'))]),
         ];
     }
 
@@ -646,6 +700,9 @@ final class InvoiceListController extends AbstractController
                 'accept' => $this->translator->trans('invoice.list.delivered_confirm_accept'),
             ], 'fields' => $fields];
         }
+        if (ExportState::NotExported !== $row->exportState()) {
+            $actions[] = ['label' => $this->label('clear_export'), 'href' => $this->generateUrl('app_invoice_clear_export', $id), 'method' => 'POST', 'fields' => $fields];
+        }
         $actions[] = $history;
         if (!$row->delivered) {
             $actions[] = ['label' => $this->label('delete'), 'href' => $this->generateUrl('app_invoice_trash', $id + ['return' => '' === $return ? null : $return]), 'method' => 'GET', 'dialog' => true];
@@ -700,6 +757,8 @@ final class InvoiceListController extends AbstractController
                 InvoiceHistoryEntry::DELIVERED => 'circle-check',
                 InvoiceHistoryEntry::PAID => 'banknote',
                 InvoiceHistoryEntry::PAYMENT_CANCELLED => 'banknote-x',
+                InvoiceHistoryEntry::EXPORTED => 'archive',
+                InvoiceHistoryEntry::EXPORT_CLEARED => 'archive-restore',
                 default => 'pencil',
             },
             'text' => [] === $changes ? $text : $text.': '.implode('; ', $changes),

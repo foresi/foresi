@@ -36,6 +36,7 @@
                     {% if firms is not empty %}
                         <div class="w-full sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
                     {% endif %}
+                    <div class="w-full sm:w-44"><twig:Ui:Select name="export" id="invoice-export" :label="'invoice.export_state.label'|trans" :options="exportStates" :value="export" /></div>
                     <twig:Ui:SearchField name="q" :value="text" :label="'invoice.list.search_label'|trans" :placeholder="'invoice.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
                     <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
                 </form>

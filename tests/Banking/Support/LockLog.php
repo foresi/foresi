@@ -14,7 +14,8 @@ use App\Shared\Domain\Currency;
 
 /**
  * What a pairing read and locked, in order: "read:" with the ids of the candidates
- * it was given, and "lock:" with the invoice it locked. LoggingInvoiceStore writes
+ * it was given, "lock:" with the invoice it locked and "row:" with the invoice whose
+ * row it locked inside a transaction that went on. LoggingInvoiceStore writes
  * the locks; as Candidates it writes the reads, and lets a test change what the
  * database holds after a read, as another transaction committing would.
  */
@@ -56,5 +57,10 @@ final class LockLog implements Candidates
     public function locked(string $invoiceId): void
     {
         $this->entries[] = 'lock:'.$invoiceId;
+    }
+
+    public function lockedRow(string $invoiceId): void
+    {
+        $this->entries[] = 'row:'.$invoiceId;
     }
 }

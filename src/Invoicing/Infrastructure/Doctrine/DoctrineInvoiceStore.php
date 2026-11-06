@@ -22,6 +22,7 @@ use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\InvoiceSend;
@@ -396,6 +397,12 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $parameters['invoicePurpose'] = [SendPurpose::Invoice->value, null];
             $parameters['deliveringStatuses'] = [[SendStatus::Queued->value, SendStatus::Sent->value], null];
         }
+        $where .= match ($filter->export) {
+            ExportState::NotExported => ' AND i.exportedAt IS NULL',
+            ExportState::Exported => ' AND i.exportedAt IS NOT NULL AND i.changedAfterExportAt IS NULL',
+            ExportState::Changed => ' AND i.changedAfterExportAt IS NOT NULL',
+            null => '',
+        };
         $text = trim($filter->text);
         if ('' === $text) {
             return [$where, $parameters];
@@ -466,6 +473,8 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore
             $invoice->kind(),
             $byAdvances,
             $corrections,
+            $invoice->exportedAt(),
+            $invoice->changedAfterExportAt(),
         );
     }
 }

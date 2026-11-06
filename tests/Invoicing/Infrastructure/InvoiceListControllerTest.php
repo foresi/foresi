@@ -10,6 +10,8 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\DocumentExports;
+use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceRow;
@@ -25,6 +27,7 @@ use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\SendRequest;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\MailEncryption;
@@ -450,7 +453,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $this->client->request('GET', '/invoices/'.$other->id().'/history');
         self::assertResponseStatusCodeSame(404);
-        foreach (['trash', 'restore', 'delivered'] as $path) {
+        foreach (['trash', 'restore', 'delivered', 'clear-export'] as $path) {
             $this->client->request('POST', '/invoices/'.$other->id().'/'.$path, ['_token' => $this->token(), 'reason' => 'Mine']);
             self::assertResponseStatusCodeSame(404);
         }
@@ -461,7 +464,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn(Role::Client);
         $invoice = $this->issue('2026-11-01', '2026-12-01');
 
-        foreach ([['GET', '/invoices'], ['GET', '/invoices/'.$invoice->id().'/history'], ['GET', '/invoices/'.$invoice->id().'/copy'], ['GET', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/restore'], ['POST', '/invoices/'.$invoice->id().'/delivered']] as [$method, $url]) {
+        foreach ([['GET', '/invoices'], ['GET', '/invoices/'.$invoice->id().'/history'], ['GET', '/invoices/'.$invoice->id().'/copy'], ['GET', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/restore'], ['POST', '/invoices/'.$invoice->id().'/delivered'], ['POST', '/invoices/'.$invoice->id().'/clear-export']] as [$method, $url]) {
             $this->client->request($method, $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
@@ -473,7 +476,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $invoice = $this->issue('2026-11-01', '2026-12-01');
 
-        foreach (['trash', 'restore', 'delivered'] as $path) {
+        foreach (['trash', 'restore', 'delivered', 'clear-export'] as $path) {
             $this->client->request('POST', '/invoices/'.$invoice->id().'/'.$path, ['_token' => 'wrong', 'reason' => 'Mine']);
             self::assertResponseStatusCodeSame(403);
         }
@@ -858,6 +861,123 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertStringContainsString('Example Company marked the invoice as delivered', $crawler->filter('main [data-invoice-history] li')->last()->text());
     }
 
+    public function testTheExportColumnSaysWhatTheAccountantHas(): void
+    {
+        $this->signedIn();
+        $none = $this->issue('2026-11-01', '2026-12-01');
+        $exported = $this->issue('2026-11-02', '2026-12-01');
+        $changed = $this->issue('2026-11-03', '2026-12-01');
+        $this->exported($exported, $changed);
+        Clock::set(new MockClock('2026-11-21 08:30:00', 'UTC'));
+        $this->changedAfterExport($changed);
+
+        $crawler = $this->client->request('GET', '/invoices');
+
+        self::assertContains('Export', $this->headers($crawler));
+        $cells = [];
+        foreach ([$none, $exported, $changed] as $invoice) {
+            $cell = $crawler->filter('tr[data-id="'.$invoice->id().'"] [data-icon-cell]');
+            $cells[$invoice->number()] = 0 === $cell->count() ? null : [$cell->text(), $cell->attr('title'), $cell->attr('data-icon-cell')];
+        }
+        self::assertSame([
+            $none->number() => null,
+            $exported->number() => ['Exported', 'Exported for the accountant 2026-11-20 13:00', 'archive'],
+            $changed->number() => ['Changed after export', 'Edited 2026-11-21 09:30, after the export for the accountant', 'file-pen-line'],
+        ], $cells);
+        self::assertStringContainsString('Changed after export', $crawler->filter('tr[data-id="'.$changed->id().'"] [data-row-secondary]')->text());
+        self::assertStringNotContainsString('export', $crawler->filter('tr[data-id="'.$none->id().'"] [data-row-secondary]')->text());
+    }
+
+    public function testTheExportFilterNarrowsTheListAndTheTabsKeepIt(): void
+    {
+        $this->signedIn();
+        $none = $this->issue('2026-11-01', '2026-12-01');
+        $exported = $this->issue('2026-11-02', '2026-12-01');
+        $changed = $this->issue('2026-11-03', '2026-12-01');
+        $this->exported($exported, $changed);
+        $this->changedAfterExport($changed);
+
+        $crawler = $this->client->request('GET', '/invoices?export=exported');
+        self::assertSame([$exported->number()], $this->numbers($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame('/invoices?tab=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        self::assertSame('exported', $crawler->filter('select[name="export"] option[selected]')->attr('value'));
+        self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
+        self::assertSame(['All', 'Not exported', 'Exported', 'Changed after export'], $crawler->filter('select[name="export"] option')->each(static fn (Crawler $option): string => $option->text()));
+
+        self::assertSame([$changed->number()], $this->numbers($this->client->request('GET', '/invoices?export=changed')));
+        self::assertSame([$none->number()], $this->numbers($this->client->request('GET', '/invoices?export=not_exported')));
+        self::assertSame([$changed->number(), $exported->number(), $none->number()], $this->numbers($this->client->request('GET', '/invoices?export=other')));
+        self::assertSame([], $this->rows(new InvoiceFilter(null, 'trash', '', '-issueDate', 1, export: ExportState::Exported)));
+    }
+
+    public function testAnExportFilterFindingNothingOffersToReset(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-01', '2026-12-01');
+
+        $crawler = $this->client->request('GET', '/invoices?export=changed');
+
+        self::assertSame([], $this->numbers($crawler));
+        self::assertSelectorTextContains('main', 'No invoice matches');
+        self::assertCount(1, $crawler->filter('main a[href="/invoices"]'));
+    }
+
+    public function testClearingTheExportStateIsOfferedOnceExportedAndTheNextExportTakesItAgain(): void
+    {
+        $this->signedIn();
+        $none = $this->issue('2026-11-01', '2026-12-01');
+        $invoice = $this->issue('2026-11-02', '2026-12-01');
+        $this->exported($invoice);
+        $crawler = $this->client->request('GET', '/invoices?export=exported');
+
+        self::assertNotContains('Clear export state', $this->menu($this->client->request('GET', '/invoices')->filter('tr[data-id="'.$none->id().'"]')));
+        $row = $crawler->filter('tr[data-id="'.$invoice->id().'"]');
+        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'Clear export state', 'History', 'Delete'], $this->menu($row));
+        $form = $row->filter('form[action="/invoices/'.$invoice->id().'/clear-export"]');
+        self::assertCount(0, $form->filter('[data-turbo-confirm]'));
+        $return = $form->filter('input[name="return"]')->attr('value');
+        self::assertSame('export=exported', $return);
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/clear-export', ['_token' => $this->token(), 'return' => $return]);
+        self::assertResponseRedirects('/invoices?export=exported');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Document 20260002 has no export state now; the next export takes it.');
+        self::assertSame(ExportState::NotExported, $this->stored($invoice)->exportState());
+
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/clear-export', ['_token' => $this->token()]);
+        self::assertResponseRedirects('/invoices');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'This document has no export state.');
+    }
+
+    public function testAChangedDocumentOffersToClearItsExportStateToo(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issue('2026-11-01', '2026-12-01');
+        $this->exported($invoice);
+        $this->changedAfterExport($invoice);
+
+        self::assertContains('Clear export state', $this->menu($this->client->request('GET', '/invoices')->filter('tr[data-id="'.$invoice->id().'"]')));
+    }
+
+    public function testHistorySaysWhenTheDocumentWasExportedAndCleared(): void
+    {
+        $this->signedIn();
+        $this->saveThroughTheForm();
+        $invoice = $this->onlyInvoice();
+        $this->exported($invoice);
+        // A save that changes no value says only that it was saved: the export marks are no fields of the document.
+        $this->changedAfterExport($invoice);
+        $this->client->request('POST', '/invoices/'.$invoice->id().'/clear-export', ['_token' => $this->token()]);
+
+        $items = $this->client->request('GET', '/invoices/'.$invoice->id().'/history')->filter('main [data-invoice-history] li');
+
+        self::assertStringEndsWith('Example Company exported the invoice for the accountant', $items->eq($items->count() - 3)->text());
+        self::assertStringEndsWith('Example Company changed the invoice', $items->eq($items->count() - 2)->text());
+        self::assertStringEndsWith('Example Company cleared the export state', $items->last()->text());
+    }
+
     public function testPagination(): void
     {
         $this->signedIn();
@@ -1136,31 +1256,34 @@ final class InvoiceListControllerTest extends WebTestCase
 
     private function issue(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = '', ?LegalEntity $firm = null): Invoice
     {
-        return $this->scoped(function () use ($date, $due, $customer, $description, $price, $variableSymbol, $firm): Invoice {
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+        return $this->scoped(fn (): Invoice => self::getContainer()->get(IssueInvoice::class)->issue($this->input($date, $due, $customer, $description, $price, $variableSymbol, $firm)));
+    }
 
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(
-                ($firm ?? $this->firm)->id(),
-                $firm instanceof LegalEntity ? null : $this->series->id(),
-                null,
-                ($customer ?? $this->customer)->id(),
-                null,
-                new \DateTimeImmutable($date),
-                new \DateTimeImmutable($date),
-                new \DateTimeImmutable($due),
-                PaymentMethod::BankTransfer,
-                self::getContainer()->get(FirmBankAccounts::class)->primaryOf($firm ?? $this->firm)?->iban(),
-                $variableSymbol,
-                '',
-                '',
-                $description,
-                '',
-                '',
-                DocumentLanguage::Czech,
-                [$line],
-                '' === $variableSymbol,
-            ));
-        });
+    private function input(string $date, string $due, ?Party $customer = null, string $description = 'Consulting', string $price = '1000.00', string $variableSymbol = '', ?LegalEntity $firm = null): InvoiceInput
+    {
+        $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
+
+        return new InvoiceInput(
+            ($firm ?? $this->firm)->id(),
+            $firm instanceof LegalEntity ? null : $this->series->id(),
+            null,
+            ($customer ?? $this->customer)->id(),
+            null,
+            new \DateTimeImmutable($date),
+            new \DateTimeImmutable($date),
+            new \DateTimeImmutable($due),
+            PaymentMethod::BankTransfer,
+            self::getContainer()->get(FirmBankAccounts::class)->primaryOf($firm ?? $this->firm)?->iban(),
+            $variableSymbol,
+            '',
+            '',
+            $description,
+            '',
+            '',
+            DocumentLanguage::Czech,
+            [$line],
+            '' === $variableSymbol,
+        );
     }
 
     private function pay(Invoice $invoice, string $amount): void
@@ -1184,6 +1307,23 @@ final class InvoiceListControllerTest extends WebTestCase
     private function delivered(Invoice $invoice): void
     {
         $this->scoped(fn () => self::getContainer()->get(MarkDelivered::class)->mark($invoice->id()));
+    }
+
+    private function exported(Invoice ...$invoices): void
+    {
+        $this->scoped(fn () => self::getContainer()->get(DocumentExports::class)->markExported(array_values(array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices))));
+    }
+
+    /**
+     * Saves the document again as it was issued by issue(): a save of the content.
+     */
+    private function changedAfterExport(Invoice $invoice): void
+    {
+        $this->scoped(function () use ($invoice): void {
+            $this->em()->clear();
+            $stored = self::getContainer()->get(InvoiceStore::class)->get($invoice->id());
+            self::getContainer()->get(EditInvoice::class)->edit($invoice->id(), $this->input($stored->issueDate()->format('Y-m-d'), $stored->dueDate()->format('Y-m-d')), $stored->version());
+        });
     }
 
     private function stored(Invoice $invoice): Invoice

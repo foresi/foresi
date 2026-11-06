@@ -85,6 +85,7 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
 
     public function lockRow(string $id): void
     {
+        $this->log->lockedRow($id);
         $this->store->lockRow($id);
     }
 

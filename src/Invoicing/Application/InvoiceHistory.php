@@ -30,7 +30,7 @@ use App\Invoicing\Domain\PaymentAllocation;
 final readonly class InvoiceHistory
 {
     /** Derived from other fields, or moved into an event of its own. */
-    private const array QUIET_INVOICE_FIELDS = ['numberKey', 'netMinor', 'vatMinor', 'roundingMinor', 'customerParty', 'deliveredAt', 'deletedAt', 'deletedBy', 'deletedReason', 'recurringInvoiceId', 'recurringOccurrence'];
+    private const array QUIET_INVOICE_FIELDS = ['numberKey', 'netMinor', 'vatMinor', 'roundingMinor', 'customerParty', 'deliveredAt', 'deletedAt', 'deletedBy', 'deletedReason', 'recurringInvoiceId', 'recurringOccurrence', 'exportedAt', 'changedAfterExportAt'];
     private const array QUIET_LINE_FIELDS = ['invoice', 'position', 'rate', 'unitNetMinor', 'netMinor', 'vatMinor', 'grossMinor'];
 
     public function __construct(private AuditTrail $trail, private UserRepository $users)
@@ -143,6 +143,10 @@ final readonly class InvoiceHistory
         }
         if (isset($changes['deletedAt'])) {
             return null === $changes['deletedAt'][1] ? InvoiceHistoryEntry::RESTORED : InvoiceHistoryEntry::TRASHED;
+        }
+
+        if (isset($changes['exportedAt'])) {
+            return null === $changes['exportedAt'][1] ? InvoiceHistoryEntry::EXPORT_CLEARED : InvoiceHistoryEntry::EXPORTED;
         }
 
         return isset($changes['deliveredAt']) ? InvoiceHistoryEntry::DELIVERED : null;

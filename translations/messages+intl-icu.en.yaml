@@ -1160,6 +1160,15 @@ invoice:
       rate_limited: Too many sends in a short time. Try again in a moment.
       undrawable: The invoice cannot be drawn as a PDF, so it cannot be sent.
       reminder_taken: This reminder of the invoice has been queued already.
+  export_state:
+    label: Accountant export
+    all: All
+    not_exported: Not exported
+    exported: Exported
+    changed: Changed after export
+    hint:
+      exported: 'Exported for the accountant {date}'
+      changed: 'Edited {date}, after the export for the accountant'
   export:
     incomplete: 'Invoices {numbers} cannot be drawn, so no ZIP was made. Without them the accountant would not have the whole period.'
     title: Documents for the accountant
@@ -1259,6 +1268,7 @@ invoice:
     reason_missing: Say why the invoice is being deleted.
     delete_delivered: A delivered document cannot be deleted.
     not_in_trash: This invoice is not in the trash.
+    not_exported: This document has no export state.
     already_trashed: This invoice is in the trash already.
     delivered_trashed: This invoice is in the trash. Restore it first.
     delivered_confirm: 'Mark invoice {number} as delivered?'
@@ -1275,6 +1285,7 @@ invoice:
       trash: Trash
     column:
       sent: E-mail
+      export: Export
       number: Number
       firm: Firm
       customer: Customer
@@ -1306,6 +1317,7 @@ invoice:
       history: History
       delete: Delete
       restore: Restore
+      clear_export: Clear export state
     empty:
       title: No invoices yet
       text: Issue the first one. Saving gives it its number.
@@ -1343,6 +1355,8 @@ invoice:
     trashed: '{who} moved the invoice to the trash: {reason}'
     restored: '{who} restored the invoice'
     delivered: '{who} marked the invoice as delivered'
+    exported: '{who} exported the invoice for the accountant'
+    export_cleared: '{who} cleared the export state'
     paid: '{who}: payment of {amount} recorded'
     payment_cancelled: '{who}: payment of {amount} removed'
     send: '{who} sent an e-mail to {recipients}'
@@ -1417,6 +1431,7 @@ invoice:
     trashed: 'Invoice {number} is in the trash.'
     restored: 'Invoice {number} is back in the list.'
     delivered: 'Invoice {number} is marked as delivered.'
+    export_cleared: 'Document {number} has no export state now; the next export takes it.'
   card:
     issuer: Issuer
     customer: Customer

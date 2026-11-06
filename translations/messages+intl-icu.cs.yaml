@@ -1160,6 +1160,15 @@ invoice:
       rate_limited: Příliš mnoho odeslání za krátkou dobu. Zkuste to za chvíli.
       undrawable: Fakturu nejde vytisknout do PDF, a proto ani odeslat.
       reminder_taken: Tahle upomínka faktury už je ve frontě k odeslání.
+  export_state:
+    label: Export pro účetní
+    all: Vše
+    not_exported: Neexportováno
+    exported: Exportováno
+    changed: Změněno po exportu
+    hint:
+      exported: 'Exportováno účetní {date}'
+      changed: 'Upraveno {date}, po exportu pro účetní'
   export:
     incomplete: 'Faktury {numbers} nejde vytvořit, proto ZIP nevznikl. Bez nich by účetní neměl celé období.'
     title: Doklady pro účetní
@@ -1259,6 +1268,7 @@ invoice:
     reason_missing: Napište, proč fakturu mažete.
     delete_delivered: Doručený doklad nelze smazat.
     not_in_trash: Tato faktura v koši není.
+    not_exported: Tento doklad nemá příznak exportu.
     already_trashed: Tato faktura už je v koši.
     delivered_trashed: Tato faktura je v koši. Nejdřív ji obnovte.
     delivered_confirm: 'Označit fakturu {number} jako doručenou?'
@@ -1275,6 +1285,7 @@ invoice:
       trash: Koš
     column:
       sent: E-mail
+      export: Export
       number: Číslo
       firm: Firma
       customer: Zákazník
@@ -1306,6 +1317,7 @@ invoice:
       history: Historie
       delete: Smazat
       restore: Obnovit
+      clear_export: Zrušit příznak exportu
     empty:
       title: Zatím žádné faktury
       text: Vystavte první. Uložením dostane své číslo.
@@ -1343,6 +1355,8 @@ invoice:
     trashed: '{who}: faktura přesunuta do koše: {reason}'
     restored: '{who}: faktura obnovena'
     delivered: '{who}: faktura označena jako doručená'
+    exported: '{who}: faktura exportována pro účetní'
+    export_cleared: '{who}: příznak exportu zrušen'
     paid: '{who}: úhrada {amount} zaznamenána'
     payment_cancelled: '{who}: úhrada {amount} odebrána'
     send: '{who}: e-mail na {recipients}'
@@ -1417,6 +1431,7 @@ invoice:
     trashed: 'Faktura {number} je v koši.'
     restored: 'Faktura {number} je zpět v seznamu.'
     delivered: 'Faktura {number} je označená jako doručená.'
+    export_cleared: 'Doklad {number} už nemá příznak exportu, další export ho zahrne.'
   card:
     issuer: Vystavitel
     customer: Odběratel
