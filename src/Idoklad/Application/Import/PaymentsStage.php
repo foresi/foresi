@@ -59,8 +59,7 @@ final readonly class PaymentsStage implements ImportStage
     public function run(ImportContext $context): void
     {
         $records = [...$context->records(IdokladResource::IssuedDocumentPayments)];
-        $key = fn (IdokladRecord $record): string => substr($this->text($record->payload()['DateOfPayment'] ?? null), 0, 10).' '.str_pad((string) $record->externalId(), 19, '0', \STR_PAD_LEFT);
-        usort($records, static fn (IdokladRecord $a, IdokladRecord $b): int => strcmp($key($a), $key($b)));
+        usort($records, fn (IdokladRecord $a, IdokladRecord $b): int => [$this->day($a), $a->externalId()] <=> [$this->day($b), $b->externalId()]);
         foreach ($records as $record) {
             $this->payment($context, $record);
         }
@@ -108,18 +107,18 @@ final readonly class PaymentsStage implements ImportStage
     private function input(ImportContext $context, IdokladRecord $record, array &$values, array &$reasons): ?ImportedPaymentInput
     {
         $payload = $record->payload();
-        $resource = self::DOCUMENTS[$values['document_type'] ?? -1] ?? null;
+        $resource = null === $values['document_type'] ? null : self::DOCUMENTS[$values['document_type']] ?? null;
         if (!$resource instanceof IdokladResource) {
             $reasons = [self::DOCUMENT_TYPE_UNSUPPORTED];
 
             return null;
         }
-        $invoiceId = $context->linkedTo($resource, \is_int($values['document_id']) ? $values['document_id'] : 0);
+        $invoiceId = \is_int($values['document_id']) ? $context->linkedTo($resource, $values['document_id']) : null;
         $home = $this->countries->for($context->firm->address()->countryCode)->homeCurrency();
-        $currency = $context->record(IdokladResource::Currencies, \is_int($payload['CurrencyId'] ?? null) ? $payload['CurrencyId'] : 0)?->payload()['Code'] ?? null;
+        $currency = \is_int($payload['CurrencyId'] ?? null) ? $context->record(IdokladResource::Currencies, $payload['CurrencyId'])?->payload()['Code'] ?? null : null;
         $method = $this->method($context, $payload['PaymentOptionId'] ?? null, $values);
         $amount = \is_array($payload['Prices'] ?? null) ? $payload['Prices']['PaymentAmount'] ?? null : null;
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', substr($this->text($payload['DateOfPayment'] ?? null), 0, 10));
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $this->day($record));
         if ($home->value !== $currency) {
             $values['currency'] = \is_string($currency) ? $currency : null;
         }
@@ -129,7 +128,7 @@ final readonly class PaymentsStage implements ImportStage
             ...$method instanceof PaymentMethod ? [] : [self::PAYMENT_OPTION_UNSUPPORTED],
             ...(\is_int($amount) || \is_float($amount)) && false !== $date ? [] : [self::INVALID_VALUE],
         ];
-        if ([] !== $reasons || null === $invoiceId || !$method instanceof PaymentMethod || !\is_int($amount) && !\is_float($amount) || false === $date) {
+        if (null === $invoiceId || $home->value !== $currency || !$method instanceof PaymentMethod || !\is_int($amount) && !\is_float($amount) || false === $date) {
             return null;
         }
 
@@ -151,7 +150,7 @@ final readonly class PaymentsStage implements ImportStage
      */
     private function method(ImportContext $context, mixed $optionId, array &$values): ?PaymentMethod
     {
-        $name = $this->text($context->record(IdokladResource::PaymentOptions, \is_int($optionId) ? $optionId : 0)?->payload()['Name'] ?? null);
+        $name = \is_int($optionId) ? $this->text($context->record(IdokladResource::PaymentOptions, $optionId)?->payload()['Name'] ?? null) : '';
         foreach (DocumentsStage::PAYMENT_WORDS as $word => $method) {
             if (str_contains(mb_strtolower($name), $word)) {
                 return $method;
@@ -160,6 +159,14 @@ final readonly class PaymentsStage implements ImportStage
         $values['payment_option'] = $name;
 
         return null;
+    }
+
+    /**
+     * The day of the payment as iDoklad writes it, without the time.
+     */
+    private function day(IdokladRecord $record): string
+    {
+        return substr($this->text($record->payload()['DateOfPayment'] ?? null), 0, 10);
     }
 
     private function text(mixed $value): string

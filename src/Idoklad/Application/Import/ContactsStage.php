@@ -313,7 +313,7 @@ final readonly class ContactsStage implements ImportStage
 
     private function fold(string $name): string
     {
-        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $name)));
+        return mb_strtolower((string) preg_replace('/\s+/u', ' ', $name));
     }
 
     private function text(mixed $value): string

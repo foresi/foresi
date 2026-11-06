@@ -205,6 +205,68 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
     }
 
+    public function testEachReasonAloneRefusesThePayment(): void
+    {
+        $this->proforma();
+        $this->payment(411, ['CurrencyId' => self::EUR]);
+        $this->payment(412, ['PaymentOptionId' => self::CASH_ON_DELIVERY]);
+        $this->payment(413, ['Prices' => ['PaymentAmount' => '1210']]);
+        $this->payment(414, ['DateOfPayment' => 'soon']);
+        $this->payment(415, ['DocumentType' => null]);
+        $this->payment(416, ['InvoiceId' => null]);
+        $this->payment(417, ['CurrencyId' => null]);
+        $this->payment(418, ['CurrencyId' => 999]);
+        $this->payment(419, ['PaymentOptionId' => null]);
+        $this->payment(420, ['PaymentOptionId' => 999]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $reasons = fn (int $id): array => $this->entry($run, $id, PaymentsStage::KEY)['reasons'];
+        self::assertSame([PaymentsStage::CURRENCY_NOT_HOME], $reasons(411));
+        self::assertSame([PaymentsStage::PAYMENT_OPTION_UNSUPPORTED], $reasons(412));
+        self::assertSame([PaymentsStage::INVALID_VALUE], $reasons(413));
+        self::assertSame([PaymentsStage::INVALID_VALUE], $reasons(414));
+        self::assertSame([PaymentsStage::DOCUMENT_TYPE_UNSUPPORTED], $reasons(415));
+        self::assertSame([PaymentsStage::DOCUMENT_NOT_LINKED], $reasons(416));
+        self::assertSame([PaymentsStage::CURRENCY_NOT_HOME], $reasons(417));
+        self::assertNull($this->entry($run, 417, PaymentsStage::KEY)['values']['currency']);
+        self::assertSame([PaymentsStage::CURRENCY_NOT_HOME], $reasons(418));
+        self::assertSame([PaymentsStage::PAYMENT_OPTION_UNSUPPORTED], $reasons(419));
+        self::assertSame('', $this->entry($run, 419, PaymentsStage::KEY)['values']['payment_option']);
+        self::assertSame([PaymentsStage::PAYMENT_OPTION_UNSUPPORTED], $reasons(420));
+        self::assertSame(['refused' => 10], $run->counts()['payments']);
+        self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
+    }
+
+    public function testAWholeAmountAndAnOptionInCapitalsAreImported(): void
+    {
+        $this->record(IdokladResource::PaymentOptions, 4, ['Id' => 4, 'Code' => 'P', 'Name' => 'PŘEVODEM', 'IsDefault' => false]);
+        $this->proforma();
+        $this->payment(self::PAYMENT, ['PaymentOptionId' => 4, 'Prices' => ['PaymentAmount' => 1210]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, self::PAYMENT, PaymentsStage::KEY);
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+        $payment = $this->em->find(Payment::class, (string) $entry['target_id']) ?? self::fail('The payment is stored.');
+        self::assertSame(121000, $payment->amount()->minor());
+        self::assertSame(PaymentMethod::BankTransfer, $payment->method());
+    }
+
+    public function testPaymentsGoByTheirDayThenTheirId(): void
+    {
+        $this->proforma();
+        $this->payment(430, ['DocumentType' => 3, 'DateOfPayment' => '1999-12-31T00:00:00']);
+        $this->payment(431, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-05T09:00:00']);
+        $this->payment(432, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-05']);
+        $this->payment(433, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-04T23:59:59']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $payments = array_values(array_filter($run->report(), static fn (array $entry): bool => PaymentsStage::KEY === $entry['stage']));
+        self::assertSame([430, 433, 431, 432], array_column($payments, 'external_id'), 'The time of a day does not count.');
+    }
+
     public function testACheckWritesNothingAndASecondRunFindsEverything(): void
     {
         $this->proforma();
@@ -223,6 +285,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $second = $this->import()->run($this->storedFirm(), ImportMode::Run);
 
         self::assertSame(['already_linked'], array_values(array_unique(array_column(array_filter($second->report(), static fn (array $entry): bool => \in_array($entry['stage'], [DocumentsStage::KEY, PaymentsStage::KEY], true)), 'outcome'))));
+        self::assertSame(['already_linked' => 1], $second->counts()['payments'], 'A linked payment is reported once and imported no more.');
         $this->em->getConnection()->executeStatement("DELETE FROM idoklad_link WHERE resource = 'IssuedDocumentPayments'");
         $third = $this->import()->run($this->storedFirm(), ImportMode::Run);
         self::assertSame('matched', $this->entry($third, self::PAYMENT, PaymentsStage::KEY)['outcome'], 'An imported payment is linked again.');

@@ -70,7 +70,7 @@ final readonly class SeriesStage implements ImportStage
                 'year' => \is_int($payload['Year'] ?? null) ? $payload['Year'] : null,
                 'last_number' => \is_int($payload['LastNumber'] ?? null) ? $payload['LastNumber'] : null,
             ];
-            $kind = self::KINDS[$values['document_type'] ?? -1] ?? null;
+            $kind = null === $values['document_type'] ? null : self::KINDS[$values['document_type']] ?? null;
             if (!$kind instanceof DocumentKind) {
                 $context->report(self::KEY, $id, ImportOutcome::Refused, reasons: [self::UNKNOWN_TYPE], values: $values);
 
