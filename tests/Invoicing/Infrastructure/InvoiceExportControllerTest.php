@@ -15,6 +15,7 @@ use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\ExportState;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
@@ -76,17 +77,45 @@ final class InvoiceExportControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheFormOffersThePreviousMonth(): void
+    public function testTheFormOffersThePreviousMonthAndCountsItsPendingDocuments(): void
     {
         $this->signedIn();
+        $this->issue('2026-10-05');
+        $this->issue('2026-10-06');
 
         $crawler = $this->client->request('GET', '/invoices/export');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('2026-10-01', $crawler->filter('input[name="from"]')->attr('value'));
-        self::assertSame('2026-10-31', $crawler->filter('input[name="to"]')->attr('value'));
+        self::assertSame('2026-10', $crawler->filter('input[name="month"]')->attr('value'));
+        self::assertSame('pending', $crawler->filter('input[name="scope"][checked]')->attr('value'));
         self::assertSame('false', $crawler->filter('form[action="/invoices/export"]')->attr('data-turbo'));
         self::assertSame($this->firm->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
+        self::assertSame(['invoice' => '2', 'advance' => '0', 'payment_tax_document' => '0', 'correction_document' => '0', 'total' => '2'], $this->counts($crawler));
+    }
+
+    public function testCountingAgainShowsTheChosenMonthAndScope(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-09-05');
+        $exported = $this->issue('2026-09-06');
+        $this->download('2026-09');
+        $this->issue('2026-09-07');
+
+        $pending = $this->post(['month' => '2026-09', 'action' => 'count']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('1', $this->counts($pending)['invoice']);
+        $all = $this->post(['month' => '2026-09', 'scope' => 'all', 'action' => 'count']);
+        self::assertSame('3', $this->counts($all)['invoice']);
+        self::assertSame('all', $all->filter('input[name="scope"][checked]')->attr('value'));
+        // Anything but "all" is the default.
+        $unknown = $this->post(['month' => '2026-09', 'scope' => 'everything', 'action' => 'count']);
+        self::assertSame('1', $this->counts($unknown)['invoice']);
+        self::assertSame('pending', $unknown->filter('input[name="scope"][checked]')->attr('value'));
+        // A month that is none is an error before anything is counted.
+        $wrong = $this->post(['month' => '2026-13', 'action' => 'count']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(0, $wrong->filter('[data-export-counts]'));
+        self::assertNotSame('', $exported->id());
     }
 
     public function testTheListLinksToIt(): void
@@ -99,101 +128,89 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertSame('For the accountant', trim($crawler->filter('main a[href="/invoices/export"]')->text()));
     }
 
-    public function testTheZipHoldsOneIsdocPdfPerInvoice(): void
+    public function testTheZipHasAFolderPerKindAPdfAndIsdocPerDocumentAndAList(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-10-05');
+        $this->issue('2026-10-06');
+
+        $files = $this->download('2026-10');
+
+        self::assertSame([
+            'invoices/2026-10-05_example-customer-a-s_121CZK_VS20260001.pdf',
+            'invoices/2026-10-05_example-customer-a-s_121CZK_VS20260001.isdoc',
+            'invoices/2026-10-06_example-customer-a-s_121CZK_VS20260002.pdf',
+            'invoices/2026-10-06_example-customer-a-s_121CZK_VS20260002.isdoc',
+            'list.xlsx',
+        ], array_keys($files));
+        $headers = $this->client->getResponse()->headers;
+        self::assertSame('application/zip', $headers->get('Content-Type'));
+        self::assertStringStartsWith('attachment; filename=example-firm-s-r-o_2026-10.zip', (string) $headers->get('Content-Disposition'));
+        $pdf = array_values($files)[0];
+        self::assertStringStartsWith('%PDF-', $pdf);
+        self::assertSame(PdfTools::attachment($pdf)['content'], array_values($files)[1]);
+    }
+
+    public function testADownloadMarksItsDocumentsSoTheNextTakesOnlyNewOnes(): void
     {
         $this->signedIn();
         $first = $this->issue('2026-10-05');
-        $second = $this->issue('2026-10-06');
 
-        $files = $this->download('2026-10-01', '2026-10-31');
+        self::assertCount(3, $this->download('2026-10'));
+        self::assertSame(ExportState::Exported, $this->scoped(fn (): ExportState => self::getContainer()->get(\App\Invoicing\Application\InvoiceStore::class)->get($first->id())->exportState()));
 
-        self::assertSame([$first->number().'-isdoc.pdf', $second->number().'-isdoc.pdf'], array_keys($files));
-        $headers = $this->client->getResponse()->headers;
-        self::assertSame('application/zip', $headers->get('Content-Type'));
-        self::assertStringStartsWith('attachment; filename=invoices-12345695-20261001-20261031.zip', (string) $headers->get('Content-Disposition'));
-        foreach ($files as $pdf) {
-            self::assertStringStartsWith('%PDF-', $pdf);
-            self::assertSame('invoice.isdoc', PdfTools::attachment($pdf)['name']);
-        }
+        $crawler = $this->post(['month' => '2026-10']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('No documents', $crawler->filter('main form [role="status"]')->text());
+        self::assertCount(3, $this->download('2026-10', 'all'));
     }
 
-    public function testOnlyThatFirmAndPeriod(): void
-    {
-        $this->signedIn();
-        $inside = $this->issue('2026-10-05');
-        $this->issue('2026-09-30');
-        $this->issue('2026-11-01');
-        $other = $this->otherFirm();
-        $this->issue('2026-10-05', $other);
-
-        self::assertSame([$inside->number().'-isdoc.pdf'], array_keys($this->download('2026-10-01', '2026-10-31')));
-    }
-
-    public function testTheTaxPointDecidesThePeriod(): void
+    public function testOnlyThatFirmAndMonthByTaxPoint(): void
     {
         $this->signedIn();
         $inside = $this->issue('2026-11-02', taxPoint: '2026-10-31');
         $this->issue('2026-10-02', taxPoint: '2026-11-01');
+        $this->issue('2026-09-30');
+        $this->issue('2026-10-05', $this->otherFirm());
 
-        self::assertSame([$inside->number().'-isdoc.pdf'], array_keys($this->download('2026-10-01', '2026-10-31')));
-    }
+        $files = array_keys($this->download('2026-10'));
 
-    public function testBoundaryDaysAreIncluded(): void
-    {
-        $this->signedIn();
-        $first = $this->issue('2026-10-01');
-        $last = $this->issue('2026-10-31');
-
-        self::assertSame([$first->number().'-isdoc.pdf', $last->number().'-isdoc.pdf'], array_keys($this->download('2026-10-01', '2026-10-31')));
+        self::assertCount(3, $files);
+        self::assertStringStartsWith('invoices/2026-11-02_', $files[0]);
+        self::assertNotSame('', $inside->id());
     }
 
     public function testTrashIsLeftOut(): void
     {
         $this->signedIn();
-        $kept = $this->issue('2026-10-05');
+        $this->issue('2026-10-05');
         $trashed = $this->issue('2026-10-06');
         $this->scoped(fn (): Invoice => self::getContainer()->get(TrashInvoice::class)->trash($trashed->id(), 'Wrong customer'));
 
-        self::assertSame([$kept->number().'-isdoc.pdf'], array_keys($this->download('2026-10-01', '2026-10-31')));
+        self::assertCount(3, $this->download('2026-10'));
     }
 
-    public function testAnEmptyPeriodSaysSoAndGivesNoFile(): void
+    public function testAnEmptyMonthSaysSoAndGivesNoFile(): void
     {
         $this->signedIn();
+        $before = $this->temporary();
 
-        $crawler = $this->post(['from' => '2026-10-01', 'to' => '2026-10-31']);
+        $crawler = $this->post(['month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringStartsWith('text/html', (string) $this->client->getResponse()->headers->get('Content-Type'));
-        self::assertStringContainsString('No invoices', $crawler->filter('main form [role="status"]')->text());
+        self::assertStringContainsString('No documents', $crawler->filter('main form [role="status"]')->text());
+        self::assertSame($before, $this->temporary());
     }
 
-    public function testALongerPeriodIsAFormError(): void
-    {
-        $this->signedIn();
-        $this->issue('2026-10-05');
-
-        $this->post(['from' => '2025-10-01', 'to' => '2026-10-02']);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#export-to-error', '366');
-    }
-
-    public function testAPeriodOf366DaysPasses(): void
-    {
-        $this->signedIn();
-        $this->issue('2026-10-05');
-
-        self::assertCount(1, $this->download('2025-10-05', '2026-10-05'));
-    }
-
-    public function testAPeriodMustRunForwardAndHaveDates(): void
+    public function testAMonthMustBeOne(): void
     {
         $this->signedIn();
 
-        foreach ([['from' => '2026-10-31', 'to' => '2026-10-01'], ['from' => '', 'to' => '2026-10-31'], ['from' => '2026-02-31', 'to' => '2026-10-31'], ['from' => '2026-10-01', 'to' => 'soon']] as $period) {
-            $this->post($period);
+        foreach (['', '2026-13', '2026-1', 'soon', '2026-10-01'] as $month) {
+            $this->post(['month' => $month]);
             self::assertResponseStatusCodeSame(422);
+            self::assertSelectorTextContains('#export-month-error', 'valid month');
         }
     }
 
@@ -202,7 +219,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $this->signedIn();
         $foreign = $this->foreignFirm();
 
-        $this->post(['firm' => $foreign->id(), 'from' => '2026-10-01', 'to' => '2026-10-31']);
+        $this->post(['firm' => $foreign->id(), 'month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -211,7 +228,7 @@ final class InvoiceExportControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->post(['firm' => 'nothing', 'from' => '2026-10-01', 'to' => '2026-10-31']);
+        $this->post(['firm' => 'nothing', 'month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -230,12 +247,12 @@ final class InvoiceExportControllerTest extends WebTestCase
     {
         $this->signedIn();
 
-        $this->client->request('POST', '/invoices/export', ['_token' => 'wrong', 'firm' => $this->firm->id(), 'from' => '2026-10-01', 'to' => '2026-10-31']);
+        $this->client->request('POST', '/invoices/export', ['_token' => 'wrong', 'firm' => $this->firm->id(), 'month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testADocumentThatCannotBeDrawnStopsTheDownloadAndIsNamed(): void
+    public function testADocumentThatCannotBeDrawnStopsTheDownloadIsNamedAndMarksNothing(): void
     {
         $this->signedIn();
         $good = $this->issue('2026-10-05');
@@ -243,13 +260,14 @@ final class InvoiceExportControllerTest extends WebTestCase
         $this->scoped(fn (): int => (int) $this->em()->getConnection()->executeStatement("UPDATE invoice SET issuer_address_country_code = 'XX' WHERE id = :id", ['id' => $bad->id()]));
         $before = $this->temporary();
 
-        $crawler = $this->post(['from' => '2026-10-01', 'to' => '2026-10-31']);
+        $crawler = $this->post(['month' => '2026-10']);
 
         self::assertResponseStatusCodeSame(422);
         $notice = $crawler->filter('main form [role="status"]')->text();
         self::assertStringContainsString($bad->number(), $notice);
         self::assertStringNotContainsString($good->number(), $notice);
         self::assertSame($before, $this->temporary());
+        self::assertSame(ExportState::NotExported, $this->scoped(fn (): ExportState => self::getContainer()->get(\App\Invoicing\Application\InvoiceStore::class)->get($good->id())->exportState()));
     }
 
     public function testAFailingArchiveFailsLoudly(): void
@@ -264,7 +282,7 @@ final class InvoiceExportControllerTest extends WebTestCase
             $this->scoped(function () use ($path): void {
                 $firm = self::getContainer()->get(LegalEntities::class)->get($this->firm->id());
                 $this->expectException(\RuntimeException::class);
-                self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+                self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), true, 'en');
             });
         } finally {
             unlink($path);
@@ -278,7 +296,7 @@ final class InvoiceExportControllerTest extends WebTestCase
         $this->issue('2026-10-05');
         $before = $this->temporary();
 
-        self::assertCount(1, $this->download('2026-10-01', '2026-10-31'));
+        self::assertCount(3, $this->download('2026-10'));
 
         self::assertSame($before, $this->temporary());
     }
@@ -291,22 +309,12 @@ final class InvoiceExportControllerTest extends WebTestCase
         set_time_limit(0);
 
         try {
-            self::assertCount(1, $this->download('2026-10-01', '2026-10-31'));
+            self::assertCount(3, $this->download('2026-10'));
 
             self::assertSame('0', ini_get('max_execution_time'));
         } finally {
             set_time_limit((int) $before);
         }
-    }
-
-    public function testAnEmptyPeriodLeavesNoTemporaryFile(): void
-    {
-        $this->signedIn();
-        $before = $this->temporary();
-
-        $this->post(['from' => '2026-10-01', 'to' => '2026-10-31']);
-
-        self::assertSame($before, $this->temporary());
     }
 
     public function testThreeHundredInvoicesStayUnder256Megabytes(): void
@@ -322,7 +330,7 @@ final class InvoiceExportControllerTest extends WebTestCase
             $firm = self::getContainer()->get(LegalEntities::class)->get($this->firm->id());
             $base = memory_get_usage();
             memory_reset_peak_usage();
-            $count = self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
+            $count = self::getContainer()->get(InvoiceBundle::class)->writeTo($path, $firm, new \DateTimeImmutable('2026-10-01'), true, 'en');
 
             return [$count, memory_get_peak_usage() - $base];
         });
@@ -333,16 +341,29 @@ final class InvoiceExportControllerTest extends WebTestCase
         unlink($path);
 
         self::assertSame(300, $count);
-        self::assertSame(300, $entries);
+        self::assertSame(601, $entries);
         self::assertLessThan(256 * 1024 * 1024, $peak);
+    }
+
+    /**
+     * @return array<string, string> the count shown for each kind and the total
+     */
+    private function counts(\Symfony\Component\DomCrawler\Crawler $crawler): array
+    {
+        $counts = [];
+        $crawler->filter('[data-export-counts] dd')->each(static function (\Symfony\Component\DomCrawler\Crawler $cell) use (&$counts): void {
+            $counts[(string) $cell->attr('data-kind')] = trim($cell->text());
+        });
+
+        return $counts;
     }
 
     /**
      * @return array<string, string> what the ZIP holds, by name, in its order
      */
-    private function download(string $from, string $to): array
+    private function download(string $month, string $scope = 'pending'): array
     {
-        $this->post(['from' => $from, 'to' => $to]);
+        $this->post(['month' => $month, 'scope' => $scope]);
         self::assertResponseIsSuccessful();
         $path = (string) tempnam(sys_get_temp_dir(), 'foresi-test-');
         file_put_contents($path, $this->client->getInternalResponse()->getContent());

@@ -11,13 +11,30 @@
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Invoicing\\Infrastructure\\Controller\\InvoiceExportController::TOKEN')) }}">
             <p class="m-0 text-muted">{{ 'invoice.export.intro'|trans }}</p>
             {% if notice %}<twig:Ui:Alert tone="warning" role="status">{{ notice }}</twig:Ui:Alert>{% endif %}
-            <twig:Ui:Select name="firm" id="export-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" :required="true" />
             <div class="grid gap-4 sm:grid-cols-2">
-                <twig:Ui:TextInput name="from" id="export-from" type="date" :label="'invoice.export.from'|trans" :value="from" :error="errors.from|default(null)" :required="true" />
-                <twig:Ui:TextInput name="to" id="export-to" type="date" :label="'invoice.export.to'|trans" :value="to" :error="errors.to|default(null)" :required="true" />
+                <twig:Ui:Select name="firm" id="export-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" :required="true" />
+                <twig:Ui:TextInput name="month" id="export-month" type="month" :label="'invoice.export.month'|trans" :help="'invoice.export.month_help'|trans" :value="month" :error="error" :required="true" />
             </div>
+            <twig:Ui:RadioCards name="scope" id="export-scope" :legend="'invoice.export.scope.legend'|trans" :value="scope" :options="[
+                {value: 'pending', label: 'invoice.export.scope.pending'|trans, text: 'invoice.export.scope.pending_text'|trans},
+                {value: 'all', label: 'invoice.export.scope.all'|trans, text: 'invoice.export.scope.all_text'|trans},
+            ]" />
+            {% if counts is not null %}
+                <section aria-labelledby="export-counts" class="grid gap-1.5">
+                    <h3 id="export-counts" class="m-0 text-small font-medium text-ink">{{ 'invoice.export.counts'|trans }}</h3>
+                    <dl class="m-0 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-small" data-export-counts>
+                        {% for kind, count in counts %}
+                            <dt class="text-text">{{ ('series.kind.' ~ kind)|trans }}</dt>
+                            <dd class="m-0 text-right tabular-nums" data-kind="{{ kind }}">{{ count }}</dd>
+                        {% endfor %}
+                        <dt class="font-medium text-ink">{{ 'invoice.export.count_total'|trans }}</dt>
+                        <dd class="m-0 text-right font-medium tabular-nums" data-kind="total">{{ counts|reduce((sum, count) => sum + count, 0) }}</dd>
+                    </dl>
+                </section>
+            {% endif %}
             <div class="flex flex-wrap justify-end gap-2">
                 <twig:Ui:Button :href="path('app_invoices')">{{ 'invoice.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" name="action" value="count" icon="refresh-cw">{{ 'invoice.export.refresh'|trans }}</twig:Ui:Button>
                 <twig:Ui:Button type="submit" variant="primary" icon="download">{{ 'invoice.export.submit'|trans }}</twig:Ui:Button>
             </div>
         </form>

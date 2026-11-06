@@ -33,7 +33,7 @@ This page says what the invoices of this release do and do not do. It is a state
 - **Settling.** On a new or edited invoice, "Deduct an advance" offers the customer's tax documents and the paid advances on which no VAT arose. Each adds negative lines, one per rate, so the VAT recap is net of the advances. A document is deducted by one invoice only; trashing the invoice frees it. The total may reach zero or less: the invoice then has no QR code, says it is settled by advances, and a negative total is a difference to refund; the page of its link says the same and asks for no payment. The ISDOC file carries the deposits per tax document and rate.
 - **Unsettled.** Advance invoices, Unsettled lists the paid advances no final invoice has deducted in full yet. Tax documents on payment have the tabs All, Settled, Unsettled and Trash instead of the payment tabs: a tax document is always paid, and Unsettled holds what a final invoice may still deduct.
 - **Links.** Each document of a chain shows the advance, its payments with their tax documents, and the invoice that deducts them.
-- **Accountant.** The bulk download takes invoices and tax documents by tax point; advances have none and stay out.
+- **Accountant.** The pack for the accountant is one firm and one month: tax documents by tax point, advance invoices, which have none, by issue date. It holds a folder per kind, each document as a PDF with its ISDOC beside it, and a list (XLSX) with a VAT recap per treatment and rate in the home currency.
 
 ## Corrections
 
@@ -55,7 +55,7 @@ Foresi produces ISDOC version 6.0.2 with its own writer: document type 1 (invoic
 - Text outside the bundled font (Inter) is refused: for example Chinese or Arabic names and texts cannot be issued.
 - An invoice has at most 100 lines, and no amount has more than twelve digits before the decimal point.
 - A number has at most 40 characters and no `*` or `%`, or its QR code could not be made. A series whose numbers could be longer cannot be saved.
-- The bulk download records nothing: which documents went to the accountant is not tracked. An export state arrives in a later release.
+- A finished pack marks its documents exported; by default the next pack takes only documents never exported or edited after their export.
 - A document in the trash prints with a mark, without the QR code and without the ISDOC file.
 - Foreign tax regimes are not included. Sending by e-mail is described in [sending.md](sending.md), payments and bank pairing in [bank-pairing.md](bank-pairing.md), recurring invoices in [recurring.md](recurring.md) and automatic reminders, which follow the recorded payments, in [reminders.md](reminders.md).
 - An offset of a credit note against another invoice, a correction for a rate change between an advance and its final invoice, the correction of tax on bad debts, ISDOC types 4 and 5, bulk payment and payments in another currency than the invoice's are not included. Bank notifications are read for Komerční banka only.
