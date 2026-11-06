@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Application;
 use App\Country\CzechRepublic\Invoicing\CzechInvoicing;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\InvoiceFilter;
@@ -55,6 +56,16 @@ final class AdvanceDeductionTest extends AdvanceTestCase
         self::assertSame($final->id(), $this->reloaded($document)->deductedByInvoiceId());
         self::assertSame($document->id(), $this->store->lines($stored)[1]->deducts());
         self::assertSame('Odpočet zálohy VS 920260001 (daňový doklad D820260001)', $this->store->lines($stored)[1]->text());
+    }
+
+    public function testACorrectionOfAFinalInvoiceLeavesItsDeductionsOut(): void
+    {
+        $document = $this->taxDocumentFor($this->advance([$this->line('1000.00')]), '1210.00');
+        $final = $this->issue->issue($this->finalInput([$this->line('3000.00'), ...$this->deductionOf($document), $this->line('500.00', text: 'Travel')]));
+
+        $draft = self::getContainer()->get(CorrectInvoice::class)->valuesFrom($this->reloaded($final));
+
+        self::assertSame([['Work', -10000], ['Travel', -10000]], array_map(static fn (LineInput $line): array => [$line->text, $line->quantity->tenThousandths()], $draft->lines));
     }
 
     public function testATwoRateDocumentDeductsPerRate(): void

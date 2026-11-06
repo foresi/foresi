@@ -11,6 +11,7 @@ namespace App\Tests\Invoicing\Application;
 use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\CorrectionRules;
+use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoicePage;
@@ -34,6 +35,7 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Tests\Party\Support\FirmAccounts;
 
 /**
  * Credit and debit notes of an invoice of 1 000 at 21 % and 500 at 12 %, taxed on
@@ -41,6 +43,8 @@ use App\Shared\Domain\Money;
  */
 final class CorrectionDocumentTest extends InvoiceTestCase
 {
+    private const string SECOND_IBAN = 'CZ5508000000001234567899';
+
     public function testACreditNoteNamesItsInvoiceAndAsksForNothing(): void
     {
         $original = $this->original();
@@ -224,11 +228,69 @@ final class CorrectionDocumentTest extends InvoiceTestCase
         self::assertSame([100000, 50000], array_map(static fn (LineInput $line): int => $line->price->minor(), $draft->lines));
     }
 
+    public function testTheFormKeepsTheAccountOfTheInvoice(): void
+    {
+        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
+        $this->em->flush();
+        $original = $this->issue->issue($this->input([$this->line('1000.00')], ['variableSymbol' => '', 'bankAccount' => self::SECOND_IBAN]));
+
+        self::assertSame(self::SECOND_IBAN, self::getContainer()->get(CorrectInvoice::class)->valuesFrom($original)->bankAccount);
+    }
+
+    /**
+     * Its lines take the rates on the day of the invoice, never those of its own tax
+     * point: a decisive date before any rate is known still prices them.
+     */
+    public function testTheLinesArePricedOnTheDayOfTheInvoice(): void
+    {
+        $original = $this->original();
+        $early = new CorrectionInput($original->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2023-12-31'));
+
+        $credit = $this->issue->issue($this->correction($original, [$this->credit('100.00')], taxPoint: '2023-12-31', correction: $early));
+        self::assertSame(-12100, $credit->payable()->minor());
+
+        $this->edited($credit, $this->correction($original, [$this->credit('200.00')], taxPoint: '2023-12-31', correction: $early, overrides: ['seriesId' => $credit->series()->id()]));
+        self::assertSame(-24200, $this->store->get($credit->id())->payable()->minor());
+    }
+
+    public function testAnEditIsWhatItWasIssuedAs(): void
+    {
+        $original = $this->original();
+        $credit = $this->issue->issue($this->correction($original, [$this->credit('100.00')]));
+
+        $this->edited($credit, $this->correction($original, [$this->credit('200.00')], overrides: ['seriesId' => $credit->series()->id(), 'kind' => DocumentKind::Invoice]));
+
+        self::assertSame(-24200, $this->store->get($credit->id())->payable()->minor());
+    }
+
+    /**
+     * An edit that its rules let through because another credit committed meanwhile
+     * is refused under the lock of the invoice.
+     */
+    public function testAnEditIsClaimedUnderTheLock(): void
+    {
+        $original = $this->original();
+        $this->issue->issue($this->correction($original, [$this->credit('600.00')]));
+        $credit = $this->issue->issue($this->correction($original, [$this->credit('100.00')]));
+        $edit = $this->built(EditInvoice::class, ['rules' => $this->rulesBlindToCorrections()]);
+        $this->em->clear();
+
+        $this->assertRefusedFor('invoice.problem.correction_over_original', fn () => $edit->edit($credit->id(), $this->correction($original, [$this->credit('500.00')], overrides: ['seriesId' => $credit->series()->id()]), $this->store->get($credit->id())->version()));
+    }
+
     /**
      * IssueInvoice whose rules see no corrections, as rules that ran before another
      * correction committed; the check under the lock reads the store as it is.
      */
     private function withRulesBlindToCorrections(): IssueInvoice
+    {
+        return $this->built(IssueInvoice::class, ['rules' => $this->rulesBlindToCorrections(), 'deductions' => $this->deductions()]);
+    }
+
+    /**
+     * IssueRules that see no corrections; the check under the lock reads the store as it is.
+     */
+    private function rulesBlindToCorrections(): IssueRules
     {
         $container = self::getContainer();
         $blind = new readonly class($this->store) implements InvoiceStore {
@@ -306,9 +368,8 @@ final class CorrectionDocumentTest extends InvoiceTestCase
                 return $this->store->lastFirmOf($userId);
             }
         };
-        $rules = $this->built(IssueRules::class, ['corrections' => new CorrectionRules($blind, $container->get(LinePricing::class))]);
 
-        return $this->built(IssueInvoice::class, ['rules' => $rules, 'deductions' => $this->deductions()]);
+        return $this->built(IssueRules::class, ['corrections' => new CorrectionRules($blind, $container->get(LinePricing::class))]);
     }
 
     /**

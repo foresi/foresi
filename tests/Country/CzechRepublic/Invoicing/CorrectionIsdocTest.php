@@ -102,6 +102,28 @@ final class CorrectionIsdocTest extends AdvanceTestCase
         self::assertSame('2', $this->text($this->path($file->content), '/i:Invoice/i:DocumentType'));
     }
 
+    public function testOnlyADebitNoteAsksForPayment(): void
+    {
+        $original = $this->invoice();
+
+        self::assertTrue($this->issued($this->correctionOf($original, '200.00'))->asksForPayment());
+        self::assertFalse($this->issued($this->correctionOf($original, '0.00'))->asksForPayment());
+    }
+
+    public function testACorrectionWithoutTheDocumentItCorrectsIsNoFile(): void
+    {
+        $credit = $this->issued($this->correctionOf($this->invoice(), '-400.00'));
+        $reflection = new \ReflectionClass($credit);
+        $unnamed = $reflection->newInstanceWithoutConstructor();
+        foreach ($reflection->getProperties() as $property) {
+            $property->setValue($unnamed, 'corrected' === $property->getName() ? null : $property->getValue($credit));
+        }
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('A corrective tax document names the document it corrects.');
+        new IsdocWriter()->write($unnamed);
+    }
+
     private function invoice(): Invoice
     {
         return $this->issue->issue($this->input([$this->line('1000.00')], ['variableSymbol' => '']));

@@ -143,6 +143,11 @@ final class MailVariablesTest extends InvoiceTestCase
         self::assertSame([...array_slice($this->variables->names(), 0, -1), 'days_overdue', 'reminder_step', 'amount_due', 'link'], $reminder, 'the invoice set, the reminder ones, then the link');
     }
 
+    public function testACorrectionHasTheOriginalNumberBeforeTheLink(): void
+    {
+        self::assertSame([...array_slice($this->variables->names(), 0, -1), 'original_number', 'link'], $this->variables->names(MailTemplateKind::CorrectionDocument), 'the invoice set, the original number, then the link once');
+    }
+
     public function testReminderValuesNameTheStepTheDaysAndTheAmountDue(): void
     {
         $document = $this->document($this->issue->issue($this->input())->id());

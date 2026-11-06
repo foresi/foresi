@@ -54,9 +54,12 @@ final readonly class CorrectPaymentTaxDocument
      */
     public function due(Invoice $document): ?CorrectionDue
     {
+        if (!self::corrects($document)) {
+            return null;
+        }
         $paymentId = $document->paymentId();
         $advanceId = $document->advanceInvoiceId();
-        if (!self::corrects($document) || null === $paymentId || null === $advanceId) {
+        if (null === $paymentId || null === $advanceId) {
             return null;
         }
         $left = $this->left($document);
@@ -106,22 +109,29 @@ final readonly class CorrectPaymentTaxDocument
     public function afterRefund(string $advanceId): void
     {
         $advance = $this->store->get($advanceId);
+        $reached = [];
         foreach (array_reverse($this->payments->linesOf($advance)) as $line) {
             if ($line->allocated->isNegative()) {
                 continue;
             }
             $id = $this->documents->taxDocumentOf($advanceId, $line->paymentId);
-            if (null === $id) {
-                continue;
+            if (null !== $id) {
+                $reached[] = [$id, $line];
             }
-            $document = $this->store->lock($id);
+        }
+        // All rows are taken before any document changes: a lock refuses a session with unsaved changes.
+        foreach ($reached as [$id]) {
+            $this->store->lock($id);
+        }
+        foreach ($reached as [$id, $line]) {
+            $document = $this->store->get($id);
             if ($document->isTrashed()) {
                 continue;
             }
             if ($document->isDelivered()) {
                 $this->automatically($document);
             } else {
-                $this->replace($document, $line->paymentId, $line->allocated->minor());
+                $this->replace($document, $advanceId, $line->paymentId, $line->allocated->minor());
             }
         }
     }
@@ -133,9 +143,8 @@ final readonly class CorrectPaymentTaxDocument
      * savepoint as on payment; a refusal leaves the payment among those that need a
      * tax document.
      */
-    private function replace(Invoice $document, string $paymentId, int $allocated): void
+    private function replace(Invoice $document, string $advanceId, string $paymentId, int $allocated): void
     {
-        $advanceId = $document->advanceInvoiceId() ?? throw new \LogicException('A tax document on payment names its advance.');
         $stays = $this->netOf($this->store->get($advanceId), $paymentId)[0];
         if ($stays >= $allocated) {
             return;
@@ -158,7 +167,8 @@ final readonly class CorrectPaymentTaxDocument
      */
     public function linesFor(Invoice $document): array
     {
-        $amount = $this->due($document)->amount ?? Money::ofMinor(max(0, $this->left($document)), $document->currency());
+        // Nothing left negates to no lines.
+        $amount = $this->due($document)->amount ?? Money::ofMinor($this->left($document), $document->currency());
 
         return $this->negated($document, $amount);
     }
@@ -242,7 +252,8 @@ final readonly class CorrectPaymentTaxDocument
         foreach ($this->payments->linesOf($advance) as $line) {
             if ($line->allocated->isNegative()) {
                 $refunded -= $line->allocated->minor();
-                $last = null === $last || $line->receivedOn > $last ? $line->receivedOn : $last;
+                // The lines come oldest first, so the last refund is the latest.
+                $last = $line->receivedOn;
             } else {
                 $incoming[] = $line;
             }

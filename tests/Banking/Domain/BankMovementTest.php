@@ -155,6 +155,42 @@ final class BankMovementTest extends TestCase
         self::assertSame(3, $movement->version());
     }
 
+    public function testARecordedOutgoingMovementPairsWithItsRefundAndIsRecordedAgainOnRelease(): void
+    {
+        $movement = $this->movement(state: MovementState::Recorded, reason: null, direction: MovementDirection::Outgoing);
+
+        $movement->pairWith('refund-1');
+        self::assertSame(MovementState::Paired, $movement->state());
+        self::assertSame(2, $movement->version());
+
+        $movement->release();
+
+        self::assertSame(MovementState::Recorded, $movement->state());
+        self::assertNull($movement->unmatchedReason());
+        self::assertNull($movement->paymentId());
+        self::assertFalse($movement->isAutoPairBlocked());
+        self::assertSame(3, $movement->version());
+    }
+
+    public function testARecordedIncomingMovementIsNotPaired(): void
+    {
+        $movement = $this->movement(state: MovementState::Recorded, reason: null);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('Only an unmatched movement is paired.');
+        $movement->pairWith('payment-1');
+    }
+
+    public function testAPairedMovementIsNotPairedAgain(): void
+    {
+        $movement = $this->movement(state: MovementState::Recorded, reason: null, direction: MovementDirection::Outgoing);
+        $movement->pairWith('refund-1');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('Only an unmatched movement is paired.');
+        $movement->pairWith('refund-2');
+    }
+
     public function testTheTenantIsOnlyKnownOncePersisted(): void
     {
         $movement = $this->movement();
@@ -173,10 +209,11 @@ final class BankMovementTest extends TestCase
         string $fingerprint = self::FINGERPRINT,
         MovementState $state = MovementState::Unmatched,
         ?UnmatchedReason $reason = UnmatchedReason::NoInvoice,
+        MovementDirection $direction = MovementDirection::Incoming,
     ): BankMovement {
         $firm = new LegalEntity('Example Firm', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $account = FirmBankAccount::open($firm, Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
 
-        return new BankMovement($account, null, MovementDirection::Incoming, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MessageTrust::Verified, 'dmarc', $state, $reason);
+        return new BankMovement($account, null, $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MessageTrust::Verified, 'dmarc', $state, $reason);
     }
 }

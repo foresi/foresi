@@ -240,8 +240,8 @@ final readonly class PairMovement
 
     private function refuseUnpairable(BankMovement $movement, bool $checkedInBank): void
     {
+        // An outgoing movement is only ever recorded or paired: one on an invoice with nothing to refund is refused under its lock.
         $refusal = match (true) {
-            !$movement->isIncoming() && MovementState::Recorded !== $movement->state() && MovementState::Paired !== $movement->state() => PairingRefused::NOT_INCOMING,
             MovementState::Paired === $movement->state(), $this->movements->hasLivePayment($movement->id()) => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,

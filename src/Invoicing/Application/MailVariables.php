@@ -33,8 +33,6 @@ final readonly class MailVariables
 
     private const array REMINDER_NAMES = ['days_overdue', 'reminder_step', 'amount_due'];
 
-    private const array CORRECTION_NAMES = ['original_number'];
-
     public function __construct(private DocumentFormat $format, private DocumentTitles $titles)
     {
     }
@@ -47,7 +45,7 @@ final readonly class MailVariables
         return match ($kind) {
             MailTemplateKind::Invoice, MailTemplateKind::Advance, MailTemplateKind::PaymentTaxDocument => self::NAMES,
             MailTemplateKind::Reminder => [...array_values(array_diff(self::NAMES, [self::LINK])), ...self::REMINDER_NAMES, self::LINK],
-            MailTemplateKind::CorrectionDocument => [...array_values(array_diff(self::NAMES, [self::LINK])), ...self::CORRECTION_NAMES, self::LINK],
+            MailTemplateKind::CorrectionDocument => [...array_values(array_diff(self::NAMES, [self::LINK])), 'original_number', self::LINK],
         };
     }
 

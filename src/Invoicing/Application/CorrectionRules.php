@@ -236,6 +236,6 @@ final readonly class CorrectionRules
 
     private function key(TaxTreatment $treatment, ?VatRateKind $kind): string
     {
-        return $treatment->value.'|'.($kind->value ?? '');
+        return implode('|', [$treatment->value, $kind->value ?? '']);
     }
 }

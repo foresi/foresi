@@ -52,7 +52,7 @@ final readonly class PairingChoices
         $incoming = $movement->isIncoming();
         $open = $incoming
             ? $this->candidates->open($firmId, $amount->currency(), '', [], 200)
-            : array_values(array_filter($this->candidates->refunds($firmId, null), static fn (Candidate $candidate): bool => $candidate->remaining->currency() === $amount->currency()));
+            : array_filter($this->candidates->refunds($firmId, null), static fn (Candidate $candidate): bool => $candidate->remaining->currency() === $amount->currency());
 
         $suggested = [];
         foreach ($this->matcher->candidates($movement) as $candidate) {
@@ -72,7 +72,7 @@ final readonly class PairingChoices
         }
 
         $text = trim($text);
-        $others = !$incoming ? array_values(array_filter($open, static fn (Candidate $candidate): bool => '' === $text || str_contains(mb_strtolower($candidate->number.' '.$candidate->customerName), mb_strtolower($text)))) : [
+        $others = !$incoming ? array_filter($open, static fn (Candidate $candidate): bool => '' === $text || str_contains(mb_strtolower($candidate->number.' '.$candidate->customerName), mb_strtolower($text))) : [
             ...('' === $text
                 ? \array_slice(array_values(array_filter($open, static fn (Candidate $candidate): bool => !isset($suggested[$candidate->invoiceId]))), 0, self::OTHERS)
                 : $this->candidates->open($firmId, $amount->currency(), $text, [], self::FOUND)),
@@ -80,7 +80,7 @@ final readonly class PairingChoices
             ...([] === $kept ? [] : $this->candidates->open($firmId, $amount->currency(), '', $kept, \count($kept))),
         ];
         if (!$incoming) {
-            $others = [...$others, ...array_values(array_filter($open, static fn (Candidate $candidate): bool => \in_array($candidate->invoiceId, $kept, true)))];
+            $others = [...$others, ...array_filter($open, static fn (Candidate $candidate): bool => \in_array($candidate->invoiceId, $kept, true))];
         }
         $unique = [];
         foreach ($others as $candidate) {

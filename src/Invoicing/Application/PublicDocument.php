@@ -52,15 +52,15 @@ final readonly class PublicDocument
         /** Whether lines of the invoice deduct advances. */
         public bool $deductsAdvances,
         /** The number of the document a corrective tax document corrects. */
-        public ?string $correctedNumber = null,
-        public ?string $correctionReason = null,
+        public ?string $correctedNumber,
+        public ?string $correctionReason,
         /** The base, tax and total of the document: on a correction, its differences. */
-        public int $netMinor = 0,
-        public int $vatMinor = 0,
+        public int $netMinor,
+        public int $vatMinor,
         /** What the corrective documents of an invoice not in the trash add to what it asks for. */
-        public int $correctionsMinor = 0,
+        public int $correctionsMinor,
         /** Of a corrective document: its invoice is now paid above what is due, so the difference goes back. */
-        public bool $originalToRefund = false,
+        public bool $originalToRefund,
     ) {
     }
 
