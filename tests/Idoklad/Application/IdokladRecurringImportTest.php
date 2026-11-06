@@ -48,12 +48,14 @@ final class IdokladRecurringImportTest extends KernelTestCase
     use ClockSensitiveTrait;
 
     private const string IBAN = 'CZ6508000000192000145399';
+    private const string SECOND_IBAN = 'CZ5508000000001234567899';
     private const int PARTNER = 501;
     private const int SEQUENCE = 11;
     private const int CZK = 1;
     private const int EUR = 2;
     private const int TRANSFER = 1;
     private const int CASH = 2;
+    private const int CARD = 10;
     private const int ACCOUNT = 3;
     private const int SYMBOL = 7;
 
@@ -77,6 +79,7 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em->persist($this->firm);
         FirmAccounts::add($this->em, $this->firm, self::IBAN);
+        FirmAccounts::add($this->em, $this->firm, self::SECOND_IBAN);
         $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
         $this->em->persist($this->customer);
         $this->em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
@@ -92,8 +95,9 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $this->record(IdokladResource::PaymentOptions, self::TRANSFER, ['Id' => self::TRANSFER, 'Name' => 'Převodem']);
         $this->record(IdokladResource::PaymentOptions, self::CASH, ['Id' => self::CASH, 'Name' => 'Hotově']);
         $this->record(IdokladResource::PaymentOptions, 9, ['Id' => 9, 'Name' => 'Zápočtem']);
+        $this->record(IdokladResource::PaymentOptions, self::CARD, ['Id' => self::CARD, 'Name' => ' PLATEBNÍ KARTOU ']);
         $this->record(IdokladResource::ConstantSymbols, self::SYMBOL, ['Id' => self::SYMBOL, 'Code' => '0308']);
-        $this->record(IdokladResource::BankAccounts, self::ACCOUNT, ['Id' => self::ACCOUNT, 'Iban' => 'CZ65 0800 0000 1920 0014 5399']);
+        $this->record(IdokladResource::BankAccounts, self::ACCOUNT, ['Id' => self::ACCOUNT, 'Iban' => 'CZ55 0800 0000 0012 3456 7899']);
         $pull = new IdokladPull($this->firm, new \DateTimeImmutable('2026-11-06 09:00:00'));
         $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
         $this->em->persist($pull);
@@ -116,6 +120,7 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $entry = $this->entry($run, 901);
         self::assertSame([], $entry['reasons']);
         self::assertSame('created', $entry['outcome']);
+        self::assertSame('Monthly hosting', $entry['values']['name']);
         self::assertSame('2026-11-01', $entry['values']['next_issue']);
         self::assertSame('2026-11-01', $entry['values']['idoklad_next_issue']);
         self::assertSame('2026-11-01,2026-12-01,2027-01-01,2027-02-01,2027-03-01', $entry['values']['next_issues']);
@@ -139,7 +144,7 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertSame($this->customer->id(), $row['customer_id']);
         self::assertSame($this->series->id(), $row['series_id']);
         self::assertSame('bank_transfer', $row['payment_method']);
-        self::assertSame(self::IBAN, $row['bank_account']);
+        self::assertSame(self::SECOND_IBAN, $row['bank_account'], 'The account iDoklad names, not the primary one.');
         self::assertSame('0308', $row['constant_symbol']);
         self::assertSame('PO-{month}', $row['order_number']);
         self::assertSame('Hosting {month/year}', $row['description']);
@@ -220,15 +225,17 @@ final class IdokladRecurringImportTest extends KernelTestCase
     public function testANextIssueOtherThanIdokladsIsRefusedWithBothDates(): void
     {
         $this->template(908, ['DateOfNextIssue' => '2026-11-15T00:00:00']);
+        $this->template(924);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
+        self::assertSame('created', $this->entry($run, 924)['outcome'], 'The refusal stops only its own template.');
         $entry = $this->entry($run, 908);
         self::assertSame('refused', $entry['outcome']);
         self::assertSame([RecurringStage::NEXT_ISSUE_MISMATCH], $entry['reasons']);
         self::assertSame('2026-11-01', $entry['values']['next_issue']);
         self::assertSame('2026-11-15', $entry['values']['idoklad_next_issue']);
-        self::assertSame(0, $this->templates());
+        self::assertSame(1, $this->templates());
         self::assertNull($this->link(908));
     }
 
@@ -263,8 +270,8 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $this->template(912, [], [
             'PaymentOptionId' => self::CASH,
             'Items' => [
-                ['ItemType' => 0, 'Name' => 'Export', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 100]],
                 ['ItemType' => 1, 'Name' => 'Rounding', 'Amount' => 1, 'PriceType' => 0, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 0.4]],
+                ['ItemType' => 0, 'Name' => 'Export', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 100]],
             ],
         ]);
 
@@ -313,8 +320,8 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $this->template(918, ['RecurrenceType' => 7]);
         $this->template(919, [], ['Items' => [['ItemType' => 0, 'Name' => 'Odd', 'Amount' => 1.23456, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1]]]]);
         $this->template(920, [], ['InvoiceMaturity' => 400]);
-        // The second reduced rate is Czech from 2015 to 2023 only, so a template issuing now has none.
-        $this->template(923, [], ['Items' => [['ItemType' => 0, 'Name' => 'Books', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 3, 'Prices' => ['UnitPrice' => 100]]]]);
+        // The second reduced rate is Czech from 2015 to 2023 only, so a template issuing now has none, though it started in 2023.
+        $this->template(923, ['DateOfStart' => '2023-01-01T00:00:00'], ['Items' => [['ItemType' => 0, 'Name' => 'Books', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 3, 'Prices' => ['UnitPrice' => 100]]]]);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
@@ -349,13 +356,121 @@ final class IdokladRecurringImportTest extends KernelTestCase
     {
         $this->template(922);
         $first = $this->import()->run($this->firm, ImportMode::Run);
+        $this->template(925);
 
         $second = $this->import()->run($this->firm, ImportMode::Run);
 
         $entry = $this->entry($second, 922);
         self::assertSame('already_linked', $entry['outcome']);
         self::assertSame($this->entry($first, 922)['target_id'], $entry['target_id']);
-        self::assertSame(1, $this->templates());
+        self::assertSame('created', $this->entry($second, 925)['outcome'], 'A linked template stops only itself.');
+        self::assertSame(2, $this->templates());
+    }
+
+    public function testTheCustomerTheAccountTheOptionAndTheNameAsIdokladGivesThem(): void
+    {
+        $name = str_repeat('Ž', 130);
+        $this->template(930, ['TemplateName' => '  '.$name], ['Partner' => ['Id' => self::PARTNER], 'PartnerId' => 777, 'BankAccountId' => null, 'Note' => "  \n", 'InvoiceMaturity' => null]);
+        $this->template(931, [], ['PaymentOptionId' => self::CARD]);
+        $this->template(932, [], ['PaymentOptionId' => 99]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 930);
+        self::assertSame([], $entry['reasons'], 'The partner of the template wins and a blank note is no note.');
+        $row = $this->templateRow((string) $entry['target_id']);
+        self::assertSame(self::IBAN, $row['bank_account'], 'Without an iDoklad account, the primary one.');
+        self::assertSame(mb_substr($name, 0, 120), $row['name']);
+        self::assertSame(0, $row['due_days']);
+        self::assertSame('card', $this->templateRow((string) $this->entry($run, 931)['target_id'])['payment_method']);
+        self::assertSame([RecurringStage::UNKNOWN_PAYMENT_OPTION], $this->entry($run, 932)['reasons']);
+    }
+
+    public function testATemplateThatIssuedNothingYetStartsFromNone(): void
+    {
+        $this->template(933, ['DateOfStart' => '2026-12-01', 'CopyCountActual' => null, 'DateOfLastIssue' => null, 'DateOfNextIssue' => '2026-12-01']);
+        $this->template(934, ['DateOfStart' => '2026-12-01', 'CopyCountActual' => -3, 'DateOfLastIssue' => null, 'DateOfNextIssue' => '2026-12-01']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame(0, $this->entry($run, 933)['values']['issued_count']);
+        self::assertSame(0, $this->entry($run, 934)['values']['issued_count']);
+    }
+
+    public function testASchedulePartIdokladDoesNotNameIsRefused(): void
+    {
+        $this->template(935, ['TypeOfEnd' => 9]);
+        $this->template(936, ['DateOfStart' => 'x2026-01-01']);
+        $this->template(937, ['DateOfStart' => '2026-02-30T00:00:00']);
+        $this->template(938, [], ['TaxingType' => null]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([935, 936, 937, 938] as $id) {
+            self::assertSame([RecurringStage::INVALID_SCHEDULE], $this->entry($run, $id)['reasons'], (string) $id);
+        }
+    }
+
+    public function testTheDecimalsOfAnItemAreTakenUpToTheirScale(): void
+    {
+        $this->template(940, [], ['DiscountPercentage' => 5.55, 'Items' => [$this->item(['Amount' => 1.2345, 'Prices' => ['UnitPrice' => 1200.55]])]]);
+        $this->template(941, [], ['DiscountPercentage' => 5.00004, 'Items' => [$this->item(['Amount' => 1.0000004])]]);
+        $this->template(942, [], ['DiscountPercentage' => null]);
+        $this->template(943, [], ['Items' => [$this->item(['Amount' => 1.234504])]]);
+        $this->template(944, [], ['Items' => [$this->item(['Prices' => ['UnitPrice' => 100.005]])]]);
+        $this->template(945, [], ['Items' => [$this->item(['PriceType' => 9])]]);
+        $this->template(946, [], ['Items' => [$this->item(['VatRateType' => null])]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([[12345, 120055, '5.55']], $this->lineFigures($run, 940));
+        self::assertSame([[10000, 100000, '5.00']], $this->lineFigures($run, 941), 'What a float adds past the scale is noise.');
+        self::assertSame([[10000, 100000, '0.00']], $this->lineFigures($run, 942));
+        foreach ([943, 944, 945, 946] as $id) {
+            self::assertSame([RecurringStage::INVALID_ITEM], $this->entry($run, $id)['reasons'], (string) $id);
+        }
+    }
+
+    public function testEachReasonIsGivenOnceAndEveryItemIsChecked(): void
+    {
+        $odd = $this->item(['Amount' => 1.23456]);
+        $this->template(947, [], ['Items' => ['junk', $odd, $odd, $this->item(['Name' => 'Fee {foo} {foo}'])]]);
+        $books = $this->item(['VatRateType' => 3]);
+        $this->template(948, [], ['Items' => [$books, $books, $this->item(['Unit' => str_repeat('u', 40)])]]);
+        $this->template(949, [], ['Items' => ['junk', $this->item()]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([RecurringStage::INVALID_ITEM, RecurringStage::UNKNOWN_VARIABLE], $this->entry($run, 947)['reasons']);
+        self::assertSame('{foo}', $this->entry($run, 947)['values']['unknown_variables']);
+        self::assertSame(['invoice.problem.line_rate_missing', 'invoice.problem.too_long'], $this->entry($run, 948)['reasons']);
+        self::assertSame('created', $this->entry($run, 949)['outcome'], 'An item that is no object is left out.');
+    }
+
+    public function testAnEndedTemplateIsCheckedOnItsLastIssue(): void
+    {
+        $books = ['Items' => [$this->item(['VatRateType' => 3])]];
+        $this->template(950, ['DateOfStart' => '2022-01-01', 'TypeOfEnd' => 2, 'CopyCountEnd' => 10, 'DateOfLastIssue' => '2022-10-01', 'IsActive' => false, 'DateOfNextIssue' => null], $books);
+        $this->template(951, ['TypeOfEnd' => 2, 'CopyCountEnd' => 10, 'IsActive' => false, 'DateOfNextIssue' => null], $books);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame('ended', $this->entry($run, 950)['values']['state'], 'The second reduced rate held in 2022.');
+        self::assertSame(['invoice.problem.line_rate_missing'], $this->entry($run, 951)['reasons']);
+    }
+
+    public function testANonPayerTakesItemsWithoutVat(): void
+    {
+        $this->firm->update('Example s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Example register, entry C 1');
+        $this->em->flush();
+        $this->template(952);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 952);
+        self::assertSame('created', $entry['outcome']);
+        $line = $this->em->getConnection()->fetchAssociative('SELECT * FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]);
+        self::assertSame(['not_applicable', null], [$line['treatment'] ?? '', $line['rate_kind'] ?? null]);
     }
 
     private function import(): RunIdokladImport
@@ -447,6 +562,30 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertIsArray($row);
 
         return $row;
+    }
+
+    /**
+     * The default item of a template with some fields changed; a null drops one.
+     *
+     * @param array<string, mixed> $fields
+     *
+     * @return array<string, mixed>
+     */
+    private function item(array $fields = []): array
+    {
+        return array_filter($fields + ['ItemType' => 0, 'Name' => 'Hosting', 'Amount' => 1.0, 'Unit' => 'ks', 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1000.0]], static fn (mixed $value): bool => null !== $value);
+    }
+
+    /**
+     * @return list<array{mixed, mixed, mixed}> the quantity, price and discount of each line
+     */
+    private function lineFigures(IdokladImportRun $run, int $id): array
+    {
+        $entry = $this->entry($run, $id);
+        self::assertSame('created', $entry['outcome'], (string) $id);
+        $lines = $this->em->getConnection()->fetchAllAssociative('SELECT quantity, price_minor, discount FROM recurring_invoice_line WHERE recurring_invoice_id = :id ORDER BY position', ['id' => $entry['target_id']]);
+
+        return array_map(static fn (array $line): array => [$line['quantity'], $line['price_minor'], $line['discount']], $lines);
     }
 
     private function templates(): int

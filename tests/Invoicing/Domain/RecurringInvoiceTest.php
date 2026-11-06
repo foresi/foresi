@@ -103,6 +103,15 @@ final class RecurringInvoiceTest extends TestCase
         $this->template(importedFrom: $importedFrom);
     }
 
+    public function testWhatAnImportCarriedOverIsCarriedOverOnceEvenWithoutADate(): void
+    {
+        $imported = $this->template(importedFrom: 'idoklad:7');
+        $imported->carryOver(3, null);
+
+        $this->expectException(\DomainException::class);
+        $imported->carryOver(1, null);
+    }
+
     public function testDueDaysRunFromZeroTo365(): void
     {
         self::assertSame(0, $this->template(dueDays: 0)->dueDays());

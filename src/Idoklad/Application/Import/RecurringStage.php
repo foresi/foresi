@@ -226,7 +226,7 @@ final readonly class RecurringStage implements ImportStage
             $refusals[] = self::SERIES_NOT_LINKED;
         }
 
-        $language = self::LANGUAGES[$this->int($template['ReportLanguage'] ?? null) ?? -1] ?? null;
+        $language = $this->pick(self::LANGUAGES, $template['ReportLanguage'] ?? null);
         if (!$language instanceof DocumentLanguage) {
             $refusals[] = self::UNSUPPORTED_LANGUAGE;
         }
@@ -243,8 +243,9 @@ final readonly class RecurringStage implements ImportStage
             'ItemsTextPrefix' => $this->text($template['ItemsTextPrefix'] ?? null),
             'ItemsTextSuffix' => $this->text($template['ItemsTextSuffix'] ?? null),
         ];
-        $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $refusals, $notes, $texts);
-        $unknown = $this->unknownVariables($texts);
+        $names = [];
+        $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $refusals, $notes, $names);
+        $unknown = $this->unknownVariables([...$texts, ...$names]);
         if ([] !== $unknown) {
             $refusals[] = self::UNKNOWN_VARIABLE;
             $values['unknown_variables'] = implode(' ', $unknown);
@@ -261,13 +262,19 @@ final readonly class RecurringStage implements ImportStage
         }
 
         $recurrence = $this->recurrence($setting);
-        $taxPoint = self::TAX_POINTS[$this->int($template['TaxingType'] ?? null) ?? -1] ?? null;
+        $taxPoint = $this->pick(self::TAX_POINTS, $template['TaxingType'] ?? null);
         if (!$recurrence instanceof Recurrence || !$taxPoint instanceof TaxPointRule) {
             $refusals[] = self::INVALID_SCHEDULE;
         }
-        if ([] !== $refusals || null === $customer || !$language instanceof DocumentLanguage || !$method instanceof PaymentMethod || !$recurrence instanceof Recurrence || !$taxPoint instanceof TaxPointRule) {
+        if ([] !== $refusals) {
             return null;
         }
+        // Each of these is missing only with its refusal above.
+        \assert(null !== $customer);
+        \assert($language instanceof DocumentLanguage);
+        \assert($method instanceof PaymentMethod);
+        \assert($recurrence instanceof Recurrence);
+        \assert($taxPoint instanceof TaxPointRule);
 
         return new RecurringInput(
             $firm->id(),
@@ -297,8 +304,8 @@ final readonly class RecurringStage implements ImportStage
      */
     private function recurrence(array $setting): ?Recurrence
     {
-        $unit = self::UNITS[$this->int($setting['RecurrenceType'] ?? null) ?? -1] ?? null;
-        $end = self::ENDS[$this->int($setting['TypeOfEnd'] ?? null) ?? -1] ?? null;
+        $unit = $this->pick(self::UNITS, $setting['RecurrenceType'] ?? null);
+        $end = $this->pick(self::ENDS, $setting['TypeOfEnd'] ?? null);
         $start = $this->date($setting['DateOfStart'] ?? null);
         $every = $this->int($setting['RecurrenceCount'] ?? null);
         if (!$unit instanceof RecurrenceUnit || !$end instanceof RecurrenceEnd || !$start instanceof \DateTimeImmutable || null === $every) {
@@ -323,22 +330,23 @@ final readonly class RecurringStage implements ImportStage
     /**
      * The items as lines; the item names join the texts whose variables are checked.
      *
-     * @param array<mixed>          $template
-     * @param list<string>          $refusals
-     * @param list<string>          $notes
-     * @param array<string, string> $texts
+     * @param array<mixed> $template
+     * @param list<string> $refusals
+     * @param list<string> $notes
+     * @param list<string> $names
      *
      * @param-out list<string> $refusals
      * @param-out list<string> $notes
+     * @param-out list<string> $names
      *
      * @return list<LineInput>
      */
-    private function lines(array $template, Currency $currency, VatRegime $regime, array &$refusals, array &$notes, array &$texts): array
+    private function lines(array $template, Currency $currency, VatRegime $regime, array &$refusals, array &$notes, array &$names): array
     {
         $discount = $this->decimal($template['DiscountPercentage'] ?? 0, 2);
-        $items = \is_array($template['Items'] ?? null) ? array_values(array_filter($template['Items'], \is_array(...))) : [];
+        $items = \is_array($template['Items'] ?? null) ? array_filter($template['Items'], \is_array(...)) : [];
         $lines = [];
-        foreach ($items as $index => $item) {
+        foreach ($items as $item) {
             $type = $this->int($item['ItemType'] ?? self::ITEM_NORMAL);
             if (self::ITEM_ROUNDING === $type) {
                 // Foresi rounds the total by the firm's own setting.
@@ -347,7 +355,7 @@ final readonly class RecurringStage implements ImportStage
                 continue;
             }
             $name = $this->text($item['Name'] ?? null);
-            $texts['Items.'.$index] = $name;
+            $names[] = $name;
             $line = self::ITEM_NORMAL === $type ? $this->line($item, $name, $discount, $currency, $regime) : null;
             if (!$line instanceof LineInput) {
                 $refusals[] = self::INVALID_ITEM;
@@ -367,9 +375,9 @@ final readonly class RecurringStage implements ImportStage
     {
         $quantity = $this->decimal($item['Amount'] ?? null, 4);
         $price = $this->decimal(\is_array($item['Prices'] ?? null) ? ($item['Prices']['UnitPrice'] ?? null) : null, 2);
-        $priceType = self::PRICE_TYPES[$this->int($item['PriceType'] ?? null) ?? -1] ?? null;
-        $rateType = $this->int($item['VatRateType'] ?? null) ?? -1;
-        if (in_array(null, [$quantity, $price, $discount], true) || !$priceType instanceof PriceType || !\array_key_exists($rateType, self::RATE_KINDS)) {
+        $priceType = $this->pick(self::PRICE_TYPES, $item['PriceType'] ?? null);
+        $rateType = $item['VatRateType'] ?? null;
+        if (\in_array(null, [$quantity, $price, $discount], true) || !$priceType instanceof PriceType || !\in_array($rateType, array_keys(self::RATE_KINDS), true)) {
             return null;
         }
         $kind = self::RATE_KINDS[$rateType];
@@ -389,9 +397,9 @@ final readonly class RecurringStage implements ImportStage
     /**
      * The variables of the texts that are not iDoklad's, which Foresi would print as typed.
      *
-     * @param array<string, string> $texts
+     * @param array<int|string, string> $texts
      *
-     * @return list<string>
+     * @return array<int, string>
      */
     private function unknownVariables(array $texts): array
     {
@@ -405,7 +413,7 @@ final readonly class RecurringStage implements ImportStage
             }
         }
 
-        return array_values(array_unique($unknown));
+        return array_unique($unknown);
     }
 
     /**
@@ -413,8 +421,8 @@ final readonly class RecurringStage implements ImportStage
      */
     private function bankAccount(ImportContext $context, mixed $bankAccountId): ?string
     {
-        $iban = preg_replace('/\s+/', '', $this->text($this->code($context, IdokladResource::BankAccounts, $bankAccountId)['Iban'] ?? null));
-        if ('' !== $iban && null !== $iban) {
+        $iban = (string) preg_replace('/\s+/', '', $this->text($this->code($context, IdokladResource::BankAccounts, $bankAccountId)['Iban'] ?? null));
+        if ('' !== $iban) {
             return $iban;
         }
         $primary = $this->accounts->primaryOf($context->firm);
@@ -438,7 +446,8 @@ final readonly class RecurringStage implements ImportStage
         if (\is_int($value)) {
             return (string) $value;
         }
-        if (!\is_float($value) || !is_finite($value)) {
+        // JSON holds no infinity and no NaN.
+        if (!\is_float($value)) {
             return null;
         }
         $decimal = rtrim(rtrim(number_format($value, $scale + 2, '.', ''), '0'), '.');
@@ -449,12 +458,26 @@ final readonly class RecurringStage implements ImportStage
 
     private function date(mixed $value): ?\DateTimeImmutable
     {
-        if (!\is_string($value) || 1 !== preg_match('/^(\d{4}-\d{2}-\d{2})/', $value, $day)) {
+        if (!\is_string($value) || 1 !== preg_match('/^\d{4}-\d{2}-\d{2}/', $value, $day)) {
             return null;
         }
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $day[1]);
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $day[0]);
 
-        return false === $date || $date->format('Y-m-d') !== $day[1] ? null : $date;
+        return false === $date || $date->format('Y-m-d') !== $day[0] ? null : $date;
+    }
+
+    /**
+     * The value an iDoklad enumeration number maps to; null for any other.
+     *
+     * @template T
+     *
+     * @param array<int, T> $map
+     *
+     * @return T|null
+     */
+    private function pick(array $map, mixed $number): mixed
+    {
+        return \is_int($number) ? ($map[$number] ?? null) : null;
     }
 
     private function int(mixed $value): ?int
