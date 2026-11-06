@@ -44,6 +44,8 @@ final class ReadOnlyPaths
         '/PaymentOptions/{id}',
         '/ConstantSymbols',
         '/ConstantSymbols/{id}',
+        '/BankAccounts',
+        '/BankAccounts/{id}',
         '/Reports/IssuedInvoice/{id}/Pdf',
         '/Reports/ProformaInvoice/{id}/Pdf',
         '/Reports/IssuedTaxDocument/{id}/Pdf',

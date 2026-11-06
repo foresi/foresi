@@ -2624,3 +2624,21 @@ idoklad:
             invalid_format: The number format cannot be read as a series format.
             invalid_counter: The year or the last number of the sequence is missing or out of range.
             name_taken: The firm already has a series of this name with other numbers.
+        recurring:
+            advance_unsupported: The template issues advance invoices, which Foresi does not repeat yet.
+            unknown_type: Foresi does not repeat documents of this iDoklad type.
+            foreign_currency: The template is not in the firm's home currency, which templates are limited to.
+            invalid_schedule: The repetition, the first issue or the end of the template cannot be read as a Foresi schedule.
+            customer_not_linked: The customer of the template was not imported from iDoklad.
+            series_not_linked: The number series of the template was not imported from iDoklad.
+            unknown_variable: A text holds a variable Foresi does not know; it would be printed as typed.
+            invalid_item: An item has a quantity, price, discount, price type or VAT rate Foresi cannot take.
+            unknown_payment_option: Foresi has no payment method for the payment option of the template.
+            unsupported_language: Foresi prints invoices in Czech and English only.
+            reverse_charge_unsupported: Templates with reverse charge are not imported yet.
+            next_issue_mismatch: The next issue Foresi works out differs from the next issue in iDoklad.
+            inactive: The template is switched off in iDoklad.
+            accountant_not_sent: iDoklad sent each invoice to the accountant; Foresi does not, the accountant gets the monthly pack.
+            note_not_carried: The note of the template is not carried over; templates in Foresi have no note.
+            fixed_variable_symbol: iDoklad kept one variable symbol for every invoice; in Foresi each invoice takes its number.
+            rounding_item_skipped: The rounding item is left out; Foresi rounds the total by the firm's setting.

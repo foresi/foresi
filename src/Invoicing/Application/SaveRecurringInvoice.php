@@ -62,13 +62,31 @@ final readonly class SaveRecurringInvoice
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
-            $currency = $this->countries->for($firm->address()->countryCode)->homeCurrency();
-            $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-            $template = new RecurringInvoice($firm, $currency, $this->content($input, $firm), $this->actor->userId(), $now, $startPaused, $importedFrom);
-            $this->templates->add($template);
-            foreach ($input->lines as $position => $line) {
-                $this->templates->addLine(new RecurringInvoiceLine($template, $position, $line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $line->treatment, $line->rateKind, $line->supplyCode, $line->discount));
+
+            return $this->store($input, $firm, $startPaused, $importedFrom);
+        });
+    }
+
+    /**
+     * A template another system issued from until now, stored paused with what it issued
+     * there: its first issue date may have passed, the count and the last date carry over,
+     * and the next date goes on after the last one. A template whose end rule allows no
+     * more is stored ended.
+     *
+     * @throws RecurringRefused   when a rule refuses; nothing is stored
+     * @throws UnknownLegalEntity also for a firm of another tenant
+     */
+    public function import(RecurringInput $input, RecurringHistory $history): RecurringInvoice
+    {
+        return $this->work->run(function () use ($input, $history): RecurringInvoice {
+            $firm = $this->firms->get($input->firmId);
+            $problems = $this->rules->check($input, $firm, null, $this->tenantClock->today(), $history);
+            if ([] !== $problems) {
+                throw new RecurringRefused($problems);
             }
+
+            $template = $this->store($input, $firm, true, $history->importedFrom);
+            $template->carryOver($history->issuedCount, $history->lastOccurrence);
 
             return $template;
         });
@@ -104,6 +122,19 @@ final readonly class SaveRecurringInvoice
 
             return $template;
         }));
+    }
+
+    private function store(RecurringInput $input, LegalEntity $firm, bool $startPaused, ?string $importedFrom): RecurringInvoice
+    {
+        $currency = $this->countries->for($firm->address()->countryCode)->homeCurrency();
+        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $template = new RecurringInvoice($firm, $currency, $this->content($input, $firm), $this->actor->userId(), $now, $startPaused, $importedFrom);
+        $this->templates->add($template);
+        foreach ($input->lines as $position => $line) {
+            $this->templates->addLine(new RecurringInvoiceLine($template, $position, $line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $line->treatment, $line->rateKind, $line->supplyCode, $line->discount));
+        }
+
+        return $template;
     }
 
     private function content(RecurringInput $input, LegalEntity $firm): RecurringContent

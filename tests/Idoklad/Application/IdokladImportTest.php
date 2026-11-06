@@ -11,6 +11,7 @@ namespace App\Tests\Idoklad\Application;
 use App\Idoklad\Application\Import\ContactsStage;
 use App\Idoklad\Application\Import\DocumentsStage;
 use App\Idoklad\Application\Import\IdokladImportRuns;
+use App\Idoklad\Application\Import\RecurringStage;
 use App\Idoklad\Application\Import\RunIdokladImport;
 use App\Idoklad\Application\Import\SeriesStage;
 use App\Idoklad\Domain\IdokladImportRun;
@@ -72,9 +73,9 @@ final class IdokladImportTest extends KernelTestCase
         $this->em->flush();
     }
 
-    public function testTheStagesRunContactsThenSeriesThenDocuments(): void
+    public function testTheStagesRunContactsThenSeriesThenDocumentsThenRecurringTemplates(): void
     {
-        self::assertSame([ContactsStage::KEY, SeriesStage::KEY, DocumentsStage::KEY], $this->import()->stages());
+        self::assertSame([ContactsStage::KEY, SeriesStage::KEY, DocumentsStage::KEY, RecurringStage::KEY], $this->import()->stages());
     }
 
     public function testACompanyIsCreatedWithEverythingItBrings(): void

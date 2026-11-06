@@ -1,6 +1,11 @@
 {
   "source": "https://api.idoklad.cz/Help/v3/en/api_data.json, extracted 2026-11-06: the endpoints of the resources the importer reads, and the mail and batch endpoints it must never call",
   "endpoints": [
+    ["GET", "/BankAccounts"],
+    ["PATCH", "/BankAccounts"],
+    ["POST", "/BankAccounts"],
+    ["DELETE", "/BankAccounts/{id}"],
+    ["GET", "/BankAccounts/{id}"],
     ["PUT", "/Batch/Exported"],
     ["GET", "/ConstantSymbols"],
     ["GET", "/ConstantSymbols/{id}"],

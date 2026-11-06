@@ -2624,3 +2624,21 @@ idoklad:
             invalid_format: Formát čísla nejde přečíst jako formát řady.
             invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
             name_taken: Firma už má řadu tohoto názvu s jinými čísly.
+        recurring:
+            advance_unsupported: Vzor vystavuje zálohové faktury, které Foresi zatím neopakuje.
+            unknown_type: Doklady tohoto typu iDokladu Foresi neopakuje.
+            foreign_currency: Vzor není v domácí měně firmy, na kterou jsou vzory omezené.
+            invalid_schedule: Opakování, první vystavení nebo konec vzoru nejde přečíst jako plán Foresi.
+            customer_not_linked: Odběratel vzoru nebyl z iDokladu naimportován.
+            series_not_linked: Číselná řada vzoru nebyla z iDokladu naimportována.
+            unknown_variable: Text obsahuje proměnnou, kterou Foresi nezná; vytiskla by se tak, jak je napsaná.
+            invalid_item: Položka má množství, cenu, slevu, typ ceny nebo sazbu DPH, kterou Foresi nepřijme.
+            unknown_payment_option: Pro způsob úhrady vzoru Foresi nemá platební metodu.
+            unsupported_language: Foresi tiskne faktury jen česky a anglicky.
+            reverse_charge_unsupported: Vzory s přenesenou daňovou povinností se zatím neimportují.
+            next_issue_mismatch: Příští vystavení podle Foresi se liší od příštího vystavení v iDokladu.
+            inactive: Vzor je v iDokladu vypnutý.
+            accountant_not_sent: iDoklad posílal každou fakturu účetní; Foresi ne, účetní dostává měsíční balíček.
+            note_not_carried: Poznámka vzoru se nepřenáší; vzory ve Foresi poznámku nemají.
+            fixed_variable_symbol: iDoklad dával všem fakturám jeden variabilní symbol; ve Foresi má každá faktura svoje číslo.
+            rounding_item_skipped: Položka zaokrouhlení se vynechává; Foresi zaokrouhlí celkem podle nastavení firmy.

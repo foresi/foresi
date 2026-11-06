@@ -113,25 +113,36 @@ An unexpected error while issuing gives the day back to the scheduler, which ret
 
 ## Moving from iDoklad
 
-The import of recurring templates is a later step. When it is built, each iDoklad template is created with `SaveRecurringInvoice::create($input, startPaused: true, importedFrom: <iDoklad id>)`, so it is stored **paused** and remembers where it came from.
+The iDoklad import (its recurring stage, after contacts and number series) turns each iDoklad recurring invoice into a template with `SaveRecurringInvoice::import($input, new RecurringHistory(<iDoklad id>, <issued>, <last issue>))`. The template is stored **paused**, remembers the iDoklad id, and carries over what iDoklad issued: the count and the date of the last issue. Only this path accepts a first issue date in the past; a template created by hand still needs one from today on. The import is linked, so a second run leaves the template alone.
 
 ### Field mapping
 
-*The iDoklad names below come from its public API and must be verified against the API when the import is built.*
+The names are those of the iDoklad API v3 (`RecurringInvoice` with its `RecurringSetting` and `InvoiceTemplate`).
 
 | iDoklad | Foresi |
 |---|---|
-| `DateOfStart` | First issue, when no occurrence was issued yet |
-| `RecurrenceType` (day, week, month, year) | Repeat: daily, weekly, monthly, yearly. Yearly stays yearly; a monthly template with count 12 stays "every 12 months" |
-| `RecurrenceCount` | Repeat every |
-| iDoklad's "issue on the last day of the month" option | Issue on the last day of the month |
-| `TypeOfEnd` (never, on a date, after a number of issues) with its date or count | End repeating with the last issue or the number of issues. A count is reduced by the occurrences iDoklad already issued, or the issued count is carried over |
-| `TaxingType` `DayOfIssue` / `LastDayOfMonth` | Tax point: issue date / last day of the issue month |
-| `NextIssueDates` | Checked against the occurrences Foresi computes; the first of them sets the next date. A mismatch is reported for the template, not guessed |
-| Due days of the template | Due |
-| Invoice data of the template (customer, lines, texts, symbols, series) | The same fields of the template; the customer and the series are matched to records imported before |
-| iDoklad variables in the texts | The same tokens, which resolve the same way (independent, `{month/year}` counting months). A variable for the document number maps to `{document_number}` |
-| Whether the template sends to the customer | After the issue: send, or hold for review |
+| `RecurringSetting.TemplateName` | Name |
+| `DateOfStart` | First issue, even when it has passed |
+| `RecurrenceType` (days, weeks, months, years) with `RecurrenceCount` | Repeat daily, weekly, monthly or yearly, every that many. Yearly stays yearly; a monthly template with count 12 stays "every 12 months" |
+| `IssueLastDayOfMonth` | Issue on the last day of the month (monthly and yearly) |
+| `TypeOfEnd` (never, on a date, after a number of issues) with `DateOfEnd` or `CopyCountEnd` | End repeating never, with the last issue on or before the date, or after the number of issues |
+| `CopyCountActual`, `DateOfLastIssue` | Issued count and last issue, carried over; an end after a count goes on from the carried count, and a template whose end rule allows no more is stored ended |
+| `DateOfNextIssue` | Must be the next date Foresi works out from the last issue, or the template is refused with both dates (`next_issue_mismatch`). The report also holds the next five issues, to compare with iDoklad's preview |
+| `IsActive` false | Imported paused like the others, with a note; no next date is compared |
+| `InvoiceTemplate.TaxingType` `DayOfIssue` / `LastDayOfMonth` | Tax point: issue date / last day of the issue month |
+| `InvoiceMaturity` | Due |
+| `Partner.Id`, `NumericSequenceId` | The customer and the series the earlier stages imported; a template whose customer or series was not imported is refused |
+| `Items`: `Name`, `Amount`, `Unit`, `Prices.UnitPrice`, `PriceType`, `VatRateType` (first reduced, basic, zero, second reduced), with the template's `DiscountPercentage` | Lines: text, quantity, unit, price, price type, rate kind (reduced, base, an exempt supply, second reduced) and discount. A firm that is not a VAT payer gets lines without VAT. The rounding item is left out with a note, as Foresi rounds by the firm's setting |
+| `ItemsTextPrefix`, `ItemsTextSuffix`, `Description`, `OrderNumber` | Text before and after the lines, description, order number |
+| iDoklad variables in these texts and the item names | Kept as they are: iDoklad's `{day}`, `{month}`, `{year}`, `{quarter}`, `{month/year}` with their offsets and `{document_number}` are Foresi's tokens and resolve the same way. Any other variable refuses the template (`unknown_variable`), so nothing prints as typed |
+| `PaymentOptionId`, `BankAccountId`, `ConstantSymbolId`, `CurrencyId` | Read through the code lists the pull copies: the payment method by the option's name (transfer, cash, card), the IBAN of the iDoklad account or else the firm's primary one, the constant symbol's code, and a currency that must be the firm's home currency |
+| `ReportLanguage` | Czech or English |
+| `SendToPurchaser` | After the issue: send, or hold for review |
+| `SendToSupplier`, `SendToOtherEmails` | Copy to me, copy to the contact's other addresses |
+| `SendToAccountant`, `Note`, `IsConstantVariableSymbol` | No equivalent: a note on the entry, the template is imported |
+| `InvoiceTemplate.DocumentType` 1 (advance invoice) | Refused and counted (`idoklad.import.recurring.advance_unsupported`); see Limits |
+
+Also refused, with the reason in the report: a foreign currency, reverse charge (`VatReverseChargeCodeId`), another language, a payment option Foresi has no method for, an item Foresi cannot take, and anything the rules of a template refuse, such as a rate the next tax point does not have.
 
 ### Cutover
 

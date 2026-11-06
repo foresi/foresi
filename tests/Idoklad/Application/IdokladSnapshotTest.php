@@ -158,9 +158,9 @@ final class IdokladSnapshotTest extends KernelTestCase
         self::assertSame([
             'Contacts' => 1, 'NumericSequences' => 1, 'IssuedInvoices' => 2, 'ProformaInvoices' => 2, 'IssuedTaxDocuments' => 0,
             'CreditNotes' => 0, 'RecurringInvoices' => 0, 'IssuedDocumentPayments' => 1, 'Logs' => 1, 'Countries' => 1,
-            'Currencies' => 1, 'PaymentOptions' => 1, 'ConstantSymbols' => 1,
+            'Currencies' => 1, 'PaymentOptions' => 1, 'ConstantSymbols' => 1, 'BankAccounts' => 0,
         ], $pull->counts());
-        self::assertSame(14, $pull->requestsUsed(), 'One request a page: thirteen lists, one of them two pages long.');
+        self::assertSame(15, $pull->requestsUsed(), 'One request a page: fourteen lists, one of them two pages long.');
         self::assertSame('2026-10-05T12:00:00', $pull->latestChange());
         self::assertNull($pull->changedSince());
         self::assertNull($pull->error());
@@ -355,6 +355,7 @@ final class IdokladSnapshotTest extends KernelTestCase
             '/v3/Currencies' => [$this->page([['Id' => 1, 'Code' => 'CZK', 'Symbol' => 'Kč', 'DateLastChange' => '2026-01-01T00:00:00']])],
             '/v3/PaymentOptions' => [$this->page([['Id' => 1, 'Code' => 'B', 'Name' => 'Převodem', 'IsDefault' => true, 'DateLastChange' => '2026-01-01T00:00:00']])],
             '/v3/ConstantSymbols' => [$this->page([['Id' => 7, 'Code' => '0308', 'Name' => 'Služby', 'CountryId' => 2, 'DateLastChange' => '2026-01-01T00:00:00']])],
+            '/v3/BankAccounts' => [$this->page([])],
         ];
     }
 
