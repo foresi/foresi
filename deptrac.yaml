@@ -185,6 +185,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Com\\Tecnick\\
+    # Logging handlers and processors; only the shared infrastructure may use it. Code logs through PSR-3.
+    - name: VendorMonolog
+      collectors:
+        - type: classLike
+          value: ^Monolog\\
     # MIME parsing; only the Banking module's infrastructure may use it.
     - name: VendorZbateson
       collectors:
@@ -226,6 +231,7 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - VendorSymfony
+      - VendorMonolog
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
