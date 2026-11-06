@@ -1611,6 +1611,7 @@ invoice:
   vat:
     base: Base rate
     reduced: Reduced rate
+    second_reduced: Second reduced rate
     standard: Standard
     reverse_charge: Reverse charge
     exempt: Exempt

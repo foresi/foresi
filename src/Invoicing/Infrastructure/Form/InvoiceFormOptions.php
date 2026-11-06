@@ -97,12 +97,17 @@ final readonly class InvoiceFormOptions
      */
     public function vat(InvoiceFormContext $context, \DateTimeImmutable $taxPoint): array
     {
-        return [
+        $options = [
             InvoiceFormReader::VAT_BASE => $this->rateLabel($context, VatRateKind::Base, $taxPoint),
             InvoiceFormReader::VAT_REDUCED => $this->rateLabel($context, VatRateKind::Reduced, $taxPoint),
-            InvoiceFormReader::VAT_REVERSE_CHARGE => $this->translator->trans('invoice.vat.reverse_charge'),
-            InvoiceFormReader::VAT_EXEMPT => $this->translator->trans('invoice.vat.exempt'),
         ];
+        if ($this->hasRate($context, VatRateKind::SecondReduced, $taxPoint)) {
+            $options[InvoiceFormReader::VAT_SECOND_REDUCED] = $this->rateLabel($context, VatRateKind::SecondReduced, $taxPoint);
+        }
+        $options[InvoiceFormReader::VAT_REVERSE_CHARGE] = $this->translator->trans('invoice.vat.reverse_charge');
+        $options[InvoiceFormReader::VAT_EXEMPT] = $this->translator->trans('invoice.vat.exempt');
+
+        return $options;
     }
 
     /**
@@ -197,6 +202,21 @@ final readonly class InvoiceFormOptions
     private function seriesName(Series $series): string
     {
         return DocumentKind::isStandardSeriesName($series->name()) ? $this->translator->trans('series.name.'.$series->name()) : $series->name();
+    }
+
+    /**
+     * Whether the kind has a rate on the tax point; a kind a country had only
+     * once, such as a second reduced rate, is offered only where it applies.
+     */
+    private function hasRate(InvoiceFormContext $context, VatRateKind $kind, \DateTimeImmutable $taxPoint): bool
+    {
+        try {
+            $context->country->rate($kind, $taxPoint);
+
+            return true;
+        } catch (\DomainException) {
+            return false;
+        }
     }
 
     private function rateLabel(InvoiceFormContext $context, VatRateKind $kind, \DateTimeImmutable $taxPoint): string

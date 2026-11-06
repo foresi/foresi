@@ -695,6 +695,24 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSame($this->nbsp((string) $recount['rounding']), $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
     }
 
+    public function testTheSecondReducedRateIsOfferedOnlyWhereItApplies(): void
+    {
+        $this->signedIn();
+        $this->openNew();
+        self::assertSelectorNotExists('select[name="lines[0][vat]"] option[value="second_reduced"]');
+
+        $values = $this->filled(['issueDate' => '2019-06-30', 'taxPointDate' => '2019-06-30', 'dueDate' => '2019-07-14']);
+        $values['lines'] = [$this->lineValues(['price' => '1000,00', 'vat' => 'second_reduced'])];
+        $this->save($values);
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame(110000, $invoice->payable()->minor());
+        $this->openEdit($invoice);
+        $selected = $this->client->getCrawler()->filter('select[name="lines[0][vat]"] option[selected]');
+        self::assertSame('second_reduced', $selected->attr('value'));
+        self::assertSame('10%', trim($selected->text()));
+    }
+
     public function testRecountHidesARoundingOfZero(): void
     {
         $this->signedIn();

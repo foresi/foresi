@@ -1611,6 +1611,7 @@ invoice:
   vat:
     base: Základní sazba
     reduced: Snížená sazba
+    second_reduced: Druhá snížená sazba
     standard: Běžné plnění
     reverse_charge: Přenesená daň
     exempt: Osvobozeno

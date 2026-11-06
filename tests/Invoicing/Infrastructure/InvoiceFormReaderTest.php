@@ -134,6 +134,7 @@ final class InvoiceFormReaderTest extends TestCase
     {
         yield 'base' => ['base', TaxTreatment::Standard, VatRateKind::Base];
         yield 'reduced' => ['reduced', TaxTreatment::Standard, VatRateKind::Reduced];
+        yield 'second reduced' => ['second_reduced', TaxTreatment::Standard, VatRateKind::SecondReduced];
         yield 'reverse charge' => ['reverse_charge', TaxTreatment::ReverseCharge, null];
         yield 'exempt' => ['exempt', TaxTreatment::Exempt, null];
         yield 'a non-payer form' => ['none', TaxTreatment::NotApplicable, null];
