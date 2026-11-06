@@ -1075,6 +1075,9 @@ invoice:
       read: The customer opened the document
       failed: The e-mail could not be sent
   changed_after_send: 'This invoice changed after it was sent on {date}. The customer''s link shows the version sent, so send it again.'
+  imported_original: 'This document was imported. Its PDF is the original from {source}.'
+  import_source:
+    idoklad: iDoklad
   send_failure:
     password_unreadable: The mail server password cannot be opened with the configured keys. Enter it again in the e-mail settings.
     bad_address: An address of the message is not valid.
@@ -1611,6 +1614,7 @@ invoice:
   vat:
     base: Base rate
     reduced: Reduced rate
+    second_reduced: Second reduced rate
     standard: Standard
     reverse_charge: Reverse charge
     exempt: Exempt
@@ -1763,6 +1767,9 @@ invoice:
     number_locked_sent: Series and number cannot change once the customer got the document by e-mail.
     number_out_of_range: This number is beyond what the series can count.
     number_taken: This number has been used in this firm already.
+    import_number_missing: An imported document needs its series and number.
+    import_issuer_incomplete: The supplier on the imported document has no complete name and address.
+    import_kind_unsupported: This kind of document is not imported yet.
     numbers_exhausted: This series has no numbers left.
     payable_negative: The total must not be negative.
     correction_kind: Only a corrective tax document names a corrected document.
@@ -1791,6 +1798,7 @@ invoice:
     already_deducted: An advance on this invoice is deducted by another invoice already.
     deduction_invalid: 'This advance cannot be deducted here: it belongs to another customer, is deducted elsewhere, or is not paid.'
     tax_document_exists: This payment has its tax document already.
+    tax_document_with_vat: The lines of a tax document on payment are priced with VAT.
     no_tax_on_receipt: No VAT arose on this payment, so it gets no tax document.
     payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
     series_of_another_firm: This series belongs to another firm.
@@ -2595,3 +2603,258 @@ tax_document:
         {sender_name}
 
         {link}
+idoklad:
+    import:
+        contact:
+            unknown_country: The country of the contact is not in the iDoklad snapshot.
+            ambiguous: More than one contact in Foresi has this name or registration number.
+        documents:
+            series_unknown: No imported number series of the type and year of the document has its number.
+            customer_not_linked: The purchaser of the document was not imported as a contact.
+            currency_not_home: The document is not in the home currency; only home-currency documents are imported for now.
+            country_unknown: The country of the purchaser or of the firm on the document is not in the iDoklad snapshot.
+            payment_option_unsupported: The payment option of the document is not a bank transfer, cash or card.
+            language_unsupported: Foresi does not issue documents in the language of the document.
+            zero_rate_unsupported: A line has the zero VAT rate, whose treatment the snapshot does not say.
+            invalid_value: A date, amount or price type of the document is missing or out of range.
+            payment_not_linked: The payment the tax document taxes was not imported.
+            advance_not_linked: The proforma invoice the document follows was not imported.
+            advance_not_deductible: 'Nothing of an advance the invoice accounts is left to deduct: no paid advance or tax document of it in Foresi.'
+            credit_note_unsupported: Credit notes are not imported yet.
+            pdf_unreadable: The stored PDF of the document cannot be read.
+        series:
+            unknown_type: Foresi does not issue documents of this iDoklad type.
+            invalid_format: The number format cannot be read as a series format.
+            invalid_counter: The year or the last number of the sequence is missing or out of range.
+            name_taken: The firm already has a series of this name with other numbers.
+        payments:
+            document_type_unsupported: The payment pays a document other than an issued invoice or a proforma invoice.
+            document_not_linked: The document the payment pays was not imported.
+            currency_not_home: The payment is not in the firm's home currency.
+            payment_option_unsupported: Foresi does not record payments of this payment option.
+            invalid_value: The date or the amount of the payment is missing.
+        recurring:
+            advance_unsupported: The template issues advance invoices, which Foresi does not repeat yet.
+            unknown_type: Foresi does not repeat documents of this iDoklad type.
+            foreign_currency: The template is not in the firm's home currency, which templates are limited to.
+            invalid_schedule: The repetition, the first issue or the end of the template cannot be read as a Foresi schedule.
+            customer_not_linked: The customer of the template was not imported from iDoklad.
+            series_not_linked: The number series of the template was not imported from iDoklad.
+            unknown_variable: A text holds a variable Foresi does not know; it would be printed as typed.
+            invalid_item: An item has a quantity, price, discount, price type or VAT rate Foresi cannot take.
+            unknown_payment_option: Foresi has no payment method for the payment option of the template.
+            unsupported_language: Foresi prints invoices in Czech and English only.
+            reverse_charge_unsupported: Templates with reverse charge are not imported yet.
+            next_issue_mismatch: The next issue Foresi works out differs from the next issue in iDoklad.
+            inactive: The template is switched off in iDoklad.
+            accountant_not_sent: iDoklad sent each invoice to the accountant; Foresi does not, the accountant gets the monthly pack.
+            note_not_carried: The note of the template is not carried over; templates in Foresi have no note.
+            fixed_variable_symbol: iDoklad kept one variable symbol for every invoice; in Foresi each invoice takes its number.
+            rounding_item_skipped: The rounding item is left out; Foresi rounds the total by the firm's setting.
+    title: Move from iDoklad
+    entry: Move from iDoklad
+    firms:
+        intro: Choose the firm whose iDoklad account you are moving.
+        caption: Firms
+        column:
+            name: Firm
+        empty:
+            title: No firm yet
+            text: Add your firm first, then move its iDoklad account.
+    steps:
+        label: Steps of the move
+        connect: Connect
+        pull: Download
+        check: Check
+        run: Import
+        result: Result
+    connect:
+        card: iDoklad API keys
+        intro: In iDoklad, open Settings → Applications → API. It needs the Oblíbený or Prémiový tariff.
+        read_only: Foresi only reads from iDoklad; it never changes or sends anything there.
+        client_id: Client ID
+        client_id_help: As iDoklad shows it under API
+        client_secret: Client secret
+        client_secret_help: Stored encrypted, never shown again
+        client_secret_again: Type it again to change the keys
+        submit: Connect
+        back: Back
+        error:
+            client_id: Fill in the client ID.
+            client_secret: Fill in the client secret.
+        flash:
+            connected: iDoklad is connected.
+            disconnected: The iDoklad keys are deleted.
+    disconnect:
+        button: Disconnect
+        confirm: Disconnect iDoklad?
+        confirm_text: The keys are deleted. Downloaded data and imported records stay.
+        confirm_accept: Disconnect
+        confirm_cancel: Keep
+    error:
+        access_denied: iDoklad refused the client ID or the client secret. Check them in iDoklad under Settings → Applications → API.
+        tariff: The tariff of this iDoklad account has no API access, or it expired. The API needs Oblíbený or Prémiový.
+        not_connected: iDoklad is not connected; connect it first.
+        unexpected: The job stopped on an unexpected error. Try again later.
+    pull:
+        connection: Connection
+        change_keys: Change keys
+        disconnected: iDoklad is not connected. Downloaded data stays.
+        quota: API requests this month
+        quota_used: '{used, number} of {limit, number} requests used'
+        quota_help: The limit depends on the tariff; Oblíbený has 7,500 a month.
+        latest: Last download
+        first: Nothing downloaded yet
+        first_text: Foresi copies your iDoklad account, then the PDFs of the documents. It takes a few minutes.
+        failed: The download stopped
+        started: Started
+        kind: Download
+        kind_full: Whole account
+        kind_changes: Changes
+        requests: Requests used
+        column:
+            list: List
+            records: Records
+        start: Download data
+        changes: Download changes
+        check: Check the import
+    job:
+        kind:
+            pull: Downloading the account
+            changes: Downloading changes
+            check: Checking the import
+            run: Importing
+        state:
+            pending: Waiting
+            running: Running
+            done: Done
+            failed: Failed
+        text:
+            pending: Waiting for a free worker; it starts in a moment.
+            running: Working on it. The page updates by itself.
+            done: Done.
+            failed: Stopped.
+    resource:
+        Contacts: Contacts
+        NumericSequences: Number series
+        IssuedInvoices: Issued invoices
+        ProformaInvoices: Proforma invoices
+        IssuedTaxDocuments: Tax documents on payment
+        CreditNotes: Credit notes
+        RecurringInvoices: Recurring invoices
+        IssuedDocumentPayments: Payments
+        Logs: Log
+        Countries: Countries
+        Currencies: Currencies
+        PaymentOptions: Payment options
+        ConstantSymbols: Constant symbols
+        BankAccounts: Bank accounts
+    stage:
+        contacts: Contacts
+        series: Number series
+        documents: Documents
+        payments: Payments
+        recurring: Recurring invoices
+    outcome:
+        created: Created
+        matched: Matched
+        already_linked: Linked before
+        refused: Refused
+        mismatch: Differs
+    report:
+        failed: The import stopped; nothing was stored
+        stages: By section
+        years: Documents by year
+        years_help: Totals with VAT by issue date, iDoklad against Foresi.
+        no_documents: No documents downloaded.
+        refused: Refused records
+        mismatch: Records whose totals differ
+        templates: Next issues of recurring invoices
+        templates_help: Templates come paused; resume each one when it suits you.
+        record: 'Record {id}'
+        difference: '{total}: iDoklad {expected}, Foresi {computed}'
+        total:
+            net: Without VAT
+            vat: VAT
+            gross: With VAT
+            payable: To pay
+        column:
+            stage: Section
+            year: Year
+            idoklad: In iDoklad
+            idokladSum: Total in iDoklad
+            foresi: Imported
+            foresiSum: Total imported
+            difference: Difference
+            unexplained: Refused or differing
+            foreign: Other currency
+    value:
+        currency: Currency
+        payment_option: Payment option
+        name: Name
+        number_format: Number format
+        year: Year
+        last_number: Last number
+        series_format: Series format
+        next_issue: Next issue in Foresi
+        idoklad_next_issue: Next issue in iDoklad
+    check:
+        intro: 'Check of {date}: what an import would do. Nothing is stored yet.'
+        stale: Data was downloaded again since this check. Check again before importing.
+        failed: The check stopped
+        again: Check again
+        run: Import
+        reminders:
+            title: Reminders
+            overdue: '{count, plural, =0 {No imported invoice is overdue and unpaid.} one {# imported invoice is overdue and unpaid.} other {# imported invoices are overdue and unpaid.}}'
+            from: Send reminders for invoices due from
+            from_help: Older invoices stay without reminders
+            invalid: Enter a date.
+    run:
+        confirm: Import from iDoklad?
+        confirm_text: '{created, plural, one {# record is created} other {# records are created}}, {refused, number} refused, {mismatch, number} differ. You can undo it for 30 days.'
+        confirm_accept: Import
+        confirm_cancel: Not yet
+        mode:
+            check: Check
+            run: Import
+        done: '{count, plural, one {# record was imported.} other {# records were imported.}}'
+        undone: Undone
+        undone_at: 'The import was undone on {date}.'
+        to_invoices: Go to invoices
+    undo:
+        title: Undo the import
+        text: Removes the imported documents, payments and untouched recurring invoices. Contacts and series stay.
+        deadline: 'Possible until {date}.'
+        button: Undo import
+        confirm: Undo the import?
+        confirm_text: The documents, payments and untouched recurring invoices of this import are deleted for good.
+        confirm_accept: Undo
+        confirm_cancel: Keep
+        refused: The import cannot be undone
+        unavailable: This import can no longer be undone.
+        payment: A payment
+        flash:
+            done: The import was undone.
+        blocker:
+            expired: the 30 days are over
+            changed: changed since the import
+            exported: exported for the accountant since
+            payments: has payments recorded here
+            sends: was sent from Foresi
+            corrections: has a correction
+            tax_documents: has a tax document on payment
+            deductions: is deducted by another document
+            cancelled: was cancelled here
+    history:
+        title: History of the move
+        back: Back to the move
+        column:
+            when: When
+            what: What
+            records: Records
+            requests: Requests
+            state: State
+        empty:
+            title: Nothing yet
+            text: Downloads and imports from iDoklad show here.

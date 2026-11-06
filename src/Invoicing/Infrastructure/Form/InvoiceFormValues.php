@@ -429,7 +429,11 @@ final readonly class InvoiceFormValues
     private function vatChoice(TaxTreatment $treatment, ?VatRateKind $kind): string
     {
         return match ($treatment) {
-            TaxTreatment::Standard => VatRateKind::Reduced === $kind ? InvoiceFormReader::VAT_REDUCED : InvoiceFormReader::VAT_BASE,
+            TaxTreatment::Standard => match ($kind) {
+                VatRateKind::Reduced => InvoiceFormReader::VAT_REDUCED,
+                VatRateKind::SecondReduced => InvoiceFormReader::VAT_SECOND_REDUCED,
+                default => InvoiceFormReader::VAT_BASE,
+            },
             TaxTreatment::ReverseCharge => InvoiceFormReader::VAT_REVERSE_CHARGE,
             TaxTreatment::Exempt => InvoiceFormReader::VAT_EXEMPT,
             TaxTreatment::NotApplicable => InvoiceFormReader::VAT_NONE,

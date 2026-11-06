@@ -103,7 +103,8 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
 
     public function remove(RecurringInvoice $template): void
     {
-        if ($template->isIssued()) {
+        // What an untouched import carried over was issued elsewhere.
+        if ($template->isIssued() && !$template->isUntouchedImport()) {
             throw new \LogicException('A template that issued an invoice is ended, never removed.');
         }
         $this->em->remove($template);

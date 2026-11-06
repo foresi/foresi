@@ -42,6 +42,11 @@ use Doctrine\ORM\Mapping as ORM;
  * its occurrence, unique in a tenant, so no occurrence is ever issued twice. The
  * trash keeps both, so trashing never lets the occurrence come again. Ordinary
  * invoices hold null in both, which repeats freely.
+ *
+ * An invoice brought over from another system names that source, its id there and
+ * the run that brought it, unique in a firm, so no document arrives twice. It may
+ * keep the PDF the source drew as its original. Create these through
+ * ImportIssuedDocument.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invoice')]
@@ -56,6 +61,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_invoice_payment', columns: ['payment_id'])]
 #[ORM\Index(name: 'idx_invoice_deducted_by', columns: ['deducted_by_invoice_id'])]
 #[ORM\Index(name: 'idx_invoice_corrected', columns: ['corrected_invoice_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_invoice_import', columns: ['legal_entity_id', 'import_source', 'import_external_id'])]
+#[ORM\Index(name: 'idx_invoice_import_run', columns: ['import_run_id'])]
 class Invoice implements TenantOwned, Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
@@ -67,6 +74,8 @@ class Invoice implements TenantOwned, Audited
     public const int MAX_CONSTANT_SYMBOL_LENGTH = 10;
     public const int MAX_REASON_LENGTH = 500;
     public const int MAX_CORRECTION_REASON_LENGTH = 500;
+    public const int MAX_IMPORT_SOURCE_LENGTH = 32;
+    public const int MAX_IMPORT_EXTERNAL_ID_LENGTH = 64;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -201,6 +210,24 @@ class Invoice implements TenantOwned, Audited
 
     #[ORM\Column(name: 'recurring_occurrence', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $recurringOccurrence = null;
+
+    #[ORM\Column(name: 'import_source', type: 'string', length: self::MAX_IMPORT_SOURCE_LENGTH, nullable: true)]
+    private ?string $importSource = null;
+
+    #[ORM\Column(name: 'import_external_id', type: 'string', length: self::MAX_IMPORT_EXTERNAL_ID_LENGTH, nullable: true)]
+    private ?string $importExternalId = null;
+
+    #[ORM\Column(name: 'import_run_id', type: 'guid', nullable: true)]
+    private ?string $importRunId = null;
+
+    #[ORM\Column(name: 'imported_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $importedAt = null;
+
+    #[ORM\Column(name: 'original_pdf_key', type: 'string', length: 255, nullable: true)]
+    private ?string $originalPdfKey = null;
+
+    #[ORM\Column(name: 'original_pdf_sha256', type: 'string', length: 64, nullable: true, options: ['fixed' => true])]
+    private ?string $originalPdfSha256 = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
@@ -383,6 +410,66 @@ class Invoice implements TenantOwned, Audited
         }
         $this->recurringInvoiceId = $recurringId;
         $this->recurringOccurrence = new \DateTimeImmutable($occurrence->format('Y-m-d'));
+    }
+
+    /**
+     * Names where an imported document came from, set once right after it was created.
+     * The source had delivered and exported it already, so both marks come as they
+     * were there: they leave the version alone, which stays that of the import until
+     * something changes the document here, and the export counts as unchanged since.
+     *
+     * @throws \DomainException when the invoice was imported already
+     */
+    public function importedFrom(string $source, string $externalId, string $runId, \DateTimeImmutable $at, ?\DateTimeImmutable $deliveredAt, ?\DateTimeImmutable $exportedAt): void
+    {
+        if (null !== $this->importSource) {
+            throw new \DomainException('A document is imported once.');
+        }
+        $this->importSource = $source;
+        $this->importExternalId = $externalId;
+        $this->importRunId = $runId;
+        $this->importedAt = $at;
+        $this->deliveredAt = $deliveredAt;
+        $this->exportedAt = $exportedAt;
+    }
+
+    /**
+     * The PDF the source drew, kept beside the database under this key.
+     */
+    public function keepOriginal(string $key, string $sha256): void
+    {
+        $this->originalPdfKey = $key;
+        $this->originalPdfSha256 = $sha256;
+    }
+
+    public function importSource(): ?string
+    {
+        return $this->importSource;
+    }
+
+    public function importExternalId(): ?string
+    {
+        return $this->importExternalId;
+    }
+
+    public function importRunId(): ?string
+    {
+        return $this->importRunId;
+    }
+
+    public function importedAt(): ?\DateTimeImmutable
+    {
+        return $this->importedAt;
+    }
+
+    public function originalPdfKey(): ?string
+    {
+        return $this->originalPdfKey;
+    }
+
+    public function originalPdfSha256(): ?string
+    {
+        return $this->originalPdfSha256;
     }
 
     /**

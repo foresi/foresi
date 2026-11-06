@@ -1,0 +1,59 @@
+{
+  "Data": {
+    "Items": [
+      {
+        "Id": 101,
+        "DocumentNumber": "20260001",
+        "DateOfIssue": "2026-10-01",
+        "DateOfMaturity": "2026-10-15",
+        "DateOfTaxing": "2026-10-01",
+        "CurrencyId": 1,
+        "PartnerId": 501,
+        "VariableSymbol": "20260001",
+        "Description": "Consulting",
+        "PartnerAddress": {
+          "NickName": "Example s.r.o.",
+          "IdentificationNumber": "12345678",
+          "VatIdentificationNumber": "CZ12345678",
+          "Email": "billing@example.com",
+          "Street": "Example Street 1",
+          "City": "Example City",
+          "PostalCode": "100 00",
+          "CountryId": 2
+        },
+        "Items": [
+          {
+            "Id": 9001,
+            "Name": "Consulting",
+            "Amount": 2.0,
+            "Unit": "h",
+            "VatRate": 21.0,
+            "VatRateType": 2,
+            "PriceType": 1,
+            "Prices": {"UnitPrice": 1000.0, "TotalWithoutVat": 2000.0, "TotalVat": 420.0, "TotalWithVat": 2420.0}
+          }
+        ],
+        "Prices": {"TotalWithoutVat": 2000.0, "TotalVat": 420.0, "TotalWithVat": 2420.0, "TotalPaid": 0.0},
+        "Metadata": {"DateCreated": "2026-10-01T09:00:00.123", "DateLastChange": "2026-10-02T10:39:22.873", "UserCreatedId": 1, "UserLastChangeId": 1}
+      },
+      {
+        "Id": 102,
+        "DocumentNumber": "20260002",
+        "DateOfIssue": "2026-10-03",
+        "CurrencyId": 1,
+        "PartnerId": 501,
+        "Items": [
+          {"Id": 9002, "Name": "Training", "Amount": 1.0, "Unit": "pcs", "VatRate": 12.0, "VatRateType": 1, "PriceType": 1, "Prices": {"UnitPrice": 500.0, "TotalWithoutVat": 500.0, "TotalVat": 60.0, "TotalWithVat": 560.0}}
+        ],
+        "Prices": {"TotalWithoutVat": 500.0, "TotalVat": 60.0, "TotalWithVat": 560.0, "TotalPaid": 560.0},
+        "Metadata": {"DateCreated": "2026-10-03T08:00:00", "DateLastChange": "2026-10-03T08:00:00", "UserCreatedId": 1, "UserLastChangeId": 1}
+      }
+    ],
+    "TotalItems": 2,
+    "TotalPages": 1
+  },
+  "ErrorCode": 0,
+  "IsSuccess": true,
+  "Message": "",
+  "StatusCode": 200
+}

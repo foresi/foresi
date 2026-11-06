@@ -245,12 +245,12 @@ final class CorrectionDocumentTest extends InvoiceTestCase
     public function testTheLinesArePricedOnTheDayOfTheInvoice(): void
     {
         $original = $this->original();
-        $early = new CorrectionInput($original->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2023-12-31'));
+        $early = new CorrectionInput($original->id(), 'Returned goods', CorrectionType::Change, new \DateTimeImmutable('2012-12-31'));
 
-        $credit = $this->issue->issue($this->correction($original, [$this->credit('100.00')], taxPoint: '2023-12-31', correction: $early));
+        $credit = $this->issue->issue($this->correction($original, [$this->credit('100.00')], taxPoint: '2012-12-31', correction: $early));
         self::assertSame(-12100, $credit->payable()->minor());
 
-        $this->edited($credit, $this->correction($original, [$this->credit('200.00')], taxPoint: '2023-12-31', correction: $early, overrides: ['seriesId' => $credit->series()->id()]));
+        $this->edited($credit, $this->correction($original, [$this->credit('200.00')], taxPoint: '2012-12-31', correction: $early, overrides: ['seriesId' => $credit->series()->id()]));
         self::assertSame(-24200, $this->store->get($credit->id())->payable()->minor());
     }
 

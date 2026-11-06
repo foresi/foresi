@@ -1,6 +1,6 @@
 # Import and export
 
-Foresi can load records from a CSV or XLSX file and write them back out. Contacts (the address book) are the first target; other modules plug in the same way. The iDoklad contact export is recognised and mapped automatically.
+Foresi can load records from a CSV or XLSX file and write them back out. Contacts (the address book) are the first target; other modules plug in the same way. The iDoklad contact export is recognised and mapped automatically. To move a whole iDoklad account (documents, payments and recurring invoices too), use the move from iDoklad through its API instead; see [idoklad.md](idoklad.md).
 
 ## How an import works
 

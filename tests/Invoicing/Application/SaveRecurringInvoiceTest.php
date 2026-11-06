@@ -10,6 +10,7 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\LineInput;
+use App\Invoicing\Application\RecurringHistory;
 use App\Invoicing\Application\RecurringRefused;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
@@ -281,6 +282,75 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame('example-template-42', $row['imported_from']);
         self::assertSame('year', $row['recurrence_unit']);
         self::assertSame('2026-12-01', $row['next_occurrence']);
+    }
+
+    public function testAnImportTakesAPastFirstIssueAndGoesOnAfterWhatItIssued(): void
+    {
+        $history = new RecurringHistory('example-template-7', 10, new \DateTimeImmutable('2026-10-15'));
+        $input = $this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-01-15', RecurrenceEnd::AfterCount, endAfter: 24)]);
+
+        $template = $this->save->import($input, $history);
+
+        $row = $this->templateRow($template->id());
+        self::assertSame('paused', $row['state']);
+        self::assertSame('example-template-7', $row['imported_from']);
+        self::assertSame('2026-01-15', $row['first_issue_on']);
+        self::assertSame(10, $row['issued_count']);
+        self::assertSame('2026-10-15', $row['last_occurrence']);
+        self::assertSame('2026-11-15', $row['next_occurrence']);
+        self::assertSame(24, $row['end_after']);
+        self::assertCount(1, $this->lineRows($template->id()));
+    }
+
+    public function testAnImportWithoutIssuesStartsOnItsFirstDateEvenWhenPassed(): void
+    {
+        $template = $this->save->import($this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-10-31')]), new RecurringHistory('example-template-8', 0, null));
+
+        self::assertSame('2026-10-31', $this->templateRow($template->id())['next_occurrence']);
+    }
+
+    public function testAnImportWhoseEndRuleAllowsNoMoreIsStoredEnded(): void
+    {
+        $input = $this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-01-15', RecurrenceEnd::AfterCount, endAfter: 10)]);
+
+        $template = $this->save->import($input, new RecurringHistory('example-template-9', 10, new \DateTimeImmutable('2026-10-15')));
+
+        $row = $this->templateRow($template->id());
+        self::assertSame('ended', $row['state']);
+        self::assertNull($row['next_occurrence']);
+        self::assertNull($row['paused_at']);
+        self::assertIsString($row['ended_at']);
+        self::assertStringStartsWith('2026-10-15', $row['ended_at']);
+    }
+
+    public function testAnImportMeetsTheOtherRules(): void
+    {
+        $input = $this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-01-15'), 'dueDays' => RecurringInvoice::MAX_DUE_DAYS + 1]);
+
+        self::assertSame(['recurring.problem.due_days_invalid'], $this->recurringRefusalOf(fn (): RecurringInvoice => $this->save->import($input, new RecurringHistory('example-template-10', 2, new \DateTimeImmutable('2026-02-15')))));
+    }
+
+    public function testOnlyAnImportedTemplateThatIssuedNothingCarriesOver(): void
+    {
+        $own = $this->save->create($this->recurringInput());
+        try {
+            $own->carryOver(1, new \DateTimeImmutable('2026-11-01'));
+            self::fail('A template of its own carries nothing over.');
+        } catch (\DomainException $refused) {
+            self::assertSame('Only an imported template that issued nothing here carries over what it issued.', $refused->getMessage());
+        }
+
+        $imported = $this->save->import($this->recurringInput(), new RecurringHistory('example-template-11', 1, new \DateTimeImmutable('2026-11-01')));
+        $this->expectException(\DomainException::class);
+        $imported->carryOver(1, null);
+    }
+
+    public function testAnImportedTemplateCarriesOverNoNegativeCount(): void
+    {
+        $imported = $this->save->create($this->recurringInput(), startPaused: true, importedFrom: 'example-template-12');
+
+        $this->expectExceptionMessageIsOrContains('An imported template issued no invoices or more.');
+        $imported->carryOver(-1, null);
     }
 
     private function issueOnce(string $id, string $occurrence): void

@@ -1,0 +1,44 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The report of a check or a run: outcomes, sums by year, refused and differing records, next issues of templates. Variables: report. #}
+{% if report.error %}
+    <twig:Ui:Alert tone="error" role="alert" :title="'idoklad.report.failed'|trans">{{ report.error|trans }}</twig:Ui:Alert>
+{% endif %}
+
+<twig:Ui:KpiStrip :items="report.kpis" />
+
+<twig:Ui:Card :title="'idoklad.report.stages'|trans" icon="list-filter">
+    <twig:Ui:DataTable :caption="'idoklad.report.stages'|trans" :columns="report.stageColumns" :rows="report.stageRows" />
+</twig:Ui:Card>
+
+<twig:Ui:Card :title="'idoklad.report.years'|trans" icon="chart-column">
+    <p class="mb-3 mt-0 text-small text-muted">{{ 'idoklad.report.years_help'|trans }}</p>
+    <twig:Ui:DataTable :caption="'idoklad.report.years'|trans" :columns="report.yearColumns" :rows="report.yearRows">
+        <twig:block name="empty"><p class="m-0 text-small text-muted">{{ 'idoklad.report.no_documents'|trans }}</p></twig:block>
+    </twig:Ui:DataTable>
+</twig:Ui:Card>
+
+{% if report.refused is not empty %}
+    <twig:Ui:Card :title="'idoklad.report.refused'|trans" icon="triangle-alert" data-report-refused>
+        <div class="grid gap-4">{% include 'idoklad/_records.html.twig' with {groups: report.refused, kind: 'refused'} only %}</div>
+    </twig:Ui:Card>
+{% endif %}
+
+{% if report.mismatch is not empty %}
+    <twig:Ui:Card :title="'idoklad.report.mismatch'|trans" icon="triangle-alert" data-report-mismatch>
+        <div class="grid gap-4">{% include 'idoklad/_records.html.twig' with {groups: report.mismatch, kind: 'mismatch'} only %}</div>
+    </twig:Ui:Card>
+{% endif %}
+
+{% if report.templates is not empty %}
+    <twig:Ui:Card :title="'idoklad.report.templates'|trans" icon="calendar" data-report-templates>
+        <p class="mb-3 mt-0 text-small text-muted">{{ 'idoklad.report.templates_help'|trans }}</p>
+        <ul class="m-0 list-none divide-y divide-divider p-0">
+            {% for template in report.templates %}
+                <li class="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-4">
+                    <span class="block truncate font-medium text-ink" title="{{ template.title }}">{{ template.title }}</span>
+                    <span class="num text-text">{{ template.dates|join(' · ') }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </twig:Ui:Card>
+{% endif %}

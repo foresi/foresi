@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% block title %}{{ 'idoklad.history.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" :href="path('app_idoklad', {id: firm.id})">{{ 'idoklad.history.back'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    <twig:Ui:DataTable :caption="'idoklad.history.title'|trans" :columns="columns" :rows="rows">
+        <twig:block name="empty">
+            <twig:Ui:EmptyState icon="history" :title="'idoklad.history.empty.title'|trans" :text="'idoklad.history.empty.text'|trans" />
+        </twig:block>
+    </twig:Ui:DataTable>
+{% endblock %}

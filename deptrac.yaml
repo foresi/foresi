@@ -75,6 +75,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Import/Infrastructure/.*
+    # Reads iDoklad accounts into a snapshot for the import; the vendor's names stay here.
+    - name: IdokladDomain
+      collectors:
+        - type: directory
+          value: src/Idoklad/Domain/.*
+    - name: IdokladApplication
+      collectors:
+        - type: directory
+          value: src/Idoklad/Application/.*
+    - name: IdokladInfrastructure
+      collectors:
+        - type: directory
+          value: src/Idoklad/Infrastructure/.*
     - name: IdentityDomain
       collectors:
         - type: directory
@@ -314,6 +327,41 @@ deptrac:
       - AuditApplication
       # The import screens and the finish notice in the app shell.
       - Ui
+    IdokladDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      # The credentials and the snapshot belong to a firm.
+      - PartyDomain
+    IdokladApplication:
+      - IdokladDomain
+      - SharedDomain
+      - TenancyDomain
+      - PartyDomain
+      - PartyApplication
+      # The client secret is sealed with the keys of the mail server passwords,
+      # and the import creates series and moves their counters.
+      - InvoicingApplication
+      - InvoicingDomain
+      # The import writes contacts through the contact import target, as a file import does.
+      - ImportApplication
+      - ImportDomain
+      # The jobs of the move run in the tenant that asked for them.
+      - TenancyApplication
+    IdokladInfrastructure:
+      - IdokladDomain
+      - IdokladApplication
+      # The import transaction binds the tenant again after a failure.
+      - TenancyApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - SharedDomain
+      - PartyDomain
+      # The screens of the move: for the owner, of a firm, with the blockers of an undo and amounts as documents print them.
+      - PartyApplication
+      - IdentityApplication
+      - InvoicingApplication
     IdentityDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

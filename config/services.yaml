@@ -26,6 +26,10 @@ parameters:
     app.sent_documents_dir: '%kernel.share_dir%/sent-documents'
     # Raw bank mail as it arrived; never below public/. Back it up with the database.
     app.inbound_mail_dir: '%kernel.share_dir%/inbound-mail'
+    # The PDFs pulled from iDoklad accounts; never below public/. Back it up with the database.
+    app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
+    # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
+    app.original_documents_dir: '%kernel.share_dir%/original-documents'
 
 services:
     # default configuration for services in *this* file
@@ -65,6 +69,9 @@ services:
         # A country module plugs into banking with the parsers of its banks' mail.
         App\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
+        # The stages of an iDoklad import; each one orders itself.
+        App\Idoklad\Application\Import\ImportStage:
+            tags: ['app.idoklad_import_stage']
 
     App\Party\Application\RegistrationNumberFactory:
         arguments:
@@ -174,6 +181,8 @@ services:
         alias: limiter.inbound_mail_relay
     test.invoice_balances:
         alias: App\Invoicing\Application\InvoiceBalances
+    test.idoklad_import:
+        alias: App\Idoklad\Application\Import\RunIdokladImport
 
     App\Shared\Infrastructure\Registry\RegistryCache:
         arguments:
@@ -234,6 +243,44 @@ services:
     App\Invoicing\Infrastructure\Mail\DiskSentFiles:
         arguments:
             $root: '%app.sent_documents_dir%'
+    App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
+        arguments:
+            $root: '%app.original_documents_dir%'
+    # Drawn documents, except an imported one that kept the PDF of its source.
+    App\Invoicing\Application\InvoicePdf:
+        alias: App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
+    App\Invoicing\Infrastructure\Pdf\OriginalFirstInvoicePdf:
+        decorates: App\Invoicing\Application\InvoicePdf
+        arguments:
+            $drawn: '@.inner'
+
+    # The importer reads iDoklad accounts; only GET of read-only paths, see ReadOnlyPaths.
+    App\Idoklad\Application\IdokladClient:
+        alias: App\Idoklad\Infrastructure\Http\HttpIdokladClient
+    App\Idoklad\Application\IdokladConnections:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
+    App\Idoklad\Application\IdokladSnapshot:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
+    App\Idoklad\Application\IdokladFiles:
+        alias: App\Idoklad\Infrastructure\Files\DiskIdokladFiles
+    App\Idoklad\Infrastructure\Files\DiskIdokladFiles:
+        arguments:
+            $root: '%app.idoklad_files_dir%'
+    App\Idoklad\Application\IdokladJobs:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladJobs
+    App\Idoklad\Application\IdokladQueue:
+        alias: App\Idoklad\Infrastructure\Messenger\MessengerIdokladQueue
+    App\Idoklad\Application\Import\IdokladLinks:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladLinks
+    App\Idoklad\Application\Import\IdokladImportRuns:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladImportRuns
+    App\Idoklad\Application\Import\ImportTransaction:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineImportTransaction
+    App\Idoklad\Application\Import\ContactNames:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineContactNames
+    App\Idoklad\Application\Import\RunIdokladImport:
+        arguments:
+            $stages: !tagged_iterator app.idoklad_import_stage
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -265,6 +312,8 @@ when@e2e:
         app.mail.allow_local_links: true
         # The bank mail of the seed, gone with the e2e cache that serve.sh starts from.
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
+        # The PDFs of the seeded iDoklad pull, gone with the e2e cache too.
+        app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
 
     services:
         _defaults:
@@ -272,6 +321,14 @@ when@e2e:
             autoconfigure: true
 
         App\Ui\Controller\CatalogueController: ~
+
+        # The seed stores an iDoklad pull; no browser test ever reaches iDoklad. A client with no
+        # responses fails every request, so a pull or a key check started in a spec fails at once.
+        App\Idoklad\Infrastructure\Http\HttpIdokladClient:
+            arguments:
+                $http: !service
+                    class: Symfony\Component\HttpClient\MockHttpClient
+                    arguments: [[]]
 
         App\Party\Application\CompanyRegistry:
             alias: App\Tests\Support\Registry\FakeCompanyRegistry
@@ -355,7 +412,9 @@ when@test:
         # Inside the test cache, so a test never writes to the real share directory.
         app.firm_image_dir: '%kernel.cache_dir%/firm-images'
         app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
+        app.original_documents_dir: '%kernel.cache_dir%/original-documents'
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
+        app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
         app.mail.allow_local_links: true
 
     services:
@@ -550,6 +609,25 @@ when@test:
         App\Invoicing\Application\SentFiles:
             alias: App\Invoicing\Infrastructure\Mail\DiskSentFiles
             public: true
+        App\Invoicing\Application\ImportIssuedDocument: { public: true }
+        App\Invoicing\Application\UndoImportedDocuments: { public: true }
+        App\Invoicing\Application\OriginalDocuments:
+            alias: App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments
+            public: true
+        App\Invoicing\Application\ImportedDocuments:
+            alias: App\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments
+            public: true
+        # Public for the iDoklad tests, which pull through a mocked HTTP client.
+        App\Idoklad\Application\IdokladConnections:
+            alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladConnections
+            public: true
+        App\Idoklad\Application\IdokladSnapshot:
+            alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladSnapshot
+            public: true
+        App\Idoklad\Application\IdokladFiles:
+            alias: App\Idoklad\Infrastructure\Files\DiskIdokladFiles
+            public: true
+        App\Idoklad\Application\ConnectIdoklad: { public: true }
         App\Invoicing\Application\InvoicePayments:
             alias: App\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments
             public: true
@@ -598,6 +676,11 @@ when@test:
         # Public alias in the test env only, so the wiring of the factory can be tested.
         test.registration_number_factory:
             alias: App\Party\Application\RegistrationNumberFactory
+            public: true
+
+        # Nothing calls the iDoklad import yet; the screens that will are on their way.
+        test.idoklad_import:
+            alias: App\Idoklad\Application\Import\RunIdokladImport
             public: true
 
         # The default logger writes to stderr. Tests log expected errors (404, invalid CSRF), and

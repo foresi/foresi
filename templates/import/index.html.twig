@@ -6,6 +6,7 @@
 {% block title %}{{ 'import.history.title'|trans }}{% endblock %}
 
 {% block actions %}
+    {% if idoklad %}<twig:Ui:Button icon="download" :href="path('app_idoklad_firms')">{{ 'idoklad.entry'|trans }}</twig:Ui:Button>{% endif %}
     <twig:Ui:Button variant="primary" icon="upload" :href="path('app_import_new', newTarget ? {target: newTarget} : {})">{{ 'import.new'|trans }}</twig:Ui:Button>
 {% endblock %}
 

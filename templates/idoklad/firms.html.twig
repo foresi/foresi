@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'import.history.title'|trans, href: path('app_imports')}, {label: 'idoklad.title'|trans}] %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="grid max-w-3xl gap-4">
+        <p class="m-0 text-text">{{ 'idoklad.firms.intro'|trans }}</p>
+        <twig:Ui:DataTable :caption="'idoklad.firms.caption'|trans" :columns="columns" :rows="rows">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="building-2" :title="'idoklad.firms.empty.title'|trans" :text="'idoklad.firms.empty.text'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

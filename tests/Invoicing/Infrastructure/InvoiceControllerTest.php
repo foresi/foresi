@@ -14,6 +14,9 @@ use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\FirmInvoicingSettings;
+use App\Invoicing\Application\ImportedDocumentInput;
+use App\Invoicing\Application\ImportedTotals;
+use App\Invoicing\Application\ImportIssuedDocument;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceStore;
@@ -25,6 +28,7 @@ use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
+use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\FirmInvoicing;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PaymentSource;
@@ -38,6 +42,7 @@ use App\Invoicing\Domain\TaxOnReceiptChoice;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
+use App\Invoicing\Domain\VatRegime;
 use App\Invoicing\Infrastructure\Form\InvoiceErrorTargets;
 use App\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use App\Party\Application\ContactSettingsForFirm;
@@ -78,10 +83,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class InvoiceControllerTest extends WebTestCase
 {
-    /** Refused while saving, under the "version" or "form" field, kept for a later step, or by the tax document on a payment. */
+    /** Refused while saving, under the "version" or "form" field, kept for a later step, by the tax document on a payment, or by an import. */
     /** CorrectionRules refuses these, on the form of a corrective tax document only. */
     private const array REFUSED_FOR_CORRECTIONS = ['invoice.problem.correction_kind', 'invoice.problem.correction_link_missing', 'invoice.problem.correction_link_locked', 'invoice.problem.correction_original_invalid', 'invoice.problem.correction_firm', 'invoice.problem.correction_customer', 'invoice.problem.correction_reason_missing', 'invoice.problem.correction_type_missing', 'invoice.problem.correction_decisive_date_missing', 'invoice.problem.correction_tax_point', 'invoice.problem.correction_rate_unknown', 'invoice.problem.correction_over_original', 'invoice.problem.correction_deducted', 'invoice.problem.correction_payment_change'];
-    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted'];
+    private const array REFUSED_ELSEWHERE = ['invoice.problem.changed_meanwhile', 'invoice.problem.numbers_exhausted', 'invoice.problem.tax_document_exists', 'invoice.problem.no_tax_on_receipt', 'invoice.problem.payment_unknown', 'invoice.problem.already_deducted', 'invoice.problem.import_kind_unsupported', 'invoice.problem.tax_document_with_vat'];
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const array CUSTOMER = ['name' => 'Example Customer a.s.', 'registrationNumber' => '87654320', 'vatId' => 'CZ87654320', 'street' => 'Customer Street 2', 'city' => 'Customer City', 'postalCode' => '200 00', 'countryCode' => 'CZ', 'email' => '', 'phone' => '', 'web' => '', 'registerEntry' => ''];
@@ -693,6 +698,24 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame($this->nbsp($recount['payable']), $this->nbsp($this->client->getCrawler()->filter('[data-total="payable"]')->text()));
         self::assertSame($this->nbsp((string) $recount['rounding']), $this->nbsp($this->client->getCrawler()->filter('[data-total="rounding"]')->text()));
+    }
+
+    public function testTheSecondReducedRateIsOfferedOnlyWhereItApplies(): void
+    {
+        $this->signedIn();
+        $this->openNew();
+        self::assertSelectorNotExists('select[name="lines[0][vat]"] option[value="second_reduced"]');
+
+        $values = $this->filled(['issueDate' => '2019-06-30', 'taxPointDate' => '2019-06-30', 'dueDate' => '2019-07-14']);
+        $values['lines'] = [$this->lineValues(['price' => '1000,00', 'vat' => 'second_reduced'])];
+        $this->save($values);
+
+        $invoice = $this->onlyInvoice();
+        self::assertSame(110000, $invoice->payable()->minor());
+        $this->openEdit($invoice);
+        $selected = $this->client->getCrawler()->filter('select[name="lines[0][vat]"] option[selected]');
+        self::assertSame('second_reduced', $selected->attr('value'));
+        self::assertSame('10%', trim($selected->text()));
     }
 
     public function testRecountHidesARoundingOfZero(): void
@@ -2028,6 +2051,38 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices/'.$invoices[0]->id().'/pdf');
         $this->client->followRedirect();
         self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+    }
+
+    public function testAnImportedDocumentShowsAndServesTheOriginalOfItsSource(): void
+    {
+        $this->signedIn();
+        $pdf = "%PDF-1.4\n% the original from the source\n%%EOF\n";
+        $id = $this->scoped(function () use ($pdf): string {
+            $series = $this->em()->find(Series::class, $this->series->id()) ?? throw new \LogicException('Series.');
+            $input = new InvoiceInput($this->firm->id(), $series->id(), '20240007', $this->customer->id(), null, new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-01'), new \DateTimeImmutable('2024-03-15'), PaymentMethod::BankTransfer, self::IBAN, '20240007', '', '', '', '', '', DocumentLanguage::Czech, [new LineInput('Work', Quantity::fromString('1'), 'h', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))]);
+            $issuer = new DocumentParty('Old Name s.r.o.', '12345695', 'CZ12345695', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
+            $result = self::getContainer()->get(ImportIssuedDocument::class)->import(new ImportedDocumentInput($input, $issuer, VatRegime::Payer, TotalRounding::WholeUnit, new \DateTimeImmutable('2024-03-01 09:30'), new \DateTimeImmutable('2024-03-02'), null, new ImportedTotals(100000, 21000, 121000, 121000), 'idoklad', '4711', '0192f0a0-0000-7000-8000-000000000001', $pdf));
+
+            return $result->invoiceId ?? throw new \LogicException('Not imported.');
+        });
+
+        $this->client->request('GET', '/invoices/'.$id.'/pdf');
+        self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+        self::assertSame($pdf, $this->client->getInternalResponse()->getContent());
+
+        $this->client->request('GET', '/invoices/'.$id.'/edit');
+        self::assertSelectorTextContains('[data-imported-original]', 'This document was imported. Its PDF is the original from iDoklad.');
+    }
+
+    public function testADrawnDocumentHasNoNoteOfAnOriginal(): void
+    {
+        $this->signedIn();
+        $invoice = $this->issued();
+
+        $this->client->request('GET', '/invoices/'.$invoice->id().'/edit');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-imported-original]');
     }
 
     public function testSendAndSaveSavesThenOpensTheDialog(): void

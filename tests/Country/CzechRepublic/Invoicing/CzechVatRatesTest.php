@@ -19,6 +19,7 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\VatRateKind;
 use App\Shared\Domain\Currency;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class CzechVatRatesTest extends TestCase
@@ -44,8 +45,58 @@ final class CzechVatRatesTest extends TestCase
     public function testADateBeforeTheTableIsRefused(): void
     {
         $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No base VAT rate is defined for 2012-12-31.');
 
-        new CzechVatRates()->rate(VatRateKind::Base, new \DateTimeImmutable('2023-12-31'));
+        new CzechVatRates()->rate(VatRateKind::Base, new \DateTimeImmutable('2012-12-31 23:59:59'));
+    }
+
+    /**
+     * @return iterable<string, array{string, VatRateKind, string}>
+     */
+    public static function history(): iterable
+    {
+        yield 'base from 2013' => ['2013-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2013' => ['2013-01-01', VatRateKind::Reduced, '15.00'];
+        yield 'base to 2014' => ['2014-12-31', VatRateKind::Base, '21.00'];
+        yield 'reduced to 2014' => ['2014-12-31', VatRateKind::Reduced, '15.00'];
+        yield 'base from 2015' => ['2015-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2015' => ['2015-01-01', VatRateKind::Reduced, '15.00'];
+        yield 'second reduced from 2015' => ['2015-01-01', VatRateKind::SecondReduced, '10.00'];
+        yield 'second reduced in 2019' => ['2019-06-30', VatRateKind::SecondReduced, '10.00'];
+        yield 'base to 2023' => ['2023-12-31', VatRateKind::Base, '21.00'];
+        yield 'reduced to 2023' => ['2023-12-31 23:59:59', VatRateKind::Reduced, '15.00'];
+        yield 'second reduced to 2023' => ['2023-12-31 23:59:59', VatRateKind::SecondReduced, '10.00'];
+        yield 'base from 2024' => ['2024-01-01', VatRateKind::Base, '21.00'];
+        yield 'reduced from 2024' => ['2024-01-01', VatRateKind::Reduced, '12.00'];
+    }
+
+    #[DataProvider('history')]
+    public function testTheRateOfEachPeriod(string $on, VatRateKind $kind, string $expected): void
+    {
+        self::assertSame($expected, new CzechVatRates()->rate($kind, new \DateTimeImmutable($on))->decimal());
+    }
+
+    public function testTheSecondReducedRateStartsIn2015(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No second_reduced VAT rate is defined for 2014-12-31.');
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2014-12-31'));
+    }
+
+    public function testTheSecondReducedRateEndsIn2024(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No second_reduced VAT rate is defined for 2024-01-01.');
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2024-01-01'));
+    }
+
+    public function testTheSecondReducedRateStaysEnded(): void
+    {
+        $this->expectException(\DomainException::class);
+
+        new CzechVatRates()->rate(VatRateKind::SecondReduced, new \DateTimeImmutable('2026-10-31'));
     }
 
     public function testTheCountryAnswersForCzechia(): void

@@ -42,10 +42,12 @@ final readonly class RecurringRules
     /**
      * @param RecurringInvoice|null $existing the template being edited
      * @param \DateTimeImmutable    $today    the tenant's today
+     * @param RecurringHistory|null $history  what an imported template issued elsewhere: its first
+     *                                        issue date may have passed, and it may have ended there
      *
      * @return list<IssueProblem> empty when the template may be saved
      */
-    public function check(RecurringInput $input, LegalEntity $firm, ?RecurringInvoice $existing, \DateTimeImmutable $today): array
+    public function check(RecurringInput $input, LegalEntity $firm, ?RecurringInvoice $existing, \DateTimeImmutable $today, ?RecurringHistory $history = null): array
     {
         $problems = [
             ...$this->firm($input, $firm, $existing),
@@ -60,14 +62,15 @@ final readonly class RecurringRules
                 ...$this->shared->lineTexts($input->lines),
             ]),
         ];
-        [$scheduleProblems, $next] = $this->schedule($input, $existing, $today);
+        [$scheduleProblems, $next] = $this->schedule($input, $existing, $today, $history);
         $problems = [...$problems, ...$scheduleProblems];
         try {
             $country = $this->countries->for($firm->address()->countryCode);
         } catch (UnsupportedCountry) {
             return [...$problems, new IssueProblem('firm', 'invoice.problem.firm_country_unsupported')];
         }
-        $taxPoint = $next instanceof \DateTimeImmutable ? $input->taxPoint->for($next) : null;
+        // An ended import issues nothing more; its lines are checked on its last issue.
+        $taxPoint = $next instanceof \DateTimeImmutable ? $input->taxPoint->for($next) : ($history instanceof RecurringHistory ? $input->taxPoint->for($history->lastOccurrence ?? $today) : null);
         $regime = VatRegime::of($firm->vatStatus());
         $problems = [...$problems, ...$this->shared->lines($input->lines, $regime, $country, $customer?->vatId()?->toString(), $firm->address()->countryCode, $taxPoint)];
         if ([] !== $problems || !$taxPoint instanceof \DateTimeImmutable) {
@@ -166,17 +169,20 @@ final readonly class RecurringRules
     /**
      * @return array{list<IssueProblem>, \DateTimeImmutable|null} the problems and the next date the template would have
      */
-    private function schedule(RecurringInput $input, ?RecurringInvoice $existing, \DateTimeImmutable $today): array
+    private function schedule(RecurringInput $input, ?RecurringInvoice $existing, \DateTimeImmutable $today, ?RecurringHistory $history): array
     {
         $problems = [];
         $first = $input->recurrence->firstIssueOn()->format('Y-m-d');
-        // An edit keeps a first date that has passed; only a new one must lie ahead.
+        // An edit keeps a first date that has passed, and so does an import; only a new one must lie ahead.
         $changed = !$existing instanceof RecurringInvoice || $first !== $existing->recurrence()->firstIssueOn()->format('Y-m-d');
-        if ($changed && $first < $today->format('Y-m-d')) {
+        if ($changed && !$history instanceof RecurringHistory && $first < $today->format('Y-m-d')) {
             $problems[] = new IssueProblem('recurrence.firstIssueOn', 'recurring.problem.first_issue_past');
         }
         if ($input->dueDays < 0 || $input->dueDays > RecurringInvoice::MAX_DUE_DAYS) {
             $problems[] = new IssueProblem('dueDays', 'recurring.problem.due_days_invalid');
+        }
+        if ($history instanceof RecurringHistory) {
+            return [$problems, RecurringInvoice::occurrenceAfter($input->recurrence, $history->issuedCount, $history->lastOccurrence)];
         }
         $next = $existing instanceof RecurringInvoice
             ? $existing->nextOccurrenceUnder($input->recurrence, $today)

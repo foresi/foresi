@@ -52,6 +52,7 @@ final readonly class InvoiceFormReader
     /** The choices of the VAT cell; "none" is the only one of a form without VAT. */
     public const string VAT_BASE = 'base';
     public const string VAT_REDUCED = 'reduced';
+    public const string VAT_SECOND_REDUCED = 'second_reduced';
     public const string VAT_REVERSE_CHARGE = 'reverse_charge';
     public const string VAT_EXEMPT = 'exempt';
     public const string VAT_NONE = 'none';
@@ -296,6 +297,7 @@ final readonly class InvoiceFormReader
         return match ($choice) {
             self::VAT_BASE => [TaxTreatment::Standard, VatRateKind::Base],
             self::VAT_REDUCED => [TaxTreatment::Standard, VatRateKind::Reduced],
+            self::VAT_SECOND_REDUCED => [TaxTreatment::Standard, VatRateKind::SecondReduced],
             self::VAT_REVERSE_CHARGE => [TaxTreatment::ReverseCharge, null],
             self::VAT_EXEMPT => [TaxTreatment::Exempt, null],
             self::VAT_NONE => [TaxTreatment::NotApplicable, null],

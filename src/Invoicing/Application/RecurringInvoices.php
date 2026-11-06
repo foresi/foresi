@@ -63,7 +63,8 @@ interface RecurringInvoices
     public function add(RecurringInvoice $template): void;
 
     /**
-     * Only a template that never issued an invoice; its lines go with it.
+     * Only a template that never issued an invoice, or an untouched import, which
+     * issued only in the system it came from; its lines go with it.
      */
     public function remove(RecurringInvoice $template): void;
 

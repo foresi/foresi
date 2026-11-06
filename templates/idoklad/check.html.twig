@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'idoklad/_flow.html.twig' %}
+
+{% set form_invalid = remindError is not null %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block screen %}
+    {% if jobError %}
+        <twig:Ui:Alert tone="error" role="alert" :title="'idoklad.check.failed'|trans" data-job-error>{{ jobError }}</twig:Ui:Alert>
+    {% endif %}
+    {% if stale %}
+        <twig:Ui:Alert tone="warning">{{ 'idoklad.check.stale'|trans }}</twig:Ui:Alert>
+    {% endif %}
+
+    <p class="m-0 text-text">{{ 'idoklad.check.intro'|trans({date: run.startedAt|date('format.datetime'|trans)}) }}</p>
+
+    {% include 'idoklad/_report.html.twig' %}
+
+    <form method="post" action="{{ path('app_idoklad_run_start', {id: firm.id}) }}" id="idoklad-run" class="grid gap-4 [&>*]:min-w-0" novalidate
+          data-turbo-confirm="{{ 'idoklad.run.confirm'|trans }}"
+          data-confirm-text="{{ 'idoklad.run.confirm_text'|trans({created: report.created, refused: report.refusedCount, mismatch: report.mismatchCount}) }}"
+          data-confirm-accept="{{ 'idoklad.run.confirm_accept'|trans }}"
+          data-confirm-cancel="{{ 'idoklad.run.confirm_cancel'|trans }}">
+        <input type="hidden" name="_token" value="{{ token }}">
+
+        <twig:Ui:Card :title="'idoklad.check.reminders.title'|trans" icon="bell-ring" data-reminders>
+            <div class="grid gap-3 sm:max-w-xl">
+                <p class="m-0 text-text" data-overdue>{{ 'idoklad.check.reminders.overdue'|trans({count: report.overdue}) }}</p>
+                <twig:Ui:TextInput type="date" name="remind_from" id="remind_from" :label="'idoklad.check.reminders.from'|trans" :help="'idoklad.check.reminders.from_help'|trans" :value="remindFrom" :error="remindError" required />
+            </div>
+        </twig:Ui:Card>
+    </form>
+
+    <twig:Ui:ActionBar>
+        <form method="post" action="{{ path('app_idoklad_check_start', {id: firm.id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="refresh-cw">{{ 'idoklad.check.again'|trans }}</twig:Ui:Button>
+        </form>
+        <twig:Ui:Button type="submit" variant="primary" icon="send" form="idoklad-run">{{ 'idoklad.check.run'|trans }}</twig:Ui:Button>
+    </twig:Ui:ActionBar>
+{% endblock %}

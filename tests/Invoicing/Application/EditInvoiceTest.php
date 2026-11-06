@@ -351,7 +351,7 @@ final class EditInvoiceTest extends InvoiceTestCase
     {
         $invoice = $this->issue->issue($this->input());
 
-        $this->assertRefusedFor('invoice.problem.line_rate_missing', fn () => $this->edited($invoice, $this->input(overrides: ['taxPointDate' => new \DateTimeImmutable('2023-12-31')])));
+        $this->assertRefusedFor('invoice.problem.line_rate_missing', fn () => $this->edited($invoice, $this->input(overrides: ['taxPointDate' => new \DateTimeImmutable('2012-12-31')])));
 
         $this->edited($invoice, $this->input([$this->line(kind: VatRateKind::Reduced)], ['taxPointDate' => new \DateTimeImmutable('2024-01-01')]));
         $invoice = $this->reloaded($invoice);

@@ -123,6 +123,26 @@ final class IssueInvoiceTest extends InvoiceTestCase
         self::assertSame('h', $lines[1]->unit());
     }
 
+    public function testAnInvoiceOf2019IsPricedAtTheRatesOfThatYear(): void
+    {
+        $invoice = $this->issue->issue($this->input([
+            $this->line('1000.00'),
+            $this->line('1000.00', kind: VatRateKind::Reduced),
+            $this->line('1000.00', kind: VatRateKind::SecondReduced),
+        ], ['taxPointDate' => new \DateTimeImmutable('2019-06-30')]));
+
+        $lines = $this->store->lines($this->reloaded($invoice));
+
+        self::assertSame(['21.00', '15.00', '10.00'], array_map(static fn (InvoiceLine $line): ?string => $line->rate()?->decimal(), $lines));
+        self::assertSame([21000, 15000, 10000], array_map(static fn (InvoiceLine $line): int => $line->vat()->minor(), $lines));
+        self::assertSame(VatRateKind::SecondReduced, $lines[2]->rateKind());
+    }
+
+    public function testTheSecondReducedRateIsRefusedFrom2024(): void
+    {
+        $this->assertRefusedFor('invoice.problem.line_rate_missing', fn (): Invoice => $this->issue->issue($this->input([$this->line(kind: VatRateKind::SecondReduced)], ['taxPointDate' => new \DateTimeImmutable('2024-01-01')])));
+    }
+
     public function testARatedLineNeedsARateKindForAPayer(): void
     {
         $this->assertRefusedFor('invoice.problem.line_rate_missing', fn (): Invoice => $this->issue->issue($this->input([$this->line(kind: null)])));
@@ -130,7 +150,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testARatedLineNeedsARateOnTheTaxPoint(): void
     {
-        $this->assertRefusedFor('invoice.problem.line_rate_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['taxPointDate' => new \DateTimeImmutable('2023-12-31')])));
+        $this->assertRefusedFor('invoice.problem.line_rate_missing', fn (): Invoice => $this->issue->issue($this->input(overrides: ['taxPointDate' => new \DateTimeImmutable('2012-12-31')])));
     }
 
     public function testTheRateFollowsTheCalendarDateOfTheTaxPoint(): void

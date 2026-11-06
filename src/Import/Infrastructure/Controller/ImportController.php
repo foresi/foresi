@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Import\Application\CancelImport;
 use App\Import\Application\CheckImport;
 use App\Import\Application\ConfigureImport;
@@ -72,6 +73,7 @@ final class ImportController extends AbstractController
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -84,6 +86,8 @@ final class ImportController extends AbstractController
             'columns' => $this->screens->historyColumns(),
             'rows' => $this->screens->historyRows($this->imports->history(self::HISTORY_LIMIT)),
             'newTarget' => $this->defaultTarget()?->key(),
+            // The move from iDoklad is the owner's, as the invoicing settings are.
+            'idoklad' => $this->owner->isOwner(),
         ]);
     }
 

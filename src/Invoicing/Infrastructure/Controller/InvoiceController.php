@@ -655,6 +655,8 @@ final class InvoiceController extends AbstractController
             // Delivered before its payment was cancelled: it needs a corrective document.
             'needsCorrection' => $invoice instanceof Invoice && $this->taxCorrections->due($invoice) instanceof CorrectionDue,
             'changedAfterSend' => $this->changedAfterSend($context),
+            // The PDF of an imported document that kept the one of its source is that one.
+            'originalSource' => null === $invoice?->originalPdfKey() ? null : $invoice->importSource(),
             'payer' => $context->isPayer(),
             'kind' => $context->kind->value,
             'listRoute' => InvoiceListController::ROUTES[$context->kind->value],

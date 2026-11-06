@@ -47,6 +47,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Import/Domain'
                 prefix: 'App\Import\Domain'
                 alias: Import
+            Idoklad:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Idoklad/Domain'
+                prefix: 'App\Idoklad\Domain'
+                alias: Idoklad
             Identity:
                 type: attribute
                 is_bundle: false
