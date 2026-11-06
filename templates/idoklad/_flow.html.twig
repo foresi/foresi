@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The frame of every step of the move from iDoklad: the step indicator, the messages of the last action and the screen.
+    Variables: firm, stepper ({steps, current}), crumbs; screens fill the block "screen".
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set token = csrf_token(constant('App\\Idoklad\\Infrastructure\\Controller\\IdokladImportController::TOKEN')) %}
+
+{% block actions %}
+    <twig:Ui:Button icon="history" :href="path('app_idoklad_history', {id: firm.id})">{{ 'idoklad.history.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    <div class="grid min-w-0 max-w-5xl gap-4 [&>*]:min-w-0">
+        <twig:Ui:Stepper :steps="stepper.steps" :current="stepper.current" :label="'idoklad.steps.label'|trans" class="mb-1" />
+        {% for message in app.flashes('error') %}
+            <twig:Ui:Alert tone="error">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+        {% for message in app.flashes('success') %}
+            <twig:Ui:Alert tone="success">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+        {% block screen %}{% endblock %}
+    </div>
+{% endblock %}

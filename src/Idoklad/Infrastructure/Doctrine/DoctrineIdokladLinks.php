@@ -25,6 +25,16 @@ final readonly class DoctrineIdokladLinks implements IdokladLinks
         return $this->em->getRepository(IdokladLink::class)->findOneBy(['firm' => $firm, 'resource' => $resource, 'externalId' => $externalId]);
     }
 
+    public function ofRun(LegalEntity $firm, string $runId): array
+    {
+        return $this->em->getRepository(IdokladLink::class)->findBy(['firm' => $firm, 'runId' => $runId], ['resource' => 'ASC', 'externalId' => 'ASC']);
+    }
+
+    public function remove(IdokladLink $link): void
+    {
+        $this->em->remove($link);
+    }
+
     public function add(IdokladLink $link): void
     {
         // Flushed at once, so the next record of the run finds it.

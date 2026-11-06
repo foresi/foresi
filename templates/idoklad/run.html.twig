@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'idoklad/_flow.html.twig' %}
+
+{% block title %}{{ ('idoklad.run.mode.' ~ run.mode.value)|trans }}{% endblock %}
+
+{% block screen %}
+    {% if run.undoneAt %}
+        <twig:Ui:Alert tone="info" data-run-undone>{{ 'idoklad.run.undone_at'|trans({date: run.undoneAt|date('format.datetime'|trans)}) }}</twig:Ui:Alert>
+    {% elseif run.mode.value == 'run' and not report.error %}
+        <twig:Ui:Alert tone="success" data-run-outcome>{{ 'idoklad.run.done'|trans({count: report.created}) }}</twig:Ui:Alert>
+    {% endif %}
+
+    {% if blockers is not empty %}
+        <twig:Ui:Alert tone="error" role="alert" :title="'idoklad.undo.refused'|trans" data-undo-blockers>
+            <ul class="m-0 list-none p-0">
+                {% for blocker in blockers %}<li><span class="font-medium">{{ blocker.title }}</span>: {{ blocker.reason }}</li>{% endfor %}
+            </ul>
+        </twig:Ui:Alert>
+    {% endif %}
+
+    {% include 'idoklad/_report.html.twig' %}
+
+    {% if undoable %}
+        <twig:Ui:Card :title="'idoklad.undo.title'|trans" icon="archive-restore">
+            <p class="mb-1 mt-0 text-text">{{ 'idoklad.undo.text'|trans }}</p>
+            <p class="m-0 text-small text-muted">{{ 'idoklad.undo.deadline'|trans({date: undoDeadline}) }}</p>
+        </twig:Ui:Card>
+    {% endif %}
+
+    <twig:Ui:ActionBar>
+        {% if undoable %}
+            <form method="post" action="{{ path('app_idoklad_undo', {id: firm.id, run: run.id}) }}" data-turbo-confirm="{{ 'idoklad.undo.confirm'|trans }}" data-confirm-text="{{ 'idoklad.undo.confirm_text'|trans }}" data-confirm-accept="{{ 'idoklad.undo.confirm_accept'|trans }}" data-confirm-cancel="{{ 'idoklad.undo.confirm_cancel'|trans }}" data-confirm-tone="danger">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" icon="archive-restore">{{ 'idoklad.undo.button'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+        <twig:Ui:Button variant="primary" icon="check" :href="path('app_invoices')">{{ 'idoklad.run.to_invoices'|trans }}</twig:Ui:Button>
+    </twig:Ui:ActionBar>
+{% endblock %}

@@ -50,6 +50,10 @@ class IdokladImportRun implements TenantOwned
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $error = null;
 
+    /** When what the run brought was taken back. */
+    #[ORM\Column(name: 'undone_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $undoneAt = null;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
         #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
@@ -74,6 +78,11 @@ class IdokladImportRun implements TenantOwned
         $this->counts = $report->counts();
         $this->report = $report->entries();
         $this->error = null === $error ? null : mb_substr($error, 0, 255);
+    }
+
+    public function markUndone(\DateTimeImmutable $at): void
+    {
+        $this->undoneAt = $at;
     }
 
     public function id(): string
@@ -125,6 +134,11 @@ class IdokladImportRun implements TenantOwned
     public function error(): ?string
     {
         return $this->error;
+    }
+
+    public function undoneAt(): ?\DateTimeImmutable
+    {
+        return $this->undoneAt;
     }
 
     public function tenantId(): TenantId

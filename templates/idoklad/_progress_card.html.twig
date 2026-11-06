@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The state of the job that waits or runs. Variables: job, badge, pull (the latest pull of a pull job, or null). #}
+<div data-progress-active="{{ job.state.busy ? 'true' : 'false' }}" data-progress-state="{{ job.state.value }}">
+    <twig:Ui:Card :title="('idoklad.job.kind.' ~ job.kind.value)|trans" icon="clock-3" class="max-w-2xl">
+        <twig:block name="actions"><twig:Ui:Badge :tone="badge.tone" data-job-state>{{ badge.label }}</twig:Ui:Badge></twig:block>
+        <div class="grid gap-3">
+            <p class="m-0 text-text">{{ ('idoklad.job.text.' ~ job.state.value)|trans }}</p>
+            {% if pull and job.state.value == 'running' %}
+                <twig:Ui:DescriptionList :items="pull.items" />
+            {% endif %}
+            <p class="m-0 text-small text-muted">{{ 'import.progress.leave'|trans }}</p>
+        </div>
+    </twig:Ui:Card>
+</div>

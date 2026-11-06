@@ -60,6 +60,8 @@ framework:
             App\Import\Application\Message\RunImportChunk: async
             App\Import\Application\Message\ArchiveMissing: async
             App\Import\Application\Message\UndoImportChunk: async
+            # The pulls, checks and runs of the move from iDoklad.
+            App\Idoklad\Application\Message\ProcessIdokladJob: async
             # Imported contacts are checked in the public registers later, at low priority.
             App\Party\Application\RecheckRegistry: registry
             # Timed work: the schedule ticks, and each due job runs in its tenant.

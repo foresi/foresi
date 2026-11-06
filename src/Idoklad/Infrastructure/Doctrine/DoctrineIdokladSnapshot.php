@@ -48,6 +48,11 @@ final readonly class DoctrineIdokladSnapshot implements IdokladSnapshot
         return $pull instanceof IdokladPull ? $pull : null;
     }
 
+    public function pulls(LegalEntity $firm): array
+    {
+        return $this->em->getRepository(IdokladPull::class)->findBy(['firm' => $firm], ['startedAt' => 'DESC', 'id' => 'DESC']);
+    }
+
     public function add(IdokladRecord|IdokladPull $entity): void
     {
         $this->em->persist($entity);

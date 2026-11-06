@@ -108,6 +108,16 @@ class FirmReminders implements TenantOwned, Audited, AuditRooted
         $this->minimumCurrency = $minimum?->currency();
     }
 
+    /**
+     * Moves the day from which due invoices are reminded, as a move from another
+     * system sets it to the day of the move: invoices due before it were the other
+     * system's to remind. Switching reminders on later moves it to that day again.
+     */
+    public function remindFrom(\DateTimeImmutable $day): void
+    {
+        $this->enabledOn = new \DateTimeImmutable($day->format('Y-m-d'));
+    }
+
     public function remindAdvances(bool $remind): void
     {
         $this->remindAdvances = $remind;

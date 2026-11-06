@@ -1,0 +1,21 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Records of a report grouped by section, each with its reasons and values. Variables: groups, kind (refused or mismatch). #}
+{% for group in groups %}
+    <section aria-labelledby="{{ kind }}-{{ group.stage }}" data-report-group="{{ kind }}-{{ group.stage }}">
+        <h4 id="{{ kind }}-{{ group.stage }}" class="mb-1 mt-0 text-small font-semibold text-ink">{{ group.label }} <span class="num font-normal text-muted">({{ group.records|length }})</span></h4>
+        <ul class="m-0 list-none divide-y divide-divider p-0">
+            {% for record in group.records %}
+                <li class="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-4" data-report-record>
+                    <div class="min-w-0">
+                        <span class="block truncate font-medium text-ink" title="{{ record.title }}">{{ record.title }}</span>
+                        {% if record.customer %}<span class="block truncate text-small text-muted" title="{{ record.customer }}">{{ record.customer }}</span>{% endif %}
+                    </div>
+                    <ul class="m-0 list-none p-0 text-text">
+                        {% for reason in record.reasons %}<li>{{ reason }}</li>{% endfor %}
+                        {% for value in record.values %}<li class="num text-small text-muted">{{ value }}</li>{% endfor %}
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endfor %}

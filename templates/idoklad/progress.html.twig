@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'idoklad/_flow.html.twig' %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block screen %}
+    <turbo-frame id="idoklad-progress" data-controller="import-progress" data-import-progress-url-value="{{ path('app_idoklad_progress', {id: firm.id}) }}" data-import-progress-done-value="{{ path('app_idoklad', {id: firm.id}) }}">
+        {% include 'idoklad/_progress_card.html.twig' %}
+    </turbo-frame>
+{% endblock %}

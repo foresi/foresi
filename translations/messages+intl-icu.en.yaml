@@ -2651,3 +2651,207 @@ idoklad:
             note_not_carried: The note of the template is not carried over; templates in Foresi have no note.
             fixed_variable_symbol: iDoklad kept one variable symbol for every invoice; in Foresi each invoice takes its number.
             rounding_item_skipped: The rounding item is left out; Foresi rounds the total by the firm's setting.
+    title: Move from iDoklad
+    entry: Move from iDoklad
+    firms:
+        intro: Choose the firm whose iDoklad account you are moving.
+        caption: Firms
+        column:
+            name: Firm
+        empty:
+            title: No firm yet
+            text: Add your firm first, then move its iDoklad account.
+    steps:
+        label: Steps of the move
+        connect: Connect
+        pull: Download
+        check: Check
+        run: Import
+        result: Result
+    connect:
+        card: iDoklad API keys
+        intro: In iDoklad, open Settings → Applications → API. It needs the Oblíbený or Prémiový tariff.
+        read_only: Foresi only reads from iDoklad; it never changes or sends anything there.
+        client_id: Client ID
+        client_id_help: As iDoklad shows it under API
+        client_secret: Client secret
+        client_secret_help: Stored encrypted, never shown again
+        client_secret_again: Type it again to change the keys
+        submit: Connect
+        back: Back
+        error:
+            client_id: Fill in the client ID.
+            client_secret: Fill in the client secret.
+        flash:
+            connected: iDoklad is connected.
+            disconnected: The iDoklad keys are deleted.
+    disconnect:
+        button: Disconnect
+        confirm: Disconnect iDoklad?
+        confirm_text: The keys are deleted. Downloaded data and imported records stay.
+        confirm_accept: Disconnect
+        confirm_cancel: Keep
+    error:
+        access_denied: iDoklad refused the client ID or the client secret. Check them in iDoklad under Settings → Applications → API.
+        tariff: The tariff of this iDoklad account has no API access, or it expired. The API needs Oblíbený or Prémiový.
+        not_connected: iDoklad is not connected; connect it first.
+        unexpected: The job stopped on an unexpected error. Try again later.
+    pull:
+        connection: Connection
+        change_keys: Change keys
+        disconnected: iDoklad is not connected. Downloaded data stays.
+        quota: API requests this month
+        quota_used: '{used, number} of {limit, number} requests used'
+        quota_help: The limit depends on the tariff; Oblíbený has 7,500 a month.
+        latest: Last download
+        first: Nothing downloaded yet
+        first_text: Foresi copies your iDoklad account, then the PDFs of the documents. It takes a few minutes.
+        failed: The download stopped
+        started: Started
+        kind: Download
+        kind_full: Whole account
+        kind_changes: Changes
+        requests: Requests used
+        column:
+            list: List
+            records: Records
+        start: Download data
+        changes: Download changes
+        check: Check the import
+    job:
+        kind:
+            pull: Downloading the account
+            changes: Downloading changes
+            check: Checking the import
+            run: Importing
+        state:
+            pending: Waiting
+            running: Running
+            done: Done
+            failed: Failed
+        text:
+            pending: Waiting for a free worker; it starts in a moment.
+            running: Working on it. The page updates by itself.
+            done: Done.
+            failed: Stopped.
+    resource:
+        Contacts: Contacts
+        NumericSequences: Number series
+        IssuedInvoices: Issued invoices
+        ProformaInvoices: Proforma invoices
+        IssuedTaxDocuments: Tax documents on payment
+        CreditNotes: Credit notes
+        RecurringInvoices: Recurring invoices
+        IssuedDocumentPayments: Payments
+        Logs: Log
+        Countries: Countries
+        Currencies: Currencies
+        PaymentOptions: Payment options
+        ConstantSymbols: Constant symbols
+        BankAccounts: Bank accounts
+    stage:
+        contacts: Contacts
+        series: Number series
+        documents: Documents
+        payments: Payments
+        recurring: Recurring invoices
+    outcome:
+        created: Created
+        matched: Matched
+        already_linked: Linked before
+        refused: Refused
+        mismatch: Differs
+    report:
+        failed: The import stopped; nothing was stored
+        stages: By section
+        years: Documents by year
+        years_help: Totals with VAT, as iDoklad states them.
+        no_documents: No documents downloaded.
+        refused: Refused records
+        mismatch: Records whose totals differ
+        templates: Next issues of recurring invoices
+        templates_help: Templates come paused; resume each one when it suits you.
+        record: 'Record {id}'
+        difference: '{total}: iDoklad {expected}, Foresi {computed}'
+        total:
+            net: Without VAT
+            vat: VAT
+            gross: With VAT
+            payable: To pay
+        column:
+            stage: Section
+            year: Year
+            idoklad: In iDoklad
+            idokladSum: Total in iDoklad
+            foresi: Imported
+            foresiSum: Total imported
+    value:
+        currency: Currency
+        payment_option: Payment option
+        name: Name
+        number_format: Number format
+        year: Year
+        last_number: Last number
+        series_format: Series format
+        next_issue: Next issue in Foresi
+        idoklad_next_issue: Next issue in iDoklad
+    check:
+        intro: 'Check of {date}: what an import would do. Nothing is stored yet.'
+        stale: Data was downloaded again since this check. Check again before importing.
+        failed: The check stopped
+        again: Check again
+        run: Import
+        reminders:
+            title: Reminders
+            overdue: '{count, plural, =0 {No imported invoice is overdue and unpaid.} one {# imported invoice is overdue and unpaid.} other {# imported invoices are overdue and unpaid.}}'
+            from: Send reminders for invoices due from
+            from_help: Older invoices stay without reminders
+            invalid: Enter a date.
+    run:
+        confirm: Import from iDoklad?
+        confirm_text: '{created, plural, one {# record is created} other {# records are created}}, {refused, number} refused, {mismatch, number} differ. You can undo it for 30 days.'
+        confirm_accept: Import
+        confirm_cancel: Not yet
+        mode:
+            check: Check
+            run: Import
+        done: '{count, plural, one {# record was imported.} other {# records were imported.}}'
+        undone: Undone
+        undone_at: 'The import was undone on {date}.'
+        to_invoices: Go to invoices
+    undo:
+        title: Undo the import
+        text: Removes the imported documents, payments and untouched recurring invoices. Contacts and series stay.
+        deadline: 'Possible until {date}.'
+        button: Undo import
+        confirm: Undo the import?
+        confirm_text: The documents, payments and untouched recurring invoices of this import are deleted for good.
+        confirm_accept: Undo
+        confirm_cancel: Keep
+        refused: The import cannot be undone
+        unavailable: This import can no longer be undone.
+        payment: A payment
+        flash:
+            done: The import was undone.
+        blocker:
+            expired: the 30 days are over
+            changed: changed since the import
+            exported: exported for the accountant since
+            payments: has payments recorded here
+            sends: was sent from Foresi
+            corrections: has a correction
+            tax_documents: has a tax document on payment
+            deductions: is deducted by another document
+            cancelled: was cancelled here
+    history:
+        title: History of the move
+        back: Back to the move
+        column:
+            when: When
+            what: What
+            records: Records
+            requests: Requests
+            state: State
+        empty:
+            title: Nothing yet
+            text: Downloads and imports from iDoklad show here.

@@ -347,6 +347,8 @@ deptrac:
       # The import writes contacts through the contact import target, as a file import does.
       - ImportApplication
       - ImportDomain
+      # The jobs of the move run in the tenant that asked for them.
+      - TenancyApplication
     IdokladInfrastructure:
       - IdokladDomain
       - IdokladApplication
@@ -356,6 +358,10 @@ deptrac:
       - VendorDoctrine
       - SharedDomain
       - PartyDomain
+      # The screens of the move: for the owner, of a firm, with the blockers of an undo and amounts as documents print them.
+      - PartyApplication
+      - IdentityApplication
+      - InvoicingApplication
     IdentityDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

@@ -16,6 +16,9 @@ interface IdokladImportRuns
 {
     public function add(IdokladImportRun $run): void;
 
+    /** Also null for a run of another tenant. */
+    public function find(string $id): ?IdokladImportRun;
+
     /**
      * The latest first.
      *

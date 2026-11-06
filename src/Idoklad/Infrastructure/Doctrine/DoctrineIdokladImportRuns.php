@@ -24,6 +24,11 @@ final readonly class DoctrineIdokladImportRuns implements IdokladImportRuns
         $this->em->persist($run);
     }
 
+    public function find(string $id): ?IdokladImportRun
+    {
+        return $this->em->find(IdokladImportRun::class, $id);
+    }
+
     /** Ids are ordered by time, so they also order runs that started in the same second. */
     public function forFirm(LegalEntity $firm): array
     {

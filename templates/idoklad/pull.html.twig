@@ -1,0 +1,66 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'idoklad/_flow.html.twig' %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block screen %}
+    {% if jobError %}
+        <twig:Ui:Alert tone="error" role="alert" :title="'idoklad.pull.failed'|trans" data-job-error>{{ jobError }}</twig:Ui:Alert>
+    {% endif %}
+
+    <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <twig:Ui:Card :title="'idoklad.pull.connection'|trans" icon="key-round">
+            <twig:block name="actions">
+                {% if connection %}
+                    <twig:Ui:Button size="sm" variant="ghost" icon="pencil" :href="path('app_idoklad_connect', {id: firm.id})">{{ 'idoklad.pull.change_keys'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </twig:block>
+            {% if connection %}
+                <twig:Ui:DescriptionList :items="[{label: 'idoklad.connect.client_id'|trans, value: connection.clientId}]" />
+                <form method="post" action="{{ path('app_idoklad_disconnect', {id: firm.id}) }}" class="mt-3" data-turbo-confirm="{{ 'idoklad.disconnect.confirm'|trans }}" data-confirm-text="{{ 'idoklad.disconnect.confirm_text'|trans }}" data-confirm-accept="{{ 'idoklad.disconnect.confirm_accept'|trans }}" data-confirm-cancel="{{ 'idoklad.disconnect.confirm_cancel'|trans }}" data-confirm-tone="danger">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" size="sm" icon="x">{{ 'idoklad.disconnect.button'|trans }}</twig:Ui:Button>
+                </form>
+            {% else %}
+                <p class="mb-3 mt-0 text-text">{{ 'idoklad.pull.disconnected'|trans }}</p>
+                <twig:Ui:Button size="sm" icon="plug" :href="path('app_idoklad_connect', {id: firm.id})">{{ 'idoklad.connect.submit'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'idoklad.pull.quota'|trans" icon="chart-column">
+            <p class="m-0 text-text" data-quota>{{ 'idoklad.pull.quota_used'|trans({used: pull.requestsMonth|default(0), limit: quota}) }}</p>
+            <p class="mb-0 mt-1 text-small text-muted">{{ 'idoklad.pull.quota_help'|trans }}</p>
+        </twig:Ui:Card>
+    </div>
+
+    {% if pull %}
+        <twig:Ui:Card :title="'idoklad.pull.latest'|trans" icon="download">
+            <twig:block name="actions"><twig:Ui:Badge :tone="pull.state.tone" data-pull-state>{{ pull.state.label }}</twig:Ui:Badge></twig:block>
+            <div class="grid gap-3">
+                {% if pull.error %}<twig:Ui:Alert tone="error">{{ pull.error|trans }}</twig:Ui:Alert>{% endif %}
+                <twig:Ui:DescriptionList :items="pull.items" />
+                <twig:Ui:DataTable :caption="'idoklad.pull.latest'|trans" :columns="pull.columns" :rows="pull.rows" />
+            </div>
+        </twig:Ui:Card>
+    {% else %}
+        <twig:Ui:Card :title="'idoklad.pull.first'|trans" icon="download">
+            <p class="m-0 text-text">{{ 'idoklad.pull.first_text'|trans }}</p>
+        </twig:Ui:Card>
+    {% endif %}
+
+    <twig:Ui:ActionBar>
+        {% if connection %}
+            <form method="post" action="{{ path('app_idoklad_pull_start', {id: firm.id}) }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                {% if canCheck %}<input type="hidden" name="changes" value="1">{% endif %}
+                <twig:Ui:Button type="submit" :variant="canCheck ? 'secondary' : 'primary'" icon="refresh-cw">{{ (canCheck ? 'idoklad.pull.changes' : 'idoklad.pull.start')|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+        {% if canCheck %}
+            <form method="post" action="{{ path('app_idoklad_check_start', {id: firm.id}) }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" variant="primary" icon="square-check-big">{{ 'idoklad.pull.check'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    </twig:Ui:ActionBar>
+{% endblock %}

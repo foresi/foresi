@@ -2651,3 +2651,207 @@ idoklad:
             note_not_carried: Poznámka vzoru se nepřenáší; vzory ve Foresi poznámku nemají.
             fixed_variable_symbol: iDoklad dával všem fakturám jeden variabilní symbol; ve Foresi má každá faktura svoje číslo.
             rounding_item_skipped: Položka zaokrouhlení se vynechává; Foresi zaokrouhlí celkem podle nastavení firmy.
+    title: Přesun z iDokladu
+    entry: Přesun z iDokladu
+    firms:
+        intro: Vyberte firmu, jejíž účet iDokladu přesouváte.
+        caption: Firmy
+        column:
+            name: Firma
+        empty:
+            title: Zatím žádná firma
+            text: Nejdřív přidejte firmu, pak přesuňte její účet iDokladu.
+    steps:
+        label: Kroky přesunu
+        connect: Připojení
+        pull: Stažení
+        check: Kontrola
+        run: Import
+        result: Výsledek
+    connect:
+        card: Klíče k API iDokladu
+        intro: V iDokladu otevřete Nastavení → Aplikace → API. Potřebuje tarif Oblíbený nebo Prémiový.
+        read_only: Foresi z iDokladu jen čte; nic v něm nemění ani neposílá.
+        client_id: Client ID
+        client_id_help: Jak ho iDoklad ukazuje u API
+        client_secret: Client secret
+        client_secret_help: Uloží se šifrovaně, znovu se neukáže
+        client_secret_again: Pro změnu klíčů ho zadejte znovu
+        submit: Připojit
+        back: Zpět
+        error:
+            client_id: Vyplňte client ID.
+            client_secret: Vyplňte client secret.
+        flash:
+            connected: iDoklad je připojený.
+            disconnected: Klíče k iDokladu jsou smazané.
+    disconnect:
+        button: Odpojit
+        confirm: Odpojit iDoklad?
+        confirm_text: Klíče se smažou. Stažená data a importované záznamy zůstanou.
+        confirm_accept: Odpojit
+        confirm_cancel: Ponechat
+    error:
+        access_denied: iDoklad odmítl client ID nebo client secret. Zkontrolujte je v iDokladu v Nastavení → Aplikace → API.
+        tariff: Tarif tohoto účtu iDokladu nemá přístup k API, nebo vypršel. API potřebuje Oblíbený nebo Prémiový.
+        not_connected: iDoklad není připojený; nejdřív ho připojte.
+        unexpected: Úloha skončila nečekanou chybou. Zkuste to později.
+    pull:
+        connection: Připojení
+        change_keys: Změnit klíče
+        disconnected: iDoklad není připojený. Stažená data zůstávají.
+        quota: Požadavky na API tento měsíc
+        quota_used: 'Využito {used, number} z {limit, number} požadavků'
+        quota_help: Limit závisí na tarifu; Oblíbený má 7 500 měsíčně.
+        latest: Poslední stažení
+        first: Zatím nic staženo
+        first_text: Foresi zkopíruje váš účet iDokladu a pak PDF dokladů. Trvá to pár minut.
+        failed: Stahování se zastavilo
+        started: Začátek
+        kind: Stažení
+        kind_full: Celý účet
+        kind_changes: Změny
+        requests: Využité požadavky
+        column:
+            list: Seznam
+            records: Záznamy
+        start: Stáhnout data
+        changes: Stáhnout změny
+        check: Zkontrolovat import
+    job:
+        kind:
+            pull: Stahování účtu
+            changes: Stahování změn
+            check: Kontrola importu
+            run: Import
+        state:
+            pending: Čeká
+            running: Běží
+            done: Hotovo
+            failed: Selhalo
+        text:
+            pending: Čeká na volný proces; za chvíli začne.
+            running: Pracuje se na tom. Stránka se obnovuje sama.
+            done: Hotovo.
+            failed: Zastaveno.
+    resource:
+        Contacts: Kontakty
+        NumericSequences: Číselné řady
+        IssuedInvoices: Vydané faktury
+        ProformaInvoices: Zálohové faktury
+        IssuedTaxDocuments: Daňové doklady k platbě
+        CreditNotes: Opravné doklady
+        RecurringInvoices: Pravidelné faktury
+        IssuedDocumentPayments: Platby
+        Logs: Historie
+        Countries: Státy
+        Currencies: Měny
+        PaymentOptions: Způsoby úhrady
+        ConstantSymbols: Konstantní symboly
+        BankAccounts: Bankovní účty
+    stage:
+        contacts: Kontakty
+        series: Číselné řady
+        documents: Doklady
+        payments: Platby
+        recurring: Pravidelné faktury
+    outcome:
+        created: Vytvořeno
+        matched: Spárováno
+        already_linked: Propojeno dříve
+        refused: Odmítnuto
+        mismatch: Liší se
+    report:
+        failed: Import se zastavil; nic se neuložilo
+        stages: Podle oblasti
+        years: Doklady podle roku
+        years_help: Celkem s DPH, jak je uvádí iDoklad.
+        no_documents: Žádné doklady nejsou stažené.
+        refused: Odmítnuté záznamy
+        mismatch: Záznamy s rozdílnými částkami
+        templates: Další vystavení pravidelných faktur
+        templates_help: Vzory přijdou pozastavené; každý spusťte, až se vám to hodí.
+        record: 'Záznam {id}'
+        difference: '{total}: iDoklad {expected}, Foresi {computed}'
+        total:
+            net: Bez DPH
+            vat: DPH
+            gross: S DPH
+            payable: K úhradě
+        column:
+            stage: Oblast
+            year: Rok
+            idoklad: V iDokladu
+            idokladSum: Celkem v iDokladu
+            foresi: Importováno
+            foresiSum: Celkem importováno
+    value:
+        currency: Měna
+        payment_option: Způsob úhrady
+        name: Název
+        number_format: Formát čísla
+        year: Rok
+        last_number: Poslední číslo
+        series_format: Formát řady
+        next_issue: Další vystavení ve Foresi
+        idoklad_next_issue: Další vystavení v iDokladu
+    check:
+        intro: 'Kontrola z {date}: co by import udělal. Zatím se nic neukládá.'
+        stale: Od této kontroly se data stáhla znovu. Před importem zkontrolujte znovu.
+        failed: Kontrola se zastavila
+        again: Zkontrolovat znovu
+        run: Importovat
+        reminders:
+            title: Upomínky
+            overdue: '{count, plural, =0 {Žádná importovaná faktura není po splatnosti a neuhrazená.} one {# importovaná faktura je po splatnosti a neuhrazená.} few {# importované faktury jsou po splatnosti a neuhrazené.} other {# importovaných faktur je po splatnosti a neuhrazených.}}'
+            from: Upomínky posílat u faktur splatných od
+            from_help: Starší faktury zůstanou bez upomínek
+            invalid: Zadejte datum.
+    run:
+        confirm: Importovat z iDokladu?
+        confirm_text: '{created, plural, one {Vytvoří se # záznam} few {Vytvoří se # záznamy} other {Vytvoří se # záznamů}}, odmítnuto {refused, number}, liší se {mismatch, number}. Import jde 30 dní vrátit.'
+        confirm_accept: Importovat
+        confirm_cancel: Zatím ne
+        mode:
+            check: Kontrola
+            run: Import
+        done: '{count, plural, one {Importoval se # záznam.} few {Importovaly se # záznamy.} other {Importovalo se # záznamů.}}'
+        undone: Vráceno
+        undone_at: 'Import byl vrácen {date}.'
+        to_invoices: Přejít na faktury
+    undo:
+        title: Vrátit import
+        text: Odstraní importované doklady, platby a nedotčené pravidelné faktury. Kontakty a řady zůstanou.
+        deadline: 'Možné do {date}.'
+        button: Vrátit import
+        confirm: Vrátit import?
+        confirm_text: Doklady, platby a nedotčené pravidelné faktury tohoto importu se trvale smažou.
+        confirm_accept: Vrátit
+        confirm_cancel: Ponechat
+        refused: Import nejde vrátit
+        unavailable: Tento import už nejde vrátit.
+        payment: Platba
+        flash:
+            done: Import je vrácený.
+        blocker:
+            expired: uplynulo 30 dní
+            changed: od importu se změnil
+            exported: mezitím exportován pro účetní
+            payments: má zde zaznamenané platby
+            sends: byl odeslán z Foresi
+            corrections: má opravný doklad
+            tax_documents: má daňový doklad k platbě
+            deductions: odečítá ho jiný doklad
+            cancelled: zde byla stornována
+    history:
+        title: Historie přesunu
+        back: Zpět k přesunu
+        column:
+            when: Kdy
+            what: Co
+            records: Záznamy
+            requests: Požadavky
+            state: Stav
+        empty:
+            title: Zatím nic
+            text: Zde se ukážou stažení a importy z iDokladu.

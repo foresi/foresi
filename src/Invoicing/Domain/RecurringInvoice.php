@@ -409,6 +409,15 @@ class RecurringInvoice implements TenantOwned, Audited
         $this->lastAlertOn = $this->keepDay($this->lastAlertOn, new \DateTimeImmutable($this->day($day)));
     }
 
+    /**
+     * Imported and not touched since: not edited, resumed, paused again or ended
+     * here, so it issued nothing here and may be taken back with its import.
+     */
+    public function isUntouchedImport(): bool
+    {
+        return null !== $this->importedFrom && 1 === $this->version;
+    }
+
     public function isIssued(): bool
     {
         return $this->issuedCount > 0;

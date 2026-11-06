@@ -1,0 +1,32 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'idoklad/_flow.html.twig' %}
+
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
+
+{% block screen %}
+    {% if errors.form is defined %}
+        <twig:Ui:Alert tone="error" role="alert" data-connect-error>{{ errors.form }}</twig:Ui:Alert>
+    {% endif %}
+
+    <form method="post" action="{{ path('app_idoklad_connect', {id: firm.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ token }}">
+
+        <twig:Ui:Card :title="'idoklad.connect.card'|trans" icon="key-round">
+            <div class="grid gap-3 sm:max-w-xl">
+                <p class="m-0 text-text">{{ 'idoklad.connect.intro'|trans }}</p>
+                <p class="m-0 text-small text-muted">{{ 'idoklad.connect.read_only'|trans }}</p>
+                <twig:Ui:TextInput name="client_id" id="client_id" :label="'idoklad.connect.client_id'|trans" :help="'idoklad.connect.client_id_help'|trans" :value="clientId" :error="errors.client_id|default(null)" maxlength="255" autocomplete="off" required />
+                <twig:Ui:TextInput type="password" name="client_secret" id="client_secret" :label="'idoklad.connect.client_secret'|trans" :help="(connection ? 'idoklad.connect.client_secret_again' : 'idoklad.connect.client_secret_help')|trans" :error="errors.client_secret|default(null)" maxlength="255" autocomplete="off" required />
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:ActionBar>
+            {% if connection %}
+                <twig:Ui:Button :href="path('app_idoklad_pull', {id: firm.id})">{{ 'idoklad.connect.back'|trans }}</twig:Ui:Button>
+            {% endif %}
+            <twig:Ui:Button type="submit" variant="primary" icon="plug">{{ 'idoklad.connect.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

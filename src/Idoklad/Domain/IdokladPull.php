@@ -94,6 +94,14 @@ class IdokladPull implements TenantOwned
         $this->error = null === $error ? null : mb_substr($error, 0, 255);
     }
 
+    /**
+     * Counts the requests of the PDFs downloaded after the lists.
+     */
+    public function addRequests(int $requests): void
+    {
+        $this->requestsUsed += $requests;
+    }
+
     public function id(): string
     {
         return $this->id;

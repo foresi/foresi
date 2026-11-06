@@ -40,5 +40,12 @@ interface IdokladSnapshot
      */
     public function lastSucceededPull(LegalEntity $firm): ?IdokladPull;
 
+    /**
+     * The firm's pulls, the latest first.
+     *
+     * @return list<IdokladPull>
+     */
+    public function pulls(LegalEntity $firm): array;
+
     public function add(IdokladRecord|IdokladPull $entity): void;
 }

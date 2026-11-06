@@ -266,6 +266,10 @@ services:
     App\Idoklad\Infrastructure\Files\DiskIdokladFiles:
         arguments:
             $root: '%app.idoklad_files_dir%'
+    App\Idoklad\Application\IdokladJobs:
+        alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladJobs
+    App\Idoklad\Application\IdokladQueue:
+        alias: App\Idoklad\Infrastructure\Messenger\MessengerIdokladQueue
     App\Idoklad\Application\Import\IdokladLinks:
         alias: App\Idoklad\Infrastructure\Doctrine\DoctrineIdokladLinks
     App\Idoklad\Application\Import\IdokladImportRuns:

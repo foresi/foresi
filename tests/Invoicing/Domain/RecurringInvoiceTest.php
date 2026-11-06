@@ -84,6 +84,16 @@ final class RecurringInvoiceTest extends TestCase
         self::assertSame($long, $this->template(importedFrom: $long)->importedFrom());
     }
 
+    public function testOnlyAnImportNobodyTouchedSinceIsUntouched(): void
+    {
+        self::assertFalse($this->template()->isUntouchedImport());
+        $imported = $this->template(importedFrom: 'idoklad:7');
+        $imported->carryOver(3, new \DateTimeImmutable('2026-11-01'));
+        self::assertTrue($imported->isUntouchedImport(), 'What it carried over was issued elsewhere.');
+        $imported->pause(new \DateTimeImmutable('2026-11-03'));
+        self::assertFalse($imported->isUntouchedImport());
+    }
+
     #[TestWith([''])]
     #[TestWith(['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'])]
     public function testAnImportedOriginEmptyOrTooLongIsRefused(string $importedFrom): void
