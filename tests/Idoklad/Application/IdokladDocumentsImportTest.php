@@ -165,7 +165,8 @@ final class IdokladDocumentsImportTest extends KernelTestCase
     {
         $this->invoice(103, ['Prices' => ['TotalWithoutVat' => 2000.0, 'TotalVat' => 421.0, 'TotalWithVat' => 2421.0]]);
 
-        $entry = $this->entry($this->import()->run($this->firm, ImportMode::Run), 103);
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $entry = $this->entry($run, 103);
 
         self::assertSame('mismatch', $entry['outcome']);
         self::assertNull($entry['target_id']);
@@ -176,6 +177,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertSame(200000, $entry['values']['computed_net']);
         self::assertSame(242000, $entry['values']['computed_gross']);
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM invoice'));
+        self::assertSame(['mismatch' => 1], $run->counts()['documents'], 'A mismatch is reported once.');
     }
 
     public function testAnAdvanceWithoutTaxPointOfANonPayerKeepsItsRoundingItem(): void
@@ -185,8 +187,8 @@ final class IdokladDocumentsImportTest extends KernelTestCase
             'VariableSymbol' => '20260003',
             'VatRegime' => 0,
             'Items' => [
+                ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 2, 'VatRateType' => 2, 'VatRate' => 0.0, 'Prices' => ['UnitPrice' => 0.4, 'TotalWithoutVat' => 0.4, 'TotalWithVat' => 0.4]],
                 $this->item('Deposit', 1, 999.6, 1, 2, 0.0, 999.6, 0.0),
-                ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 2, 'VatRateType' => 2, 'VatRate' => 0.0, 'Prices' => ['UnitPrice' => 0.4, 'TotalWithoutVat' => 0.4, 'TotalVat' => 0.0, 'TotalWithVat' => 0.4]],
             ],
             'Prices' => ['TotalWithoutVat' => 1000.0, 'TotalVat' => 0.0, 'TotalWithVat' => 1000.0],
         ], ['DateOfTaxing']));
@@ -281,6 +283,135 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $documents = array_values(array_filter($run->report(), static fn (array $entry): bool => DocumentsStage::KEY === $entry['stage']));
         self::assertSame([121, 120, 122], array_column($documents, 'external_id'), 'By issue date, then number.');
         self::assertSame(['created', 'created', 'created'], array_column($documents, 'outcome'));
+    }
+
+    public function testTheStageRunsAfterTheSeriesAndBeforeThePayments(): void
+    {
+        self::assertSame(300, self::getContainer()->get(DocumentsStage::class)->order());
+    }
+
+    public function testARoundingItemWithoutTotalsRoundsNothingAndOneWithVatRoundsTheVatToo(): void
+    {
+        $this->record(IdokladResource::ProformaInvoices, 202, $this->document([
+            'DocumentNumber' => 'Z20260004',
+            'VariableSymbol' => '20260004',
+            'VatRegime' => 0,
+            'Items' => [
+                $this->item('Deposit', 1, 1000.0, 1, 2, 0.0, 1000.0, 0.0),
+                ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 2, 'VatRateType' => 2, 'VatRate' => 0.0, 'Prices' => []],
+            ],
+            'Prices' => ['TotalWithoutVat' => 1000.0, 'TotalVat' => 0.0, 'TotalWithVat' => 1000.0],
+        ], ['DateOfTaxing']));
+        $this->invoice(140, [
+            'Items' => [
+                $this->item('Consulting', 1, 826.12, 1, 1, 21.0, 826.12, 173.49),
+                ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 1, 'VatRateType' => 1, 'VatRate' => 21.0, 'Prices' => ['UnitPrice' => 0.32, 'TotalWithoutVat' => 0.32, 'TotalVat' => 0.07, 'TotalWithVat' => 0.39]],
+            ],
+            'Prices' => ['TotalWithoutVat' => 826.44, 'TotalVat' => 173.56, 'TotalWithVat' => 1000.0],
+        ]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $advance = $this->entry($run, 202);
+        self::assertSame('created', $advance['outcome'], implode(', ', $advance['reasons']).json_encode($advance['values']));
+        self::assertSame(0, $this->invoiceOf($advance['target_id'])->totalRounding()->minor());
+        $invoice = $this->entry($run, 140);
+        self::assertSame('created', $invoice['outcome'], implode(', ', $invoice['reasons']).json_encode($invoice['values']));
+        self::assertSame(17349, $this->invoiceOf($invoice['target_id'])->vat()->minor());
+    }
+
+    public function testItemsThatAreNoLinesAndTheDigitsOfAmountsAreReadAsIDokladMeantThem(): void
+    {
+        $this->record(IdokladResource::PaymentOptions, 4, ['Id' => 4, 'Code' => 'B', 'Name' => 'PŘEVODEM', 'IsDefault' => false]);
+        $this->invoice(141, [
+            'DocumentNumber' => '20260021',
+            'PaymentOptionId' => 4,
+            'IsSentToPurchaser' => 1,
+            'Items' => [
+                ['Id' => 4, 'Name' => 'Note', 'Amount' => 1.0, 'ItemType' => 2, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => []],
+                'junk',
+                ['InvoiceProformaId' => 201] + $this->item('Consulting', 2, 1000.0, 1, 1, 21.0, 2000.0, 420.0),
+            ],
+        ]);
+        $this->invoice(142, ['DocumentNumber' => '20260022', 'Items' => [$this->item('Consulting', 2, 1000.0049, 1, 1, 21.0, 2000.0, 420.0)]]);
+        $this->invoice(143, ['DocumentNumber' => '20260023', 'Items' => [$this->item('Consulting', 2, 999.99496, 1, 1, 21.0, 2000.0, 420.0)]]);
+        $this->invoice(144, ['DocumentNumber' => '20260024', 'Prices' => ['TotalWithoutVat' => 2000.0049, 'TotalVat' => 420.0, 'TotalWithVat' => 2420.0]]);
+        $this->invoice(145, ['DocumentNumber' => '20260025', 'Prices' => ['TotalWithoutVat' => 1999.99496, 'TotalVat' => 420.0, 'TotalWithVat' => 2420.0]]);
+        $this->invoice(146, ['DocumentNumber' => '20260026', 'Items' => [['DiscountPercentage' => 12.34] + $this->item('Consulting', 2.0005, 1000.0, 1, 1, 21.0, 1753.64, 368.26)], 'Prices' => ['TotalWithoutVat' => 1753.64, 'TotalVat' => 368.26, 'TotalWithVat' => 2121.9]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([141, 142, 143, 144, 145, 146] as $id) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('created', $entry['outcome'], $id.': '.implode(', ', $entry['reasons']).json_encode($entry['values']));
+        }
+        $invoice = $this->invoiceOf($this->entry($run, 141)['target_id']);
+        self::assertSame(PaymentMethod::BankTransfer, $invoice->paymentMethod(), 'Capitals of any alphabet name the option.');
+        self::assertSame('2026-10-01', $invoice->deliveredAt()?->format('Y-m-d'), 'Without its log entry a send is the issue date.');
+    }
+
+    public function testWhatIsMissingOrTwiceWrongIsReportedOnce(): void
+    {
+        $this->record(IdokladResource::Countries, 5, ['Id' => 5, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Slovakia', 'CurrencyId' => self::CZK]);
+        $this->invoice(150, ['PartnerId' => 999]);
+        $this->invoice(151, ['DocumentNumber' => '20260021', 'PaymentOptionId' => 999]);
+        $this->invoice(152, ['DocumentNumber' => '20260022', 'DateOfIssue' => 'soon', 'Items' => [$this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0), $this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0)]]);
+        $this->invoice(153, ['DocumentNumber' => '20260023', 'PartnerAddress' => ['NickName' => '', 'Title' => 'Ing.', 'Firstname' => '', 'Surname' => 'Example', 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 5]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([DocumentsStage::CUSTOMER_NOT_LINKED], $this->entry($run, 150)['reasons']);
+        self::assertSame([DocumentsStage::PAYMENT_OPTION_UNSUPPORTED], $this->entry($run, 151)['reasons']);
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN, DocumentsStage::ZERO_RATE_UNSUPPORTED, DocumentsStage::INVALID_VALUE], $this->entry($run, 152)['reasons']);
+        $entry = $this->entry($run, 153);
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+        $customer = $this->invoiceOf($entry['target_id'])->customer();
+        self::assertSame('Ing. Example', $customer->name, 'Only the parts there are name a person.');
+        self::assertSame('CZ', $customer->address->countryCode, 'The country is found by its own name first.');
+    }
+
+    public function testOnlyAMomentFromTheStartOfItsTextIsReadAndInTheLocalTime(): void
+    {
+        $this->invoice(161, ['Metadata' => ['DateCreated' => '2026-10-01T09:00:15Z']]);
+        $this->invoice(162, ['DocumentNumber' => '20260021', 'Metadata' => ['DateCreated' => 'x2026-10-01T09:00:15']]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertEquals(new \DateTimeImmutable('2026-10-01 09:00:15', new \DateTimeZone('Europe/Prague')), $this->invoiceOf($this->entry($run, 161)['target_id'])->createdAt());
+        self::assertSame('2026-10-01 00:00:00', $this->invoiceOf($this->entry($run, 162)['target_id'])->createdAt()->format('Y-m-d H:i:s'), 'What is no moment falls back to the issue date.');
+    }
+
+    public function testAnotherTypesSequenceOfTheSameFormatIsNoCandidate(): void
+    {
+        $this->record(IdokladResource::NumericSequences, 5, ['Id' => 5, 'DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->invoice(160, []);
+
+        $entry = $this->entry($this->import()->run($this->firm, ImportMode::Run), 160);
+
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+    }
+
+    public function testATaxDocumentWithoutItsPaymentSaysSo(): void
+    {
+        $this->record(IdokladResource::ProformaInvoices, 201, $this->document(['Id' => 201, 'DocumentNumber' => 'Z20260003', 'VariableSymbol' => '20260003'], ['DateOfTaxing']));
+        $this->record(IdokladResource::IssuedTaxDocuments, 601, ['Id' => 601, 'DocumentNumber' => 'D20260001', 'DateOfIssue' => '2026-10-05T00:00:00', 'PaymentId' => 999, 'ProformaInvoiceId' => 201, 'Items' => [['Id' => 1, 'Name' => 'Deposit']]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame('created', $this->entry($run, 201)['outcome']);
+        self::assertSame([DocumentsStage::PAYMENT_NOT_LINKED], $this->entry($run, 601)['reasons']);
+    }
+
+    public function testDocumentsOfADayAreOrderedByTheirNumbersWhateverTheTimeOfTheirDate(): void
+    {
+        $this->invoice(170, ['DocumentNumber' => '20260012', 'DateOfIssue' => '2026-09-29']);
+        $this->invoice(171, ['DocumentNumber' => '9', 'DateOfIssue' => '2026-10-01T00:00:00']);
+        $this->invoice(172, ['DocumentNumber' => '20260010', 'DateOfIssue' => '2026-10-01']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $documents = array_values(array_filter($run->report(), static fn (array $entry): bool => DocumentsStage::KEY === $entry['stage']));
+        self::assertSame([170, 171, 172], array_column($documents, 'external_id'));
     }
 
     public function testACheckWritesNoDocumentAndReadsNoFile(): void

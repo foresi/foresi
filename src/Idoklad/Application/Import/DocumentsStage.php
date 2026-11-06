@@ -85,6 +85,10 @@ final readonly class DocumentsStage implements ImportStage
     /** Words in the name of a payment option, as Czech and English accounts name them. */
     public const array PAYMENT_WORDS = ['převod' => PaymentMethod::BankTransfer, 'transfer' => PaymentMethod::BankTransfer, 'hotov' => PaymentMethod::Cash, 'cash' => PaymentMethod::Cash, 'kart' => PaymentMethod::Card, 'card' => PaymentMethod::Card];
 
+    /** The id no iDoklad record has, for a reference that is missing. */
+    private const int NO_ID = 0;
+
+    private const int ITEM_ORDINARY = 0;
     private const int ITEM_ROUND = 1;
     private const int ITEM_REDUCE = 2;
     private const int SENT_EMAIL = 8;
@@ -143,11 +147,7 @@ final readonly class DocumentsStage implements ImportStage
         $country = $this->countries->for($context->firm->address()->countryCode);
         $taxDocuments = [];
         foreach ($context->records(IdokladResource::IssuedTaxDocuments) as $record) {
-            $proforma = $record->payload()['ProformaInvoiceId'] ?? null;
-            $linked = $context->linkedTo(IdokladResource::IssuedTaxDocuments, $record->externalId());
-            if (\is_int($proforma) && null !== $linked) {
-                $taxDocuments[$proforma][] = $linked;
-            }
+            $taxDocuments[$this->id($record->payload()['ProformaInvoiceId'] ?? null)][] = $context->linkedTo(IdokladResource::IssuedTaxDocuments, $record->externalId());
         }
         foreach ($this->inNumberOrder($context, IdokladResource::IssuedInvoices) as $record) {
             if ([] !== $this->proformasOf($record->payload())) {
@@ -161,7 +161,7 @@ final readonly class DocumentsStage implements ImportStage
      *
      * @param array<mixed> $payload
      *
-     * @return list<int>
+     * @return array<int>
      */
     private function proformasOf(array $payload): array
     {
@@ -172,7 +172,7 @@ final readonly class DocumentsStage implements ImportStage
             }
         }
 
-        return array_values(array_unique(array_filter($ids, \is_int(...))));
+        return array_unique(array_filter($ids, \is_int(...)));
     }
 
     /**
@@ -190,7 +190,7 @@ final readonly class DocumentsStage implements ImportStage
     }
 
     /**
-     * @param array<int, list<string>> $taxDocuments the imported tax documents by the iDoklad id of their proforma
+     * @param array<int, list<string|null>> $taxDocuments the imported tax documents by the iDoklad id of their proforma
      */
     private function document(ImportContext $context, IdokladRecord $record, DocumentKind $kind, InvoicingCountry $country, array $taxDocuments = []): void
     {
@@ -217,8 +217,10 @@ final readonly class DocumentsStage implements ImportStage
             return;
         }
         $result = $this->import->import($input);
+        // What Foresi priced it at, for the sums by year of a check.
+        $computed = $result->computed instanceof ImportedTotals ? $this->totals('computed', $result->computed) : [];
         if (DocumentOutcome::Mismatch === $result->outcome) {
-            $context->report(self::KEY, $id, ImportOutcome::Mismatch, values: $values + $this->totals('expected', $result->expected) + $this->totals('computed', $result->computed));
+            $context->report(self::KEY, $id, ImportOutcome::Mismatch, values: $values + $this->totals('expected', $input->expected) + $computed);
 
             return;
         }
@@ -229,8 +231,6 @@ final readonly class DocumentsStage implements ImportStage
         }
         // Imported before but no longer linked: the link is made again.
         $context->link($resource, $id, $result->invoiceId);
-        // What Foresi priced it at, for the sums by year of a check.
-        $computed = $result->computed instanceof ImportedTotals ? $this->totals('computed', $result->computed) : [];
         $context->report(self::KEY, $id, DocumentOutcome::Imported === $result->outcome ? ImportOutcome::Created : ImportOutcome::Matched, $result->invoiceId, values: $values + $computed);
     }
 
@@ -246,11 +246,11 @@ final readonly class DocumentsStage implements ImportStage
      */
     private function taxDocumentPayload(ImportContext $context, array $payload): array
     {
-        $payment = $context->record(IdokladResource::IssuedDocumentPayments, \is_int($payload['PaymentId'] ?? null) ? $payload['PaymentId'] : 0)?->payload() ?? [];
+        $payment = $context->record(IdokladResource::IssuedDocumentPayments, $this->id($payload['PaymentId'] ?? null))?->payload() ?? [];
         $items = [];
         foreach (\is_array($payload['Items'] ?? null) ? $payload['Items'] : [] as $item) {
             $prices = \is_array($item) && \is_array($item['Prices'] ?? null) ? $item['Prices'] : [];
-            $items[] = ['Amount' => 1.0, 'ItemType' => 0, 'PriceType' => 0, 'Prices' => ['UnitPrice' => $prices['TotalWithVat'] ?? null] + $prices] + (\is_array($item) ? $item : []);
+            $items[] = ['Amount' => 1.0, 'ItemType' => self::ITEM_ORDINARY, 'PriceType' => 0, 'Prices' => ['UnitPrice' => $prices['TotalWithVat'] ?? null] + $prices] + (\is_array($item) ? $item : []);
         }
 
         return [
@@ -264,15 +264,15 @@ final readonly class DocumentsStage implements ImportStage
 
     /**
      * @param array<mixed>                        $payload      the record's, or what a tax document reads as
-     * @param array<int, list<string>>            $taxDocuments the imported tax documents by the iDoklad id of their proforma
+     * @param array<int, list<string|null>>       $taxDocuments the imported tax documents by the iDoklad id of their proforma
      * @param list<string>                        $reasons      filled with why not, when null
      * @param array<string, int|string|bool|null> $values       filled with what explains it
      */
     private function input(ImportContext $context, IdokladRecord $record, array $payload, DocumentKind $kind, InvoicingCountry $country, array $taxDocuments, array &$reasons, array &$values): ?ImportedDocumentInput
     {
-        $items = array_values(array_filter(\is_array($payload['Items'] ?? null) ? $payload['Items'] : [], \is_array(...)));
-        $taxedPayment = DocumentKind::PaymentTaxDocument === $kind ? $context->linkedTo(IdokladResource::IssuedDocumentPayments, \is_int($payload['PaymentId'] ?? null) ? $payload['PaymentId'] : 0) : null;
-        $taxedAdvance = DocumentKind::PaymentTaxDocument === $kind ? $context->linkedTo(IdokladResource::ProformaInvoices, \is_int($payload['ProformaInvoiceId'] ?? null) ? $payload['ProformaInvoiceId'] : 0) : null;
+        $items = array_filter(\is_array($payload['Items'] ?? null) ? $payload['Items'] : [], \is_array(...));
+        $taxedPayment = DocumentKind::PaymentTaxDocument === $kind ? $context->linkedTo(IdokladResource::IssuedDocumentPayments, $this->id($payload['PaymentId'] ?? null)) : null;
+        $taxedAdvance = DocumentKind::PaymentTaxDocument === $kind ? $context->linkedTo(IdokladResource::ProformaInvoices, $this->id($payload['ProformaInvoiceId'] ?? null)) : null;
         if (DocumentKind::PaymentTaxDocument === $kind && (null === $taxedPayment || null === $taxedAdvance)) {
             $reasons = [...null === $taxedPayment ? [self::PAYMENT_NOT_LINKED] : [], ...null === $taxedAdvance ? [self::ADVANCE_NOT_LINKED] : []];
 
@@ -289,7 +289,7 @@ final readonly class DocumentsStage implements ImportStage
 
         $issueDate = $this->date($payload['DateOfIssue'] ?? null);
         $seriesId = $this->series($context, $record, $issueDate);
-        $customerId = $context->linkedTo(IdokladResource::Contacts, \is_int($payload['PartnerId'] ?? null) ? $payload['PartnerId'] : 0);
+        $customerId = $context->linkedTo(IdokladResource::Contacts, $this->id($payload['PartnerId'] ?? null));
         $customer = $this->party($context, $payload['PartnerAddress'] ?? null);
         $issuer = $this->party($context, $payload['MyAddress'] ?? null);
         $method = $this->paymentMethod($context, $payload['PaymentOptionId'] ?? null, $values);
@@ -346,7 +346,7 @@ final readonly class DocumentsStage implements ImportStage
 
         $number = $this->text($payload['DocumentNumber'] ?? null);
         $entity = $this->entityType($record);
-        $iban = str_replace(' ', '', $this->text(\is_array($payload['MyAddress'] ?? null) ? $payload['MyAddress']['Iban'] ?? null : null));
+        $iban = $this->text(\is_array($payload['MyAddress'] ?? null) ? $payload['MyAddress']['Iban'] ?? null : null);
         $metadata = \is_array($payload['Metadata'] ?? null) ? $payload['Metadata'] : [];
         $document = new InvoiceInput(
             $context->firm->id(),
@@ -393,19 +393,16 @@ final readonly class DocumentsStage implements ImportStage
      * The lines that deduct the advances an invoice accounts: Foresi's lines of
      * what the customer may deduct of each, as the issuing path offers them.
      *
-     * @param array<mixed>             $payload
-     * @param array<int, list<string>> $taxDocuments the imported tax documents by the iDoklad id of their proforma
-     * @param list<string>             $reasons      filled with why an advance is not deducted
+     * @param array<mixed>                  $payload
+     * @param array<int, list<string|null>> $taxDocuments the imported tax documents by the iDoklad id of their proforma
+     * @param list<string>                  $reasons      filled with why an advance is not deducted
      *
      * @return list<LineInput>
      */
     private function deductions(ImportContext $context, array $payload, string $customerId, DocumentLanguage $language, array $taxDocuments, array &$reasons): array
     {
         $proformas = $this->proformasOf($payload);
-        if ([] === $proformas) {
-            return [];
-        }
-        $offered = $this->deductible->for($context->firm, $customerId, null, $language);
+        $offered = [] === $proformas ? [] : $this->deductible->for($context->firm, $customerId, null, $language);
         $lines = [];
         foreach ($proformas as $proforma) {
             $advanceId = $context->linkedTo(IdokladResource::ProformaInvoices, $proforma);
@@ -415,7 +412,7 @@ final readonly class DocumentsStage implements ImportStage
                 continue;
             }
             $ids = [$advanceId, ...$taxDocuments[$proforma] ?? []];
-            $found = array_values(array_filter($offered, static fn (Deductible $deductible): bool => \in_array($deductible->id, $ids, true)));
+            $found = array_filter($offered, static fn (Deductible $deductible): bool => \in_array($deductible->id, $ids, true));
             if ([] === $found) {
                 $reasons[] = self::ADVANCE_NOT_DEDUCTIBLE;
             }
@@ -483,7 +480,7 @@ final readonly class DocumentsStage implements ImportStage
                 continue;
             }
             if (null !== $this->catalog->get($linked)->format()->sequenceIn($this->text($payload['DocumentNumber'] ?? null), $issueDate)) {
-                $found[$linked] = true;
+                $found[$linked] = $linked;
             }
         }
 
@@ -496,14 +493,14 @@ final readonly class DocumentsStage implements ImportStage
     private function party(ImportContext $context, mixed $address): ?DocumentParty
     {
         $address = \is_array($address) ? $address : [];
-        $country = $context->record(IdokladResource::Countries, \is_int($address['CountryId'] ?? null) ? $address['CountryId'] : 0)?->payload() ?? [];
+        $country = $context->record(IdokladResource::Countries, $this->id($address['CountryId'] ?? null))?->payload() ?? [];
         $code = Countries::find($this->text($country['Name'] ?? null)) ?? Countries::find($this->text($country['NameEnglish'] ?? null));
         if (null === $code) {
             return null;
         }
         $name = $this->text($address['NickName'] ?? null);
         if ('' === $name) {
-            $name = trim(implode(' ', array_filter([$this->text($address['Title'] ?? null), $this->text($address['Firstname'] ?? null), $this->text($address['Surname'] ?? null)], static fn (string $part): bool => '' !== $part)));
+            $name = implode(' ', array_filter([$this->text($address['Title'] ?? null), $this->text($address['Firstname'] ?? null), $this->text($address['Surname'] ?? null)], static fn (string $part): bool => '' !== $part));
         }
         $email = $this->text($address['Email'] ?? null);
         $phone = $this->text($address['Phone'] ?? null);
@@ -527,7 +524,7 @@ final readonly class DocumentsStage implements ImportStage
      */
     private function paymentMethod(ImportContext $context, mixed $optionId, array &$values): ?PaymentMethod
     {
-        $name = $this->text($context->record(IdokladResource::PaymentOptions, \is_int($optionId) ? $optionId : 0)?->payload()['Name'] ?? null);
+        $name = $this->text($context->record(IdokladResource::PaymentOptions, $this->id($optionId))?->payload()['Name'] ?? null);
         foreach (self::PAYMENT_WORDS as $word => $method) {
             if (str_contains(mb_strtolower($name), $word)) {
                 return $method;
@@ -574,17 +571,17 @@ final readonly class DocumentsStage implements ImportStage
 
     private function code(ImportContext $context, IdokladResource $list, mixed $id): ?string
     {
-        $code = $context->record($list, \is_int($id) ? $id : 0)?->payload()['Code'] ?? null;
+        $code = $context->record($list, $this->id($id))?->payload()['Code'] ?? null;
 
         return \is_string($code) ? $code : null;
     }
 
     /**
-     * @return array<string, int|null>
+     * @return array<string, int>
      */
-    private function totals(string $prefix, ?ImportedTotals $totals): array
+    private function totals(string $prefix, ImportedTotals $totals): array
     {
-        return [$prefix.'_net' => $totals?->net, $prefix.'_vat' => $totals?->vat, $prefix.'_gross' => $totals?->gross, $prefix.'_payable' => $totals?->payable];
+        return [$prefix.'_net' => $totals->net, $prefix.'_vat' => $totals->vat, $prefix.'_gross' => $totals->gross, $prefix.'_payable' => $totals->payable];
     }
 
     /**
@@ -624,6 +621,12 @@ final readonly class DocumentsStage implements ImportStage
         }
 
         return new \DateTimeImmutable(substr($text, 0, 19), $country->timezone());
+    }
+
+    /** The iDoklad id a reference names; NO_ID when it names none. */
+    private function id(mixed $value): int
+    {
+        return \is_int($value) ? $value : self::NO_ID;
     }
 
     private function optional(mixed $value): ?string
