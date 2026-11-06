@@ -113,6 +113,8 @@ An unexpected error while issuing gives the day back to the scheduler, which ret
 
 ## Moving from iDoklad
 
+The move of a whole account, its steps and its limits are in [idoklad.md](idoklad.md); this section covers its recurring invoices.
+
 The iDoklad import (its recurring stage, after contacts and number series) turns each iDoklad recurring invoice into a template with `SaveRecurringInvoice::import($input, new RecurringHistory(<iDoklad id>, <issued>, <last issue>))`. The template is stored **paused**, remembers the iDoklad id, and carries over what iDoklad issued: the count and the date of the last issue. Only this path accepts a first issue date in the past; a template created by hand still needs one from today on. The import is linked, so a second run leaves the template alone.
 
 ### Field mapping
