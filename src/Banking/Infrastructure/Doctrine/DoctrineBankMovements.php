@@ -180,9 +180,13 @@ final readonly class DoctrineBankMovements implements BankMovements
             // One movement asked for by its id, whichever way it went.
             $where[] = 'm.id = :movement';
             $parameters['movement'] = $filter->movementId;
-        } elseif (MovementFilter::OUTGOING === $filter->tab) {
+        } elseif (MovementFilter::OUTGOING === $filter->tab || MovementFilter::OUTGOING_UNMATCHED === $filter->tab) {
             $where[] = 'm.direction = :direction';
             $parameters['direction'] = MovementDirection::Outgoing;
+            if (MovementFilter::OUTGOING_UNMATCHED === $filter->tab) {
+                $where[] = 'm.state = :state';
+                $parameters['state'] = MovementState::Unmatched;
+            }
         } else {
             $where[] = 'm.direction = :direction';
             $parameters['direction'] = MovementDirection::Incoming;

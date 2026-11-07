@@ -754,6 +754,7 @@ bank:
       incoming: Incoming
       outgoing: Outgoing
       unmatched: Unmatched
+      outgoing_unmatched: Outgoing unmatched
       messages: Messages
     column:
       date: Date
@@ -790,9 +791,11 @@ bank:
       incoming_title: No incoming payments yet
       incoming_text: Payments from the bank's e-mails show up here.
       outgoing_title: No outgoing payments yet
-      outgoing_text: Payments out of the account show up here, for the record.
+      outgoing_text: Payments out of the account show up here. Refunds pair with their invoice.
       unmatched_title: Every incoming payment is paired
       unmatched_text: Nothing waits for a pairing.
+      outgoing_unmatched_title: Every outgoing payment is paired
+      outgoing_unmatched_text: Nothing waits to be paired as a refund.
       messages_title: No bank e-mails yet
       messages_text: E-mails that come to the bank address of an account show up here.
     state:
@@ -812,6 +815,7 @@ bank:
       rejected: Rejected, never paired
       refused: The invoice refused the payment. Pair it by hand.
       account_currency: The movement is in another currency than its account. Check the account's currency.
+      refund_amount_differs: The amount is not what is to refund
     action:
       pair: Pair
       unpair: Unpair
@@ -848,6 +852,7 @@ bank:
       reason:
         symbol: Same variable symbol
         amount: Same amount
+        account: Paid from this account before
         customer: Same customer
       settle: Write off the difference
       settle_help: 'Up to {limit}, so the invoice closes exactly.'

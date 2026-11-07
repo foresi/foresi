@@ -31,9 +31,9 @@ use App\Party\Domain\PaymentMethod;
  * the matcher has one answer. The payment and the paired movement are stored
  * together or not at all.
  *
- * An outgoing movement a person pairs records a refund on invoices with something
- * to refund; one on any other invoice is refused as not incoming. It is never
- * paired by itself.
+ * An outgoing movement records a refund on invoices with something to refund, as
+ * a person chose them or by itself when the matcher has one answer; one on any
+ * other invoice is refused as not incoming.
  *
  * The locks go in one order everywhere: the movement first, then its invoices by
  * ascending id, as RecordPayment takes them. The candidates and the decision are
@@ -106,7 +106,7 @@ final readonly class PairMovement
     }
 
     /**
-     * Pairs an unmatched incoming movement when the rules leave one answer, and
+     * Pairs an unmatched movement, incoming or outgoing, when the rules leave one answer, and
      * otherwise stores why it stays unmatched. Anything else is left as it is, so a
      * second call, or a call after a person paired it, does nothing.
      *
@@ -147,7 +147,7 @@ final readonly class PairMovement
     private function autoUnderLocks(string $movementId): ?Payment
     {
         $movement = $this->movements->lock($movementId);
-        if (!$movement->isIncoming() || MovementState::Unmatched !== $movement->state() || $this->movements->hasLivePayment($movementId)) {
+        if (MovementState::Unmatched !== $movement->state() || $this->movements->hasLivePayment($movementId)) {
             return null;
         }
         $candidates = $this->matcher->candidates($movement);
@@ -240,7 +240,7 @@ final readonly class PairMovement
 
     private function refuseUnpairable(BankMovement $movement, bool $checkedInBank): void
     {
-        // An outgoing movement is only ever recorded or paired: one on an invoice with nothing to refund is refused under its lock.
+        // An outgoing movement refunds only: one on an invoice with nothing to refund is refused under its lock.
         $refusal = match (true) {
             MovementState::Paired === $movement->state(), $this->movements->hasLivePayment($movement->id()) => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,

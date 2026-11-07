@@ -138,7 +138,7 @@ final class RecordMovementTest extends BankingTestCase
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
-    public function testAnOutgoingMovementIsRecordedOnly(): void
+    public function testAnOutgoingMovementWithNothingToRefundStaysUnmatched(): void
     {
         $this->issue->issue($this->input());
 
@@ -146,7 +146,7 @@ final class RecordMovementTest extends BankingTestCase
         self::assertNull($this->pairing->auto($movement->id()));
 
         $stored = $this->storedMovement($movement->id());
-        self::assertSame([MovementState::Recorded, null, MovementDirection::Outgoing], [$stored->state(), $stored->unmatchedReason(), $stored->direction()]);
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::NoInvoice, MovementDirection::Outgoing], [$stored->state(), $stored->unmatchedReason(), $stored->direction()]);
         self::assertSame(0, $this->paymentCount());
     }
 

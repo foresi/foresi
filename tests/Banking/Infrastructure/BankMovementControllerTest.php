@@ -86,6 +86,19 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertCount(2, $crawler->filter('tbody a[role="menuitem"][href*="/pair"][data-dialog]'), 'Each one offers to pair it in a dialog.');
     }
 
+    public function testTheOutgoingUnmatchedTabListsTheOutgoingMovementsWaitingWithTheirReason(): void
+    {
+        $this->signedIn();
+        $this->movement('500.00', '1');
+        $waiting = $this->movement('90.00', null, MovementDirection::Outgoing, trust: MessageTrust::Verified);
+
+        $crawler = $this->page('/bank?tab=outgoing_unmatched');
+
+        self::assertSame('1', $crawler->filter('main nav[aria-label="Bank views"] a[aria-current="page"] span')->text());
+        self::assertSame([$waiting], $this->rowIds($crawler), 'Outgoing only.');
+        self::assertStringContainsString('No variable symbol', $this->row($crawler, $waiting)->text());
+    }
+
     public function testThePairDialogSuggestsBySymbolThenAmountThenCustomerAndPrefillsTheSymbol(): void
     {
         $this->signedIn();
@@ -405,8 +418,8 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertCount(25, array_filter($page->rows, static fn (MovementRow $row): bool => 1 === \count($row->invoices)));
         $numbers = array_filter($queries, static fn (array $query): bool => \is_string($query['sql']) && str_contains($query['sql'], 'payment_allocation'));
         self::assertCount(1, $numbers);
-        // The accounts, the count, the rows, the numbers and the two tab counts.
-        self::assertLessThanOrEqual(6, \count($queries), 'Queries used: '.\count($queries));
+        // The accounts, the count, the rows, the numbers and the three tab counts.
+        self::assertLessThanOrEqual(7, \count($queries), 'Queries used: '.\count($queries));
         $crawler = $this->page('/bank');
         self::assertCount(25, $crawler->filter('tbody tr'));
         self::assertCount(25, $crawler->filter('tbody [data-links] a[href^="/invoices/"]'));

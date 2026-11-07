@@ -25,7 +25,8 @@ use App\Shared\Domain\Money;
  *
  * An outgoing movement is offered the invoices with something to refund the same
  * way: by its symbol, the invoice's own or its credit note's, then by what is to
- * refund equal to its amount, then the others.
+ * refund equal to its amount, then those an earlier payment from the account it
+ * goes to paid, then by the customer, then the others.
  */
 final readonly class PairingChoices
 {
@@ -35,6 +36,7 @@ final readonly class PairingChoices
     public const int FOUND = 25;
     public const string BY_SYMBOL = 'symbol';
     public const string BY_AMOUNT = 'amount';
+    public const string BY_ACCOUNT = 'account';
     public const string BY_CUSTOMER = 'customer';
 
     public function __construct(private Matcher $matcher, private Candidates $candidates, private FirmPairingRules $rules)
@@ -63,6 +65,13 @@ final readonly class PairingChoices
         foreach ($open as $candidate) {
             if (!isset($suggested[$candidate->invoiceId]) && $candidate->remaining->minor() === $amount->minor()) {
                 $suggested[$candidate->invoiceId] = [$candidate, self::BY_AMOUNT];
+            }
+        }
+        // Never filled in, only offered: an account may pay for several customers.
+        $paidFrom = $incoming ? [] : array_flip($this->candidates->paidFrom($firmId, $movement->counterIban(), $movement->counterAccount()));
+        foreach ($open as $candidate) {
+            if (!isset($suggested[$candidate->invoiceId]) && isset($paidFrom[$candidate->invoiceId])) {
+                $suggested[$candidate->invoiceId] = [$candidate, self::BY_ACCOUNT];
             }
         }
         foreach ($open as $candidate) {

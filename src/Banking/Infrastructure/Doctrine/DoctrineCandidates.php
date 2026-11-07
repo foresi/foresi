@@ -10,9 +10,11 @@ namespace App\Banking\Infrastructure\Doctrine;
 
 use App\Banking\Application\Candidate;
 use App\Banking\Application\Candidates;
+use App\Banking\Domain\BankMovement;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PaymentAllocation;
+use App\Invoicing\Domain\PaymentDirection;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
@@ -71,17 +73,53 @@ final readonly class DoctrineCandidates implements Candidates
         }
         $candidates = [];
         foreach ($this->rows($where, $parameters) as $row) {
-            // As InvoicePayments::toRefundOf() counts it: below what was paid after corrections, or advances beyond a final invoice.
-            $payable = (int) $row['payable'];
-            $corrections = (int) $row['corrections'];
-            $toRefund = (int) $row['paid'] - $payable - $corrections;
-            $refundable = (0 !== $corrections && $payable > 0) || ($row['deductsAdvances'] && $payable <= 0);
-            if ($refundable && $toRefund > 0) {
-                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($toRefund, $row['currency']), $row['customer'], $row['issueDate']);
+            $toRefund = $this->toRefund($row);
+            if ($toRefund > 0) {
+                // Money sent back before a credit note was written is for something else: the later date counts.
+                $issued = null === $row['correctedOn'] ? $row['issueDate'] : max($row['issueDate'], new \DateTimeImmutable($row['correctedOn']));
+                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($toRefund, $row['currency']), $row['customer'], $issued);
             }
         }
 
         return $candidates;
+    }
+
+    public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array
+    {
+        [$field, $value] = null !== $counterIban && '' !== $counterIban ? ['counterIban', $counterIban] : ['counterAccount', $counterAccount];
+        if (null === $value || '' === $value) {
+            return [];
+        }
+        /** @var list<array{id: string}> $rows */
+        $rows = $this->em->createQuery(
+            'SELECT DISTINCT IDENTITY(a.invoice) AS id FROM '.PaymentAllocation::class.' a JOIN a.payment p, '.BankMovement::class.' m '
+            .'WHERE m.id = p.bankMovementId AND p.cancelledAt IS NULL AND p.direction = :incoming AND m.firm = :firm AND m.'.$field.' = :value',
+        )
+            ->setParameter('incoming', PaymentDirection::Incoming)
+            ->setParameter('firm', $firmId)
+            ->setParameter('value', $value)
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id'], $rows);
+    }
+
+    /**
+     * As InvoicePayments::toRefundOf() counts it: what was paid on an advance no final
+     * invoice deducts; on anything else, what was paid above what is due after the
+     * corrections, on an invoice with something to pay or one its advances exceed.
+     *
+     * @param array{kind: DocumentKind, payable: int|numeric-string, paid: int|numeric-string, corrections: int|numeric-string, deductsAdvances: bool, deducted: int|numeric-string} $row
+     */
+    private function toRefund(array $row): int
+    {
+        $payable = (int) $row['payable'];
+        $paid = (int) $row['paid'];
+        if (DocumentKind::Advance === $row['kind']) {
+            return 0 === (int) $row['deducted'] ? $paid : 0;
+        }
+        $refundable = $payable > 0 || $row['deductsAdvances'];
+
+        return $refundable ? $paid - $payable - (int) $row['corrections'] : 0;
     }
 
     /**
@@ -106,7 +144,7 @@ final readonly class DoctrineCandidates implements Candidates
     /**
      * @param array<string, mixed> $parameters
      *
-     * @return list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, paid: int|numeric-string, corrections: int|numeric-string}>
+     * @return list<array{id: string, number: string, kind: DocumentKind, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, deducted: int|numeric-string, paid: int|numeric-string, corrections: int|numeric-string, correctedOn: string|null}>
      */
     private function rows(string $where, array $parameters): array
     {
@@ -114,10 +152,12 @@ final readonly class DoctrineCandidates implements Candidates
         $where .= ' AND i.kind IN (:payableKinds)';
         $parameters['payableKinds'] = array_values(array_map(static fn (DocumentKind $kind): string => $kind->value, array_filter(DocumentKind::cases(), static fn (DocumentKind $kind): bool => $kind->isPayable())));
         $query = $this->em->createQuery(
-            'SELECT i.id AS id, i.number AS number, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, i.deductsAdvances AS deductsAdvances, '
+            'SELECT i.id AS id, i.number AS number, i.kind AS kind, i.dueDate AS dueDate, i.issueDate AS issueDate, i.payableMinor AS payable, i.currency AS currency, i.customer.name AS customer, i.deductsAdvances AS deductsAdvances, '
+            .'CASE WHEN i.deductedByInvoiceId IS NULL THEN 0 ELSE 1 END AS deducted, '
             .'(SELECT COALESCE(SUM(a.amountMinor + a.settlementMinor), 0) FROM '.PaymentAllocation::class.' a JOIN a.payment p WHERE a.invoice = i AND p.cancelledAt IS NULL) AS paid, '
             // A credit note lowers what is left and a debit note raises it; neither is a candidate itself.
-            .'(SELECT COALESCE(SUM(c.payableMinor), 0) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = i.id AND c.deletedAt IS NULL) AS corrections '
+            .'(SELECT COALESCE(SUM(c.payableMinor), 0) FROM '.Invoice::class.' c WHERE c.correctedInvoiceId = i.id AND c.deletedAt IS NULL) AS corrections, '
+            .'(SELECT MAX(cd.issueDate) FROM '.Invoice::class.' cd WHERE cd.correctedInvoiceId = i.id AND cd.deletedAt IS NULL) AS correctedOn '
             .'FROM '.Invoice::class.' i '
             .'WHERE '.$where.' '
             .'ORDER BY i.dueDate, i.number, i.id',
@@ -125,7 +165,7 @@ final readonly class DoctrineCandidates implements Candidates
         foreach ($parameters as $name => $value) {
             $query->setParameter($name, $value);
         }
-        /** @var list<array{id: string, number: string, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, paid: int|numeric-string, corrections: int|numeric-string}> $rows */
+        /** @var list<array{id: string, number: string, kind: DocumentKind, dueDate: \DateTimeImmutable, issueDate: \DateTimeImmutable, payable: int|numeric-string, currency: Currency, customer: string, deductsAdvances: bool, deducted: int|numeric-string, paid: int|numeric-string, corrections: int|numeric-string, correctedOn: string|null}> $rows */
         $rows = $query->getArrayResult();
 
         return $rows;

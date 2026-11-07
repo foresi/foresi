@@ -155,7 +155,7 @@ final class BankMovementTest extends TestCase
         self::assertSame(3, $movement->version());
     }
 
-    public function testARecordedOutgoingMovementPairsWithItsRefundAndIsRecordedAgainOnRelease(): void
+    public function testARecordedOutgoingMovementPairsWithItsRefundAndIsBlockedUnmatchedOnRelease(): void
     {
         $movement = $this->movement(state: MovementState::Recorded, reason: null, direction: MovementDirection::Outgoing);
 
@@ -165,10 +165,10 @@ final class BankMovementTest extends TestCase
 
         $movement->release();
 
-        self::assertSame(MovementState::Recorded, $movement->state());
-        self::assertNull($movement->unmatchedReason());
+        self::assertSame(MovementState::Unmatched, $movement->state());
+        self::assertSame(UnmatchedReason::Blocked, $movement->unmatchedReason());
         self::assertNull($movement->paymentId());
-        self::assertFalse($movement->isAutoPairBlocked());
+        self::assertTrue($movement->isAutoPairBlocked());
         self::assertSame(3, $movement->version());
     }
 

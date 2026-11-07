@@ -148,7 +148,8 @@ class BankMovement implements TenantOwned, Audited
 
     /**
      * The payment came from this movement: a payment received for an incoming one,
-     * a refund for an outgoing one, which is recorded only until then.
+     * a refund for an outgoing one. An outgoing one recorded before refunds paired
+     * by themselves is still recorded only, and pairs too.
      *
      * @throws \LogicException when it is not an unmatched incoming movement or a recorded outgoing one
      */
@@ -181,21 +182,13 @@ class BankMovement implements TenantOwned, Audited
     }
 
     /**
-     * Its payment was cancelled: it is unmatched again and never paired by itself.
-     * An outgoing one, whose refund was cancelled, is recorded only again.
-     * Releasing a movement that is not paired changes nothing.
+     * Its payment was cancelled: it is unmatched again and never paired by itself,
+     * an outgoing one whose refund was cancelled too. Releasing a movement that is
+     * not paired changes nothing.
      */
     public function release(): void
     {
         if (MovementState::Paired !== $this->state) {
-            return;
-        }
-        if (!$this->isIncoming()) {
-            $this->state = MovementState::Recorded;
-            $this->unmatchedReason = null;
-            $this->paymentId = null;
-            ++$this->version;
-
             return;
         }
         $this->state = MovementState::Unmatched;

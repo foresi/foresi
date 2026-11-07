@@ -58,7 +58,7 @@ final class BankScreenTest extends TestCase
 
         $this->page($stores, new MovementFilter(MovementFilter::INCOMING, $firm, $account));
 
-        self::assertSame(['movements:incoming:'.$asked, 'rows:0:25', 'movements:unmatched:'.$asked], $stores->asked);
+        self::assertSame(['movements:incoming:'.$asked, 'rows:0:25', 'movements:unmatched:'.$asked, 'movements:outgoing_unmatched:'.$asked], $stores->asked);
     }
 
     public function testTheMessagesTabCountsAndPagesTheMessages(): void
@@ -68,7 +68,7 @@ final class BankScreenTest extends TestCase
         $page = $this->page($stores, new MovementFilter(MovementFilter::MESSAGES, page: 2));
 
         self::assertSame([30, 2, 2], [$page->total, $page->page, $page->pages]);
-        self::assertSame(['messages:messages:-:-', 'messageRows:25:25', 'movements:unmatched:-:-'], $stores->asked);
+        self::assertSame(['messages:messages:-:-', 'messageRows:25:25', 'movements:unmatched:-:-', 'movements:outgoing_unmatched:-:-'], $stores->asked);
     }
 
     /**

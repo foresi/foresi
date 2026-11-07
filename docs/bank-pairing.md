@@ -258,11 +258,11 @@ The layout of incoming payment notices is **assumed** to mirror the outgoing one
 
 Every movement in a message must be booked on an active account of the firm whose address it came to. Another account of the same firm is fine. Any other account rejects the whole message (`account_mismatch`) with no movement: it is either someone else's money or the wrong address. Such a message cannot be recorded anyway, only dismissed.
 
-Money from another account of the same firm is an **own transfer** and never pays an invoice. A transfer between two firms of one organisation pays normally. Outgoing payments are **recorded** for the record and never pair by themselves; a person can pair one with a refund (below).
+Money from another account of the same firm is an **own transfer** and never pays an invoice. A transfer between two firms of one organisation pays normally. Money sent to another account of the firm is an own transfer as well. Outgoing payments go through the same checks and pair with a refund by themselves under narrower rules (M6, below).
 
 ## What pairs by itself
 
-Pairing works on incoming movements only, by the variable symbol and the amount:
+Pairing works on incoming movements by the variable symbol and the amount, and on outgoing ones as refunds (M6):
 
 - **M0 Gate.** A movement pairs by itself only when its message is verified, it is in the currency of its account, the firm's automatic pairing is on, and nobody unpaired it before. Otherwise it stays unmatched with the reason, and the fitting invoices are kept as suggestions.
 - **M1 Own transfer.** A counter-account that is an account of the same firm makes an own transfer.
@@ -270,7 +270,7 @@ Pairing works on incoming movements only, by the variable symbol and the amount:
 - **M3 One candidate.** It takes the whole amount and becomes paid, partly paid or overpaid.
 - **M4 Several candidates.** The one whose remaining amount equals the movement takes it. Failing that, a movement equal to what they all have left pays each its remaining amount. Failing that: unmatched, "Several invoices fit", with the oldest due first.
 - **M5 Locking.** The movement and then its invoices, in a fixed order, are locked, and the decision is made again under the locks. Of two notices for one invoice processed at the same moment, the second sees what the first paid; of a person and the matcher on one movement, only the first pairs it.
-- **M6 Outgoing.** Recorded, never matched by itself.
+- **M6 Outgoing.** The same gate (M0), possible duplicate and own transfer (M1) apply. The candidates are the invoices with something to refund whose own variable symbol, or that of a credit note of theirs, equals the movement's. It pairs by itself only when exactly one candidate is in the movement's currency and the movement is **exactly** what that invoice has to refund; no small difference is settled on a refund. A different amount stays unmatched with "The amount is not what is to refund", several candidates with "Several invoices fit". A credit note issued after the money went out counts as the invoice issued after it: only suggested. Outgoing movements waiting for a person are on the **Outgoing unmatched** tab.
 
 What never pairs by itself:
 
@@ -278,7 +278,7 @@ What never pairs by itself:
 - a movement in another currency than its account: it stays unmatched with "The movement is in another currency than its account", which usually means the account's currency is set wrong;
 - **an invoice issued after the money arrived**: it is only suggested, because money that came first was for something else, or for an invoice not yet written, and a person knows which;
 - the same movement from another message: a **possible duplicate**, never paired;
-- an own transfer and an outgoing payment;
+- an own transfer, and an outgoing payment that is not exactly what one invoice has to refund;
 - a movement someone unpaired.
 
 A movement pays through at most one live payment: the database refuses a second one.
@@ -287,7 +287,7 @@ A payment of an advance invoice, paired by itself or by a person, gets its tax d
 
 ### Outgoing refunds
 
-A refund is an outgoing payment: its allocation on the invoice is below zero, so what was paid is what came in less what went back. An invoice has something to refund when its payments exceed what is now due, after its credit notes or after a final invoice's deducted advances. "Pair" on an outgoing movement offers those invoices, first by the invoice's own variable symbol or that of its credit note, then by the amount, and records a refund of at most what is to refund. Nothing pairs by itself. Unpairing cancels the refund, and the movement goes back to recorded. A refund recorded by hand from the invoice's payment panel works the same way, without a movement. A refund of an advance corrects its tax document on payment; see [invoicing.md](invoicing.md#corrections).
+A refund is an outgoing payment: its allocation on the invoice is below zero, so what was paid is what came in less what went back. An invoice has something to refund when its payments exceed what is now due: after its credit notes, after a final invoice's deducted advances, or without either, a plain overpayment. A paid advance that no final invoice deducts has its whole paid amount to refund. "Pair" on an outgoing movement offers those invoices, first by the invoice's own variable symbol or that of its credit note, then by the amount, then those an earlier incoming payment paired from a bank movement of the same counter account (by IBAN, or by account number without one) paid, then by the customer's name, and records a refund of at most what is to refund. The suggestion by the account is never filled in and never pairs by itself: one account may pay for several customers. A refund pairs by itself only as M6 says. Unpairing cancels the refund, and the movement goes back to unmatched, never paired by itself again. An outgoing movement recorded before refunds paired by themselves stays recorded and can still be paired by a person. A refund recorded by hand from the invoice's payment panel works the same way, without a movement. A refund of an advance corrects its tax document on payment; see [invoicing.md](invoicing.md#corrections).
 
 ### Pairing settings
 
@@ -302,13 +302,14 @@ The small-difference settlement applies only when the switch is on, the movement
 
 ## The bank screen
 
-**Bank** in the navigation has four tabs:
+**Bank** in the navigation has five tabs:
 
 | Tab | What it lists |
 |---|---|
 | Incoming | All incoming movements: date, account, amount, VS, partner, message, and the invoices paired with, or the state with its reason |
-| Outgoing | Outgoing movements, for the record or paired by a person with a refund |
+| Outgoing | All outgoing movements, paired with a refund or not |
 | Unmatched | Incoming movements waiting for a person; the tab shows their count |
+| Outgoing unmatched | Outgoing movements waiting for a person, with the reason and the suggested refunds; the tab shows their count |
 | Messages | The bank mail: received, from, subject, status and the reason in words |
 
 The list filters by firm, account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.

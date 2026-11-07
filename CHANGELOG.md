@@ -70,6 +70,7 @@ Planned as 0.5.0: the first release with invoices.
 - Bank pairing from Komerční banka payment notifications. Each bank account gets a secret inbound address; Foresi takes the mail from one operator mailbox over IMAP, or from a relay through a webhook, records the movements and pays the matching invoice by the variable symbol and the amount when the rules leave exactly one answer. Only a message the inbox's own receiving server verified by DMARC pays anything by itself; an unverified one is recorded with suggestions, and a forged one is rejected. Every pairing can be undone. See [docs/bank-pairing.md](docs/bank-pairing.md) and [docs/adr/0020-bank-notification-mail.md](docs/adr/0020-bank-notification-mail.md).
 - A Bank tab on each firm, with the accounts and their currency, the inbound addresses with setup steps for MojeBanka Business and KB+, and the switches automatic pairing (on) and small-difference settlement (off; up to 0,99 Kč in CZK).
 - Bank in the navigation: incoming and outgoing movements, the unmatched queue with suggestions, pairing by hand over one or more invoices with Undo, unpairing, and the bank e-mails with Show, Try again, Record anyway and Dismiss. A message waiting for over an hour shows as stuck. Failed bank e-mails are read again every hour when a newer parser can read them.
+- Outgoing refunds pair by themselves under the incoming rules: a verified notice, the variable symbol of exactly one invoice with something to refund, and exactly what it has to refund. Anything else waits on the new **Outgoing unmatched** tab of the bank screen, with the reason (a new one: the amount is not what is to refund) and suggestions, among them the invoices an earlier payment from the same account paid. Outgoing movements now get the possible-duplicate and own-transfer checks too.
 
 ### Changed
 
@@ -89,6 +90,7 @@ Planned as 0.5.0: the first release with invoices.
 - The status of an invoice includes the payment states, in the order trash, overpaid, paid, overdue, partly paid, delivered, issued. A paid invoice is not overdue. The invoice list has the tabs All, Paid, Unpaid, Overdue and Trash.
 - An invoice with a payment cannot go to the trash; remove the payments first.
 - The public link page of a paid invoice says Paid and shows no way to pay it again. After a part payment it shows what is left to pay, without the QR code.
+- A plain overpayment is now to refund: the refund in the payment panel and in the bank's pair dialog accepts it, and the invoice list has a **To refund** tab of invoices paid above what is due. A paid advance no final invoice deducts is now offered as a refund in the pair dialog too. Unpairing a refund leaves its movement unmatched, never paired by itself again, instead of recorded.
 
 ## [0.4.0] - 2026-11-01
 

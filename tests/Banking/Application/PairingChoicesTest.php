@@ -44,6 +44,8 @@ final class PairingChoicesTest extends BankingTestCase
     private array $reads = [];
     /** @var list<Candidate> the invoices of the firm with something to refund */
     private array $refunds = [];
+    /** @var list<string> the invoices an earlier payment from the counter account paid */
+    private array $paidFrom = [];
 
     public function testSuggestionsComeBySymbolThenAmountThenCustomerAndTheRestAreOthers(): void
     {
@@ -195,6 +197,31 @@ final class PairingChoicesTest extends BankingTestCase
         self::assertSame(99, $this->choices($this->movement('1210.00'), smallDifference: true)->settlementLimit);
     }
 
+    public function testAnOutgoingMovementIsOfferedTheRefundsTheAccountItGoesToPaidBeforeTheCustomersAndFillsNothingIn(): void
+    {
+        $this->refunds = [
+            $this->candidate('R1', '100.00', 'Example Customer a.s.'),
+            $this->candidate('R2', '200.00'),
+            $this->candidate('R3', '300.00'),
+        ];
+        $this->paidFrom = ['R2', 'R1', 'X'];
+        $outgoing = $this->movement('1000.00', 'Example Customer a.s.', vs: null, direction: MovementDirection::Outgoing);
+
+        $options = $this->choices($outgoing);
+
+        self::assertSame([['R1', PairingChoices::BY_ACCOUNT], ['R2', PairingChoices::BY_ACCOUNT]], $this->offered($options->suggested), 'the account outranks the customer; an invoice with nothing to refund is left out');
+        self::assertSame([['R3', null]], $this->offered($options->others));
+        self::assertSame([], $options->prefill, 'a suggestion by the account is never filled in');
+    }
+
+    public function testAnIncomingMovementIsNeverSuggestedByTheAccount(): void
+    {
+        $this->open = [$this->candidate('A', '100.00')];
+        $this->paidFrom = ['A'];
+
+        self::assertSame([], $this->offered($this->choices($this->movement('1000.00', vs: null))->suggested));
+    }
+
     public function testAnOutgoingMovementIsOfferedTheRefundsInItsCurrencyAsTheSearchFindsThem(): void
     {
         $this->refunds = [
@@ -237,6 +264,11 @@ final class PairingChoicesTest extends BankingTestCase
             {
                 return null === $variableSymbol ? $this->test->refundsRead() : $this->test->symbolRead();
             }
+
+            public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array
+            {
+                return $this->test->paidFromRead();
+            }
         };
         $rules = new readonly class($smallDifference) implements FirmPairingRules {
             public function __construct(private bool $smallDifference)
@@ -266,6 +298,14 @@ final class PairingChoicesTest extends BankingTestCase
     public function refundsRead(): array
     {
         return $this->refunds;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function paidFromRead(): array
+    {
+        return $this->paidFrom;
     }
 
     /**

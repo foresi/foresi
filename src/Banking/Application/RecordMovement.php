@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\ConflictRetry;
@@ -27,9 +26,9 @@ use App\Party\Domain\LegalEntity;
  * wants both, so the reason an incoming movement is recorded with is what the
  * matcher says now, and auto() settles it under the locks.
  *
- * Outgoing money is recorded only. The same movement from another message is a
- * possible duplicate, and money from another account of the same firm is an own
- * transfer; neither ever pays an invoice. Movements of one account are recorded
+ * Outgoing money goes the same way, to a refund: the same movement from another
+ * message is a possible duplicate, and money to or from another account of the
+ * same firm is an own transfer; neither ever pays or refunds an invoice. Movements of one account are recorded
  * one after the other, so the second of two equal ones sees the first.
  */
 final readonly class RecordMovement
@@ -68,9 +67,6 @@ final readonly class RecordMovement
 
     private function stateOf(MovementInput $input, LegalEntity $firm): MovementState
     {
-        if (MovementDirection::Outgoing === $input->direction) {
-            return MovementState::Recorded;
-        }
         if ($this->movements->fingerprintTakenByOther($input->fingerprint(), $input->inboundMessageId)) {
             return MovementState::PossibleDuplicate;
         }

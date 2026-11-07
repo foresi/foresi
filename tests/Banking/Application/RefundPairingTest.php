@@ -14,6 +14,7 @@ use App\Banking\Application\PairingChoices;
 use App\Banking\Application\PairingRefused;
 use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
+use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\CorrectionInput;
@@ -68,7 +69,7 @@ final class RefundPairingTest extends BankingTestCase
         self::assertSame([$invoice->id()], array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $candidates));
     }
 
-    public function testCancellingThePairedRefundRecordsTheMovementOnlyAgain(): void
+    public function testCancellingThePairedRefundLeavesTheMovementUnmatchedForAPerson(): void
     {
         [$invoice] = $this->toRefund();
         $movement = $this->recordMovement->record($this->incoming('484.00', vs: $invoice->variableSymbol(), direction: MovementDirection::Outgoing), self::verified());
@@ -77,7 +78,8 @@ final class RefundPairingTest extends BankingTestCase
         self::getContainer()->get(CancelPayment::class)->cancel($payment->id());
         $this->em->clear();
 
-        self::assertSame(MovementState::Recorded, $this->storedMovement($movement->id())->state());
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::Blocked], [$this->storedMovement($movement->id())->state(), $this->storedMovement($movement->id())->unmatchedReason()]);
+        self::assertNull($this->pairing->auto($movement->id()), 'an unpaired refund never pairs by itself again');
         self::assertSame(48400, $this->payments->toRefundOf($this->store->get($invoice->id()))->minor());
     }
 
