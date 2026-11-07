@@ -24,7 +24,7 @@
         {% endif %}
 
         <div class="flex flex-wrap items-end justify-between gap-3">
-            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}]" :label="'work.project.views'|trans" class="min-w-0 flex-1" />
+            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="min-w-0 flex-1" />
             <form method="get" action="{{ path('app_project', {id: project.id}) }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg" data-task-filters>
                 <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="responsible" id="filter-responsible" :label="'work.filter.responsible'|trans" :options="responsibles" :value="query.responsible" /></div>
                 <div class="w-full min-w-0 sm:w-40"><twig:Ui:Select name="status" id="filter-status" :label="'work.filter.status'|trans" :options="statuses" :value="query.status" /></div>

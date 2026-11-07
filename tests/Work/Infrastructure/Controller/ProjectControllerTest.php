@@ -300,6 +300,133 @@ final class ProjectControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testTheBoardHasAColumnPerStatusWithTheTopLevelTasksAsCards(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        $crawler = $this->client->request('GET', '/projects/'.$id);
+        self::assertSame('/projects/'.$id.'/board', $crawler->filter('nav a:contains("Board")')->attr('href'));
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('page', $crawler->filter('nav a:contains("Board")')->attr('aria-current'));
+        // Every status has its column, so the status filter of the list is not offered.
+        self::assertCount(0, $crawler->filter('#filter-status'));
+        self::assertCount(1, $crawler->filter('#filter-responsible'));
+        self::assertSame(['To do' => ['Brief'], 'In progress' => ['Wireframes'], 'Done' => ['Launch']], $this->board($crawler));
+        self::assertSame(['1', '1', '1'], $crawler->filter('[data-board-count]')->each(static fn (Crawler $count): string => trim($count->text())));
+        self::assertStringContainsString('Type: in progress', $crawler->filter('[data-board-column] h2')->eq(1)->text());
+
+        $card = $crawler->filter('[data-board-card][data-task-id="'.$this->taskId('Wireframes').'"]');
+        self::assertSame('/tasks/'.$this->taskId('Wireframes'), $card->filter('[data-card-title]')->attr('href'));
+        self::assertStringContainsString('Example Company', $card->filter('[data-card-responsible]')->text());
+        self::assertStringContainsString('Overdue', $card->filter('[data-card-due]')->text());
+        self::assertStringContainsString('High', $card->filter('[data-card-priority]')->text());
+        self::assertSame('Design', trim($card->filter('[data-badges]')->text()));
+        self::assertStringContainsString('0/1', $card->filter('[data-card-subtasks]')->text());
+        self::assertCount(1, $card->filter('[data-board-handle]'));
+        // A card without a priority or subtasks shows neither.
+        $brief = $crawler->filter('[data-board-card][data-task-id="'.$this->taskId('Brief').'"]');
+        self::assertCount(0, $brief->filter('[data-card-priority]'));
+        self::assertCount(0, $brief->filter('[data-card-subtasks]'));
+        // The menu moves to the other statuses, and not up or down in a column of one.
+        self::assertSame(['hidden', null, null], $brief->filter('[data-move-status]')->each(static fn (Crawler $form): ?string => null === $form->attr('hidden') ? null : 'hidden'));
+        self::assertSame(['hidden', 'hidden'], $brief->filter('[data-move]')->each(static fn (Crawler $form): string => null === $form->attr('hidden') ? 'shown' : 'hidden'));
+
+        $this->client->request('GET', '/projects/01900000-0000-7000-8000-000000000000/board');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheBoardFiltersByResponsibleAndDueButNotByStatus(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board?responsible=me');
+        self::assertSame(['To do' => [], 'In progress' => ['Wireframes'], 'Done' => []], $this->board($crawler));
+        self::assertSame('me', $crawler->filter('#filter-responsible option[selected]')->attr('value'));
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board?due=none&status=finished');
+        self::assertSame(['To do' => ['Brief'], 'In progress' => [], 'Done' => []], $this->board($crawler));
+    }
+
+    public function testTheMenuMovesACardToAnotherStatusAndUpAndDownItsColumn(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board?due=next_7_days');
+        $launch = $this->taskId('Launch');
+        $toDo = $crawler->filter('[data-board-column]')->eq(0)->attr('data-board-column');
+
+        $this->client->submit($crawler->filter('[data-task-id="'.$launch.'"] form[data-move-status="'.$toDo.'"]')->form());
+
+        self::assertResponseRedirects('/projects/'.$id.'/board?due=next_7_days', 303);
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board');
+        self::assertSame(['To do' => ['Brief', 'Launch'], 'In progress' => ['Wireframes'], 'Done' => []], $this->board($crawler));
+        self::assertSame('To do', $this->em->getConnection()->fetchOne('SELECT s.name FROM task t JOIN project_status s ON s.id = t.status_id WHERE t.id = ?', [$launch]));
+
+        $this->client->submit($crawler->filter('[data-task-id="'.$launch.'"] form[data-move="up"]')->form());
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Launch', 'Brief'], $this->board($crawler)['To do']);
+        // One order for the project: the list reads it too.
+        self::assertSame(['Launch', 'Brief', 'Wireframes'], $this->em->getConnection()->fetchFirstColumn('SELECT title FROM task WHERE parent_id IS NULL ORDER BY position'));
+
+        // At the top already, up changes nothing; down goes back.
+        $this->client->submit($crawler->filter('[data-task-id="'.$launch.'"] form[data-move="up"]')->form());
+        self::assertSame(['Launch', 'Brief'], $this->board($this->client->followRedirect())['To do']);
+        $this->client->submit($crawler->filter('[data-task-id="'.$launch.'"] form[data-move="down"]')->form());
+        self::assertSame(['Brief', 'Launch'], $this->board($this->client->followRedirect())['To do']);
+    }
+
+    public function testADropIsSavedWithItsPlaceAndAnswersNoContent(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board');
+        $token = (string) $crawler->filter('[data-controller="board"]')->attr('data-board-token-value');
+        $done = $crawler->filter('[data-board-column]')->eq(2)->attr('data-board-column');
+        $json = ['HTTP_ACCEPT' => 'application/json'];
+
+        $this->client->request('POST', '/tasks/'.$this->taskId('Brief').'/move', ['_token' => $token, 'statusId' => $done, 'beforeTaskId' => $this->taskId('Launch')], server: $json);
+        self::assertResponseStatusCodeSame(204);
+        $this->client->request('POST', '/tasks/'.$this->taskId('Wireframes').'/move', ['_token' => $token, 'statusId' => $done, 'beforeTaskId' => ''], server: $json);
+        self::assertResponseStatusCodeSame(204);
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board');
+        self::assertSame(['To do' => [], 'In progress' => [], 'Done' => ['Brief', 'Launch', 'Wireframes']], $this->board($crawler));
+        self::assertSame(['0', '0', '3'], $crawler->filter('[data-board-count]')->each(static fn (Crawler $count): string => trim($count->text())));
+
+        // A place before a task of another column, or a status it does not have, is no place.
+        $this->client->request('POST', '/tasks/'.$this->taskId('Brief').'/move', ['_token' => $token, 'statusId' => $crawler->filter('[data-board-column]')->eq(0)->attr('data-board-column'), 'beforeTaskId' => $this->taskId('Launch')], server: $json);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', '/tasks/'.$this->taskId('Brief').'/move', ['_token' => $token, 'statusId' => '01900000-0000-7000-8000-000000000000'], server: $json);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAMoveNeedsItsToken(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $brief = $this->taskId('Brief');
+
+        $this->client->request('POST', '/tasks/'.$brief.'/move', ['_token' => 'wrong', 'direction' => 'down']);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(['To do' => ['Brief'], 'In progress' => ['Wireframes'], 'Done' => ['Launch']], $this->board($this->client->request('GET', '/projects/'.$id.'/board')));
+    }
+
+    public function testAGuestHasNoBoard(): void
+    {
+        $this->signIn(Role::Guest);
+        $id = '01900000-0000-7000-8000-000000000000';
+
+        $this->client->request('GET', '/projects/'.$id.'/board');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/tasks/'.$id.'/move', ['direction' => 'down']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testAProjectOfAnotherOrganisationIsNotFound(): void
     {
         $this->signIn();
@@ -364,6 +491,19 @@ final class ProjectControllerTest extends WebTestCase
         });
 
         return $id;
+    }
+
+    /**
+     * @return array<string, list<string>> the card titles by column name
+     */
+    private function board(Crawler $crawler): array
+    {
+        $columns = [];
+        $crawler->filter('[data-board-column]')->each(static function (Crawler $column) use (&$columns): void {
+            $columns[trim($column->filter('h2 > span.truncate')->text())] = $column->filter('[data-card-title]')->each(static fn (Crawler $title): string => trim($title->text()));
+        });
+
+        return $columns;
     }
 
     /**

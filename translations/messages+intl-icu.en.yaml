@@ -3145,6 +3145,7 @@ work:
     errors_title: 'Please fix:'
     tab:
       list: List
+      board: Board
     field:
       name: Name
       client: Client
@@ -3190,3 +3191,17 @@ work:
     add_task: Add task
     add_placeholder: Task title, then Enter
     overdue: 'Overdue {date}'
+  board:
+    columns: Status columns
+    type:
+      open: 'Type: open'
+      active: 'Type: in progress'
+      done: 'Type: done'
+      closed: 'Type: closed'
+    drag: 'Drag {title}'
+    move_to: Move to
+    move_to_status: 'Move to {status}'
+    move_up: Move up
+    move_down: Move down
+    moved: 'Moved to {status}, position {position} of {count}'
+    subtasks: '{done} of {total} subtasks done'

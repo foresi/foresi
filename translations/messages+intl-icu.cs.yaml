@@ -3145,6 +3145,7 @@ work:
     errors_title: 'Opravte prosím:'
     tab:
       list: Seznam
+      board: Nástěnka
     field:
       name: Název
       client: Klient
@@ -3190,3 +3191,17 @@ work:
     add_task: Přidat úkol
     add_placeholder: Název úkolu a Enter
     overdue: 'Po termínu {date}'
+  board:
+    columns: Sloupce stavů
+    type:
+      open: 'Typ: otevřený'
+      active: 'Typ: rozpracovaný'
+      done: 'Typ: hotový'
+      closed: 'Typ: uzavřený'
+    drag: 'Přetáhnout {title}'
+    move_to: Přesunout do
+    move_to_status: 'Přesunout do: {status}'
+    move_up: Posunout nahoru
+    move_down: Posunout dolů
+    moved: 'Přesunuto do: {status}, pozice {position} z {count}'
+    subtasks: 'Hotové podúkoly: {done} z {total}'

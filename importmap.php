@@ -28,4 +28,7 @@ return [
     '@hotwired/turbo' => [
         'version' => '8.0.23',
     ],
+    'sortablejs' => [
+        'version' => '1.15.6',
+    ],
 ];
