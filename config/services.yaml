@@ -30,6 +30,11 @@ parameters:
     app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
     # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
     app.original_documents_dir: '%kernel.share_dir%/original-documents'
+    # The health check is degraded when less of the data directory's disk is free, in percent.
+    env(HEALTH_DISK_MIN_FREE_PERCENT): '5'
+    # Error mails to the operator; both empty sends none (docs/logging.md).
+    env(OPERATOR_MAILER_DSN): ''
+    env(OPERATOR_EMAIL): ''
 
 services:
     # default configuration for services in *this* file
@@ -200,6 +205,8 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
     App\Invoicing\Application\MailSecrets:
         alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    App\Shared\Application\Sealer:
+        alias: App\Shared\Infrastructure\Crypto\SodiumSealer
     App\Invoicing\Application\MailHostPolicy:
         alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
     App\Invoicing\Application\MailTemplates:
@@ -438,6 +445,9 @@ when@test:
         test.mail_test_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.two_factor_code_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         test.invoice_send_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
@@ -451,6 +461,9 @@ when@test:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         test.inbound_mail_relay_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
+        test.health_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
         # Lets a test spend the budget of a firm.

@@ -1,0 +1,29 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The code step of the sign-in, rendered by the two-factor bundle's form controller. #}
+{% extends 'layout/auth.html.twig' %}
+
+{% set form_invalid = authenticationError is not null %}
+{# A wrong code is the bundle's own message; throttling is the firewall's. #}
+{% set errorText = authenticationError ? ('code_invalid' == authenticationError ? 'two_factor.code.invalid'|trans : authenticationError|trans(authenticationErrorData, 'security')) : null %}
+
+{% block title %}{{ 'two_factor.code.title'|trans }}{% endblock %}
+
+{% block content %}
+    <p class="m-0 mb-4 text-small text-muted">{{ 'two_factor.code.intro'|trans }}</p>
+
+    <form method="post" action="{{ checkPathUrl ? checkPathUrl : path(checkPathRoute) }}" class="grid gap-3" novalidate>
+        <twig:Ui:TextInput :name="authCodeParameterName" id="auth-code" :label="'two_factor.code.label'|trans" :help="'two_factor.code.help'|trans" :error="errorText" required autocomplete="one-time-code" inputmode="numeric" autocapitalize="off" spellcheck="false" autofocus />
+        {% if displayTrustedOption %}
+            <twig:Ui:Checkbox :name="trustedParameterName" id="trusted" value="1" :label="'two_factor.code.trusted'|trans" />
+        {% endif %}
+        {% if isCsrfProtectionEnabled %}
+            <input type="hidden" name="{{ csrfParameterName }}" value="{{ csrf_token(csrfTokenId) }}">
+        {% endif %}
+        <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'two_factor.code.submit'|trans }}</twig:Ui:Button>
+    </form>
+
+    <form method="post" action="{{ path('app_logout') }}" data-turbo="false" class="mt-4 text-center">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+        <twig:Ui:Button type="submit" variant="ghost" size="sm">{{ 'two_factor.code.cancel'|trans }}</twig:Ui:Button>
+    </form>
+{% endblock %}

@@ -33,6 +33,13 @@ framework:
             limit: 5
             interval: '1 minute'
 
+        # Codes of the two-factor sign-in, per user and never reset by the password:
+        # signing in again does not buy more guesses.
+        two_factor_code:
+            policy: sliding_window
+            limit: 5
+            interval: '5 minutes'
+
         # Documents sent by e-mail, per signed-in user and per firm.
         invoice_send:
             policy: sliding_window
@@ -61,6 +68,12 @@ framework:
             limit: 600
             interval: '1 minute'
 
+        # The health endpoint, per client address: a monitor calls it every few minutes.
+        health:
+            policy: sliding_window
+            limit: 60
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -75,6 +88,8 @@ when@test:
                 storage_service: test.registry_outgoing_storage
             mail_test:
                 storage_service: test.mail_test_storage
+            two_factor_code:
+                storage_service: test.two_factor_code_storage
             invoice_send:
                 storage_service: test.invoice_send_storage
             invoice_send_firm:
@@ -85,6 +100,8 @@ when@test:
                 storage_service: test.inbound_mail_storage
             inbound_mail_relay:
                 storage_service: test.inbound_mail_relay_storage
+            health:
+                storage_service: test.health_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

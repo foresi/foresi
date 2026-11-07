@@ -17,6 +17,10 @@ security:
         inbound_mail:
             pattern: ^/inbound/mail$
             stateless: true
+        # The health endpoint for an uptime monitor: no user and no session.
+        health:
+            pattern: ^/health$
+            stateless: true
         main:
             lazy: true
             provider: app_user_provider
@@ -36,6 +40,16 @@ security:
                 max_attempts: 5
                 interval: '1 minute'
 
+            # The code step after the password; see config/packages/scheb_2fa.yaml.
+            two_factor:
+                auth_form_path: 2fa_login
+                check_path: 2fa_login_check
+                default_target_path: app_dashboard
+                enable_csrf: true
+                csrf_token_id: two_factor
+                auth_code_parameter_name: _auth_code
+                trusted_parameter_name: _trusted
+
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
 
@@ -45,12 +59,18 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        # Signing out stays possible halfway through the code step.
+        - { path: ^/logout$, roles: PUBLIC_ACCESS }
+        # The code step, between the password and the full sign-in.
+        - { path: ^/login/code, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         # The development catalogue shows no data; its route exists in dev and test only.
         - { path: ^/_catalogue$, roles: PUBLIC_ACCESS }
         # Links to sent documents, opened by customers from their mail.
         - { path: ^/d/, roles: PUBLIC_ACCESS }
         # Raw bank mail from a relay, which proves itself with the webhook secret.
         - { path: ^/inbound/mail$, roles: PUBLIC_ACCESS }
+        # Numbers about the installation only, for an uptime monitor.
+        - { path: ^/health$, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

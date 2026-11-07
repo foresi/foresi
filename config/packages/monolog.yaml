@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Logging; see docs/logging.md. Every record passes App\Shared\Infrastructure\Logging\RedactSecrets
+# first, which blanks secrets and personal data.
+monolog:
+    channels:
+        - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+
+# Development keeps writing to stderr, as before the bundle.
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: php://stderr
+                level: warning
+                channels: ['!event', '!deprecation']
+
+# The application logger of the tests is the plain one of services.yaml, which writes to
+# the cache directory; the framework's channels write there too, never to stderr.
+when@test:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: '%kernel.cache_dir%/test.log'
+                level: info
+                channels: ['!event', '!deprecation']
+
+when@prod:
+    monolog:
+        handlers:
+            # The application's channels from info up, one JSON object per line. Records below
+            # info are held back and written only when the request, command or message ends
+            # in an error, as the context of that error. Not for client errors (404, 405).
+            main:
+                type: fingers_crossed
+                action_level: error
+                passthru_level: info
+                handler: file
+                excluded_http_codes: [404, 405]
+                buffer_size: 100
+                channels: ['!deprecation', '!doctrine', '!event', '!messenger']
+            file:
+                type: rotating_file
+                path: '%kernel.logs_dir%/prod.log'
+                max_files: 30
+                level: debug
+                formatter: monolog.formatter.json
+            # The chatty framework channels from warning up only: for the worker, a retry or a
+            # failure, not every message handled. The event channel exists in debug only.
+            noisy:
+                type: rotating_file
+                path: '%kernel.logs_dir%/prod.log'
+                max_files: 30
+                level: warning
+                formatter: monolog.formatter.json
+                channels: [doctrine, messenger]
+            deprecation:
+                type: rotating_file
+                path: '%kernel.logs_dir%/deprecations.log'
+                max_files: 30
+                formatter: monolog.formatter.json
+                channels: [deprecation]
+            # Errors of every channel, the web, the console and the worker (a message that failed
+            # its last retry), mailed to the operator at most once an hour per distinct message.
+            # Only errors are held until the end, so a long command or worker keeps nothing else.
+            operator_alert:
+                type: filter
+                min_level: error
+                handler: operator_dedup
+                channels: ['!deprecation']
+            operator_dedup:
+                type: deduplication
+                handler: operator_mail
+                time: 3600
+                deduplication_level: error
+                store: '%kernel.logs_dir%/operator-alerts.dedup'
+                process_psr_3_messages: true
+            operator_mail:
+                type: service
+                id: App\Shared\Infrastructure\Logging\OperatorMailHandler
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ['!event', '!doctrine', '!deprecation']

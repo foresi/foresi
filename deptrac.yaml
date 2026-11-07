@@ -180,11 +180,16 @@ deptrac:
       collectors:
         - type: classLike
           value: ^OpenSpout\\
-    # PDF rendering; only the Invoicing module's infrastructure may use it.
+    # PDF rendering and barcodes; only the infrastructure of Invoicing (PDFs) and of Identity (the enrolment QR code) may use it.
     - name: VendorTecnick
       collectors:
         - type: classLike
           value: ^Com\\Tecnick\\
+    # Logging handlers and processors; only the shared infrastructure may use it. Code logs through PSR-3.
+    - name: VendorMonolog
+      collectors:
+        - type: classLike
+          value: ^Monolog\\
     # MIME parsing; only the Banking module's infrastructure may use it.
     - name: VendorZbateson
       collectors:
@@ -226,6 +231,7 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - VendorSymfony
+      - VendorMonolog
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -379,6 +385,8 @@ deptrac:
       - AuditApplication
     IdentityInfrastructure:
       - SharedInfrastructure
+      # The QR code of the two-factor enrolment.
+      - VendorTecnick
       - IdentityDomain
       - IdentityApplication
       - VendorSymfony

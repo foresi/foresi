@@ -1,0 +1,9 @@
+# The code step of the sign-in; the firewall handles the check path.
+2fa_login:
+    path: /login/code
+    defaults:
+        _controller: "scheb_two_factor.form_controller::form"
+
+2fa_login_check:
+    path: /login/code/check
+    methods: [POST]

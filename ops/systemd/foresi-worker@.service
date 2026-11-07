@@ -1,0 +1,24 @@
+# The Foresi worker. Start one with `systemctl enable --now foresi-worker@1`;
+# on PostgreSQL more may run (@2, @3), on SQLite exactly one.
+# WorkingDirectory is the `current` symlink, resolved when the worker starts,
+# so a worker restarted after a deploy runs the new release.
+[Unit]
+Description=Foresi worker %i
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/foresi/current
+Environment=APP_ENV=prod
+ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail async registry --memory-limit=256M --time-limit=3600
+Restart=always
+RestartSec=5
+# A message may run long (the accountant pack); let it finish on stop.
+TimeoutStopSec=3600
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+# The nightly backup: pg_dump and the data directories into restic.
+# Runs as the application user, which can read the data directories; the
+# database role and restic credentials come from /etc/foresi/backup.env.
+[Unit]
+Description=Foresi backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+OnFailure=foresi-alert@%n.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+Environment=BACKUP_ENV_FILE=/etc/foresi/backup.env
+ExecStart=/srv/foresi/current/ops/backup.sh
+Nice=10
+IOSchedulingClass=idle

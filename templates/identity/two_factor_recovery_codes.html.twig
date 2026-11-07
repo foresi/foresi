@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% extends 'layout/auth.html.twig' %}
+
+{% block title %}{{ 'two_factor.recovery.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:Ui:Alert tone="success" class="mb-4">{{ 'two_factor.recovery.enabled'|trans }}</twig:Ui:Alert>
+    <p class="m-0 mb-3 text-small text-muted">{{ 'two_factor.recovery.intro'|trans }}</p>
+    <ol class="m-0 mb-4 grid list-none grid-cols-2 gap-2 p-0 font-mono text-body text-ink" data-recovery-codes>
+        {% for code in codes %}
+            <li>{{ code }}</li>
+        {% endfor %}
+    </ol>
+    <twig:Ui:Button :href="path('app_dashboard')" variant="primary" class="w-full">{{ 'two_factor.recovery.continue'|trans }}</twig:Ui:Button>
+{% endblock %}
