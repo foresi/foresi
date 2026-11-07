@@ -87,14 +87,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'My firms');
     }
 
-    public function testTheSettingsGroupHoldsPeopleFirmsAndTheImportHistory(): void
+    public function testTheSettingsGroupHoldsPeopleFirmsLabelsAndTheImportHistory(): void
     {
         $this->signIn();
 
         $crawler = $this->client->request('GET', '/');
 
         $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/people People', '/settings/firms My firms', '/imports Import and export'], $links);
+        self::assertSame(['/settings/people People', '/settings/firms My firms', '/settings/labels Labels', '/imports Import and export'], $links);
     }
 
     public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsFirmsMarkedInTheSidebar(): void
