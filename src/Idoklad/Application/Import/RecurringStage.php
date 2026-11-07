@@ -46,7 +46,9 @@ use App\Shared\Domain\Money;
  * field by field; the customer and the series are the ones the earlier stages
  * linked. What iDoklad issued carries over, and the next date Foresi works out
  * must be iDoklad's next issue, or the template is refused with both dates, not
- * guessed. The regime is the firm's, under which Foresi issues them. Templates
+ * guessed. A template iDoklad switched back on restarts its schedule on that
+ * day; when the schedule from that day gives iDoklad's next issue, Foresi takes
+ * it so and says so. The regime is the firm's, under which Foresi issues them. Templates
  * of advance invoices, in a foreign currency, with a
  * variable Foresi does not know or with anything else Foresi cannot hold are
  * refused with the reasons; what has no equivalent but loses nothing on the
@@ -72,6 +74,7 @@ final readonly class RecurringStage implements ImportStage
     public const string NOTE_NOT_CARRIED = 'idoklad.import.recurring.note_not_carried';
     public const string FIXED_VARIABLE_SYMBOL = 'idoklad.import.recurring.fixed_variable_symbol';
     public const string ROUNDING_ITEM_SKIPPED = 'idoklad.import.recurring.rounding_item_skipped';
+    public const string REANCHORED = 'idoklad.import.recurring.reanchored';
 
     private const int ISSUED_INVOICE = 0;
     private const int PROFORMA_INVOICE = 1;
@@ -162,6 +165,13 @@ final readonly class RecurringStage implements ImportStage
             $next = RecurringInvoice::occurrenceAfter($input->recurrence, $history->issuedCount, $history->lastOccurrence);
             $values['next_issue'] = $next?->format('Y-m-d');
             $values['issued_count'] = $history->issuedCount;
+            $restart = $active && $values['next_issue'] !== $values['idoklad_next_issue'] ? $this->restart($input, $setting, $history, $values['idoklad_next_issue']) : null;
+            if (null !== $restart) {
+                [$input, $history, $next] = $restart;
+                $values['next_issue'] = $next?->format('Y-m-d');
+                $values['restarted_on'] = $history->restartedOn?->format('Y-m-d');
+                $notes[] = self::REANCHORED;
+            }
             // An inactive iDoklad template has no next issue to compare; Foresi resumes it from the day it is resumed.
             if ($active && $values['next_issue'] !== $values['idoklad_next_issue']) {
                 $context->report(self::KEY, $id, ImportOutcome::Refused, reasons: [self::NEXT_ISSUE_MISMATCH], values: $values);
@@ -303,13 +313,41 @@ final readonly class RecurringStage implements ImportStage
     }
 
     /**
+     * The template, its history and its next date with the schedule restarted on the day
+     * iDoklad last switched it on, which iDoklad counts from; null unless that gives
+     * exactly iDoklad's next issue.
+     *
+     * @param array<mixed> $setting
+     *
+     * @return array{RecurringInput, RecurringHistory, \DateTimeImmutable|null}|null
+     */
+    private function restart(RecurringInput $input, array $setting, RecurringHistory $history, mixed $idokladNext): ?array
+    {
+        $restartedOn = $this->date($setting['DateOfLastActivation'] ?? null);
+        $recurrence = $restartedOn instanceof \DateTimeImmutable ? $this->recurrence($setting, $restartedOn) : null;
+        if (!$recurrence instanceof Recurrence) {
+            return null;
+        }
+        $next = RecurringInvoice::occurrenceAfter($recurrence, $history->issuedCount, $history->lastOccurrence, $restartedOn);
+        if ($next?->format('Y-m-d') !== $idokladNext) {
+            return null;
+        }
+
+        return [
+            new RecurringInput($input->firmId, $input->seriesId, $input->customerId, $input->paymentMethod, $input->bankAccount, $input->constantSymbol, $input->orderNumber, $input->description, $input->textBefore, $input->textAfter, $input->language, $input->lines, $recurrence, $input->taxPoint, $input->dueDays, $input->delivery, $input->name, $input->copyToMe, $input->copyToOthers),
+            new RecurringHistory($history->importedFrom, $history->issuedCount, $history->lastOccurrence, $restartedOn),
+            $next,
+        ];
+    }
+
+    /**
      * @param array<mixed> $setting
      */
-    private function recurrence(array $setting): ?Recurrence
+    private function recurrence(array $setting, ?\DateTimeImmutable $start = null): ?Recurrence
     {
         $unit = $this->pick(self::UNITS, $setting['RecurrenceType'] ?? null);
         $end = $this->pick(self::ENDS, $setting['TypeOfEnd'] ?? null);
-        $start = $this->date($setting['DateOfStart'] ?? null);
+        $start ??= $this->date($setting['DateOfStart'] ?? null);
         $every = $this->int($setting['RecurrenceCount'] ?? null);
         if (!$unit instanceof RecurrenceUnit || !$end instanceof RecurrenceEnd || !$start instanceof \DateTimeImmutable || null === $every) {
             return null;

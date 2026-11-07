@@ -112,6 +112,16 @@ final class RecurringInvoiceTest extends TestCase
         $imported->carryOver(1, null);
     }
 
+    public function testTheNextDateAfterARestartGoesOnFromTheLaterOfTheRestartAndTheLastIssue(): void
+    {
+        $monthly = new Recurrence(new \DateTimeImmutable('2026-01-10'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null);
+
+        self::assertSame('2026-07-10', RecurringInvoice::occurrenceAfter($monthly, 3, new \DateTimeImmutable('2026-03-10'), new \DateTimeImmutable('2026-06-10'))?->format('Y-m-d'));
+        self::assertSame('2026-04-10', RecurringInvoice::occurrenceAfter($monthly, 3, new \DateTimeImmutable('2026-03-10'), new \DateTimeImmutable('2026-02-10'))?->format('Y-m-d'));
+        self::assertSame('2026-07-10', RecurringInvoice::occurrenceAfter($monthly, 0, null, new \DateTimeImmutable('2026-06-10'))?->format('Y-m-d'));
+        self::assertSame('2026-04-10', RecurringInvoice::occurrenceAfter($monthly, 3, new \DateTimeImmutable('2026-03-10'))?->format('Y-m-d'));
+    }
+
     public function testDueDaysRunFromZeroTo365(): void
     {
         self::assertSame(0, $this->template(dueDays: 0)->dueDays());
