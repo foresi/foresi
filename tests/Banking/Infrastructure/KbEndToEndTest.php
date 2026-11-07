@@ -108,7 +108,7 @@ final class KbEndToEndTest extends InboundTestCase
         self::assertSame([], $this->movementsOf($id));
     }
 
-    public function testAnOutgoingNoticeWithNothingToRefundWaitsUnmatched(): void
+    public function testAnOutgoingNoticeNoRefundFitsIsRecordedOnly(): void
     {
         $id = $this->received($this->notice('outgoing-booked'));
 
@@ -117,7 +117,7 @@ final class KbEndToEndTest extends InboundTestCase
         self::assertSame('processed', $this->messageRow($id)['status']);
         $movements = $this->movementsOf($id);
         self::assertCount(1, $movements);
-        self::assertSame(['outgoing', 'unmatched', 'no_invoice', null], [$movements[0]['direction'], $movements[0]['state'], $movements[0]['unmatched_reason'], $movements[0]['payment_id']]);
+        self::assertSame(['outgoing', 'recorded', null, null], [$movements[0]['direction'], $movements[0]['state'], $movements[0]['unmatched_reason'], $movements[0]['payment_id']]);
         self::assertSame(0, $this->paymentCount());
     }
 

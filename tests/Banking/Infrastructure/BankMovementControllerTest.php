@@ -86,17 +86,22 @@ final class BankMovementControllerTest extends BankScreenTestCase
         self::assertCount(2, $crawler->filter('tbody a[role="menuitem"][href*="/pair"][data-dialog]'), 'Each one offers to pair it in a dialog.');
     }
 
-    public function testTheOutgoingUnmatchedTabListsTheOutgoingMovementsWaitingWithTheirReason(): void
+    public function testTheOutgoingUnmatchedTabListsOnlyTheRefundsWaitingWithTheirReason(): void
     {
         $this->signedIn();
+        $this->invoice(vs: '20260009');
+        $this->movement('1300.00', '20260009', trust: MessageTrust::Verified);
         $this->movement('500.00', '1');
-        $waiting = $this->movement('90.00', null, MovementDirection::Outgoing, trust: MessageTrust::Verified);
+        $waiting = $this->movement('50.00', '20260009', MovementDirection::Outgoing, trust: MessageTrust::Verified);
+        $supplier = $this->movement('75.00', '55500001', MovementDirection::Outgoing, trust: MessageTrust::Verified, counterName: 'Example Supplier s.r.o.', counterIban: 'SK3112000000198742637541');
 
         $crawler = $this->page('/bank?tab=outgoing_unmatched');
 
         self::assertSame('1', $crawler->filter('main nav[aria-label="Bank views"] a[aria-current="page"] span')->text());
-        self::assertSame([$waiting], $this->rowIds($crawler), 'Outgoing only.');
-        self::assertStringContainsString('No variable symbol', $this->row($crawler, $waiting)->text());
+        self::assertSame([$waiting], $this->rowIds($crawler), 'Outgoing refunds only; a supplier payment is recorded only.');
+        self::assertStringContainsString('The amount is not what is to refund', $this->row($crawler, $waiting)->text());
+        self::assertSame('recorded', $this->movementRow($supplier)['state']);
+        self::assertContains($supplier, $this->rowIds($this->page('/bank?tab=outgoing')), 'It is still in the full outgoing list.');
     }
 
     public function testThePairDialogSuggestsBySymbolThenAmountThenCustomerAndPrefillsTheSymbol(): void

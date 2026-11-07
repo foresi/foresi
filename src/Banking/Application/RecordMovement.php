@@ -28,7 +28,10 @@ use App\Party\Domain\LegalEntity;
  *
  * Outgoing money goes the same way, to a refund: the same movement from another
  * message is a possible duplicate, and money to or from another account of the
- * same firm is an own transfer; neither ever pays or refunds an invoice. Movements of one account are recorded
+ * same firm is an own transfer; neither ever pays or refunds an invoice. Outgoing
+ * money that no invoice with something to refund fits, by its symbol, amount,
+ * account or customer, pays a supplier or a salary: it is recorded only, and waits
+ * for no one. A person can still pair it with a refund that came later. Movements of one account are recorded
  * one after the other, so the second of two equal ones sees the first.
  */
 final readonly class RecordMovement
@@ -40,6 +43,7 @@ final readonly class RecordMovement
         private FirmPairingRules $rules,
         private TransactionalWork $work,
         private ConflictRetry $retry,
+        private PairingChoices $choices,
     ) {
     }
 
@@ -57,6 +61,9 @@ final readonly class RecordMovement
                 $decision = $this->matcher->decide($movement, $this->matcher->candidates($movement), $this->rules->for($account->firm()), $this->matcher->settlementLimit($movement));
                 if ($decision->reason instanceof UnmatchedReason) {
                     $movement->stayUnmatched($decision->reason);
+                }
+                if (!$movement->isIncoming() && !$decision->pairs() && [] === $this->choices->of($movement)->suggested) {
+                    $movement = $this->movement($account, $input, $verdict, MovementState::Recorded, null);
                 }
             }
             $this->movements->add($movement);
