@@ -25,12 +25,14 @@ use App\Invoicing\Domain\SeriesFormat;
  * same is used; else one is created, the default of its kind when iDoklad's is
  * and the firm has none. The counter of the year continues after iDoklad's
  * last number and never goes back. Sequences of documents Foresi does not
- * issue are refused.
+ * issue (cash vouchers, received documents and the like) are skipped; those of
+ * a type iDoklad does not document for sequences are refused.
  */
 final readonly class SeriesStage implements ImportStage
 {
     public const string KEY = 'series';
     public const string UNKNOWN_TYPE = 'idoklad.import.series.unknown_type';
+    public const string TYPE_NOT_USED = 'idoklad.import.series.type_not_used';
     public const string INVALID_FORMAT = 'idoklad.import.series.invalid_format';
     public const string INVALID_COUNTER = 'idoklad.import.series.invalid_counter';
     public const string NAME_TAKEN = 'idoklad.import.series.name_taken';
@@ -42,6 +44,13 @@ final readonly class SeriesStage implements ImportStage
         3 => DocumentKind::CorrectionDocument,
         10 => DocumentKind::PaymentTaxDocument,
     ];
+
+    /**
+     * The document types of iDoklad's sequences Foresi does not issue: CashVoucher = 2,
+     * BankStatement = 4, ReceivedInvoice = 5, SalesReceipt = 6, SalesOrder = 7,
+     * InternalDocument = 9 and ReceivedReceipt = 11.
+     */
+    private const array NOT_USED = [2, 4, 5, 6, 7, 9, 11];
 
     public function __construct(
         private SeriesCatalog $catalog,
@@ -71,6 +80,11 @@ final readonly class SeriesStage implements ImportStage
                 'last_number' => \is_int($payload['LastNumber'] ?? null) ? $payload['LastNumber'] : null,
             ];
             $kind = null === $values['document_type'] ? null : self::KINDS[$values['document_type']] ?? null;
+            if (\in_array($values['document_type'], self::NOT_USED, true)) {
+                $context->report(self::KEY, $id, ImportOutcome::Skipped, reasons: [self::TYPE_NOT_USED], values: $values);
+
+                continue;
+            }
             if (!$kind instanceof DocumentKind) {
                 $context->report(self::KEY, $id, ImportOutcome::Refused, reasons: [self::UNKNOWN_TYPE], values: $values);
 

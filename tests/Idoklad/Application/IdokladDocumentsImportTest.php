@@ -381,6 +381,46 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertSame('2026-10-01 00:00:00', $this->invoiceOf($this->entry($run, 162)['target_id'])->createdAt()->format('Y-m-d H:i:s'), 'What is no moment falls back to the issue date.');
     }
 
+    public function testAHistoryOfSeveralYearsFindsTheSeriesOfTheOnlyRowOfThisYear(): void
+    {
+        $this->em->remove($this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::NumericSequences, 'externalId' => 2]) ?? self::fail('No row of 2019.'));
+        $this->record(IdokladResource::NumericSequences, 6, ['Id' => 6, 'DocumentType' => 0, 'Name' => 'Faktury služby', 'NumberFormat' => '{RRRR}1{NNNN}', 'Year' => 2026, 'LastNumber' => 2, 'IsDefault' => false]);
+        $this->invoice(170, ['DocumentNumber' => '20200001', 'VariableSymbol' => '20200001', 'DateOfIssue' => '2020-03-02', 'DateOfTaxing' => '2020-03-02', 'DateOfMaturity' => '2020-03-16']);
+        $this->invoice(171, ['DocumentNumber' => '202010004', 'VariableSymbol' => '202010004', 'DateOfIssue' => '2020-04-01', 'DateOfTaxing' => '2020-04-01', 'DateOfMaturity' => '2020-04-15']);
+        $this->invoice(172, ['DocumentNumber' => '20230005', 'VariableSymbol' => '20230005', 'DateOfIssue' => '2023-06-01', 'DateOfTaxing' => '2023-06-01', 'DateOfMaturity' => '2023-06-15']);
+        $this->invoice(173, ['DocumentNumber' => '202610001', 'VariableSymbol' => '202610001']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([170, 171, 172, 173] as $id) {
+            self::assertSame('created', $this->entry($run, $id)['outcome'], $id.': '.implode(', ', $this->entry($run, $id)['reasons']));
+        }
+        $plain = $this->invoiceOf($this->entry($run, 170)['target_id'])->series();
+        $services = $this->invoiceOf($this->entry($run, 171)['target_id'])->series();
+        self::assertSame('{YYYY}{NNNN}', $plain->format()->toString());
+        self::assertSame('{YYYY}1{NNNN}', $services->format()->toString());
+        self::assertSame($plain->id(), $this->invoiceOf($this->entry($run, 172)['target_id'])->series()->id());
+        self::assertSame($services->id(), $this->invoiceOf($this->entry($run, 173)['target_id'])->series()->id(), 'Nine digits are the numbers of the format with more fixed characters.');
+        $counter = self::getContainer()->get(NumberCounter::class);
+        self::assertSame('20200002', $counter->peek($plain, new \DateTimeImmutable('2020-12-01')));
+        self::assertSame('20230006', $counter->peek($plain, new \DateTimeImmutable('2023-12-01')));
+        self::assertSame('20260010', $counter->peek($plain, new \DateTimeImmutable('2026-12-01')), 'This year continues after iDoklad\'s last number.');
+        self::assertSame('202010005', $counter->peek($services, new \DateTimeImmutable('2020-12-01')));
+        self::assertSame('202610003', $counter->peek($services, new \DateTimeImmutable('2026-12-01')), 'Above the last number, the highest imported one.');
+        self::assertSame('20210001', $counter->peek($plain, new \DateTimeImmutable('2021-12-01')), 'A year without documents starts at one.');
+    }
+
+    public function testANumberTwoSeriesOfTheSameFixedLengthReadIsNoSeries(): void
+    {
+        $this->record(IdokladResource::NumericSequences, 7, ['Id' => 7, 'DocumentType' => 0, 'Name' => 'Faktury A', 'NumberFormat' => '{RRRR}{NNNN}2026', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->record(IdokladResource::NumericSequences, 8, ['Id' => 8, 'DocumentType' => 0, 'Name' => 'Faktury B', 'NumberFormat' => '2026{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->invoice(174, ['DocumentNumber' => '2026202620262026', 'VariableSymbol' => '2026']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 174)['reasons']);
+    }
+
     public function testAnotherTypesSequenceOfTheSameFormatIsNoCandidate(): void
     {
         $this->record(IdokladResource::NumericSequences, 5, ['Id' => 5, 'DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);

@@ -264,11 +264,17 @@ final class IdokladImportControllerTest extends WebTestCase
         $report->add('documents', 103, ImportOutcome::Refused, reasons: ['idoklad.import.documents.currency_not_home'], values: ['resource' => 'IssuedInvoices', 'document_number' => '20250009', 'currency' => 'EUR']);
         $this->record(IdokladResource::RecurringInvoices, 7, ['RecurringSetting' => ['TemplateName' => 'Monthly hosting']]);
         $report->add('recurring', 7, ImportOutcome::Created, values: ['next_issues' => '2026-12-01,2027-01-01']);
+        $report->add('series', 4, ImportOutcome::Skipped, reasons: ['idoklad.import.series.type_not_used'], values: ['document_type' => 5]);
+        $report->add('series', 5, ImportOutcome::Skipped, reasons: ['idoklad.import.series.type_not_used'], values: ['document_type' => 2]);
         $this->storeRun(ImportMode::Check, $report, $pull);
 
         $this->client->request('GET', $this->url('/check'));
 
         self::assertResponseIsSuccessful();
+        self::assertSame(['Created', 'Matched', 'Refused', 'Differs'], $this->client->getCrawler()->filter('[data-kpi] span.truncate')->each(static fn ($kpi): string => trim($kpi->text())), 'What was skipped is counted in the table only.');
+        $series = $this->client->getCrawler()->filter('tr[data-id="series"] td')->each(static fn ($cell): string => trim($cell->text()));
+        self::assertSame(['Number series', '0', '0', '0', '0', '0', '2'], $series, 'Skipped is a column of its own.');
+        self::assertSelectorTextNotContains('[data-report-refused]', 'Foresi does not issue documents');
         self::assertSelectorTextContains('[data-report-refused]', '20250009');
         self::assertSelectorTextContains('[data-report-refused]', 'The document is not in the home currency');
         self::assertSelectorTextContains('[data-report-refused]', 'Currency: EUR');

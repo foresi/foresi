@@ -252,6 +252,25 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertSame(0, $this->templates());
     }
 
+    public function testOffsetVariablesWithSpacesAroundTheSignAreForesisTokens(): void
+    {
+        $this->template(960, [], [
+            'OrderNumber' => 'PO-{month - 1}',
+            'Description' => 'Hosting {month/year +1}',
+            'ItemsTextPrefix' => 'Q{quarter+ 2}',
+            'ItemsTextSuffix' => 'Due {day + 14}.{month}.{year + 1}',
+            'Items' => [['ItemType' => 0, 'Name' => 'Hosting {year +1} {month/year}', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 100]]],
+        ]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 960);
+        self::assertSame('created', $entry['outcome']);
+        $row = $this->em->getConnection()->fetchAssociative('SELECT order_number, description, text_before, text_after FROM recurring_invoice WHERE id = :id', ['id' => $entry['target_id']]);
+        self::assertSame(['order_number' => 'PO-{month-1}', 'description' => 'Hosting {month/year+1}', 'text_before' => 'Q{quarter+2}', 'text_after' => 'Due {day+14}.{month}.{year+1}'], $row);
+        self::assertSame('Hosting {year+1} {month/year}', $this->em->getConnection()->fetchOne('SELECT text FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]));
+    }
+
     public function testDeliveryReviewWithoutCopiesAndTheAccountantIsANote(): void
     {
         $this->template(911, ['SendToPurchaser' => false, 'SendToSupplier' => false, 'SendToOtherEmails' => false, 'SendToAccountant' => true], ['Note' => 'Internal', 'IsConstantVariableSymbol' => true]);

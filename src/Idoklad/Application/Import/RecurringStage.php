@@ -100,6 +100,8 @@ final readonly class RecurringStage implements ImportStage
     private const int ITEM_ROUNDING = 1;
     /** The variables iDoklad resolves in the texts of a template, which are Foresi's tokens. */
     private const string VARIABLE = '~^\{(?:(?:day|month|year|quarter|month/year)(?:[+-]\d{1,4})?|document_number)\}$~D';
+    /** An offset variable as iDoklad accepts it, with spaces around its sign: {year + 1}. */
+    private const string SPACED_OFFSET = '~\{(day|month/year|month|year|quarter)\s*([+-])\s*(\d{1,4})\s*\}~';
 
     public function __construct(
         private SaveRecurringInvoice $save,
@@ -238,10 +240,10 @@ final readonly class RecurringStage implements ImportStage
         }
 
         $texts = [
-            'OrderNumber' => $this->text($template['OrderNumber'] ?? null),
-            'Description' => $this->text($template['Description'] ?? null),
-            'ItemsTextPrefix' => $this->text($template['ItemsTextPrefix'] ?? null),
-            'ItemsTextSuffix' => $this->text($template['ItemsTextSuffix'] ?? null),
+            'OrderNumber' => $this->variables($this->text($template['OrderNumber'] ?? null)),
+            'Description' => $this->variables($this->text($template['Description'] ?? null)),
+            'ItemsTextPrefix' => $this->variables($this->text($template['ItemsTextPrefix'] ?? null)),
+            'ItemsTextSuffix' => $this->variables($this->text($template['ItemsTextSuffix'] ?? null)),
         ];
         $names = [];
         $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $refusals, $notes, $names);
@@ -354,7 +356,7 @@ final readonly class RecurringStage implements ImportStage
 
                 continue;
             }
-            $name = $this->text($item['Name'] ?? null);
+            $name = $this->variables($this->text($item['Name'] ?? null));
             $names[] = $name;
             $line = self::ITEM_NORMAL === $type ? $this->line($item, $name, $discount, $currency, $regime) : null;
             if (!$line instanceof LineInput) {
@@ -414,6 +416,14 @@ final readonly class RecurringStage implements ImportStage
         }
 
         return array_unique($unknown);
+    }
+
+    /**
+     * The text with its offset variables as Foresi writes them: {year + 1} is {year+1}.
+     */
+    private function variables(string $text): string
+    {
+        return (string) preg_replace(self::SPACED_OFFSET, '{$1$2$3}', $text);
     }
 
     /**

@@ -20,4 +20,6 @@ enum ImportOutcome: string
     case Refused = 'refused';
     /** Linked earlier, but iDoklad and Foresi now disagree; the values say how. */
     case Mismatch = 'mismatch';
+    /** Left out on purpose, as nothing in Foresi takes it: the reasons say why. */
+    case Skipped = 'skipped';
 }

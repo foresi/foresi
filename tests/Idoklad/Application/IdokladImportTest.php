@@ -405,6 +405,10 @@ final class IdokladImportTest extends KernelTestCase
         $this->sequence(20, ['DocumentType' => 0, 'Name' => 'Far', 'NumberFormat' => 'WNNN', 'Year' => 10000, 'LastNumber' => 1]);
         $this->sequence(21, ['DocumentType' => 0, 'Name' => 'Huge', 'NumberFormat' => 'VNNN', 'Year' => 2026, 'LastNumber' => SeriesFormat::MAX_SEQUENCE + 1]);
         $this->sequence(22, ['DocumentType' => 0, 'Name' => 'Ancient', 'NumberFormat' => 'UNNN', 'Year' => 0, 'LastNumber' => 1]);
+        $this->sequence(30, ['DocumentType' => 12, 'Name' => 'Vrubopisy', 'NumberFormat' => '{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 1]);
+        foreach ([2, 4, 6, 7, 9, 11] as $type) {
+            $this->sequence(40 + $type, ['DocumentType' => $type, 'Name' => 'Unused '.$type, 'NumberFormat' => 'Q{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
+        }
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
@@ -414,7 +418,14 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame([DocumentKind::PaymentTaxDocument, 'DD-{YYYY}-{NNNN}'], $kind(5));
         self::assertSame('Z26001', $this->entry($run, SeriesStage::KEY, 3)['values']['next_number']);
         self::assertFalse($this->series($this->entry($run, SeriesStage::KEY, 3)['target_id'])->isDefault());
-        self::assertSame([SeriesStage::UNKNOWN_TYPE], $this->entry($run, SeriesStage::KEY, 6)['reasons']);
+        self::assertSame('skipped', $this->entry($run, SeriesStage::KEY, 6)['outcome']);
+        self::assertSame([SeriesStage::TYPE_NOT_USED], $this->entry($run, SeriesStage::KEY, 6)['reasons']);
+        self::assertNull($this->entry($run, SeriesStage::KEY, 6)['target_id']);
+        foreach ([2, 4, 6, 7, 9, 11] as $type) {
+            self::assertSame(['skipped', [SeriesStage::TYPE_NOT_USED]], [$this->entry($run, SeriesStage::KEY, 40 + $type)['outcome'], $this->entry($run, SeriesStage::KEY, 40 + $type)['reasons']]);
+        }
+        self::assertSame(['refused', [SeriesStage::UNKNOWN_TYPE]], [$this->entry($run, SeriesStage::KEY, 30)['outcome'], $this->entry($run, SeriesStage::KEY, 30)['reasons']]);
+        self::assertSame(7, $run->counts()['series']['skipped']);
         self::assertSame(['document_type' => 5, 'number_format' => 'RRRRNNNN', 'year' => 2026, 'last_number' => 5], $this->entry($run, SeriesStage::KEY, 6)['values']);
         self::assertSame([SeriesStage::INVALID_FORMAT], $this->entry($run, SeriesStage::KEY, 7)['reasons']);
         self::assertSame([SeriesStage::INVALID_FORMAT], $this->entry($run, SeriesStage::KEY, 8)['reasons']);

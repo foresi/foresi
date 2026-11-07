@@ -30,6 +30,7 @@ use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
 use App\Invoicing\Domain\VatRateKind;
@@ -461,7 +462,11 @@ final readonly class DocumentsStage implements ImportStage
     /**
      * The series the document's numeric sequence became. The documented lists
      * of documents carry no sequence id, so without one it is the linked
-     * sequence of the document's type and year whose numbers the number is.
+     * sequence of the document's type whose numbers the number is, whatever
+     * the year of the sequence: an account lists only this year's rows, and a
+     * format with a year is the format of every year. When two formats read the
+     * number ({YYYY}1{NNNN} and {YYYY}{NNNN} both read 202610001), the one with
+     * more fixed characters is the one that wrote it.
      */
     private function series(ImportContext $context, IdokladRecord $record, ?\DateTimeImmutable $issueDate): ?string
     {
@@ -474,17 +479,26 @@ final readonly class DocumentsStage implements ImportStage
         }
         $found = [];
         foreach ($context->records(IdokladResource::NumericSequences) as $sequence) {
-            $fields = $sequence->payload();
             $linked = $context->linkedTo(IdokladResource::NumericSequences, $sequence->externalId());
-            if (null === $linked || $this->entityType($record) !== ($fields['DocumentType'] ?? null) || (int) $issueDate->format('Y') !== ($fields['Year'] ?? null)) {
+            if (null === $linked || $this->entityType($record) !== ($sequence->payload()['DocumentType'] ?? null)) {
                 continue;
             }
-            if (null !== $this->catalog->get($linked)->format()->sequenceIn($this->text($payload['DocumentNumber'] ?? null), $issueDate)) {
-                $found[$linked] = $linked;
+            $format = $this->catalog->get($linked)->format();
+            if (null !== $format->sequenceIn($this->text($payload['DocumentNumber'] ?? null), $issueDate)) {
+                $found[$linked] = $this->fixedLength($format, $issueDate);
             }
         }
+        $best = array_keys($found, [] === $found ? 0 : max($found), true);
 
-        return 1 === \count($found) ? array_key_first($found) : null;
+        return 1 === \count($best) ? $best[0] : null;
+    }
+
+    /** How many characters of the series' numbers are not the sequence. */
+    private function fixedLength(SeriesFormat $format, \DateTimeImmutable $date): int
+    {
+        preg_match('/\{N+\}/', $format->toString(), $sequence);
+
+        return \strlen($format->render($date, 0)) - (\strlen($sequence[0]) - 2);
     }
 
     /**

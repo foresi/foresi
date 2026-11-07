@@ -2627,6 +2627,7 @@ idoklad:
             pdf_unreadable: The stored PDF of the document cannot be read.
         series:
             unknown_type: Foresi does not issue documents of this iDoklad type.
+            type_not_used: Foresi does not issue documents of this iDoklad type, so its sequence is left out.
             invalid_format: The number format cannot be read as a series format.
             invalid_counter: The year or the last number of the sequence is missing or out of range.
             name_taken: The firm already has a series of this name with other numbers.
@@ -2764,6 +2765,7 @@ idoklad:
         already_linked: Linked before
         refused: Refused
         mismatch: Differs
+        skipped: Skipped
     report:
         failed: The import stopped; nothing was stored
         stages: By section

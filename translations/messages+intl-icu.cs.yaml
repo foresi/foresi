@@ -2627,6 +2627,7 @@ idoklad:
             pdf_unreadable: Uložené PDF dokladu nelze přečíst.
         series:
             unknown_type: Doklady tohoto typu iDokladu Foresi nevystavuje.
+            type_not_used: Doklady tohoto typu iDokladu Foresi nevystavuje, jejich řada se vynechává.
             invalid_format: Formát čísla nejde přečíst jako formát řady.
             invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
             name_taken: Firma už má řadu tohoto názvu s jinými čísly.
@@ -2764,6 +2765,7 @@ idoklad:
         already_linked: Propojeno dříve
         refused: Odmítnuto
         mismatch: Liší se
+        skipped: Vynecháno
     report:
         failed: Import se zastavil; nic se neuložilo
         stages: Podle oblasti
