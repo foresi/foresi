@@ -2659,6 +2659,7 @@ idoklad:
             note_not_carried: Poznámka vzoru se nepřenáší; vzory ve Foresi poznámku nemají.
             fixed_variable_symbol: iDoklad dával všem fakturám jeden variabilní symbol; ve Foresi má každá faktura svoje číslo.
             rounding_item_skipped: Položka zaokrouhlení se vynechává; Foresi zaokrouhlí celkem podle nastavení firmy.
+            reanchored: iDoklad šablonu znovu zapnul a počítá ji od dne zapnutí; Foresi ji opakuje od téhož dne.
     title: Přesun z iDokladu
     entry: Přesun z iDokladu
     firms:

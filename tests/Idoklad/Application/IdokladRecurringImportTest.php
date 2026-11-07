@@ -239,6 +239,65 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertNull($this->link(908));
     }
 
+    public function testATemplateIdokladRestartedWhenSwitchedBackOnIsReanchoredOnThatDay(): void
+    {
+        // Two yearly issues, then switched off and back on a year later: iDoklad counts from that day.
+        $this->template(960, ['RecurrenceType' => 3, 'DateOfStart' => '2022-12-05', 'CopyCountActual' => 2, 'DateOfLastIssue' => '2023-12-05', 'DateOfLastActivation' => '2025-12-05T10:12:00', 'DateOfNextIssue' => '2026-12-05']);
+        // The start edited after issues: the last issue and the switch-on are one day, months after the start.
+        $this->template(961, ['RecurrenceType' => 3, 'DateOfStart' => '2026-05-16', 'CopyCountActual' => 4, 'DateOfLastIssue' => '2026-08-16', 'DateOfLastActivation' => '2026-08-16', 'DateOfNextIssue' => '2027-08-16']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $restarted = $this->entry($run, 960);
+        self::assertSame('created', $restarted['outcome']);
+        self::assertSame([RecurringStage::REANCHORED], $restarted['reasons']);
+        self::assertSame(['2026-12-05', '2026-12-05', '2025-12-05', 2], [$restarted['values']['next_issue'], $restarted['values']['idoklad_next_issue'], $restarted['values']['restarted_on'], $restarted['values']['issued_count']]);
+        self::assertSame('2026-12-05,2027-12-05,2028-12-05,2029-12-05,2030-12-05', $restarted['values']['next_issues']);
+        $row = $this->templateRow((string) $restarted['target_id']);
+        self::assertSame(['2025-12-05', 2, '2023-12-05', '2026-12-05'], [$row['first_issue_on'], $row['issued_count'], $row['last_occurrence'], $row['next_occurrence']]);
+
+        $edited = $this->entry($run, 961);
+        self::assertSame([RecurringStage::REANCHORED], $edited['reasons']);
+        self::assertSame(['2027-08-16', '2026-08-16'], [$edited['values']['next_issue'], $edited['values']['restarted_on']]);
+        $row = $this->templateRow((string) $edited['target_id']);
+        self::assertSame(['2026-08-16', 4, '2026-08-16', '2027-08-16'], [$row['first_issue_on'], $row['issued_count'], $row['last_occurrence'], $row['next_occurrence']]);
+    }
+
+    public function testARestartThatDoesNotGiveIdokladsNextIssueIsStillRefused(): void
+    {
+        $this->template(962, ['DateOfLastActivation' => '2026-09-20', 'DateOfNextIssue' => '2026-11-15']);
+        // Restarted after its end date: no schedule starts there.
+        $this->template(963, ['TypeOfEnd' => 1, 'DateOfEnd' => '2026-12-01', 'DateOfLastActivation' => '2026-12-15', 'DateOfNextIssue' => '2027-01-15']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([962, 963] as $id) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('refused', $entry['outcome']);
+            self::assertSame([RecurringStage::NEXT_ISSUE_MISMATCH], $entry['reasons']);
+            self::assertSame('2026-11-01', $entry['values']['next_issue']);
+            self::assertArrayNotHasKey('restarted_on', $entry['values']);
+        }
+        self::assertSame(0, $this->templates());
+    }
+
+    public function testATemplateOnItsOwnScheduleOrSwitchedOffIsNotReanchored(): void
+    {
+        $this->template(964, ['DateOfLastActivation' => '2026-03-20']);
+        // A restart on 20 October would give 20 November, but a switched-off template has no next issue to match.
+        $this->template(965, ['IsActive' => false, 'DateOfLastActivation' => '2026-10-20', 'DateOfNextIssue' => '2026-11-20']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $own = $this->entry($run, 964);
+        self::assertSame([], $own['reasons']);
+        self::assertArrayNotHasKey('restarted_on', $own['values']);
+        self::assertSame(['2026-01-01', '2026-11-01'], [$this->templateRow((string) $own['target_id'])['first_issue_on'], $this->templateRow((string) $own['target_id'])['next_occurrence']]);
+        $off = $this->entry($run, 965);
+        self::assertSame([RecurringStage::INACTIVE], $off['reasons']);
+        self::assertSame('2026-01-01', $this->templateRow((string) $off['target_id'])['first_issue_on']);
+    }
+
     public function testAnUnknownVariableIsRefusedWhereverItIs(): void
     {
         $this->template(909, [], ['ItemsTextSuffix' => 'Thanks {customer_name}']);
