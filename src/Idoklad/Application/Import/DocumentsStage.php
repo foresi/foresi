@@ -609,7 +609,9 @@ final readonly class DocumentsStage implements ImportStage
     /** How many characters of the series' numbers are not the sequence. */
     private function fixedLength(SeriesFormat $format, \DateTimeImmutable $date): int
     {
-        preg_match('/\{N+\}/', $format->toString(), $sequence);
+        // Every series format holds exactly one run of N.
+        $found = preg_match('/\{N+\}/', $format->toString(), $sequence);
+        \assert(1 === $found);
 
         return \strlen($format->render($date, 0)) - (\strlen($sequence[0]) - 2);
     }
