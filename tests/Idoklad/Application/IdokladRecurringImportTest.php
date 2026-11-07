@@ -321,7 +321,9 @@ final class IdokladRecurringImportTest extends KernelTestCase
 
         $entry = $this->entry($run, 961);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
-        self::assertSame(['reverse_charge', null], array_values($this->em->getConnection()->fetchAssociative('SELECT treatment, rate_kind FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]) ?: []));
+        $line = $this->em->getConnection()->fetchAssociative('SELECT treatment, rate_kind FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]);
+        self::assertIsArray($line);
+        self::assertSame(['reverse_charge', null], array_values($line));
         self::assertSame('created', $this->entry($run, 962)['outcome'], 'Reverse charge as the template says; at home the supply code is optional, and the snapshot does not hold one.');
     }
 
