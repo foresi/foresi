@@ -2903,6 +2903,7 @@ two_factor:
     qr_label: QR code for the authenticator app
     manual: Or enter this key in the app by hand
     code: Code from the app
+    code_help: The 6 digits the app shows now
     submit: Turn on
     code_invalid: This code does not match. Enter the code the app shows now.
     unavailable: 'Two-factor sign-in cannot be set up: the server has no key to seal secrets. Ask the operator to set MAIL_SECRET_KEYS.'

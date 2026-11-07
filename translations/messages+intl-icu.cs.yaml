@@ -2903,6 +2903,7 @@ two_factor:
     qr_label: QR kód pro ověřovací aplikaci
     manual: Nebo zadejte do aplikace tento klíč ručně
     code: Kód z aplikace
+    code_help: 6 číslic, které aplikace právě ukazuje
     submit: Zapnout
     code_invalid: Kód nesouhlasí. Zadejte kód, který aplikace ukazuje právě teď.
     unavailable: 'Dvoufázové přihlášení nejde nastavit: server nemá klíč k zapečetění tajemství. Požádejte správce o nastavení MAIL_SECRET_KEYS.'

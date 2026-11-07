@@ -10,12 +10,12 @@
         <twig:Ui:Alert tone="error" class="mb-4">{{ 'two_factor.setup.unavailable'|trans }}</twig:Ui:Alert>
     {% else %}
         <p class="m-0 mb-4 text-small text-muted">{{ 'two_factor.setup.intro'|trans }}</p>
-        <div class="mx-auto mb-3 w-48 rounded-control border border-container bg-white p-2" role="img" aria-label="{{ 'two_factor.setup.qr_label'|trans }}" data-two-factor-qr>{{ qrCode|raw }}</div>
+        <div class="mx-auto mb-3 w-48 rounded-control border border-container bg-white p-2 [&_svg]:block [&_svg]:h-auto [&_svg]:w-full" role="img" aria-label="{{ 'two_factor.setup.qr_label'|trans }}" data-two-factor-qr>{{ qrCode|raw }}</div>
         <p class="m-0 mb-1 text-small text-muted">{{ 'two_factor.setup.manual'|trans }}</p>
         <p class="m-0 mb-4 break-all text-center font-mono text-body text-ink" data-two-factor-key>{{ manualKey }}</p>
 
         <form method="post" action="{{ path('app_two_factor_setup') }}" class="grid gap-3" novalidate>
-            <twig:Ui:TextInput name="code" id="setup-code" :label="'two_factor.setup.code'|trans" :help="'two_factor.code.help'|trans" :error="error ? error|trans : null" required autocomplete="one-time-code" inputmode="numeric" autocapitalize="off" spellcheck="false" autofocus />
+            <twig:Ui:TextInput name="code" id="setup-code" :label="'two_factor.setup.code'|trans" :help="'two_factor.setup.code_help'|trans" :error="error ? error|trans : null" required autocomplete="one-time-code" inputmode="numeric" autocapitalize="off" spellcheck="false" autofocus />
             <input type="hidden" name="_token" value="{{ csrf_token('two_factor_setup') }}">
             <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'two_factor.setup.submit'|trans }}</twig:Ui:Button>
         </form>
