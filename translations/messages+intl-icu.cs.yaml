@@ -3070,7 +3070,31 @@ work:
       priority: Priorita
       labels: Štítky
       project: Projekt
+      watchers: Sledující
     no_description: Bez popisu.
+    no_subtasks: Zatím žádné podúkoly.
+    subtasks: Podúkoly
+    add_subtask: Přidat podúkol
+    activity: Aktivita
+    no_activity: Zatím se nic nestalo.
+    details: Podrobnosti
+    edit: Upravit
+    nobody: Nikdo
+    due_clear: Smazat
+    labels_edit: Vybrat štítky
+    labels_title: Štítky úkolu
+    labels_none: Organizace zatím nemá žádné štítky.
+    created_by: 'Vytvořil(a) {name} {date}'
+    created: 'Vytvořeno {date}'
+    watchers:
+      none: Úkol nikdo nesleduje.
+      watch: Sledovat
+      unwatch: Přestat sledovat
+      add: Přidat sledujícího
+      choose: Vyberte člověka
+    error:
+      title_required: Zadejte název úkolu.
+      due: Zadejte termín jako datum.
   refused:
     unknown: Tento projekt, úkol nebo štítek už neexistuje.
     not_allowed: Tohle mohou jen lidé z organizace.
@@ -3085,6 +3109,19 @@ work:
     target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
     label_taken: Štítek s tímto názvem už existuje.
   cancel: Zrušit
+  save: Uložit
+  history:
+    entry: '{who}: {what}'
+    system: Systém
+    none: žádný
+    created: Úkol vytvořen
+    status: 'Stav {from} → {to}'
+    responsible: 'Odpovědná osoba {from} → {to}'
+    fields: 'Změna: {fields}'
+    watchers_added: '{count, plural, one {Přidán sledující} other {Přidáni sledující}}: {names}'
+    watchers_removed: '{count, plural, one {Odebrán sledující} other {Odebráni sledující}}: {names}'
+    labels_added: '{count, plural, one {Přidán štítek} other {Přidány štítky}}: {names}'
+    labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
   projects:
     title: Projekty
     views: Pohledy na projekty

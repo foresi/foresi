@@ -3070,7 +3070,31 @@ work:
       priority: Priority
       labels: Labels
       project: Project
+      watchers: Watchers
     no_description: No description.
+    no_subtasks: No subtasks yet.
+    subtasks: Subtasks
+    add_subtask: Add subtask
+    activity: Activity
+    no_activity: Nothing has happened yet.
+    details: Details
+    edit: Edit
+    nobody: Nobody
+    due_clear: Clear
+    labels_edit: Choose labels
+    labels_title: Labels of the task
+    labels_none: The organisation has no labels yet.
+    created_by: 'Created by {name} on {date}'
+    created: 'Created on {date}'
+    watchers:
+      none: Nobody watches the task.
+      watch: Watch
+      unwatch: Stop watching
+      add: Add a watcher
+      choose: Choose a person
+    error:
+      title_required: Enter the title of the task.
+      due: Enter the due date as a date.
   refused:
     unknown: This project, task or label no longer exists.
     not_allowed: Only people of the organisation can do this.
@@ -3085,6 +3109,19 @@ work:
     target_status: Choose another status of the same project for its tasks.
     label_taken: A label of this name exists already.
   cancel: Cancel
+  save: Save
+  history:
+    entry: '{who}: {what}'
+    system: System
+    none: none
+    created: Created the task
+    status: 'Status {from} → {to}'
+    responsible: 'Responsible {from} → {to}'
+    fields: 'Changed {fields}'
+    watchers_added: '{count, plural, one {Watcher added} other {Watchers added}}: {names}'
+    watchers_removed: '{count, plural, one {Watcher removed} other {Watchers removed}}: {names}'
+    labels_added: '{count, plural, one {Label added} other {Labels added}}: {names}'
+    labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
   projects:
     title: Projects
     views: Project views

@@ -1,24 +1,184 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# A task to read: its title, its project, its status and what it is about. #}
+{#
+    A task, as the work item view of Jira and the issue view of Linear: the title, the description,
+    the subtasks and the activity in the main column; the properties in the panel beside it (under it
+    on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
+    button for a browser without JavaScript. The title and the description open their form in place.
+#}
 {% extends 'layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: task.task.projectName, href: path('app_project', {id: task.task.projectId})}, {label: task.task.title}] %}
+{% set row = task.task %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: row.projectName, href: path('app_project', {id: row.projectId})}] %}
+{% if task.parent %}{% set crumbs = crumbs|merge([{label: task.parent.name, href: path('app_task', {id: task.parent.id})}]) %}{% endif %}
+{% set crumbs = crumbs|merge([{label: row.title}]) %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
+{% set taskUrl = path('app_task', {id: row.id}) %}
+{% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
+{% set save %}<noscript><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></noscript>{% endset %}
 
-{% block title %}{{ task.task.title }}{% endblock %}
+{% block title %}{{ row.title }}{% endblock %}
+
+{% block actions %}
+    {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
 
 {% block content %}
-    <div class="grid max-w-2xl gap-4">
-        <twig:Ui:DescriptionList :items="[
-            {label: 'work.task.field.project'|trans, value: task.task.projectName},
-            {label: 'work.task.field.status'|trans, badge: {label: task.task.statusName, tone: statusTone}},
-        ]" />
-        <section class="grid gap-1.5" aria-labelledby="task-description-title">
-            <h2 id="task-description-title" class="m-0 text-small font-medium text-ink">{{ 'work.task.field.description'|trans }}</h2>
-            {% if task.description is not empty %}
-                <p class="m-0 whitespace-pre-line text-text" data-task-description>{{ task.description }}</p>
-            {% else %}
-                <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div class="grid min-w-0 content-start gap-6">
+            {% if edit == 'title' %}
+                <form method="post" action="{{ path('app_task_title', {id: row.id}) }}" id="task-title-form" class="grid max-w-field-long gap-3" novalidate data-task-title-form>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:TextInput name="title" id="title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" :autofocus="errors is empty" />
+                    <div class="flex flex-wrap gap-2">
+                        <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                    </div>
+                </form>
             {% endif %}
-        </section>
+
+            <section class="grid gap-2" aria-labelledby="task-description-title">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 id="task-description-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.field.description'|trans }}</h2>
+                    {% if edit != 'description' %}<twig:Ui:Button variant="ghost" size="sm" icon="pencil" :href="taskUrl ~ '?edit=description#task-description-title'" data-task-edit-description>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
+                </div>
+                {% if edit == 'description' %}
+                    <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-task-description-form>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:Textarea name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" autofocus />
+                        <div class="flex flex-wrap gap-2">
+                            <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                        </div>
+                    </form>
+                {% elseif task.description is not empty %}
+                    <p class="m-0 whitespace-pre-line text-text [overflow-wrap:anywhere]" data-task-description>{{ task.description }}</p>
+                {% else %}
+                    <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
+                {% endif %}
+            </section>
+
+            {% if not task.parent %}
+                <section class="grid gap-2" aria-labelledby="task-subtasks-title" data-task-subtasks>
+                    <h2 id="task-subtasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.subtasks'|trans }} <span class="num font-normal text-muted">({{ subtasks|length }})</span></h2>
+                    <twig:Ui:DataTable :caption="'work.task.subtasks'|trans" :columns="subtaskColumns" :rows="subtasks">
+                        <twig:block name="empty">
+                            <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'work.task.no_subtasks'|trans }}</p>
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                    {% if not task.projectArchived %}
+                        <form method="post" action="{{ path('app_task_subtasks', {id: row.id}) }}" class="max-w-field-long" data-controller="quick-add" data-action="submit->quick-add#submit" data-quick-add>
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <twig:Ui:TextInput name="title" id="add-subtask" :label="'work.task.add_subtask'|trans" :placeholder="'work.list.add_placeholder'|trans" maxlength="500" autocomplete="off" enterkeyhint="send" :autofocus="adding" data-quick-add-target="title" />
+                        </form>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            <section class="grid gap-2" aria-labelledby="task-activity-title">
+                <h2 id="task-activity-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.activity'|trans }}</h2>
+                {% if timeline is empty %}
+                    <p class="m-0 text-muted">{{ 'work.task.no_activity'|trans }}</p>
+                {% else %}
+                    <twig:Ui:Timeline :items="timeline" data-task-history />
+                {% endif %}
+            </section>
+        </div>
+
+        <aside class="grid content-start gap-4 border-t border-divider pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0" aria-labelledby="task-details-title" data-task-details>
+            <h2 id="task-details-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.details'|trans }}</h2>
+
+            <form method="post" action="{{ path('app_task_status', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="status">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Select name="status" id="task-status" :label="'work.task.field.status'|trans" :options="statuses" :value="row.statusId" />
+                {{ save }}
+            </form>
+
+            <form method="post" action="{{ path('app_task_responsible', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="responsible">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Select name="responsible" id="task-responsible" :label="'work.task.field.responsible'|trans" :options="responsibles" :value="row.responsibleId ?? ''" />
+                {{ save }}
+            </form>
+
+            <div class="grid gap-1.5" data-task-watchers>
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.watchers'|trans }}</h3>
+                {% if watchers is empty %}
+                    <p class="m-0 text-small text-muted">{{ 'work.task.watchers.none'|trans }}</p>
+                {% else %}
+                    <ul class="m-0 grid list-none gap-1.5 p-0">
+                        {% for watcher in watchers %}
+                            <li class="flex min-w-0 items-center gap-2 text-small text-text">
+                                <span class="grid size-6 shrink-0 place-items-center rounded-control text-caption font-semibold {{ watcher.tone }}" aria-hidden="true">{{ watcher.initials }}</span>
+                                <span class="min-w-0 truncate">{{ watcher.name }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if canWatch %}
+                    <form method="post" action="{{ path(watching ? 'app_task_unwatch' : 'app_task_watch', {id: row.id}) }}" data-task-watch>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:Button type="submit" size="sm" :icon="watching ? null : 'bell-ring'">{{ (watching ? 'work.task.watchers.unwatch' : 'work.task.watchers.watch')|trans }}</twig:Ui:Button>
+                    </form>
+                {% endif %}
+                {% if candidates|length > 1 %}
+                    <form method="post" action="{{ path('app_task_watchers', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="watchers">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:Select name="person" id="task-watcher" :label="'work.task.watchers.add'|trans" :options="candidates" value="" />
+                        {{ save }}
+                    </form>
+                {% endif %}
+            </div>
+
+            <form method="post" action="{{ path('app_task_due', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="due">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:TextInput type="date" name="due" id="task-due" :label="'work.task.field.due_on'|trans" :value="dueValue" />
+                <div class="flex flex-wrap gap-2">
+                    {{ save }}
+                    {% if dueValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}
+                </div>
+            </form>
+
+            <form method="post" action="{{ path('app_task_priority', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="priority">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Select name="priority" id="task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="row.priority.value" />
+                {{ save }}
+            </form>
+
+            <div class="grid gap-1.5" data-task-labels>
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.labels'|trans }}</h3>
+                {% if row.labels is not empty %}
+                    <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
+                        {% for label in row.labels %}<li><twig:Ui:Badge :tone="label.colour.value">{{ label.name }}</twig:Ui:Badge></li>{% endfor %}
+                    </ul>
+                {% elseif not hasLabels %}
+                    <p class="m-0 text-small text-muted">{{ 'work.task.labels_none'|trans }}</p>
+                {% endif %}
+                {% if hasLabels %}
+                    <div><twig:Ui:Button size="sm" icon="tag" :href="path('app_task_labels', {id: row.id})" data-dialog aria-haspopup="dialog">{{ 'work.task.labels_edit'|trans }}</twig:Ui:Button></div>
+                {% endif %}
+            </div>
+
+            {% if not task.parent %}
+                <form method="post" action="{{ path('app_task_section', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="section">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Select name="section" id="task-section" :label="'work.task.field.section'|trans" :options="sections" :value="row.sectionId ?? ''" />
+                    {{ save }}
+                </form>
+            {% endif %}
+
+            <div class="grid gap-1.5">
+                <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.project'|trans }}</h3>
+                <a href="{{ path('app_project', {id: row.projectId}) }}" class="text-small font-medium text-ink no-underline hover:underline {{ focus }}" data-task-project>{{ row.projectName }}</a>
+            </div>
+
+            <p class="m-0 border-t border-divider pt-3 text-caption text-muted" data-task-created>
+                {{- (task.createdByName ? 'work.task.created_by' : 'work.task.created')|trans({name: task.createdByName ?? '', date: createdAt}) -}}
+            </p>
+        </aside>
     </div>
 {% endblock %}
