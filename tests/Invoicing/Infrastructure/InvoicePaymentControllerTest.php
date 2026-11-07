@@ -477,7 +477,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $this->signedIn(Role::Client);
+        $this->signedIn(Role::Guest);
         $id = '019a0000-0000-7000-8000-000000000001';
 
         foreach (['GET', 'POST'] as $method) {

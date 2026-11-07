@@ -87,14 +87,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'My firms');
     }
 
-    public function testTheSettingsGroupHoldsFirmsAndTheImportHistory(): void
+    public function testTheSettingsGroupHoldsPeopleFirmsAndTheImportHistory(): void
     {
         $this->signIn();
 
         $crawler = $this->client->request('GET', '/');
 
         $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/firms My firms', '/imports Import and export'], $links);
+        self::assertSame(['/settings/people People', '/settings/firms My firms', '/imports Import and export'], $links);
     }
 
     public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsFirmsMarkedInTheSidebar(): void
@@ -307,8 +307,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public static function otherRoles(): iterable
     {
         yield 'member' => [Role::Member];
-        yield 'subcontractor' => [Role::Subcontractor];
-        yield 'client' => [Role::Client];
+        yield 'guest' => [Role::Guest];
     }
 
     public function testAFirmOfAnotherTenantIsNotFound(): void

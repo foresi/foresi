@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The two lists of the people screen, for the owner. Variables: active ("people" or "invitations"), pendingCount. #}
+<twig:Ui:Tabs :label="'people.title'|trans" :items="[
+    {label: 'people.tab.people'|trans, href: path('app_people'), active: 'people' == active},
+    {label: 'people.tab.invitations'|trans, href: path('app_people_invitations'), count: pendingCount, active: 'invitations' == active},
+]" />

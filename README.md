@@ -26,6 +26,8 @@ Foresi is at an early stage. Interfaces and data structures may change without n
 - Composer 2
 - SQLite 3.35 or newer for development, or PostgreSQL 17 (both are covered by the tests)
 
+Owners invite their staff and the people they share work with by e-mail; see [docs/people.md](docs/people.md).
+
 To run Foresi on a server (configuration, zero-downtime deploys, the worker, scheduled jobs, monitoring, backups and restores), see [docs/operations.md](docs/operations.md). PostgreSQL 17 is recommended in production.
 
 ## Quick start

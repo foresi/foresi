@@ -375,7 +375,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Client)[0];
+        $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
         $firm = $this->firm($tenant);
         $account = $this->withAccount($firm);
         $this->browser->signIn();

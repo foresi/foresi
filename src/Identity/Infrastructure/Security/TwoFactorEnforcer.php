@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Identity\Infrastructure\Security;
 
+use App\Identity\Infrastructure\Controller\InvitationController;
 use App\Identity\Infrastructure\Controller\LanguageController;
 use App\Identity\Infrastructure\Controller\TwoFactorSetupController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -28,6 +29,8 @@ final readonly class TwoFactorEnforcer
         TwoFactorSetupController::SETUP_ROUTE,
         TwoFactorSetupController::RECOVERY_CODES_ROUTE,
         LanguageController::ROUTE,
+        // Accepting first; the enrolment follows on the page it leads to.
+        InvitationController::ROUTE,
         'app_logout',
     ];
 

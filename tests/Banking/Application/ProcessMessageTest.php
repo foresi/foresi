@@ -426,7 +426,7 @@ final class ProcessMessageTest extends InboundTestCase
 
             public function organisationsOf(string $userId): array
             {
-                return [new Organisation($this->tenant, 'Example Firm', $this->staff ? Role::Member : Role::Client)];
+                return [new Organisation($this->tenant, 'Example Firm', $this->staff ? Role::Member : Role::Guest)];
             }
         };
         $actor = new class implements AuditActor {

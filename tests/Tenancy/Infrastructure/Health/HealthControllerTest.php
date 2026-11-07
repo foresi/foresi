@@ -72,7 +72,7 @@ final class HealthControllerTest extends WebTestCase
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
         $version = self::getContainer()->getParameter('app.version');
         // Exactly these keys, each value a number or nothing: no names, paths or tenant data.
-        self::assertMatchesRegularExpression('/^\\{"status":"ok","version":"'.preg_quote($version, '/').'","checks":\\{"database":\\{"status":"ok","value":null\\},"worker":\\{"status":"ok","value":\\d+\\},"schedule":\\{"status":"ok","value":\\d+\\},"failed_messages":\\{"status":"ok","value":null\\},"disk_free_percent":\\{"status":"ok","value":\\d+\\}\\}\\}$/', $this->content());
+        self::assertMatchesRegularExpression('/^\\{"status":"ok","version":"'.preg_quote($version, '/').'","checks":\\{"database":\\{"status":"ok","value":null\\},"worker":\\{"status":"ok","value":\\d+\\},"schedule":\\{"status":"ok","value":\\d+\\},"failed_messages":\\{"status":"ok","value":null\\},"disk_free_percent":\\{"status":"ok","value":\\d+\\},"system_mail":\\{"status":"ok","value":null\\}\\}\\}$/', $this->content());
     }
 
     public function testADegradedInstallationStillAnswers200(): void

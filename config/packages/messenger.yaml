@@ -74,6 +74,8 @@ framework:
             App\Invoicing\Application\IssueRecurringTemplate: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
+            # Mail of the installation itself, such as invitations, with the same retries.
+            App\Shared\Application\SystemMail: mail
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:

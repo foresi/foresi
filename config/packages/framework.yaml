@@ -74,6 +74,12 @@ framework:
             limit: 60
             interval: '1 minute'
 
+        # Invitation links, per client address: guessing a token stays hopeless.
+        invitation_link:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
+
     #esi: true
     #fragments: true
 
@@ -102,6 +108,8 @@ when@test:
                 storage_service: test.inbound_mail_relay_storage
             health:
                 storage_service: test.health_storage
+            invitation_link:
+                storage_service: test.invitation_link_storage
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file

@@ -383,6 +383,8 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # An invitation and a membership link the contact a guest represents.
+      - PartyDomain
     IdentityInfrastructure:
       - SharedInfrastructure
       # The QR code of the two-factor enrolment.
@@ -401,6 +403,10 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # The start page in the sidebar, for the staff or for a guest.
+      - Ui
+      # The user command links a guest user to a contact of the tenant.
+      - PartyDomain
     AuditDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

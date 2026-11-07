@@ -13,6 +13,7 @@ use App\Identity\Application\MembershipCheck;
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
+use App\Identity\Infrastructure\Controller\InvitationController;
 use App\Identity\Infrastructure\Controller\LanguageController;
 use App\Identity\Infrastructure\Controller\TenantChoiceController;
 use App\Tenancy\Application\TenantContext;
@@ -33,9 +34,10 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 final readonly class ActiveTenantSubscriber
 {
     /**
-     * Pages that must stay reachable while the user has not chosen an organisation.
+     * Pages that must stay reachable while the user has not chosen an organisation;
+     * an invitation link activates the organisation it leads into itself.
      */
-    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE];
+    private const array EXEMPT_ROUTES = ['app_login', 'app_logout', TenantChoiceController::CHOOSE_ROUTE, TenantChoiceController::SWITCH_ROUTE, LanguageController::ROUTE, InvitationController::ROUTE];
 
     /**
      * Static assets, and every public link to a sent document: those belong to

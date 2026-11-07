@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Identity\Infrastructure\Controller;
 
+use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\UserRepository;
 use App\Identity\Infrastructure\Security\RecoveryCodes;
 use App\Identity\Infrastructure\Security\SecurityUser;
@@ -29,6 +30,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * authenticator app, confirm with one code, then note the recovery codes, shown
  * this once. The secret waits sealed in the session until the code confirms it.
  */
+#[OpenToGuest]
 final class TwoFactorSetupController extends AbstractController
 {
     public const string SETUP_ROUTE = 'app_two_factor_setup';

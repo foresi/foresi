@@ -1762,9 +1762,9 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testASubcontractorGets403(): void
+    public function testAGuestGets403(): void
     {
-        $this->signedIn(Role::Subcontractor);
+        $this->signedIn(Role::Guest);
         $id = '019a0000-0000-7000-8000-000000000001';
 
         foreach ([['GET', '/invoices/new'], ['POST', '/invoices/new'], ['GET', '/invoices/'.$id.'/edit'], ['POST', '/invoices/'.$id.'/edit'], ['GET', '/invoices/'.$id.'/copy'], ['POST', '/invoices/recount'], ['GET', '/invoices/next-number?date=2026-11-01'], ['GET', '/invoices/customers?firm='.$this->firm->id()]] as [$method, $url]) {

@@ -616,7 +616,7 @@ final class FirmMailControllerTest extends WebTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Client)[0];
+        $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
         $firm = $this->firm($tenant);
         $this->browser->signIn();
 

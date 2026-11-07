@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tenancy\Infrastructure\Health;
 
+use App\Shared\Application\SystemMailer;
 use App\Tenancy\Application\Schedule\Heartbeats;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
@@ -21,8 +22,9 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  * Whether the installation does its work, cheaply enough for a monitor every
  * few minutes: the database answers, the worker beat within three minutes and
  * the schedule ticked within fifteen (else down), no message waits in the
- * failed transport and the data directory has at least the configured share of
- * its disk free (else degraded). Numbers only: no names, no tenant data.
+ * failed transport, the data directory has at least the configured share of
+ * its disk free and the installation has a system mailer (else degraded).
+ * Numbers only: no names, no tenant data.
  */
 final readonly class HealthCheck
 {
@@ -36,6 +38,7 @@ final readonly class HealthCheck
         private string $dataDir,
         #[Autowire('%env(int:HEALTH_DISK_MIN_FREE_PERCENT)%')]
         private int $minFreePercent,
+        private SystemMailer $systemMail,
     ) {
     }
 
@@ -44,6 +47,8 @@ final readonly class HealthCheck
         return new Health($this->database() + [
             'failed_messages' => $this->failedMessages(),
             'disk_free_percent' => $this->disk(),
+            // Without it no invitation can be sent.
+            'system_mail' => ['status' => $this->systemMail->isConfigured() ? HealthStatus::Ok : HealthStatus::Degraded, 'value' => null],
         ]);
     }
 

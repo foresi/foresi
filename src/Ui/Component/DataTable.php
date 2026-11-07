@@ -8,11 +8,12 @@ declare(strict_types=1);
 
 namespace App\Ui\Component;
 
+use App\Ui\Avatar;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -328,7 +329,13 @@ final class DataTable
         $icon = null;
         $iconClass = '';
         $links = [];
-        if (is_array($value) && isset($value['links'])) {
+        $avatar = null;
+        if (is_array($value) && isset($value['avatar'])) {
+            // A person: the initials avatar, coloured by a stable seed such as the user id, before the name.
+            $seed = is_string($value['avatar']) ? $value['avatar'] : throw new \InvalidArgumentException('An avatar seed must be a string.');
+            $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('An avatar cell needs a name.');
+            $avatar = ['initials' => Avatar::initials($text), 'tone' => Avatar::tone($seed)];
+        } elseif (is_array($value) && isset($value['links'])) {
             // Several links in one cell, such as the invoices a payment paid; plain leaves Turbo.
             $links = $this->links($value['links']);
             $plain = true === ($value['plain'] ?? false);
@@ -371,6 +378,7 @@ final class DataTable
             'icon' => $icon,
             'iconClass' => $iconClass,
             'links' => $links,
+            'avatar' => $avatar,
         ];
     }
 

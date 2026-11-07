@@ -8,10 +8,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy\Infrastructure\Health;
 
+use App\Shared\Application\SystemMailUnavailable;
 use App\Tenancy\Application\Schedule\Heartbeats;
 use App\Tenancy\Infrastructure\Health\HealthCheck;
 use App\Tenancy\Infrastructure\Health\HealthStatus;
 use App\Tenancy\Infrastructure\Schedule\DoctrineHeartbeats;
+use App\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,7 +29,8 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 /**
  * Each check of the health run: down without the database, without a worker beat
  * within three minutes or a tick within fifteen; degraded with failed messages
- * or a nearly full data disk; the installation as its worst check.
+ * or a nearly full data disk or without a system mailer; the installation as
+ * its worst check.
  */
 final class HealthCheckTest extends KernelTestCase
 {
@@ -62,6 +65,7 @@ final class HealthCheckTest extends KernelTestCase
             'schedule' => ['status' => HealthStatus::Ok, 'value' => 900],
             'failed_messages' => ['status' => HealthStatus::Ok, 'value' => 0],
             'disk_free_percent' => $health->checks['disk_free_percent'],
+            'system_mail' => ['status' => HealthStatus::Ok, 'value' => null],
         ], $health->checks);
         self::assertSame(HealthStatus::Ok, $health->checks['disk_free_percent']['status']);
         self::assertIsInt($health->checks['disk_free_percent']['value']);
@@ -141,11 +145,22 @@ final class HealthCheckTest extends KernelTestCase
         self::assertSame(HealthStatus::Ok, $this->check($this->counting(0), sys_get_temp_dir(), $free)->run()->checks['disk_free_percent']['status']);
     }
 
+    public function testAnInstallationThatCannotSendSystemMailDegrades(): void
+    {
+        $this->beatSecondsAgo(Heartbeats::WORKER, 0);
+        $this->beatSecondsAgo(Heartbeats::SCHEDULE, 0);
+
+        $health = $this->check($this->counting(0), systemMail: new RecordingSystemMailer(new SystemMailUnavailable()))->run();
+
+        self::assertSame(['status' => HealthStatus::Degraded, 'value' => null], $health->checks['system_mail']);
+        self::assertSame(HealthStatus::Degraded, $health->status());
+    }
+
     public function testNoDatabaseIsDown(): void
     {
         $broken = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'path' => sys_get_temp_dir().'/foresi-health-missing/dir/none.db']);
 
-        $health = new HealthCheck($broken, new DoctrineHeartbeats($broken, $this->clock), $this->counting(0), $this->clock, sys_get_temp_dir(), 0)->run();
+        $health = new HealthCheck($broken, new DoctrineHeartbeats($broken, $this->clock), $this->counting(0), $this->clock, sys_get_temp_dir(), 0, new RecordingSystemMailer())->run();
 
         $down = ['status' => HealthStatus::Down, 'value' => null];
         self::assertSame($down, $health->checks['database']);
@@ -154,9 +169,9 @@ final class HealthCheckTest extends KernelTestCase
         self::assertSame(HealthStatus::Down, $health->status());
     }
 
-    private function check(TransportInterface $failed, ?string $dataDir = null, int $minFreePercent = 0): HealthCheck
+    private function check(TransportInterface $failed, ?string $dataDir = null, int $minFreePercent = 0, ?RecordingSystemMailer $systemMail = null): HealthCheck
     {
-        return new HealthCheck($this->connection, new DoctrineHeartbeats($this->connection, $this->clock), $failed, $this->clock, $dataDir ?? sys_get_temp_dir(), $minFreePercent);
+        return new HealthCheck($this->connection, new DoctrineHeartbeats($this->connection, $this->clock), $failed, $this->clock, $dataDir ?? sys_get_temp_dir(), $minFreePercent, $systemMail ?? new RecordingSystemMailer());
     }
 
     private function beatSecondsAgo(string $name, int $seconds): void

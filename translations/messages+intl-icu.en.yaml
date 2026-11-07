@@ -7,6 +7,11 @@ login:
   email: E-mail
   password: Password
   submit: Sign in
+shared_with_me:
+  title: Shared with me
+  empty:
+    title: Nothing is shared with you yet
+    text: Once the organisation shares work with you, you will find it here.
 dashboard:
   title: Dashboard
   empty:
@@ -50,7 +55,9 @@ nav:
     extensions: Extensions
     settings: Settings
   item:
+    people: People
     dashboard: Dashboard
+    shared_with_me: Shared with me
     contacts: Address book
     invoices: Invoices
     advances: Advance invoices
@@ -133,8 +140,9 @@ organisation:
     empty_title: No organisation yet
     empty_text: Your account is not a member of any organisation. Ask the owner of an organisation to invite you.
 role:
+  guest: Guest
   owner: Owner
-  member: Member
+  member: Team member
   subcontractor: Subcontractor
   client: Client
 locale:
@@ -2896,6 +2904,7 @@ two_factor:
     qr_label: QR code for the authenticator app
     manual: Or enter this key in the app by hand
     code: Code from the app
+    code_help: The 6 digits the app shows now
     submit: Turn on
     code_invalid: This code does not match. Enter the code the app shows now.
     unavailable: 'Two-factor sign-in cannot be set up: the server has no key to seal secrets. Ask the operator to set MAIL_SECRET_KEYS.'
@@ -2904,3 +2913,138 @@ two_factor:
     enabled: Two-factor sign-in is on.
     intro: Keep these codes somewhere safe. Each one signs you in once if you lose your phone. They are shown only now.
     continue: Continue
+# The footer of mail the installation sends itself, such as invitations.
+system_mail:
+  footer: 'Sent by {product}'
+  footer_organisation: 'Sent by {product} on behalf of {organisation}'
+people:
+  title: People
+  tab:
+    people: People
+    invitations: Invitations
+  invite: Invite
+  invite_title: Invite a person
+  invite_card: Who you invite
+  invite_submit: Send invitation
+  edit_title: 'Edit {name}'
+  edit_card: Role and contact
+  cancel: Cancel
+  save: Save
+  field:
+    email: E-mail
+    name: Name
+    name_help: How the person shows in the organisation
+    role: Role
+    role_help: A guest sees only what you share with them
+    locale: Language of the e-mail
+    locale_help: The invitation is written in this language
+    contact: Contact
+    contact_help: Required for a guest
+    contact_edit_help: Required for a guest; empty unlinks it
+    contact_placeholder: Start typing a name
+    contact_empty: No contact found
+  column:
+    name: Name
+    email: E-mail
+    role: Role
+    contact: Contact
+    two_factor: Two-factor
+    status: Status
+    expires: Expires
+  two_factor:
+    'on': 'On'
+    'off': 'Off'
+  status:
+    active: Active
+    deactivated: Deactivated
+  action:
+    edit: Edit
+    deactivate: Deactivate
+    reactivate: Reactivate
+    reset_two_factor: Reset two-factor sign-in
+    resend: Send again
+    revoke: Revoke
+  confirm:
+    deactivate:
+      title: 'Deactivate {name}?'
+      text: They can no longer sign in to this organisation. Their history stays.
+    reset_two_factor:
+      title: 'Reset the two-factor sign-in of {name}?'
+      text: They set it up again on their next sign-in; trusted browsers are forgotten.
+    revoke:
+      title: 'Revoke the invitation of {email}?'
+      text: The link stops working at once.
+  invitations:
+    empty:
+      title: No pending invitations
+      text: Invite a team member or a guest you share work with.
+  link:
+    title: Invitation link
+    unconfigured: This installation cannot send e-mail yet, so the invitation was not mailed. Pass the link on yourself.
+    text: 'The link invites {name} ({email}) and works once, until {date}.'
+    field: Link
+    copy: Copy link
+    copied: Copied
+    copy_failed: Copying failed; the link is selected, press Ctrl+C.
+    secret: Anyone with the link can join as this person. Send it only to them.
+    done: Done
+  flash:
+    invited: 'The invitation is on its way to {email}.'
+    revoked: The invitation is revoked.
+    changed: '{name} is changed.'
+    deactivated: The person can no longer sign in to this organisation.
+    reactivated: The person can sign in to this organisation again.
+    two_factor_reset: The two-factor sign-in is reset.
+  refused:
+    email: Enter a valid e-mail address.
+    name: Enter the name of the person.
+    role: Choose a team member or a guest.
+    contact: Choose the contact the person represents.
+    member: This person already belongs to the organisation.
+    unknown: This person or invitation no longer exists.
+    not_pending: This invitation was accepted or revoked already.
+    user_exists: This e-mail address already has an account.
+    other_user: This invitation is for another account.
+    last_owner: The organisation must keep at least one active owner.
+    self: You cannot deactivate yourself.
+    other_organisations: This person also belongs to another organisation; the operator resets their sign-in.
+  mail:
+    subject: '{inviter} invites you to {organisation} in {product}'
+    intro: '{inviter} invites you to work with {organisation} in {product}.'
+    action: Accept the invitation
+    validity: '{days, plural, one {The link works once, for # day.} other {The link works once, for # days.}}'
+    ignore: If you did not expect this invitation, ignore this e-mail.
+invitation:
+  title: 'Join {organisation}'
+  field:
+    name: Your name
+    password: Password
+    password_help: 'At least {min} characters'
+    password_repeat: Repeat the password
+  new_account:
+    intro: 'Choose a password for {email}. You sign in with this address.'
+    submit: Create account and join
+  sign_in:
+    text: '{email} has an account already. Sign in, and you come back here to accept.'
+    submit: Sign in
+  accept:
+    text: 'Join {organisation} as {role}?'
+    submit: Accept the invitation
+  other_user:
+    title: Invitation for another account
+    text: 'You are signed in as {signed_in}, but the invitation is for {email}. Sign out and open the link again.'
+  member:
+    title: You belong here already
+    text: Your account is a member of this organisation already.
+  unknown:
+    title: Invitation not found
+    text: This link does not lead to an invitation. Ask the owner of the organisation for a new one.
+  expired:
+    title: Invitation expired
+    text: This invitation has expired. Ask the owner of the organisation to send it again.
+  revoked:
+    title: Invitation revoked
+    text: This invitation was revoked. Ask the owner of the organisation for a new one.
+  accepted:
+    title: Invitation used
+    text: This invitation was accepted already. Sign in to the organisation.

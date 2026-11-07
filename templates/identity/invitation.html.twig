@@ -1,0 +1,44 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page of an invitation link. Steps: new_account (name and password), sign_in (the address has an
+    account), accept (signed in as the invited person), other_user, member, and the dead ends unknown,
+    expired, revoked and accepted.
+#}
+{% extends 'layout/auth.html.twig' %}
+
+{% set form_invalid = errors|default([]) is not empty %}
+
+{% block title %}
+    {%- if step in ['new_account', 'sign_in', 'accept'] -%}
+        {{ 'invitation.title'|trans({organisation: organisation}) }}
+    {%- else -%}
+        {{ ('invitation.' ~ step ~ '.title')|trans }}
+    {%- endif -%}
+{% endblock %}
+
+{% block content %}
+    {% set token_field %}<input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\InvitationController::TOKEN')) }}">{% endset %}
+    {% if step == 'new_account' %}
+        <p class="m-0 mb-4 text-text">{{ 'invitation.new_account.intro'|trans({email: invitation.email}) }}</p>
+        <form method="post" class="grid gap-3" novalidate>
+            {{ token_field }}
+            <twig:Ui:TextInput name="name" id="name" :label="'invitation.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="255" required autocomplete="name" />
+            <twig:Ui:TextInput name="password" id="password" type="password" :label="'invitation.field.password'|trans" :help="'invitation.field.password_help'|trans({min: minPassword})" :error="errors.password|default(null)" required autocomplete="new-password" />
+            <twig:Ui:TextInput name="password_repeat" id="password_repeat" type="password" :label="'invitation.field.password_repeat'|trans" :error="errors.password_repeat|default(null)" required autocomplete="new-password" />
+            <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'invitation.new_account.submit'|trans }}</twig:Ui:Button>
+        </form>
+    {% elseif step == 'sign_in' %}
+        <p class="m-0 mb-4 text-text">{{ 'invitation.sign_in.text'|trans({email: invitation.email}) }}</p>
+        <twig:Ui:Button variant="primary" class="w-full" :href="path('app_login')">{{ 'invitation.sign_in.submit'|trans }}</twig:Ui:Button>
+    {% elseif step == 'accept' %}
+        <p class="m-0 mb-4 text-text">{{ 'invitation.accept.text'|trans({organisation: organisation, role: ('role.' ~ invitation.role.value)|trans}) }}</p>
+        <form method="post" class="grid gap-3">
+            {{ token_field }}
+            <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'invitation.accept.submit'|trans }}</twig:Ui:Button>
+        </form>
+    {% elseif step == 'other_user' %}
+        <p class="m-0 text-text">{{ 'invitation.other_user.text'|trans({signed_in: signedInAs, email: invitation.email}) }}</p>
+    {% else %}
+        <p class="m-0 text-text">{{ ('invitation.' ~ step ~ '.text')|trans }}</p>
+    {% endif %}
+{% endblock %}

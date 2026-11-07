@@ -464,7 +464,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
     public function testOnlyStaffSeeInvoices(): void
     {
-        $this->signedIn(Role::Client);
+        $this->signedIn(Role::Guest);
         $invoice = $this->issue('2026-11-01', '2026-12-01');
 
         foreach ([['GET', '/invoices'], ['GET', '/invoices/'.$invoice->id().'/history'], ['GET', '/invoices/'.$invoice->id().'/copy'], ['GET', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/trash'], ['POST', '/invoices/'.$invoice->id().'/restore'], ['POST', '/invoices/'.$invoice->id().'/delivered'], ['POST', '/invoices/'.$invoice->id().'/clear-export']] as [$method, $url]) {
@@ -550,9 +550,9 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testASubcontractorGetsNoPdf(): void
+    public function testAGuestGetsNoPdf(): void
     {
-        $this->signedIn(Role::Client);
+        $this->signedIn(Role::Guest);
         $invoice = $this->issue('2026-11-01', '2026-12-01');
 
         $this->client->request('GET', '/invoices/'.$invoice->id().'/pdf');

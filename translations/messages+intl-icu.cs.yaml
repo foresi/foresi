@@ -7,6 +7,11 @@ login:
   email: E-mail
   password: Heslo
   submit: Přihlásit se
+shared_with_me:
+  title: Sdíleno se mnou
+  empty:
+    title: Zatím s vámi nikdo nic nesdílí
+    text: Až s vámi organizace začne sdílet práci, najdete ji tady.
 dashboard:
   title: Přehled
   empty:
@@ -50,7 +55,9 @@ nav:
     extensions: Rozšíření
     settings: Nastavení
   item:
+    people: Lidé
     dashboard: Přehled
+    shared_with_me: Sdíleno se mnou
     contacts: Adresář
     invoices: Faktury
     advances: Zálohové faktury
@@ -133,8 +140,9 @@ organisation:
     empty_title: Zatím žádná organizace
     empty_text: Váš účet není členem žádné organizace. Požádejte vlastníka organizace o pozvánku.
 role:
+  guest: Host
   owner: Vlastník
-  member: Člen
+  member: Člen týmu
   subcontractor: Subdodavatel
   client: Klient
 locale:
@@ -2896,6 +2904,7 @@ two_factor:
     qr_label: QR kód pro ověřovací aplikaci
     manual: Nebo zadejte do aplikace tento klíč ručně
     code: Kód z aplikace
+    code_help: 6 číslic, které aplikace právě ukazuje
     submit: Zapnout
     code_invalid: Kód nesouhlasí. Zadejte kód, který aplikace ukazuje právě teď.
     unavailable: 'Dvoufázové přihlášení nejde nastavit: server nemá klíč k zapečetění tajemství. Požádejte správce o nastavení MAIL_SECRET_KEYS.'
@@ -2904,3 +2913,138 @@ two_factor:
     enabled: Dvoufázové přihlášení je zapnuté.
     intro: Kódy si uložte na bezpečné místo. Každý vás jednou přihlásí, když přijdete o telefon. Zobrazují se jen teď.
     continue: Pokračovat
+# The footer of mail the installation sends itself, such as invitations.
+system_mail:
+  footer: 'Odesláno systémem {product}'
+  footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
+people:
+  title: Lidé
+  tab:
+    people: Lidé
+    invitations: Pozvánky
+  invite: Pozvat
+  invite_title: Pozvat člověka
+  invite_card: Koho zvete
+  invite_submit: Odeslat pozvánku
+  edit_title: 'Upravit {name}'
+  edit_card: Role a kontakt
+  cancel: Zrušit
+  save: Uložit
+  field:
+    email: E-mail
+    name: Jméno
+    name_help: Jak se člověk v organizaci zobrazí
+    role: Role
+    role_help: Host vidí jen to, co s ním sdílíte
+    locale: Jazyk e-mailu
+    locale_help: V tomto jazyce bude pozvánka napsaná
+    contact: Kontakt
+    contact_help: Povinný pro hosta
+    contact_edit_help: Povinný pro hosta; prázdný kontakt odpojí
+    contact_placeholder: Začněte psát jméno
+    contact_empty: Žádný kontakt nenalezen
+  column:
+    name: Jméno
+    email: E-mail
+    role: Role
+    contact: Kontakt
+    two_factor: Dvoufázové
+    status: Stav
+    expires: Platí do
+  two_factor:
+    'on': Zapnuto
+    'off': Vypnuto
+  status:
+    active: Aktivní
+    deactivated: Deaktivovaný
+  action:
+    edit: Upravit
+    deactivate: Deaktivovat
+    reactivate: Znovu aktivovat
+    reset_two_factor: Obnovit dvoufázové přihlášení
+    resend: Poslat znovu
+    revoke: Zrušit pozvánku
+  confirm:
+    deactivate:
+      title: 'Deaktivovat {name}?'
+      text: Do této organizace se už nepřihlásí. Jeho historie zůstane.
+    reset_two_factor:
+      title: 'Obnovit dvoufázové přihlášení pro {name}?'
+      text: Při příštím přihlášení si ho nastaví znovu; důvěryhodné prohlížeče se zapomenou.
+    revoke:
+      title: 'Zrušit pozvánku pro {email}?'
+      text: Odkaz okamžitě přestane fungovat.
+  invitations:
+    empty:
+      title: Žádné čekající pozvánky
+      text: Pozvěte člena týmu nebo hosta, se kterým sdílíte práci.
+  link:
+    title: Odkaz pozvánky
+    unconfigured: Tato instalace zatím neumí posílat e-maily, takže pozvánka neodešla. Předejte odkaz sami.
+    text: 'Odkaz zve {name} ({email}) a funguje jednou, do {date}.'
+    field: Odkaz
+    copy: Kopírovat odkaz
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; odkaz je označený, stiskněte Ctrl+C.
+    secret: Kdokoli s odkazem se může připojit jako tento člověk. Pošlete ho jen jemu.
+    done: Hotovo
+  flash:
+    invited: 'Pozvánka je na cestě na {email}.'
+    revoked: Pozvánka je zrušená.
+    changed: '{name} je upraven.'
+    deactivated: Člověk se už do této organizace nepřihlásí.
+    reactivated: Člověk se do této organizace může znovu přihlásit.
+    two_factor_reset: Dvoufázové přihlášení je obnovené.
+  refused:
+    email: Zadejte platnou e-mailovou adresu.
+    name: Zadejte jméno člověka.
+    role: Vyberte člena týmu nebo hosta.
+    contact: Vyberte kontakt, který člověk zastupuje.
+    member: Tento člověk už do organizace patří.
+    unknown: Tento člověk nebo pozvánka už neexistuje.
+    not_pending: Tato pozvánka už byla přijata nebo zrušena.
+    user_exists: Tato e-mailová adresa už má účet.
+    other_user: Tato pozvánka je pro jiný účet.
+    last_owner: Organizace musí mít alespoň jednoho aktivního vlastníka.
+    self: Sami sebe deaktivovat nemůžete.
+    other_organisations: Tento člověk patří i do jiné organizace; přihlášení mu obnoví provozovatel.
+  mail:
+    subject: '{inviter} vás zve do {organisation} v {product}'
+    intro: '{inviter} vás zve ke spolupráci s {organisation} v {product}.'
+    action: Přijmout pozvánku
+    validity: '{days, plural, one {Odkaz funguje jednou, # den.} few {Odkaz funguje jednou, # dny.} other {Odkaz funguje jednou, # dní.}}'
+    ignore: Pokud jste pozvánku nečekali, e-mail ignorujte.
+invitation:
+  title: 'Připojit se k {organisation}'
+  field:
+    name: Vaše jméno
+    password: Heslo
+    password_help: 'Alespoň {min} znaků'
+    password_repeat: Heslo znovu
+  new_account:
+    intro: 'Zvolte heslo pro {email}. Touto adresou se budete přihlašovat.'
+    submit: Vytvořit účet a připojit se
+  sign_in:
+    text: '{email} už má účet. Přihlaste se a vrátíte se sem pozvánku přijmout.'
+    submit: Přihlásit se
+  accept:
+    text: 'Připojit se k {organisation} jako {role}?'
+    submit: Přijmout pozvánku
+  other_user:
+    title: Pozvánka pro jiný účet
+    text: 'Jste přihlášeni jako {signed_in}, ale pozvánka je pro {email}. Odhlaste se a otevřete odkaz znovu.'
+  member:
+    title: Sem už patříte
+    text: Váš účet už je členem této organizace.
+  unknown:
+    title: Pozvánka nenalezena
+    text: Tento odkaz nevede k žádné pozvánce. Požádejte vlastníka organizace o novou.
+  expired:
+    title: Platnost pozvánky vypršela
+    text: Platnost této pozvánky vypršela. Požádejte vlastníka organizace, ať ji pošle znovu.
+  revoked:
+    title: Pozvánka zrušena
+    text: Tato pozvánka byla zrušena. Požádejte vlastníka organizace o novou.
+  accepted:
+    title: Pozvánka použita
+    text: Tato pozvánka už byla přijata. Přihlaste se do organizace.

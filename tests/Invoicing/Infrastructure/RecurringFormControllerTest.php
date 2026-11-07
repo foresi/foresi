@@ -584,7 +584,7 @@ final class RecurringFormControllerTest extends WebTestCase
 
     public function testStaffOnly(): void
     {
-        $this->signedIn(Role::Subcontractor);
+        $this->signedIn(Role::Guest);
 
         $this->client->request('GET', '/invoices/recurring/new');
         self::assertResponseStatusCodeSame(403);
