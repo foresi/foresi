@@ -452,7 +452,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame([SeriesStage::UNKNOWN_TYPE], $this->entry($run, SeriesStage::KEY, 27)['reasons']);
     }
 
-    public function testANameTakenIsFoundWhateverItsCase(): void
+    public function testATakenNameWhateverItsCaseGetsTheFirstFreeNumber(): void
     {
         $catalog = self::getContainer()->get(SeriesCatalog::class);
         $catalog->store(new Series($this->firm, 'Ďábel', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
@@ -462,8 +462,33 @@ final class IdokladImportTest extends KernelTestCase
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
-        self::assertSame([SeriesStage::NAME_TAKEN], $this->entry($run, SeriesStage::KEY, 28)['reasons']);
-        self::assertSame([SeriesStage::NAME_TAKEN], $this->entry($run, SeriesStage::KEY, 29)['reasons']);
+        self::assertSame('ĎÁBEL 2', $this->series($this->entry($run, SeriesStage::KEY, 28)['target_id'])->name());
+        self::assertSame('řada 2', $this->series($this->entry($run, SeriesStage::KEY, 29)['target_id'])->name());
+    }
+
+    public function testSequencesOfSeveralKindsUnderOneNameEachGetASeries(): void
+    {
+        $this->sequence(30, ['DocumentType' => 1, 'Name' => 'Default', 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4, 'IsDefault' => true]);
+        $this->sequence(31, ['DocumentType' => 10, 'Name' => 'Default', 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
+        self::getContainer()->get(SeriesCatalog::class)->store(new Series($this->firm, 'Default 2', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
+        $this->sequence(33, ['DocumentType' => 3, 'Name' => 'default', 'NumberFormat' => 'O7{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $names = array_map(fn (int $id): string => $this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->name(), [30, 31, 33]);
+        self::assertSame(['Default', 'Default 3', 'default 4'], $names, 'Names are per firm, across the kinds.');
+        self::assertSame(DocumentKind::PaymentTaxDocument, $this->series($this->entry($run, SeriesStage::KEY, 31)['target_id'])->kind());
+    }
+
+    public function testALongTakenNameKeepsItsNumberWithinTheLimit(): void
+    {
+        $long = str_repeat('a', Series::MAX_NAME_LENGTH);
+        $this->sequence(34, ['DocumentType' => 1, 'Name' => $long, 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4]);
+        $this->sequence(35, ['DocumentType' => 10, 'Name' => $long, 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame(str_repeat('a', Series::MAX_NAME_LENGTH - 2).' 2', $this->series($this->entry($run, SeriesStage::KEY, 35)['target_id'])->name());
     }
 
     public function testAnExistingSeriesOfTheSameNumbersIsUsedAndItsCounterNeverGoesBack(): void
@@ -498,9 +523,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertFalse($created->isDefault());
         self::assertSame('Export', $created->name());
         self::assertTrue($this->series($standard->id())->isDefault());
-        $taken = $this->entry($run, SeriesStage::KEY, 13);
-        self::assertSame([SeriesStage::NAME_TAKEN], $taken['reasons']);
-        self::assertSame('STANDARD', $taken['values']['name']);
+        self::assertSame('STANDARD 2', $this->series($this->entry($run, SeriesStage::KEY, 13)['target_id'])->name());
         self::assertSame(DocumentKind::CorrectionDocument->standardSeriesName(), $this->series($this->entry($run, SeriesStage::KEY, 14)['target_id'])->name());
     }
 

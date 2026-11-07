@@ -2630,7 +2630,6 @@ idoklad:
             type_not_used: Doklady tohoto typu iDokladu Foresi nevystavuje, jejich řada se vynechává.
             invalid_format: Formát čísla nejde přečíst jako formát řady.
             invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
-            name_taken: Firma už má řadu tohoto názvu s jinými čísly.
         payments:
             document_type_unsupported: Platba hradí jiný doklad než vydanou nebo zálohovou fakturu.
             document_not_linked: Doklad, který platba hradí, nebyl importován.

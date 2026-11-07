@@ -2630,7 +2630,6 @@ idoklad:
             type_not_used: Foresi does not issue documents of this iDoklad type, so its sequence is left out.
             invalid_format: The number format cannot be read as a series format.
             invalid_counter: The year or the last number of the sequence is missing or out of range.
-            name_taken: The firm already has a series of this name with other numbers.
         payments:
             document_type_unsupported: The payment pays a document other than an issued invoice or a proforma invoice.
             document_not_linked: The document the payment pays was not imported.

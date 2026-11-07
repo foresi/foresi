@@ -22,8 +22,9 @@ use App\Invoicing\Domain\SeriesFormat;
  * iDoklad numeric sequences as Foresi series. iDoklad keeps a sequence per
  * year; the years of one format are one series here, which counts per year
  * when its format has a year. A series of the same kind whose numbers look the
- * same is used; else one is created, the default of its kind when iDoklad's is
- * and the firm has none. The counter of the year continues after iDoklad's
+ * same is used; else one is created under iDoklad's name, numbered when the firm
+ * has a series of that name, and the default of its kind when iDoklad's is and
+ * the firm has none. The counter of the year continues after iDoklad's
  * last number and never goes back. Sequences of documents Foresi does not
  * issue (cash vouchers, received documents and the like) are skipped; those of
  * a type iDoklad does not document for sequences are refused.
@@ -35,7 +36,6 @@ final readonly class SeriesStage implements ImportStage
     public const string TYPE_NOT_USED = 'idoklad.import.series.type_not_used';
     public const string INVALID_FORMAT = 'idoklad.import.series.invalid_format';
     public const string INVALID_COUNTER = 'idoklad.import.series.invalid_counter';
-    public const string NAME_TAKEN = 'idoklad.import.series.name_taken';
 
     /** The document types of iDoklad by their code, as the kinds of Foresi. */
     private const array KINDS = [
@@ -55,6 +55,7 @@ final readonly class SeriesStage implements ImportStage
     public function __construct(
         private SeriesCatalog $catalog,
         private NumberCounter $counter,
+        private SeriesNames $names,
     ) {
     }
 
@@ -120,11 +121,6 @@ final readonly class SeriesStage implements ImportStage
                     $series = $this->create($context, $kind, $format, \is_string($payload['Name'] ?? null) ? $payload['Name'] : '', true === ($payload['IsDefault'] ?? null));
                     $outcome = ImportOutcome::Created;
                 }
-                if (!$series instanceof Series) {
-                    $context->report(self::KEY, $id, ImportOutcome::Refused, reasons: [self::NAME_TAKEN], values: $values + ['name' => \is_string($payload['Name'] ?? null) ? $payload['Name'] : '']);
-
-                    continue;
-                }
                 $context->link(IdokladResource::NumericSequences, $id, $series->id());
             }
 
@@ -163,17 +159,12 @@ final readonly class SeriesStage implements ImportStage
     }
 
     /**
-     * A new series under iDoklad's name; null when the firm has a series of that name, archived ones too.
+     * A new series under iDoklad's name, or the first free one after it.
      */
-    private function create(ImportContext $context, DocumentKind $kind, SeriesFormat $format, string $name, bool $default): ?Series
+    private function create(ImportContext $context, DocumentKind $kind, SeriesFormat $format, string $name, bool $default): Series
     {
         $name = '' === trim($name) ? $kind->standardSeriesName() : trim($name);
-        foreach ($this->catalog->everyForFirm($context->firm) as $series) {
-            if (mb_strtolower($series->name()) === mb_strtolower($name)) {
-                return null;
-            }
-        }
-        $series = new Series($context->firm, $name, $format, $kind);
+        $series = new Series($context->firm, $this->names->free($context->firm, $name), $format, $kind);
         $this->catalog->store($series);
         if ($default && !array_any($this->catalog->forFirm($context->firm, $kind), static fn (Series $other): bool => $other->isDefault())) {
             $this->catalog->makeDefault($series);
