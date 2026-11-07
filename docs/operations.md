@@ -40,7 +40,7 @@ files. Never put a production secret in a committed file.
 | `APP_SECRET` | **yes** | Signs the public links of sent documents, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
 | `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
-| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`. |
+| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
@@ -71,7 +71,7 @@ symlink, so a request never sees half a release:
 ├── shared/
 │   ├── .env.local                       # configuration and secrets (0600)
 │   └── var/
-│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail
+│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail, idoklad-documents, original-documents
 │       └── imports/                     # uploaded import files
 ├── repo.git/                            # a mirror of the repository, kept by the deploy
 └── deploy.env                           # optional settings of ops/deploy.sh
