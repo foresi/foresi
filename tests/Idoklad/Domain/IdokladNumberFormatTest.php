@@ -40,6 +40,10 @@ final class IdokladNumberFormatTest extends TestCase
         yield 'braced empty' => ['{}{NNNN}', null];
         yield 'unclosed brace' => ['{RRRR{NNNN}', null];
         yield 'stray closing brace' => ['RRRR}{NNNN}', null];
+        yield 'only an opening brace' => ['{RRRRNNNN', null];
+        yield 'only a closing brace' => ['RRRRNNNN}', null];
+        yield 'braced run with a letter inside' => ['{RRRR}{NRNNN}', null];
+        yield 'braced run with a line break after' => ["{RRRR}{NNNN\n}", null];
     }
 
     #[DataProvider('formats')]

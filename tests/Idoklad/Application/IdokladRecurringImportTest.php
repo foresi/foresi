@@ -316,6 +316,13 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $zero = ['Items' => [['ItemType' => 0, 'Name' => 'Consulting', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 100]]]];
         $this->template(961, [], ['Partner' => ['Id' => 778]] + $zero);
         $this->template(962, [], ['VatReverseChargeCodeId' => 4] + $zero);
+        $blank = new Party(PartyKind::Company, 'Example Blank s.r.o.', new RegistrationNumber('CZ', '23456787'), null, '');
+        $this->em->persist($blank);
+        $this->em->persist(new PartyAddress($blank, AddressType::Billing, new Address('Example Street 3', 'Example City', '100 00', 'CZ')));
+        $this->em->persist(new PartyEmail($blank, 'blank@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new IdokladLink($this->firm, IdokladResource::Contacts, 779, $blank->id(), Id::generate(), new \DateTimeImmutable('2026-11-06 09:00:00')));
+        $this->record(IdokladResource::Contacts, 779, ['Id' => 779, 'CompanyName' => 'Example Blank s.r.o.', 'VatIdentificationNumber' => '  ']);
+        $this->template(963, [], ['Partner' => ['Id' => 779]] + $zero);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
@@ -325,6 +332,9 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertIsArray($line);
         self::assertSame(['reverse_charge', null], array_values($line));
         self::assertSame('created', $this->entry($run, 962)['outcome'], 'Reverse charge as the template says; at home the supply code is optional, and the snapshot does not hold one.');
+        $exempt = $this->entry($run, 963);
+        self::assertSame('created', $exempt['outcome'], implode(', ', $exempt['reasons']));
+        self::assertSame('exempt', $this->em->getConnection()->fetchOne('SELECT treatment FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $exempt['target_id']]), 'A VAT ID of spaces is none.');
     }
 
     public function testAnInactiveTemplateIsImportedPausedAndFlagged(): void

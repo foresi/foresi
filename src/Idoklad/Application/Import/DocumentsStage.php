@@ -375,11 +375,11 @@ final readonly class DocumentsStage implements ImportStage
             $seriesId = $this->olderSeries($context, $kind, $older);
             $notes[] = self::OLDER_NUMBERS;
         }
-        if ([] !== $reasons || null === $seriesId || null === $customerId || !$issuer instanceof DocumentParty || !$method instanceof PaymentMethod || !$language instanceof DocumentLanguage || !$expected instanceof ImportedTotals || !$issueDate instanceof \DateTimeImmutable) {
+        if ([] !== $reasons || null === $seriesId || null === $customerId || !$customer instanceof DocumentParty || !$issuer instanceof DocumentParty || !$method instanceof PaymentMethod || !$language instanceof DocumentLanguage || !$expected instanceof ImportedTotals || !$issueDate instanceof \DateTimeImmutable) {
             return null;
         }
 
-        if ($customer instanceof DocumentParty && '' !== $customer->name && !array_all([$customer->address->street, $customer->address->city, $customer->address->postalCode], static fn (string $part): bool => '' !== trim($part))) {
+        if ('' !== $customer->name && !array_all([$customer->address->street, $customer->address->city, $customer->address->postalCode], static fn (string $part): bool => '' !== $part)) {
             $notes[] = self::CUSTOMER_ADDRESS_AS_ISSUED;
         }
         if (VatRegime::Payer === $regime && null === $issuer->vatId) {
@@ -610,10 +610,10 @@ final readonly class DocumentsStage implements ImportStage
     private function fixedLength(SeriesFormat $format, \DateTimeImmutable $date): int
     {
         // Every series format holds exactly one run of N.
-        $found = preg_match('/\{N+\}/', $format->toString(), $sequence);
+        $found = preg_match('/\{(N+)\}/', $format->toString(), $sequence);
         \assert(1 === $found);
 
-        return \strlen($format->render($date, 0)) - (\strlen($sequence[0]) - 2);
+        return \strlen($format->render($date, 0)) - \strlen($sequence[1]);
     }
 
     /**

@@ -256,6 +256,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertSame('refused', $refund['outcome']);
         self::assertSame([PaymentsStage::REFUND_UNSUPPORTED], $refund['reasons']);
         self::assertSame(-121000, $refund['values']['amount']);
+        self::assertCount(2, array_filter($run->report(), static fn (array $entry): bool => PaymentsStage::KEY === $entry['stage'] && \in_array($entry['external_id'], [421, 422], true)), 'Each is reported once.');
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM payment'));
     }
 

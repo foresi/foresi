@@ -482,13 +482,14 @@ final class IdokladImportTest extends KernelTestCase
 
     public function testALongTakenNameKeepsItsNumberWithinTheLimit(): void
     {
-        $long = str_repeat('a', Series::MAX_NAME_LENGTH);
+        $long = str_repeat('č', Series::MAX_NAME_LENGTH);
         $this->sequence(34, ['DocumentType' => 1, 'Name' => $long, 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4]);
         $this->sequence(35, ['DocumentType' => 10, 'Name' => $long, 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
-        self::assertSame(str_repeat('a', Series::MAX_NAME_LENGTH - 2).' 2', $this->series($this->entry($run, SeriesStage::KEY, 35)['target_id'])->name());
+        self::assertSame($long, $this->series($this->entry($run, SeriesStage::KEY, 34)['target_id'])->name(), 'The limit counts characters, not bytes.');
+        self::assertSame(str_repeat('č', Series::MAX_NAME_LENGTH - 2).' 2', $this->series($this->entry($run, SeriesStage::KEY, 35)['target_id'])->name());
     }
 
     public function testAnExistingSeriesOfTheSameNumbersIsUsedAndItsCounterNeverGoesBack(): void

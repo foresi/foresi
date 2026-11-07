@@ -45,7 +45,9 @@
             "App\\Tenancy\\Application\\Schedule\\DailyPeriod::of",
             // bindec() of five bits is an int, and the logged money columns are ints.
             "App\\Banking\\Application\\InboundToken::generate::32",
-            "App\\Invoicing\\Application\\InvoiceHistory::minor::135"
+            "App\\Invoicing\\Application\\InvoiceHistory::minor::135",
+            // The year and the digits compared with it are numeric strings.
+            "App\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf"
         ]},
         // Equivalent mutants: the whole match of a percentage reads as a number up to its dot, which is the same
         // integer part. Of recurring dates: RecurringSchedule::estimate() only has to stay at or before the first
@@ -97,12 +99,18 @@
             // limit of 11.
             "App\\Country\\CzechRepublic\\Invoicing\\QrPlatba::for::64"
         ,
-            "App\\Invoicing\\Application\\InvoicingOverview::month::96"
+            "App\\Invoicing\\Application\\InvoicingOverview::month::96",
+            // Equivalent mutant: a sequence of 1 renders as wide as one of 0, the width being at least one digit.
+            "App\\Idoklad\\Application\\Import\\DocumentsStage::fixedLength::616"
         ]},
         "LessThanOrEqualTo": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::114"]},
         "Plus": {"ignore": ["App\\Invoicing\\Domain\\RecurringSchedule::estimate::118"]},
         // Equivalent mutants: a day equal to the one compared with sets the same day again.
-        "LessThan": {"ignore": ["App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::224", "App\\Invoicing\\Domain\\RecurringInvoice::resume::308"]},
+        "LessThan": {"ignore": [
+            "App\\Invoicing\\Domain\\RecurringInvoice::nextOccurrenceUnder::224",
+            "App\\Invoicing\\Domain\\RecurringInvoice::resume::308",
+            "App\\Idoklad\\Application\\Import\\RunIdokladImport::defaultOptions::106"
+        ]},
         // Equivalent mutants: dates come oldest first, and a date on or after the day, or past the end rule, is
         // followed by more of them only; nothing due stays not due, and a refused issue is refused again.
         "Break_": {"ignore": [
@@ -259,7 +267,9 @@
             "App\\Invoicing\\Application\\RecordPayment::record::57"
         ]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
-        "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct"]},
+        // Czechia, at home in CZK, is the only invoicing country, and a template without one is refused for its
+        // currency whatever its lines are priced in.
+        "Coalesce": {"ignore": ["App\\Party\\Domain\\ContactLink::__construct", "App\\Idoklad\\Application\\Import\\RecurringStage::input::250"]},
         // Equivalent mutant: the libxml HTML parser lower-cases tag names already.
         "UnwrapStrToLower": {"ignore": ["App\\Banking\\Application\\NotificationLines::collect::80"]},
         // Unreachable: the whole part is digits and the fraction at most two of them, so Money only fails by overflow.
@@ -274,8 +284,17 @@
         ]},
         // Equivalent mutants: the subject is always exactly one character, and rawurlencode() output has no regex
         // metacharacters.
-        "PregMatchRemoveCaret": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]},
-        "PregMatchRemoveDollar": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]},
+        // Of iDoklad numbers: a lazy group from the start matches wherever a match exists, as anchored; the number
+        // is trimmed and its head is of one line (dot), so no line break stands before an end.
+        "PregMatchRemoveCaret": {"ignore": [
+            "App\\Banking\\Application\\InboundAddresses::written::78",
+            "App\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf"
+        ]},
+        "PregMatchRemoveDollar": {"ignore": [
+            "App\\Banking\\Application\\InboundAddresses::written::78",
+            "App\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf::583"
+        ]},
+        "PregMatchRemoveFlags": {"ignore": ["App\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf"]},
         "PregQuote": {"ignore": ["App\\Banking\\Application\\InboundAddresses::written::78"]}
     }
 }
