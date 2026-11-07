@@ -672,11 +672,15 @@ final class InvoicePdfTest extends InvoiceTestCase
         $expected = self::getContainer()->get(InvoicingCountries::class)->for('CZ')->electronicFile($credit);
         self::assertNotNull($expected);
 
-        $attachment = PdfTools::attachment($this->render($credit)->bytes);
+        $bytes = $this->render($credit)->bytes;
+        $attachment = PdfTools::attachment($bytes);
 
         self::assertSame('invoice.isdoc', $attachment['name']);
         self::assertSame($expected->content, $attachment['content']);
         self::assertStringContainsString('<DocumentType>2</DocumentType>', $attachment['content']);
+        // The file is in positive amounts (ISDOC A.6); the page still prints the signed difference.
+        self::assertStringContainsString('<PayableAmount>484.00</PayableAmount>', $attachment['content']);
+        self::assertStringContainsString('-484,00 Kč', PdfTools::text($bytes));
     }
 
     public function testADebitNoteAsksForPaymentWithTheCode(): void

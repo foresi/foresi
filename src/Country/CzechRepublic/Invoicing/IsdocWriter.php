@@ -18,6 +18,7 @@ use App\Invoicing\Domain\InvoiceCalculator;
 use App\Invoicing\Domain\InvoiceLine;
 use App\Invoicing\Domain\LineAmounts;
 use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\RateSummary;
 use App\Invoicing\Domain\SummaryLine;
 use App\Invoicing\Domain\TaxTreatment;
@@ -35,6 +36,15 @@ use App\Shared\Domain\Money;
  * A document on which no line carries VAT is not VATApplicable, and then no line is
  * (the Schematron of the standard). Otherwise, a line without a rate is not. The
  * order of the elements is the order of the XSD.
+ *
+ * Signs follow appendix A.6 of the standard: the amounts are positive, and a credit
+ * note (type 2) and a correction of a tax document on payment (type 6) are "always
+ * in positive amounts", their type saying that they subtract. Their stored amounts,
+ * negative, are written with the opposite sign, so the totals are positive. A line
+ * against the direction of its document (a minority, as a deducted deposit is on an
+ * invoice) stays negative: its quantity is written positive and its unit price
+ * carries the sign, so quantity times unit price is still the amount. A debit note
+ * (type 3) is positive as stored. The PDF prints the signed amounts.
  */
 final readonly class IsdocWriter
 {
@@ -64,7 +74,9 @@ final readonly class IsdocWriter
         $dom->appendChild($root);
 
         $applicable = $this->isVatApplicable($document);
-        $this->add($root, 'DocumentType', $this->documentType($document));
+        $type = $this->documentType($document);
+        $sign = self::CREDIT_NOTE === $type || self::PAYMENT_TAX_DOCUMENT_CORRECTION === $type ? -1 : 1;
+        $this->add($root, 'DocumentType', $type);
         $this->add($root, 'ID', $document->number);
         $this->add($root, 'UUID', $document->id);
         $this->add($root, 'IssuingSystem', $this->issuingSystem);
@@ -96,12 +108,12 @@ final readonly class IsdocWriter
         $supply = array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null === $line->deducts()));
         $lines = $this->add($root, 'InvoiceLines');
         foreach ($supply as $index => $line) {
-            $this->line($lines, $line, $index + 1, $applicable);
+            $this->line($lines, $line, $index + 1, $applicable, DocumentKind::CorrectionDocument === $document->kind, $sign);
         }
         $this->deposits($root, $document);
-        $this->taxTotal($root, $document, $supply);
-        $this->monetaryTotal($root, $document, $supply);
-        $this->payment($root, $document);
+        $this->taxTotal($root, $document, $supply, $sign);
+        $this->monetaryTotal($root, $document, $supply, $sign);
+        $this->payment($root, $document, $sign);
 
         $xml = $dom->saveXML();
         \assert(false !== $xml);
@@ -208,19 +220,25 @@ final readonly class IsdocWriter
         return 1 === preg_match('/^(.*\S)\s+(\d\S*)$/Du', $street, $parts) ? [$parts[1], $parts[2]] : [$street, ''];
     }
 
-    private function line(\DOMElement $parent, InvoiceLine $line, int $number, bool $documentApplicable): void
+    /**
+     * @param bool $correction a corrective document writes its quantities positive and its unit prices signed
+     * @param int  $sign       -1 for a credit note and a correction of a tax document on payment (§A.6)
+     */
+    private function line(\DOMElement $parent, InvoiceLine $line, int $number, bool $documentApplicable, bool $correction, int $sign): void
     {
         $element = $this->add($parent, 'InvoiceLine');
         $this->add($element, 'ID', (string) $number);
-        $quantity = $this->add($element, 'InvoicedQuantity', $line->quantity()->toDecimal());
+        $stored = $line->quantity()->tenThousandths();
+        $unitSign = $correction && $stored < 0 ? -$sign : $sign;
+        $quantity = $this->add($element, 'InvoicedQuantity', ($correction ? Quantity::ofTenThousandths(abs($stored)) : $line->quantity())->toDecimal());
         if ('' !== $line->unit()) {
             $quantity->setAttribute('unitCode', $this->clean($line->unit()));
         }
-        $this->add($element, 'LineExtensionAmount', $this->amount($line->net()));
-        $this->add($element, 'LineExtensionAmountTaxInclusive', $this->amount($line->gross()));
-        $this->add($element, 'LineExtensionTaxAmount', $this->amount($line->vat()));
-        $this->add($element, 'UnitPrice', $this->amount($line->unitNet()));
-        $this->add($element, 'UnitPriceTaxInclusive', $this->amount($this->unitGross($line)));
+        $this->add($element, 'LineExtensionAmount', $this->amount($this->signed($line->net(), $sign)));
+        $this->add($element, 'LineExtensionAmountTaxInclusive', $this->amount($this->signed($line->gross(), $sign)));
+        $this->add($element, 'LineExtensionTaxAmount', $this->amount($this->signed($line->vat(), $sign)));
+        $this->add($element, 'UnitPrice', $this->amount($this->signed($line->unitNet(), $unitSign)));
+        $this->add($element, 'UnitPriceTaxInclusive', $this->amount($this->signed($this->unitGross($line), $unitSign)));
 
         $category = $this->add($element, 'ClassifiedTaxCategory');
         $this->add($category, 'Percent', $line->rate()?->decimal() ?? '0.00');
@@ -304,7 +322,7 @@ final readonly class IsdocWriter
      *
      * @param list<InvoiceLine> $supply
      */
-    private function taxTotal(\DOMElement $root, IssuedDocument $document, array $supply): void
+    private function taxTotal(\DOMElement $root, IssuedDocument $document, array $supply, int $sign): void
     {
         $total = $this->add($root, 'TaxTotal');
         $domestic = array_any($document->lines, static fn (InvoiceLine $line): bool => null !== $line->supplyCode());
@@ -316,21 +334,22 @@ final readonly class IsdocWriter
         }
         $supplied = $this->summaries($supply, $zero);
         foreach ($supplied as $summary) {
-            $this->subtotal($total, $summary, $claimed[$this->key($summary)] ?? null, $applicable, $domestic);
+            $this->subtotal($total, $summary, $claimed[$this->key($summary)] ?? null, $applicable, $domestic, $sign);
             unset($claimed[$this->key($summary)]);
         }
         // An advance at a rate the supply no longer has: all of it claimed, a difference below zero.
         foreach ($claimed as $summary) {
-            $this->subtotal($total, new RateSummary($summary->treatment, $summary->rate, $zero, $zero, $zero), $summary, $applicable, $domestic);
+            $this->subtotal($total, new RateSummary($summary->treatment, $summary->rate, $zero, $zero, $zero), $summary, $applicable, $domestic, $sign);
         }
-        $this->add($total, 'TaxAmount', $this->amount($document->vat));
+        $this->add($total, 'TaxAmount', $this->amount($this->signed($document->vat, $sign)));
     }
 
     /**
      * @param RateSummary|null $claimed the deduction lines at the rate, negative as they are stored
      */
-    private function subtotal(\DOMElement $total, RateSummary $summary, ?RateSummary $claimed, bool $documentApplicable, bool $domesticReverseCharge): void
+    private function subtotal(\DOMElement $total, RateSummary $stored, ?RateSummary $claimed, bool $documentApplicable, bool $domesticReverseCharge, int $sign): void
     {
+        $summary = new RateSummary($stored->treatment, $stored->rate, $this->signed($stored->base, $sign), $this->signed($stored->vat, $sign), $this->signed($stored->gross, $sign));
         $element = $this->add($total, 'TaxSubTotal');
         $zero = '0.00';
         $base = $claimed instanceof RateSummary ? $this->negated($claimed->base) : null;
@@ -359,14 +378,14 @@ final readonly class IsdocWriter
      *
      * @param list<InvoiceLine> $supply
      */
-    private function monetaryTotal(\DOMElement $root, IssuedDocument $document, array $supply): void
+    private function monetaryTotal(\DOMElement $root, IssuedDocument $document, array $supply, int $sign): void
     {
         $total = $this->add($root, 'LegalMonetaryTotal');
         $taxed = $this->taxedDeductions($document);
         $claimedNet = $this->negated($this->sum($taxed, 'net', $document));
         $claimedGross = $this->negated($this->sum($taxed, 'gross', $document));
-        $supplyNet = $this->sum($supply, 'net', $document);
-        $supplyGross = $this->sum($supply, 'gross', $document);
+        $supplyNet = $this->signed($this->sum($supply, 'net', $document), $sign);
+        $supplyGross = $this->signed($this->sum($supply, 'gross', $document), $sign);
         $untaxed = array_values(array_filter($document->lines, static fn (InvoiceLine $line): bool => null !== $line->deducts() && !($document->deposits[$line->deducts()]['taxed'] ?? false)));
         $this->add($total, 'TaxExclusiveAmount', $this->amount($supplyNet));
         $this->add($total, 'TaxInclusiveAmount', $this->amount($supplyGross));
@@ -374,9 +393,9 @@ final readonly class IsdocWriter
         $this->add($total, 'AlreadyClaimedTaxInclusiveAmount', $this->amount($claimedGross));
         $this->add($total, 'DifferenceTaxExclusiveAmount', $this->amount($supplyNet->minus($claimedNet)));
         $this->add($total, 'DifferenceTaxInclusiveAmount', $this->amount($supplyGross->minus($claimedGross)));
-        $this->add($total, 'PayableRoundingAmount', $this->amount($document->rounding));
+        $this->add($total, 'PayableRoundingAmount', $this->amount($this->signed($document->rounding, $sign)));
         $this->add($total, 'PaidDepositsAmount', $this->amount($this->negated($this->sum($untaxed, 'gross', $document))));
-        $this->add($total, 'PayableAmount', $this->amount($document->payable));
+        $this->add($total, 'PayableAmount', $this->amount($this->signed($document->payable, $sign)));
     }
 
     /**
@@ -422,15 +441,23 @@ final readonly class IsdocWriter
     }
 
     /**
+     * @param int $sign -1 turns a stored amount of a credit note into the positive one of the file (§A.6)
+     */
+    private function signed(Money $money, int $sign): Money
+    {
+        return 1 === $sign ? $money : $this->negated($money);
+    }
+
+    /**
      * Rule A.13: PaymentMeans tell the recipient to pay, which only a bank account asks of them.
      */
-    private function payment(\DOMElement $root, IssuedDocument $document): void
+    private function payment(\DOMElement $root, IssuedDocument $document, int $sign): void
     {
         if (PaymentMethod::BankTransfer !== $document->paymentMethod) {
             return;
         }
         $payment = $this->add($this->add($root, 'PaymentMeans'), 'Payment');
-        $this->add($payment, 'PaidAmount', $this->amount($document->payable));
+        $this->add($payment, 'PaidAmount', $this->amount($this->signed($document->payable, $sign)));
         $this->add($payment, 'PaymentMeansCode', self::BANK_TRANSFER);
 
         $iban = $document->bankAccount ?? '';
