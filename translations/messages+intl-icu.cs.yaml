@@ -2640,6 +2640,8 @@ idoklad:
             currency_not_home: Platba není v domácí měně firmy.
             payment_option_unsupported: Foresi platby tímto způsobem úhrady nezaznamenává.
             invalid_value: Chybí datum nebo částka platby.
+            zero_amount: Platba je nulová, a proto se vynechává.
+            refund_unsupported: Záporná platba vrací peníze; import vratky zatím nezaznamenává.
         recurring:
             advance_unsupported: Vzor vystavuje zálohové faktury, které Foresi zatím neopakuje.
             unknown_type: Doklady tohoto typu iDokladu Foresi neopakuje.

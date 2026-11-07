@@ -2640,6 +2640,8 @@ idoklad:
             currency_not_home: The payment is not in the firm's home currency.
             payment_option_unsupported: Foresi does not record payments of this payment option.
             invalid_value: The date or the amount of the payment is missing.
+            zero_amount: The payment is of nothing, so it is left out.
+            refund_unsupported: The negative payment gives money back; an import does not record refunds yet.
         recurring:
             advance_unsupported: The template issues advance invoices, which Foresi does not repeat yet.
             unknown_type: Foresi does not repeat documents of this iDoklad type.

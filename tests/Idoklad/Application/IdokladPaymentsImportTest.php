@@ -239,6 +239,26 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
     }
 
+    public function testAZeroPaymentIsSkippedAndANegativeOneIsARefundNotImported(): void
+    {
+        $this->proforma();
+        $this->payment(self::PAYMENT, []);
+        $this->payment(421, ['Prices' => ['PaymentAmount' => 0.0]]);
+        $this->payment(422, ['Prices' => ['PaymentAmount' => -1210.0]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+
+        self::assertSame('created', $this->entry($run, self::PAYMENT, PaymentsStage::KEY)['outcome']);
+        $zero = $this->entry($run, 421, PaymentsStage::KEY);
+        self::assertSame('skipped', $zero['outcome']);
+        self::assertSame([PaymentsStage::ZERO_AMOUNT], $zero['reasons']);
+        $refund = $this->entry($run, 422, PaymentsStage::KEY);
+        self::assertSame('refused', $refund['outcome']);
+        self::assertSame([PaymentsStage::REFUND_UNSUPPORTED], $refund['reasons']);
+        self::assertSame(-121000, $refund['values']['amount']);
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM payment'));
+    }
+
     public function testAWholeAmountAndAnOptionInCapitalsAreImported(): void
     {
         $this->record(IdokladResource::PaymentOptions, 4, ['Id' => 4, 'Code' => 'P', 'Name' => 'PŘEVODEM', 'IsDefault' => false]);

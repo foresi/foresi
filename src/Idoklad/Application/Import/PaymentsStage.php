@@ -25,7 +25,8 @@ use App\Shared\Domain\Money;
  * deduct advances, which need them. A payment issues no tax document here and
  * sends nothing: iDoklad's tax document is imported in its place. Payments in
  * another currency, of other documents, or that the invoicing import refuses
- * are reported with reasons; no bank movement is made.
+ * are reported with reasons; no bank movement is made. A payment of nothing is
+ * skipped; a negative one gives money back, which an import does not record yet.
  */
 final readonly class PaymentsStage implements ImportStage
 {
@@ -35,6 +36,8 @@ final readonly class PaymentsStage implements ImportStage
     public const string CURRENCY_NOT_HOME = 'idoklad.import.payments.currency_not_home';
     public const string PAYMENT_OPTION_UNSUPPORTED = 'idoklad.import.payments.payment_option_unsupported';
     public const string INVALID_VALUE = 'idoklad.import.payments.invalid_value';
+    public const string ZERO_AMOUNT = 'idoklad.import.payments.zero_amount';
+    public const string REFUND_UNSUPPORTED = 'idoklad.import.payments.refund_unsupported';
 
     /** iDoklad's document types of a payment, as the resources of the documents. */
     private const array DOCUMENTS = [0 => IdokladResource::IssuedInvoices, 1 => IdokladResource::ProformaInvoices];
@@ -79,6 +82,13 @@ final readonly class PaymentsStage implements ImportStage
         $linked = $context->linkedTo(IdokladResource::IssuedDocumentPayments, $id);
         if (null !== $linked) {
             $context->report(self::KEY, $id, ImportOutcome::AlreadyLinked, $linked, values: $values);
+
+            return;
+        }
+        $amount = \is_array($payload['Prices'] ?? null) ? $payload['Prices']['PaymentAmount'] ?? null : null;
+        if ((\is_int($amount) || \is_float($amount)) && $amount <= 0) {
+            $values['amount'] = Money::of(\sprintf('%.4F', $amount), $this->countries->for($context->firm->address()->countryCode)->homeCurrency())->minor();
+            $context->report(self::KEY, $id, 0 === $values['amount'] ? ImportOutcome::Skipped : ImportOutcome::Refused, reasons: [0 === $values['amount'] ? self::ZERO_AMOUNT : self::REFUND_UNSUPPORTED], values: $values);
 
             return;
         }
