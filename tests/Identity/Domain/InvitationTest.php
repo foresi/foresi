@@ -108,6 +108,39 @@ final class InvitationTest extends TestCase
         self::assertSame(InvitationState::Accepted, $invitation->state($this->now));
     }
 
+    public function testRevokingAgainKeepsTheFirstMoment(): void
+    {
+        $invitation = $this->invitation();
+        $invitation->revoke($this->now);
+        $invitation->revoke($this->now->modify('+1 day'));
+
+        self::assertEquals($this->now, new \ReflectionProperty($invitation, 'revokedAt')->getValue($invitation));
+    }
+
+    public function testRenewingNeedsTheHashOfATokenAndKeepsTheOldLinkOtherwise(): void
+    {
+        $invitation = $this->invitation();
+        $hash = $invitation->tokenHash();
+
+        foreach (['token', strtoupper(InvitationToken::hash('x')), InvitationToken::hash('x').'0', 'x'.InvitationToken::hash('x')] as $refused) {
+            try {
+                $invitation->renew($refused, $this->now->modify('+1 day'));
+                self::fail('A hash that is not the SHA-256 of a token was accepted.');
+            } catch (\InvalidArgumentException) {
+            }
+        }
+
+        self::assertSame($hash, $invitation->tokenHash());
+        self::assertEquals($this->now->modify('+7 days'), $invitation->expiresAt());
+    }
+
+    public function testAnInvitationBeforeItIsPersistedHasNoTenant(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        $this->invitation()->tenantId();
+    }
+
     public function testAGuestRepresentsAContact(): void
     {
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
@@ -129,6 +162,8 @@ final class InvitationTest extends TestCase
         yield 'guest without contact' => ['jana@example.com', 'Jana', Role::Guest, false, 'cs', $hash];
         yield 'locale' => ['jana@example.com', 'Jana', Role::Member, false, 'de', $hash];
         yield 'raw token' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', 'token'];
+        yield 'token hash with a prefix' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', 'x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];
+        yield 'token hash with a suffix' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'."\n\n"];
     }
 
     #[DataProvider('invalid')]

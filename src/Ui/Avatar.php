@@ -26,7 +26,7 @@ final class Avatar
 
     public static function initials(string $name): string
     {
-        $words = preg_split('/\s+/u', trim($name), -1, \PREG_SPLIT_NO_EMPTY);
+        $words = preg_split('/\s+/u', $name, -1, \PREG_SPLIT_NO_EMPTY);
         $words = false === $words ? [] : $words;
         $letters = array_map(static fn (string $word): string => mb_strtoupper(mb_substr($word, 0, 1)), \array_slice($words, 0, 2));
 

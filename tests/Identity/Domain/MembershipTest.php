@@ -39,6 +39,34 @@ final class MembershipTest extends TestCase
         new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Guest);
     }
 
+    public function testAGuestCannotBeMadeWithoutAContact(): void
+    {
+        $membership = new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Member);
+
+        try {
+            $membership->changeRole(Role::Guest, null);
+            self::fail('A guest without a contact was accepted.');
+        } catch (\InvalidArgumentException) {
+        }
+
+        self::assertSame(Role::Member, $membership->role());
+        $party = $this->contact();
+        $membership->changeRole(Role::Guest, $party);
+        self::assertSame(Role::Guest, $membership->role());
+        self::assertSame($party, $membership->party());
+    }
+
+    public function testDeactivatingAgainKeepsTheFirstMoment(): void
+    {
+        $membership = new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Member);
+        $first = new \DateTimeImmutable('2026-11-07 10:00:00');
+        $membership->deactivate($first);
+        $membership->deactivate($first->modify('+1 day'));
+
+        self::assertFalse($membership->isActive());
+        self::assertEquals($first, new \ReflectionProperty($membership, 'disabledAt')->getValue($membership));
+    }
+
     #[DataProvider('staff')]
     public function testTheStaffMayLinkTheirOwnRecordOrNone(Role $role): void
     {

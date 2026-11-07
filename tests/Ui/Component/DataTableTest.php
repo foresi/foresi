@@ -551,7 +551,7 @@ final class DataTableTest extends KernelTestCase
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAPersonCellNeedsANameAndASeed(): void
     {
-        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana']] as $cell) {
+        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana'], ['avatar' => 'user-1', 'text' => 5], ['avatar' => 'user-1']] as $cell) {
             try {
                 $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
                 self::fail('A person cell without a name or seed was accepted.');
