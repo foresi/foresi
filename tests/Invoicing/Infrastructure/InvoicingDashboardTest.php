@@ -133,13 +133,13 @@ final class InvoicingDashboardTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/export?firm='.$second->id().'&month=2026-09');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('2026-09', $crawler->filter('input[name="month"]')->attr('value'));
+        self::assertSame('2026-09', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
         self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
 
         $crawler = $this->client->request('GET', '/invoices/export?firm=unknown&month=2026-13');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('2026-10', $crawler->filter('input[name="month"]')->attr('value'));
+        self::assertSame('2026-10', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
     }
 
     public function testSeveralFirmsOfferAPickerThatNarrowsTheOverview(): void

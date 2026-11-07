@@ -86,11 +86,33 @@ final class InvoiceExportControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/export');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('2026-10', $crawler->filter('input[name="month"]')->attr('value'));
+        self::assertSame('2026-10', $crawler->filter('select[name="month"] option[selected]')->attr('value'));
         self::assertSame('pending', $crawler->filter('input[name="scope"][checked]')->attr('value'));
         self::assertSame('false', $crawler->filter('form[action="/invoices/export"]')->attr('data-turbo'));
         self::assertSame($this->firm->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
         self::assertSame(['invoice' => '2', 'advance' => '0', 'payment_tax_document' => '0', 'correction_document' => '0', 'total' => '2'], $this->counts($crawler));
+    }
+
+    public function testTheMonthIsPickedFromTheMonthsWithDocumentsAndTheLastOne(): void
+    {
+        $this->signedIn();
+        $this->issue('2026-11-03');
+        // A tax document goes by its tax point.
+        $this->issue('2026-08-31', taxPoint: '2026-07-31');
+        $this->issue('2024-02-10', $this->otherFirm());
+
+        $crawler = $this->client->request('GET', '/invoices/export');
+
+        $month = $crawler->filter('#export-month');
+        self::assertSame(['select', true], [$month->nodeName(), null !== $month->attr('required')]);
+        // No "all months": a pack is always of one month.
+        self::assertSame(['2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-07' => 'July 2026', '2024-02' => 'February 2024'], $this->monthOptions($crawler));
+        self::assertSame('2026-10', $crawler->filter('#export-month option[selected]')->attr('value'));
+
+        // A month a link names stays chosen though it has no document.
+        $crawler = $this->client->request('GET', '/invoices/export?month=2025-05');
+        self::assertArrayHasKey('2025-05', $this->monthOptions($crawler));
+        self::assertSame('2025-05', $crawler->filter('#export-month option[selected]')->attr('value'));
     }
 
     public function testCountingAgainShowsTheChosenMonthAndScope(): void
@@ -474,5 +496,19 @@ final class InvoiceExportControllerTest extends WebTestCase
     private function em(): EntityManagerInterface
     {
         return self::getContainer()->get('doctrine.orm.entity_manager');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function monthOptions(\Symfony\Component\DomCrawler\Crawler $crawler): array
+    {
+        $options = [];
+        foreach ($crawler->filter('#export-month option') as $option) {
+            self::assertInstanceOf(\DOMElement::class, $option);
+            $options[$option->getAttribute('value')] = trim($option->textContent);
+        }
+
+        return $options;
     }
 }

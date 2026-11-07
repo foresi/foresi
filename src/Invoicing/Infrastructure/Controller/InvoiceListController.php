@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
 use App\Invoicing\Application\DocumentExports;
+use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\ExportDocumentList;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoiceHistory;
@@ -115,6 +116,7 @@ final class InvoiceListController extends AbstractController
         private readonly UncorrectedTaxDocuments $uncorrected,
         private readonly DocumentExports $exports,
         private readonly ExportDocumentList $listExport,
+        private readonly DocumentMonths $months,
     ) {
     }
 
@@ -169,6 +171,8 @@ final class InvoiceListController extends AbstractController
             'toSendCount' => $toSendCount,
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
             'month' => $month ?? '',
+            // The months with a document of the list, and the one asked for, though it has none.
+            'months' => ['' => $this->translator->trans('invoice.month.all')] + MonthChoices::of([...$this->months->months($kind, '' === $firm ? null : $firm), ...(null === $month ? [] : [$month])], $this->translator->getLocale()),
             // An empty list adds up to nothing to show, and saves the queries.
             'sums' => 0 === $page->total ? null : $this->sums($this->store->sums($filter)),
             'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,

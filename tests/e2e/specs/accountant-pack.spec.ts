@@ -58,7 +58,7 @@ test.describe.serial('the accountant pack', () => {
   test('the month filter narrows the list and sums it per VAT rate', async ({ page }) => {
     await page.goto('/invoices');
     await expect(page.locator('tbody tr')).toHaveCount(3);
-    await page.locator('#invoice-month').fill(lastMonth);
+    await page.locator('#invoice-month').selectOption(lastMonth);
     await page.locator('form:has(#invoice-month)').getByRole('button', { name: 'Hledat' }).click();
 
     await expect(page).toHaveURL(new RegExp(`month=${lastMonth}`));

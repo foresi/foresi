@@ -1490,6 +1490,7 @@ invoice:
   firm_apply: Use this firm
   month:
     label: Month
+    all: All months
   sums:
     title: Sums of the list
     count: Documents
