@@ -26,6 +26,10 @@ export default class extends Controller {
             ghostClass: 'board-ghost',
             chosenClass: 'board-chosen',
             dragClass: 'board-drag',
+            // Pointer events instead of the native drag: the same behaviour and look
+            // with a mouse, a finger and a pen, and the floating card takes the drag style.
+            forceFallback: true,
+            fallbackClass: 'board-drag',
             onMove: (event) => this.highlight(event.to),
             onEnd: (event) => this.drop(event),
         }));
