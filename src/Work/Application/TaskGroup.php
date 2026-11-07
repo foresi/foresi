@@ -27,4 +27,31 @@ final readonly class TaskGroup
     public function __construct(public string $key, public array $tasks)
     {
     }
+
+    /**
+     * Every group in order, each even when empty, with the tasks in the order they come.
+     *
+     * @param list<TaskRow>      $tasks
+     * @param \DateTimeImmutable $today midnight of today in the tenant's time zone
+     *
+     * @return list<self>
+     */
+    public static function split(array $tasks, \DateTimeImmutable $today): array
+    {
+        $groups = array_fill_keys([self::OVERDUE, self::TODAY, self::UPCOMING, self::LATER, self::NO_DATE], []);
+        $day = $today->format('Y-m-d');
+        $week = $today->modify('+7 days')->format('Y-m-d');
+        foreach ($tasks as $task) {
+            $due = $task->dueOn?->format('Y-m-d');
+            $groups[match (true) {
+                null === $due => self::NO_DATE,
+                $due < $day => self::OVERDUE,
+                $due === $day => self::TODAY,
+                $due <= $week => self::UPCOMING,
+                default => self::LATER,
+            }][] = $task;
+        }
+
+        return array_map(static fn (string $key, array $rows): self => new self($key, $rows), array_keys($groups), array_values($groups));
+    }
 }

@@ -146,24 +146,28 @@ final readonly class DoctrineWorkQueries implements WorkQueries
 
     public function myTasks(?string $clientId = null): array
     {
-        $groups = array_fill_keys([TaskGroup::OVERDUE, TaskGroup::TODAY, TaskGroup::UPCOMING, TaskGroup::LATER, TaskGroup::NO_DATE], []);
         $membership = $this->me();
-        if ($membership instanceof Membership && $this->visibility->scope()->isEverything()) {
-            $today = $this->clock->today()->format('Y-m-d');
-            $week = $this->clock->today()->modify('+7 days')->format('Y-m-d');
-            foreach ($this->flat($this->openTasks('t.responsible = :me', $membership, $clientId)) as $row) {
-                $due = $row->dueOn?->format('Y-m-d');
-                $groups[match (true) {
-                    null === $due => TaskGroup::NO_DATE,
-                    $due < $today => TaskGroup::OVERDUE,
-                    $due === $today => TaskGroup::TODAY,
-                    $due <= $week => TaskGroup::UPCOMING,
-                    default => TaskGroup::LATER,
-                }][] = $row;
-            }
-        }
+        $rows = $membership instanceof Membership && $this->visibility->scope()->isEverything()
+            ? $this->sorted($this->flat($this->openTasks('t.responsible = :me', $membership, $clientId)))
+            : [];
 
-        return array_map(fn (string $key, array $rows): TaskGroup => new TaskGroup($key, $this->sorted($rows)), array_keys($groups), array_values($groups));
+        return TaskGroup::split($rows, $this->clock->today());
+    }
+
+    public function myDueCount(): int
+    {
+        $membership = $this->me();
+        if (!$membership instanceof Membership || !$this->visibility->scope()->isEverything()) {
+            return 0;
+        }
+        $count = $this->entityManager
+            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.dueOn <= :today')
+            ->setParameter('me', $membership->id())
+            ->setParameter('unfinished', $this->unfinished())
+            ->setParameter('today', $this->clock->today()->format('Y-m-d'))
+            ->getSingleScalarResult();
+
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     public function watchedTasks(?string $clientId = null): array

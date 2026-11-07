@@ -70,6 +70,7 @@ nav:
     bank: Banka
     projects: Projekty
     labels: Štítky
+    my_tasks: Moje úkoly
 ui:
   dialog:
     close: Zavřít
@@ -3201,6 +3202,26 @@ work:
     error:
       name_required: Zadejte název štítku.
       colour: Vyberte barvu.
+  my_tasks:
+    title: Moje úkoly
+    views: Pohledy na moje úkoly
+    tab:
+      assigned: Přiřazené mně
+      watching: Sledované
+    client: Klient
+    client_any: Všichni klienti
+    group:
+      overdue: Po termínu
+      today: Dnes
+      upcoming: Příštích 7 dní
+      later: Později
+      no_date: Bez termínu
+    empty:
+      assigned_title: Nemáte žádné nehotové úkoly
+      assigned_text: Úkoly, za které odpovídáte, uvidíte tady.
+      watching_title: Nesledujete žádné nehotové úkoly
+      watching_text: Úkol začnete sledovat na jeho stránce.
+      filtered: Pro tohoto klienta tu nic není.
   projects:
     title: Projekty
     views: Pohledy na projekty

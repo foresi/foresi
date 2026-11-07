@@ -36,6 +36,11 @@ interface WorkQueries
     public function myTasks(?string $clientId = null): array;
 
     /**
+     * How many of the tasks of myTasks are overdue or due today.
+     */
+    public function myDueCount(): int;
+
+    /**
      * Unfinished tasks of active projects the signed-in person watches.
      *
      * @return list<TaskRow> by due date, those without one last

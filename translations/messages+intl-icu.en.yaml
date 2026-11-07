@@ -70,6 +70,7 @@ nav:
     bank: Bank
     projects: Projects
     labels: Labels
+    my_tasks: My tasks
 ui:
   dialog:
     close: Close
@@ -3201,6 +3202,26 @@ work:
     error:
       name_required: Enter the name of the label.
       colour: Choose a colour.
+  my_tasks:
+    title: My tasks
+    views: Views of my tasks
+    tab:
+      assigned: Assigned to me
+      watching: Watching
+    client: Client
+    client_any: All clients
+    group:
+      overdue: Overdue
+      today: Today
+      upcoming: Next 7 days
+      later: Later
+      no_date: No date
+    empty:
+      assigned_title: You have no unfinished tasks
+      assigned_text: The tasks you are responsible for show here.
+      watching_title: You watch no unfinished tasks
+      watching_text: Watch a task from its page.
+      filtered: Nothing here for this client.
   projects:
     title: Projects
     views: Project views
