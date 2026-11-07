@@ -2648,7 +2648,6 @@ idoklad:
             invalid_item: Položka má množství, cenu, slevu, typ ceny nebo sazbu DPH, kterou Foresi nepřijme.
             unknown_payment_option: Pro způsob úhrady vzoru Foresi nemá platební metodu.
             unsupported_language: Foresi tiskne faktury jen česky a anglicky.
-            reverse_charge_unsupported: Vzory s přenesenou daňovou povinností se zatím neimportují.
             next_issue_mismatch: Příští vystavení podle Foresi se liší od příštího vystavení v iDokladu.
             inactive: Vzor je v iDokladu vypnutý.
             accountant_not_sent: iDoklad posílal každou fakturu účetní; Foresi ne, účetní dostává měsíční balíček.
@@ -2809,6 +2808,12 @@ idoklad:
         failed: Kontrola se zastavila
         again: Zkontrolovat znovu
         run: Importovat
+        vat:
+            title: DPH
+            intro: Doklady s DUZP od tohoto dne se importují s DPH, starší bez ní. Předvyplněn je den první faktury s DPH.
+            from: Plátce DPH od
+            from_help: Nechte prázdné, pokud firma plátcem DPH nebyla
+            invalid: Zadejte datum, nebo pole nechte prázdné.
         reminders:
             title: Upomínky
             overdue: '{count, plural, =0 {Žádná importovaná faktura není po splatnosti a neuhrazená.} one {# importovaná faktura je po splatnosti a neuhrazená.} few {# importované faktury jsou po splatnosti a neuhrazené.} other {# importovaných faktur je po splatnosti a neuhrazených.}}'

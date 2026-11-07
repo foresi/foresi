@@ -17,8 +17,9 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * One import of a firm's iDoklad snapshot into Foresi, checked or run: when,
  * from which pull, the outcomes counted by stage, the report record by record
- * and why it stopped, if it did. A check is kept too, though what it did was
- * rolled back, so its report can be read before the run.
+ * and why it stopped, if it did, and the options it ran with. A check is kept
+ * too, though what it did was rolled back, so its report can be read before the
+ * run.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_import_run')]
@@ -50,6 +51,10 @@ class IdokladImportRun implements TenantOwned
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $error = null;
 
+    /** @var array<mixed>|null the options it ran with; null for a run older than them */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $options = null;
+
     /** When what the run brought was taken back. */
     #[ORM\Column(name: 'undone_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $undoneAt = null;
@@ -70,6 +75,11 @@ class IdokladImportRun implements TenantOwned
     public function readFrom(IdokladPull $pull): void
     {
         $this->pullId = $pull->id();
+    }
+
+    public function ranWith(ImportOptions $options): void
+    {
+        $this->options = $options->toArray();
     }
 
     public function finish(\DateTimeImmutable $at, ImportReport $report, ?string $error = null): void
@@ -129,6 +139,11 @@ class IdokladImportRun implements TenantOwned
     public function report(): array
     {
         return $this->report;
+    }
+
+    public function options(): ?ImportOptions
+    {
+        return null === $this->options ? null : ImportOptions::fromArray($this->options);
     }
 
     public function error(): ?string

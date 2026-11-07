@@ -79,6 +79,8 @@ final readonly class DocumentsStage implements ImportStage
     /** iDoklad's VAT rate types; Zero = 2 is a supply without VAT, which needs its VAT code. */
     private const array RATES = [0 => VatRateKind::Reduced, 1 => VatRateKind::Base, 3 => VatRateKind::SecondReduced];
 
+    private const int RATE_ZERO = 2;
+
     private const array PRICE_TYPES = [0 => PriceType::WithVat, 1 => PriceType::WithoutVat, 2 => PriceType::BaseOnly];
 
     private const array LANGUAGES = [1 => DocumentLanguage::Czech, 3 => DocumentLanguage::English];
@@ -258,7 +260,6 @@ final readonly class DocumentsStage implements ImportStage
             'Items' => $items,
             'PaymentOptionId' => $payment['PaymentOptionId'] ?? null,
             'DateOfMaturity' => $payload['DateOfIssue'] ?? null,
-            'VatRegime' => 1,
             'IsSentToPurchaser' => $payload['IsSentToPartner'] ?? null,
         ] + $payload;
     }
@@ -302,7 +303,10 @@ final readonly class DocumentsStage implements ImportStage
             ...$method instanceof PaymentMethod ? [] : [self::PAYMENT_OPTION_UNSUPPORTED],
             ...$language instanceof DocumentLanguage ? [] : [self::LANGUAGE_UNSUPPORTED],
         ];
-        $regime = 1 === ($payload['VatRegime'] ?? null) ? VatRegime::Payer : VatRegime::NonPayer;
+        // iDoklad's VatRegime (NonVatRegime = 0, VatRegime = 1) marks a tax document, and accounts
+        // mark every document so, before the firm was a payer too: the day the run was given says it.
+        $taxPoint = DocumentKind::Advance === $kind ? null : $this->date($payload['DateOfTaxing'] ?? null);
+        $regime = $context->options->isPayerOn($taxPoint ?? $issueDate) ? VatRegime::Payer : VatRegime::NonPayer;
         $lines = [];
         $rounded = ['net' => 0, 'vat' => 0, 'gross' => 0];
         $expected = null;
@@ -318,7 +322,7 @@ final readonly class DocumentsStage implements ImportStage
 
                     continue;
                 }
-                $line = $this->line($item, $prices, $regime, $home);
+                $line = $this->line($item, $prices, $regime, $home, $customer?->vatId);
                 if ($line instanceof LineInput) {
                     $lines[] = $line;
                 } else {
@@ -356,7 +360,7 @@ final readonly class DocumentsStage implements ImportStage
             $customerId,
             $customer,
             $issueDate,
-            DocumentKind::Advance === $kind ? null : $this->date($payload['DateOfTaxing'] ?? null),
+            $taxPoint,
             $this->date($payload['DateOfMaturity'] ?? null),
             $method,
             PaymentMethod::BankTransfer === $method && '' !== $iban ? $iban : null,
@@ -426,19 +430,27 @@ final readonly class DocumentsStage implements ImportStage
     }
 
     /**
-     * A line as iDoklad priced it; null for a zero-rate line of a payer, whose
-     * treatment (exempt, reverse charge, outside the scope) only its VAT code
-     * says, and the VAT codes are not in the snapshot.
+     * A line as iDoklad priced it. A zero-rate line of a payer is reverse charge
+     * when the customer on the document has a VAT ID: the VAT codes that say the
+     * treatment are not in the snapshot, and an account with such invoices
+     * charged them in reverse. Without the VAT ID its treatment (exempt, outside
+     * the scope) is unknown, so it is null and the document refused.
      *
      * @param array<mixed> $item
      * @param array<mixed> $prices
      *
      * @throws \InvalidArgumentException when a value is missing or out of range
      */
-    private function line(array $item, array $prices, VatRegime $regime, Currency $home): ?LineInput
+    private function line(array $item, array $prices, VatRegime $regime, Currency $home, ?string $customerVatId): ?LineInput
     {
         $rateKind = \is_int($item['VatRateType'] ?? null) ? self::RATES[$item['VatRateType']] ?? null : null;
-        if (VatRegime::Payer === $regime && !$rateKind instanceof VatRateKind) {
+        $treatment = match (true) {
+            VatRegime::Payer !== $regime => TaxTreatment::NotApplicable,
+            $rateKind instanceof VatRateKind => TaxTreatment::Standard,
+            self::RATE_ZERO === ($item['VatRateType'] ?? null) && null !== $customerVatId => TaxTreatment::ReverseCharge,
+            default => null,
+        };
+        if (!$treatment instanceof TaxTreatment) {
             return null;
         }
         $priceType = \is_int($item['PriceType'] ?? null) ? self::PRICE_TYPES[$item['PriceType']] ?? null : null;
@@ -452,7 +464,7 @@ final readonly class DocumentsStage implements ImportStage
             $this->text($item['Unit'] ?? null),
             Money::of($this->decimal($prices['UnitPrice'] ?? null, 4), $home),
             $priceType,
-            VatRegime::Payer === $regime ? TaxTreatment::Standard : TaxTreatment::NotApplicable,
+            $treatment,
             $rateKind,
             null,
             Percent::fromString($this->decimal($item['DiscountPercentage'] ?? 0, 2)),

@@ -18,7 +18,7 @@ use Doctrine\ORM\Mapping as ORM;
  * One pull, check or run of the move from iDoklad, asked for on a screen and
  * done by a worker: whether it waits, runs or ended, why it failed, and what it
  * made (the pull or the import run). A run carries the day from which reminders
- * go out for the invoices it brings.
+ * go out for the invoices it brings, and the options the person chose for it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_job')]
@@ -49,6 +49,10 @@ class IdokladJob implements TenantOwned
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $error = null;
 
+    /** @var array<mixed>|null the options of a run; null for the defaults */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $options;
+
     public function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
         #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
@@ -59,10 +63,15 @@ class IdokladJob implements TenantOwned
         private readonly \DateTimeImmutable $requestedAt,
         #[ORM\Column(name: 'remind_from', type: 'date_immutable', nullable: true)]
         private readonly ?\DateTimeImmutable $remindFrom = null,
+        ?ImportOptions $options = null,
     ) {
         if ($remindFrom instanceof \DateTimeImmutable && IdokladJobKind::Run !== $kind) {
             throw new \InvalidArgumentException('Only a run sets the day reminders start from.');
         }
+        if ($options instanceof ImportOptions && IdokladJobKind::Run !== $kind) {
+            throw new \InvalidArgumentException('Only a run is given options.');
+        }
+        $this->options = $options?->toArray();
         $this->id = Id::generate();
     }
 
@@ -118,6 +127,12 @@ class IdokladJob implements TenantOwned
     public function remindFrom(): ?\DateTimeImmutable
     {
         return $this->remindFrom;
+    }
+
+    /** The options the person chose for a run; null for the defaults of the snapshot. */
+    public function options(): ?ImportOptions
+    {
+        return null === $this->options ? null : ImportOptions::fromArray($this->options);
     }
 
     public function resultId(): ?string

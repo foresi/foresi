@@ -305,6 +305,26 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertSame(['exempt', null], [$lines[0]['treatment'], $lines[0]['rate_kind']]);
     }
 
+    public function testAZeroRateLineIsReverseChargeForACustomerWithAVatId(): void
+    {
+        $german = new Party(PartyKind::Company, 'Example GmbH', null, VatId::fromString('DE123456789'), '');
+        $this->em->persist($german);
+        $this->em->persist(new PartyAddress($german, AddressType::Billing, new Address('Example Strasse 1', 'Example Stadt', '10115', 'DE')));
+        $this->em->persist(new PartyEmail($german, 'billing@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new IdokladLink($this->firm, IdokladResource::Contacts, 778, $german->id(), Id::generate(), new \DateTimeImmutable('2026-11-06 09:00:00')));
+        $this->record(IdokladResource::Contacts, 778, ['Id' => 778, 'CompanyName' => 'Example GmbH', 'VatIdentificationNumber' => ' DE123456789 ']);
+        $zero = ['Items' => [['ItemType' => 0, 'Name' => 'Consulting', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 100]]]];
+        $this->template(961, [], ['Partner' => ['Id' => 778]] + $zero);
+        $this->template(962, [], ['VatReverseChargeCodeId' => 4] + $zero);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 961);
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+        self::assertSame(['reverse_charge', null], array_values($this->em->getConnection()->fetchAssociative('SELECT treatment, rate_kind FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]) ?: []));
+        self::assertSame(['invoice.problem.supply_code_invalid'], $this->entry($run, 962)['reasons'], 'Reverse charge as the template says; at home it needs its supply code, which the snapshot does not hold.');
+    }
+
     public function testAnInactiveTemplateIsImportedPausedAndFlagged(): void
     {
         $this->template(913, ['IsActive' => false, 'DateOfNextIssue' => '2026-05-01']);
@@ -346,7 +366,6 @@ final class IdokladRecurringImportTest extends KernelTestCase
 
         self::assertSame([
             RecurringStage::FOREIGN_CURRENCY,
-            RecurringStage::REVERSE_CHARGE_UNSUPPORTED,
             RecurringStage::CUSTOMER_NOT_LINKED,
             RecurringStage::SERIES_NOT_LINKED,
             RecurringStage::UNSUPPORTED_LANGUAGE,

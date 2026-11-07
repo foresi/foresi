@@ -26,6 +26,7 @@ use App\Idoklad\Domain\IdokladJobKind;
 use App\Idoklad\Domain\IdokladJobState;
 use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\InvalidIdokladConnection;
 use App\Invoicing\Application\UndoBlocker;
 use App\Party\Application\LegalEntities;
@@ -225,7 +226,7 @@ final class IdokladImportController extends AbstractController
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id]);
         }
 
-        return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today(), null);
+        return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today());
     }
 
     #[Route('/import/idoklad/{id}/check', name: 'app_idoklad_check_start', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -250,12 +251,23 @@ final class IdokladImportController extends AbstractController
         if (!$check instanceof IdokladImportRun) {
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id], Response::HTTP_SEE_OTHER);
         }
-        $typed = $request->request->getString('remind_from');
-        $remindFrom = \DateTimeImmutable::createFromFormat('!Y-m-d', $typed);
-        if (false === $remindFrom || $remindFrom->format('Y-m-d') !== $typed) {
-            return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today(), $typed, Response::HTTP_UNPROCESSABLE_ENTITY);
+        $typed = ['remind_from' => $request->request->getString('remind_from')];
+        $remindFrom = $this->day($typed['remind_from']);
+        // Empty: the firm was never a VAT payer. Left out of the form: the day of the snapshot.
+        $chosen = $request->request->has('vat_payer_from');
+        $payer = $request->request->getString('vat_payer_from');
+        $payerFrom = $this->day($payer);
+        $errors = array_filter([
+            'remind_from' => $remindFrom instanceof \DateTimeImmutable ? null : 'idoklad.check.reminders.invalid',
+            'vat_payer_from' => '' === $payer || $payerFrom instanceof \DateTimeImmutable ? null : 'idoklad.check.vat.invalid',
+        ]);
+        if ($chosen) {
+            $typed['vat_payer_from'] = $payer;
         }
-        $this->start->start($firm, IdokladJobKind::Run, $remindFrom);
+        if ([] !== $errors || !$remindFrom instanceof \DateTimeImmutable) {
+            return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today(), $typed, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $this->start->start($firm, IdokladJobKind::Run, $remindFrom, $chosen ? new ImportOptions($payerFrom) : null);
 
         return $this->toFirm($id);
     }
@@ -316,16 +328,32 @@ final class IdokladImportController extends AbstractController
         ], new Response(status: $status));
     }
 
-    private function checkScreen(LegalEntity $firm, IdokladImportRun $check, string $locale, \DateTimeImmutable $today, ?string $remindFrom, int $status = Response::HTTP_OK): Response
+    /** A day as a date field sends it; null when it is none. */
+    private function day(string $typed): ?\DateTimeImmutable
+    {
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $typed);
+
+        return false !== $day && $day->format('Y-m-d') === $typed ? $day : null;
+    }
+
+    /**
+     * @param array<string, string> $typed  what the form sent, by field
+     * @param array<string, string> $errors field => translation key
+     */
+    private function checkScreen(LegalEntity $firm, IdokladImportRun $check, string $locale, \DateTimeImmutable $today, array $typed = [], array $errors = [], int $status = Response::HTTP_OK): Response
     {
         $job = $this->jobs->latest($firm);
+        $error = fn (string $field): ?string => isset($errors[$field]) ? $this->translator->trans($errors[$field]) : null;
 
         return $this->render('idoklad/check.html.twig', [
             'firm' => $firm,
             'run' => $check,
             'report' => $this->screens->report($check, $locale, $today),
-            'remindFrom' => $remindFrom ?? $today->format('Y-m-d'),
-            'remindError' => null === $remindFrom ? null : $this->translator->trans('idoklad.check.reminders.invalid'),
+            'remindFrom' => $typed['remind_from'] ?? $today->format('Y-m-d'),
+            'remindError' => $error('remind_from'),
+            // The day the check ran with, which the snapshot gave unless the person chose it.
+            'vatPayerFrom' => $typed['vat_payer_from'] ?? $check->options()?->vatPayerFrom?->format('Y-m-d') ?? '',
+            'vatPayerError' => $error('vat_payer_from'),
             'jobError' => $job instanceof IdokladJob && !$job->kind()->pulls() && IdokladJobState::Failed === $job->state() ? $this->translator->trans((string) $job->error()) : null,
             'stale' => $this->snapshot->lastSucceededPull($firm)?->id() !== $check->pullId(),
             'stepper' => $this->screens->stepper(2),

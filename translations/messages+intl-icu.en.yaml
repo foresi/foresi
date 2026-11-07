@@ -2648,7 +2648,6 @@ idoklad:
             invalid_item: An item has a quantity, price, discount, price type or VAT rate Foresi cannot take.
             unknown_payment_option: Foresi has no payment method for the payment option of the template.
             unsupported_language: Foresi prints invoices in Czech and English only.
-            reverse_charge_unsupported: Templates with reverse charge are not imported yet.
             next_issue_mismatch: The next issue Foresi works out differs from the next issue in iDoklad.
             inactive: The template is switched off in iDoklad.
             accountant_not_sent: iDoklad sent each invoice to the accountant; Foresi does not, the accountant gets the monthly pack.
@@ -2809,6 +2808,12 @@ idoklad:
         failed: The check stopped
         again: Check again
         run: Import
+        vat:
+            title: VAT
+            intro: Documents taxed on or after this day are imported with VAT, older ones without it. The day of the first invoice with VAT is filled in.
+            from: VAT payer from
+            from_help: Leave empty if the firm was never a VAT payer
+            invalid: Enter a date or leave the field empty.
         reminders:
             title: Reminders
             overdue: '{count, plural, =0 {No imported invoice is overdue and unpaid.} one {# imported invoice is overdue and unpaid.} other {# imported invoices are overdue and unpaid.}}'
