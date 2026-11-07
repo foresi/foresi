@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
 use App\Invoicing\Application\InvoicePayments;
@@ -62,7 +63,7 @@ use Psr\Clock\ClockInterface;
  * rate, under the same conditions as its page; only those groups come back, and each
  * is converted to the home currency exactly, rounded once at the end.
  */
-final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocuments
+final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocuments, DocumentMonths
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
     private const string COUNTRY = 'i.issuer.address.countryCode';
@@ -229,6 +230,32 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
         $paid = $this->payments->paidFor($ids);
 
         return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, $corrections[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
+    }
+
+    public function months(?DocumentKind $kind, ?string $firmId): array
+    {
+        $months = [];
+        // The days, not the months, are distinct in the query: a few thousand at most, and portable.
+        foreach (['i.taxPointDate' => true, 'i.issueDate' => false] as $column => $taxDocuments) {
+            $kinds = array_values(array_filter(DocumentKind::cases(), static fn (DocumentKind $each): bool => $each->isTaxDocument() === $taxDocuments && (!$kind instanceof DocumentKind || $kind === $each)));
+            if ([] === $kinds) {
+                continue;
+            }
+            $query = $this->em->createQuery('SELECT DISTINCT '.$column.' AS day FROM '.Invoice::class.' i WHERE i.kind IN (:kinds) AND '.$column.' IS NOT NULL'.(null === $firmId ? '' : ' AND i.firm = :firm'))
+                ->setParameter('kinds', array_map(static fn (DocumentKind $each): string => $each->value, $kinds));
+            if (null !== $firmId) {
+                $query->setParameter('firm', $firmId);
+            }
+            /** @var list<array{day: \DateTimeImmutable}> $days */
+            $days = $query->getArrayResult();
+            foreach ($days as $day) {
+                $months[$day['day']->format('Y-m')] = true;
+            }
+        }
+        $months = array_map(strval(...), array_keys($months));
+        rsort($months);
+
+        return $months;
     }
 
     public function sums(InvoiceFilter $filter): InvoiceSums

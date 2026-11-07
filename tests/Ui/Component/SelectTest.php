@@ -43,4 +43,13 @@ final class SelectTest extends KernelTestCase
         self::assertStringContainsString('pointer-events-none', $html);
         self::assertStringContainsString('<svg', $html);
     }
+
+    public function testAGroupOfOptionsRendersAsAnOptgroup(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Select', ['name' => 'month', 'label' => 'Month', 'value' => '2025-12', 'options' => ['' => 'All months', 2026 => ['2026-01' => 'January 2026'], 2025 => ['2025-12' => 'December 2025']]]);
+
+        self::assertStringContainsString('<option value="">All months</option>', $html);
+        self::assertMatchesRegularExpression('~<optgroup label="2026">\s*<option value="2026-01">January 2026</option>\s*</optgroup>~', $html);
+        self::assertMatchesRegularExpression('~<optgroup label="2025">\s*<option value="2025-12" selected>December 2025</option>\s*</optgroup>~', $html);
+    }
 }

@@ -43,10 +43,10 @@
                 <form method="get" action="{{ path('app_bank_movements') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg max-sm:[&_select]:h-control-lg">
                     {% if tab != 'incoming' %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}
                     {% if firms is not empty %}
-                        <div class="w-full sm:w-48"><twig:Ui:Select name="firm" id="bank-firm" :label="'bank.movement.list.firm'|trans" :options="firms" :value="firm" /></div>
+                        <div class="w-full min-w-0 sm:w-48"><twig:Ui:Select name="firm" id="bank-firm" :label="'bank.movement.list.firm'|trans" :options="firms" :value="firm" /></div>
                     {% endif %}
                     {% if accounts is not empty %}
-                        <div class="w-full sm:w-48"><twig:Ui:Select name="account" id="bank-account" :label="'bank.movement.list.account'|trans" :options="accounts" :value="account" /></div>
+                        <div class="w-full min-w-0 sm:w-48"><twig:Ui:Select name="account" id="bank-account" :label="'bank.movement.list.account'|trans" :options="accounts" :value="account" /></div>
                     {% endif %}
                     {% if not messagesTab %}
                         <twig:Ui:SearchField name="q" :value="text" :label="'bank.movement.list.search_label'|trans" :placeholder="'bank.movement.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-56 sm:flex-none" />

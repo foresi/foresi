@@ -14,7 +14,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 final class Select extends AbstractControl
 {
     /**
-     * @var array<string, string> value => already translated label
+     * @var array<int|string, string|array<int|string, string>> value => already translated label,
+     *                                                          or group label => such options
      */
     public array $options = [];
     public string $value = '';

@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\BundleIncomplete;
+use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\InvoiceBundle;
 use App\Invoicing\Application\NewInvoiceDefaults;
 use App\Party\Application\LegalEntities;
@@ -49,6 +50,7 @@ final class InvoiceExportController extends AbstractController
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly DocumentMonths $months,
     ) {
     }
 
@@ -63,7 +65,7 @@ final class InvoiceExportController extends AbstractController
         }
 
         // A link may name the firm and month, as the reminder on the start page does; else the last month.
-        $month = $this->month($request->query->getString('month')) ?? \DateTimeImmutable::createFromInterface($this->clock->now())->modify('first day of last month');
+        $month = $this->month($request->query->getString('month')) ?? $this->lastMonth();
         $firm = $this->linkedFirm($request->query->getString('firm')) ?? $this->defaults->firmFor($this->actor->userId());
 
         return $this->form($firm?->id() ?? '', $month->format('Y-m'), self::PENDING, $firm instanceof LegalEntity ? $this->bundle->counts($firm, $month, true) : null, null, null, Response::HTTP_OK);
@@ -128,11 +130,18 @@ final class InvoiceExportController extends AbstractController
             'firms' => $firms,
             'firm' => $firmId,
             'month' => $month,
+            // A pack is of one month: those with a document, the last one and the one chosen.
+            'months' => MonthChoices::of([...$this->months->months(null, null), $this->lastMonth()->format('Y-m'), ...($this->month($month) instanceof \DateTimeImmutable ? [$month] : [])], $this->translator->getLocale()),
             'scope' => $scope,
             'counts' => $counts,
             'error' => $error,
             'notice' => $notice,
         ], new Response(status: $status));
+    }
+
+    private function lastMonth(): \DateTimeImmutable
+    {
+        return \DateTimeImmutable::createFromInterface($this->clock->now())->modify('first day of last month');
     }
 
     private function month(string $text): ?\DateTimeImmutable

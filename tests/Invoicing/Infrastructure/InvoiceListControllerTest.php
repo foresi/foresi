@@ -1253,8 +1253,10 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([$october->number()], $this->numbers($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
-        $month = $crawler->filter('#invoice-month');
-        self::assertSame(['month', '2026-10', 'Month'], [$month->attr('type'), $month->attr('value'), $crawler->filter('label[for="invoice-month"]')->text()]);
+        // A list of the months with a document, not a native month field that overflows and Safari lacks.
+        self::assertSame(['select', 'Month'], [$crawler->filter('#invoice-month')->nodeName(), $crawler->filter('label[for="invoice-month"]')->text()]);
+        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026'], $this->monthOptions($crawler));
+        self::assertSame('2026-10', $crawler->filter('#invoice-month option[selected]')->attr('value'));
         self::assertStringContainsString('month=2026-10', $crawler->filter('thead a')->first()->attr('href') ?? '');
         $return = $crawler->filter('tr[data-id="'.$october->id().'"] form input[name="return"]')->first()->attr('value');
         self::assertSame('sort=number&month=2026-10', $return);
@@ -1266,6 +1268,43 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?month=2026-09');
         self::assertSelectorTextContains('main', 'No invoice matches');
         self::assertCount(0, $crawler->filter('[data-list-sums]'));
+        // A month without a document stays chosen, so the filter it shows is the one applied.
+        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-09' => 'September 2026'], $this->monthOptions($crawler));
+        self::assertSame('2026-09', $crawler->filter('#invoice-month option[selected]')->attr('value'));
+
+        $crawler = $this->client->request('GET', '/invoices');
+        self::assertSame('', $crawler->filter('#invoice-month option[selected]')->attr('value'));
+    }
+
+    public function testTheMonthsOfferedAreThoseOfTheListKindAndFirm(): void
+    {
+        $this->signedIn();
+        // An invoice belongs to the month of its tax point, not of its issue.
+        $invoice = $this->issue('2026-10-02', '2026-11-15');
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET tax_point_date = '2026-09-30' WHERE id = ?", [$invoice->id()]);
+        $this->issue('2026-11-02', '2026-12-01', firm: $this->secondFirm());
+        // An advance belongs to the month of its issue, whatever its tax point.
+        $advance = $this->issue('2026-08-20', '2026-09-01');
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET kind = 'advance', tax_point_date = '2026-07-31' WHERE id = ?", [$advance->id()]);
+
+        self::assertSame(['' => 'All months', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
+        self::assertSame(['' => 'All months', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
+        self::assertSame(['' => 'All months', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices?firm='.$this->firm->id())));
+        self::assertSame(['' => 'All months'], $this->monthOptions($this->client->request('GET', '/corrections')));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function monthOptions(Crawler $crawler): array
+    {
+        $options = [];
+        foreach ($crawler->filter('#invoice-month option') as $option) {
+            self::assertInstanceOf(\DOMElement::class, $option);
+            $options[$option->getAttribute('value')] = trim($option->textContent);
+        }
+
+        return $options;
     }
 
     public function testTheListShowsItsSumsUnderTheTable(): void

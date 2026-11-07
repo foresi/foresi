@@ -1490,6 +1490,7 @@ invoice:
   firm_apply: Použít tuto firmu
   month:
     label: Měsíc
+    all: Všechny měsíce
   sums:
     title: Součty seznamu
     count: Dokladů

@@ -13,7 +13,7 @@
             {% if notice %}<twig:Ui:Alert tone="warning" role="status">{{ notice }}</twig:Ui:Alert>{% endif %}
             <div class="grid gap-4 sm:grid-cols-2">
                 <twig:Ui:Select name="firm" id="export-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" :required="true" />
-                <twig:Ui:TextInput name="month" id="export-month" type="month" :label="'invoice.export.month'|trans" :help="'invoice.export.month_help'|trans" :value="month" :error="error" :required="true" />
+                <twig:Ui:Select name="month" id="export-month" :label="'invoice.export.month'|trans" :help="'invoice.export.month_help'|trans" :options="months" :value="month" :error="error" :required="true" />
             </div>
             <twig:Ui:RadioCards name="scope" id="export-scope" :legend="'invoice.export.scope.legend'|trans" :value="scope" :options="[
                 {value: 'pending', label: 'invoice.export.scope.pending'|trans, text: 'invoice.export.scope.pending_text'|trans},

@@ -53,11 +53,11 @@
                     {% if sort != '-issueDate' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
                     {% if toSend %}<input type="hidden" name="toSend" value="1">{% endif %}
                     {% if firms is not empty %}
-                        <div class="w-full sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
+                        <div class="w-full min-w-0 sm:w-52"><twig:Ui:Select name="firm" id="invoice-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
                     {% endif %}
-                    {# A browser without a month picker shows a text field that takes the same YYYY-MM. #}
-                    <div class="w-full sm:w-40"><twig:Ui:TextInput type="month" name="month" id="invoice-month" :label="'invoice.month.label'|trans" :value="month" placeholder="YYYY-MM" pattern="[0-9]{4}-[0-9]{2}" /></div>
-                    <div class="w-full sm:w-44"><twig:Ui:Select name="export" id="invoice-export" :label="'invoice.export_state.label'|trans" :options="exportStates" :value="export" /></div>
+                    {# The months with a document, not a native month field: it overflows its box and Safari has no picker. #}
+                    <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="month" id="invoice-month" :label="'invoice.month.label'|trans" :options="months" :value="month" /></div>
+                    <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="export" id="invoice-export" :label="'invoice.export_state.label'|trans" :options="exportStates" :value="export" /></div>
                     <twig:Ui:SearchField name="q" :value="text" :label="'invoice.list.search_label'|trans" :placeholder="'invoice.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
                     <twig:Ui:Button type="submit" icon="search">{{ 'invoice.list.search'|trans }}</twig:Ui:Button>
                 </form>
