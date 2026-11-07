@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# A task to read: its title, its project, its status and what it is about. #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: task.task.projectName, href: path('app_project', {id: task.task.projectId})}, {label: task.task.title}] %}
+
+{% block title %}{{ task.task.title }}{% endblock %}
+
+{% block content %}
+    <div class="grid max-w-2xl gap-4">
+        <twig:Ui:DescriptionList :items="[
+            {label: 'work.task.field.project'|trans, value: task.task.projectName},
+            {label: 'work.task.field.status'|trans, badge: {label: task.task.statusName, tone: statusTone}},
+        ]" />
+        <section class="grid gap-1.5" aria-labelledby="task-description-title">
+            <h2 id="task-description-title" class="m-0 text-small font-medium text-ink">{{ 'work.task.field.description'|trans }}</h2>
+            {% if task.description is not empty %}
+                <p class="m-0 whitespace-pre-line text-text" data-task-description>{{ task.description }}</p>
+            {% else %}
+                <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

@@ -559,4 +559,45 @@ final class DataTableTest extends KernelTestCase
             }
         }
     }
+
+    public function testABadgesCellShowsEachBadgeWithItsTone(): void
+    {
+        $rows = [['id' => 'a1', 'cells' => ['name' => 'Task', 'email' => ['badges' => [['label' => 'Bug', 'tone' => 'red'], ['label' => 'Design']]], 'balance' => '']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $badges = $crawler->filter('[data-badges] > *');
+        self::assertSame(['Bug', 'Design'], $badges->each(static fn (Crawler $badge): string => trim($badge->text())));
+        self::assertStringContainsString('bg-badge-red', (string) $badges->eq(0)->attr('class'));
+        self::assertStringContainsString('bg-badge-gray', (string) $badges->eq(1)->attr('class'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function testABadgesCellNeedsBadgesWithLabelsAndKnownTones(): void
+    {
+        foreach ([['badges' => []], ['badges' => [['tone' => 'red']]], ['badges' => [['label' => 'Bug', 'tone' => 'blue']]], ['badges' => 'Bug']] as $cell) {
+            try {
+                $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
+                self::fail('A badges cell without valid badges was accepted.');
+            } catch (\InvalidArgumentException) {
+            }
+        }
+    }
+
+    public function testAChildRowIsIndentedUnderTheRowBeforeIt(): void
+    {
+        $rows = [
+            ['id' => 'a1', 'href' => '/tasks/a1', 'cells' => ['name' => 'Task', 'email' => '', 'balance' => '']],
+            ['id' => 'b2', 'href' => '/tasks/b2', 'child' => true, 'cells' => ['name' => 'Subtask', 'email' => '', 'balance' => '']],
+        ];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        self::assertCount(1, $crawler->filter('tbody tr[data-row-child]'));
+        $child = $crawler->filter('tbody tr')->eq(1);
+        self::assertNotNull($child->attr('data-row-child'));
+        self::assertStringContainsString('text-small', (string) $child->attr('class'));
+        self::assertStringContainsString('pl-10', (string) $child->filter('td')->eq(0)->attr('class'));
+        self::assertStringNotContainsString('pl-10', (string) $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(0)->attr('class'));
+    }
 }

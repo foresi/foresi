@@ -43,7 +43,7 @@
                     </thead>
                     <tbody>
                         {% for row in this.rowViews %}
-                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}">
+                            <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ selectable and row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
                                 {% if selectable %}
                                     <td class="h-row w-12 border-b border-divider px-4 group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint group-data-[selected=true]:inset-shadow-selected">
                                         <label class="inline-grid size-6 place-items-center">
@@ -52,13 +52,17 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}">
+                                    <td class="h-row whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
                                         {%- if cell.links -%}
                                             <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
                                                 {%- for link in cell.links -%}
                                                     {%- if not loop.first %}, {% endif -%}
                                                     <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.text }}</a>
                                                 {%- endfor -%}
+                                            </span>
+                                        {%- elseif cell.badges -%}
+                                            <span class="flex flex-wrap items-center gap-1" data-badges>
+                                                {%- for badge in cell.badges %}<twig:Ui:Badge :tone="badge.tone">{{ badge.label }}</twig:Ui:Badge>{% endfor -%}
                                             </span>
                                         {%- elseif cell.avatar -%}
                                             <span class="flex min-w-0 items-center gap-2" data-avatar-cell>

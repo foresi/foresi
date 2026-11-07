@@ -1,0 +1,58 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new project: its name, the client it is for, the workflow its statuses start from and what it
+    is about. A dialog over the projects; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: 'work.projects.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'work.projects.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="project-form" action="{{ path('app_project_new') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::TOKEN')) }}">
+
+        {% if errors is not empty %}
+            {# A problem of no field takes the focus itself; otherwise the first field to fix does. #}
+            {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+                <p class="m-0 mb-1 font-semibold">{{ 'work.project.errors_title'|trans }}</p>
+                <ul class="m-0 grid list-none gap-0.5 p-0">
+                    {% for field, message in errors %}
+                        <li>
+                            {%- if field == 'form' %}{{ message }}
+                            {%- else %}<a href="#{{ field == 'workflow' ? 'workflow-simple' : field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- endif -%}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
+        <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
+        <twig:Ui:RadioCards name="workflow" id="workflow" :legend="'work.project.field.workflow'|trans" :value="values.workflow" :options="workflows" :error="errors.workflow|default(null)" />
+        <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="project-form" variant="primary">{{ 'work.project.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.projects.new'|trans" icon="columns-3" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_projects')">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="project-form" variant="primary">{{ 'work.project.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

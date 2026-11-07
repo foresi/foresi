@@ -68,6 +68,7 @@ nav:
     sent_mail: Sent e-mails
     recurring: Recurring invoices
     bank: Bank
+    projects: Projects
 ui:
   dialog:
     close: Close
@@ -3067,6 +3068,9 @@ work:
       responsible: Responsible
       due_on: Due date
       priority: Priority
+      labels: Labels
+      project: Project
+    no_description: No description.
   refused:
     unknown: This project, task or label no longer exists.
     not_allowed: Only people of the organisation can do this.
@@ -3080,3 +3084,72 @@ work:
     last_done: The project must keep at least one status of type done.
     target_status: Choose another status of the same project for its tasks.
     label_taken: A label of this name exists already.
+  cancel: Cancel
+  projects:
+    title: Projects
+    views: Project views
+    new: New project
+    tab:
+      active: Active
+      archived: Archived
+    column:
+      name: Name
+      client: Client
+      open: Open tasks
+      due: Nearest due date
+    empty:
+      title: No projects yet
+      text: Start a project and add its tasks.
+      archived_title: No archived projects
+  project:
+    create: Create project
+    archived: Archived
+    views: Project views
+    errors_title: 'Please fix:'
+    tab:
+      list: List
+    field:
+      name: Name
+      client: Client
+      client_help: Any contact of the address book.
+      client_placeholder: Type the name of a contact
+      client_empty: No contact found
+      workflow: Workflow
+      description: Description
+    error:
+      name_required: Enter the name of the project.
+      workflow: Choose one of the workflows.
+  workflow:
+    simple: Simple
+    simple_text: To do, In progress, Done
+    development: Development
+    development_text: Open, In progress, Review, Testing, Blocked, Done, Closed
+  priority:
+    none: No priority
+    low: Low
+    medium: Medium
+    high: High
+    urgent: Urgent
+  filter:
+    responsible: Responsible
+    responsible_anyone: Anyone
+    responsible_me: Me
+    status: Status
+    status_open: Open and in progress
+    status_all: All
+    status_finished: Finished
+    due: Due
+    due_any: Any time
+    due_overdue: Overdue
+    due_today: Today
+    due_next_7_days: Next 7 days
+    due_none: No date
+    apply: Filter
+    reset: Reset filters
+  list:
+    no_section: No section
+    empty: No tasks yet.
+    empty_filtered: No task matches the filters.
+    add_task: Add task
+    add_placeholder: Task title, then Enter
+    overdue: 'Overdue {date}'

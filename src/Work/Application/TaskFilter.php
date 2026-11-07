@@ -15,10 +15,14 @@ use App\Work\Domain\StatusType;
  */
 final readonly class TaskFilter
 {
+    /**
+     * @param bool|null $finished only the tasks whose status is finished (true) or not (false)
+     */
     public function __construct(
         public ?string $responsibleId = null,
         public ?StatusType $statusType = null,
         public ?DueBucket $due = null,
+        public ?bool $finished = null,
     ) {
     }
 }

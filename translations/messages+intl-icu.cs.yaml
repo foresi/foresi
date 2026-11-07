@@ -68,6 +68,7 @@ nav:
     sent_mail: Odeslané e-maily
     recurring: Pravidelné faktury
     bank: Banka
+    projects: Projekty
 ui:
   dialog:
     close: Zavřít
@@ -3067,6 +3068,9 @@ work:
       responsible: Odpovědná osoba
       due_on: Termín
       priority: Priorita
+      labels: Štítky
+      project: Projekt
+    no_description: Bez popisu.
   refused:
     unknown: Tento projekt, úkol nebo štítek už neexistuje.
     not_allowed: Tohle mohou jen lidé z organizace.
@@ -3080,3 +3084,72 @@ work:
     last_done: Projekt musí mít aspoň jeden stav typu hotový.
     target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
     label_taken: Štítek s tímto názvem už existuje.
+  cancel: Zrušit
+  projects:
+    title: Projekty
+    views: Pohledy na projekty
+    new: Nový projekt
+    tab:
+      active: Aktivní
+      archived: Archivované
+    column:
+      name: Název
+      client: Klient
+      open: Otevřené úkoly
+      due: Nejbližší termín
+    empty:
+      title: Zatím žádné projekty
+      text: Založte projekt a přidejte do něj úkoly.
+      archived_title: Žádné archivované projekty
+  project:
+    create: Založit projekt
+    archived: Archivovaný
+    views: Pohledy na projekt
+    errors_title: 'Opravte prosím:'
+    tab:
+      list: Seznam
+    field:
+      name: Název
+      client: Klient
+      client_help: Jakýkoli kontakt z adresáře.
+      client_placeholder: Napište jméno kontaktu
+      client_empty: Žádný kontakt nenalezen
+      workflow: Postup práce
+      description: Popis
+    error:
+      name_required: Zadejte název projektu.
+      workflow: Vyberte jeden z postupů.
+  workflow:
+    simple: Jednoduchý
+    simple_text: K udělání, Probíhá, Hotovo
+    development: Vývoj
+    development_text: Otevřeno, Probíhá, Kontrola, Testování, Blokováno, Hotovo, Uzavřeno
+  priority:
+    none: Bez priority
+    low: Nízká
+    medium: Střední
+    high: Vysoká
+    urgent: Naléhavá
+  filter:
+    responsible: Odpovědná osoba
+    responsible_anyone: Kdokoli
+    responsible_me: Já
+    status: Stav
+    status_open: Otevřené a rozpracované
+    status_all: Vše
+    status_finished: Dokončené
+    due: Termín
+    due_any: Kdykoli
+    due_overdue: Po termínu
+    due_today: Dnes
+    due_next_7_days: Příštích 7 dní
+    due_none: Bez termínu
+    apply: Filtrovat
+    reset: Zrušit filtry
+  list:
+    no_section: Bez sekce
+    empty: Zatím žádné úkoly.
+    empty_filtered: Filtrům neodpovídá žádný úkol.
+    add_task: Přidat úkol
+    add_placeholder: Název úkolu a Enter
+    overdue: 'Po termínu {date}'

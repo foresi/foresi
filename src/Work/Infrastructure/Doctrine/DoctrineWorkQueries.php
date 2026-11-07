@@ -388,6 +388,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             if ($filter->statusType instanceof StatusType && $row->statusType !== $filter->statusType) {
                 return false;
             }
+            if (null !== $filter->finished && $row->done !== $filter->finished) {
+                return false;
+            }
             $due = $row->dueOn?->format('Y-m-d');
 
             return match ($filter->due) {
