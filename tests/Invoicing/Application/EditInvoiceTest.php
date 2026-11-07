@@ -604,8 +604,8 @@ final class EditInvoiceTest extends InvoiceTestCase
         $this->firm->update($this->firm->name(), $this->firm->registrationNumber(), $this->firm->vatId(), new Address('Beispielstrasse 1', 'Berlin', '10115', 'DE'), VatStatus::NotRegistered, 'Register');
         $this->em->flush();
 
-        // Still a Czech payer's document, so a Czech customer's reverse charge needs a code and has its rate.
-        $this->assertRefusedFor('invoice.problem.supply_code_invalid', fn () => $this->edited($invoice, $this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null)])));
+        // Still a Czech payer's document, so a Czech customer's reverse charge takes only a Czech supply code.
+        $this->assertRefusedFor('invoice.problem.supply_code_invalid', fn () => $this->edited($invoice, $this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '999')])));
         $this->edited($invoice, $this->input([$this->line('500.00')]));
         $invoice = $this->reloaded($invoice);
 

@@ -557,8 +557,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
         self::assertSame(VatRegime::Payer, $this->invoiceOf($entry['target_id'])->vatRegime());
         self::assertSame(['reverse_charge'], $this->em->getConnection()->fetchFirstColumn('SELECT treatment FROM invoice_line WHERE invoice_id = :id', ['id' => $entry['target_id']]));
-        self::assertNotContains(DocumentsStage::ZERO_RATE_UNSUPPORTED, $this->entry($run, 187)['reasons'], 'A domestic customer with a VAT ID is reverse charge too, which then needs its supply code.');
-        self::assertSame('refused', $this->entry($run, 187)['outcome']);
+        self::assertSame('created', $this->entry($run, 187)['outcome'], 'A domestic customer with a VAT ID is reverse charge too, its supply code left for the accountant.');
     }
 
     public function testAnotherTypesSequenceOfTheSameFormatIsNoCandidate(): void

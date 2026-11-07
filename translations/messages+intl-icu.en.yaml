@@ -1806,7 +1806,7 @@ invoice:
     payment_unknown: This payment is not a payment of the advance invoice, or it was cancelled.
     series_of_another_firm: This series belongs to another firm.
     series_unknown: Choose a series.
-    supply_code_invalid: Choose the supply code.
+    supply_code_invalid: Choose a supply code from the list, or leave it empty.
     supply_code_not_allowed: A customer from another country has no supply code.
     tax_point_missing: Enter the date.
     too_long: This text is too long.

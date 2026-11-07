@@ -7,7 +7,7 @@ This page says what the invoices of this release do and do not do. It is a state
 - Document types: an invoice, an advance invoice, a tax document on a received payment and a corrective tax document (credit or debit note). See [Advances](#advances), [Corrections](#corrections), ADR 21 and ADR 22.
 - Countries: invoices issued by a firm seated in the Czech Republic. The country rules live in a country module, so others can be added.
 - VAT regimes: a VAT payer, and a firm that is not a VAT payer (documents without VAT). A firm with the status identified person cannot issue invoices yet.
-- Tax treatments per line: standard rate, reverse charge (with its supply code), exempt and not applicable. VAT is not rounded to whole crowns; the total can be rounded to a whole crown, as a setting of the firm.
+- Tax treatments per line: standard rate, reverse charge (with an optional supply code for domestic reverse charge, as in iDoklad), exempt and not applicable. VAT is not rounded to whole crowns; the total can be rounded to a whole crown, as a setting of the firm.
 - Currency: Czech crowns only. Prices in another currency are refused.
 - Numbers: series per firm with date tokens and a counter that never repeats a number. A deleted invoice goes to the trash and keeps its number. See ADR 13.
 - Output: a PDF/A-3a with the ISDOC file embedded, a QR Platba+F code, and the logo and stamp of the firm. See ADR 12.
