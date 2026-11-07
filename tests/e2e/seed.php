@@ -794,6 +794,11 @@ foreach ($idokladTenants as $idokladTenant) {
 // Projects: the owner of "Example Projects" signs in for the application services, the way the
 // browser would, and keeps a project for a client with tasks in every state of the workflow.
 $projectsTenant = $tenantWithOwner('Example Projects', 'projects@example.com', 'Projects Example');
+// No firm gives it a zone, so it gets the seed's own: its today is the today of the due dates below.
+$projectsTenantRecord = $entityManager->find(Tenant::class, $projectsTenant);
+\assert($projectsTenantRecord instanceof Tenant);
+$projectsTenantRecord->changeTimezone(new DateTimeZone('Europe/Prague'));
+$entityManager->flush();
 $manageProjects = $container->get('e2e.manage_projects');
 $manageSections = $container->get('e2e.manage_sections');
 $manageTasks = $container->get('e2e.manage_tasks');
