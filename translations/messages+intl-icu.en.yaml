@@ -3048,3 +3048,35 @@ invitation:
   accepted:
     title: Invitation used
     text: This invitation was accepted already. Sign in to the organisation.
+work:
+  status:
+    to_do: To do
+    in_progress: In progress
+    done: Done
+    open: Open
+    review: Review
+    testing: Testing
+    blocked: Blocked
+    closed: Closed
+  task:
+    field:
+      title: Title
+      description: Description
+      section: Section
+      status: Status
+      responsible: Responsible
+      due_on: Due date
+      priority: Priority
+  refused:
+    unknown: This project, task or label no longer exists.
+    not_allowed: Only people of the organisation can do this.
+    name: Enter a name that is not too long.
+    client: Choose an existing contact as the client.
+    archived: The project is archived. Restore it first.
+    parent: A subtask goes under a task of the same project that is not a subtask itself.
+    responsible: Choose an active person of the organisation as responsible.
+    watcher: Choose an active person of the organisation to follow the task.
+    last_open: The project must keep at least one status of type open.
+    last_done: The project must keep at least one status of type done.
+    target_status: Choose another status of the same project for its tasks.
+    label_taken: A label of this name exists already.

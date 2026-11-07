@@ -593,6 +593,16 @@ when@test:
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
             public: true
+        # The tests drive the work services directly; the screens come next.
+        App\Work\Application\ManageProjects: { public: true }
+        App\Work\Application\ManageSections: { public: true }
+        App\Work\Application\ManageWorkflow: { public: true }
+        App\Work\Application\ManageTasks: { public: true }
+        App\Work\Application\ManageLabels: { public: true }
+        App\Work\Application\TaskHistory: { public: true }
+        App\Work\Application\WorkQueries:
+            alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
+            public: true
         # Nothing uses the tenant's clock yet; the jobs that will are on their way.
         App\Tenancy\Application\TenantClock: { public: true }
 

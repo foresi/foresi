@@ -3048,3 +3048,35 @@ invitation:
   accepted:
     title: Pozvánka použita
     text: Tato pozvánka už byla přijata. Přihlaste se do organizace.
+work:
+  status:
+    to_do: K udělání
+    in_progress: Probíhá
+    done: Hotovo
+    open: Otevřeno
+    review: Kontrola
+    testing: Testování
+    blocked: Blokováno
+    closed: Uzavřeno
+  task:
+    field:
+      title: Název
+      description: Popis
+      section: Sekce
+      status: Stav
+      responsible: Odpovědná osoba
+      due_on: Termín
+      priority: Priorita
+  refused:
+    unknown: Tento projekt, úkol nebo štítek už neexistuje.
+    not_allowed: Tohle mohou jen lidé z organizace.
+    name: Zadejte název, který není příliš dlouhý.
+    client: Jako klienta vyberte existující kontakt.
+    archived: Projekt je archivovaný. Nejdřív ho obnovte.
+    parent: Podúkol patří pod úkol stejného projektu, který sám není podúkolem.
+    responsible: Jako odpovědnou osobu vyberte aktivního člověka z organizace.
+    watcher: Vyberte aktivního člověka z organizace, který bude úkol sledovat.
+    last_open: Projekt musí mít aspoň jeden stav typu otevřený.
+    last_done: Projekt musí mít aspoň jeden stav typu hotový.
+    target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
+    label_taken: Štítek s tímto názvem už existuje.
