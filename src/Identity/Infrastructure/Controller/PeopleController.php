@@ -202,7 +202,7 @@ final class PeopleController extends AbstractController
     }
 
     #[Route('/settings/people/invitations/{id}/resend', name: 'app_people_invitation_resend', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function resend(string $id, Request $request): Response
+    public function resend(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         $this->denyUnlessOwner();
         $this->checkToken($request);
