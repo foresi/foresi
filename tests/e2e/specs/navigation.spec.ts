@@ -44,7 +44,8 @@ test.describe('navigation', () => {
 
     // Only groups that hold something are shown, in the fixed order, and Settings is last.
     const groups = await sidebar.locator('[data-nav-group]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-group')));
-    expect(groups).toEqual(['main', 'sales', 'money', 'contacts', 'settings']);
+    expect(groups).toEqual(['main', 'sales', 'money', 'contacts', 'work', 'settings']);
+    await expect(sidebar.locator('[data-nav-group="work"]').getByRole('link')).toHaveText([/Projekty/, /Moje úkoly/]);
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('heading', { name: 'Prodej' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury', exact: true })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="money"]').getByRole('heading', { name: 'Finance' })).toBeVisible();
@@ -52,7 +53,7 @@ test.describe('navigation', () => {
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
     const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');
-    await expect(settings).toHaveText(['Lidé', 'Moje firmy', 'Import a export']);
+    await expect(settings).toHaveText(['Lidé', 'Moje firmy', 'Štítky', 'Import a export']);
     await shot(page, 'sidebar');
   });
 
