@@ -467,11 +467,11 @@ final class BankMovementController extends AbstractController
     {
         return match (true) {
             MovementState::Paired === $movement->state() => PairingRefused::ALREADY_PAIRED,
-            // Outgoing money pairs only as a refund, so only while something is to refund.
-            !$movement->isIncoming() && (MovementState::Recorded !== $movement->state() || !$this->refundsOffered($movement)) => PairingRefused::NOT_INCOMING,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
             UnmatchedReason::Rejected === $movement->unmatchedReason(), MessageTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
+            // Outgoing money pairs only as a refund, so only while something is to refund.
+            !$movement->isIncoming() && !$this->refundsOffered($movement) => PairingRefused::NOT_INCOMING,
             default => null,
         };
     }
@@ -501,7 +501,7 @@ final class BankMovementController extends AbstractController
      */
     private function tabs(MovementPage $page, string $tab, array $query): array
     {
-        $counts = [MovementFilter::UNMATCHED => $page->unmatched, MovementFilter::MESSAGES => $page->attention > 0 ? $page->attention : null];
+        $counts = [MovementFilter::UNMATCHED => $page->unmatched, MovementFilter::OUTGOING_UNMATCHED => $page->outgoingUnmatched, MovementFilter::MESSAGES => $page->attention > 0 ? $page->attention : null];
         $tabs = [];
         foreach (MovementFilter::TABS as $key) {
             $tabs[] = [

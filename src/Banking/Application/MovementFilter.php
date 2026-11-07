@@ -10,7 +10,7 @@ namespace App\Banking\Application;
 
 /**
  * Which part of the bank screen to show: the incoming or outgoing movements, the
- * incoming ones waiting for a pairing, or the bank mail that came; of one firm or
+ * incoming or outgoing ones waiting for a pairing, or the bank mail that came; of one firm or
  * account or all, newest first. The text narrows by partner, symbol, message or
  * amount; one movement can be asked for by its id, as a payment links to it.
  */
@@ -20,8 +20,10 @@ final readonly class MovementFilter
     public const string INCOMING = 'incoming';
     public const string OUTGOING = 'outgoing';
     public const string UNMATCHED = 'unmatched';
+    /** Outgoing and not paired: a refund waiting for a person, or money that refunds nothing. */
+    public const string OUTGOING_UNMATCHED = 'outgoing_unmatched';
     public const string MESSAGES = 'messages';
-    public const array TABS = [self::INCOMING, self::OUTGOING, self::UNMATCHED, self::MESSAGES];
+    public const array TABS = [self::INCOMING, self::OUTGOING, self::UNMATCHED, self::OUTGOING_UNMATCHED, self::MESSAGES];
 
     public function __construct(
         public string $tab = self::INCOMING,

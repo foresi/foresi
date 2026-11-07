@@ -754,6 +754,7 @@ bank:
       incoming: Příchozí
       outgoing: Odchozí
       unmatched: Nespárované
+      outgoing_unmatched: Odchozí nespárované
       messages: Zprávy
     column:
       date: Datum
@@ -790,9 +791,11 @@ bank:
       incoming_title: Zatím žádné příchozí platby
       incoming_text: Platby z e-mailů banky se ukážou tady.
       outgoing_title: Zatím žádné odchozí platby
-      outgoing_text: Platby z účtu se tu ukážou pro přehled.
+      outgoing_text: Platby z účtu se ukážou tady. Vratky se spárují s fakturou.
       unmatched_title: Všechny příchozí platby jsou spárované
       unmatched_text: Nic nečeká na spárování.
+      outgoing_unmatched_title: Všechny odchozí platby jsou spárované
+      outgoing_unmatched_text: Nic nečeká na spárování jako vratka.
       messages_title: Zatím žádné e-maily z banky
       messages_text: E-maily, které přijdou na adresu účtu pro banku, se ukážou tady.
     state:
@@ -812,6 +815,7 @@ bank:
       rejected: Odmítnuto, nikdy se nespáruje
       refused: Faktura platbu nepřijala. Spárujte ji ručně.
       account_currency: Pohyb je v jiné měně, než má účet. Zkontrolujte měnu účtu.
+      refund_amount_differs: Částka není to, co se má vrátit
     action:
       pair: Spárovat
       unpair: Zrušit spárování
@@ -848,6 +852,7 @@ bank:
       reason:
         symbol: Stejný variabilní symbol
         amount: Stejná částka
+        account: Dříve placeno z tohoto účtu
         customer: Stejný zákazník
       settle: Odepsat rozdíl
       settle_help: 'Do {limit}, aby byla faktura uhrazená přesně.'

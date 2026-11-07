@@ -72,7 +72,7 @@ final class InvoicePaymentsStoreTest extends InvoiceTestCase
         $this->em->clear();
 
         $all = $this->page(InvoiceFilter::ALL);
-        self::assertSame(['all' => 7, 'paid' => 3, 'unpaid' => 4, 'overdue' => 3, 'trash' => 1], $all->tabCounts);
+        self::assertSame(['all' => 7, 'paid' => 3, 'unpaid' => 4, 'overdue' => 3, 'to_refund' => 1, 'trash' => 1], $all->tabCounts);
         self::assertSame(['Paid', 'Over', 'Settled'], $this->descriptions(InvoiceFilter::PAID));
         self::assertSame(['Unpaid', 'Partly', 'Later', 'Cancelled'], $this->descriptions(InvoiceFilter::UNPAID));
         self::assertSame(['Unpaid', 'Partly', 'Cancelled'], $this->descriptions(InvoiceFilter::OVERDUE));

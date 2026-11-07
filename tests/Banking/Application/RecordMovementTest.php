@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Banking\Application;
 
 use App\Banking\Application\FirmPairingRules;
+use App\Banking\Application\MovementFilter;
 use App\Banking\Application\MovementInput;
+use App\Banking\Application\PairingChoices;
 use App\Banking\Application\PairingRules;
 use App\Banking\Application\ParsedMovement;
 use App\Banking\Application\RecordMovement;
@@ -89,7 +91,7 @@ final class RecordMovementTest extends BankingTestCase
             }
         };
         $container = self::getContainer();
-        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class));
+        $record = new RecordMovement($this->movements, $container->get(FirmBankAccounts::class), $this->matcher, $rules, $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
 
         $movement = $record->record($this->incoming('1210.00'), self::verified());
 
@@ -102,7 +104,7 @@ final class RecordMovementTest extends BankingTestCase
     {
         $movements = new LoggingBankMovements($this->movements);
         $container = self::getContainer();
-        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class));
+        $record = new RecordMovement($movements, $container->get(FirmBankAccounts::class), $this->matcher, $container->get(FirmPairingRules::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(PairingChoices::class));
 
         $movement = $record->record($this->incoming('10.00'), self::verified());
 
@@ -138,7 +140,7 @@ final class RecordMovementTest extends BankingTestCase
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
-    public function testAnOutgoingMovementIsRecordedOnly(): void
+    public function testAnOutgoingMovementNoRefundFitsIsRecordedOnlyAndQueuedForNoOne(): void
     {
         $this->issue->issue($this->input());
 
@@ -148,6 +150,7 @@ final class RecordMovementTest extends BankingTestCase
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Recorded, null, MovementDirection::Outgoing], [$stored->state(), $stored->unmatchedReason(), $stored->direction()]);
         self::assertSame(0, $this->paymentCount());
+        self::assertSame(0, $this->movements->count(new MovementFilter(MovementFilter::OUTGOING_UNMATCHED)), 'nothing waits in the queue');
     }
 
     public function testTheSameFingerprintFromAnotherMessageIsAPossibleDuplicate(): void

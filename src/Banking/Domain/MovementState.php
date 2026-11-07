@@ -14,9 +14,9 @@ namespace App\Banking\Domain;
  */
 enum MovementState: string
 {
-    /** Outgoing: kept for the record, never paired here. */
+    /** Outgoing, recorded before refunds paired by themselves: paired only by hand. */
     case Recorded = 'recorded';
-    /** Incoming and not paired; the reason says why. */
+    /** Not paired, incoming or outgoing; the reason says why. */
     case Unmatched = 'unmatched';
     /** A payment of an invoice came from it. */
     case Paired = 'paired';

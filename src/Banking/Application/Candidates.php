@@ -42,7 +42,10 @@ interface Candidates
     /**
      * The invoices of the firm in the active tenant that are not in the trash and
      * have something to refund, as InvoicePayments::toRefundOf() counts it, in every
-     * currency, oldest due first. The remaining amount of each is what is to refund.
+     * currency, oldest due first: a credited or overpaid invoice, a final invoice its
+     * advances exceed, an advance no final invoice deducts. The remaining amount of
+     * each is what is to refund, and its issue date the later of its own and its
+     * corrective documents'.
      * With a symbol, only those that carry it or have a corrective document outside
      * the trash that carries it, leading zeros aside: a customer or a bank may quote
      * the credit note's symbol, which follows its number.
@@ -52,4 +55,13 @@ interface Candidates
      * @return list<Candidate>
      */
     public function refunds(string $firmId, ?string $variableSymbol): array;
+
+    /**
+     * The invoices of the firm in the active tenant that a payment not cancelled paid
+     * from a bank movement of that counter account: by its IBAN when given, otherwise
+     * by its account number. The money of a refund goes back where it came from.
+     *
+     * @return list<string> invoice ids
+     */
+    public function paidFrom(string $firmId, ?string $counterIban, ?string $counterAccount): array;
 }

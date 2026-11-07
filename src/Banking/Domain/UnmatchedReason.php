@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Domain;
 
 /**
- * Why an incoming movement did not pay an invoice by itself.
+ * Why a movement did not pay an invoice, or an outgoing one refund one, by itself.
  */
 enum UnmatchedReason: string
 {
@@ -33,4 +33,6 @@ enum UnmatchedReason: string
     case Refused = 'refused';
     /** The movement is in another currency than its account: the account's currency is likely wrong. */
     case AccountCurrency = 'account_currency';
+    /** Outgoing: one invoice has its symbol, and what it has to refund is another amount. */
+    case RefundAmountDiffers = 'refund_amount_differs';
 }

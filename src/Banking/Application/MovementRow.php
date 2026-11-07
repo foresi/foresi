@@ -50,12 +50,12 @@ final readonly class MovementRow
     }
 
     /**
-     * Whether a person may pair it: an incoming movement waiting for a pairing, or
-     * an outgoing one recorded only, which may be a refund, whose message did not
-     * fail its checks.
+     * Whether a person may pair it: a movement waiting for a pairing, or an outgoing
+     * one recorded only before refunds paired by themselves, whose message did not
+     * fail its checks. Outgoing, it may be a refund.
      */
     public function isPairable(): bool
     {
-        return ($this->isIncoming() ? MovementState::Unmatched === $this->state : MovementState::Recorded === $this->state) && UnmatchedReason::Rejected !== $this->reason && MessageTrust::Failed !== $this->trust;
+        return (MovementState::Unmatched === $this->state || (!$this->isIncoming() && MovementState::Recorded === $this->state)) && UnmatchedReason::Rejected !== $this->reason && MessageTrust::Failed !== $this->trust;
     }
 }

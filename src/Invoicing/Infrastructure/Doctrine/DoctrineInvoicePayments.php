@@ -127,8 +127,8 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         }
         $corrections = $this->correctionsOf($invoice);
         $remaining = $invoice->payable()->plus($corrections)->minus($this->paidOf($invoice));
-        $refundable = (!$corrections->isZero() && $invoice->payable()->minor() > 0)
-            || ($invoice->deductsAdvances() && $invoice->payable()->minor() <= 0);
+        // Paid above what is due, after its corrections or without any; or advances beyond a final invoice.
+        $refundable = $invoice->payable()->minor() > 0 || $invoice->deductsAdvances();
 
         return $refundable && $remaining->isNegative() ? Money::ofMinor(-$remaining->minor(), $remaining->currency()) : $none;
     }

@@ -127,7 +127,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 1', 'Trash 1'], $this->tabs($crawler));
+        self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 1', 'To refund 0', 'Trash 1'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('tbody tr'));
 
         $crawler = $this->client->request('GET', '/invoices?tab=overdue');
@@ -158,7 +158,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices', ['firm' => $second->id()]);
 
         self::assertSame([$other->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame($second->id(), $crawler->filter('select[name="firm"] option[selected]')->attr('value'));
         // The tabs and the sort keep the firm.
         self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
@@ -271,7 +271,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices', ['q' => 'findable']);
 
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
     }
 
     public function testTheNewestDayComesFirstAndWithinItTheHighestNumber(): void
@@ -405,7 +405,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?tab=paid');
 
         self::assertSame([$overpaid->number(), $paid->number()], $this->numbers($crawler));
-        self::assertSame(['All 4', 'Paid 2', 'Unpaid 2', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 4', 'Paid 2', 'Unpaid 2', 'Overdue 0', 'To refund 1', 'Trash 0'], $this->tabs($crawler));
         self::assertSame(['20260002', '20260001'], $this->numbers($this->client->request('GET', '/invoices?tab=unpaid')));
     }
 
@@ -452,7 +452,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertSame([$invoice->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
 
         $this->client->request('GET', '/invoices/'.$other->id().'/history');
         self::assertResponseStatusCodeSame(404);
@@ -902,7 +902,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices?export=exported');
         self::assertSame([$exported->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 0', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&export=exported', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         self::assertSame('exported', $crawler->filter('select[name="export"] option[selected]')->attr('value'));
         self::assertSame(['', 'not_exported', 'exported', 'changed'], $crawler->filter('select[name="export"] option')->each(static fn (Crawler $option): string => $option->attr('value') ?? ''));
@@ -1251,7 +1251,7 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?month=2026-10&sort=number');
 
         self::assertSame([$october->number()], $this->numbers($crawler));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertSame('/invoices?tab=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         $month = $crawler->filter('#invoice-month');
         self::assertSame(['month', '2026-10', 'Month'], [$month->attr('type'), $month->attr('value'), $crawler->filter('label[for="invoice-month"]')->text()]);

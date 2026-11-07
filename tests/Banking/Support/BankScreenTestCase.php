@@ -167,8 +167,9 @@ abstract class BankScreenTestCase extends WebTestCase
         ?string $message = 'Payment for an invoice',
         bool $auto = true,
         ?TenantId $tenant = null,
+        string $counterIban = self::COUNTER_IBAN,
     ): string {
-        return $this->scoped(function () use ($amount, $vs, $direction, $trust, $account, $bookedOn, $counterName, $message, $auto): string {
+        return $this->scoped(function () use ($amount, $vs, $direction, $trust, $account, $bookedOn, $counterName, $message, $auto, $counterIban): string {
             $basis = match ($trust) {
                 MessageTrust::Verified => TrustVerdict::DMARC,
                 MessageTrust::Failed => TrustVerdict::DKIM_FAIL,
@@ -182,7 +183,7 @@ abstract class BankScreenTestCase extends WebTestCase
                 Money::of($amount, Currency::CZK),
                 new \DateTimeImmutable($bookedOn),
                 '123456789/0800',
-                self::COUNTER_IBAN,
+                $counterIban,
                 $counterName,
                 $vs,
                 null,

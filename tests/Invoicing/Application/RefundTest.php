@@ -64,13 +64,22 @@ final class RefundTest extends InvoiceTestCase
         self::assertSame(121000, $this->payments()->paidOf($this->store->get($invoice->id()))->minor());
     }
 
-    public function testAnInvoiceWithNothingToRefundRefusesARefund(): void
+    public function testAPlainOverpaymentRefundsWhatWasPaidAboveTheInvoice(): void
     {
         $overpaid = $this->issue->issue($this->input());
         $this->record($overpaid, '1300.00');
 
-        self::assertSame(0, $this->payments()->toRefundOf($this->store->get($overpaid->id()))->minor(), 'a plain overpayment is not to refund');
-        $this->expectRefused(PaymentRefused::REFUND_TOO_LARGE, fn (): Payment => $this->record($overpaid, '90.00', PaymentDirection::Refund));
+        self::assertSame(9000, $this->payments()->toRefundOf($this->store->get($overpaid->id()))->minor(), 'a plain overpayment is to refund');
+        $this->expectRefused(PaymentRefused::REFUND_TOO_LARGE, fn (): Payment => $this->record($overpaid, '90.01', PaymentDirection::Refund));
+    }
+
+    public function testAnInvoicePaidExactlyRefusesARefund(): void
+    {
+        $paid = $this->issue->issue($this->input());
+        $this->record($paid, '1210.00');
+
+        self::assertSame(0, $this->payments()->toRefundOf($this->store->get($paid->id()))->minor());
+        $this->expectRefused(PaymentRefused::REFUND_TOO_LARGE, fn (): Payment => $this->record($paid, '0.01', PaymentDirection::Refund));
     }
 
     public function testARefundWritesNothingOff(): void

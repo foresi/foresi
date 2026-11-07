@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The bank screen, as iDoklad's Finance, Bank: the incoming and outgoing movements, the incoming
-    ones waiting for a pairing, and the bank mail. Pair, unpair and the message open in dialogs over
+    and the outgoing ones waiting for a pairing, and the bank mail. Pair, unpair and the message open in dialogs over
     the list. The flash after a pairing made by hand offers Undo, for that pairing only.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -65,7 +65,7 @@
                             <twig:Ui:Button :href="path('app_bank_movements', tab == 'incoming' ? {} : {tab: tab})">{{ 'bank.movement.empty.reset'|trans }}</twig:Ui:Button>
                         </twig:Ui:EmptyState>
                     {% else %}
-                        <twig:Ui:EmptyState :icon="tab == 'unmatched' ? 'circle-check' : (messagesTab ? 'inbox' : 'landmark')" :title="('bank.movement.empty.' ~ tab ~ '_title')|trans" :text="('bank.movement.empty.' ~ tab ~ '_text')|trans" />
+                        <twig:Ui:EmptyState :icon="tab in ['unmatched', 'outgoing_unmatched'] ? 'circle-check' : (messagesTab ? 'inbox' : 'landmark')" :title="('bank.movement.empty.' ~ tab ~ '_title')|trans" :text="('bank.movement.empty.' ~ tab ~ '_text')|trans" />
                     {% endif %}
                 </twig:block>
                 <twig:block name="footer">

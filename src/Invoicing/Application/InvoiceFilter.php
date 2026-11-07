@@ -31,11 +31,14 @@ final readonly class InvoiceFilter
     public const string SETTLED = 'settled';
     /** What a final invoice may still deduct: a paid advance, or a tax document of a payment not cancelled. */
     public const string UNSETTLED = 'unsettled';
-    /** Credit notes whose invoice was paid above what the corrections leave due. */
+    /**
+     * Invoices paid above what is due, after their corrections or without any, or whose
+     * deducted advances exceed them; of corrective documents, those whose invoice is so.
+     */
     public const string TO_REFUND = 'to_refund';
     public const string TRASH = 'trash';
     /** The tabs of an invoice; tabsOf() gives those of each kind. */
-    public const array TABS = [self::ALL, self::PAID, self::UNPAID, self::OVERDUE, self::TRASH];
+    public const array TABS = [self::ALL, self::PAID, self::UNPAID, self::OVERDUE, self::TO_REFUND, self::TRASH];
     public const array SORTS = ['number', 'customer', 'issueDate', 'dueDate', 'payable'];
     public const string DEFAULT_SORT = '-issueDate';
 

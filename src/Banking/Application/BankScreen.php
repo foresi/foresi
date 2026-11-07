@@ -55,6 +55,7 @@ final readonly class BankScreen
             $this->messages->needingAttention($stuckBefore, $firmId, $accountId),
             $firms,
             array_map(static fn (array $account): array => ['firmId' => $account['firmId'], 'label' => $account['label'], 'iban' => $account['iban']], $accounts),
+            $this->movements->count(new MovementFilter(MovementFilter::OUTGOING_UNMATCHED, $firmId, $accountId)),
         );
     }
 

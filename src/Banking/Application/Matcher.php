@@ -17,7 +17,8 @@ use App\Invoicing\Application\UnsupportedCountry;
 use App\Shared\Domain\Money;
 
 /**
- * Which invoices an incoming movement pays, by the variable symbol and the amount.
+ * Which invoices an incoming movement pays, by the variable symbol and the amount,
+ * and which one an outgoing movement refunds.
  * It pairs only when the rules leave one answer; anything else stays for a person,
  * with the invoices that may fit as suggestions.
  *
@@ -35,6 +36,13 @@ use App\Shared\Domain\Money;
  *
  * A small difference is settled only when the firm wants it, on one invoice, and
  * only up to the limit the firm's country gives in the currency: none, no settling.
+ *
+ * An outgoing movement refunds under the same gate, and only more narrowly: its
+ * symbol picks exactly one invoice with something to refund, and the movement is
+ * exactly what that invoice has to refund. No difference is settled on a refund;
+ * anything else is for a person. The date that counts is the later of the
+ * invoice's and its corrective documents': money sent back before the credit note
+ * was written is only suggested.
  */
 final readonly class Matcher
 {
@@ -103,6 +111,9 @@ final readonly class Matcher
         if ([] === $eligible) {
             return MatchDecision::unmatched(UnmatchedReason::NoInvoice, $suggestions);
         }
+        if (!$movement->isIncoming()) {
+            return $this->refund($eligible, $amount, $suggestions);
+        }
         if (1 === \count($eligible)) {
             return MatchDecision::pair([$this->whole($eligible[0], $amount, $rules, $settlementLimit)]);
         }
@@ -146,6 +157,22 @@ final readonly class Matcher
             !$rules->autoPairing => UnmatchedReason::AutoPairingOff,
             default => null,
         };
+    }
+
+    /**
+     * @param non-empty-list<Candidate> $eligible
+     * @param list<Candidate>           $suggestions
+     */
+    private function refund(array $eligible, Money $amount, array $suggestions): MatchDecision
+    {
+        if (1 !== \count($eligible)) {
+            return MatchDecision::unmatched(UnmatchedReason::Ambiguous, $suggestions);
+        }
+        if ($eligible[0]->remaining->minor() !== $amount->minor()) {
+            return MatchDecision::unmatched(UnmatchedReason::RefundAmountDiffers, $suggestions);
+        }
+
+        return MatchDecision::pair([new AllocationRequest($eligible[0]->invoiceId, $amount)]);
     }
 
     /**

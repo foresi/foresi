@@ -108,7 +108,7 @@ final class KbEndToEndTest extends InboundTestCase
         self::assertSame([], $this->movementsOf($id));
     }
 
-    public function testOutgoingNoticeIsRecordedOnly(): void
+    public function testAnOutgoingNoticeNoRefundFitsIsRecordedOnly(): void
     {
         $id = $this->received($this->notice('outgoing-booked'));
 

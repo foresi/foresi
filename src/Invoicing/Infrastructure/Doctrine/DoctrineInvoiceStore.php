@@ -487,7 +487,7 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
             InvoiceFilter::OVERDUE => 'i.deletedAt IS NULL AND '.$overdue.' AND '.$this->unpaid($suffix),
             InvoiceFilter::SETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NOT NULL',
             InvoiceFilter::UNSETTLED => 'i.deletedAt IS NULL AND i.deductedByInvoiceId IS NULL AND '.$this->deductible($kind, $suffix),
-            InvoiceFilter::TO_REFUND => 'i.deletedAt IS NULL AND '.$this->toRefund($suffix),
+            InvoiceFilter::TO_REFUND => 'i.deletedAt IS NULL AND '.(DocumentKind::CorrectionDocument === $kind ? $this->toRefund($suffix) : $this->overpaid($suffix)),
             default => 'i.deletedAt IS NULL',
         };
     }
@@ -507,6 +507,15 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
     private function unpaid(string $suffix): string
     {
         return '((i.payableMinor <= 0 AND i.deductsAdvances = false) OR (i.kind <> \''.DocumentKind::PaymentTaxDocument->value.'\' AND '.DoctrineInvoicePayments::dueOfInvoiceDql($suffix).' > '.DoctrineInvoicePayments::paidOfInvoiceDql($suffix).'))';
+    }
+
+    /**
+     * Paid above what is due after its corrections, as InvoicePayments::toRefundOf() counts
+     * it: an invoice with something to pay, or a final invoice its deducted advances exceed.
+     */
+    private function overpaid(string $suffix): string
+    {
+        return \sprintf('((i.payableMinor > 0 OR i.deductsAdvances = true) AND %s < %s)', DoctrineInvoicePayments::dueOfInvoiceDql($suffix), DoctrineInvoicePayments::paidOfInvoiceDql($suffix));
     }
 
     /**

@@ -88,6 +88,42 @@ final class MatcherTest extends BankingTestCase
         self::assertSame(['A', 'B', 'C'], array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions));
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, string}>, list<bool>, list<array{string, string, ?string}>|string}>
+     */
+    public static function refundDecisions(): iterable
+    {
+        yield 'exactly what is to refund' => ['484.00', [['A', '484.00', '2026-11-15']], [true, true], [['A', '484.00', null]]];
+        yield 'less than what is to refund' => ['400.00', [['A', '484.00', '2026-11-15']], [true, true], 'refund_amount_differs'];
+        yield 'more than what is to refund' => ['500.00', [['A', '484.00', '2026-11-15']], [true, true], 'refund_amount_differs'];
+        yield 'a small difference is never settled on a refund' => ['484.50', [['A', '484.00', '2026-11-15']], [true, true], 'refund_amount_differs'];
+        yield 'two invoices, even one with the amount' => ['484.00', [['A', '484.00', '2026-11-15'], ['B', '100.00', '2026-11-10']], [true, true], 'ambiguous'];
+        yield 'two invoices whose sum is the amount' => ['584.00', [['A', '484.00', '2026-11-15'], ['B', '100.00', '2026-11-10']], [true, true], 'ambiguous'];
+        yield 'a firm that pairs by hand' => ['484.00', [['A', '484.00', '2026-11-15']], [false, false], 'auto_pairing_off'];
+        yield 'nothing to refund' => ['484.00', [], [true, true], 'no_invoice'];
+    }
+
+    /**
+     * @param list<array{string, string, string}>         $candidates
+     * @param list<bool>                                  $rules
+     * @param list<array{string, string, ?string}>|string $expected
+     */
+    #[DataProvider('refundDecisions')]
+    public function testRefundDecisions(string $amount, array $candidates, array $rules, array|string $expected): void
+    {
+        $decision = $this->decide($this->movement($amount, direction: MovementDirection::Outgoing), $this->candidates($candidates), new PairingRules(...$rules));
+
+        self::assertSame($expected, $this->shape($decision));
+    }
+
+    public function testAnUnverifiedRefundKeepsItsInvoiceAsASuggestion(): void
+    {
+        $decision = $this->decide($this->movement('484.00', trust: MessageTrust::Unverified, direction: MovementDirection::Outgoing), $this->candidates([['A', '484.00', '2026-11-15']]), new PairingRules(true, false));
+
+        self::assertSame(UnmatchedReason::Unverified, $decision->reason);
+        self::assertSame(['A'], array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions));
+    }
+
     public function testSmallDifferenceSettlesOnlyInCzk(): void
     {
         $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1000.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
@@ -259,13 +295,13 @@ final class MatcherTest extends BankingTestCase
     /**
      * On an account in the currency of the movement, unless one is given.
      */
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null): BankMovement
+    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
         if (!$account instanceof FirmBankAccount) {
             $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, $this->firm, 'DE89370400440532013000', $currency));
         }
 
-        return new BankMovement($account, null, MovementDirection::Incoming, Money::of($amount, $currency), new \DateTimeImmutable('2026-11-20'), null, null, null, $vs, null, null, null, null, str_repeat('a', 64), $trust, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);
+        return new BankMovement($account, null, $direction, Money::of($amount, $currency), new \DateTimeImmutable('2026-11-20'), null, null, null, $vs, null, null, null, null, str_repeat('a', 64), $trust, 'dmarc', MovementState::Unmatched, UnmatchedReason::NoInvoice);
     }
 
     /**

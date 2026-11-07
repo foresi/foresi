@@ -10,8 +10,8 @@ namespace App\Banking\Application;
 
 /**
  * One page of the bank screen: the movements of the tab, or the messages on the
- * Messages tab, and what the filters and tabs offer: how many incoming movements
- * wait for a pairing and how many messages wait for someone.
+ * Messages tab, and what the filters and tabs offer: how many incoming and how many
+ * outgoing movements wait for a pairing and how many messages wait for someone.
  */
 final readonly class MovementPage
 {
@@ -31,6 +31,7 @@ final readonly class MovementPage
         public int $attention,
         public array $firms,
         public array $accounts,
+        public int $outgoingUnmatched = 0,
     ) {
     }
 }

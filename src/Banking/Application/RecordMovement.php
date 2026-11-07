@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\MovementDirection;
 use App\Banking\Domain\MovementState;
 use App\Banking\Domain\UnmatchedReason;
 use App\Invoicing\Application\ConflictRetry;
@@ -27,9 +26,12 @@ use App\Party\Domain\LegalEntity;
  * wants both, so the reason an incoming movement is recorded with is what the
  * matcher says now, and auto() settles it under the locks.
  *
- * Outgoing money is recorded only. The same movement from another message is a
- * possible duplicate, and money from another account of the same firm is an own
- * transfer; neither ever pays an invoice. Movements of one account are recorded
+ * Outgoing money goes the same way, to a refund: the same movement from another
+ * message is a possible duplicate, and money to or from another account of the
+ * same firm is an own transfer; neither ever pays or refunds an invoice. Outgoing
+ * money that no invoice with something to refund fits, by its symbol, amount,
+ * account or customer, pays a supplier or a salary: it is recorded only, and waits
+ * for no one. A person can still pair it with a refund that came later. Movements of one account are recorded
  * one after the other, so the second of two equal ones sees the first.
  */
 final readonly class RecordMovement
@@ -41,6 +43,7 @@ final readonly class RecordMovement
         private FirmPairingRules $rules,
         private TransactionalWork $work,
         private ConflictRetry $retry,
+        private PairingChoices $choices,
     ) {
     }
 
@@ -59,6 +62,9 @@ final readonly class RecordMovement
                 if ($decision->reason instanceof UnmatchedReason) {
                     $movement->stayUnmatched($decision->reason);
                 }
+                if (!$movement->isIncoming() && !$decision->pairs() && [] === $this->choices->of($movement)->suggested) {
+                    $movement = $this->movement($account, $input, $verdict, MovementState::Recorded, null);
+                }
             }
             $this->movements->add($movement);
 
@@ -68,9 +74,6 @@ final readonly class RecordMovement
 
     private function stateOf(MovementInput $input, LegalEntity $firm): MovementState
     {
-        if (MovementDirection::Outgoing === $input->direction) {
-            return MovementState::Recorded;
-        }
         if ($this->movements->fingerprintTakenByOther($input->fingerprint(), $input->inboundMessageId)) {
             return MovementState::PossibleDuplicate;
         }
