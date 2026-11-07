@@ -22,7 +22,8 @@ declare(strict_types=1);
  * specs, and "Example Accountant" with accountant@example.com the documents of last and
  * this month for the accountant pack specs, and "Example Move" with idoklad@example.com and
  * "Example Move Screens" with idoklad-screens@example.com a stored iDoklad pull each for the
- * iDoklad import spec. Run it after the migrations, in the e2e
+ * iDoklad import spec, and "Example People" with people@example.com the organisation the
+ * people spec invites into. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -173,6 +174,8 @@ $sending = $tenantWithOwner('Example Sending', 'sending@example.com', 'Sending E
 $dialogs = $tenantWithOwner('Example Dialogs', 'dialogs@example.com', 'Dialogs Example');
 $bank = $tenantWithOwner('Example Bank', 'bank@example.com', 'Bank Example');
 $reminders = $tenantWithOwner('Example Reminders', 'reminders@example.com', 'Reminders Example');
+// The people spec invites into its own organisation, which has no system mail.
+$tenantWithOwner('Example People', 'people@example.com', 'People Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 // The firm's one bank account, the primary one; the firm itself is persisted by the caller.
