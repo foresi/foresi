@@ -8,11 +8,13 @@ declare(strict_types=1);
 
 namespace App\Identity\Infrastructure\Controller;
 
+use App\Identity\Application\OpenToExternal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
+#[OpenToExternal]
 final class LoginController extends AbstractController
 {
     #[Route('/login', name: 'app_login', methods: ['GET', 'POST'])]

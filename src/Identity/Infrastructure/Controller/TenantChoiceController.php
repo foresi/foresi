@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Controller;
 
 use App\Identity\Application\MembershipDirectory;
+use App\Identity\Application\OpenToExternal;
 use App\Identity\Application\SwitchTenant;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
@@ -28,6 +29,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * POST with a CSRF token; an organisation the user does not belong to looks
  * exactly like one that does not exist.
  */
+#[OpenToExternal]
 final class TenantChoiceController extends AbstractController
 {
     public const string CHOOSE_ROUTE = 'app_organisation_choose';

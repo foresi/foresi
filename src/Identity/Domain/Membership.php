@@ -16,8 +16,9 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Links a user to a tenant with a role. For a client or subcontractor it can
- * point at the party that person represents.
+ * Links a user to a tenant with a role. An external membership always points at
+ * the contact (party) the person represents, of whatever kind; a member may
+ * point at their own person record.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'membership')]
@@ -42,6 +43,9 @@ class Membership implements TenantOwned, Audited
         #[ORM\JoinColumn(name: 'party_id', nullable: true)]
         private readonly ?Party $party = null,
     ) {
+        if (Role::External === $role && !$party instanceof Party) {
+            throw new \InvalidArgumentException('An external membership must link the contact the person represents.');
+        }
         $this->id = Id::generate();
     }
 

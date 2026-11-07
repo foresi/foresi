@@ -182,9 +182,9 @@ final class SendLogControllerTest extends WebTestCase
         self::assertSame(['Invoices'], $this->client->getCrawler()->filter('nav a[aria-current="page"]')->each(static fn (Crawler $link): string => trim($link->text())));
     }
 
-    public function testASubcontractorGets403(): void
+    public function testAnExternalPersonGets403(): void
     {
-        $this->signedIn(Role::Subcontractor);
+        $this->signedIn(Role::External);
 
         $this->client->request('GET', '/invoices/sent');
 

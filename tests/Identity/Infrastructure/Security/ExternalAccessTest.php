@@ -1,0 +1,151 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Tests\Identity\Infrastructure\Security;
+
+use App\Identity\Domain\Role;
+use App\Shared\Domain\Id;
+use App\Tenancy\Application\TenantContext;
+use App\Tests\Identity\Support\SignedInBrowser;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Routing\Exception\InvalidParameterException;
+use Symfony\Component\Routing\RouterInterface;
+
+/**
+ * An external person reaches only the sign-in, their account, the public links
+ * and what is shared with them: every other route of the application, those of
+ * modules yet to come included, answers 403.
+ */
+final class ExternalAccessTest extends WebTestCase
+{
+    /**
+     * The routes an external person may use, and the firewall's own.
+     */
+    private const array OPEN = [
+        // The sign-in, its code step and signing out.
+        'app_login', '2fa_login', '2fa_login_check', 'app_logout',
+        // Their account and the choice of organisation.
+        'app_account_language', 'app_organisation_choose', 'app_organisation_switch', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
+        // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
+        'app_health', 'app_inbound_mail',
+        // The public links to sent documents.
+        'app_document_link', 'app_document_link_pdf', 'app_document_link_open', 'app_document_link_download', 'app_document_link_other',
+        // The start page, which sends them on to what is shared with them.
+        'app_dashboard', 'app_shared_with_me',
+        // No live components exist: an unknown one is not found before any controller runs.
+        'ux_live_component',
+    ];
+
+    private KernelBrowser $client;
+    private SignedInBrowser $browser;
+
+    protected function setUp(): void
+    {
+        $this->client = self::createClient();
+        $this->client->disableReboot();
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function staffRoutes(): iterable
+    {
+        self::bootKernel();
+        $routes = self::getContainer()->get(RouterInterface::class)->getRouteCollection()->all();
+        self::ensureKernelShutdown();
+        foreach (array_keys($routes) as $name) {
+            if (!\in_array($name, self::OPEN, true)) {
+                yield $name => [$name];
+            }
+        }
+    }
+
+    #[DataProvider('staffRoutes')]
+    public function testAnExternalPersonIsDenied(string $name): void
+    {
+        $this->signIn(Role::External);
+        [$method, $url] = $this->request($name);
+
+        $this->client->request($method, $url);
+
+        self::assertResponseStatusCodeSame(403, $method.' '.$url);
+    }
+
+    public function testTheStartPageSendsAnExternalPersonToWhatIsSharedWithThem(): void
+    {
+        $this->signIn(Role::External);
+
+        $this->client->request('GET', '/');
+
+        self::assertResponseRedirects('/shared');
+        $crawler = $this->client->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main h1', 'Shared with me');
+        self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
+        // The sidebar offers what is shared and nothing of the modules (the
+        // extensions group holds the test environment's own probe item).
+        self::assertSame(['/shared'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
+    }
+
+    public function testTheStaffKeepTheirDashboardAndTheAddressBook(): void
+    {
+        $this->signIn(Role::Member);
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        $links = $crawler->filter('#sidebar [data-nav-group] li > a')->each(static fn ($link): string => (string) $link->attr('href'));
+        self::assertContains('/', $links);
+        self::assertContains('/contacts', $links);
+        self::assertNotContains('/shared', $links);
+    }
+
+    public function testAnExternalPersonKeepsTheirAccount(): void
+    {
+        $this->signIn(Role::External);
+
+        $this->client->request('GET', '/account/two-factor');
+
+        self::assertResponseIsSuccessful();
+    }
+
+    private function signIn(Role $role): void
+    {
+        $this->browser->seed(['Tenant A'], role: $role);
+        $this->browser->signIn();
+    }
+
+    /**
+     * The first method of the route and a URL with a value that fits each of its parameters.
+     *
+     * @return array{string, string}
+     */
+    private function request(string $name): array
+    {
+        $route = self::getContainer()->get(RouterInterface::class)->getRouteCollection()->get($name);
+        self::assertNotNull($route);
+        $method = $route->getMethods()[0] ?? 'GET';
+        $parameters = [];
+        foreach ($route->compile()->getPathVariables() as $variable) {
+            self::assertIsString($variable);
+            $parameters[$variable] = Id::generate();
+        }
+        $router = self::getContainer()->get(RouterInterface::class);
+        foreach ([$parameters, array_map(static fn (): string => '1', $parameters), array_map(static fn (): string => 'x', $parameters)] as $candidate) {
+            try {
+                return [$method, $router->generate($name, $candidate)];
+            } catch (InvalidParameterException) {
+                continue;
+            }
+        }
+        self::fail(sprintf('No URL fits the route "%s".', $name));
+    }
+}

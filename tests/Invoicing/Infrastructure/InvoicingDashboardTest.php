@@ -177,12 +177,14 @@ final class InvoicingDashboardTest extends WebTestCase
         self::assertSame('Vyfakturováno – Říjen 2026', $this->kpis($crawler)[1][0]);
     }
 
-    public function testAClientSeesNoInvoicing(): void
+    public function testAnExternalPersonSeesNoInvoicing(): void
     {
-        $this->signedIn(Role::Client);
+        $this->signedIn(Role::External);
         $this->issue('2026-11-02', '2026-12-31', '1000.00');
 
-        $crawler = $this->client->request('GET', '/');
+        $this->client->request('GET', '/');
+        self::assertResponseRedirects('/shared');
+        $crawler = $this->client->followRedirect();
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-dashboard-invoicing]'));

@@ -11,6 +11,8 @@ namespace App\Tests\Identity\Support;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Party\Domain\Party;
+use App\Party\Domain\PartyKind;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
@@ -62,8 +64,14 @@ final readonly class IdentityFixtures
     public function join(User $user, TenantId $tenant, Role $role = Role::Owner): void
     {
         $this->context->switchTo($tenant);
+        // An external person always represents a contact of the tenant.
+        $party = null;
+        if (Role::External === $role) {
+            $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
+            $this->em->persist($party);
+        }
         // Switching tenant clears the entity manager, so the user is re-attached by reference.
-        $this->em->persist(new Membership($this->em->getReference(User::class, $user->id()) ?? throw new \LogicException('The user is missing.'), $role));
+        $this->em->persist(new Membership($this->em->getReference(User::class, $user->id()) ?? throw new \LogicException('The user is missing.'), $role, $party));
         $this->em->flush();
         $this->context->reset();
     }

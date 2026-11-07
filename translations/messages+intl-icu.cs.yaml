@@ -7,6 +7,11 @@ login:
   email: E-mail
   password: Heslo
   submit: Přihlásit se
+shared_with_me:
+  title: Sdíleno se mnou
+  empty:
+    title: Zatím s vámi nikdo nic nesdílí
+    text: Až s vámi organizace začne sdílet práci, najdete ji tady.
 dashboard:
   title: Přehled
   empty:
@@ -51,6 +56,7 @@ nav:
     settings: Nastavení
   item:
     dashboard: Přehled
+    shared_with_me: Sdíleno se mnou
     contacts: Adresář
     invoices: Faktury
     advances: Zálohové faktury

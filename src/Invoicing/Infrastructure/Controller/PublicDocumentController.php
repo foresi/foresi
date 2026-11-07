@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\MembershipDirectory;
+use App\Identity\Application\OpenToExternal;
 use App\Identity\Application\Organisation;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\LinkTokens;
@@ -55,6 +56,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * corrects, why and its differences; a credit note shows what goes back and asks
  * for no payment, a debit note asks for what it adds like an invoice.
  */
+#[OpenToExternal]
 final class PublicDocumentController extends AbstractController
 {
     public const string PAGE = 'app_document_link';

@@ -13,12 +13,15 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
+use App\Party\Domain\Party;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
@@ -42,12 +45,19 @@ final readonly class CreateUserCommand
         string $email,
         #[Argument(description: 'Name of the tenant; created when it does not exist yet')]
         string $tenantName,
-        #[Argument(description: 'owner, member, subcontractor or client')]
+        #[Argument(description: 'owner, member or external')]
         string $role,
+        #[Option(description: 'Id of the contact the user represents in the tenant; required for external')]
+        ?string $contact = null,
     ): int {
         $membershipRole = Role::tryFrom($role);
         if (null === $membershipRole) {
-            $io->error(sprintf('Unknown role "%s".', $role));
+            $io->error(sprintf('Unknown role "%s", expected owner, member or external.', $role));
+
+            return Command::INVALID;
+        }
+        if (Role::External === $membershipRole && null === $contact) {
+            $io->error('An external user represents a contact: pass its id with --contact.');
 
             return Command::INVALID;
         }
@@ -55,6 +65,14 @@ final readonly class CreateUserCommand
         $tenantName = trim($tenantName);
         if ('' === $tenantName) {
             $io->error('The tenant name must not be empty.');
+
+            return Command::INVALID;
+        }
+
+        $tenant = $this->entityManager->getRepository(Tenant::class)->findOneBy(['name' => $tenantName]);
+        $party = null === $contact ? null : $this->contactIn($tenant, $contact);
+        if (null !== $contact && !$party instanceof Party) {
+            $io->error(sprintf('There is no contact "%s" in "%s".', $contact, $tenantName));
 
             return Command::INVALID;
         }
@@ -93,8 +111,7 @@ final readonly class CreateUserCommand
         }
 
         // One transaction: a failure never leaves an orphan tenant behind.
-        $this->entityManager->wrapInTransaction(function () use ($tenantName, $user, $membershipRole): void {
-            $tenant = $this->entityManager->getRepository(Tenant::class)->findOneBy(['name' => $tenantName]);
+        $this->entityManager->wrapInTransaction(function () use ($tenant, $tenantName, $user, $membershipRole, $party): void {
             if (!$tenant instanceof Tenant) {
                 $tenant = new Tenant(TenantId::generate(), $tenantName, new \DateTimeImmutable());
                 $this->entityManager->persist($tenant);
@@ -104,7 +121,7 @@ final readonly class CreateUserCommand
             $this->context->switchTo($tenant->id());
             try {
                 $this->entityManager->persist($user);
-                $this->entityManager->persist(new Membership($user, $membershipRole));
+                $this->entityManager->persist(new Membership($user, $membershipRole, $party instanceof Party ? $this->entityManager->getReference(Party::class, $party->id()) : null));
                 $this->entityManager->flush();
             } finally {
                 $this->context->reset();
@@ -114,5 +131,21 @@ final readonly class CreateUserCommand
         $io->success(sprintf('Created %s as %s in "%s".', $email, $membershipRole->value, $tenantName));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * A contact of the tenant, which must exist already: a new tenant has none.
+     */
+    private function contactIn(?Tenant $tenant, string $contact): ?Party
+    {
+        if (!$tenant instanceof Tenant || !Id::isValid($contact)) {
+            return null;
+        }
+        $this->context->switchTo($tenant->id());
+        try {
+            return $this->entityManager->find(Party::class, $contact);
+        } finally {
+            $this->context->reset();
+        }
     }
 }

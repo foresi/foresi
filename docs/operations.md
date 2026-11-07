@@ -116,6 +116,11 @@ start fresh after a deploy.
    cd /srv/foresi/current && sudo -u www-data php bin/console app:user:create owner@example.com "Example Ltd" owner
    ```
 
+   The role is `owner`, `member` (staff) or `external` (someone the organisation
+   shares work with, who sees none of its modules). An external user represents
+   a contact of the organisation: pass its id with `--contact=<id>`. A member
+   may pass their own person record the same way.
+
 6. Sign in. With `APP_REQUIRE_2FA=true` the first sign-in asks to scan a QR code
    with an authenticator app and to keep the recovery codes. A user who loses
    the phone and the codes is reset by an operator with

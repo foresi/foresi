@@ -7,6 +7,11 @@ login:
   email: E-mail
   password: Password
   submit: Sign in
+shared_with_me:
+  title: Shared with me
+  empty:
+    title: Nothing is shared with you yet
+    text: Once the organisation shares work with you, you will find it here.
 dashboard:
   title: Dashboard
   empty:
@@ -51,6 +56,7 @@ nav:
     settings: Settings
   item:
     dashboard: Dashboard
+    shared_with_me: Shared with me
     contacts: Address book
     invoices: Invoices
     advances: Advance invoices

@@ -401,6 +401,10 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # The start page in the sidebar, for the staff or for an external person.
+      - Ui
+      # The user command links an external user to a contact of the tenant.
+      - PartyDomain
     AuditDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain

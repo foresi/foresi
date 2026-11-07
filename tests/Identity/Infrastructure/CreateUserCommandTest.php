@@ -12,12 +12,16 @@ use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Infrastructure\Doctrine\DoctrineMembershipDirectory;
+use App\Party\Domain\Party;
+use App\Party\Domain\PartyKind;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
+use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
@@ -90,6 +94,64 @@ final class CreateUserCommandTest extends KernelTestCase
 
         self::assertSame(Command::INVALID, $status);
         self::assertNull($this->users()->findByEmail('testing@example.com'));
+    }
+
+    public function testCreatesAnExternalUserForAContactOfTheTenant(): void
+    {
+        $contact = $this->contactIn($this->tenant('Example Company'));
+
+        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external', '--contact' => $contact], self::PASSWORD);
+
+        self::assertSame(Command::SUCCESS, $status, $this->tester->getDisplay());
+        self::assertStringContainsString('as external', $this->tester->getDisplay());
+        self::assertSame([['external', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
+    }
+
+    public function testAMemberMayRepresentTheirOwnContact(): void
+    {
+        $contact = $this->contactIn($this->tenant('Example Company'));
+
+        $this->create(['email' => 'member@example.com', 'tenant-name' => 'Example Company', 'role' => 'member', '--contact' => $contact], self::PASSWORD);
+
+        self::assertSame([['member', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
+    }
+
+    public function testAnExternalUserNeedsAContact(): void
+    {
+        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external'], self::PASSWORD);
+
+        self::assertSame(Command::INVALID, $status);
+        self::assertStringContainsString('--contact', $this->tester->getDisplay());
+        self::assertNull($this->users()->findByEmail('external@example.com'));
+        self::assertSame(0, $this->rows('tenant'));
+    }
+
+    /**
+     * @return iterable<string, array{string, bool}>
+     */
+    public static function unknownContacts(): iterable
+    {
+        yield 'a contact of another tenant' => ['other', true];
+        yield 'not an id' => ['12', true];
+        yield 'a tenant that does not exist yet' => ['other', false];
+    }
+
+    #[DataProvider('unknownContacts')]
+    public function testRefusesAContactTheTenantDoesNotHave(string $contact, bool $tenantExists): void
+    {
+        if ($tenantExists) {
+            $this->tenant('Example Company');
+        }
+        if ('other' === $contact) {
+            $contact = $this->contactIn($this->tenant('Other Company'));
+        }
+
+        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external', '--contact' => $contact], self::PASSWORD);
+
+        self::assertSame(Command::INVALID, $status);
+        self::assertStringContainsString(sprintf('There is no contact "%s" in "Example Company".', $contact), (string) preg_replace('/\s+/', ' ', $this->tester->getDisplay()));
+        self::assertNull($this->users()->findByEmail('external@example.com'));
+        self::assertSame(0, $this->rows('membership'));
     }
 
     public function testRejectsAnInvalidEmail(): void
@@ -176,6 +238,27 @@ final class CreateUserCommandTest extends KernelTestCase
         $this->tester->setInputs([$name, $password, $confirmation ?? $password]);
 
         return $this->tester->execute($arguments, ['interactive' => true]);
+    }
+
+    private function tenant(string $name): TenantId
+    {
+        $tenant = new Tenant(TenantId::generate(), $name, new \DateTimeImmutable());
+        $this->em()->persist($tenant);
+        $this->em()->flush();
+
+        return $tenant->id();
+    }
+
+    private function contactIn(TenantId $tenant): string
+    {
+        $context = self::getContainer()->get(TenantContext::class);
+        $context->switchTo($tenant);
+        $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
+        $this->em()->persist($party);
+        $this->em()->flush();
+        $context->reset();
+
+        return $party->id();
     }
 
     private function em(): EntityManagerInterface

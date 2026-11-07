@@ -113,8 +113,7 @@ final class CustomerPickerControllerTest extends WebTestCase
     {
         yield 'owner' => [Role::Owner, 200];
         yield 'member' => [Role::Member, 200];
-        yield 'subcontractor' => [Role::Subcontractor, 403];
-        yield 'client' => [Role::Client, 403];
+        yield 'external' => [Role::External, 403];
     }
 
     #[DataProvider('roles')]

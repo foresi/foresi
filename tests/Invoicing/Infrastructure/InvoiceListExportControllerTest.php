@@ -248,9 +248,9 @@ final class InvoiceListExportControllerTest extends WebTestCase
         self::assertSame('Export', trim($form->filter('#list-export-button')->text()));
     }
 
-    public function testASubcontractorGets403(): void
+    public function testAnExternalPersonGets403(): void
     {
-        $this->signedIn(Role::Client);
+        $this->signedIn(Role::External);
 
         $this->client->request('POST', '/invoices/list-export', ['kind' => 'invoice', 'format' => 'csv']);
 
