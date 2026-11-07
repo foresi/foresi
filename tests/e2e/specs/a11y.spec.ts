@@ -2,7 +2,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { EMPTY_OWNER_STATE, INVOICING_OWNER_STATE, OWNER_STATE } from '../support/session';
+import { EMPTY_OWNER_STATE, INVOICING_OWNER_STATE, OWNER_STATE, PROJECTS_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
@@ -103,6 +103,59 @@ test.describe('first run', () => {
   test('empty address book has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/contacts');
     await expect(page.getByText('V adresáři zatím nic není')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+});
+
+test.describe('projects and tasks', () => {
+  test.use({ storageState: PROJECTS_OWNER_STATE });
+
+  test('projects have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await expect(page.locator('tbody tr').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('project list has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await expect(page.locator('[data-section]').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('project board has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await page.getByRole('link', { name: 'Nástěnka' }).click();
+    await expect(page.locator('[data-board-card]').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('task has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
+    await expect(page.locator('[data-task-details]')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('project settings have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await page.locator('[data-project-settings]').click();
+    await expect(page.locator('[data-settings-statuses]')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('my tasks have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/my-tasks');
+    await expect(page.locator('[data-task-group]').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('labels have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/settings/labels');
+    await expect(page.locator('tbody tr').first()).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 });

@@ -23,7 +23,9 @@ declare(strict_types=1);
  * this month for the accountant pack specs, and "Example Move" with idoklad@example.com and
  * "Example Move Screens" with idoklad-screens@example.com a stored iDoklad pull each for the
  * iDoklad import spec, and "Example People" with people@example.com the organisation the
- * people spec invites into. Run it after the migrations, in the e2e
+ * people spec invites into, and "Example Projects" with projects@example.com and the team member
+ * member@example.com the project "Website" with sections, tasks, a subtask and labels for the
+ * projects spec. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -111,9 +113,19 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Support\Mail\RecordingMailGateway;
+use App\Work\Application\ManageLabels;
+use App\Work\Application\ManageProjects;
+use App\Work\Application\ManageSections;
+use App\Work\Application\ManageTasks;
+use App\Work\Domain\LabelColour;
+use App\Work\Domain\Priority;
+use App\Work\Domain\ProjectStatus;
+use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 
@@ -778,5 +790,50 @@ foreach ($idokladTenants as $idokladTenant) {
     $entityManager->flush();
     $context->reset();
 }
+
+// Projects: the owner of "Example Projects" signs in for the application services, the way the
+// browser would, and keeps a project for a client with tasks in every state of the workflow.
+$projectsTenant = $tenantWithOwner('Example Projects', 'projects@example.com', 'Projects Example');
+$manageProjects = $container->get('e2e.manage_projects');
+$manageSections = $container->get('e2e.manage_sections');
+$manageTasks = $container->get('e2e.manage_tasks');
+$manageLabels = $container->get('e2e.manage_labels');
+$tokenStorage = $container->get('e2e.token_storage');
+\assert($manageProjects instanceof ManageProjects);
+\assert($manageSections instanceof ManageSections);
+\assert($manageTasks instanceof ManageTasks);
+\assert($manageLabels instanceof ManageLabels);
+\assert($tokenStorage instanceof TokenStorageInterface);
+
+$context->switchTo($projectsTenant);
+$teamUser = new User('member@example.com', $hash, 'Jana Example', 'cs');
+$entityManager->persist($teamUser);
+$teamMember = new Membership($teamUser, Role::Member);
+$entityManager->persist($teamMember);
+$entityManager->flush();
+$projectClient = $createParty->createFrom($party(PartyKind::Company, 'Example Client s.r.o.', [PartyRole::Customer], 'client@example.com', 8, '12345695', 'CZ12345695'));
+$projectOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'projects@example.com']) ?? throw new LogicException('The owner of the projects tenant is missing.');
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
+
+$design = $manageLabels->create('Design', LabelColour::Green);
+$bug = $manageLabels->create('Bug', LabelColour::Red);
+$website = $manageProjects->create('Website', $projectClient->id(), WorkflowTemplate::Development, 'The new website of the client.');
+$backlog = $manageSections->add($website->id(), 'Backlog');
+$shared = $manageSections->add($website->id(), 'Shared with client');
+// Open, In progress, Review, Testing, Blocked, Done, Closed.
+$statuses = $entityManager->getRepository(ProjectStatus::class)->findBy(['project' => $website], ['position' => 'ASC']);
+$ownerMembership = $entityManager->getRepository(Membership::class)->findOneBy(['user' => $projectOwner]) ?? throw new LogicException('The owner membership is missing.');
+$day = static fn (string $modifier): DateTimeImmutable => $today->modify($modifier);
+
+$homepage = $manageTasks->create($website->id(), 'Design the homepage', $shared->id(), null, $statuses[1]->id(), $ownerMembership->id(), $day('-2 days'), Priority::High);
+$manageTasks->setLabels($homepage->id(), [$design->id()]);
+$manageTasks->create($website->id(), 'Pick the colour palette', $shared->id(), $homepage->id(), $statuses[0]->id(), $teamMember->id());
+$contact = $manageTasks->create($website->id(), 'Fix the contact form', $backlog->id(), null, $statuses[0]->id(), $ownerMembership->id(), $day('+0 days'), Priority::Urgent);
+$manageTasks->setLabels($contact->id(), [$bug->id()]);
+$manageTasks->create($website->id(), 'Write the copy for the about page', $backlog->id(), null, $statuses[0]->id(), $teamMember->id(), $day('+7 days'), Priority::Medium);
+$manageTasks->create($website->id(), 'Review the cookie banner', $shared->id(), null, $statuses[2]->id(), $teamMember->id(), null, Priority::Low);
+$manageTasks->create($website->id(), 'Set up the domain', $backlog->id(), null, $statuses[5]->id(), $ownerMembership->id());
+$tokenStorage->setToken(null);
+$context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));

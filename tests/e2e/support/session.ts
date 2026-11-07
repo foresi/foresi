@@ -14,6 +14,7 @@ export const DIALOGS_OWNER = 'dialogs@example.com';
 export const BANK_OWNER = 'bank@example.com';
 export const RECURRING_OWNER = 'recurring@example.com';
 export const REMINDERS_OWNER = 'reminders@example.com';
+export const PROJECTS_OWNER = 'projects@example.com';
 
 // Written once by specs/auth.setup.ts. Signing in on every test would trip the
 // per-address login throttle (25 attempts a minute), so most specs reuse a session.
@@ -27,6 +28,7 @@ export const DIALOGS_OWNER_STATE = '.auth/dialogs-owner.json';
 export const BANK_OWNER_STATE = '.auth/bank-owner.json';
 export const RECURRING_OWNER_STATE = '.auth/recurring-owner.json';
 export const REMINDERS_OWNER_STATE = '.auth/reminders-owner.json';
+export const PROJECTS_OWNER_STATE = '.auth/projects-owner.json';
 
 export async function signIn(page: Page, email: string = OWNER): Promise<void> {
   await page.goto('/login');

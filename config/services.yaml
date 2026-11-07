@@ -418,6 +418,21 @@ when@e2e:
         e2e.tenant_clock:
             alias: App\Tenancy\Application\TenantClock
             public: true
+        e2e.manage_projects:
+            alias: App\Work\Application\ManageProjects
+            public: true
+        e2e.manage_sections:
+            alias: App\Work\Application\ManageSections
+            public: true
+        e2e.manage_tasks:
+            alias: App\Work\Application\ManageTasks
+            public: true
+        e2e.manage_labels:
+            alias: App\Work\Application\ManageLabels
+            public: true
+        e2e.token_storage:
+            alias: security.token_storage
+            public: true
 
 when@test:
     parameters:
