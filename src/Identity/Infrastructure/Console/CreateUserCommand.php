@@ -43,19 +43,19 @@ final readonly class CreateUserCommand
         string $email,
         #[Argument(description: 'Name of the tenant; created when it does not exist yet')]
         string $tenantName,
-        #[Argument(description: 'owner, member or external')]
+        #[Argument(description: 'owner, member or guest')]
         string $role,
-        #[Option(description: 'Id of the contact the user represents in the tenant; required for external')]
+        #[Option(description: 'Id of the contact the user represents in the tenant; required for a guest')]
         ?string $contact = null,
     ): int {
         $membershipRole = Role::tryFrom($role);
         if (null === $membershipRole) {
-            $io->error(sprintf('Unknown role "%s", expected owner, member or external.', $role));
+            $io->error(sprintf('Unknown role "%s", expected owner, member or guest.', $role));
 
             return Command::INVALID;
         }
-        if (Role::External === $membershipRole && null === $contact) {
-            $io->error('An external user represents a contact: pass its id with --contact.');
+        if (Role::Guest === $membershipRole && null === $contact) {
+            $io->error('A guest user represents a contact: pass its id with --contact.');
 
             return Command::INVALID;
         }

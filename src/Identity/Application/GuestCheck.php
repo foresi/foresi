@@ -13,10 +13,10 @@ use App\Identity\Domain\Role;
 use App\Tenancy\Application\TenantContext;
 
 /**
- * Whether the signed-in user is an external person of the active organisation:
+ * Whether the signed-in user is a guest of the active organisation:
  * someone it shares work with, who sees none of its modules.
  */
-final readonly class ExternalCheck
+final readonly class GuestCheck
 {
     public function __construct(
         private MembershipDirectory $memberships,
@@ -25,7 +25,7 @@ final readonly class ExternalCheck
     ) {
     }
 
-    public function isExternal(): bool
+    public function isGuest(): bool
     {
         $userId = $this->actor->userId();
         if (null === $userId || !$this->context->has()) {
@@ -35,7 +35,7 @@ final readonly class ExternalCheck
 
         return array_any(
             $this->memberships->organisationsOf($userId),
-            static fn (Organisation $organisation): bool => Role::External === $organisation->role && $organisation->id->equals($tenant),
+            static fn (Organisation $organisation): bool => Role::Guest === $organisation->role && $organisation->id->equals($tenant),
         );
     }
 }

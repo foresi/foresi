@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * An invitation keeps only the hash of its token, works for a week and once,
- * and is for a member or an external person who represents a contact.
+ * and is for a member or a guest who represents a contact.
  */
 final class InvitationTest extends TestCase
 {
@@ -108,13 +108,13 @@ final class InvitationTest extends TestCase
         self::assertSame(InvitationState::Accepted, $invitation->state($this->now));
     }
 
-    public function testAnExternalPersonRepresentsAContact(): void
+    public function testAGuestRepresentsAContact(): void
     {
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
-        $invitation = $this->invitation(Role::External, $party);
+        $invitation = $this->invitation(Role::Guest, $party);
 
         self::assertSame($party, $invitation->party());
-        self::assertSame(Role::External, $invitation->role());
+        self::assertSame(Role::Guest, $invitation->role());
     }
 
     /**
@@ -126,7 +126,7 @@ final class InvitationTest extends TestCase
         yield 'e-mail' => ['not an address', 'Jana', Role::Member, false, 'cs', $hash];
         yield 'name' => ['jana@example.com', '  ', Role::Member, false, 'cs', $hash];
         yield 'owner' => ['jana@example.com', 'Jana', Role::Owner, false, 'cs', $hash];
-        yield 'external without contact' => ['jana@example.com', 'Jana', Role::External, false, 'cs', $hash];
+        yield 'guest without contact' => ['jana@example.com', 'Jana', Role::Guest, false, 'cs', $hash];
         yield 'locale' => ['jana@example.com', 'Jana', Role::Member, false, 'de', $hash];
         yield 'raw token' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', 'token'];
     }

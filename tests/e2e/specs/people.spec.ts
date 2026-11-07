@@ -27,8 +27,8 @@ test.describe('people of the organisation', () => {
     expect(link).toMatch(/\/invitation\/[A-Za-z0-9_-]{43}$/);
     await page.getByRole('button', { name: 'Kopírovat odkaz' }).click();
 
-    const guest = await browser.newContext({ locale: 'cs-CZ' });
-    const visitor = await guest.newPage();
+    const invitee = await browser.newContext({ locale: 'cs-CZ' });
+    const visitor = await invitee.newPage();
     await visitor.goto(link);
     await expect(visitor.getByRole('heading', { name: 'Připojit se k Example People' })).toBeVisible();
     await visitor.locator('#password').fill('a-long-password-1');
@@ -41,12 +41,12 @@ test.describe('people of the organisation', () => {
     // The link worked once.
     await visitor.goto(link);
     await expect(visitor.getByRole('heading', { name: 'Pozvánka použita' })).toBeVisible();
-    await guest.close();
+    await invitee.close();
 
     await page.goto('/settings/people');
     const row = page.locator('tbody tr').filter({ hasText: 'new-member@example.com' });
     await expect(row).toContainText('New Member');
-    await expect(row).toContainText('Člen');
+    await expect(row).toContainText('Člen týmu');
   });
 
   test('the owner revokes a pending invitation and its link stops working', async ({ page, browser }) => {
@@ -61,10 +61,10 @@ test.describe('people of the organisation', () => {
     await expect(page.locator('main')).toContainText('Pozvánka je zrušená.');
     await expect(page.locator('tbody tr').filter({ hasText: 'revoked@example.com' })).toHaveCount(0);
 
-    const guest = await browser.newContext({ locale: 'cs-CZ' });
-    const visitor = await guest.newPage();
+    const invitee = await browser.newContext({ locale: 'cs-CZ' });
+    const visitor = await invitee.newPage();
     await visitor.goto(link);
     await expect(visitor.getByRole('heading', { name: 'Pozvánka zrušena' })).toBeVisible();
-    await guest.close();
+    await invitee.close();
   });
 });

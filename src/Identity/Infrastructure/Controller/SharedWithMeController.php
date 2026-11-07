@@ -8,16 +8,16 @@ declare(strict_types=1);
 
 namespace App\Identity\Infrastructure\Controller;
 
-use App\Identity\Application\OpenToExternal;
+use App\Identity\Application\OpenToGuest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The start page of an external person: what the organisation shares with them.
+ * The start page of a guest: what the organisation shares with them.
  * Nothing can be shared yet, so it is a placeholder the projects module fills.
  */
-#[OpenToExternal]
+#[OpenToGuest]
 final class SharedWithMeController extends AbstractController
 {
     public const string ROUTE = 'app_shared_with_me';

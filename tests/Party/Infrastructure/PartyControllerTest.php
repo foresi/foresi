@@ -52,7 +52,7 @@ final class PartyControllerTest extends WebTestCase
 
     public function testTheAddressBookIsForTheStaffAlone(): void
     {
-        $this->signIn(role: Role::External);
+        $this->signIn(role: Role::Guest);
         $contact = $this->party('Example Company s.r.o.', $this->tenant);
 
         foreach (['/contacts', '/contacts/new', '/contacts/'.$contact->id(), '/contacts/'.$contact->id().'/edit'] as $url) {

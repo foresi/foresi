@@ -64,9 +64,9 @@ final readonly class IdentityFixtures
     public function join(User $user, TenantId $tenant, Role $role = Role::Owner): void
     {
         $this->context->switchTo($tenant);
-        // An external person always represents a contact of the tenant.
+        // A guest always represents a contact of the tenant.
         $party = null;
-        if (Role::External === $role) {
+        if (Role::Guest === $role) {
             $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
             $this->em->persist($party);
         }

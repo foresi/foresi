@@ -492,7 +492,7 @@ final class RecurringListControllerTest extends WebTestCase
 
     public function testStaffOnly(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         $template = $this->template();
 
         $this->client->request('GET', '/invoices/recurring');

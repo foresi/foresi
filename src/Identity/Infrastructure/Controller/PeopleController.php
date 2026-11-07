@@ -128,7 +128,7 @@ final class PeopleController extends AbstractController
         return $this->render('identity/people/invite.html.twig', [
             'values' => $values,
             'errors' => $errors,
-            'roles' => [Role::Member->value => $this->translator->trans('role.member'), Role::External->value => $this->translator->trans('role.external')],
+            'roles' => [Role::Member->value => $this->translator->trans('role.member'), Role::Guest->value => $this->translator->trans('role.guest')],
             'locales' => $this->locales(),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }

@@ -266,7 +266,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         $id = $this->received($this->notice('incoming-unknown-status'));
 
         foreach (['', '/accept', '/dismiss'] as $path) {

@@ -307,7 +307,7 @@ final class LegalEntityControllerTest extends WebTestCase
     public static function otherRoles(): iterable
     {
         yield 'member' => [Role::Member];
-        yield 'external' => [Role::External];
+        yield 'guest' => [Role::Guest];
     }
 
     public function testAFirmOfAnotherTenantIsNotFound(): void

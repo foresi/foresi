@@ -501,7 +501,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     public function testStaffOnly(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         $id = '019a0000-0000-7000-8000-000000000001';
 
         foreach (['GET', 'POST'] as $method) {
@@ -768,7 +768,7 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     public function testRemindIsStaffOnlyAndTenantIsolated(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         foreach (['GET', 'POST'] as $method) {
             $this->client->request($method, '/invoices/019a0000-0000-7000-8000-000000000001/remind');
             self::assertResponseStatusCodeSame(403, $method);

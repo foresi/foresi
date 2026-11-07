@@ -113,17 +113,17 @@ final class PeopleTest extends WebTestCase
         self::assertSame([], $this->queuedMails());
     }
 
-    public function testAnExternalPersonNeedsAContact(): void
+    public function testAGuestNeedsAContact(): void
     {
         $this->signIn(self::OWNER);
 
-        $this->invite('alex@example.com', 'Alex Example', 'external');
+        $this->invite('alex@example.com', 'Alex Example', 'guest');
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'Choose the contact the person represents.');
 
         $party = $this->contact();
-        $this->invite('alex@example.com', 'Alex Example', 'external', $party);
+        $this->invite('alex@example.com', 'Alex Example', 'guest', $party);
         self::assertResponseRedirects('/settings/people/invitations');
         self::assertSame($party, $this->onlyInvitation()->party()?->id());
     }
@@ -190,7 +190,7 @@ final class PeopleTest extends WebTestCase
         $this->signIn(self::MEMBER);
         self::assertResponseRedirects('http://localhost/invitation/'.$token);
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Join Example Company as Member?');
+        self::assertSelectorTextContains('main', 'Join Example Company as Team member?');
 
         $this->client->submit($crawler->filter('form button[type="submit"]')->form());
         self::assertResponseRedirects('/');
@@ -255,10 +255,10 @@ final class PeopleTest extends WebTestCase
         self::assertResponseStatusCodeSame(410);
     }
 
-    public function testTheOwnerManagesMembersViewAndExternalsAreKeptOut(): void
+    public function testTheOwnerManagesMembersViewAndGuestsAreKeptOut(): void
     {
         $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
-        $this->fixtures->join($this->fixtures->user('external@example.com'), $this->tenant, Role::External);
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), $this->tenant, Role::Guest);
 
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people');
@@ -282,7 +282,7 @@ final class PeopleTest extends WebTestCase
         }
 
         $this->client->getCookieJar()->clear();
-        $this->signIn('external@example.com');
+        $this->signIn('guest@example.com');
         $this->client->request('GET', '/settings/people');
         self::assertResponseStatusCodeSame(403);
     }
@@ -298,7 +298,7 @@ final class PeopleTest extends WebTestCase
         self::assertSame(['results' => [['id' => $this->onlyContact(), 'label' => 'Alex Example', 'hint' => 'Person']]], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
     }
 
-    public function testARoleChangeToExternalNeedsAContact(): void
+    public function testARoleChangeToGuestNeedsAContact(): void
     {
         $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
@@ -306,16 +306,16 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertResponseIsSuccessful();
 
-        $crawler = $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'external']));
+        $crawler = $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'guest']));
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('main', 'Choose the contact the person represents.');
 
         $party = $this->contact();
-        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'external', 'contactId' => $party]));
+        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'guest', 'contactId' => $party]));
         self::assertResponseRedirects('/settings/people');
         $this->context->switchTo($this->tenant);
         $changed = $this->em->find(Membership::class, $membership);
-        self::assertSame(Role::External, $changed?->role());
+        self::assertSame(Role::Guest, $changed?->role());
         self::assertSame($party, $changed->party()?->id());
         $this->context->reset();
     }

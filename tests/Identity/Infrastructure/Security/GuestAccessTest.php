@@ -19,14 +19,14 @@ use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * An external person reaches only the sign-in, their account, the public links
+ * A guest reaches only the sign-in, their account, the public links
  * and what is shared with them: every other route of the application, those of
  * modules yet to come included, answers 403.
  */
-final class ExternalAccessTest extends WebTestCase
+final class GuestAccessTest extends WebTestCase
 {
     /**
-     * The routes an external person may use, and the firewall's own.
+     * The routes a guest may use, and the firewall's own.
      */
     private const array OPEN = [
         // The sign-in, its code step and signing out.
@@ -37,7 +37,7 @@ final class ExternalAccessTest extends WebTestCase
         'app_health', 'app_inbound_mail',
         // The public links to sent documents.
         'app_document_link', 'app_document_link_pdf', 'app_document_link_open', 'app_document_link_download', 'app_document_link_other',
-        // The link of an invitation, which may well be for an external person.
+        // The link of an invitation, which may well be for a guest.
         'app_invitation',
         // The start page, which sends them on to what is shared with them.
         'app_dashboard', 'app_shared_with_me',
@@ -71,9 +71,9 @@ final class ExternalAccessTest extends WebTestCase
     }
 
     #[DataProvider('staffRoutes')]
-    public function testAnExternalPersonIsDenied(string $name): void
+    public function testAGuestIsDenied(string $name): void
     {
-        $this->signIn(Role::External);
+        $this->signIn(Role::Guest);
         [$method, $url] = $this->request($name);
 
         $this->client->request($method, $url);
@@ -81,9 +81,9 @@ final class ExternalAccessTest extends WebTestCase
         self::assertResponseStatusCodeSame(403, $method.' '.$url);
     }
 
-    public function testTheStartPageSendsAnExternalPersonToWhatIsSharedWithThem(): void
+    public function testTheStartPageSendsAGuestToWhatIsSharedWithThem(): void
     {
-        $this->signIn(Role::External);
+        $this->signIn(Role::Guest);
 
         $this->client->request('GET', '/');
 
@@ -110,9 +110,9 @@ final class ExternalAccessTest extends WebTestCase
         self::assertNotContains('/shared', $links);
     }
 
-    public function testAnExternalPersonKeepsTheirAccount(): void
+    public function testAGuestKeepsTheirAccount(): void
     {
-        $this->signIn(Role::External);
+        $this->signIn(Role::Guest);
 
         $this->client->request('GET', '/account/two-factor');
 

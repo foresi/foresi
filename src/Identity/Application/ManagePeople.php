@@ -43,7 +43,7 @@ final readonly class ManagePeople
         if (null !== $contactId && '' !== $contactId) {
             $party = $this->parties->find($contactId) ?? throw new PeopleRefused('contact');
         }
-        if (Role::External === $role && !$party instanceof Party) {
+        if (Role::Guest === $role && !$party instanceof Party) {
             throw new PeopleRefused('contact');
         }
         if (Role::Owner !== $role) {

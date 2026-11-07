@@ -96,15 +96,15 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertNull($this->users()->findByEmail('testing@example.com'));
     }
 
-    public function testCreatesAnExternalUserForAContactOfTheTenant(): void
+    public function testCreatesAGuestUserForAContactOfTheTenant(): void
     {
         $contact = $this->contactIn($this->tenant('Example Company'));
 
-        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external', '--contact' => $contact], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
 
         self::assertSame(Command::SUCCESS, $status, $this->tester->getDisplay());
-        self::assertStringContainsString('as external', $this->tester->getDisplay());
-        self::assertSame([['external', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
+        self::assertStringContainsString('as guest', $this->tester->getDisplay());
+        self::assertSame([['guest', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
     }
 
     public function testAMemberMayRepresentTheirOwnContact(): void
@@ -116,13 +116,13 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertSame([['member', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
     }
 
-    public function testAnExternalUserNeedsAContact(): void
+    public function testAGuestUserNeedsAContact(): void
     {
-        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external'], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest'], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
         self::assertStringContainsString('--contact', $this->tester->getDisplay());
-        self::assertNull($this->users()->findByEmail('external@example.com'));
+        self::assertNull($this->users()->findByEmail('guest@example.com'));
         self::assertSame(0, $this->rows('tenant'));
     }
 
@@ -146,11 +146,11 @@ final class CreateUserCommandTest extends KernelTestCase
             $contact = $this->contactIn($this->tenant('Other Company'));
         }
 
-        $status = $this->create(['email' => 'external@example.com', 'tenant-name' => 'Example Company', 'role' => 'external', '--contact' => $contact], self::PASSWORD);
+        $status = $this->create(['email' => 'guest@example.com', 'tenant-name' => 'Example Company', 'role' => 'guest', '--contact' => $contact], self::PASSWORD);
 
         self::assertSame(Command::INVALID, $status);
         self::assertStringContainsString(sprintf('There is no contact "%s" in "Example Company".', $contact), (string) preg_replace('/\s+/', ' ', $this->tester->getDisplay()));
-        self::assertNull($this->users()->findByEmail('external@example.com'));
+        self::assertNull($this->users()->findByEmail('guest@example.com'));
         self::assertSame(0, $this->rows('membership'));
     }
 

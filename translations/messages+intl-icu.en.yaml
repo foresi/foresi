@@ -140,9 +140,9 @@ organisation:
     empty_title: No organisation yet
     empty_text: Your account is not a member of any organisation. Ask the owner of an organisation to invite you.
 role:
-  external: External
+  guest: Guest
   owner: Owner
-  member: Member
+  member: Team member
   subcontractor: Subcontractor
   client: Client
 locale:
@@ -2934,12 +2934,12 @@ people:
     name: Name
     name_help: How the person shows in the organisation
     role: Role
-    role_help: An external person sees only what is shared
+    role_help: A guest sees only what you share with them
     locale: Language of the e-mail
     locale_help: The invitation is written in this language
     contact: Contact
-    contact_help: Required for an external person
-    contact_edit_help: Required for an external; empty unlinks it
+    contact_help: Required for a guest
+    contact_edit_help: Required for a guest; empty unlinks it
     contact_placeholder: Start typing a name
     contact_empty: No contact found
   column:
@@ -2976,7 +2976,7 @@ people:
   invitations:
     empty:
       title: No pending invitations
-      text: Invite a member of your staff or someone you share work with.
+      text: Invite a team member or a guest you share work with.
   link:
     title: Invitation link
     unconfigured: This installation cannot send e-mail yet, so the invitation was not mailed. Pass the link on yourself.
@@ -2997,7 +2997,7 @@ people:
   refused:
     email: Enter a valid e-mail address.
     name: Enter the name of the person.
-    role: Choose a member or an external person.
+    role: Choose a team member or a guest.
     contact: Choose the contact the person represents.
     member: This person already belongs to the organisation.
     unknown: This person or invitation no longer exists.

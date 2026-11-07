@@ -140,9 +140,9 @@ organisation:
     empty_title: Zatím žádná organizace
     empty_text: Váš účet není členem žádné organizace. Požádejte vlastníka organizace o pozvánku.
 role:
-  external: Externista
+  guest: Host
   owner: Vlastník
-  member: Člen
+  member: Člen týmu
   subcontractor: Subdodavatel
   client: Klient
 locale:
@@ -2934,12 +2934,12 @@ people:
     name: Jméno
     name_help: Jak se člověk v organizaci zobrazí
     role: Role
-    role_help: Externista vidí jen to, co s ním sdílíte
+    role_help: Host vidí jen to, co s ním sdílíte
     locale: Jazyk e-mailu
     locale_help: V tomto jazyce bude pozvánka napsaná
     contact: Kontakt
-    contact_help: Povinný pro externistu
-    contact_edit_help: Povinný pro externistu; prázdný kontakt odpojí
+    contact_help: Povinný pro hosta
+    contact_edit_help: Povinný pro hosta; prázdný kontakt odpojí
     contact_placeholder: Začněte psát jméno
     contact_empty: Žádný kontakt nenalezen
   column:
@@ -2976,7 +2976,7 @@ people:
   invitations:
     empty:
       title: Žádné čekající pozvánky
-      text: Pozvěte kolegu nebo někoho, s kým sdílíte práci.
+      text: Pozvěte člena týmu nebo hosta, se kterým sdílíte práci.
   link:
     title: Odkaz pozvánky
     unconfigured: Tato instalace zatím neumí posílat e-maily, takže pozvánka neodešla. Předejte odkaz sami.
@@ -2997,7 +2997,7 @@ people:
   refused:
     email: Zadejte platnou e-mailovou adresu.
     name: Zadejte jméno člověka.
-    role: Vyberte člena nebo externistu.
+    role: Vyberte člena týmu nebo hosta.
     contact: Vyberte kontakt, který člověk zastupuje.
     member: Tento člověk už do organizace patří.
     unknown: Tento člověk nebo pozvánka už neexistuje.

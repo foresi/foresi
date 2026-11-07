@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Controller;
 
 use App\Identity\Application\ChangeLocale;
-use App\Identity\Application\OpenToExternal;
+use App\Identity\Application\OpenToGuest;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Http\LocalPath;
@@ -25,7 +25,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Language switch of the user menu: stores the locale on the user and goes
  * back to the page the user came from (same-origin paths only).
  */
-#[OpenToExternal]
+#[OpenToGuest]
 final class LanguageController extends AbstractController
 {
     public const string ROUTE = 'app_account_language';

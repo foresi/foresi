@@ -233,9 +233,9 @@ final class InvoiceExportControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testAnExternalPersonGets403(): void
+    public function testAGuestGets403(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
 
         $this->client->request('GET', '/invoices/export');
         self::assertResponseStatusCodeSame(403);

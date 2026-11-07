@@ -23,20 +23,20 @@ final class MembershipTest extends TestCase
     {
         $user = new User('testing@example.com', 'hash', 'Example Company');
         $party = $this->contact();
-        $membership = new Membership($user, Role::External, $party);
+        $membership = new Membership($user, Role::Guest, $party);
 
         self::assertSame($user, $membership->user());
-        self::assertSame(Role::External, $membership->role());
+        self::assertSame(Role::Guest, $membership->role());
         self::assertSame($party, $membership->party());
         self::assertTrue(Id::isValid($membership->id()));
     }
 
-    public function testAnExternalMembershipMustLinkAContact(): void
+    public function testAGuestMembershipMustLinkAContact(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageIsOrContains('An external membership must link the contact the person represents.');
+        $this->expectExceptionMessageIsOrContains('A guest membership must link the contact the person represents.');
 
-        new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::External);
+        new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Guest);
     }
 
     #[DataProvider('staff')]
@@ -58,9 +58,9 @@ final class MembershipTest extends TestCase
         yield 'member' => [Role::Member];
     }
 
-    public function testOnlyTheExternalRoleIsNotStaff(): void
+    public function testOnlyTheGuestRoleIsNotStaff(): void
     {
-        self::assertSame(['owner' => true, 'member' => true, 'external' => false], array_combine(
+        self::assertSame(['owner' => true, 'member' => true, 'guest' => false], array_combine(
             array_map(static fn (Role $role): string => $role->value, Role::cases()),
             array_map(static fn (Role $role): bool => $role->isStaff(), Role::cases()),
         ));

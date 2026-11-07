@@ -24,15 +24,15 @@ use Doctrine\Migrations\Version\Version;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Turns the client and subcontractor memberships into external ones: a scratch
+ * Turns the client and subcontractor memberships into guest ones: a scratch
  * database on SQLite, or a schema of its own in the test database on PostgreSQL.
  */
-final class ExternalRoleMigrationTest extends TestCase
+final class GuestRoleMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261107090001';
     private const string AFTER = \DoctrineMigrations\Version20261107100001::class;
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
-    private const string SCHEMA = 'external_role_migration_test';
+    private const string SCHEMA = 'guest_role_migration_test';
 
     private Connection $db;
 
@@ -61,17 +61,17 @@ final class ExternalRoleMigrationTest extends TestCase
         $this->db->close();
     }
 
-    public function testClientsAndSubcontractorsBecomeExternalAndTheStaffStays(): void
+    public function testClientsAndSubcontractorsBecomeGuestsAndTheStaffStays(): void
     {
         $this->migrateTo(self::AFTER);
 
         self::assertSame(
-            ['client@example.com' => 'external', 'member@example.com' => 'member', 'owner@example.com' => 'owner', 'subcontractor@example.com' => 'external'],
+            ['client@example.com' => 'guest', 'member@example.com' => 'member', 'owner@example.com' => 'owner', 'subcontractor@example.com' => 'guest'],
             $this->roles(),
         );
     }
 
-    public function testGoingDownMakesEveryExternalMembershipAClientOne(): void
+    public function testGoingDownMakesEveryGuestMembershipAClientOne(): void
     {
         $this->migrateTo(self::AFTER);
         $this->migrateTo(self::BEFORE);

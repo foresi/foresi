@@ -473,7 +473,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         $movement = $this->movement('100.00');
 
         foreach (['/bank', '/bank?tab=messages', $this->pairUrl($movement), '/bank/movements/'.$movement.'/unpair'] as $url) {

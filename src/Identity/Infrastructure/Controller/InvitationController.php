@@ -12,7 +12,7 @@ use App\Identity\Application\AcceptInvitation;
 use App\Identity\Application\ActiveTenantStore;
 use App\Identity\Application\InvitationRefused;
 use App\Identity\Application\OpenInvitation;
-use App\Identity\Application\OpenToExternal;
+use App\Identity\Application\OpenToGuest;
 use App\Identity\Domain\InvitationState;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\User;
@@ -37,7 +37,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * unknown, expired, revoked or used link gets a page that says so. The two-factor
  * enrolment follows as on every sign-in.
  */
-#[OpenToExternal]
+#[OpenToGuest]
 final class InvitationController extends AbstractController
 {
     use TargetPathTrait;

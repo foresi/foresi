@@ -177,9 +177,9 @@ final class InvoicingDashboardTest extends WebTestCase
         self::assertSame('Vyfakturováno – Říjen 2026', $this->kpis($crawler)[1][0]);
     }
 
-    public function testAnExternalPersonSeesNoInvoicing(): void
+    public function testAGuestSeesNoInvoicing(): void
     {
-        $this->signedIn(Role::External);
+        $this->signedIn(Role::Guest);
         $this->issue('2026-11-02', '2026-12-31', '1000.00');
 
         $this->client->request('GET', '/');

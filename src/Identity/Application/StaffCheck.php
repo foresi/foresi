@@ -13,7 +13,7 @@ use App\Tenancy\Application\TenantContext;
 
 /**
  * Whether the signed-in user works for the active organisation, as its owner or a
- * member. External people do not. Roles are membership data, so the
+ * member. Guests do not. Roles are membership data, so the
  * firewall does not know them.
  */
 final readonly class StaffCheck

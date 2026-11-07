@@ -16,7 +16,7 @@ use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Links a user to a tenant with a role. An external membership always points at
+ * Links a user to a tenant with a role. A guest membership always points at
  * the contact (party) the person represents, of whatever kind; a member may
  * point at their own person record. A deactivated membership keeps its history
  * but no longer lets the person into the organisation.
@@ -109,8 +109,8 @@ class Membership implements TenantOwned, Audited
 
     private function assertContact(Role $role, ?Party $party): void
     {
-        if (Role::External === $role && !$party instanceof Party) {
-            throw new \InvalidArgumentException('An external membership must link the contact the person represents.');
+        if (Role::Guest === $role && !$party instanceof Party) {
+            throw new \InvalidArgumentException('A guest membership must link the contact the person represents.');
         }
     }
 }
