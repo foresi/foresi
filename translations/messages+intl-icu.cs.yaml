@@ -2625,6 +2625,10 @@ idoklad:
             advance_not_deductible: 'Ze zálohy, kterou faktura vyúčtovává, už nezbývá nic k odečtení: ve Foresi k ní není zaplacená záloha ani daňový doklad.'
             credit_note_unsupported: Dobropisy se zatím neimportují.
             pdf_unreadable: Uložené PDF dokladu nelze přečíst.
+            number_used_by_other_kind: Toto číslo už ve firmě má doklad jiného druhu; čísla jsou jedinečná napříč druhy dokladů.
+            older_numbers: Číslo nemá tvar žádné řady iDokladu, proto doklad přešel do řady starších čísel jeho tvaru.
+            customer_address_as_issued: Doklad byl vystaven jen se jménem odběratele bez adresy a takto se importuje.
+            issuer_vat_id_as_issued: Doklad plátce byl vystaven bez DIČ firmy a takto se importuje.
         series:
             unknown_type: Doklady tohoto typu iDokladu Foresi nevystavuje.
             type_not_used: Doklady tohoto typu iDokladu Foresi nevystavuje, jejich řada se vynechává.

@@ -2625,6 +2625,10 @@ idoklad:
             advance_not_deductible: 'Nothing of an advance the invoice accounts is left to deduct: no paid advance or tax document of it in Foresi.'
             credit_note_unsupported: Credit notes are not imported yet.
             pdf_unreadable: The stored PDF of the document cannot be read.
+            number_used_by_other_kind: A document of another kind of the firm has this number; numbers are unique across the kinds of documents.
+            older_numbers: The number has the shape of no iDoklad sequence, so the document went to a series of older numbers of its shape.
+            customer_address_as_issued: The document was issued with the customer's name only, without an address, and is imported so.
+            issuer_vat_id_as_issued: The payer's document was issued without the firm's VAT ID and is imported so.
         series:
             unknown_type: Foresi does not issue documents of this iDoklad type.
             type_not_used: Foresi does not issue documents of this iDoklad type, so its sequence is left out.

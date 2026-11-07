@@ -259,17 +259,17 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $this->invoice(112, ['DocumentNumber' => '20260010', 'Items' => [['Id' => 1, 'Name' => 'Broken', 'Amount' => 'one', 'ItemType' => 0, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1.0]]]]);
         $this->invoice(113, ['DocumentNumber' => '20260011', 'DateOfIssue' => 'soon', 'Items' => [['Id' => 1, 'Name' => 'Typed', 'Amount' => 1.0, 'ItemType' => 0, 'PriceType' => 9, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1.0]]]]);
         $this->invoice(114, ['DocumentNumber' => '20260012', 'NumericSequenceId' => 77]);
-        $this->invoice(115, ['DocumentNumber' => '20260013', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => ''])]);
+        $this->invoice(115, ['DocumentNumber' => '20260013', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => 'VAT-1'])]);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
-        self::assertSame([DocumentsStage::SERIES_UNKNOWN, DocumentsStage::CUSTOMER_NOT_LINKED, DocumentsStage::PAYMENT_OPTION_UNSUPPORTED, DocumentsStage::LANGUAGE_UNSUPPORTED], $this->entry($run, 110)['reasons']);
+        self::assertSame([DocumentsStage::CUSTOMER_NOT_LINKED, DocumentsStage::PAYMENT_OPTION_UNSUPPORTED, DocumentsStage::LANGUAGE_UNSUPPORTED], $this->entry($run, 110)['reasons'], 'A number of another shape would have a series of its own.');
         self::assertSame('Dobírka', $this->entry($run, 110)['values']['payment_option']);
         self::assertSame([DocumentsStage::COUNTRY_UNKNOWN, DocumentsStage::ZERO_RATE_UNSUPPORTED], $this->entry($run, 111)['reasons']);
         self::assertSame([DocumentsStage::INVALID_VALUE], $this->entry($run, 112)['reasons']);
         self::assertSame([DocumentsStage::SERIES_UNKNOWN, DocumentsStage::INVALID_VALUE], $this->entry($run, 113)['reasons']);
         self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 114)['reasons'], 'A sequence id of the document names its series.');
-        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->entry($run, 115)['reasons'], 'What the import of Invoicing refuses is reported as it says.');
+        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->entry($run, 115)['reasons'], 'What the import of Invoicing refuses is reported as it says: a VAT ID printed is one.');
         self::assertSame(['refused' => 6], $run->counts()['documents']);
     }
 
@@ -422,6 +422,89 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
         self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 174)['reasons']);
+    }
+
+    public function testANumberOfTheNextOrLastYearsSequenceFindsItsSeries(): void
+    {
+        $this->invoice(175, ['DocumentNumber' => '20250002', 'VariableSymbol' => '20250002', 'DateOfIssue' => '2024-12-31', 'DateOfTaxing' => '2024-12-31', 'DateOfMaturity' => '2025-01-14']);
+        $this->invoice(176, ['DocumentNumber' => '20250215', 'VariableSymbol' => '20250215', 'DateOfIssue' => '2026-01-13', 'DateOfTaxing' => '2025-12-31', 'DateOfMaturity' => '2026-01-27']);
+        $this->invoice(177, ['DocumentNumber' => '20240216', 'VariableSymbol' => '20240216', 'DateOfIssue' => '2025-01-13', 'DateOfTaxing' => '2025-01-13', 'DateOfMaturity' => '2025-01-27']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        foreach ([175, 176, 177] as $id) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('created', $entry['outcome'], $id.': '.implode(', ', $entry['reasons']));
+            self::assertSame('{YYYY}{NNNN}', $this->invoiceOf($entry['target_id'])->series()->format()->toString());
+            self::assertSame([], $entry['reasons']);
+        }
+        self::assertSame(2, $this->rows('SELECT COUNT(*) FROM series'), 'No series of older numbers.');
+    }
+
+    public function testANumberOfAnotherShapeGetsOneSeriesOfOlderNumbersOfItsKind(): void
+    {
+        $older = ['DateOfIssue' => '2023-03-01', 'DateOfMaturity' => '2023-03-15'];
+        $this->invoice(178, ['DocumentNumber' => 'F2023-01', 'VariableSymbol' => '202301', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->invoice(179, ['DocumentNumber' => 'F2023-02', 'VariableSymbol' => '202302', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->record(IdokladResource::ProformaInvoices, 202, $this->document(['Id' => 202, 'DocumentNumber' => '20230001', 'VariableSymbol' => '20230001'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 203, $this->document(['Id' => 203, 'DocumentNumber' => 'P/77', 'VariableSymbol' => '77'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 205, $this->document(['Id' => 205, 'DocumentNumber' => 'A2022/5', 'VariableSymbol' => '5'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 206, $this->document(['Id' => 206, 'DocumentNumber' => '2021', 'VariableSymbol' => '2021'] + $older, ['DateOfTaxing']));
+        $this->invoice(190, ['DocumentNumber' => '20230009', 'VariableSymbol' => '20230009', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->record(IdokladResource::ProformaInvoices, 204, $this->document(['Id' => 204, 'DocumentNumber' => '20230009', 'VariableSymbol' => '20230009'] + $older, ['DateOfTaxing']));
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        $first = $this->entry($run, 178);
+        self::assertSame('created', $first['outcome'], implode(', ', $first['reasons']));
+        self::assertSame([DocumentsStage::OLDER_NUMBERS], $first['reasons']);
+        $series = $this->invoiceOf($first['target_id'])->series();
+        self::assertSame('F{YYYY}-{NN}', $series->format()->toString());
+        self::assertSame('iDoklad F{YYYY}-{NN}', $series->name());
+        self::assertSame(DocumentKind::Invoice, $series->kind());
+        self::assertFalse($series->isDefault());
+        self::assertSame($series->id(), $this->invoiceOf($this->entry($run, 179)['target_id'])->series()->id(), 'Once per kind and format.');
+        $advance = $this->invoiceOf($this->entry($run, 202)['target_id'])->series();
+        self::assertSame(['{YYYY}{NNNN}', DocumentKind::Advance], [$advance->format()->toString(), $advance->kind()], 'The shape of the invoices, as a series of advances.');
+        self::assertSame('P/{NN}', $this->invoiceOf($this->entry($run, 203)['target_id'])->series()->format()->toString(), 'Without a year, the last digits count.');
+        self::assertSame('A{YYYY}/{N}', $this->invoiceOf($this->entry($run, 205)['target_id'])->series()->format()->toString(), 'The last year is a year too.');
+        self::assertSame('{NNNN}', $this->invoiceOf($this->entry($run, 206)['target_id'])->series()->format()->toString(), 'Four digits alone are the sequence, and two years back is no year.');
+        self::assertSame('created', $this->entry($run, 190)['outcome']);
+        $used = $this->entry($run, 204);
+        self::assertSame('refused', $used['outcome']);
+        self::assertSame([DocumentsStage::NUMBER_USED_BY_OTHER_KIND], $used['reasons']);
+        self::assertSame(['advance', 'invoice'], [$used['values']['kind'], $used['values']['other_kind']]);
+    }
+
+    public function testANumberWithoutDigitsOrWithTextOfNoSeriesHasNoSeries(): void
+    {
+        $this->invoice(191, ['DocumentNumber' => 'ABC', 'VariableSymbol' => '1']);
+        $this->invoice(192, ['DocumentNumber' => 'F 2026 1', 'VariableSymbol' => '2']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Check);
+
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 191)['reasons']);
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 192)['reasons']);
+    }
+
+    public function testACustomerCopyOfANameOnlyAndAnIssuerWithoutVatIdAreImportedAsIssued(): void
+    {
+        $this->invoice(193, ['PartnerAddress' => ['NickName' => 'Example Walk-in', 'Street' => '', 'City' => ' ', 'PostalCode' => '', 'CountryId' => self::CZECHIA]]);
+        $this->invoice(194, ['DocumentNumber' => '20260009', 'VariableSymbol' => '20260009', 'PartnerAddress' => ['NickName' => '', 'Street' => '', 'City' => '', 'PostalCode' => '', 'CountryId' => self::CZECHIA]]);
+        $this->invoice(195, ['DocumentNumber' => '20260010', 'VariableSymbol' => '20260010', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => ''])]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        $walkIn = $this->entry($run, 193);
+        self::assertSame('created', $walkIn['outcome'], implode(', ', $walkIn['reasons']));
+        self::assertSame([DocumentsStage::CUSTOMER_ADDRESS_AS_ISSUED], $walkIn['reasons']);
+        $invoice = $this->invoiceOf($walkIn['target_id']);
+        self::assertSame(['Example Walk-in', '', 'CZ'], [$invoice->customer()->name, $invoice->customer()->address->street, $invoice->customer()->address->countryCode]);
+        self::assertSame(['invoice.problem.customer_address_incomplete'], $this->entry($run, 194)['reasons'], 'A copy without a name is no customer.');
+        $noVatId = $this->entry($run, 195);
+        self::assertSame('created', $noVatId['outcome'], implode(', ', $noVatId['reasons']));
+        self::assertSame([DocumentsStage::ISSUER_VAT_ID_AS_ISSUED], $noVatId['reasons']);
+        self::assertSame(VatRegime::Payer, $this->invoiceOf($noVatId['target_id'])->vatRegime());
     }
 
     public function testTheFirmIsAPayerFromItsFirstInvoiceWithVatWhateverVatRegimeSays(): void

@@ -74,6 +74,11 @@ final readonly class LoggingInvoiceStore implements InvoiceStore
         return $this->store->numberTaken($firm, $key, $except);
     }
 
+    public function kindOfNumber(LegalEntity $firm, string $key): ?\App\Invoicing\Domain\DocumentKind
+    {
+        return $this->store->kindOfNumber($firm, $key);
+    }
+
     public function page(InvoiceFilter $filter): InvoicePage
     {
         return $this->store->page($filter);

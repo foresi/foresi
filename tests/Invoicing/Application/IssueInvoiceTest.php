@@ -750,6 +750,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
                 return $this->store->numberTaken($firm, $key, $except);
             }
 
+            public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+            {
+                return $this->store->kindOfNumber($firm, $key);
+            }
+
             public function page(\App\Invoicing\Application\InvoiceFilter $filter): \App\Invoicing\Application\InvoicePage
             {
                 return $this->store->page($filter);

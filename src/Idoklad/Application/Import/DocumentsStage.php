@@ -20,6 +20,7 @@ use App\Invoicing\Application\ImportedTotals;
 use App\Invoicing\Application\ImportIssuedDocument;
 use App\Invoicing\Application\ImportOutcome as DocumentOutcome;
 use App\Invoicing\Application\InvoiceInput;
+use App\Invoicing\Application\InvoiceStore;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\InvoicingCountry;
 use App\Invoicing\Application\IssueProblem;
@@ -27,9 +28,12 @@ use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
+use App\Invoicing\Domain\InvalidSeriesFormat;
+use App\Invoicing\Domain\NumberKey;
 use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
 use App\Invoicing\Domain\Quantity;
+use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Invoicing\Domain\TotalRounding;
@@ -57,6 +61,13 @@ use App\Shared\Domain\Money;
  * an invoice deducts, with Foresi's deduction lines, what its customer may
  * deduct of each advance it accounts: the advance's tax documents, or the paid
  * advance itself when no VAT arose on it.
+ *
+ * Numbers are unique per firm across the kinds, so a number another kind has is
+ * refused with both kinds. A number no sequence of its type reads, in its year or
+ * the next or the last one (a sequence of a year may run into the next), is of an
+ * older shape: it goes to a series of that shape and kind, created once. The
+ * history is imported as issued: a customer copy of a name without an address,
+ * and a payer's document without the issuer's VAT ID, are kept with a note.
  */
 final readonly class DocumentsStage implements ImportStage
 {
@@ -75,6 +86,10 @@ final readonly class DocumentsStage implements ImportStage
     public const string ADVANCE_NOT_DEDUCTIBLE = 'idoklad.import.documents.advance_not_deductible';
     public const string CREDIT_NOTE_UNSUPPORTED = 'idoklad.import.documents.credit_note_unsupported';
     public const string PDF_UNREADABLE = 'idoklad.import.documents.pdf_unreadable';
+    public const string NUMBER_USED_BY_OTHER_KIND = 'idoklad.import.documents.number_used_by_other_kind';
+    public const string OLDER_NUMBERS = 'idoklad.import.documents.older_numbers';
+    public const string CUSTOMER_ADDRESS_AS_ISSUED = 'idoklad.import.documents.customer_address_as_issued';
+    public const string ISSUER_VAT_ID_AS_ISSUED = 'idoklad.import.documents.issuer_vat_id_as_issued';
 
     /** iDoklad's VAT rate types; Zero = 2 is a supply without VAT, which needs its VAT code. */
     private const array RATES = [0 => VatRateKind::Reduced, 1 => VatRateKind::Base, 3 => VatRateKind::SecondReduced];
@@ -103,6 +118,8 @@ final readonly class DocumentsStage implements ImportStage
         private InvoicingCountries $countries,
         private IdokladFiles $files,
         private DeductibleAdvances $deductible,
+        private InvoiceStore $store,
+        private SeriesNames $names,
     ) {
     }
 
@@ -213,7 +230,8 @@ final readonly class DocumentsStage implements ImportStage
         }
 
         $reasons = [];
-        $input = $this->input($context, $record, $payload, $kind, $country, $taxDocuments, $reasons, $values);
+        $notes = [];
+        $input = $this->input($context, $record, $payload, $kind, $country, $taxDocuments, $reasons, $values, $notes);
         if (!$input instanceof ImportedDocumentInput) {
             $context->report(self::KEY, $id, ImportOutcome::Refused, reasons: $reasons, values: $values);
 
@@ -234,7 +252,7 @@ final readonly class DocumentsStage implements ImportStage
         }
         // Imported before but no longer linked: the link is made again.
         $context->link($resource, $id, $result->invoiceId);
-        $context->report(self::KEY, $id, DocumentOutcome::Imported === $result->outcome ? ImportOutcome::Created : ImportOutcome::Matched, $result->invoiceId, values: $values + $computed);
+        $context->report(self::KEY, $id, DocumentOutcome::Imported === $result->outcome ? ImportOutcome::Created : ImportOutcome::Matched, $result->invoiceId, $notes, $values + $computed);
     }
 
     /**
@@ -269,8 +287,9 @@ final readonly class DocumentsStage implements ImportStage
      * @param array<int, list<string|null>>       $taxDocuments the imported tax documents by the iDoklad id of their proforma
      * @param list<string>                        $reasons      filled with why not, when null
      * @param array<string, int|string|bool|null> $values       filled with what explains it
+     * @param list<string>                        $notes        filled with what was taken as issued
      */
-    private function input(ImportContext $context, IdokladRecord $record, array $payload, DocumentKind $kind, InvoicingCountry $country, array $taxDocuments, array &$reasons, array &$values): ?ImportedDocumentInput
+    private function input(ImportContext $context, IdokladRecord $record, array $payload, DocumentKind $kind, InvoicingCountry $country, array $taxDocuments, array &$reasons, array &$values, array &$notes): ?ImportedDocumentInput
     {
         $items = array_filter(\is_array($payload['Items'] ?? null) ? $payload['Items'] : [], \is_array(...));
         $taxedPayment = DocumentKind::PaymentTaxDocument === $kind ? $context->linkedTo(IdokladResource::IssuedDocumentPayments, $this->id($payload['PaymentId'] ?? null)) : null;
@@ -290,22 +309,29 @@ final readonly class DocumentsStage implements ImportStage
         }
 
         $issueDate = $this->date($payload['DateOfIssue'] ?? null);
-        $seriesId = $this->series($context, $record, $issueDate);
+        $taxPoint = DocumentKind::Advance === $kind ? null : $this->date($payload['DateOfTaxing'] ?? null);
+        $number = $this->text($payload['DocumentNumber'] ?? null);
+        $older = null;
+        $seriesId = $this->series($context, $record, $number, $issueDate, $taxPoint, $older);
         $customerId = $context->linkedTo(IdokladResource::Contacts, $this->id($payload['PartnerId'] ?? null));
         $customer = $this->party($context, $payload['PartnerAddress'] ?? null);
         $issuer = $this->party($context, $payload['MyAddress'] ?? null);
         $method = $this->paymentMethod($context, $payload['PaymentOptionId'] ?? null, $values);
         $language = \is_int($payload['ReportLanguage'] ?? null) ? self::LANGUAGES[$payload['ReportLanguage']] ?? null : null;
         $reasons = [
-            ...null === $seriesId ? [self::SERIES_UNKNOWN] : [],
+            ...null === $seriesId && !$older instanceof SeriesFormat ? [self::SERIES_UNKNOWN] : [],
             ...null === $customerId ? [self::CUSTOMER_NOT_LINKED] : [],
             ...$customer instanceof DocumentParty && $issuer instanceof DocumentParty ? [] : [self::COUNTRY_UNKNOWN],
             ...$method instanceof PaymentMethod ? [] : [self::PAYMENT_OPTION_UNSUPPORTED],
             ...$language instanceof DocumentLanguage ? [] : [self::LANGUAGE_UNSUPPORTED],
         ];
+        $other = '' === NumberKey::of($number) ? null : $this->store->kindOfNumber($context->firm, NumberKey::of($number));
+        if ($other instanceof DocumentKind && $other !== $kind) {
+            $reasons[] = self::NUMBER_USED_BY_OTHER_KIND;
+            $values += ['kind' => $kind->value, 'other_kind' => $other->value];
+        }
         // iDoklad's VatRegime (NonVatRegime = 0, VatRegime = 1) marks a tax document, and accounts
         // mark every document so, before the firm was a payer too: the day the run was given says it.
-        $taxPoint = DocumentKind::Advance === $kind ? null : $this->date($payload['DateOfTaxing'] ?? null);
         $regime = $context->options->isPayerOn($taxPoint ?? $issueDate) ? VatRegime::Payer : VatRegime::NonPayer;
         $lines = [];
         $rounded = ['net' => 0, 'vat' => 0, 'gross' => 0];
@@ -345,11 +371,20 @@ final readonly class DocumentsStage implements ImportStage
             $lines = [...$lines, ...$this->deductions($context, $payload, $customerId, $language, $taxDocuments, $reasons)];
         }
         $reasons = array_values(array_unique($reasons));
+        if ([] === $reasons && $older instanceof SeriesFormat) {
+            $seriesId = $this->olderSeries($context, $kind, $older);
+            $notes[] = self::OLDER_NUMBERS;
+        }
         if ([] !== $reasons || null === $seriesId || null === $customerId || !$issuer instanceof DocumentParty || !$method instanceof PaymentMethod || !$language instanceof DocumentLanguage || !$expected instanceof ImportedTotals || !$issueDate instanceof \DateTimeImmutable) {
             return null;
         }
 
-        $number = $this->text($payload['DocumentNumber'] ?? null);
+        if ($customer instanceof DocumentParty && '' !== $customer->name && !array_all([$customer->address->street, $customer->address->city, $customer->address->postalCode], static fn (string $part): bool => '' !== trim($part))) {
+            $notes[] = self::CUSTOMER_ADDRESS_AS_ISSUED;
+        }
+        if (VatRegime::Payer === $regime && null === $issuer->vatId) {
+            $notes[] = self::ISSUER_VAT_ID_AS_ISSUED;
+        }
         $entity = $this->entityType($record);
         $iban = $this->text(\is_array($payload['MyAddress'] ?? null) ? $payload['MyAddress']['Iban'] ?? null : null);
         $metadata = \is_array($payload['Metadata'] ?? null) ? $payload['Metadata'] : [];
@@ -478,9 +513,13 @@ final readonly class DocumentsStage implements ImportStage
      * the year of the sequence: an account lists only this year's rows, and a
      * format with a year is the format of every year. When two formats read the
      * number ({YYYY}1{NNNN} and {YYYY}{NNNN} both read 202610001), the one with
-     * more fixed characters is the one that wrote it.
+     * more fixed characters is the one that wrote it. A number of no sequence
+     * on its issue date may be of the sequence of its tax point's year, or of
+     * the next or the last year: a sequence of a year runs on into the next.
+     * When none reads it, null, and its shape is the format of a series of
+     * older numbers in $older.
      */
-    private function series(ImportContext $context, IdokladRecord $record, ?\DateTimeImmutable $issueDate): ?string
+    private function series(ImportContext $context, IdokladRecord $record, string $number, ?\DateTimeImmutable $issueDate, ?\DateTimeImmutable $taxPoint, ?SeriesFormat &$older): ?string
     {
         $payload = $record->payload();
         if (\is_int($payload['NumericSequenceId'] ?? null)) {
@@ -489,6 +528,27 @@ final readonly class DocumentsStage implements ImportStage
         if (!$issueDate instanceof \DateTimeImmutable) {
             return null;
         }
+        foreach ([$issueDate, $taxPoint ?? $issueDate, $issueDate->modify('+1 year'), $issueDate->modify('-1 year')] as $date) {
+            $found = $this->readers($context, $record, $number, $date);
+            if ([] !== $found) {
+                $best = array_keys($found, max($found), true);
+
+                return 1 === \count($best) ? $best[0] : null;
+            }
+        }
+        $older = $this->shapeOf($number, $issueDate);
+
+        return null;
+    }
+
+    /**
+     * The linked sequences of the document's type that read the number on the date,
+     * by the count of their fixed characters.
+     *
+     * @return array<string, int>
+     */
+    private function readers(ImportContext $context, IdokladRecord $record, string $number, \DateTimeImmutable $date): array
+    {
         $found = [];
         foreach ($context->records(IdokladResource::NumericSequences) as $sequence) {
             $linked = $context->linkedTo(IdokladResource::NumericSequences, $sequence->externalId());
@@ -496,13 +556,54 @@ final readonly class DocumentsStage implements ImportStage
                 continue;
             }
             $format = $this->catalog->get($linked)->format();
-            if (null !== $format->sequenceIn($this->text($payload['DocumentNumber'] ?? null), $issueDate)) {
-                $found[$linked] = $this->fixedLength($format, $issueDate);
+            if (null !== $format->sequenceIn($number, $date)) {
+                $found[$linked] = $this->fixedLength($format, $date);
             }
         }
-        $best = array_keys($found, [] === $found ? 0 : max($found), true);
 
-        return 1 === \count($best) ? $best[0] : null;
+        return $found;
+    }
+
+    /**
+     * The format of a number's shape: its last run of digits is the sequence, of
+     * its width, and four digits before it that are the issue year or one beside
+     * it are the year; the rest is text. Null without digits, or with text no
+     * series format holds.
+     */
+    private function shapeOf(string $number, \DateTimeImmutable $issueDate): ?SeriesFormat
+    {
+        if (1 !== preg_match('/^(.*?)(\d+)(\D*)$/D', $number, $parts)) {
+            return null;
+        }
+        [, $head, $digits, $tail] = $parts;
+        $year = (int) $issueDate->format('Y');
+        // A year run straight into the sequence: 20230001 is the year and four digits.
+        if ('' === $head && \strlen($digits) > 4 && abs((int) substr($digits, 0, 4) - $year) <= 1) {
+            [$head, $digits] = ['{YYYY}', substr($digits, 4)];
+        } elseif (1 === preg_match('/^(.*?)(\d{4})(\D.*)$/D', $head, $split) && abs((int) $split[2] - $year) <= 1) {
+            $head = $split[1].'{YYYY}'.$split[3];
+        }
+        try {
+            return SeriesFormat::fromString($head.'{'.str_repeat('N', \strlen($digits)).'}'.$tail);
+        } catch (InvalidSeriesFormat) {
+            return null;
+        }
+    }
+
+    /**
+     * The series of older numbers of the kind and format, created on the first of them.
+     */
+    private function olderSeries(ImportContext $context, DocumentKind $kind, SeriesFormat $format): string
+    {
+        foreach ($this->catalog->forFirm($context->firm, $kind) as $series) {
+            if ($series->format()->collidesWith($format)) {
+                return $series->id();
+            }
+        }
+        $series = new Series($context->firm, $this->names->free($context->firm, 'iDoklad '.$format->toString()), $format, $kind);
+        $this->catalog->store($series);
+
+        return $series->id();
     }
 
     /** How many characters of the series' numbers are not the sequence. */

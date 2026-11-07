@@ -179,6 +179,16 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
         return 0 < (int) $abandoned;
     }
 
+    public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+    {
+        $invoice = $this->em->createQuery('SELECT i FROM '.Invoice::class.' i WHERE i.firm = :firm AND i.numberKey = :key')
+            ->setParameter('firm', $firm->id())
+            ->setParameter('key', $key)
+            ->getOneOrNullResult();
+
+        return $invoice instanceof Invoice ? $invoice->kind() : null;
+    }
+
     public function page(InvoiceFilter $filter): InvoicePage
     {
         [$firms, $todays] = $this->issuers();

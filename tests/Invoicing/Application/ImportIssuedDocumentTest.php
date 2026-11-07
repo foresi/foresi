@@ -160,16 +160,30 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         self::assertSame('CZ5508000000001234567899', $this->stored($result)->bankAccount());
     }
 
+    public function testHistoryIsKeptAsIssuedWithoutAnAddressOrTheIssuersVatId(): void
+    {
+        $nameOnly = new DocumentParty('Walk-in Customer', null, null, new Address('', ' ', '', 'CZ'), '', null, '', '', null, null);
+        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', null, new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
+
+        $result = $this->import->import($this->imported(document: ['customerOnDocument' => $nameOnly], overrides: ['issuer' => $noVatId]));
+
+        self::assertSame(ImportOutcome::Imported, $result->outcome, implode(', ', $this->keys($result)));
+        self::assertSame('Walk-in Customer', $this->stored($result)->customer()->name);
+        self::assertNull($this->stored($result)->issuer()->vatId);
+    }
+
     public function testTheLegalInvariantsStillHold(): void
     {
-        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', null, new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
+        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', 'VAT-1', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
         $noStreet = new DocumentParty('Old Name s.r.o.', '12345695', 'CZ12345695', new Address('', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
         $tooLong = new DocumentParty(str_repeat('a', DocumentParty::MAX_NAME + 1), '12345695', 'CZ12345695', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
         $unprintable = new DocumentParty("Old \u{1F600} s.r.o.", '12345695', 'CZ12345695', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
         $deduction = new LineInput('Advance', $this->line()->quantity, 'h', $this->line()->price, $this->line()->priceType, TaxTreatment::Standard, $this->line()->rateKind, null, $this->line()->discount, '0192f0a0-0000-7000-8000-0000000000aa');
 
         self::assertSame(['invoice.problem.tax_point_missing'], $this->keys($this->import->import($this->imported(document: ['taxPointDate' => null]))));
-        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noVatId]))));
+        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noVatId]))), 'A VAT ID printed is one.');
+        self::assertSame(['invoice.problem.customer_address_incomplete'], $this->keys($this->import->import($this->imported(document: ['customerOnDocument' => new DocumentParty(' ', null, null, new Address('', '', '', 'CZ'), '', null, '', '', null, null)]))), 'A customer copy has its name.');
+        self::assertSame(['invoice.problem.customer_address_incomplete'], $this->keys($this->import->import($this->imported(document: ['customerOnDocument' => new DocumentParty('Walk-in Customer', null, null, new Address('', '', '', ' '), '', null, '', '', null, null)]))), 'And its country.');
         self::assertSame(['invoice.problem.import_issuer_incomplete'], $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noStreet]))));
         self::assertSame(['invoice.problem.too_long'], $this->keys($this->import->import($this->imported(overrides: ['issuer' => $tooLong]))));
         self::assertSame(['invoice.problem.unprintable_part'], $this->keys($this->import->import($this->imported(overrides: ['issuer' => $unprintable]))));
@@ -185,7 +199,7 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         $this->em->flush();
 
         self::assertContains('invoice.problem.firm_archived', $this->keys($this->import->import($this->imported())));
-        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', null, new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
+        $noVatId = new DocumentParty('Old Name s.r.o.', '12345695', 'VAT-1', new Address('Old Street 5', 'Old City', '110 00', 'CZ'), '', null, '', '', null, null);
         $keys = $this->keys($this->import->import($this->imported(overrides: ['issuer' => $noVatId])));
         self::assertContains('invoice.problem.firm_archived', $keys);
         self::assertContains('invoice.problem.firm_vat_id_missing', $keys, 'Every problem of the firm is named at once.');
