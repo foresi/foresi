@@ -352,7 +352,7 @@ final class AdvanceDeductionTest extends AdvanceTestCase
 
     public function testEachKindListsTheTabsThatMeanSomethingForIt(): void
     {
-        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::Invoice));
+        self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::TO_REFUND, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::Invoice));
         self::assertSame([InvoiceFilter::ALL, InvoiceFilter::PAID, InvoiceFilter::UNPAID, InvoiceFilter::OVERDUE, InvoiceFilter::UNSETTLED, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::Advance));
         self::assertSame([InvoiceFilter::ALL, InvoiceFilter::SETTLED, InvoiceFilter::UNSETTLED, InvoiceFilter::TRASH], InvoiceFilter::tabsOf(DocumentKind::PaymentTaxDocument));
     }
