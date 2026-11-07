@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
+use App\Identity\Domain\Role;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
@@ -47,6 +48,22 @@ final class PartyControllerTest extends WebTestCase
         $this->client->disableReboot();
         $this->context = self::getContainer()->get(TenantContext::class);
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+    }
+
+    public function testTheAddressBookIsForTheStaffAlone(): void
+    {
+        $this->signIn(role: Role::External);
+        $contact = $this->party('Example Company s.r.o.', $this->tenant);
+
+        foreach (['/contacts', '/contacts/new', '/contacts/'.$contact->id(), '/contacts/'.$contact->id().'/edit'] as $url) {
+            $this->client->request('GET', $url);
+            self::assertResponseStatusCodeSame(403, $url);
+        }
+        // Turned away before the controller, so before its token check.
+        $this->client->request('POST', '/contacts/'.$contact->id().'/archive');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/shared');
+        self::assertSelectorNotExists('#sidebar a[href="/contacts"]');
     }
 
     public function testAnOldNumericContactUrlIsNotFound(): void
@@ -794,9 +811,9 @@ final class PartyControllerTest extends WebTestCase
         self::assertResponseRedirects('http://localhost/login');
     }
 
-    private function signIn(string $locale = 'en'): void
+    private function signIn(string $locale = 'en', Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale);
+        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
         $this->foreign = $this->browser->fixtures->tenant('Foreign Tenant');
         $this->browser->signIn();
     }
