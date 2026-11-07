@@ -30,7 +30,7 @@ use PHPUnit\Framework\TestCase;
 final class GuestRoleMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261107090001';
-    private const string AFTER = \DoctrineMigrations\Version20261107100001::class;
+    private const string AFTER = 'DoctrineMigrations\Version20261107100001';
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
     private const string SCHEMA = 'guest_role_migration_test';
 
