@@ -65,6 +65,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Audit/Domain'
                 prefix: 'App\Audit\Domain'
                 alias: Audit
+            Work:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Work/Domain'
+                prefix: 'App\Work\Domain'
+                alias: Work
         dql:
             string_functions:
                 CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction

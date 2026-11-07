@@ -148,6 +148,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Banking/Infrastructure/Imap/.*
+    # Projects and tasks of the organisation, shared by its firms.
+    - name: WorkDomain
+      collectors:
+        - type: directory
+          value: src/Work/Domain/.*
+    - name: WorkApplication
+      collectors:
+        - type: directory
+          value: src/Work/Application/.*
+    - name: WorkInfrastructure
+      collectors:
+        - type: directory
+          value: src/Work/Infrastructure/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -532,6 +545,48 @@ deptrac:
       - VendorImapEngine
       - SharedDomain
       - SharedApplication
+    # Work builds on Party (the client of a project) and Identity (the people
+    # responsible for and watching a task); neither of them uses Work.
+    WorkDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+      - IdentityDomain
+    WorkApplication:
+      - WorkDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+    WorkInfrastructure:
+      - SharedInfrastructure
+      - WorkDomain
+      - WorkApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      # The project screens, the sidebar item and "Shared with me".
+      - Ui
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers. It plugs its banks' mail
