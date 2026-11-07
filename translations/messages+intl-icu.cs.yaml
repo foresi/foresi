@@ -2909,3 +2909,7 @@ two_factor:
     enabled: Dvoufázové přihlášení je zapnuté.
     intro: Kódy si uložte na bezpečné místo. Každý vás jednou přihlásí, když přijdete o telefon. Zobrazují se jen teď.
     continue: Pokračovat
+# The footer of mail the installation sends itself, such as invitations.
+system_mail:
+  footer: 'Odesláno systémem {product}'
+  footer_organisation: 'Odesláno systémem {product} jménem {organisation}'

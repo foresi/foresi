@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * The checks of /health from the shell, for cron or a monitoring agent: the
  * exit code is non-zero when the installation is down.
  */
-#[AsCommand(name: 'app:health', description: 'Check the database, worker, schedule and disk')]
+#[AsCommand(name: 'app:health', description: 'Check the database, worker, schedule, disk and system mail')]
 final readonly class HealthCommand
 {
     public function __construct(

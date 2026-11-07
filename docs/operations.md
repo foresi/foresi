@@ -48,6 +48,8 @@ files. Never put a production secret in a committed file.
 | `SYMFONY_TRUSTED_PROXIES` | no | The addresses of a reverse proxy or load balancer in front of PHP, such as `127.0.0.1,REMOTE_ADDR`. See [web server](#web-server). |
 | `BANK_INBOX_*`, `INBOUND_WEBHOOK_SECRET`, `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` | **yes** (`BANK_INBOX_PASSWORD`, `INBOUND_WEBHOOK_SECRET`) | Bank mail; empty turns it off. See [docs/bank-pairing.md](bank-pairing.md). |
 | `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
+| `SYSTEM_MAILER_DSN` | **yes** (password) | The mailer of the installation's own mail, such as invitations, for example `smtp://user:pass@smtp.example.com:587`. Never a firm's server, which sends only that firm's documents. The mail is queued on the `mail` transport with its retries, so the existing worker sends it. Empty sends no such mail: the screens say the installation cannot send e-mail yet and `/health` reports `system_mail` as degraded. Check it with `bin/console app:ops:test-mail you@example.com`. |
+| `SYSTEM_MAIL_FROM` | no | The sender of that mail, an address with an optional name: `Foresi <noreply@example.com>`. Empty, or not an address, sends none. |
 
 Optionally compile the files into `.env.local.php` for speed with
 `composer dump-env prod` in each release; the deploy script does not do it, so
@@ -328,7 +330,8 @@ whatever was written since is lost.
   of `ok`, `degraded` or `down`, the version, and per check a status and a
   number: `database`, `worker` (seconds since its last beat; down after three
   minutes), `schedule` (seconds since the last tick; down after fifteen),
-  `failed_messages` and `disk_free_percent` of the data disk. The HTTP status is
+  `failed_messages`, `disk_free_percent` of the data disk and `system_mail`
+  (degraded while `SYSTEM_MAILER_DSN` or `SYSTEM_MAIL_FROM` is unset). The HTTP status is
   `200` while ok or degraded and `503` when down. It is rate limited per client
   address (60 a minute) and holds no tenant data.
 - Point an **uptime check** at `https://foresi.example.com/health` every five

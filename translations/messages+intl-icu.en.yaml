@@ -2909,3 +2909,7 @@ two_factor:
     enabled: Two-factor sign-in is on.
     intro: Keep these codes somewhere safe. Each one signs you in once if you lose your phone. They are shown only now.
     continue: Continue
+# The footer of mail the installation sends itself, such as invitations.
+system_mail:
+  footer: 'Sent by {product}'
+  footer_organisation: 'Sent by {product} on behalf of {organisation}'

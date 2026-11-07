@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The plain-text layout of system mail: the content, then who sent it. #}
+{% autoescape false %}
+{{ mail.text }}
+
+{{ mail.organisation is null ? 'system_mail.footer'|trans({product: product_name}, null, locale) : 'system_mail.footer_organisation'|trans({product: product_name, organisation: mail.organisation}, null, locale) }}
+{% endautoescape %}

@@ -35,6 +35,9 @@ parameters:
     # Error mails to the operator; both empty sends none (docs/logging.md).
     env(OPERATOR_MAILER_DSN): ''
     env(OPERATOR_EMAIL): ''
+    # Mail of the installation itself, such as invitations; empty sends none (docs/operations.md).
+    env(SYSTEM_MAILER_DSN): ''
+    env(SYSTEM_MAIL_FROM): ''
 
 services:
     # default configuration for services in *this* file
