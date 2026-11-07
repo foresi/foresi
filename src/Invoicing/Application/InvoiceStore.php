@@ -86,6 +86,13 @@ interface InvoiceStore
     public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool;
 
     /**
+     * The kind of the firm's document with the number, in the trash too; null when no document has it.
+     *
+     * @param string $key the NumberKey of the number
+     */
+    public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind;
+
+    /**
      * In the order of the filter; a page out of range gives the nearest one. A firm
      * without an invoice filters nothing.
      */

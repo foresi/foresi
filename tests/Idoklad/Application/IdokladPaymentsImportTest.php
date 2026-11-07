@@ -16,6 +16,7 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\UndoImportedDocuments;
@@ -94,7 +95,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->proforma();
         $this->payment(self::PAYMENT, []);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         self::assertNull($run->error());
         $entry = $this->entry($run, self::PAYMENT, PaymentsStage::KEY);
@@ -116,7 +117,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(self::PAYMENT, []);
         $this->taxDocument(self::TAX_DOCUMENT, []);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::TAX_DOCUMENT);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -139,7 +140,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::INVOICE);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -187,7 +188,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->finalInvoice(['ProformaInvoices' => [999]]);
         $this->finalInvoice(['Id' => 102, 'DocumentNumber' => '20260009', 'VariableSymbol' => '20260009'], 102);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         self::assertSame([PaymentsStage::DOCUMENT_NOT_LINKED], $this->entry($run, 402, PaymentsStage::KEY)['reasons']);
         self::assertSame([PaymentsStage::DOCUMENT_TYPE_UNSUPPORTED], $this->entry($run, 403, PaymentsStage::KEY)['reasons']);
@@ -219,7 +220,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(419, ['PaymentOptionId' => null]);
         $this->payment(420, ['PaymentOptionId' => 999]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         $reasons = fn (int $id): array => $this->entry($run, $id, PaymentsStage::KEY)['reasons'];
         self::assertSame([PaymentsStage::CURRENCY_NOT_HOME], $reasons(411));
@@ -238,13 +239,34 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
     }
 
+    public function testAZeroPaymentIsSkippedAndANegativeOneIsARefundNotImported(): void
+    {
+        $this->proforma();
+        $this->payment(self::PAYMENT, []);
+        $this->payment(421, ['Prices' => ['PaymentAmount' => 0.0]]);
+        $this->payment(422, ['Prices' => ['PaymentAmount' => -1210.0]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
+
+        self::assertSame('created', $this->entry($run, self::PAYMENT, PaymentsStage::KEY)['outcome']);
+        $zero = $this->entry($run, 421, PaymentsStage::KEY);
+        self::assertSame('skipped', $zero['outcome']);
+        self::assertSame([PaymentsStage::ZERO_AMOUNT], $zero['reasons']);
+        $refund = $this->entry($run, 422, PaymentsStage::KEY);
+        self::assertSame('refused', $refund['outcome']);
+        self::assertSame([PaymentsStage::REFUND_UNSUPPORTED], $refund['reasons']);
+        self::assertSame(-121000, $refund['values']['amount']);
+        self::assertCount(2, array_filter($run->report(), static fn (array $entry): bool => PaymentsStage::KEY === $entry['stage'] && \in_array($entry['external_id'], [421, 422], true)), 'Each is reported once.');
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM payment'));
+    }
+
     public function testAWholeAmountAndAnOptionInCapitalsAreImported(): void
     {
         $this->record(IdokladResource::PaymentOptions, 4, ['Id' => 4, 'Code' => 'P', 'Name' => 'PŘEVODEM', 'IsDefault' => false]);
         $this->proforma();
         $this->payment(self::PAYMENT, ['PaymentOptionId' => 4, 'Prices' => ['PaymentAmount' => 1210]]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         $entry = $this->entry($run, self::PAYMENT, PaymentsStage::KEY);
         self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
@@ -261,7 +283,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(432, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-05']);
         $this->payment(433, ['DocumentType' => 3, 'DateOfPayment' => '2026-10-04T23:59:59']);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         $payments = array_values(array_filter($run->report(), static fn (array $entry): bool => PaymentsStage::KEY === $entry['stage']));
         self::assertSame([430, 433, 431, 432], array_column($payments, 'external_id'), 'The time of a day does not count.');
@@ -274,20 +296,20 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
 
-        $check = $this->import()->run($this->firm, ImportMode::Check);
+        $check = $this->import()->run($this->firm, ImportMode::Check, $this->payer());
 
         self::assertSame('created', $this->entry($check, self::PAYMENT, PaymentsStage::KEY)['outcome']);
         self::assertSame('created', $this->entry($check, self::INVOICE)['outcome']);
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM payment'));
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM invoice'));
 
-        $first = $this->import()->run($this->storedFirm(), ImportMode::Run);
-        $second = $this->import()->run($this->storedFirm(), ImportMode::Run);
+        $first = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
+        $second = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
 
         self::assertSame(['already_linked'], array_values(array_unique(array_column(array_filter($second->report(), static fn (array $entry): bool => \in_array($entry['stage'], [DocumentsStage::KEY, PaymentsStage::KEY], true)), 'outcome'))));
         self::assertSame(['already_linked' => 1], $second->counts()['payments'], 'A linked payment is reported once and imported no more.');
         $this->em->getConnection()->executeStatement("DELETE FROM idoklad_link WHERE resource = 'IssuedDocumentPayments'");
-        $third = $this->import()->run($this->storedFirm(), ImportMode::Run);
+        $third = $this->import()->run($this->storedFirm(), ImportMode::Run, $this->payer());
         self::assertSame('matched', $this->entry($third, self::PAYMENT, PaymentsStage::KEY)['outcome'], 'An imported payment is linked again.');
         self::assertSame($this->entry($first, self::PAYMENT, PaymentsStage::KEY)['target_id'], $this->entry($third, self::PAYMENT, PaymentsStage::KEY)['target_id']);
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM payment'));
@@ -300,7 +322,7 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $this->payment(self::PAYMENT, []);
         $this->taxDocument(self::TAX_DOCUMENT, []);
         $this->finalInvoice([]);
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, $this->payer());
 
         self::assertSame([], self::getContainer()->get(UndoImportedDocuments::class)->undo($run->id()));
 
@@ -501,5 +523,11 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         self::assertIsNumeric($count);
 
         return (int) $count;
+    }
+
+    /** The firm of these tests is a VAT payer all along; its snapshot has no issued invoice with VAT to say so. */
+    private function payer(): ImportOptions
+    {
+        return new ImportOptions(new \DateTimeImmutable('2020-01-01'));
     }
 }

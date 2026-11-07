@@ -11,6 +11,7 @@ namespace App\Idoklad\Application;
 use App\Idoklad\Application\Message\ProcessIdokladJob;
 use App\Idoklad\Domain\IdokladJob;
 use App\Idoklad\Domain\IdokladJobKind;
+use App\Idoklad\Domain\ImportOptions;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\LegalEntity;
 use Psr\Clock\ClockInterface;
@@ -29,14 +30,14 @@ final readonly class StartIdokladJob
     ) {
     }
 
-    public function start(LegalEntity $firm, IdokladJobKind $kind, ?\DateTimeImmutable $remindFrom = null): IdokladJob
+    public function start(LegalEntity $firm, IdokladJobKind $kind, ?\DateTimeImmutable $remindFrom = null, ?ImportOptions $options = null): IdokladJob
     {
         $busy = $this->jobs->busy($firm);
         if ($busy instanceof IdokladJob) {
             return $busy;
         }
-        $job = $this->work->run(function () use ($firm, $kind, $remindFrom): IdokladJob {
-            $job = new IdokladJob($firm, $kind, \DateTimeImmutable::createFromInterface($this->clock->now()), $remindFrom);
+        $job = $this->work->run(function () use ($firm, $kind, $remindFrom, $options): IdokladJob {
+            $job = new IdokladJob($firm, $kind, \DateTimeImmutable::createFromInterface($this->clock->now()), $remindFrom, $options);
             $this->jobs->add($job);
 
             return $job;

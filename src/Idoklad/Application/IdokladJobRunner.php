@@ -107,7 +107,7 @@ final readonly class IdokladJobRunner
     private function import(IdokladJob $job): array
     {
         $mode = IdokladJobKind::Run === $job->kind() ? ImportMode::Run : ImportMode::Check;
-        $run = $this->import->run($job->firm(), $mode);
+        $run = $this->import->run($job->firm(), $mode, $job->options());
         $remindFrom = $job->remindFrom();
         if (ImportMode::Run === $mode && null === $run->error() && $remindFrom instanceof \DateTimeImmutable) {
             $firmId = $run->firm()->id();

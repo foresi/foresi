@@ -17,6 +17,7 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportReport;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
@@ -35,6 +36,36 @@ final class IdokladEntitiesTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         new IdokladJob(self::firm(), IdokladJobKind::Pull, new \DateTimeImmutable('2026-11-06'), new \DateTimeImmutable('2026-11-02'));
+    }
+
+    public function testOnlyARunIsGivenOptionsAndARunKeepsThem(): void
+    {
+        $job = new IdokladJob(self::firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
+        self::assertEquals(new ImportOptions(null), $job->options());
+        self::assertNull(new IdokladJob(self::firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'))->options());
+        $run = new IdokladImportRun(self::firm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06'));
+        self::assertNull($run->options());
+        $run->ranWith(new ImportOptions(new \DateTimeImmutable('2024-07-01 13:00')));
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2024-07-01')), $run->options());
+
+        $this->expectException(\InvalidArgumentException::class);
+        new IdokladJob(self::firm(), IdokladJobKind::Check, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
+    }
+
+    public function testTheOptionsSayOnWhichDaysTheFirmWasAPayer(): void
+    {
+        $options = new ImportOptions(new \DateTimeImmutable('2024-07-01'));
+        self::assertTrue($options->isPayerOn(new \DateTimeImmutable('2024-07-01 00:00')));
+        self::assertTrue($options->isPayerOn(new \DateTimeImmutable('2024-07-02')));
+        self::assertFalse($options->isPayerOn(new \DateTimeImmutable('2024-06-30 23:59')));
+        self::assertFalse($options->isPayerOn(null));
+        self::assertFalse(new ImportOptions(null)->isPayerOn(new \DateTimeImmutable('2024-07-02')));
+        self::assertSame(['vat_payer_from' => '2024-07-01'], $options->toArray());
+        self::assertSame(['vat_payer_from' => null], new ImportOptions(null)->toArray());
+        self::assertEquals(new ImportOptions(null), ImportOptions::fromArray(['vat_payer_from' => 'soon']));
+        self::assertEquals(new ImportOptions(null), ImportOptions::fromArray(['vat_payer_from' => 20240701]));
+        self::assertEquals(new ImportOptions(null), ImportOptions::fromArray([]));
+        self::assertSame('2024-07-01 00:00:00', ImportOptions::fromArray(['vat_payer_from' => '2024-07-01'])->vatPayerFrom?->format('Y-m-d H:i:s'));
     }
 
     public function testTheErrorOfAJobAndOfARunIsCutToTheColumnInCharacters(): void

@@ -28,6 +28,22 @@ final class IdokladNumberFormatTest extends TestCase
         yield 'one R' => ['RNNNN', null];
         yield 'one M' => ['RRRRMNNN', null];
         yield 'empty' => ['', ''];
+        yield 'braced year and number' => ['{RRRR}{NNNN}', '{YYYY}{NNNN}'];
+        yield 'braced with text before' => ['Z9{RRRR}{NNNN}', 'Z9{YYYY}{NNNN}'];
+        yield 'braced with text between' => ['{RRRR}1{NNNN}', '{YYYY}1{NNNN}'];
+        yield 'braced short number' => ['PR{RRRR}{NNN}', 'PR{YYYY}{NNN}'];
+        yield 'braced two-digit year and month' => ['{RR}{MM}-{NNNNN}', '{YY}{MM}-{NNNNN}'];
+        yield 'braced text keeps R, M and N' => ['MRN{RRRR}{NNNN}', 'MRN{YYYY}{NNNN}'];
+        yield 'braced three R' => ['{RRR}{NNNN}', null];
+        yield 'braced mixed run' => ['{RRNN}', null];
+        yield 'braced unknown token' => ['{X}{NNNN}', null];
+        yield 'braced empty' => ['{}{NNNN}', null];
+        yield 'unclosed brace' => ['{RRRR{NNNN}', null];
+        yield 'stray closing brace' => ['RRRR}{NNNN}', null];
+        yield 'only an opening brace' => ['{RRRRNNNN', null];
+        yield 'only a closing brace' => ['RRRRNNNN}', null];
+        yield 'braced run with a letter inside' => ['{RRRR}{NRNNN}', null];
+        yield 'braced run with a line break after' => ["{RRRR}{NNNN\n}", null];
     }
 
     #[DataProvider('formats')]

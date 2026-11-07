@@ -471,9 +471,10 @@ final class IssueInvoiceTest extends InvoiceTestCase
         )));
     }
 
-    public function testDomesticReverseChargeNeedsASupplyCode(): void
+    public function testDomesticReverseChargeTakesAnOptionalKnownSupplyCode(): void
     {
-        $this->assertRefusedFor('invoice.problem.supply_code_invalid', fn (): Invoice => $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null)])));
+        $without = $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null)]));
+        self::assertNull($this->store->lines($this->reloaded($without))[0]->supplyCode());
         $this->assertRefusedFor('invoice.problem.supply_code_invalid', fn (): Invoice => $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '999')])));
 
         $invoice = $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: VatRateKind::Base, supplyCode: '4')]));
@@ -748,6 +749,11 @@ final class IssueInvoiceTest extends InvoiceTestCase
             public function numberTaken(LegalEntity $firm, string $key, ?Invoice $except): bool
             {
                 return $this->store->numberTaken($firm, $key, $except);
+            }
+
+            public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+            {
+                return $this->store->kindOfNumber($firm, $key);
             }
 
             public function page(\App\Invoicing\Application\InvoiceFilter $filter): \App\Invoicing\Application\InvoicePage
@@ -1049,7 +1055,8 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $invoice = $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '')], ['customerId' => $customer->id()]));
 
         self::assertNull($this->store->lines($this->reloaded($invoice))[0]->supplyCode());
-        $this->assertRefusedFor('invoice.problem.supply_code_invalid', fn (): Invoice => $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '')])));
+        $domestic = $this->issue->issue($this->input([$this->line(treatment: TaxTreatment::ReverseCharge, kind: null, supplyCode: '')]));
+        self::assertNull($this->store->lines($this->reloaded($domestic))[0]->supplyCode());
     }
 
     public function testAProblemOfTheFirmStaysWhenItsCountryIsUnsupported(): void

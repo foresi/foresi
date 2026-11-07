@@ -25,6 +25,7 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportOutcome;
 use App\Idoklad\Domain\ImportReport;
 use App\Invoicing\Application\RecurringFilter;
@@ -264,11 +265,17 @@ final class IdokladImportControllerTest extends WebTestCase
         $report->add('documents', 103, ImportOutcome::Refused, reasons: ['idoklad.import.documents.currency_not_home'], values: ['resource' => 'IssuedInvoices', 'document_number' => '20250009', 'currency' => 'EUR']);
         $this->record(IdokladResource::RecurringInvoices, 7, ['RecurringSetting' => ['TemplateName' => 'Monthly hosting']]);
         $report->add('recurring', 7, ImportOutcome::Created, values: ['next_issues' => '2026-12-01,2027-01-01']);
+        $report->add('series', 4, ImportOutcome::Skipped, reasons: ['idoklad.import.series.type_not_used'], values: ['document_type' => 5]);
+        $report->add('series', 5, ImportOutcome::Skipped, reasons: ['idoklad.import.series.type_not_used'], values: ['document_type' => 2]);
         $this->storeRun(ImportMode::Check, $report, $pull);
 
         $this->client->request('GET', $this->url('/check'));
 
         self::assertResponseIsSuccessful();
+        self::assertSame(['Created', 'Matched', 'Refused', 'Differs'], $this->client->getCrawler()->filter('[data-kpi] span.truncate')->each(static fn ($kpi): string => trim($kpi->text())), 'What was skipped is counted in the table only.');
+        $series = $this->client->getCrawler()->filter('tr[data-id="series"] td')->each(static fn ($cell): string => trim($cell->text()));
+        self::assertSame(['Number series', '0', '0', '0', '0', '0', '2'], $series, 'Skipped is a column of its own.');
+        self::assertSelectorTextNotContains('[data-report-refused]', 'Foresi does not issue documents');
         self::assertSelectorTextContains('[data-report-refused]', '20250009');
         self::assertSelectorTextContains('[data-report-refused]', 'The document is not in the home currency');
         self::assertSelectorTextContains('[data-report-refused]', 'Currency: EUR');
@@ -283,6 +290,7 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertStringContainsString('red', (string) $this->client->getCrawler()->filter('tr[data-id="y2026"] td')->eq(5)->filter('span')->attr('class'));
         self::assertSelectorTextContains('[data-overdue]', '1 imported invoice is overdue and unpaid.');
         self::assertSame('2026-11-06', $this->client->getCrawler()->filter('#remind_from')->attr('value'));
+        self::assertSame('', $this->client->getCrawler()->filter('#vat_payer_from')->attr('value'), 'A check older than its options names no day.');
         self::assertSelectorExists('form#idoklad-run[data-turbo-confirm]');
         self::assertStringContainsString('2 records are created, 1 refused, 1 differ', (string) $this->client->getCrawler()->filter('form#idoklad-run')->attr('data-confirm-text'));
     }
@@ -336,6 +344,62 @@ final class IdokladImportControllerTest extends WebTestCase
         self::assertResponseRedirects($this->url('/runs/'.$job->resultId()));
     }
 
+    public function testTheCheckOffersItsVatPayerDayAndTheRunTakesTheChosenOne(): void
+    {
+        $this->connectedFirm();
+        $pull = $this->pull();
+        $this->inTenant(function () use ($pull): void {
+            $run = new IdokladImportRun($this->storedFirm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06 10:00:00'));
+            $run->readFrom($pull);
+            $run->ranWith(new ImportOptions(new \DateTimeImmutable('2021-04-01')));
+            $run->finish(new \DateTimeImmutable('2026-11-06 10:01:00'), new ImportReport());
+            $this->em()->persist($run);
+            $this->em()->flush();
+        });
+
+        $this->client->request('GET', $this->url('/check'));
+        self::assertSame('2021-04-01', $this->client->getCrawler()->filter('#vat_payer_from')->attr('value'));
+        self::assertNull($this->client->getCrawler()->filter('#vat_payer_from')->attr('required'));
+        self::assertSelectorTextContains('[data-vat-payer]', 'Leave empty if the firm was never a VAT payer');
+
+        $this->client->request('POST', $this->url('/run'), ['_token' => $this->token(), 'remind_from' => '2026-11-02', 'vat_payer_from' => '2022-01-01']);
+        self::assertResponseRedirects($this->url());
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2022-01-01')), $this->latestJob()->options());
+        $this->messages()->run();
+        $job = $this->latestJob();
+        self::assertSame(IdokladJobState::Done, $job->state(), (string) $job->error());
+        $stored = $this->inTenant(fn (): ?IdokladImportRun => $this->em()->find(IdokladImportRun::class, (string) $job->resultId()));
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2022-01-01')), $stored?->options(), 'The run keeps the day it ran with.');
+    }
+
+    public function testAnEmptyVatPayerDayIsNeverAPayerAndAWrongOneIsRefused(): void
+    {
+        $this->connectedFirm();
+        $this->storeRun(ImportMode::Check, new ImportReport(), $this->pull());
+
+        $this->client->request('POST', $this->url('/run'), ['_token' => $this->token(), 'remind_from' => '2026-11-02', 'vat_payer_from' => '2026-02-30']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('#vat_payer_from-error');
+        self::assertSelectorNotExists('#remind_from-error');
+        self::assertSame('2026-02-30', $this->client->getCrawler()->filter('#vat_payer_from')->attr('value'));
+        self::assertSame([], $this->messages()->pending());
+
+        $this->client->request('POST', $this->url('/run'), ['_token' => $this->token(), 'remind_from' => '2026-11-02', 'vat_payer_from' => '']);
+        self::assertResponseRedirects($this->url());
+        self::assertEquals(new ImportOptions(null), $this->latestJob()->options());
+    }
+
+    public function testARunWithoutTheVatPayerFieldTakesTheDayOfTheSnapshot(): void
+    {
+        $this->connectedFirm();
+        $this->storeRun(ImportMode::Check, new ImportReport(), $this->pull());
+
+        $this->client->request('POST', $this->url('/run'), ['_token' => $this->token(), 'remind_from' => '2026-11-02']);
+
+        self::assertResponseRedirects($this->url());
+        self::assertNull($this->latestJob()->options());
+    }
+
     public function testARunNeedsADayForReminders(): void
     {
         $this->connectedFirm();
@@ -345,6 +409,8 @@ final class IdokladImportControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#remind_from-error');
+        self::assertSelectorNotExists('#vat_payer_from-error');
+        self::assertSame('', $this->client->getCrawler()->filter('#vat_payer_from')->attr('value'), 'Left out of the form, the day of the check, which named none.');
         self::assertSame([], $this->messages()->pending());
     }
 

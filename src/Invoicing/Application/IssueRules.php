@@ -36,7 +36,10 @@ use App\Party\Domain\VatId;
  * keeps a firm from issuing something new today does: the firm's register entry
  * and VAT id now, an archived series or customer, an account the firm no longer
  * has, which it only needs to be an IBAN. It names its series and number, and it
- * deducts only what its customer may deduct now, as any invoice does.
+ * deducts only what its customer may deduct now, as any invoice does. Its history
+ * is kept as it was printed: a customer copy needs its name and country but may
+ * lack the rest of the address, and a payer's document may lack the issuer's VAT
+ * ID, which it then never printed; one it printed must be a VAT ID.
  */
 final readonly class IssueRules
 {
@@ -117,8 +120,8 @@ final readonly class IssueRules
         }
         if ($import instanceof ImportedDocumentInput) {
             $problems = $firm->isArchived() ? [new IssueProblem('firm', 'invoice.problem.firm_archived')] : [];
-            // A payer's tax document names the payer's VAT id (§29(1)(c)).
-            if (VatRegime::Payer === $import->regime && !LineRules::vatIdOf($import->issuer->vatId) instanceof VatId) {
+            // A payer's tax document names the payer's VAT id (§29(1)(c)); one issued without it is kept as issued.
+            if (VatRegime::Payer === $import->regime && null !== $import->issuer->vatId && !LineRules::vatIdOf($import->issuer->vatId) instanceof VatId) {
                 $problems[] = new IssueProblem('firm', 'invoice.problem.firm_vat_id_missing');
             }
 
@@ -308,7 +311,7 @@ final readonly class IssueRules
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_archived');
         }
         $copy = $this->copies->for($input, $party, $firm, $existing);
-        if (!$copy instanceof DocumentParty || !$this->isComplete($copy)) {
+        if (!$copy instanceof DocumentParty || !($import instanceof ImportedDocumentInput ? $this->isNamed($copy) : $this->isComplete($copy))) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.customer_address_incomplete');
         } elseif (!$this->fits($copy)) {
             $problems[] = new IssueProblem('customer', 'invoice.problem.too_long');
@@ -386,6 +389,12 @@ final readonly class IssueRules
         $address = $copy->address;
 
         return '' !== trim($copy->name) && '' !== trim($address->street) && '' !== trim($address->city) && '' !== trim($address->postalCode) && '' !== trim($address->countryCode);
+    }
+
+    /** The name and the country, which even a copy issued without an address has. */
+    private function isNamed(DocumentParty $copy): bool
+    {
+        return '' !== trim($copy->name) && '' !== trim($copy->address->countryCode);
     }
 
     private function fits(DocumentParty $copy): bool

@@ -354,6 +354,11 @@ final class CorrectionDocumentTest extends InvoiceTestCase
                 return $this->store->numberTaken($firm, $key, $except);
             }
 
+            public function kindOfNumber(LegalEntity $firm, string $key): ?DocumentKind
+            {
+                return $this->store->kindOfNumber($firm, $key);
+            }
+
             public function page(InvoiceFilter $filter): InvoicePage
             {
                 return $this->store->page($filter);

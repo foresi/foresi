@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% extends 'idoklad/_flow.html.twig' %}
 
-{% set form_invalid = remindError is not null %}
+{% set form_invalid = remindError is not null or vatPayerError is not null %}
 
 {% block title %}{{ 'idoklad.title'|trans }}{% endblock %}
 
@@ -23,6 +23,13 @@
           data-confirm-accept="{{ 'idoklad.run.confirm_accept'|trans }}"
           data-confirm-cancel="{{ 'idoklad.run.confirm_cancel'|trans }}">
         <input type="hidden" name="_token" value="{{ token }}">
+
+        <twig:Ui:Card :title="'idoklad.check.vat.title'|trans" icon="receipt-text" data-vat-payer>
+            <div class="grid gap-3 sm:max-w-xl">
+                <p class="m-0 text-text">{{ 'idoklad.check.vat.intro'|trans }}</p>
+                <twig:Ui:TextInput type="date" name="vat_payer_from" id="vat_payer_from" :label="'idoklad.check.vat.from'|trans" :help="'idoklad.check.vat.from_help'|trans" :value="vatPayerFrom" :error="vatPayerError" />
+            </div>
+        </twig:Ui:Card>
 
         <twig:Ui:Card :title="'idoklad.check.reminders.title'|trans" icon="bell-ring" data-reminders>
             <div class="grid gap-3 sm:max-w-xl">

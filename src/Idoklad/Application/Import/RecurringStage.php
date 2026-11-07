@@ -46,7 +46,8 @@ use App\Shared\Domain\Money;
  * field by field; the customer and the series are the ones the earlier stages
  * linked. What iDoklad issued carries over, and the next date Foresi works out
  * must be iDoklad's next issue, or the template is refused with both dates, not
- * guessed. Templates of advance invoices, in a foreign currency, with a
+ * guessed. The regime is the firm's, under which Foresi issues them. Templates
+ * of advance invoices, in a foreign currency, with a
  * variable Foresi does not know or with anything else Foresi cannot hold are
  * refused with the reasons; what has no equivalent but loses nothing on the
  * invoice (the accountant's copy, the note) is a note on the entry.
@@ -64,7 +65,6 @@ final readonly class RecurringStage implements ImportStage
     public const string INVALID_ITEM = 'idoklad.import.recurring.invalid_item';
     public const string UNKNOWN_PAYMENT_OPTION = 'idoklad.import.recurring.unknown_payment_option';
     public const string UNSUPPORTED_LANGUAGE = 'idoklad.import.recurring.unsupported_language';
-    public const string REVERSE_CHARGE_UNSUPPORTED = 'idoklad.import.recurring.reverse_charge_unsupported';
     public const string NEXT_ISSUE_MISMATCH = 'idoklad.import.recurring.next_issue_mismatch';
     /** Notes on an imported template. */
     public const string INACTIVE = 'idoklad.import.recurring.inactive';
@@ -80,7 +80,7 @@ final readonly class RecurringStage implements ImportStage
     private const array ENDS = [0 => RecurrenceEnd::Never, 1 => RecurrenceEnd::OnDate, 2 => RecurrenceEnd::AfterCount];
     private const array TAX_POINTS = [0 => TaxPointRule::IssueDate, 1 => TaxPointRule::LastDayOfMonth];
     private const array PRICE_TYPES = [0 => PriceType::WithVat, 1 => PriceType::WithoutVat, 2 => PriceType::BaseOnly];
-    /** VatRateType: Reduced1, Basic, Zero, Reduced2; zero is an exempt supply here. */
+    /** VatRateType: Reduced1, Basic, Zero, Reduced2; zero is reverse charge or an exempt supply. */
     private const array RATE_KINDS = [0 => VatRateKind::Reduced, 1 => VatRateKind::Base, 2 => null, 3 => VatRateKind::SecondReduced];
     /** ReportLanguage: Cz, Sk, En, De; Foresi prints Czech and English. */
     private const array LANGUAGES = [1 => DocumentLanguage::Czech, 3 => DocumentLanguage::English];
@@ -100,6 +100,8 @@ final readonly class RecurringStage implements ImportStage
     private const int ITEM_ROUNDING = 1;
     /** The variables iDoklad resolves in the texts of a template, which are Foresi's tokens. */
     private const string VARIABLE = '~^\{(?:(?:day|month|year|quarter|month/year)(?:[+-]\d{1,4})?|document_number)\}$~D';
+    /** An offset variable as iDoklad accepts it, with spaces around its sign: {year + 1}. */
+    private const string SPACED_OFFSET = '~\{(day|month/year|month|year|quarter)\s*([+-])\s*(\d{1,4})\s*\}~';
 
     public function __construct(
         private SaveRecurringInvoice $save,
@@ -211,9 +213,6 @@ final readonly class RecurringStage implements ImportStage
         if (!$currency instanceof Currency || $code !== $currency->value) {
             $refusals[] = self::FOREIGN_CURRENCY;
         }
-        if (null !== ($template['VatReverseChargeCodeId'] ?? null)) {
-            $refusals[] = self::REVERSE_CHARGE_UNSUPPORTED;
-        }
 
         $customerId = $this->int(\is_array($template['Partner'] ?? null) ? ($template['Partner']['Id'] ?? null) : null) ?? $this->int($template['PartnerId'] ?? null);
         $customer = null === $customerId ? null : $context->linkedTo(IdokladResource::Contacts, $customerId);
@@ -238,13 +237,17 @@ final readonly class RecurringStage implements ImportStage
         }
 
         $texts = [
-            'OrderNumber' => $this->text($template['OrderNumber'] ?? null),
-            'Description' => $this->text($template['Description'] ?? null),
-            'ItemsTextPrefix' => $this->text($template['ItemsTextPrefix'] ?? null),
-            'ItemsTextSuffix' => $this->text($template['ItemsTextSuffix'] ?? null),
+            'OrderNumber' => $this->variables($this->text($template['OrderNumber'] ?? null)),
+            'Description' => $this->variables($this->text($template['Description'] ?? null)),
+            'ItemsTextPrefix' => $this->variables($this->text($template['ItemsTextPrefix'] ?? null)),
+            'ItemsTextSuffix' => $this->variables($this->text($template['ItemsTextSuffix'] ?? null)),
         ];
         $names = [];
-        $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $refusals, $notes, $names);
+        // A zero-rate line is reverse charge when the template says so or the customer has a VAT ID:
+        // the VAT codes are not in the snapshot. The rules of templates check the rest, as for any template.
+        $partnerVatId = trim($this->text($this->code($context, IdokladResource::Contacts, $customerId)['VatIdentificationNumber'] ?? null));
+        $reverseCharge = null !== ($template['VatReverseChargeCodeId'] ?? null) || '' !== $partnerVatId;
+        $lines = $this->lines($template, $currency ?? Currency::CZK, VatRegime::of($firm->vatStatus()), $reverseCharge, $refusals, $notes, $names);
         $unknown = $this->unknownVariables([...$texts, ...$names]);
         if ([] !== $unknown) {
             $refusals[] = self::UNKNOWN_VARIABLE;
@@ -341,7 +344,7 @@ final readonly class RecurringStage implements ImportStage
      *
      * @return list<LineInput>
      */
-    private function lines(array $template, Currency $currency, VatRegime $regime, array &$refusals, array &$notes, array &$names): array
+    private function lines(array $template, Currency $currency, VatRegime $regime, bool $reverseCharge, array &$refusals, array &$notes, array &$names): array
     {
         $discount = $this->decimal($template['DiscountPercentage'] ?? 0, 2);
         $items = \is_array($template['Items'] ?? null) ? array_filter($template['Items'], \is_array(...)) : [];
@@ -354,9 +357,9 @@ final readonly class RecurringStage implements ImportStage
 
                 continue;
             }
-            $name = $this->text($item['Name'] ?? null);
+            $name = $this->variables($this->text($item['Name'] ?? null));
             $names[] = $name;
-            $line = self::ITEM_NORMAL === $type ? $this->line($item, $name, $discount, $currency, $regime) : null;
+            $line = self::ITEM_NORMAL === $type ? $this->line($item, $name, $discount, $currency, $regime, $reverseCharge) : null;
             if (!$line instanceof LineInput) {
                 $refusals[] = self::INVALID_ITEM;
 
@@ -371,7 +374,7 @@ final readonly class RecurringStage implements ImportStage
     /**
      * @param array<mixed> $item
      */
-    private function line(array $item, string $name, ?string $discount, Currency $currency, VatRegime $regime): ?LineInput
+    private function line(array $item, string $name, ?string $discount, Currency $currency, VatRegime $regime, bool $reverseCharge): ?LineInput
     {
         $quantity = $this->decimal($item['Amount'] ?? null, 4);
         $price = $this->decimal(\is_array($item['Prices'] ?? null) ? ($item['Prices']['UnitPrice'] ?? null) : null, 2);
@@ -383,6 +386,7 @@ final readonly class RecurringStage implements ImportStage
         $kind = self::RATE_KINDS[$rateType];
         [$treatment, $kind] = match (true) {
             VatRegime::NonPayer === $regime => [TaxTreatment::NotApplicable, null],
+            null === $kind && $reverseCharge => [TaxTreatment::ReverseCharge, null],
             null === $kind => [TaxTreatment::Exempt, null],
             default => [TaxTreatment::Standard, $kind],
         };
@@ -414,6 +418,14 @@ final readonly class RecurringStage implements ImportStage
         }
 
         return array_unique($unknown);
+    }
+
+    /**
+     * The text with its offset variables as Foresi writes them: {year + 1} is {year+1}.
+     */
+    private function variables(string $text): string
+    {
+        return (string) preg_replace(self::SPACED_OFFSET, '{$1$2$3}', $text);
     }
 
     /**

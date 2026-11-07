@@ -207,7 +207,8 @@ final readonly class LineRules
         if ($vatId->country() !== $issuerCountry) {
             return '' === $code ? [] : [new IssueProblem($field.'.supplyCode', 'invoice.problem.supply_code_not_allowed')];
         }
-        if (!$taxPoint instanceof \DateTimeImmutable) {
+        // The code is optional, as in iDoklad: the accountant can add it for the control statement.
+        if ('' === $code || !$taxPoint instanceof \DateTimeImmutable) {
             return [];
         }
         foreach ($country->supplyCodes($taxPoint) as $known) {

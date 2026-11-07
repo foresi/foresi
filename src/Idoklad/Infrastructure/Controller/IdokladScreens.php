@@ -315,8 +315,8 @@ final readonly class IdokladScreens
         }
 
         return [
-            // The strip holds four: what was linked before is in the table by section.
-            'kpis' => array_map(fn (string $outcome): array => ['label' => $this->trans('idoklad.outcome.'.$outcome), 'value' => $this->number($counted[$outcome])], array_values(array_diff($outcomes, [ImportOutcome::AlreadyLinked->value]))),
+            // The strip holds four: what was linked before or skipped is in the table by section.
+            'kpis' => array_map(fn (string $outcome): array => ['label' => $this->trans('idoklad.outcome.'.$outcome), 'value' => $this->number($counted[$outcome])], array_values(array_diff($outcomes, [ImportOutcome::AlreadyLinked->value, ImportOutcome::Skipped->value]))),
             'stageColumns' => $stageColumns,
             'stageRows' => $stageRows,
             'yearColumns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->trans('idoklad.report.column.'.$key), 'align' => 'year' === $key ? 'left' : 'right'], ['year', 'idoklad', 'idokladSum', 'foresi', 'foresiSum', 'difference', 'unexplained', 'foreign']),

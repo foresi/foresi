@@ -1916,11 +1916,12 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-error-summary]', $this->text('invoice.problem.customer_vat_id_invalid'));
     }
 
-    public function testReverseChargeOfADomesticCustomerAsksForTheCode(): void
+    public function testReverseChargeOfADomesticCustomerTakesAnOptionalCode(): void
     {
         $this->signedIn();
         $values = $this->filled();
         $values['lines'][0]['vat'] = 'reverse_charge';
+        $values['lines'][0]['supplyCode'] = '999';
 
         $this->save($values);
 
@@ -1928,10 +1929,10 @@ final class InvoiceControllerTest extends WebTestCase
         self::assertSelectorExists('#lines-0-supplyCode[aria-invalid="true"]');
 
         $values = $this->currentValues();
-        $values['lines'][0]['supplyCode'] = '4';
+        $values['lines'][0]['supplyCode'] = '';
         $this->save($values);
 
-        self::assertSame('4', $this->linesOf($this->onlyInvoice())[0]['code']);
+        self::assertNull($this->linesOf($this->onlyInvoice())[0]['code']);
     }
 
     public function testASupplyCodeShowsItsMeaning(): void

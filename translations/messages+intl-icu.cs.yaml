@@ -1806,7 +1806,7 @@ invoice:
     payment_unknown: Tato platba nepatří k zálohové faktuře, nebo byla zrušena.
     series_of_another_firm: Tato řada patří jiné firmě.
     series_unknown: Vyberte číselnou řadu.
-    supply_code_invalid: Vyberte kód plnění.
+    supply_code_invalid: Vyberte kód plnění ze seznamu, nebo pole nechte prázdné.
     supply_code_not_allowed: Odběratel z jiné země kód plnění nemá.
     tax_point_missing: Zadejte datum.
     too_long: Text je příliš dlouhý.
@@ -2625,17 +2625,23 @@ idoklad:
             advance_not_deductible: 'Ze zálohy, kterou faktura vyúčtovává, už nezbývá nic k odečtení: ve Foresi k ní není zaplacená záloha ani daňový doklad.'
             credit_note_unsupported: Dobropisy se zatím neimportují.
             pdf_unreadable: Uložené PDF dokladu nelze přečíst.
+            number_used_by_other_kind: Toto číslo už ve firmě má doklad jiného druhu; čísla jsou jedinečná napříč druhy dokladů.
+            older_numbers: Číslo nemá tvar žádné řady iDokladu, proto doklad přešel do řady starších čísel jeho tvaru.
+            customer_address_as_issued: Doklad byl vystaven jen se jménem odběratele bez adresy a takto se importuje.
+            issuer_vat_id_as_issued: Doklad plátce byl vystaven bez DIČ firmy a takto se importuje.
         series:
             unknown_type: Doklady tohoto typu iDokladu Foresi nevystavuje.
+            type_not_used: Doklady tohoto typu iDokladu Foresi nevystavuje, jejich řada se vynechává.
             invalid_format: Formát čísla nejde přečíst jako formát řady.
             invalid_counter: Rok nebo poslední číslo řady chybí nebo je mimo rozsah.
-            name_taken: Firma už má řadu tohoto názvu s jinými čísly.
         payments:
             document_type_unsupported: Platba hradí jiný doklad než vydanou nebo zálohovou fakturu.
             document_not_linked: Doklad, který platba hradí, nebyl importován.
             currency_not_home: Platba není v domácí měně firmy.
             payment_option_unsupported: Foresi platby tímto způsobem úhrady nezaznamenává.
             invalid_value: Chybí datum nebo částka platby.
+            zero_amount: Platba je nulová, a proto se vynechává.
+            refund_unsupported: Záporná platba vrací peníze; import vratky zatím nezaznamenává.
         recurring:
             advance_unsupported: Vzor vystavuje zálohové faktury, které Foresi zatím neopakuje.
             unknown_type: Doklady tohoto typu iDokladu Foresi neopakuje.
@@ -2647,7 +2653,6 @@ idoklad:
             invalid_item: Položka má množství, cenu, slevu, typ ceny nebo sazbu DPH, kterou Foresi nepřijme.
             unknown_payment_option: Pro způsob úhrady vzoru Foresi nemá platební metodu.
             unsupported_language: Foresi tiskne faktury jen česky a anglicky.
-            reverse_charge_unsupported: Vzory s přenesenou daňovou povinností se zatím neimportují.
             next_issue_mismatch: Příští vystavení podle Foresi se liší od příštího vystavení v iDokladu.
             inactive: Vzor je v iDokladu vypnutý.
             accountant_not_sent: iDoklad posílal každou fakturu účetní; Foresi ne, účetní dostává měsíční balíček.
@@ -2764,6 +2769,7 @@ idoklad:
         already_linked: Propojeno dříve
         refused: Odmítnuto
         mismatch: Liší se
+        skipped: Vynecháno
     report:
         failed: Import se zastavil; nic se neuložilo
         stages: Podle oblasti
@@ -2807,6 +2813,12 @@ idoklad:
         failed: Kontrola se zastavila
         again: Zkontrolovat znovu
         run: Importovat
+        vat:
+            title: DPH
+            intro: Doklady s DUZP od tohoto dne se importují s DPH, starší bez ní. Předvyplněn je den první faktury s DPH.
+            from: Plátce DPH od
+            from_help: Nechte prázdné, pokud firma plátcem DPH nebyla
+            invalid: Zadejte datum, nebo pole nechte prázdné.
         reminders:
             title: Upomínky
             overdue: '{count, plural, =0 {Žádná importovaná faktura není po splatnosti a neuhrazená.} one {# importovaná faktura je po splatnosti a neuhrazená.} few {# importované faktury jsou po splatnosti a neuhrazené.} other {# importovaných faktur je po splatnosti a neuhrazených.}}'

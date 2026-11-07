@@ -13,13 +13,14 @@ use App\Idoklad\Domain\IdokladLink;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportOutcome;
 use App\Idoklad\Domain\ImportReport;
 use App\Party\Domain\LegalEntity;
 
 /**
- * What a stage works with: the firm and its snapshot, the links of this and
- * earlier runs, and the report. In a check, stages write as in a run (the
+ * What a stage works with: the firm and its snapshot, the options of the run,
+ * the links of this and earlier runs, and the report. In a check, stages write as in a run (the
  * transaction is rolled back), but never files: ask writesFiles().
  */
 final readonly class ImportContext
@@ -32,6 +33,7 @@ final readonly class ImportContext
         private IdokladSnapshot $snapshot,
         private IdokladLinks $links,
         private \DateTimeImmutable $now,
+        public ImportOptions $options = new ImportOptions(null),
     ) {
     }
 

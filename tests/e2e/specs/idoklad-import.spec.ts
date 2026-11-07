@@ -37,7 +37,7 @@ async function openPull(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: 'Přesun z iDokladu' })).toBeVisible();
 }
 
-// The counts of one area in the table by area: created, matched, linked before, refused, differing.
+// The counts of one area in the table by area: created, matched, linked before, refused, differing, skipped.
 async function expectStage(page: Page, stage: string, counts: number[]): Promise<void> {
   const row = page.getByRole('table', { name: 'Podle oblasti' }).locator('tbody tr').filter({ hasText: stage });
   await expect(row.locator('td')).toHaveText([stage, ...counts.map(String)]);
@@ -45,12 +45,12 @@ async function expectStage(page: Page, stage: string, counts: number[]): Promise
 
 // What the import makes of the seeded pull, the same in the check and in the run.
 async function expectReport(page: Page): Promise<void> {
-  await expectStage(page, 'Kontakty', [3, 0, 0, 0, 0]);
-  await expectStage(page, 'Číselné řady', [3, 0, 0, 0, 0]);
+  await expectStage(page, 'Kontakty', [3, 0, 0, 0, 0, 0]);
+  await expectStage(page, 'Číselné řady', [3, 0, 0, 0, 0, 0]);
   // The two invoices, the advance and its tax document; the credit note is refused, 20260009 differs.
-  await expectStage(page, 'Doklady', [3, 0, 0, 1, 1]);
-  await expectStage(page, 'Platby', [1, 0, 0, 0, 0]);
-  await expectStage(page, 'Pravidelné faktury', [1, 0, 0, 0, 0]);
+  await expectStage(page, 'Doklady', [3, 0, 0, 1, 1, 0]);
+  await expectStage(page, 'Platby', [1, 0, 0, 0, 0, 0]);
+  await expectStage(page, 'Pravidelné faktury', [1, 0, 0, 0, 0, 0]);
 
   const refused = page.locator('[data-report-refused]');
   await expect(refused).toContainText('O20260001');

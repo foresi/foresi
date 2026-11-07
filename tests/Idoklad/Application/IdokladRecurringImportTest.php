@@ -252,6 +252,25 @@ final class IdokladRecurringImportTest extends KernelTestCase
         self::assertSame(0, $this->templates());
     }
 
+    public function testOffsetVariablesWithSpacesAroundTheSignAreForesisTokens(): void
+    {
+        $this->template(960, [], [
+            'OrderNumber' => 'PO-{month - 1}',
+            'Description' => 'Hosting {month/year +1}',
+            'ItemsTextPrefix' => 'Q{quarter+ 2}',
+            'ItemsTextSuffix' => 'Due {day + 14}.{month}.{year + 1}',
+            'Items' => [['ItemType' => 0, 'Name' => 'Hosting {year +1} {month/year}', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 100]]],
+        ]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 960);
+        self::assertSame('created', $entry['outcome']);
+        $row = $this->em->getConnection()->fetchAssociative('SELECT order_number, description, text_before, text_after FROM recurring_invoice WHERE id = :id', ['id' => $entry['target_id']]);
+        self::assertSame(['order_number' => 'PO-{month-1}', 'description' => 'Hosting {month/year+1}', 'text_before' => 'Q{quarter+2}', 'text_after' => 'Due {day+14}.{month}.{year+1}'], $row);
+        self::assertSame('Hosting {year+1} {month/year}', $this->em->getConnection()->fetchOne('SELECT text FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]));
+    }
+
     public function testDeliveryReviewWithoutCopiesAndTheAccountantIsANote(): void
     {
         $this->template(911, ['SendToPurchaser' => false, 'SendToSupplier' => false, 'SendToOtherEmails' => false, 'SendToAccountant' => true], ['Note' => 'Internal', 'IsConstantVariableSymbol' => true]);
@@ -284,6 +303,38 @@ final class IdokladRecurringImportTest extends KernelTestCase
         $lines = $this->em->getConnection()->fetchAllAssociative('SELECT * FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]);
         self::assertCount(1, $lines);
         self::assertSame(['exempt', null], [$lines[0]['treatment'], $lines[0]['rate_kind']]);
+    }
+
+    public function testAZeroRateLineIsReverseChargeForACustomerWithAVatId(): void
+    {
+        $german = new Party(PartyKind::Company, 'Example GmbH', null, VatId::fromString('DE123456789'), '');
+        $this->em->persist($german);
+        $this->em->persist(new PartyAddress($german, AddressType::Billing, new Address('Example Strasse 1', 'Example Stadt', '10115', 'DE')));
+        $this->em->persist(new PartyEmail($german, 'billing@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new IdokladLink($this->firm, IdokladResource::Contacts, 778, $german->id(), Id::generate(), new \DateTimeImmutable('2026-11-06 09:00:00')));
+        $this->record(IdokladResource::Contacts, 778, ['Id' => 778, 'CompanyName' => 'Example GmbH', 'VatIdentificationNumber' => ' DE123456789 ']);
+        $zero = ['Items' => [['ItemType' => 0, 'Name' => 'Consulting', 'Amount' => 1, 'PriceType' => 1, 'VatRateType' => 2, 'Prices' => ['UnitPrice' => 100]]]];
+        $this->template(961, [], ['Partner' => ['Id' => 778]] + $zero);
+        $this->template(962, [], ['VatReverseChargeCodeId' => 4] + $zero);
+        $blank = new Party(PartyKind::Company, 'Example Blank s.r.o.', new RegistrationNumber('CZ', '23456787'), null, '');
+        $this->em->persist($blank);
+        $this->em->persist(new PartyAddress($blank, AddressType::Billing, new Address('Example Street 3', 'Example City', '100 00', 'CZ')));
+        $this->em->persist(new PartyEmail($blank, 'blank@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new IdokladLink($this->firm, IdokladResource::Contacts, 779, $blank->id(), Id::generate(), new \DateTimeImmutable('2026-11-06 09:00:00')));
+        $this->record(IdokladResource::Contacts, 779, ['Id' => 779, 'CompanyName' => 'Example Blank s.r.o.', 'VatIdentificationNumber' => '  ']);
+        $this->template(963, [], ['Partner' => ['Id' => 779]] + $zero);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        $entry = $this->entry($run, 961);
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+        $line = $this->em->getConnection()->fetchAssociative('SELECT treatment, rate_kind FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $entry['target_id']]);
+        self::assertIsArray($line);
+        self::assertSame(['reverse_charge', null], array_values($line));
+        self::assertSame('created', $this->entry($run, 962)['outcome'], 'Reverse charge as the template says; at home the supply code is optional, and the snapshot does not hold one.');
+        $exempt = $this->entry($run, 963);
+        self::assertSame('created', $exempt['outcome'], implode(', ', $exempt['reasons']));
+        self::assertSame('exempt', $this->em->getConnection()->fetchOne('SELECT treatment FROM recurring_invoice_line WHERE recurring_invoice_id = :id', ['id' => $exempt['target_id']]), 'A VAT ID of spaces is none.');
     }
 
     public function testAnInactiveTemplateIsImportedPausedAndFlagged(): void
@@ -327,7 +378,6 @@ final class IdokladRecurringImportTest extends KernelTestCase
 
         self::assertSame([
             RecurringStage::FOREIGN_CURRENCY,
-            RecurringStage::REVERSE_CHARGE_UNSUPPORTED,
             RecurringStage::CUSTOMER_NOT_LINKED,
             RecurringStage::SERIES_NOT_LINKED,
             RecurringStage::UNSUPPORTED_LANGUAGE,

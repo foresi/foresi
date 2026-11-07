@@ -16,6 +16,7 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
+use App\Idoklad\Domain\ImportOptions;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
@@ -254,21 +255,21 @@ final class IdokladDocumentsImportTest extends KernelTestCase
     public function testWhatCannotBeReadOrIsRefusedSaysWhy(): void
     {
         $this->invoice(110, ['PartnerId' => 999, 'DocumentNumber' => 'X-1', 'PaymentOptionId' => self::CASH_ON_DELIVERY, 'ReportLanguage' => 2]);
-        $this->invoice(111, ['DocumentNumber' => '20260009', 'MyAddress' => ['NickName' => 'Example s.r.o.', 'CountryId' => 99], 'Items' => [$this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0)]]);
+        $this->invoice(111, ['DocumentNumber' => '20260009', 'PartnerAddress' => ['NickName' => 'Example Trading s.r.o.', 'IdentificationNumber' => '23456787', 'VatIdentificationNumber' => '', 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA], 'MyAddress' => ['NickName' => 'Example s.r.o.', 'CountryId' => 99], 'Items' => [$this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0)]]);
         $this->invoice(112, ['DocumentNumber' => '20260010', 'Items' => [['Id' => 1, 'Name' => 'Broken', 'Amount' => 'one', 'ItemType' => 0, 'PriceType' => 1, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1.0]]]]);
         $this->invoice(113, ['DocumentNumber' => '20260011', 'DateOfIssue' => 'soon', 'Items' => [['Id' => 1, 'Name' => 'Typed', 'Amount' => 1.0, 'ItemType' => 0, 'PriceType' => 9, 'VatRateType' => 1, 'Prices' => ['UnitPrice' => 1.0]]]]);
         $this->invoice(114, ['DocumentNumber' => '20260012', 'NumericSequenceId' => 77]);
-        $this->invoice(115, ['DocumentNumber' => '20260013', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => ''])]);
+        $this->invoice(115, ['DocumentNumber' => '20260013', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => 'VAT-1'])]);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
 
-        self::assertSame([DocumentsStage::SERIES_UNKNOWN, DocumentsStage::CUSTOMER_NOT_LINKED, DocumentsStage::PAYMENT_OPTION_UNSUPPORTED, DocumentsStage::LANGUAGE_UNSUPPORTED], $this->entry($run, 110)['reasons']);
+        self::assertSame([DocumentsStage::CUSTOMER_NOT_LINKED, DocumentsStage::PAYMENT_OPTION_UNSUPPORTED, DocumentsStage::LANGUAGE_UNSUPPORTED], $this->entry($run, 110)['reasons'], 'A number of another shape would have a series of its own.');
         self::assertSame('Dobírka', $this->entry($run, 110)['values']['payment_option']);
         self::assertSame([DocumentsStage::COUNTRY_UNKNOWN, DocumentsStage::ZERO_RATE_UNSUPPORTED], $this->entry($run, 111)['reasons']);
         self::assertSame([DocumentsStage::INVALID_VALUE], $this->entry($run, 112)['reasons']);
         self::assertSame([DocumentsStage::SERIES_UNKNOWN, DocumentsStage::INVALID_VALUE], $this->entry($run, 113)['reasons']);
         self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 114)['reasons'], 'A sequence id of the document names its series.');
-        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->entry($run, 115)['reasons'], 'What the import of Invoicing refuses is reported as it says.');
+        self::assertSame(['invoice.problem.firm_vat_id_missing'], $this->entry($run, 115)['reasons'], 'What the import of Invoicing refuses is reported as it says: a VAT ID printed is one.');
         self::assertSame(['refused' => 6], $run->counts()['documents']);
     }
 
@@ -295,7 +296,9 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $this->record(IdokladResource::ProformaInvoices, 202, $this->document([
             'DocumentNumber' => 'Z20260004',
             'VariableSymbol' => '20260004',
-            'VatRegime' => 0,
+            // Before the first invoice with VAT, so of a non-payer, though iDoklad marks it a tax document.
+            'DateOfIssue' => '2026-09-01',
+            'VatRegime' => 1,
             'Items' => [
                 $this->item('Deposit', 1, 1000.0, 1, 2, 0.0, 1000.0, 0.0),
                 ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 2, 'VatRateType' => 2, 'VatRate' => 0.0, 'Prices' => []],
@@ -355,7 +358,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $this->record(IdokladResource::Countries, 5, ['Id' => 5, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Slovakia', 'CurrencyId' => self::CZK]);
         $this->invoice(150, ['PartnerId' => 999]);
         $this->invoice(151, ['DocumentNumber' => '20260021', 'PaymentOptionId' => 999]);
-        $this->invoice(152, ['DocumentNumber' => '20260022', 'DateOfIssue' => 'soon', 'Items' => [$this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0), $this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0)]]);
+        $this->invoice(152, ['DocumentNumber' => '20260022', 'PartnerAddress' => ['NickName' => 'Example Trading s.r.o.', 'IdentificationNumber' => '23456787', 'VatIdentificationNumber' => '', 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA], 'DateOfIssue' => 'soon', 'Items' => [$this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0), $this->item('Export', 1, 100.0, 1, 2, 0.0, 100.0, 0.0)]]);
         $this->invoice(153, ['DocumentNumber' => '20260023', 'PartnerAddress' => ['NickName' => '', 'Title' => 'Ing.', 'Firstname' => '', 'Surname' => 'Example', 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 5]]);
 
         $run = $this->import()->run($this->firm, ImportMode::Run);
@@ -381,6 +384,235 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         self::assertSame('2026-10-01 00:00:00', $this->invoiceOf($this->entry($run, 162)['target_id'])->createdAt()->format('Y-m-d H:i:s'), 'What is no moment falls back to the issue date.');
     }
 
+    public function testAHistoryOfSeveralYearsFindsTheSeriesOfTheOnlyRowOfThisYear(): void
+    {
+        $this->em->remove($this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::NumericSequences, 'externalId' => 2]) ?? self::fail('No row of 2019.'));
+        $this->record(IdokladResource::NumericSequences, 6, ['Id' => 6, 'DocumentType' => 0, 'Name' => 'Faktury služby', 'NumberFormat' => '{RRRR}1{NNNN}', 'Year' => 2026, 'LastNumber' => 2, 'IsDefault' => false]);
+        $this->invoice(170, ['DocumentNumber' => '20200001', 'VariableSymbol' => '20200001', 'DateOfIssue' => '2020-03-02', 'DateOfTaxing' => '2020-03-02', 'DateOfMaturity' => '2020-03-16']);
+        $this->invoice(171, ['DocumentNumber' => '202010004', 'VariableSymbol' => '202010004', 'DateOfIssue' => '2020-04-01', 'DateOfTaxing' => '2020-04-01', 'DateOfMaturity' => '2020-04-15']);
+        $this->invoice(172, ['DocumentNumber' => '20230005', 'VariableSymbol' => '20230005', 'DateOfIssue' => '2023-06-01', 'DateOfTaxing' => '2023-06-01', 'DateOfMaturity' => '2023-06-15']);
+        $this->invoice(173, ['DocumentNumber' => '202610001', 'VariableSymbol' => '202610001']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([170, 171, 172, 173] as $id) {
+            self::assertSame('created', $this->entry($run, $id)['outcome'], $id.': '.implode(', ', $this->entry($run, $id)['reasons']));
+        }
+        $plain = $this->invoiceOf($this->entry($run, 170)['target_id'])->series();
+        $services = $this->invoiceOf($this->entry($run, 171)['target_id'])->series();
+        self::assertSame('{YYYY}{NNNN}', $plain->format()->toString());
+        self::assertSame('{YYYY}1{NNNN}', $services->format()->toString());
+        self::assertSame($plain->id(), $this->invoiceOf($this->entry($run, 172)['target_id'])->series()->id());
+        self::assertSame($services->id(), $this->invoiceOf($this->entry($run, 173)['target_id'])->series()->id(), 'Nine digits are the numbers of the format with more fixed characters.');
+        $counter = self::getContainer()->get(NumberCounter::class);
+        self::assertSame('20200002', $counter->peek($plain, new \DateTimeImmutable('2020-12-01')));
+        self::assertSame('20230006', $counter->peek($plain, new \DateTimeImmutable('2023-12-01')));
+        self::assertSame('20260010', $counter->peek($plain, new \DateTimeImmutable('2026-12-01')), 'This year continues after iDoklad\'s last number.');
+        self::assertSame('202010005', $counter->peek($services, new \DateTimeImmutable('2020-12-01')));
+        self::assertSame('202610003', $counter->peek($services, new \DateTimeImmutable('2026-12-01')), 'Above the last number, the highest imported one.');
+        self::assertSame('20210001', $counter->peek($plain, new \DateTimeImmutable('2021-12-01')), 'A year without documents starts at one.');
+    }
+
+    public function testANumberTwoSeriesOfTheSameFixedLengthReadIsNoSeries(): void
+    {
+        $this->record(IdokladResource::NumericSequences, 7, ['Id' => 7, 'DocumentType' => 0, 'Name' => 'Faktury A', 'NumberFormat' => '{RRRR}{NNNN}2026', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->record(IdokladResource::NumericSequences, 8, ['Id' => 8, 'DocumentType' => 0, 'Name' => 'Faktury B', 'NumberFormat' => '2026{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->invoice(174, ['DocumentNumber' => '2026202620262026', 'VariableSymbol' => '2026']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 174)['reasons']);
+    }
+
+    public function testANumberOfTheNextOrLastYearsSequenceFindsItsSeries(): void
+    {
+        $this->invoice(175, ['DocumentNumber' => '20250002', 'VariableSymbol' => '20250002', 'DateOfIssue' => '2024-12-31', 'DateOfTaxing' => '2024-12-31', 'DateOfMaturity' => '2025-01-14']);
+        $this->invoice(176, ['DocumentNumber' => '20250215', 'VariableSymbol' => '20250215', 'DateOfIssue' => '2026-01-13', 'DateOfTaxing' => '2025-12-31', 'DateOfMaturity' => '2026-01-27']);
+        $this->invoice(177, ['DocumentNumber' => '20240216', 'VariableSymbol' => '20240216', 'DateOfIssue' => '2025-01-13', 'DateOfTaxing' => '2025-01-13', 'DateOfMaturity' => '2025-01-27']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        foreach ([175, 176, 177] as $id) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('created', $entry['outcome'], $id.': '.implode(', ', $entry['reasons']));
+            self::assertSame('{YYYY}{NNNN}', $this->invoiceOf($entry['target_id'])->series()->format()->toString());
+            self::assertSame([], $entry['reasons']);
+        }
+        self::assertSame(2, $this->rows('SELECT COUNT(*) FROM series'), 'No series of older numbers.');
+    }
+
+    public function testANumberOfAnotherShapeGetsOneSeriesOfOlderNumbersOfItsKind(): void
+    {
+        $older = ['DateOfIssue' => '2023-03-01', 'DateOfMaturity' => '2023-03-15'];
+        $this->invoice(178, ['DocumentNumber' => 'F2023-01', 'VariableSymbol' => '202301', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->invoice(179, ['DocumentNumber' => 'F2023-02', 'VariableSymbol' => '202302', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->record(IdokladResource::ProformaInvoices, 202, $this->document(['Id' => 202, 'DocumentNumber' => '20230001', 'VariableSymbol' => '20230001'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 203, $this->document(['Id' => 203, 'DocumentNumber' => 'P/77', 'VariableSymbol' => '77'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 205, $this->document(['Id' => 205, 'DocumentNumber' => 'A2022/5', 'VariableSymbol' => '5'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 206, $this->document(['Id' => 206, 'DocumentNumber' => '2021', 'VariableSymbol' => '2021'] + $older, ['DateOfTaxing']));
+        $this->invoice(190, ['DocumentNumber' => '20230009', 'VariableSymbol' => '20230009', 'DateOfTaxing' => '2023-03-01'] + $older);
+        $this->record(IdokladResource::ProformaInvoices, 207, $this->document(['Id' => 207, 'DocumentNumber' => '20220007', 'VariableSymbol' => '20220007'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 208, $this->document(['Id' => 208, 'DocumentNumber' => '2023', 'VariableSymbol' => '2023'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 209, $this->document(['Id' => 209, 'DocumentNumber' => '77/P', 'VariableSymbol' => '77'] + $older, ['DateOfTaxing']));
+        $this->record(IdokladResource::ProformaInvoices, 204, $this->document(['Id' => 204, 'DocumentNumber' => '20230009', 'VariableSymbol' => '20230009'] + $older, ['DateOfTaxing']));
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        $first = $this->entry($run, 178);
+        self::assertSame('created', $first['outcome'], implode(', ', $first['reasons']));
+        self::assertSame([DocumentsStage::OLDER_NUMBERS], $first['reasons']);
+        $series = $this->invoiceOf($first['target_id'])->series();
+        self::assertSame('F{YYYY}-{NN}', $series->format()->toString());
+        self::assertSame('iDoklad F{YYYY}-{NN}', $series->name());
+        self::assertSame(DocumentKind::Invoice, $series->kind());
+        self::assertFalse($series->isDefault());
+        self::assertSame($series->id(), $this->invoiceOf($this->entry($run, 179)['target_id'])->series()->id(), 'Once per kind and format.');
+        $advance = $this->invoiceOf($this->entry($run, 202)['target_id'])->series();
+        self::assertSame(['{YYYY}{NNNN}', DocumentKind::Advance], [$advance->format()->toString(), $advance->kind()], 'The shape of the invoices, as a series of advances.');
+        self::assertSame('P/{NN}', $this->invoiceOf($this->entry($run, 203)['target_id'])->series()->format()->toString(), 'Without a year, the last digits count.');
+        self::assertSame('A{YYYY}/{N}', $this->invoiceOf($this->entry($run, 205)['target_id'])->series()->format()->toString(), 'The last year is a year too.');
+        self::assertSame('{NNNN}', $this->invoiceOf($this->entry($run, 206)['target_id'])->series()->format()->toString(), 'Four digits alone are the sequence, and two years back is no year.');
+        self::assertSame('created', $this->entry($run, 190)['outcome']);
+        $used = $this->entry($run, 204);
+        self::assertSame('refused', $used['outcome']);
+        self::assertSame([DocumentsStage::NUMBER_USED_BY_OTHER_KIND], $used['reasons']);
+        self::assertSame(['advance', 'invoice', '20230009'], [$used['values']['kind'], $used['values']['other_kind'], $used['values']['document_number']], 'The kinds are added to the values of the document.');
+        self::assertSame('{YYYY}{NNNN}', $this->invoiceOf($this->entry($run, 207)['target_id'])->series()->format()->toString(), 'The year before the issue year is a year too.');
+        self::assertSame('{NNNN}', $this->invoiceOf($this->entry($run, 208)['target_id'])->series()->format()->toString(), 'Four digits of the issue year alone are the sequence.');
+        self::assertSame('{NN}/P', $this->invoiceOf($this->entry($run, 209)['target_id'])->series()->format()->toString(), 'The text after the digits stays.');
+    }
+
+    public function testTheIssueDateIsReadBeforeTheTaxPointWhoseYearCountsToo(): void
+    {
+        $this->invoice(300, ['DocumentNumber' => '20260001', 'VariableSymbol' => '20260001', 'DateOfIssue' => '2026-01-05', 'DateOfTaxing' => '2025-12-31', 'DateOfMaturity' => '2026-01-19']);
+        $this->invoice(301, ['DocumentNumber' => '20230002', 'VariableSymbol' => '20230002', 'DateOfIssue' => '2026-01-05', 'DateOfTaxing' => '2023-12-31', 'DateOfMaturity' => '2026-01-19']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        foreach ([300, 301] as $id) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('created', $entry['outcome'], $id.': '.implode(', ', $entry['reasons']));
+            self::assertSame([], $entry['reasons'], $id.': the sequence of the year reads it, no series of older numbers.');
+        }
+    }
+
+    public function testTheSequenceOfMoreFixedCharactersReadsANumberWhateverTheWidthOfTheOther(): void
+    {
+        $this->record(IdokladResource::NumericSequences, 9, ['Id' => 9, 'DocumentType' => 0, 'Name' => 'Faktury P', 'NumberFormat' => 'P{RRRR}{NNNNN}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->record(IdokladResource::NumericSequences, 10, ['Id' => 10, 'DocumentType' => 0, 'Name' => 'Faktury P1', 'NumberFormat' => 'P{RRRR}1{NNNN}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->record(IdokladResource::NumericSequences, 11, ['Id' => 11, 'DocumentType' => 0, 'Name' => 'Faktury Q', 'NumberFormat' => 'Q{RRRR}-{N}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->record(IdokladResource::NumericSequences, 12, ['Id' => 12, 'DocumentType' => 0, 'Name' => 'Faktury Q1', 'NumberFormat' => 'Q{RRRR}-1{NN}', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->invoice(302, ['DocumentNumber' => 'P202610001', 'VariableSymbol' => '202610001']);
+        $this->invoice(303, ['DocumentNumber' => 'Q2026-123', 'VariableSymbol' => '2026123']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        foreach ([302 => 'P{YYYY}1{NNNN}', 303 => 'Q{YYYY}-1{NN}'] as $id => $format) {
+            $entry = $this->entry($run, $id);
+            self::assertSame('created', $entry['outcome'], $id.': '.implode(', ', $entry['reasons']));
+            self::assertSame($format, $this->invoiceOf($entry['target_id'])->series()->format()->toString());
+        }
+    }
+
+    public function testACustomerOfAnUnknownCountryIsRefusedWithItsLinesRead(): void
+    {
+        $this->invoice(304, ['PartnerAddress' => ['NickName' => 'Example Abroad', 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 99]]);
+        $this->invoice(305, ['DocumentNumber' => '20260009', 'VariableSymbol' => '20260009', 'PartnerAddress' => ['NickName' => 'Example Blank Street', 'Street' => ' ', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run);
+
+        self::assertSame([DocumentsStage::COUNTRY_UNKNOWN], $this->entry($run, 304)['reasons']);
+        $blank = $this->entry($run, 305);
+        self::assertSame('created', $blank['outcome'], implode(', ', $blank['reasons']));
+        self::assertSame([DocumentsStage::CUSTOMER_ADDRESS_AS_ISSUED], $blank['reasons'], 'A street of spaces is none.');
+    }
+
+    public function testANumberWithoutDigitsOrWithTextOfNoSeriesHasNoSeries(): void
+    {
+        $this->invoice(191, ['DocumentNumber' => 'ABC', 'VariableSymbol' => '1']);
+        $this->invoice(192, ['DocumentNumber' => 'F 2026 1', 'VariableSymbol' => '2']);
+
+        $run = $this->import()->run($this->firm, ImportMode::Check);
+
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 191)['reasons']);
+        self::assertSame([DocumentsStage::SERIES_UNKNOWN], $this->entry($run, 192)['reasons']);
+    }
+
+    public function testACustomerCopyOfANameOnlyAndAnIssuerWithoutVatIdAreImportedAsIssued(): void
+    {
+        $this->invoice(193, ['PartnerAddress' => ['NickName' => 'Example Walk-in', 'Street' => '', 'City' => ' ', 'PostalCode' => '', 'CountryId' => self::CZECHIA]]);
+        $this->invoice(194, ['DocumentNumber' => '20260009', 'VariableSymbol' => '20260009', 'PartnerAddress' => ['NickName' => '', 'Street' => '', 'City' => '', 'PostalCode' => '', 'CountryId' => self::CZECHIA]]);
+        $this->invoice(195, ['DocumentNumber' => '20260010', 'VariableSymbol' => '20260010', 'MyAddress' => $this->myAddress(['VatIdentificationNumber' => ''])]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2019-01-01')));
+
+        $walkIn = $this->entry($run, 193);
+        self::assertSame('created', $walkIn['outcome'], implode(', ', $walkIn['reasons']));
+        self::assertSame([DocumentsStage::CUSTOMER_ADDRESS_AS_ISSUED], $walkIn['reasons']);
+        $invoice = $this->invoiceOf($walkIn['target_id']);
+        self::assertSame(['Example Walk-in', '', 'CZ'], [$invoice->customer()->name, $invoice->customer()->address->street, $invoice->customer()->address->countryCode]);
+        self::assertSame(['invoice.problem.customer_address_incomplete'], $this->entry($run, 194)['reasons'], 'A copy without a name is no customer.');
+        $noVatId = $this->entry($run, 195);
+        self::assertSame('created', $noVatId['outcome'], implode(', ', $noVatId['reasons']));
+        self::assertSame([DocumentsStage::ISSUER_VAT_ID_AS_ISSUED], $noVatId['reasons']);
+        self::assertSame(VatRegime::Payer, $this->invoiceOf($noVatId['target_id'])->vatRegime());
+    }
+
+    public function testTheFirmIsAPayerFromItsFirstInvoiceWithVatWhateverVatRegimeSays(): void
+    {
+        $zero = ['Items' => [$this->item('Consulting', 2, 1000.0, 1, 2, 0.0, 2000.0, 0.0)], 'Prices' => ['TotalWithoutVat' => 2000.0, 'TotalVat' => 0.0, 'TotalWithVat' => 2000.0]];
+        $this->invoice(180, ['DocumentNumber' => '20190001', 'VariableSymbol' => '20190001', 'DateOfIssue' => '2019-02-01', 'DateOfTaxing' => '2019-02-01', 'DateOfMaturity' => '2019-02-15'] + $zero);
+        // A rounding item at a rate makes no payer, and neither does a line of a day that is none.
+        $this->invoice(181, ['DocumentNumber' => '20190002', 'VariableSymbol' => '20190002', 'DateOfIssue' => '2019-03-01', 'DateOfTaxing' => '2019-03-01', 'DateOfMaturity' => '2019-03-15', 'Items' => [$this->item('Consulting', 2, 1000.0, 1, 2, 0.0, 2000.0, 0.0), ['Id' => 2, 'Name' => 'Rounding', 'Amount' => 1.0, 'ItemType' => 1, 'PriceType' => 1, 'VatRateType' => 1, 'VatRate' => 21.0, 'Prices' => []]]] + $zero);
+        $this->invoice(182, ['DocumentNumber' => '20190003', 'VariableSymbol' => '20190003', 'DateOfIssue' => '2019-04-30', 'DateOfTaxing' => '2019-05-01', 'DateOfMaturity' => '2019-05-15']);
+        $this->invoice(183, ['DocumentNumber' => 'X-1', 'DateOfIssue' => 'soon', 'DateOfTaxing' => 'later', 'Items' => [$this->item('Consulting', 1, 1.0, 1, 1, 21, 1.0, 0.21), 'junk']]);
+        $this->record(IdokladResource::IssuedInvoices, 184, $this->document(['Id' => 184, 'DocumentNumber' => '20190004', 'VariableSymbol' => '20190004', 'DateOfIssue' => '2019-04-01', 'DateOfMaturity' => '2019-04-15', 'Items' => ['junk']], ['DateOfTaxing']));
+
+        // A rate that is no number is no VAT, and a line without a rate neither.
+        $this->invoice(189, ['DocumentNumber' => '20190006', 'DateOfIssue' => '2019-01-10', 'DateOfTaxing' => '2019-01-10', 'Items' => [['VatRate' => '21'] + $this->item('Consulting', 1, 1.0, 1, 1, 21, 1.0, 0.21), array_diff_key($this->item('Consulting', 1, 1.0, 1, 1, 21, 1.0, 0.21), ['VatRate' => true])]]);
+        $this->invoice(188, ['DocumentNumber' => '20190005', 'DateOfIssue' => '2019-08-01', 'DateOfTaxing' => 'later', 'Items' => [array_diff_key(['VatRate' => 21] + $this->item('Consulting', 1, 1.0, 1, 1, 21, 1.0, 0.21), ['ItemType' => true])]]);
+
+        $run = $this->import()->run($this->firm, ImportMode::Check);
+
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2019-05-01')), $run->options(), 'The tax point of the first invoice with VAT; the run keeps it.');
+        $this->em->remove($this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::IssuedInvoices, 'externalId' => 182]) ?? self::fail('No invoice 182.'));
+        $this->em->flush();
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2019-08-01')), $this->import()->defaultOptions($this->firm), 'Without a tax point, the issue date; a line without its type is an ordinary one.');
+        $before = $this->entry($run, 180);
+        self::assertSame('created', $before['outcome'], implode(', ', $before['reasons']));
+        self::assertSame(0, $before['values']['computed_vat'], 'Before that day a zero-rate line is simply without VAT.');
+        self::assertSame('created', $this->entry($run, 181)['outcome']);
+        self::assertSame(42000, $this->entry($run, 182)['values']['computed_vat']);
+    }
+
+    public function testAFirmThatWasNeverAPayerChargesNoVat(): void
+    {
+        $this->invoice(185, []);
+
+        $run = $this->import()->run($this->firm, ImportMode::Check, new ImportOptions(null));
+
+        self::assertEquals(new ImportOptions(null), $run->options());
+        self::assertSame('mismatch', $this->entry($run, 185)['outcome']);
+        self::assertSame(0, $this->entry($run, 185)['values']['computed_vat']);
+        self::assertEquals(new ImportOptions(new \DateTimeImmutable('2026-10-01')), $this->import()->defaultOptions($this->firm), 'What the person chose overrides the snapshot.');
+    }
+
+    public function testAZeroRateLineOfAPayerIsReverseChargeWhenTheCustomerHasAVatId(): void
+    {
+        $this->record(IdokladResource::Countries, 6, ['Id' => 6, 'Code' => 'DEU', 'Name' => 'Německo', 'NameEnglish' => 'Germany', 'CurrencyId' => self::EUR]);
+        $zero = ['Items' => [$this->item('Consulting', 2, 1000.0, 1, 2, 0.0, 2000.0, 0.0)], 'Prices' => ['TotalWithoutVat' => 2000.0, 'TotalVat' => 0.0, 'TotalWithVat' => 2000.0]];
+        $this->invoice(186, ['PartnerAddress' => ['NickName' => 'Example GmbH', 'VatIdentificationNumber' => 'DE123456789', 'Street' => 'Example Strasse 1', 'City' => 'Example Stadt', 'PostalCode' => '10115', 'CountryId' => 6]] + $zero);
+        $this->invoice(187, ['DocumentNumber' => '20260009', 'VariableSymbol' => '20260009'] + $zero);
+
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2026-01-01')));
+
+        $entry = $this->entry($run, 186);
+        self::assertSame('created', $entry['outcome'], implode(', ', $entry['reasons']));
+        self::assertSame(VatRegime::Payer, $this->invoiceOf($entry['target_id'])->vatRegime());
+        self::assertSame(['reverse_charge'], $this->em->getConnection()->fetchFirstColumn('SELECT treatment FROM invoice_line WHERE invoice_id = :id', ['id' => $entry['target_id']]));
+        self::assertSame('created', $this->entry($run, 187)['outcome'], 'A domestic customer with a VAT ID is reverse charge too, its supply code left for the accountant.');
+    }
+
     public function testAnotherTypesSequenceOfTheSameFormatIsNoCandidate(): void
     {
         $this->record(IdokladResource::NumericSequences, 5, ['Id' => 5, 'DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
@@ -396,7 +628,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $this->record(IdokladResource::ProformaInvoices, 201, $this->document(['Id' => 201, 'DocumentNumber' => 'Z20260003', 'VariableSymbol' => '20260003'], ['DateOfTaxing']));
         $this->record(IdokladResource::IssuedTaxDocuments, 601, ['Id' => 601, 'DocumentNumber' => 'D20260001', 'DateOfIssue' => '2026-10-05T00:00:00', 'PaymentId' => 999, 'ProformaInvoiceId' => 201, 'Items' => [['Id' => 1, 'Name' => 'Deposit']]]);
 
-        $run = $this->import()->run($this->firm, ImportMode::Run);
+        $run = $this->import()->run($this->firm, ImportMode::Run, new ImportOptions(new \DateTimeImmutable('2026-01-01')));
 
         self::assertSame('created', $this->entry($run, 201)['outcome']);
         self::assertSame([DocumentsStage::PAYMENT_NOT_LINKED], $this->entry($run, 601)['reasons']);
