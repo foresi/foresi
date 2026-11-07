@@ -238,7 +238,7 @@ final class PeopleController extends AbstractController
      * gets the link to pass on, on a page of its own after a redirect, as Turbo
      * expects of a form. The link waits in the session for that page, once.
      */
-    private function issued(InvitationIssued $issued, Request $request): Response
+    private function issued(InvitationIssued $issued, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         if ($issued->mailed) {
             $this->addFlash('success', $this->translator->trans('people.flash.invited', ['email' => $issued->invitation->email()]));
