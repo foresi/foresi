@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The link of an invitation the installation could not mail, for the owner to pass on themselves. #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'people.title'|trans, href: path('app_people')}, {label: 'people.link.title'|trans}] %}
+
+{% block title %}{{ 'people.link.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:Ui:Card :title="'people.link.title'|trans" icon="link-2" class="max-w-2xl">
+        <div class="grid gap-4">
+            <twig:Ui:Alert tone="warning">{{ 'people.link.unconfigured'|trans }}</twig:Ui:Alert>
+            <p class="m-0 text-text">{{ 'people.link.text'|trans({name: invitation.displayName, email: invitation.email, date: expires}) }}</p>
+            <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'people.link.copied'|trans }}" data-copy-failed-value="{{ 'people.link.copy_failed'|trans }}">
+                <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="invitation-link" :label="'people.link.field'|trans" :value="link" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+                <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'people.link.copy'|trans }}</span></twig:Ui:Button>
+                <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+            </div>
+            <p class="m-0 text-caption text-muted">{{ 'people.link.secret'|trans }}</p>
+        </div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button variant="primary" :href="path('app_people_invitations')">{{ 'people.link.done'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

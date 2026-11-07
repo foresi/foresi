@@ -1,0 +1,27 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The owner changes the role of a person and the contact they represent; an external person needs one. #}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'people.title'|trans, href: path('app_people')}, {label: person.displayName}] %}
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ 'people.edit_title'|trans({name: person.displayName}) }}{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ action }}" class="grid max-w-4xl gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\PeopleController::TOKEN')) }}">
+
+        <twig:Ui:Card :title="'people.edit_card'|trans" icon="user">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <twig:Ui:TextInput id="email" :label="'people.field.email'|trans" :value="person.email" readonly />
+                <twig:Ui:Select name="role" id="role" :label="'people.field.role'|trans" :help="'people.field.role_help'|trans" :options="roles" :value="values.role" :error="errors.role|default(null)" />
+                <div class="sm:col-span-2"><twig:Ui:Combobox name="contactId" id="contact" textName="contactQuery" width="long" :label="'people.field.contact'|trans" :help="'people.field.contact_edit_help'|trans" :placeholder="'people.field.contact_placeholder'|trans" :value="values.contactId" :text="values.contactQuery" :url="path('app_people_contacts')" :emptyText="'people.field.contact_empty'|trans" :error="errors.contact|default(null)" /></div>
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_people')">{{ 'people.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'people.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

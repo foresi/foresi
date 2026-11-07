@@ -71,6 +71,8 @@ security:
         - { path: ^/inbound/mail$, roles: PUBLIC_ACCESS }
         # Numbers about the installation only, for an uptime monitor.
         - { path: ^/health$, roles: PUBLIC_ACCESS }
+        # Invitation links, opened before the invited person has an account or has signed in.
+        - { path: ^/invitation/, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

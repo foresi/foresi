@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Ui\Component;
 
+use App\Ui\Avatar;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -526,5 +527,36 @@ final class DataTableTest extends KernelTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => [], 'caption' => 'x']);
+    }
+
+    public function testAPersonCellShowsTheInitialsOnAColourTheSeedAlwaysPicks(): void
+    {
+        $rows = [
+            ['id' => 'a1', 'href' => '/people/a1', 'cells' => ['name' => ['avatar' => 'user-1', 'text' => 'Jana Nováková Example'], 'email' => 'jana@example.com', 'balance' => '']],
+            ['id' => 'b2', 'cells' => ['name' => ['avatar' => 'user-2', 'text' => 'Šimon'], 'email' => null, 'balance' => '']],
+        ];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $first = $crawler->filter('[data-avatar-cell]')->eq(0);
+        self::assertSame('JN', trim($first->filter('[aria-hidden="true"]')->text()));
+        self::assertStringContainsString(Avatar::tone('user-1'), (string) $first->filter('[aria-hidden="true"]')->attr('class'));
+        self::assertSame('/people/a1', $first->filter('a')->attr('href'));
+        self::assertSame('Š', trim($crawler->filter('[data-avatar-cell]')->eq(1)->filter('[aria-hidden="true"]')->text()));
+        self::assertSame('Šimon', $crawler->filter('[data-avatar-cell]')->eq(1)->filter('span span')->last()->text());
+        self::assertSame(Avatar::tone('user-1'), Avatar::tone('user-1'));
+        self::assertContains(Avatar::tone('user-2'), Avatar::TONES);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function testAPersonCellNeedsANameAndASeed(): void
+    {
+        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana']] as $cell) {
+            try {
+                $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
+                self::fail('A person cell without a name or seed was accepted.');
+            } catch (\InvalidArgumentException) {
+            }
+        }
     }
 }

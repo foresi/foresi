@@ -383,6 +383,8 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # An invitation and a membership link the contact an external person represents.
+      - PartyDomain
     IdentityInfrastructure:
       - SharedInfrastructure
       # The QR code of the two-factor enrolment.

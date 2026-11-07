@@ -27,6 +27,8 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
     }
 
     /**
+     * Deactivated memberships are left out: they no longer let the person in.
+     *
      * The one allowed cross-tenant lookup: it has to see the user's memberships
      * in every tenant, so it runs with the tenant filter suspended.
      */
@@ -34,7 +36,7 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
     {
         /** @var list<string> $ids */
         $ids = $this->bypass->run(fn (): array => $this->entityManager
-            ->createQuery('SELECT m.tenantId FROM '.Membership::class.' m WHERE m.user = :user ORDER BY m.id')
+            ->createQuery('SELECT m.tenantId FROM '.Membership::class.' m WHERE m.user = :user AND m.disabledAt IS NULL ORDER BY m.id')
             ->setParameter('user', $user)
             ->getSingleColumnResult());
 
@@ -52,7 +54,7 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
         $rows = $this->bypass->run(function () use ($userId): array {
             /** @var list<array{tenantId: TenantId|string, tenantName: string, role: Role|string}> $result */
             $result = $this->entityManager
-                ->createQuery('SELECT m.tenantId AS tenantId, t.name AS tenantName, m.role AS role FROM '.Membership::class.' m JOIN '.Tenant::class.' t WITH t.id = m.tenantId WHERE IDENTITY(m.user) = :user ORDER BY t.name ASC, m.id ASC')
+                ->createQuery('SELECT m.tenantId AS tenantId, t.name AS tenantName, m.role AS role FROM '.Membership::class.' m JOIN '.Tenant::class.' t WITH t.id = m.tenantId WHERE IDENTITY(m.user) = :user AND m.disabledAt IS NULL ORDER BY t.name ASC, m.id ASC')
                 ->setParameter('user', $userId)
                 ->getArrayResult();
 

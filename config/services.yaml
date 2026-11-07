@@ -187,6 +187,8 @@ services:
         alias: limiter.inbound_mail
     test.inbound_mail_relay_limiter:
         alias: limiter.inbound_mail_relay
+    test.invitation_link_limiter:
+        alias: limiter.invitation_link
     test.invoice_balances:
         alias: App\Invoicing\Application\InvoiceBalances
     test.idoklad_import:
@@ -469,6 +471,9 @@ when@test:
         test.health_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
 
+        test.invitation_link_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+
         # Lets a test spend the budget of a firm.
         test.invoice_send_firm_limiter:
             alias: limiter.invoice_send_firm
@@ -481,6 +486,9 @@ when@test:
             public: true
         test.inbound_mail_relay_limiter:
             alias: limiter.inbound_mail_relay
+            public: true
+        test.invitation_link_limiter:
+            alias: limiter.invitation_link
             public: true
 
         # The generic audit query; the fake import target answers changedSince()

@@ -29,8 +29,6 @@ use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 #[AsCommand(name: 'app:user:create', description: 'Create a user and a membership, creating the tenant if it is missing')]
 final readonly class CreateUserCommand
 {
-    private const int MIN_PASSWORD_LENGTH = 12;
-
     public function __construct(
         private UserRepository $users,
         private EntityManagerInterface $entityManager,
@@ -91,8 +89,8 @@ final readonly class CreateUserCommand
 
         $password = $io->askHidden('Password');
         $confirmation = $io->askHidden('Repeat password');
-        if (!\is_string($password) || self::MIN_PASSWORD_LENGTH > \strlen($password)) {
-            $io->error(sprintf('The password must have at least %d characters.', self::MIN_PASSWORD_LENGTH));
+        if (!\is_string($password) || User::MIN_PASSWORD_LENGTH > \strlen($password)) {
+            $io->error(sprintf('The password must have at least %d characters.', User::MIN_PASSWORD_LENGTH));
 
             return Command::INVALID;
         }

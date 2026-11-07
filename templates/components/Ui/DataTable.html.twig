@@ -60,6 +60,15 @@
                                                     <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.text }}</a>
                                                 {%- endfor -%}
                                             </span>
+                                        {%- elseif cell.avatar -%}
+                                            <span class="flex min-w-0 items-center gap-2" data-avatar-cell>
+                                                <span class="grid size-6 shrink-0 place-items-center rounded-control text-caption font-semibold {{ cell.avatar.tone }}" aria-hidden="true">{{ cell.avatar.initials }}</span>
+                                                {%- if cell.link -%}
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                                {%- else -%}
+                                                    <span class="block min-w-0 max-w-[32ch] truncate font-medium text-ink"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
+                                                {%- endif -%}
+                                            </span>
                                         {%- elseif cell.icon -%}
                                             <span class="inline-flex items-center gap-1.5"{% if cell.hint %} title="{{ cell.hint }}"{% endif %} data-icon-cell="{{ cell.icon }}">{{ ux_icon('lucide:' ~ cell.icon, {class: 'size-4 shrink-0 ' ~ cell.iconClass, 'aria-hidden': 'true'}) }}<span>{{ cell.text }}</span></span>
                                         {%- elseif cell.tone -%}

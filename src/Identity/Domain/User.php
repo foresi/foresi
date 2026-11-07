@@ -21,6 +21,9 @@ class User
 {
     public const array LOCALES = ['cs', 'en'];
 
+    /** The shortest password anyone signs in with, chosen on the console or on an invitation. */
+    public const int MIN_PASSWORD_LENGTH = 12;
+
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;

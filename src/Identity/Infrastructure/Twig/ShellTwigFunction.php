@@ -13,6 +13,7 @@ use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Tenancy\Application\TenantContext;
+use App\Ui\Avatar;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Attribute\AsTwigFunction;
 
@@ -56,7 +57,7 @@ final readonly class ShellTwigFunction
         return new ShellView(
             $user->displayName(),
             $user->email(),
-            $this->initials($user->displayName()),
+            Avatar::initials($user->displayName()),
             $user->locale(),
             $this->otherLocale($user->locale()),
             $tenantActive,
@@ -74,14 +75,5 @@ final readonly class ShellTwigFunction
         }
 
         return $locale;
-    }
-
-    private function initials(string $name): string
-    {
-        $words = preg_split('/\s+/u', trim($name), -1, \PREG_SPLIT_NO_EMPTY);
-        $words = false === $words ? [] : $words;
-        $letters = array_map(static fn (string $word): string => mb_strtoupper(mb_substr($word, 0, 1)), \array_slice($words, 0, 2));
-
-        return implode('', $letters);
     }
 }

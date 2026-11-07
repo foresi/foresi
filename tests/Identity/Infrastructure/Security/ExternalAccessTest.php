@@ -37,6 +37,8 @@ final class ExternalAccessTest extends WebTestCase
         'app_health', 'app_inbound_mail',
         // The public links to sent documents.
         'app_document_link', 'app_document_link_pdf', 'app_document_link_open', 'app_document_link_download', 'app_document_link_other',
+        // The link of an invitation, which may well be for an external person.
+        'app_invitation',
         // The start page, which sends them on to what is shared with them.
         'app_dashboard', 'app_shared_with_me',
         // No live components exist: an unknown one is not found before any controller runs.
