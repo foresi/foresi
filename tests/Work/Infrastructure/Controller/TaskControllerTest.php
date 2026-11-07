@@ -108,7 +108,8 @@ final class TaskControllerTest extends WebTestCase
         self::assertStringContainsString('Example Company: Changed Section', implode("\n", $history));
         self::assertStringContainsString('Status In progress → Done', implode("\n", $history));
         self::assertStringContainsString('Responsible Example Company → Jana Example', implode("\n", $history));
-        self::assertStringContainsString('Changed Due date', implode("\n", $history));
+        self::assertStringContainsString('Due date '.new \DateTimeImmutable('-3 days')->format('Y-m-d').' → 2026-12-24', implode("\n", $history));
+        self::assertStringContainsString('Priority High → Urgent', implode("\n", $history));
         // The person given the task follows it.
         self::assertSelectorTextContains('[data-task-watchers]', 'Jana Example');
 
@@ -117,6 +118,8 @@ final class TaskControllerTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         $this->client->submit($crawler->filter('[data-task-property="section"]')->form(['section' => '']));
         self::assertSame(['due_on' => null, 'section_id' => null], $this->em->getConnection()->fetchAssociative('SELECT due_on, section_id FROM task WHERE id = ?', [$id]));
+        $this->client->request('GET', '/tasks/'.$id);
+        self::assertSelectorTextContains('[data-task-history]', 'Due date 2026-12-24 → —');
     }
 
     public function testTheTitleIsEditedInPlaceAndMustNotBeEmpty(): void

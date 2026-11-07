@@ -24,6 +24,8 @@ interface WorkQueries
 
     public function board(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectBoard;
 
+    public function projectSettings(string $projectId): ?ProjectSettings;
+
     /**
      * Unfinished tasks of active projects the signed-in person is responsible for.
      *
@@ -46,4 +48,9 @@ interface WorkQueries
      * @return list<LabelBadge> by name
      */
     public function labels(): array;
+
+    /**
+     * @return array<string, int> the number of tasks of each label by label id; a label on no task is left out
+     */
+    public function labelUsage(): array;
 }

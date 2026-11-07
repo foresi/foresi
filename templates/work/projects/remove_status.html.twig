@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The removal of a status asks where its tasks go: another status of the project. A dialog over the
+    settings; the same URL is a page of its own. A refusal, such as the last status of its type, is told here.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans, href: path('app_project_settings', {id: project.id})}, {label: 'work.settings.remove_status.title'|trans({name: status.name})}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'work.settings.remove_status.title'|trans({name: status.name}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="status-remove-form" action="{{ path('app_project_status_remove', {id: project.id, statusId: status.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ error }}</twig:Ui:Alert>{% endif %}
+        <p class="m-0 text-text">{{ 'work.settings.remove_status.text'|trans({name: status.name}) }}</p>
+        <twig:Ui:Select name="target" id="target" :label="'work.settings.remove_status.target'|trans" :options="targets" :value="target" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="status-remove-form" variant="danger">{{ 'work.settings.remove_status.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.settings.remove_status.title'|trans({name: status.name})" icon="trash-2" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_project_settings', {id: project.id})">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="status-remove-form" variant="danger">{{ 'work.settings.remove_status.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

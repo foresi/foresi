@@ -14,6 +14,7 @@ use App\Audit\Domain\AuditEntry;
 use App\Identity\Application\People;
 use App\Identity\Application\UserRepository;
 use App\Work\Domain\Label;
+use App\Work\Domain\Priority;
 use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Task;
@@ -25,13 +26,14 @@ use App\Work\Domain\TaskWatcher;
  * step, as the commands save it under one correlation. The status, the person
  * responsible, watchers and labels are told by name; the other fields by the
  * translation key of their label. A step that only moved the task among its
- * neighbours shows nothing and is left out. A status or label removed since
+ * neighbours shows nothing and is left out. The due date and the priority
+ * are told from what they were to what they became. A status or label removed since
  * keeps the last name the log knew.
  */
 final readonly class TaskHistory
 {
     /** The plain fields of a task, by the last part of their translation key. */
-    private const array FIELDS = ['title' => 'title', 'description' => 'description', 'section' => 'section', 'dueOn' => 'due_on', 'priority' => 'priority'];
+    private const array FIELDS = ['title' => 'title', 'description' => 'description', 'section' => 'section'];
 
     public function __construct(
         private VisibleWork $work,
@@ -88,6 +90,8 @@ final readonly class TaskHistory
         $fields = [];
         $status = null;
         $responsible = null;
+        $due = null;
+        $priority = null;
         $watchers = [[], []];
         $tagged = [[], []];
         foreach ($group as $entry) {
@@ -104,6 +108,8 @@ final readonly class TaskHistory
                 }
                 $status = isset($changes['status']) ? [$this->id($changes['status'][0] ?? null), $this->id($changes['status'][1] ?? null)] : $status;
                 $responsible = \array_key_exists('responsible', $changes) ? [$this->id($changes['responsible'][0] ?? null), $this->id($changes['responsible'][1] ?? null)] : $responsible;
+                $due = \array_key_exists('dueOn', $changes) ? [$this->date($changes['dueOn'][0] ?? null), $this->date($changes['dueOn'][1] ?? null)] : $due;
+                $priority = isset($changes['priority']) ? [$this->priority($changes['priority'][0] ?? null), $this->priority($changes['priority'][1] ?? null)] : $priority;
             } elseif (TaskWatcher::class === $entry->entityClass()) {
                 $id = $this->id($changes['membership'][$removed ? 0 : 1] ?? null);
                 if (null !== $id) {
@@ -116,7 +122,7 @@ final readonly class TaskHistory
                 }
             }
         }
-        if ([] === $fields && null === $status && null === $responsible && [[], []] === $watchers && [[], []] === $tagged) {
+        if ([] === $fields && null === $status && null === $responsible && null === $due && null === $priority && [[], []] === $watchers && [[], []] === $tagged) {
             return null;
         }
 
@@ -135,6 +141,11 @@ final readonly class TaskHistory
             $watchers[1],
             $tagged[0],
             $tagged[1],
+            null !== $due,
+            $due[0] ?? null,
+            $due[1] ?? null,
+            $priority[0] ?? null,
+            $priority[1] ?? null,
         );
     }
 
@@ -173,6 +184,25 @@ final readonly class TaskHistory
         }
 
         return $name;
+    }
+
+    /**
+     * A date as the log keeps it, the day alone.
+     */
+    private function date(mixed $value): ?\DateTimeImmutable
+    {
+        if (!\is_string($value) || 1 !== preg_match('/^\d{4}-\d{2}-\d{2}/', $value, $day)) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $day[0]);
+
+        return false === $date ? null : $date;
+    }
+
+    private function priority(mixed $value): Priority
+    {
+        return (\is_string($value) ? Priority::tryFrom($value) : null) ?? Priority::None;
     }
 
     private function id(mixed $value): ?string

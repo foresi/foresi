@@ -369,6 +369,15 @@ final class TaskController extends AbstractController
             if ($entry->reassigned) {
                 $parts[] = $this->translator->trans('work.history.responsible', ['from' => $entry->assignedFrom ?? $nobody, 'to' => $entry->assignedTo ?? $nobody]);
             }
+            if ($entry->dueChanged) {
+                $parts[] = $this->translator->trans('work.history.due', [
+                    'from' => $entry->dueFrom?->format($this->translator->trans('format.date')) ?? $this->translator->trans('work.history.no_date'),
+                    'to' => $entry->dueTo?->format($this->translator->trans('format.date')) ?? $this->translator->trans('work.history.no_date'),
+                ]);
+            }
+            if ($entry->priorityFrom instanceof Priority && $entry->priorityTo instanceof Priority) {
+                $parts[] = $this->translator->trans('work.history.priority', ['from' => $this->translator->trans('work.priority.'.$entry->priorityFrom->value), 'to' => $this->translator->trans('work.priority.'.$entry->priorityTo->value)]);
+            }
             if ([] !== $entry->fields) {
                 $parts[] = $this->translator->trans('work.history.fields', ['fields' => implode(', ', array_map(fn (string $key): string => $this->translator->trans($key), $entry->fields))]);
             }
@@ -380,7 +389,7 @@ final class TaskController extends AbstractController
             $icon = match (true) {
                 $entry->statusChanged => 'refresh-cw',
                 $entry->reassigned => 'user',
-                [] !== $entry->fields => 'pencil',
+                [] !== $entry->fields, $entry->dueChanged, $entry->priorityFrom instanceof Priority => 'pencil',
                 [] !== $entry->watchersAdded || [] !== $entry->watchersRemoved => 'users',
                 default => 'tag',
             };

@@ -69,6 +69,7 @@ nav:
     recurring: Pravidelné faktury
     bank: Banka
     projects: Projekty
+    labels: Štítky
 ui:
   dialog:
     close: Zavřít
@@ -3122,6 +3123,84 @@ work:
     watchers_removed: '{count, plural, one {Odebrán sledující} other {Odebráni sledující}}: {names}'
     labels_added: '{count, plural, one {Přidán štítek} other {Přidány štítky}}: {names}'
     labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
+    due: 'Termín {from} → {to}'
+    priority: 'Priorita {from} → {to}'
+    no_date: —
+  settings:
+    title: Nastavení
+    saved: Uloženo.
+    general: Obecné
+    archive: Archivovat
+    restore: Obnovit
+    archived: Projekt je archivovaný.
+    restored: Projekt je obnovený.
+    archive_confirm:
+      title: 'Archivovat projekt {name}?'
+      text: Zmizí z aktivních projektů. Kdykoli ho obnovíte.
+    restore_confirm:
+      title: 'Obnovit projekt {name}?'
+      text: Vrátí se mezi aktivní projekty.
+    sections: Sekce
+    sections_empty: Projekt zatím nemá žádné sekce.
+    section_name: Název sekce
+    add_section: Přidat sekci
+    add_section_placeholder: Název sekce a Enter
+    statuses: Stavy
+    status_name: Název stavu
+    status_type: Typ
+    new_status: Nový stav
+    add_status: Přidat stav
+    status_removed: 'Stav {name} je odebraný.'
+    move_up: 'Posunout nahoru: {name}'
+    move_down: 'Posunout dolů: {name}'
+    remove: Odebrat
+    remove_named: 'Odebrat: {name}'
+    remove_section:
+      title: 'Odebrat sekci {name}?'
+      text: Úkoly sekce se přesunou do Bez sekce.
+    remove_status:
+      title: 'Odebrat stav {name}'
+      text: 'Úkoly ve stavu {name} se přesunou do jiného stavu.'
+      target: Přesunout úkoly do
+      submit: Odebrat stav
+    type:
+      open: Otevřený
+      active: Aktivní
+      done: Hotový
+      closed: Uzavřený
+  labels:
+    title: Štítky
+    new: Nový štítek
+    edit: Upravit
+    edit_title: 'Upravit štítek {name}'
+    delete: Smazat
+    saved: 'Štítek {name} je uložený.'
+    deleted: 'Štítek {name} je smazaný.'
+    column:
+      name: Název
+      preview: Vzhled
+      tasks: Úkoly
+    field:
+      name: Název
+      colour: Barva
+    colour:
+      gray: Šedá
+      gray_text: Bez důrazu
+      green: Zelená
+      green_text: Pozitivní
+      amber: Oranžová
+      amber_text: Upozornění
+      red: Červená
+      red_text: Naléhavé
+    delete_confirm:
+      title: 'Smazat štítek {name}?'
+      text: '{count, plural, =0 {Štítek není na žádném úkolu.} one {Odebere se z jednoho úkolu.} other {Odebere se z úkolů: #.}}'
+    empty:
+      title: Zatím žádné štítky
+      text: Štítky třídí úkoly napříč projekty.
+    error:
+      name_required: Zadejte název štítku.
+      colour: Vyberte barvu.
   projects:
     title: Projekty
     views: Pohledy na projekty
@@ -3173,9 +3252,9 @@ work:
     responsible_anyone: Kdokoli
     responsible_me: Já
     status: Stav
-    status_open: Otevřené a rozpracované
+    status_open: Nehotové
     status_all: Vše
-    status_finished: Dokončené
+    status_finished: Hotové
     due: Termín
     due_any: Kdykoli
     due_overdue: Po termínu

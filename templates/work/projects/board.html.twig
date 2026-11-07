@@ -20,6 +20,10 @@
 
 {% block title %}{{ project.name }}{% endblock %}
 
+{% block actions %}
+    <twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
 {% block content %}
     {% for tone in ['success', 'error'] %}
         {% for message in app.flashes(tone) %}

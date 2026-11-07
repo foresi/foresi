@@ -1,0 +1,54 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new label, or a change of one: its name and its colour, one of the badge tones. A dialog over
+    the labels; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set heading = label ? 'work.labels.edit_title'|trans({name: label.name}) : 'work.labels.new'|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'work.labels.title'|trans, href: path('app_labels')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="label-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\LabelController::TOKEN')) }}">
+        {% if errors is not empty %}
+            {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+                <p class="m-0 mb-1 font-semibold">{{ 'work.project.errors_title'|trans }}</p>
+                <ul class="m-0 grid list-none gap-0.5 p-0">
+                    {% for field, message in errors %}
+                        <li>
+                            {%- if field == 'form' %}{{ message }}
+                            {%- else %}<a href="#{{ field == 'colour' ? 'colour-gray' : field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.labels.field.' ~ field)|trans }}</a>: {{ message }}
+                            {%- endif -%}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+        <twig:Ui:TextInput name="name" id="name" :label="'work.labels.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="60" required autocomplete="off" />
+        <twig:Ui:RadioCards name="colour" id="colour" :legend="'work.labels.field.colour'|trans" :value="values.colour" :options="colours" :error="errors.colour|default(null)" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="label-form" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="tag" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_labels')">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="label-form" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

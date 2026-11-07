@@ -1,0 +1,124 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The settings of a project: what it is and for whom, with its archiving; its sections in order,
+    each renamed, moved or removed by a form of its own, and a line that adds one; its statuses in
+    order, each with its name and type, moved, or removed in a dialog that asks where its tasks go.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans}] %}
+{% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
+{% set form_invalid = errors is not empty %}
+{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'work.settings.title'|trans }} · {{ project.name }}{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid max-w-4xl grid-cols-1 gap-4">
+        <twig:Ui:Card :title="'work.settings.general'|trans" icon="settings" data-settings-general>
+            <twig:block name="actions">
+                {% set archiving = project.archivedAt ? 'restore' : 'archive' %}
+                <form method="post" action="{{ path('app_project_' ~ archiving, {id: project.id}) }}"
+                    data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    data-confirm-title="{{ ('work.settings.' ~ archiving ~ '_confirm.title')|trans({name: project.name}) }}" data-confirm-text="{{ ('work.settings.' ~ archiving ~ '_confirm.text')|trans }}"
+                    data-confirm-accept="{{ ('work.settings.' ~ archiving)|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}"{% if archiving == 'archive' %} data-confirm-tone="danger"{% endif %} data-project-archiving>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" size="sm" variant="ghost" :icon="archiving == 'archive' ? 'archive' : 'archive-restore'">{{ ('work.settings.' ~ archiving)|trans }}</twig:Ui:Button>
+                </form>
+            </twig:block>
+            <form method="post" id="project-settings-form" action="{{ path('app_project_settings', {id: project.id}) }}" class="grid gap-4" novalidate>
+                <input type="hidden" name="_token" value="{{ token }}">
+                {% if errors is not empty %}
+                    {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
+                    <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+                        <p class="m-0 mb-1 font-semibold">{{ 'work.project.errors_title'|trans }}</p>
+                        <ul class="m-0 grid list-none gap-0.5 p-0">
+                            {% for field, message in errors %}
+                                <li>
+                                    {%- if field == 'form' %}{{ message }}
+                                    {%- else %}<a href="#{{ field }}" class="text-current underline underline-offset-2 {{ focus }}">{{ ('work.project.field.' ~ field)|trans }}</a>: {{ message }}
+                                    {%- endif -%}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </twig:Ui:Alert>
+                {% endif %}
+                <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
+                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
+                <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
+                <div><twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button></div>
+            </form>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'work.settings.sections'|trans" icon="columns-3" data-settings-sections>
+            <div class="grid gap-3">
+                {% if sections is empty %}
+                    <p class="m-0 text-muted">{{ 'work.settings.sections_empty'|trans }}</p>
+                {% else %}
+                    <ol class="m-0 grid list-none divide-y divide-divider p-0">
+                        {% for section in sections %}
+                            <li class="flex flex-wrap items-end gap-2 py-2 first:pt-0" data-settings-section="{{ section.id }}">
+                                <form method="post" action="{{ path('app_project_section_rename', {id: project.id, sectionId: section.id}) }}" class="flex min-w-0 flex-1 items-end gap-2">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" :id="'section-' ~ section.id" :label="'work.settings.section_name'|trans" :value="section.name" maxlength="120" required autocomplete="off" /></div>
+                                    <twig:Ui:Button type="submit">{{ 'work.save'|trans }}</twig:Ui:Button>
+                                </form>
+                                <div class="flex items-center gap-1">
+                                    {{ include('work/projects/_move.html.twig', {action: path('app_project_section_move', {id: project.id, sectionId: section.id}), direction: 'up', enabled: not loop.first, label: 'work.settings.move_up'|trans({name: section.name}), token: token}, with_context = false) }}
+                                    {{ include('work/projects/_move.html.twig', {action: path('app_project_section_move', {id: project.id, sectionId: section.id}), direction: 'down', enabled: not loop.last, label: 'work.settings.move_down'|trans({name: section.name}), token: token}, with_context = false) }}
+                                    <form method="post" action="{{ path('app_project_section_remove', {id: project.id, sectionId: section.id}) }}"
+                                        data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                        data-confirm-title="{{ 'work.settings.remove_section.title'|trans({name: section.name}) }}" data-confirm-text="{{ 'work.settings.remove_section.text'|trans }}"
+                                        data-confirm-accept="{{ 'work.settings.remove'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger">
+                                        <input type="hidden" name="_token" value="{{ token }}">
+                                        <twig:Ui:Button type="submit" variant="ghost" :aria-label="'work.settings.remove_named'|trans({name: section.name})">{{ 'work.settings.remove'|trans }}</twig:Ui:Button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% endif %}
+                {% if not project.archivedAt %}
+                    <form method="post" action="{{ path('app_project_section_add', {id: project.id}) }}" class="max-w-field-long border-t border-divider pt-3" data-settings-section-add>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:TextInput name="name" id="section-add" :label="'work.settings.add_section'|trans" :placeholder="'work.settings.add_section_placeholder'|trans" maxlength="120" autocomplete="off" enterkeyhint="send" />
+                    </form>
+                {% endif %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'work.settings.statuses'|trans" icon="circle-check" data-settings-statuses>
+            <div class="grid gap-3">
+                <ol class="m-0 grid list-none divide-y divide-divider p-0">
+                    {% for status in statuses %}
+                        <li class="flex flex-wrap items-end gap-2 py-2 first:pt-0" data-settings-status="{{ status.id }}">
+                            <form method="post" action="{{ path('app_project_status_save', {id: project.id, statusId: status.id}) }}" class="flex min-w-0 flex-1 flex-wrap items-end gap-2">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" :id="'status-' ~ status.id" :label="'work.settings.status_name'|trans" :value="status.name" maxlength="80" required autocomplete="off" /></div>
+                                <div class="w-36"><twig:Ui:Select name="type" :id="'status-' ~ status.id ~ '-type'" :label="'work.settings.status_type'|trans" :options="types" :value="status.type.value" /></div>
+                                <twig:Ui:Button type="submit">{{ 'work.save'|trans }}</twig:Ui:Button>
+                            </form>
+                            <div class="flex items-center gap-1">
+                                {{ include('work/projects/_move.html.twig', {action: path('app_project_status_move', {id: project.id, statusId: status.id}), direction: 'up', enabled: not loop.first, label: 'work.settings.move_up'|trans({name: status.name}), token: token}, with_context = false) }}
+                                {{ include('work/projects/_move.html.twig', {action: path('app_project_status_move', {id: project.id, statusId: status.id}), direction: 'down', enabled: not loop.last, label: 'work.settings.move_down'|trans({name: status.name}), token: token}, with_context = false) }}
+                                <twig:Ui:Button variant="ghost" :href="path('app_project_status_remove', {id: project.id, statusId: status.id})" data-dialog aria-haspopup="dialog" :aria-label="'work.settings.remove_named'|trans({name: status.name})">{{ 'work.settings.remove'|trans }}</twig:Ui:Button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ol>
+                <form method="post" action="{{ path('app_project_status_add', {id: project.id}) }}" class="flex flex-wrap items-end gap-2 border-t border-divider pt-3" data-settings-status-add>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" id="status-add" :label="'work.settings.new_status'|trans" :placeholder="'work.settings.status_name'|trans" maxlength="80" autocomplete="off" /></div>
+                    <div class="w-36"><twig:Ui:Select name="type" id="status-add-type" :label="'work.settings.status_type'|trans" :options="types" value="open" /></div>
+                    <twig:Ui:Button type="submit" icon="plus">{{ 'work.settings.add_status'|trans }}</twig:Ui:Button>
+                </form>
+            </div>
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

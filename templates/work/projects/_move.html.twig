@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# One step up or down the order of a section or a status; at its end the button is disabled. #}
+<form method="post" action="{{ action }}">
+    <input type="hidden" name="_token" value="{{ token }}">
+    <input type="hidden" name="direction" value="{{ direction }}">
+    <twig:Ui:IconButton type="submit" :icon="direction == 'up' ? 'arrow-up' : 'arrow-down'" :label="label" variant="ghost" :disabled="not enabled" />
+</form>

@@ -21,6 +21,7 @@ use App\Work\Application\ProjectBoard;
 use App\Work\Application\ProjectList;
 use App\Work\Application\ProjectRow;
 use App\Work\Application\Projects;
+use App\Work\Application\ProjectSettings;
 use App\Work\Application\ProjectSummary;
 use App\Work\Application\SectionTasks;
 use App\Work\Application\StatusChoice;
@@ -34,6 +35,8 @@ use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkVisibility;
 use App\Work\Domain\Label;
 use App\Work\Domain\Project;
+use App\Work\Domain\ProjectStatus;
+use App\Work\Domain\Section;
 use App\Work\Domain\StatusType;
 use App\Work\Domain\Task;
 use App\Work\Domain\TaskLabel;
@@ -127,6 +130,20 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return new ProjectBoard($this->summary($project), $columns);
     }
 
+    public function projectSettings(string $projectId): ?ProjectSettings
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+
+        return new ProjectSettings(
+            $this->summary($project),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+        );
+    }
+
     public function myTasks(?string $clientId = null): array
     {
         $groups = array_fill_keys([TaskGroup::OVERDUE, TaskGroup::TODAY, TaskGroup::UPCOMING, TaskGroup::LATER, TaskGroup::NO_DATE], []);
@@ -188,8 +205,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
             $task->section()?->name(),
             array_map(static fn (TaskWatcher $watcher): Choice => new Choice($watcher->membership()->id(), $watcher->membership()->user()->displayName()), $watchers),
-            array_map(static fn (\App\Work\Domain\ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
-            array_map(static fn (\App\Work\Domain\Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
             $people,
             $project->isArchived(),
             $task->createdAt(),
@@ -205,6 +222,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
 
         return array_map(static fn (Label $label): LabelBadge => new LabelBadge($label->id(), $label->name(), $label->colour()), $this->labels->all());
+    }
+
+    public function labelUsage(): array
+    {
+        if (!$this->visibility->scope()->isEverything()) {
+            return [];
+        }
+        /** @var list<array{label: string, tasks: int|string}> $counts */
+        $counts = $this->entityManager
+            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl GROUP BY tl.label')
+            ->getArrayResult();
+
+        return array_map(intval(...), array_column($counts, 'tasks', 'label'));
     }
 
     private function visibleProject(string $id): ?Project
