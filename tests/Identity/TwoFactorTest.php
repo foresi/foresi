@@ -102,7 +102,7 @@ final class TwoFactorTest extends WebTestCase
         // The same pending secret on a reload, so a scanned code keeps working.
         self::assertSame($secret, str_replace(' ', '', $this->client->request('GET', '/account/two-factor')->filter('[data-two-factor-key]')->text()));
 
-        $this->client->submit($this->client->getCrawler()->filter('form')->first()->form(['code' => self::currentCode($secret)]));
+        $this->client->submit($this->client->getCrawler()->filter('form')->first()->form(['code' => $this->currentCode($secret)]));
 
         self::assertResponseRedirects('/account/two-factor/recovery-codes');
         $codes = $this->client->followRedirect()->filter('[data-recovery-codes] li')->each(static fn (Crawler $item): string => $item->text());
@@ -137,7 +137,7 @@ final class TwoFactorTest extends WebTestCase
         self::assertSame('true', $crawler->filter('#auth-code')->attr('aria-invalid'));
         self::assertSame('one-time-code', $crawler->filter('#auth-code')->attr('autocomplete'));
 
-        $this->submitCode(self::currentCode($this->secret));
+        $this->submitCode($this->currentCode($this->secret));
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
@@ -173,7 +173,7 @@ final class TwoFactorTest extends WebTestCase
         $this->client->followRedirect();
         $wrongCode = $this->client->getCrawler()->filter('[id$="-error"]')->text();
 
-        $this->submitCode(self::currentCode($this->secret));
+        $this->submitCode($this->currentCode($this->secret));
 
         self::assertResponseRedirects('/login/code');
         $this->client->followRedirect();
@@ -186,7 +186,7 @@ final class TwoFactorTest extends WebTestCase
         $this->enrol();
         $this->signIn();
         $crawler = $this->client->request('GET', '/login/code');
-        $this->client->submit($crawler->filter('form')->first()->form(['_auth_code' => self::currentCode($this->secret), '_trusted' => '1']));
+        $this->client->submit($crawler->filter('form')->first()->form(['_auth_code' => $this->currentCode($this->secret), '_trusted' => '1']));
         self::assertResponseRedirects('/');
         self::assertNotNull($this->client->getCookieJar()->get('trusted_device'));
 
@@ -247,7 +247,7 @@ final class TwoFactorTest extends WebTestCase
         $this->client->submit($crawler->filter('form')->first()->form(['_auth_code' => $code]));
     }
 
-    private static function currentCode(string $secret): string
+    private function currentCode(string $secret): string
     {
         return TOTP::createFromSecret('' !== $secret ? $secret : throw new \LogicException('No secret.'))->now();
     }
