@@ -302,6 +302,16 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertCount(1, $this->lineRows($template->id()));
     }
 
+    public function testAnImportTheOtherSystemRestartedGoesOnAfterTheRestart(): void
+    {
+        $input = $this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-09-20')]);
+
+        $template = $this->save->import($input, new RecurringHistory('example-template-12', 3, new \DateTimeImmutable('2026-03-01'), new \DateTimeImmutable('2026-09-20')));
+
+        $row = $this->templateRow($template->id());
+        self::assertSame(['2026-09-20', 3, '2026-03-01', '2026-10-20'], [$row['first_issue_on'], $row['issued_count'], $row['last_occurrence'], $row['next_occurrence']]);
+    }
+
     public function testAnImportWithoutIssuesStartsOnItsFirstDateEvenWhenPassed(): void
     {
         $template = $this->save->import($this->recurringInput(overrides: ['recurrence' => $this->monthly('2026-10-31')]), new RecurringHistory('example-template-8', 0, null));

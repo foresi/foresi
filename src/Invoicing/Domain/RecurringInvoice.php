@@ -217,21 +217,25 @@ class RecurringInvoice implements TenantOwned, Audited
     /**
      * The next date of a schedule that has issued $issued invoices, the last of them on
      * $lastOccurrence: the day after it, or the first issue date when none was issued;
-     * null when the end rule allows no more.
+     * null when the end rule allows no more. A schedule the other system restarted on
+     * $restartedOn goes on after that day when it is the later one.
      */
-    public static function occurrenceAfter(Recurrence $recurrence, int $issued, ?\DateTimeImmutable $lastOccurrence): ?\DateTimeImmutable
+    public static function occurrenceAfter(Recurrence $recurrence, int $issued, ?\DateTimeImmutable $lastOccurrence, ?\DateTimeImmutable $restartedOn = null): ?\DateTimeImmutable
     {
-        return self::firstOccurrenceFrom($recurrence, $issued, $lastOccurrence instanceof \DateTimeImmutable ? $lastOccurrence->modify('+1 day') : $recurrence->firstIssueOn());
+        $after = $restartedOn instanceof \DateTimeImmutable ? max($restartedOn, $lastOccurrence ?? $restartedOn) : $lastOccurrence;
+
+        return self::firstOccurrenceFrom($recurrence, $issued, $after instanceof \DateTimeImmutable ? $after->modify('+1 day') : $recurrence->firstIssueOn());
     }
 
     /**
      * Carries over what the system it was imported from issued: the count and the last
      * date, so an end after a count and the next date go on from there. A template whose
-     * end rule allows no more is ended on its last date.
+     * end rule allows no more is ended on its last date. A schedule the other system
+     * restarted on $restartedOn goes on after that day.
      *
      * @throws \DomainException unless the template is imported and has issued nothing here, or for a negative count
      */
-    public function carryOver(int $issued, ?\DateTimeImmutable $lastOccurrence): void
+    public function carryOver(int $issued, ?\DateTimeImmutable $lastOccurrence, ?\DateTimeImmutable $restartedOn = null): void
     {
         if (null === $this->importedFrom || 0 !== $this->issuedCount || $this->lastOccurrence instanceof \DateTimeImmutable) {
             throw new \DomainException('Only an imported template that issued nothing here carries over what it issued.');
@@ -241,7 +245,7 @@ class RecurringInvoice implements TenantOwned, Audited
         }
         $this->issuedCount = $issued;
         $this->lastOccurrence = $lastOccurrence instanceof \DateTimeImmutable ? new \DateTimeImmutable($this->day($lastOccurrence)) : null;
-        $this->nextOccurrence = self::occurrenceAfter($this->recurrence(), $issued, $this->lastOccurrence);
+        $this->nextOccurrence = self::occurrenceAfter($this->recurrence(), $issued, $this->lastOccurrence, $restartedOn);
         if (!$this->nextOccurrence instanceof \DateTimeImmutable) {
             $this->state = RecurringState::Ended;
             $this->endedAt = $this->lastOccurrence ?? $this->createdAt;

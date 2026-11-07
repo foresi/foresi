@@ -2664,6 +2664,7 @@ idoklad:
             note_not_carried: The note of the template is not carried over; templates in Foresi have no note.
             fixed_variable_symbol: iDoklad kept one variable symbol for every invoice; in Foresi each invoice takes its number.
             rounding_item_skipped: The rounding item is left out; Foresi rounds the total by the firm's setting.
+            reanchored: iDoklad switched the template back on and counts it from that day; Foresi repeats it from the same day.
     title: Move from iDoklad
     entry: Move from iDoklad
     firms:

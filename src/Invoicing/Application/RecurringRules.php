@@ -182,7 +182,7 @@ final readonly class RecurringRules
             $problems[] = new IssueProblem('dueDays', 'recurring.problem.due_days_invalid');
         }
         if ($history instanceof RecurringHistory) {
-            return [$problems, RecurringInvoice::occurrenceAfter($input->recurrence, $history->issuedCount, $history->lastOccurrence)];
+            return [$problems, RecurringInvoice::occurrenceAfter($input->recurrence, $history->issuedCount, $history->lastOccurrence, $history->restartedOn)];
         }
         $next = $existing instanceof RecurringInvoice
             ? $existing->nextOccurrenceUnder($input->recurrence, $today)

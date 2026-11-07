@@ -86,7 +86,7 @@ final readonly class SaveRecurringInvoice
             }
 
             $template = $this->store($input, $firm, true, $history->importedFrom);
-            $template->carryOver($history->issuedCount, $history->lastOccurrence);
+            $template->carryOver($history->issuedCount, $history->lastOccurrence, $history->restartedOn);
 
             return $template;
         });
