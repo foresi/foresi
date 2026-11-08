@@ -442,6 +442,12 @@ when@e2e:
         e2e.manage_labels:
             alias: App\Work\Application\ManageLabels
             public: true
+        e2e.manage_comments:
+            alias: App\Work\Application\ManageComments
+            public: true
+        e2e.upload_attachment:
+            alias: App\Attachment\Application\UploadAttachment
+            public: true
         e2e.token_storage:
             alias: security.token_storage
             public: true

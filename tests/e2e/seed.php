@@ -25,7 +25,8 @@ declare(strict_types=1);
  * iDoklad import spec, and "Example People" with people@example.com the organisation the
  * people spec invites into, and "Example Projects" with projects@example.com and the team member
  * member@example.com the project "Website" with sections, tasks, a subtask and labels for the
- * projects spec. Run it after the migrations, in the e2e
+ * projects spec; its task "Design the homepage" carries two comments (an internal one of the
+ * owner that mentions Jana Example, a public one of hers), a PNG and a PDF for the discussion spec. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -34,6 +35,8 @@ declare(strict_types=1);
  * fixtures are used.
  */
 
+use App\Attachment\Application\AttachmentUpload;
+use App\Attachment\Application\UploadAttachment;
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\MovementInput;
 use App\Banking\Application\PairMovement;
@@ -113,6 +116,7 @@ use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\Tenant;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Support\Mail\RecordingMailGateway;
+use App\Work\Application\ManageComments;
 use App\Work\Application\ManageLabels;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageSections;
@@ -803,7 +807,11 @@ $manageProjects = $container->get('e2e.manage_projects');
 $manageSections = $container->get('e2e.manage_sections');
 $manageTasks = $container->get('e2e.manage_tasks');
 $manageLabels = $container->get('e2e.manage_labels');
+$manageComments = $container->get('e2e.manage_comments');
+$uploadAttachment = $container->get('e2e.upload_attachment');
 $tokenStorage = $container->get('e2e.token_storage');
+\assert($manageComments instanceof ManageComments);
+\assert($uploadAttachment instanceof UploadAttachment);
 \assert($manageProjects instanceof ManageProjects);
 \assert($manageSections instanceof ManageSections);
 \assert($manageTasks instanceof ManageTasks);
@@ -832,6 +840,19 @@ $day = static fn (string $modifier): DateTimeImmutable => $today->modify($modifi
 
 $homepage = $manageTasks->create($website->id(), 'Design the homepage', $shared->id(), null, $statuses[1]->id(), $ownerMembership->id(), $day('-2 days'), Priority::High);
 $manageTasks->setLabels($homepage->id(), [$design->id()]);
+$manageComments->add($homepage->id(), sprintf("First sketch is ready, **please review**.\n\n- hero with the new logo\n- a short pitch\n\n@[Jana Example](membership:%s) can you check the copy?", $teamMember->id()), true);
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
+$manageComments->add($homepage->id(), 'Looks good, the *pitch* reads well.', false);
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
+// A 2x2 PNG and a one-page PDF, both written for the occasion and handed over like an upload.
+$png = tempnam(sys_get_temp_dir(), 'seed');
+$chunk = static fn (string $type, string $data): string => pack('N', \strlen($data)).$type.$data.pack('N', crc32($type.$data));
+$pixels = str_repeat("\x00".str_repeat("\x2f\x9e\x5b", 2), 2);
+file_put_contents($png, "\x89PNG\r\n\x1a\n".$chunk('IHDR', pack('NNCCCCC', 2, 2, 8, 2, 0, 0, 0)).$chunk('IDAT', (string) gzcompress($pixels)).$chunk('IEND', ''));
+$uploadAttachment->upload('task', $homepage->id(), new AttachmentUpload($png, 'homepage-sketch.png', (int) filesize($png)));
+$pdf = tempnam(sys_get_temp_dir(), 'seed');
+file_put_contents($pdf, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n");
+$uploadAttachment->upload('task', $homepage->id(), new AttachmentUpload($pdf, 'brief.pdf', (int) filesize($pdf)));
 $manageTasks->create($website->id(), 'Pick the colour palette', $shared->id(), $homepage->id(), $statuses[0]->id(), $teamMember->id());
 $contact = $manageTasks->create($website->id(), 'Fix the contact form', $backlog->id(), null, $statuses[0]->id(), $ownerMembership->id(), $day('+0 days'), Priority::Urgent);
 $manageTasks->setLabels($contact->id(), [$bug->id()]);
