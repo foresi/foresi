@@ -161,6 +161,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Work/Infrastructure/.*
+    # Files kept for records of any module; the owning module decides who reaches them.
+    - name: AttachmentDomain
+      collectors:
+        - type: directory
+          value: src/Attachment/Domain/.*
+    - name: AttachmentApplication
+      collectors:
+        - type: directory
+          value: src/Attachment/Application/.*
+    - name: AttachmentInfrastructure
+      collectors:
+        - type: directory
+          value: src/Attachment/Infrastructure/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -179,6 +192,8 @@ deptrac:
           must_not:
             - type: classLike
               value: ^Symfony\\Component\\Uid\\
+            - type: classLike
+              value: ^Symfony\\Component\\HtmlSanitizer\\
     # symfony/uid is an internal detail of App\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
@@ -213,6 +228,15 @@ deptrac:
       collectors:
         - type: classLike
           value: ^(DirectoryTree|Illuminate|Carbon)\\
+    # Markdown parsing and HTML sanitizing; only the shared infrastructure may use them.
+    - name: VendorCommonMark
+      collectors:
+        - type: classLike
+          value: ^League\\CommonMark\\
+    - name: VendorHtmlSanitizer
+      collectors:
+        - type: classLike
+          value: ^Symfony\\Component\\HtmlSanitizer\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -245,6 +269,8 @@ deptrac:
       - SharedApplication
       - VendorSymfony
       - VendorMonolog
+      - VendorCommonMark
+      - VendorHtmlSanitizer
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -587,6 +613,35 @@ deptrac:
       - IdentityApplication
       # The project screens, the sidebar item and "Shared with me".
       - Ui
+      # Who reaches the files of a task.
+      - AttachmentDomain
+      - AttachmentApplication
+    # Attachments build on Tenancy and Audit only; modules plug into them with
+    # AttachmentAccess (Work -> Attachment), never the other way round.
+    AttachmentDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+    AttachmentApplication:
+      - AttachmentDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+    AttachmentInfrastructure:
+      - AttachmentDomain
+      - AttachmentApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - TenancyDomain
+      - TenancyApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers. It plugs its banks' mail

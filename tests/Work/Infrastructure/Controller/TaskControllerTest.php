@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Work\Infrastructure\Controller;
 
+use App\Attachment\Domain\Attachment;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -22,6 +24,7 @@ use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Section;
 use App\Work\Domain\Task;
+use App\Work\Domain\TaskComment;
 use App\Work\Domain\TaskLabel;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -29,7 +32,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * The task page: what the task is, its subtasks and activity, and each
+ * The task page: what the task is, its subtasks and its discussion, and each
  * property saved on its own form.
  */
 final class TaskControllerTest extends WebTestCase
@@ -162,6 +165,23 @@ final class TaskControllerTest extends WebTestCase
 
         self::assertSame("<b>One</b>\nTwo", $crawler->filter('[data-task-description]')->text(normalizeWhitespace: false));
         self::assertCount(0, $crawler->filter('[data-task-description] b'));
+    }
+
+    public function testTheDescriptionIsShownAsMarkdown(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit=description');
+        $this->client->submit($crawler->filter('[data-task-description-form]')->form(['description' => "# Scope\n\n- [x] **Draft**\n- [ ] [Review](javascript:alert(1))"]));
+        $crawler = $this->client->followRedirect();
+
+        $description = $crawler->filter('[data-task-description]');
+        self::assertSame('Scope', $description->filter('h3')->text());
+        self::assertSame('Draft', $description->filter('li strong')->text());
+        self::assertCount(1, $description->filter('input[type=checkbox][checked][disabled]'));
+        self::assertCount(0, $description->filter('a[href]'));
     }
 
     public function testTheLabelsAreTickedInADialogAndSavedTogether(): void
@@ -308,10 +328,16 @@ final class TaskControllerTest extends WebTestCase
         $this->seed();
         $id = $this->taskId('Brief');
 
-        foreach (['title', 'description', 'status', 'responsible', 'due', 'priority', 'labels', 'section', 'watch', 'unwatch', 'watchers', 'subtasks'] as $action) {
-            $this->client->request('POST', '/tasks/'.$id.'/'.$action, ['_token' => 'wrong']);
+        foreach (['title', 'description', 'status', 'responsible', 'due', 'priority', 'labels', 'section', 'watch', 'unwatch', 'watchers', 'subtasks', 'comments'] as $action) {
+            $this->client->request('POST', '/tasks/'.$id.'/'.$action, ['_token' => 'wrong', 'body' => 'Hello']);
             self::assertResponseStatusCodeSame(403, $action);
         }
+        $comment = $this->janaComments($id);
+        foreach (['edit', 'delete'] as $action) {
+            $this->client->request('POST', '/comments/'.$comment.'/'.$action, ['_token' => 'wrong', 'body' => 'Changed']);
+            self::assertResponseStatusCodeSame(403, $action);
+        }
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_comment WHERE deleted_at IS NULL AND body = ?', ['Jana was here.']));
     }
 
     public function testAGuestIsDenied(): void
@@ -319,12 +345,283 @@ final class TaskControllerTest extends WebTestCase
         $this->signIn(Role::Guest);
         $id = '01900000-0000-7000-8000-000000000000';
 
-        foreach (['GET' => ['', '/labels'], 'POST' => ['/title', '/status', '/watch', '/subtasks']] as $method => $paths) {
+        foreach (['GET' => ['', '/labels', '/mention-candidates'], 'POST' => ['/title', '/status', '/watch', '/subtasks', '/comments']] as $method => $paths) {
             foreach ($paths as $path) {
                 $this->client->request($method, '/tasks/'.$id.$path);
                 self::assertResponseStatusCodeSame(403, $method.' '.$path);
             }
         }
+        foreach (['/edit', '/delete'] as $path) {
+            $this->client->request('POST', '/comments/'.$id.$path);
+            self::assertResponseStatusCodeSame(403, 'comment '.$path);
+        }
+        $this->client->request('POST', '/markdown/preview', ['text' => 'Hello']);
+        self::assertResponseStatusCodeSame(403, 'preview');
+    }
+
+    public function testThePreviewRendersTheTextAsTheSanitisedMarkdownOfThePage(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        $jana = $this->membershipId('jana@example.com');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $editor = $crawler->filter('[data-comment-composer] [data-controller="markdown-editor"]');
+        self::assertSame('/markdown/preview', $editor->attr('data-markdown-editor-preview-url-value'));
+        self::assertSame('/tasks/'.$id.'/mention-candidates', $editor->attr('data-markdown-editor-mentions-url-value'));
+        $token = (string) $editor->attr('data-markdown-editor-token-value');
+
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => "**Bold** <script>alert(1)</script> [x](javascript:alert(1)) @[Jana Example](membership:{$jana})"]);
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'text/html; charset=UTF-8');
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('<strong>Bold</strong>', $html);
+        self::assertStringNotContainsString('<script', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertStringContainsString('Jana Example', $html);
+
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => str_repeat('a', 20_000)]);
+        self::assertResponseIsSuccessful();
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => str_repeat('a', 20_001)]);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->request('POST', '/markdown/preview', ['_token' => 'wrong', 'text' => 'Hello']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/markdown/preview');
+        self::assertResponseStatusCodeSame(405);
+    }
+
+    public function testTheMentionListHoldsThePeopleWhoSeeTheTask(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $this->client->request('GET', '/tasks/'.$id.'/mention-candidates');
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        $data = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame(['results' => [
+            ['id' => $this->membershipId('testing@example.com'), 'name' => 'Example Company', 'initials' => 'EC'],
+            ['id' => $this->membershipId('jana@example.com'), 'name' => 'Jana Example', 'initials' => 'JE'],
+        ]], $data);
+
+        // A task one cannot see is one that does not exist.
+        $this->client->request('GET', '/tasks/01900000-0000-7000-8000-000000000000/mention-candidates');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheDiscussionIsOneTimelineOldestFirstWithTheCommentBoxUnderIt(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        $this->janaComments($id);
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        self::assertSelectorTextContains('#task-discussion-title', 'Discussion and history');
+        self::assertSame(['All', 'Comments', 'History'], $crawler->filter('[data-discussion-filter] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSame('page', $crawler->filter('[data-discussion-filter] a')->first()->attr('aria-current'));
+        $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => 'Mine **now**.']));
+        $crawler = $this->client->followRedirect();
+
+        $items = $crawler->filter('[data-task-history] > li');
+        self::assertCount(3, $items);
+        self::assertNotNull($items->eq(0)->attr('data-discussion-step'));
+        self::assertStringContainsString('Created the task', $items->eq(0)->text());
+        self::assertSame('Jana Example', trim($items->eq(1)->filter('[data-comment-author]')->text()));
+        self::assertSame('Example Company', trim($items->eq(2)->filter('[data-comment-author]')->text()));
+        self::assertSame('now', $items->eq(2)->filter('[data-comment-body] strong')->text());
+        // The comment box comes after the timeline.
+        self::assertCount(1, $crawler->filter('[data-task-history] ~ form[data-comment-composer]'));
+        self::assertNotNull($crawler->filter('#comment-body[data-comment-editor]')->getNode(0));
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?activity=comments');
+        self::assertSame('page', $crawler->filter('[data-discussion-filter] a')->eq(1)->attr('aria-current'));
+        self::assertCount(2, $crawler->filter('[data-task-history] > li[data-comment]'));
+        self::assertCount(0, $crawler->filter('[data-task-history] > li[data-discussion-step]'));
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?activity=history');
+        self::assertCount(0, $crawler->filter('[data-task-history] > li[data-comment]'));
+        self::assertCount(1, $crawler->filter('[data-task-history] > li[data-discussion-step]'));
+
+        // Anything else is everything.
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?activity=nonsense');
+        self::assertCount(3, $crawler->filter('[data-task-history] > li'));
+    }
+
+    public function testTheFilesOfTheTaskAreListedUnderTheDescriptionWithTheirSizesAndImagesAsThumbnails(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        /** @var array<string, string> $files */
+        $files = $this->scoped(function () use ($id): array {
+            $me = $this->em->getRepository(Membership::class)->findOneBy(['role' => Role::Owner]) ?? throw new \LogicException('Membership.');
+            $files = [];
+            foreach ([['photo.png', 'image/png', 1_258_291], ['brief.pdf', 'application/pdf', 2048], ['notes.txt', 'text/plain', 512]] as [$name, $type, $size]) {
+                $file = Id::generate();
+                $attachment = new Attachment($file, 'task', $id, $name, $type, $size, str_repeat('a', 64), 'key/'.$file, $me->user()->id(), new \DateTimeImmutable('2026-11-08 10:00'));
+                $this->em->persist($attachment);
+                $files[$name] = $file;
+            }
+            $this->em->flush();
+
+            return $files;
+        });
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+
+        self::assertResponseIsSuccessful();
+        $section = $crawler->filter('[data-task-attachments]');
+        self::assertSame('Attachments (3)', trim((string) preg_replace('/\s+/', ' ', $section->filter('h2')->text())));
+        self::assertSame(['photo.png', 'brief.pdf', 'notes.txt'], $section->filter('[data-attachment-link]')->each(static fn (Crawler $link): string => $link->text()));
+        self::assertSame(["1.2\u{a0}MB", "2\u{a0}kB", "512\u{a0}B"], $section->filter('[data-attachment-size]')->each(static fn (Crawler $size): string => $size->text('', false)));
+        self::assertSame('Example Company', $section->filter('[data-attachment-uploader]')->first()->text());
+        $thumbnail = $section->filter('[data-attachment="'.$files['photo.png'].'"] img[data-attachment-thumbnail]');
+        self::assertSame('/attachments/'.$files['photo.png'], $thumbnail->attr('src'));
+        self::assertStringContainsString('object-cover', (string) $thumbnail->attr('class'));
+        self::assertStringContainsString('size-16', (string) $thumbnail->attr('class'));
+        self::assertCount(1, $section->filter('img[data-attachment-thumbnail]'));
+        self::assertSame('pdf', $section->filter('[data-attachment="'.$files['brief.pdf'].'"] [data-attachment-link]')->attr('data-attachment-preview'));
+        self::assertNotNull($section->filter('[data-attachment="'.$files['notes.txt'].'"] [data-attachment-link]')->attr('download'));
+        self::assertCount(3, $section->filter('form[data-attachment-delete]'));
+        self::assertSame('/tasks/'.$id.'#task-attachments-title', $section->filter('form[data-attachment-delete] input[name="return"]')->attr('value'));
+
+        // The form without JavaScript, and the editors that take pasted and dropped files.
+        $upload = $section->filter('form[data-attachment-upload]');
+        self::assertSame('multipart/form-data', $upload->attr('enctype'));
+        self::assertSame($id, $upload->filter('input[name="owner_id"]')->attr('value'));
+        self::assertSame('Drag files here or choose', trim($upload->filter('[data-attachments-target="hint"]')->text()));
+        self::assertSame($id, $crawler->filter('[data-comment-composer] [data-markdown-editor]')->attr('data-markdown-editor-upload-owner-value'));
+        self::assertCount(1, $crawler->filter('dialog#attachment-viewer'));
+    }
+
+    public function testANewCommentIsInternalUnlessTheSwitchIsTurnedOff(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        // Posted without Turbo, so the browser keeps the fragment of the redirect to the new comment.
+        self::assertSame('false', $crawler->filter('form[data-comment-composer]')->attr('data-turbo'));
+        $switch = $crawler->filter('#comment-internal');
+        self::assertSame('switch', $switch->attr('role'));
+        self::assertNotNull($switch->attr('checked'));
+        self::assertSelectorTextContains('[data-comment-composer]', 'Guests will not see internal comments.');
+        self::assertNull($crawler->filter('[data-comment-form-target="internalLabel"]')->attr('hidden'));
+        self::assertNotNull($crawler->filter('[data-comment-form-target="publicLabel"]')->attr('hidden'));
+
+        $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => 'Internal one']));
+        $first = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Internal one']);
+        self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$first);
+        self::assertResponseStatusCodeSame(303);
+
+        $crawler = $this->client->followRedirect();
+        $form = $crawler->filter('form[data-comment-composer]')->form(['body' => 'Public one']);
+        $checkbox = $form['internal'];
+        self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
+        $checkbox->untick();
+        $this->client->submit($form);
+        $crawler = $this->client->followRedirect();
+
+        // SQLite answers 1 and 0, PostgreSQL true and false.
+        self::assertSame(
+            [['body' => 'Internal one', 'internal' => true], ['body' => 'Public one', 'internal' => false]],
+            array_map(static fn (array $row): array => ['body' => $row['body'], 'internal' => (bool) $row['internal']], $this->em->getConnection()->fetchAllAssociative('SELECT body, internal FROM task_comment ORDER BY created_at, id')),
+        );
+        self::assertSame('Internal', trim($crawler->filter('#comment-'.$first.' [data-comment-internal]')->text()));
+        $second = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Public one']);
+        self::assertCount(0, $crawler->filter('#comment-'.$second.' [data-comment-internal]'));
+    }
+
+    public function testACommentItCannotHaveKeepsTheTextNextToTheError(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $form = $crawler->filter('form[data-comment-composer]')->form(['body' => '   ']);
+        $checkbox = $form['internal'];
+        self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
+        $checkbox->untick();
+        $crawler = $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Write something first.', trim($crawler->filter('#comment-body-error')->text()));
+        self::assertNull($crawler->filter('#comment-internal')->attr('checked'));
+
+        $long = str_repeat('a', TaskComment::MAX_BODY_LENGTH + 1);
+        $crawler = $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => $long]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('A comment can have at most 20,000 characters.', trim($crawler->filter('#comment-body-error')->text()));
+        self::assertSame($long, $crawler->filter('#comment-body')->text(normalizeWhitespace: false));
+        self::assertSame('true', $crawler->filter('#comment-body')->attr('aria-invalid'));
+        self::assertSame(0, $this->rows('SELECT COUNT(*) FROM task_comment', []));
+    }
+
+    public function testIEditMyCommentInPlace(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $this->client->submit($crawler->filter('form[data-comment-composer]')->form(['body' => 'First *draft*']));
+        $comment = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['First *draft*']);
+        $crawler = $this->client->followRedirect();
+
+        $edit = $crawler->filter('#comment-'.$comment.' [data-comment-edit]');
+        self::assertSame('/tasks/'.$id.'?edit_comment='.$comment.'#comment-'.$comment, $edit->attr('href'));
+        self::assertCount(0, $crawler->filter('#comment-'.$comment.' [data-comment-edited]'));
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit_comment='.$comment);
+        self::assertSame('First *draft*', $crawler->filter('#comment-edit-'.$comment)->text(normalizeWhitespace: false));
+        self::assertCount(0, $crawler->filter('#comment-'.$comment.' [data-comment-menu]'));
+
+        $crawler = $this->client->submit($crawler->filter('form[data-comment-edit-form]')->form(['body' => ' ']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Write something first.', trim($crawler->filter('#comment-edit-'.$comment.'-error')->text()));
+        self::assertSame(' ', $crawler->filter('#comment-edit-'.$comment)->text(normalizeWhitespace: false));
+
+        $this->client->submit($crawler->filter('form[data-comment-edit-form]')->form(['body' => 'Final']));
+        self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$comment);
+        $crawler = $this->client->followRedirect();
+        self::assertSame('Final', trim($crawler->filter('#comment-'.$comment.' [data-comment-body]')->text()));
+        $edited = $crawler->filter('#comment-'.$comment.' [data-comment-edited]');
+        self::assertSame('edited', trim($edited->text()));
+        self::assertStringStartsWith('Edited ', (string) $edited->attr('title'));
+    }
+
+    public function testICannotEditTheCommentOfAnotherButTheOwnerDeletesIt(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        $comment = $this->janaComments($id);
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        self::assertCount(0, $crawler->filter('#comment-'.$comment.' [data-comment-edit]'));
+        $delete = $crawler->filter('#comment-'.$comment.' form[data-comment-delete]');
+        self::assertSame('Delete the comment?', $delete->attr('data-confirm-title'));
+        self::assertSame('This cannot be undone.', $delete->attr('data-confirm-text'));
+
+        // Its form does not open, and a post is refused.
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit_comment='.$comment);
+        self::assertCount(0, $crawler->filter('form[data-comment-edit-form]'));
+        $this->client->request('POST', '/comments/'.$comment.'/edit', ['_token' => $this->token($crawler), 'body' => 'Words in her mouth']);
+        self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$comment);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Only the author can change this comment.');
+        self::assertSame('Jana was here.', $this->em->getConnection()->fetchOne('SELECT body FROM task_comment WHERE id = ?', [$comment]));
+
+        $this->client->submit($delete->form());
+        self::assertResponseRedirects('/tasks/'.$id.'#comment-'.$comment);
+        $crawler = $this->client->followRedirect();
+        $item = $crawler->filter('#comment-'.$comment);
+        self::assertSame('This comment was deleted', trim($item->filter('[data-comment-deleted]')->text()));
+        self::assertCount(0, $item->filter('[data-comment-body]'));
+        self::assertCount(0, $item->filter('[data-comment-menu]'));
+        self::assertStringNotContainsString('Jana was here.', $item->text());
     }
 
     private function signIn(Role $role = Role::Owner): void
@@ -370,6 +667,22 @@ final class TaskControllerTest extends WebTestCase
         });
 
         return $id;
+    }
+
+    /**
+     * Jana Example's internal comment on the task, which reads "Jana was here.".
+     */
+    private function janaComments(string $taskId): string
+    {
+        return $this->scoped(function () use ($taskId): string {
+            $task = $this->em->find(Task::class, $taskId) ?? throw new \LogicException('Task.');
+            $jana = $this->em->find(Membership::class, $this->membershipId('jana@example.com')) ?? throw new \LogicException('Membership.');
+            $comment = new TaskComment($task, $jana, 'Jana was here.', true, new \DateTimeImmutable());
+            $this->em->persist($comment);
+            $this->em->flush();
+
+            return $comment->id();
+        });
     }
 
     private function token(Crawler $crawler): string

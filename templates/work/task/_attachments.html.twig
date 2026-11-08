@@ -1,0 +1,81 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The files of a task under its description. An image shows as a thumbnail of the file itself, any
+    other file as a row with its kind, name, size, who uploaded it and when; a video plays in place.
+    An image or a PDF opens in the viewer dialog, anything else downloads.
+
+    Adding files follows the improved file upload of GOV.UK: a drop area that is always there and a
+    button that chooses files; each file shows its progress and, if refused, the server's message.
+    The list is a Turbo Frame that reloads once files are in. Without JavaScript it is a plain form
+    with one file and an Upload button, which comes back to the page.
+#}
+{% set deleteToken = csrf_token(constant('App\\Attachment\\Infrastructure\\Controller\\AttachmentController::DELETE_TOKEN')) %}
+{% set back = taskUrl ~ '#task-attachments-title' %}
+<section class="grid gap-2" aria-labelledby="task-attachments-title" data-task-attachments>
+    <turbo-frame id="task-attachments" class="grid gap-2" data-turbo="false" data-attachments-target="frame">
+        <h2 id="task-attachments-title" class="m-0 scroll-mt-4 text-heading font-semibold text-ink">{{ 'attachment.title'|trans }} <span class="num font-normal text-muted">({{ attachments|length }})</span></h2>
+        {% if attachments is not empty %}
+            <ul class="m-0 grid list-none gap-2 p-0" data-attachment-list>
+                {% for file in attachments %}
+                    <li class="grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-panel border border-container bg-white p-2" data-attachment="{{ file.id }}" data-attachment-kind="{{ file.preview }}">
+                        {% if file.preview == 'image' %}
+                            <a href="{{ file.url }}" class="block size-16 overflow-hidden rounded-control {{ focus }}" data-action="attachments#open" data-attachment-preview="image" data-attachment-name="{{ file.name }}" aria-label="{{ 'attachment.open'|trans({name: file.name}) }}">
+                                <img src="{{ file.url }}" alt="" loading="lazy" class="block size-16 object-cover" data-attachment-thumbnail>
+                            </a>
+                        {% else %}
+                            <span class="grid size-16 place-items-center rounded-control bg-head text-muted" aria-hidden="true">{{ ux_icon('lucide:' ~ file.icon, {class: 'size-6'}) }}</span>
+                        {% endif %}
+                        <div class="grid min-w-0 gap-0.5">
+                            {% if file.preview in ['image', 'pdf'] %}
+                                <a href="{{ file.url }}" class="min-w-0 truncate font-medium text-ink no-underline hover:underline {{ focus }}" data-action="attachments#open" data-attachment-preview="{{ file.preview }}" data-attachment-name="{{ file.name }}" data-attachment-link>{{ file.name }}</a>
+                            {% else %}
+                                <a href="{{ file.url }}" download class="min-w-0 truncate font-medium text-ink no-underline hover:underline {{ focus }}" data-attachment-link>{{ file.name }}</a>
+                            {% endif %}
+                            <p class="m-0 flex flex-wrap gap-x-2 text-small text-muted">
+                                <span class="num" data-attachment-size>{{ file.size }}</span>
+                                {% if file.uploader %}<span data-attachment-uploader>{{ file.uploader }}</span>{% endif %}
+                                <time datetime="{{ file.datetime }}" class="num">{{ file.time }}</time>
+                            </p>
+                        </div>
+                        {% if file.canDelete %}
+                            <form method="post" action="{{ path('app_attachment_delete', {id: file.id}) }}"
+                                data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                data-confirm-title="{{ 'attachment.delete_confirm.title'|trans({name: file.name}) }}" data-confirm-text="{{ 'attachment.delete_confirm.text'|trans }}"
+                                data-confirm-accept="{{ 'attachment.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-attachment-delete>
+                                <input type="hidden" name="_token" value="{{ deleteToken }}">
+                                <input type="hidden" name="return" value="{{ back }}">
+                                <twig:Ui:IconButton type="submit" icon="trash-2" :label="'attachment.delete_label'|trans({name: file.name})" variant="ghost" size="sm" />
+                            </form>
+                        {% else %}
+                            <span></span>
+                        {% endif %}
+                        {% if file.preview == 'video' %}
+                            <video controls preload="metadata" src="{{ file.url }}" class="col-span-3 block max-h-96 w-full max-w-field-long rounded-control bg-ink" data-attachment-video></video>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </turbo-frame>
+
+    <form method="post" action="{{ path('app_attachment_upload') }}" enctype="multipart/form-data" class="grid gap-2" data-attachments-target="form" data-action="submit->attachments#submit" data-failed="{{ 'attachment.error.failed'|trans }}" data-attachment-upload>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Attachment\\Infrastructure\\Controller\\AttachmentController::TOKEN')) }}">
+        <input type="hidden" name="owner_kind" value="{{ attachmentKind }}">
+        <input type="hidden" name="owner_id" value="{{ row.id }}">
+        <input type="hidden" name="return" value="{{ back }}">
+        <div class="flex flex-wrap items-center gap-3 rounded-panel border border-dashed border-control-line bg-white px-4 py-3 data-dragging:border-green data-dragging:bg-green-tint" data-attachments-target="drop" data-action="dragenter->attachments#dragEnter dragover->attachments#dragOver dragleave->attachments#dragLeave drop->attachments#drop" data-attachment-drop>
+            <label for="task-attachment-file" class="sr-only">{{ 'attachment.file_label'|trans }}</label>
+            <input type="file" id="task-attachment-file" name="file" class="text-small text-text" data-attachments-target="input" data-action="change->attachments#chosen">
+            <span hidden class="text-small text-muted" data-attachments-target="hint">{{ 'attachment.drop'|trans }}</span>
+            <twig:Ui:Button hidden icon="paperclip" size="sm" data-attachments-target="choose" data-action="attachments#choose">{{ 'attachment.add'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" size="sm" data-attachments-target="submit">{{ 'attachment.upload'|trans }}</twig:Ui:Button>
+        </div>
+        <ul class="m-0 grid list-none gap-2 p-0 empty:hidden" aria-live="polite" data-attachments-target="queue" data-attachment-queue></ul>
+        <template data-attachments-target="item">
+            <li class="grid gap-1" data-attachment-upload-item>
+                <twig:Ui:ProgressBar label="__NAME__" :value="0" :max="100" />
+                <p hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-upload-error></p>
+            </li>
+        </template>
+    </form>
+</section>

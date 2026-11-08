@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Application;
 
 use App\Identity\Application\StaffCheck;
+use App\Identity\Domain\Membership;
 use App\Work\Domain\Project;
 use App\Work\Domain\Task;
 
@@ -35,6 +36,11 @@ final readonly class StaffWorkVisibility implements WorkVisibility
     public function canSeeTask(Task $task): bool
     {
         return $this->canSeeProject($task->project());
+    }
+
+    public function canMembershipSeeTask(Membership $membership, Task $task): bool
+    {
+        return $membership->isActive() && $membership->role()->isStaff();
     }
 
     public function scope(): WorkScope

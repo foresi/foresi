@@ -8,23 +8,34 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
+use App\Attachment\Application\AttachmentPermissions;
+use App\Attachment\Application\VisibleAttachments;
+use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
 use App\Tenancy\Application\TenantClock;
 use App\Ui\Avatar;
+use App\Ui\FileSize;
 use App\Work\Application\Choice;
+use App\Work\Application\Comments;
+use App\Work\Application\CommentView;
+use App\Work\Application\DiscussionFilter;
+use App\Work\Application\DiscussionItem;
 use App\Work\Application\LabelBadge;
+use App\Work\Application\ManageComments;
 use App\Work\Application\ManageTasks;
+use App\Work\Application\MentionCandidate;
 use App\Work\Application\TaskDetail;
-use App\Work\Application\TaskHistory;
 use App\Work\Application\TaskHistoryEntry;
 use App\Work\Application\TaskRow;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
+use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,9 +48,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The page of a task, for the staff, as the work item view of Jira and the
  * issue view of Linear: the title, the description, the subtasks and the
- * activity on the left, the properties on the right. Each property is a form
+ * discussion on the left, the properties on the right. Each property is a form
  * of its own that saves when a value is chosen and comes back to the page;
- * the title and the description open their form in place.
+ * the title, the description and one's own comment open their form in place.
+ * The discussion is one timeline, oldest first, with the comment box under it
+ * as in Linear. The files of the task are listed under the description.
  */
 final class TaskController extends AbstractController
 {
@@ -47,16 +60,30 @@ final class TaskController extends AbstractController
     public const string TOKEN = 'work_task';
     private const array EDITABLE = ['title', 'description'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
+    /** Shown on the page: the image as a thumbnail, a PDF in a dialog, a video in a player. */
+    private const array PREVIEWS = [
+        'image/png' => 'image', 'image/jpeg' => 'image', 'image/gif' => 'image', 'image/webp' => 'image',
+        'application/pdf' => 'pdf',
+        'video/mp4' => 'video', 'video/webm' => 'video', 'video/quicktime' => 'video',
+    ];
+    /** The download of an attachment by its name: Work reaches the Attachment module through its application layer only. */
+    private const string ATTACHMENT_ROUTE = 'app_attachment';
+    private const array FILE_ICONS = ['pdf' => 'file-text', 'video' => 'file-video-camera', 'file' => 'file'];
+    /** The refusals of a comment's text, told next to its field. */
+    private const array COMMENT_TEXT = ['comment_empty', 'comment_too_long'];
 
     public function __construct(
         private readonly WorkQueries $queries,
         private readonly ManageTasks $tasks,
-        private readonly TaskHistory $history,
+        private readonly ManageComments $comments,
+        private readonly Comments $commentStore,
         private readonly People $people,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly VisibleAttachments $attachments,
+        private readonly AttachmentPermissions $attachmentPermissions,
     ) {
     }
 
@@ -66,8 +93,98 @@ final class TaskController extends AbstractController
         $this->denyUnlessStaff();
         $task = $this->detail($id);
         $edit = $request->query->getString('edit');
+        $editComment = $request->query->getString('edit_comment');
 
-        return $this->page($task, \in_array($edit, self::EDITABLE, true) ? $edit : null, [], [], $request->query->has('add'));
+        return $this->page(
+            $task,
+            \in_array($edit, self::EDITABLE, true) ? $edit : null,
+            [],
+            [],
+            $request->query->has('add'),
+            editComment: '' === $editComment ? null : $editComment,
+            filter: DiscussionFilter::tryFrom($request->query->getString('activity')) ?? DiscussionFilter::All,
+        );
+    }
+
+    /**
+     * A comment on the task, internal unless the switch is turned off. A text
+     * it cannot have is told next to the field, which keeps what was typed.
+     */
+    #[Route('/tasks/{id}/comments', name: 'app_task_comment_add', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function addComment(string $id, Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $body = $request->request->getString('body');
+        $internal = $request->request->has('internal');
+        try {
+            return $this->toComment($id, $this->comments->add($id, $body, $internal)->id());
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            if (!\in_array($refused->reason, self::COMMENT_TEXT, true)) {
+                $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+
+                return $this->back($id);
+            }
+
+            return $this->page($this->detail($id), null, ['comment' => $body, 'comment_internal' => $internal ? '1' : ''], ['comment' => $this->translator->trans('work.refused.'.$refused->reason)], false, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+    }
+
+    #[Route('/comments/{id}/edit', name: 'app_task_comment_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function editComment(string $id, Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $taskId = $this->taskOfComment($id);
+        $body = $request->request->getString('body');
+        try {
+            $this->comments->edit($id, $body);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            if (\in_array($refused->reason, self::COMMENT_TEXT, true)) {
+                return $this->page($this->detail($taskId), null, ['comment_edit' => $body], ['comment_edit' => $this->translator->trans('work.refused.'.$refused->reason)], false, Response::HTTP_UNPROCESSABLE_ENTITY, $id);
+            }
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+        }
+
+        return $this->toComment($taskId, $id);
+    }
+
+    /**
+     * The comment stays in its place in the timeline as a note that it was deleted.
+     */
+    #[Route('/comments/{id}/delete', name: 'app_task_comment_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function deleteComment(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $taskId = $this->taskOfComment($id);
+        try {
+            $this->comments->delete($id);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+        }
+
+        return $this->toComment($taskId, $id);
+    }
+
+    /**
+     * The people a comment or the description of the task can mention, for the
+     * list the Markdown editor opens after "@". A task one cannot see answers 404.
+     */
+    #[Route('/tasks/{id}/mention-candidates', name: 'app_task_mention_candidates', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function mentionCandidates(string $id): JsonResponse
+    {
+        $this->denyUnlessStaff();
+        $candidates = $this->queries->mentionCandidates($id) ?? throw new NotFoundHttpException();
+
+        return $this->json(['results' => array_map(static fn (MentionCandidate $candidate): array => [
+            'id' => $candidate->id,
+            'name' => $candidate->name,
+            'initials' => $candidate->initials,
+        ], $candidates)]);
     }
 
     /**
@@ -252,8 +369,16 @@ final class TaskController extends AbstractController
      * @param array<string, string>      $values what was typed into the open form
      * @param array<string, string|null> $errors by field
      */
-    private function page(TaskDetail $task, ?string $edit, array $values, array $errors, bool $adding, int $status = Response::HTTP_OK): Response
-    {
+    private function page(
+        TaskDetail $task,
+        ?string $edit,
+        array $values,
+        array $errors,
+        bool $adding,
+        int $status = Response::HTTP_OK,
+        ?string $editComment = null,
+        DiscussionFilter $filter = DiscussionFilter::All,
+    ): Response {
         $people = $this->people->all();
         $seeds = array_column(array_map(static fn (Person $person): array => [$person->membershipId, $person->userId], $people), 1, 0);
         $staff = array_values(array_filter($people, static fn (Person $person): bool => $person->active && $person->role->isStaff()));
@@ -288,10 +413,14 @@ final class TaskController extends AbstractController
             $priorities[$priority->value] = $this->translator->trans('work.priority.'.$priority->value);
         }
 
+        $names = array_column(array_map(static fn (Person $person): array => [$person->userId, $person->name], $people), 1, 0);
+        $discussion = $this->queries->discussion($row->id, $filter) ?? [];
+        $editable = array_filter($discussion, static fn (DiscussionItem $item): bool => $item->comment instanceof CommentView && $item->comment->canEdit && $item->comment->id === $editComment);
+
         return $this->render('work/task/show.html.twig', [
             'task' => $task,
             'edit' => $edit,
-            'values' => $values + ['title' => $row->title, 'description' => $task->description],
+            'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => '1'],
             'errors' => array_filter($errors, \is_string(...)),
             'adding' => $adding,
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
@@ -315,9 +444,20 @@ final class TaskController extends AbstractController
                 ['key' => 'due', 'label' => $this->translator->trans('work.task.field.due_on'), 'phone' => false],
             ],
             'subtasks' => array_map(fn (TaskRow $subtask): array => $this->subtaskRow($subtask, $seeds), $row->subtasks),
-            'timeline' => array_map($this->timelineItem(...), array_reverse($this->history->of($row->id))),
+            'filter' => $filter->value,
+            'filters' => array_map(fn (DiscussionFilter $case): array => [
+                'label' => $this->translator->trans('work.discussion.filter.'.$case->value),
+                'href' => $this->generateUrl(self::ROUTE, DiscussionFilter::All === $case ? ['id' => $row->id] : ['id' => $row->id, 'activity' => $case->value]).'#task-discussion-title',
+                'active' => $case === $filter,
+            ], DiscussionFilter::cases()),
+            'discussion' => array_map(fn (DiscussionItem $item): array => $item->comment instanceof CommentView
+                ? ['comment' => $this->commentItem($item->comment)]
+                : ['step' => $this->timelineItem($item->step ?? throw new \LogicException('A step.'))], $discussion),
+            'editComment' => [] === $editable ? null : $editComment,
             'createdAt' => $task->createdAt->format($this->translator->trans('format.datetime')),
             'dueValue' => $row->dueOn?->format('Y-m-d') ?? '',
+            'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
+            'attachmentKind' => TaskAttachmentAccess::KIND,
         ], new Response(status: $status));
     }
 
@@ -350,7 +490,56 @@ final class TaskController extends AbstractController
     }
 
     /**
-     * One step of the activity: who did it, and what changed in words.
+     * A file of the task as its list shows it.
+     *
+     * @param array<string, string> $names the names of the people by user id
+     *
+     * @return array<string, mixed>
+     */
+    private function attachmentItem(Attachment $file, array $names): array
+    {
+        $preview = self::PREVIEWS[$file->mediaType()] ?? 'file';
+
+        return [
+            'id' => $file->id(),
+            'url' => $this->generateUrl(self::ATTACHMENT_ROUTE, ['id' => $file->id()]),
+            'name' => $file->fileName(),
+            'size' => FileSize::format($file->size(), $this->translator->getLocale()),
+            'preview' => $preview,
+            'icon' => self::FILE_ICONS[$preview] ?? null,
+            'uploader' => $names[$file->uploadedBy()] ?? null,
+            'time' => $file->createdAt()->format($this->translator->trans('format.datetime')),
+            'datetime' => $file->createdAt()->format(\DATE_ATOM),
+            'canDelete' => $file->uploadedBy() === $this->actor->userId() || $this->attachmentPermissions->canDelete($file),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function commentItem(CommentView $comment): array
+    {
+        $format = $this->translator->trans('format.datetime');
+
+        return [
+            'id' => $comment->id,
+            'author' => $comment->authorName,
+            'initials' => $comment->authorInitials,
+            'tone' => Avatar::tone($comment->authorName),
+            'text' => $comment->text,
+            'html' => $comment->html,
+            'internal' => $comment->internal,
+            'time' => $comment->createdAt->format($format),
+            'datetime' => $comment->createdAt->format(\DATE_ATOM),
+            'edited' => $comment->editedAt?->format($format),
+            'deleted' => $comment->deleted,
+            'canEdit' => $comment->canEdit,
+            'canDelete' => $comment->canDelete,
+        ];
+    }
+
+    /**
+     * One step of the history: who did it, and what changed in words.
      *
      * @return array{time: string, datetime: string, icon: string, text: string}
      */
@@ -416,6 +605,22 @@ final class TaskController extends AbstractController
         $userId = $this->actor->userId();
 
         return null === $userId ? null : $this->people->membershipOf($userId)?->id();
+    }
+
+    /**
+     * The task of a comment the person may see.
+     */
+    private function taskOfComment(string $id): string
+    {
+        $taskId = $this->commentStore->comment($id)?->task()->id() ?? throw new NotFoundHttpException();
+        $this->detail($taskId);
+
+        return $taskId;
+    }
+
+    private function toComment(string $taskId, string $commentId): RedirectResponse
+    {
+        return $this->redirectToRoute(self::ROUTE, ['id' => $taskId, '_fragment' => 'comment-'.$commentId], Response::HTTP_SEE_OTHER);
     }
 
     private function back(string $id): RedirectResponse

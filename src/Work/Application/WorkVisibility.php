@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Application;
 
+use App\Identity\Domain\Membership;
 use App\Work\Domain\Project;
 use App\Work\Domain\Task;
 
@@ -26,6 +27,12 @@ interface WorkVisibility
     public function canSeeProject(Project $project): bool;
 
     public function canSeeTask(Task $task): bool;
+
+    /**
+     * Whether another person of the organisation may see the task: whom a
+     * comment can mention and notify.
+     */
+    public function canMembershipSeeTask(Membership $membership, Task $task): bool;
 
     public function scope(): WorkScope;
 }

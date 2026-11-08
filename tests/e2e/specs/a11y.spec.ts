@@ -136,6 +136,20 @@ test.describe('projects and tasks', () => {
     await page.getByRole('link', { name: 'Website', exact: true }).click();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await expect(page.locator('[data-task-details]')).toBeVisible();
+    // With the seeded discussion (comments, mention, internal label), the files and the editor.
+    await expect(page.locator('[data-comment]').first()).toBeVisible();
+    await expect(page.locator('[data-attachment]').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('task with the comment preview open has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
+    const composer = page.locator('[data-comment-composer]');
+    await composer.locator('#comment-body').fill('Some *text* to preview');
+    await composer.getByRole('tab', { name: 'Náhled' }).click();
+    await expect(composer.locator('[data-markdown-editor-preview] em')).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 

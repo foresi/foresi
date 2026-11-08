@@ -8,15 +8,26 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Doctrine;
 
+use App\Attachment\Application\VisibleAttachments;
+use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Membership;
+use App\Shared\Application\Markdown;
 use App\Tenancy\Application\TenantClock;
+use App\Ui\Avatar;
 use App\Work\Application\Choice;
+use App\Work\Application\CommentAttachment;
+use App\Work\Application\Comments;
+use App\Work\Application\CommentView;
+use App\Work\Application\DiscussionFilter;
+use App\Work\Application\DiscussionItem;
 use App\Work\Application\DueBucket;
 use App\Work\Application\LabelBadge;
 use App\Work\Application\Labels;
+use App\Work\Application\MentionCandidate;
 use App\Work\Application\ProjectBoard;
 use App\Work\Application\ProjectList;
 use App\Work\Application\ProjectRow;
@@ -29,6 +40,7 @@ use App\Work\Application\StatusTasks;
 use App\Work\Application\TaskDetail;
 use App\Work\Application\TaskFilter;
 use App\Work\Application\TaskGroup;
+use App\Work\Application\TaskHistory;
 use App\Work\Application\TaskRow;
 use App\Work\Application\Tasks;
 use App\Work\Application\WorkQueries;
@@ -39,8 +51,10 @@ use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Section;
 use App\Work\Domain\StatusType;
 use App\Work\Domain\Task;
+use App\Work\Domain\TaskComment;
 use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
+use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -65,6 +79,11 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private UserRepository $users,
         private AuditActor $actor,
         private TenantClock $clock,
+        private TaskHistory $history,
+        private Comments $comments,
+        private Markdown $markdown,
+        private VisibleAttachments $attachments,
+        private OwnerCheck $owner,
     ) {
     }
 
@@ -219,6 +238,56 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         );
     }
 
+    public function discussion(string $taskId, DiscussionFilter $filter = DiscussionFilter::All): ?array
+    {
+        $task = $this->tasks->task($taskId);
+        if (!$task instanceof Task || !$this->visibility->canSeeTask($task)) {
+            return null;
+        }
+        $comments = [];
+        if ($filter->showsComments()) {
+            $me = $this->me();
+            $owner = $this->owner->isOwner();
+            foreach ($this->comments->of($task) as $comment) {
+                $comments[] = DiscussionItem::comment($this->commentView($comment, $me, $owner));
+            }
+        }
+        $steps = $filter->showsHistory() ? array_map(DiscussionItem::step(...), $this->history->of($task->id())) : [];
+
+        // Both lists are oldest first already; a step and a comment of the same moment keep that order.
+        $items = [];
+        while ([] !== $steps || [] !== $comments) {
+            if ([] === $comments || ([] !== $steps && $steps[0]->occurredAt <= $comments[0]->occurredAt)) {
+                $items[] = array_shift($steps);
+            } else {
+                $items[] = array_shift($comments);
+            }
+        }
+
+        return $items;
+    }
+
+    public function mentionCandidates(string $taskId): ?array
+    {
+        $task = $this->tasks->task($taskId);
+        if (!$task instanceof Task || !$this->visibility->canSeeTask($task)) {
+            return null;
+        }
+        /** @var list<Membership> $memberships */
+        $memberships = $this->entityManager
+            ->createQuery('SELECT m, u FROM '.Membership::class.' m JOIN m.user u WHERE m.disabledAt IS NULL ORDER BY u.displayName ASC, m.id ASC')
+            ->getResult();
+        $candidates = [];
+        foreach ($memberships as $membership) {
+            if ($membership->isActive() && $this->visibility->canMembershipSeeTask($membership, $task)) {
+                $name = $membership->user()->displayName();
+                $candidates[] = new MentionCandidate($membership->id(), $name, Avatar::initials($name));
+            }
+        }
+
+        return $candidates;
+    }
+
     public function labels(): array
     {
         if (!$this->visibility->scope()->isEverything()) {
@@ -239,6 +308,31 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ->getArrayResult();
 
         return array_map(intval(...), array_column($counts, 'tasks', 'label'));
+    }
+
+    private function commentView(TaskComment $comment, ?Membership $me, bool $owner): CommentView
+    {
+        $name = $comment->author()->user()->displayName();
+        $deleted = $comment->isDeleted();
+        $mine = $me instanceof Membership && $comment->author()->id() === $me->id();
+
+        return new CommentView(
+            $comment->id(),
+            $name,
+            Avatar::initials($name),
+            $deleted ? '' : $comment->text(),
+            $deleted ? '' : $this->markdown->toHtml($comment->text()),
+            $comment->isInternal(),
+            $comment->createdAt(),
+            $comment->editedAt(),
+            $deleted,
+            !$deleted && $mine,
+            !$deleted && ($mine || $owner),
+            $deleted ? [] : array_map(
+                static fn (Attachment $file): CommentAttachment => new CommentAttachment($file->id(), $file->fileName(), $file->mediaType(), $file->size()),
+                $this->attachments->of(TaskAttachmentAccess::COMMENT_KIND, $comment->id()),
+            ),
+        );
     }
 
     private function visibleProject(string $id): ?Project

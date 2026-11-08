@@ -34,7 +34,26 @@ The order of a card is the order of the task in its status; the list shows the s
 
 ## The task page
 
-Opening a task shows its title and description, its subtasks with a line to add one, and its **activity**: every change with who made it and when (status, responsible, due date, priority, labels, watchers and edited fields). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. The title and the description open in place with **Edit**.
+Opening a task shows its title and description, its subtasks with a line to add one, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. The title and the description open in place with **Edit**.
+
+## Discussion
+
+Under the task, **Discussion and history** is one timeline, oldest first: every change with who made it and when (status, responsible, due date, priority, labels, watchers and edited fields) as a small line, and every comment as a full item. The tabs **All**, **Comments** and **History** narrow it. The comment box is under the timeline.
+
+- **Comments are internal by default.** An internal comment carries an **Internal** label with a lock, in words, never by colour alone. Only people of the organisation see it. Switch **Internal comment** off to write a public comment, which guests who may see the task read too. The default is internal because a slip into a public comment cannot be taken back, while making one public on purpose is a single switch. Guests cannot comment yet.
+- **Sending.** The button **Add comment**, or Ctrl+Enter (Cmd+Enter on a Mac). The page lands on the new comment.
+- **Mentions.** Type `@` and the first letters of a name: the people who can see the task appear in a list; Up and Down move, Enter or a click chooses. The mention is stored as `@[Name](membership:id)` and shown as a chip. It is kept only for an active person who can see the task, whatever the text claims.
+- **Markdown.** Comments and the description use a safe subset: paragraphs and line breaks, **bold**, *italic*, ~~strikethrough~~, lists and task lists, links (`http`, `https`, `mailto`), `code`, code blocks, quotes, rules and headings (from the third level down, so a text never outranks the page). Everything else is removed: raw HTML is shown as text, scripts, styles and other tags and attributes are dropped, and so are links with other schemes and images from elsewhere (only the installation's own attachments show as images). The **Preview** tab shows the result before you send; the toolbar (bold, italic, list, link, code, quote) and Ctrl/Cmd+B, I and K help writing.
+- **Editing and deleting.** Only the author edits a comment, from its menu; it then says **edited**. The author deletes their own comment, and an owner of the organisation may delete any comment to moderate. A deleted comment leaves the line "Comment was deleted" so the thread still makes sense; its text is gone from view.
+
+## Attachments
+
+**Attachments** lists the files of a task: an image as a thumbnail, any other file as a row with its kind, name, size, who uploaded it and when.
+
+- **Adding.** Drop files on the area, choose them with **Add file**, or paste an image or drop files into the comment box or the description: the file is uploaded and linked in the text as Markdown (an image shows in place). Each upload shows its progress and, if refused, why. Without JavaScript the area is a plain form with one file.
+- **Limit.** A file may be up to 50 MB. An empty file is refused. The type is read from the file itself, never taken from its name or from the browser.
+- **Viewing.** Images and PDFs open in a dialog with a download link; videos play in the list. Any other file downloads. Files are served only to people who may see the task, never from a public address.
+- **Deleting.** The person who uploaded a file may delete it, and so may an owner of the organisation, after a confirmation.
 
 ## My tasks
 
@@ -54,7 +73,7 @@ Open **Settings** on a project to:
 
 ## Operating it
 
-There is nothing to configure. Projects, tasks and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
+There is nothing to configure. Projects, tasks, comments and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
 
 ## What comes later
 

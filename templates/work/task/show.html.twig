@@ -1,9 +1,11 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     A task, as the work item view of Jira and the issue view of Linear: the title, the description,
-    the subtasks and the activity in the main column; the properties in the panel beside it (under it
+    the subtasks and the discussion in the main column; the properties in the panel beside it (under it
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript. The title and the description open their form in place.
+    The files of the task follow the description; an image or a PDF, in the list or in a text,
+    opens in the viewer dialog.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -29,7 +31,7 @@
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
         {% endfor %}
     {% endfor %}
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
         <div class="grid min-w-0 content-start gap-6">
             {% if edit == 'title' %}
                 <form method="post" action="{{ path('app_task_title', {id: row.id}) }}" id="task-title-form" class="grid max-w-field-long gap-3" novalidate data-task-title-form>
@@ -50,18 +52,20 @@
                 {% if edit == 'description' %}
                     <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-task-description-form>
                         <input type="hidden" name="_token" value="{{ token }}">
-                        <twig:Ui:Textarea name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" autofocus />
+                        <twig:Ui:MarkdownEditor name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" autofocus />
                         <div class="flex flex-wrap gap-2">
                             <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
                             <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
                         </div>
                     </form>
                 {% elseif task.description is not empty %}
-                    <p class="m-0 whitespace-pre-line text-text [overflow-wrap:anywhere]" data-task-description>{{ task.description }}</p>
+                    <div class="markdown" data-task-description>{{ task.description|markdown }}</div>
                 {% else %}
                     <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
                 {% endif %}
             </section>
+
+            {{ include('work/task/_attachments.html.twig') }}
 
             {% if not task.parent %}
                 <section class="grid gap-2" aria-labelledby="task-subtasks-title" data-task-subtasks>
@@ -80,14 +84,14 @@
                 </section>
             {% endif %}
 
-            <section class="grid gap-2" aria-labelledby="task-activity-title">
-                <h2 id="task-activity-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.activity'|trans }}</h2>
-                {% if timeline is empty %}
-                    <p class="m-0 text-muted">{{ 'work.task.no_activity'|trans }}</p>
-                {% else %}
-                    <twig:Ui:Timeline :items="timeline" data-task-history />
-                {% endif %}
-            </section>
+            {{ include('work/task/_discussion.html.twig') }}
+
+            <twig:Ui:Dialog id="attachment-viewer" size="lg" :title="'attachment.preview'|trans" data-attachments-target="viewer" data-attachment-viewer>
+                <div class="grid place-items-center" data-attachments-target="stage"></div>
+                <twig:block name="footer">
+                    <twig:Ui:Button href="#" icon="download" download data-attachments-target="download">{{ 'attachment.download'|trans }}</twig:Ui:Button>
+                </twig:block>
+            </twig:Ui:Dialog>
         </div>
 
         <aside class="grid content-start gap-4 border-t border-divider pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0" aria-labelledby="task-details-title" data-task-details>

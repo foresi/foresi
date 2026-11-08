@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace App\Work\Application;
 
 /**
- * Why a change to projects, tasks or labels is not made; the reason is the last
+ * Why a change to projects, tasks, labels or comments is not made; the reason is the last
  * part of a translation key under work.refused. Something the person may not
  * see is refused as unknown, exactly as something that does not exist.
  */
 final class WorkRefused extends \DomainException
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted'];
 
     public function __construct(public readonly string $reason)
     {

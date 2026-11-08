@@ -83,6 +83,19 @@ ui:
     cancel: Cancel
   combobox:
     found: 'Found: {count}'
+  markdown_editor:
+    write: Write
+    preview: Preview
+    nothing_to_preview: Nothing to preview
+    toolbar: Formatting
+    bold: Bold
+    italic: Italic
+    list: List
+    link: Link
+    code: Code
+    quote: Quote
+    mentions: People
+    no_match: No one matches
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Check this
@@ -3077,8 +3090,6 @@ work:
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
     add_subtask: Add subtask
-    activity: Activity
-    no_activity: Nothing has happened yet.
     details: Details
     edit: Edit
     nobody: Nobody
@@ -3110,6 +3121,10 @@ work:
     last_done: The project must keep at least one status of type done.
     target_status: Choose another status of the same project for its tasks.
     label_taken: A label of this name exists already.
+    comment_empty: Write something first.
+    comment_too_long: A comment can have at most 20,000 characters.
+    comment_not_yours: Only the author can change this comment.
+    comment_deleted: This comment has been deleted.
   cancel: Cancel
   save: Save
   history:
@@ -3127,6 +3142,30 @@ work:
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
     no_date: —
+  discussion:
+    title: Discussion and history
+    filter:
+      label: Show in the discussion
+      all: All
+      comments: Comments
+      history: History
+    empty: Nothing has happened yet.
+    no_comments: No comments yet.
+    internal: Internal
+    public: Public comment – guests will see it too
+    edited: edited
+    edited_at: 'Edited {date}'
+    deleted: This comment was deleted
+    actions: 'Actions for the comment by {name}'
+    delete: Delete
+    delete_confirm:
+      title: Delete the comment?
+      text: This cannot be undone.
+    edit_label: Edit comment
+    composer: Comment
+    internal_switch: Internal comment
+    internal_help: Guests will not see internal comments.
+    submit: Add comment
   settings:
     title: Settings
     saved: Saved.
@@ -3301,3 +3340,23 @@ work:
     move_down: Move down
     moved: 'Moved to {status}, position {position} of {count}'
     subtasks: '{done} of {total} subtasks done'
+attachment:
+  title: Attachments
+  add: Add file
+  drop: Drag files here or choose
+  upload: Upload
+  file_label: File
+  uploading: 'Uploading {name}…'
+  preview: Preview
+  open: 'Open {name}'
+  download: Download
+  delete: Delete
+  delete_label: 'Delete {name}'
+  delete_confirm:
+    title: 'Delete {name}?'
+    text: The file is removed from the task.
+  error:
+    cannot_delete: You cannot delete this file
+    too_big: The selected file must be smaller than 50 MB
+    empty: The selected file is empty
+    failed: The selected file could not be uploaded – try again

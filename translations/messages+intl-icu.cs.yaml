@@ -83,6 +83,19 @@ ui:
     cancel: Zrušit
   combobox:
     found: 'Nalezeno: {count}'
+  markdown_editor:
+    write: Psát
+    preview: Náhled
+    nothing_to_preview: Nic k náhledu
+    toolbar: Formátování
+    bold: Tučně
+    italic: Kurzíva
+    list: Seznam
+    link: Odkaz
+    code: Kód
+    quote: Citace
+    mentions: Lidé
+    no_match: Nikdo neodpovídá
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Ověřte
@@ -3077,8 +3090,6 @@ work:
     no_subtasks: Zatím žádné podúkoly.
     subtasks: Podúkoly
     add_subtask: Přidat podúkol
-    activity: Aktivita
-    no_activity: Zatím se nic nestalo.
     details: Podrobnosti
     edit: Upravit
     nobody: Nikdo
@@ -3110,6 +3121,10 @@ work:
     last_done: Projekt musí mít aspoň jeden stav typu hotový.
     target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
     label_taken: Štítek s tímto názvem už existuje.
+    comment_empty: Nejdřív něco napište.
+    comment_too_long: Komentář může mít nejvýš 20 000 znaků.
+    comment_not_yours: Tento komentář může měnit jen jeho autor.
+    comment_deleted: Tento komentář byl smazán.
   cancel: Zrušit
   save: Uložit
   history:
@@ -3127,6 +3142,30 @@ work:
     due: 'Termín {from} → {to}'
     priority: 'Priorita {from} → {to}'
     no_date: —
+  discussion:
+    title: Diskuse a historie
+    filter:
+      label: Zobrazit v diskusi
+      all: Vše
+      comments: Komentáře
+      history: Historie
+    empty: Zatím se nic nestalo.
+    no_comments: Zatím žádné komentáře.
+    internal: Interní
+    public: Veřejný komentář – uvidí ho i hosté
+    edited: upraveno
+    edited_at: 'Upraveno {date}'
+    deleted: Komentář byl smazán
+    actions: 'Akce komentáře od {name}'
+    delete: Smazat
+    delete_confirm:
+      title: Smazat komentář?
+      text: Tuto akci nelze vrátit.
+    edit_label: Upravit komentář
+    composer: Komentář
+    internal_switch: Interní komentář
+    internal_help: Hosté interní komentáře neuvidí.
+    submit: Přidat komentář
   settings:
     title: Nastavení
     saved: Uloženo.
@@ -3301,3 +3340,23 @@ work:
     move_down: Posunout dolů
     moved: 'Přesunuto do: {status}, pozice {position} z {count}'
     subtasks: 'Hotové podúkoly: {done} z {total}'
+attachment:
+  title: Přílohy
+  add: Přidat soubor
+  drop: Přetáhněte soubory sem nebo vyberte
+  upload: Nahrát
+  file_label: Soubor
+  uploading: 'Nahrávám {name}…'
+  preview: Náhled
+  open: 'Otevřít {name}'
+  download: Stáhnout
+  delete: Smazat
+  delete_label: 'Smazat {name}'
+  delete_confirm:
+    title: 'Smazat {name}?'
+    text: Soubor zmizí z úkolu.
+  error:
+    cannot_delete: Tento soubor smazat nemůžete
+    too_big: Soubor musí být menší než 50 MB
+    empty: Soubor je prázdný
+    failed: Soubor se nepodařilo nahrát – zkuste to znovu

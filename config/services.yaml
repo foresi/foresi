@@ -30,6 +30,8 @@ parameters:
     app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
     # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
     app.original_documents_dir: '%kernel.share_dir%/original-documents'
+    # Files attached to records, one directory per tenant; never below public/. Back it up with the database.
+    app.attachments_dir: '%kernel.share_dir%/attachments'
     # The health check is degraded when less of the data directory's disk is free, in percent.
     env(HEALTH_DISK_MIN_FREE_PERCENT): '5'
     # Error mails to the operator; both empty sends none (docs/logging.md).
@@ -74,6 +76,9 @@ services:
         # Timed work of the installation, with no tenant; see App\Tenancy\Application\Schedule\OperatorTask.
         App\Tenancy\Application\Schedule\OperatorTask:
             tags: ['app.operator_task']
+        # The module that owns a kind of record decides who reaches its attachments.
+        App\Attachment\Application\AttachmentAccess:
+            tags: ['app.attachment_access']
         # A country module plugs into banking with the parsers of its banks' mail.
         App\Banking\Application\BankMessageParser:
             tags: ['app.bank_message_parser']
@@ -258,6 +263,12 @@ services:
     App\Invoicing\Infrastructure\Pdf\DiskOriginalDocuments:
         arguments:
             $root: '%app.original_documents_dir%'
+    App\Attachment\Infrastructure\Storage\DiskAttachmentFiles:
+        arguments:
+            $root: '%app.attachments_dir%'
+    App\Attachment\Application\AttachmentPermissions:
+        arguments:
+            $accesses: !tagged_iterator app.attachment_access
     # Drawn documents, except an imported one that kept the PDF of its source.
     App\Invoicing\Application\InvoicePdf:
         alias: App\Invoicing\Infrastructure\Pdf\TcpdfInvoicePdf
@@ -326,6 +337,7 @@ when@e2e:
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
         # The PDFs of the seeded iDoklad pull, gone with the e2e cache too.
         app.idoklad_files_dir: '%kernel.cache_dir%/idoklad-documents'
+        app.attachments_dir: '%kernel.cache_dir%/attachments'
 
     services:
         _defaults:
@@ -429,6 +441,12 @@ when@e2e:
             public: true
         e2e.manage_labels:
             alias: App\Work\Application\ManageLabels
+            public: true
+        e2e.manage_comments:
+            alias: App\Work\Application\ManageComments
+            public: true
+        e2e.upload_attachment:
+            alias: App\Attachment\Application\UploadAttachment
             public: true
         e2e.token_storage:
             alias: security.token_storage
@@ -615,6 +633,7 @@ when@test:
         App\Work\Application\ManageTasks: { public: true }
         App\Work\Application\ManageLabels: { public: true }
         App\Work\Application\TaskHistory: { public: true }
+        App\Work\Application\ManageComments: { public: true }
         App\Work\Application\WorkQueries:
             alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true

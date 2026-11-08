@@ -1,0 +1,98 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The discussion of a task: its comments and its history in one timeline, oldest first, and the
+    comment box under it, as in Linear. A step of the history is one small line, a comment a full
+    item. An internal comment says so in words with the lock beside them, never by colour alone.
+    One's own comment opens its form in place, like the title. The comment forms post without Turbo:
+    the browser keeps the fragment of the redirect (#comment-…), which a fetch never sees.
+#}
+{% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
+<section class="grid gap-3" aria-labelledby="task-discussion-title" data-task-discussion>
+    <h2 id="task-discussion-title" class="m-0 scroll-mt-4 text-heading font-semibold text-ink">{{ 'work.discussion.title'|trans }}</h2>
+    <twig:Ui:Tabs :items="filters" :label="'work.discussion.filter.label'|trans" data-discussion-filter />
+
+    {% if discussion is empty %}
+        <p class="m-0 text-muted" data-discussion-empty>{{ (filter == 'comments' ? 'work.discussion.no_comments' : 'work.discussion.empty')|trans }}</p>
+    {% else %}
+        <ol class="m-0 list-none p-0" data-task-history>
+            {% for item in discussion %}
+                {% if item.step is defined %}
+                    {% set step = item.step %}
+                    <li class="grid grid-cols-[20px_1fr] items-center gap-x-2 py-1.5 sm:grid-cols-[20px_9.5rem_1fr]" data-discussion-step>
+                        {{ ux_icon('lucide:' ~ step.icon, {class: 'size-4 text-green', 'aria-hidden': 'true'}) }}
+                        <time datetime="{{ step.datetime }}" class="num text-muted">{{ step.time }}</time>
+                        <span class="min-w-0 text-text [overflow-wrap:anywhere] max-sm:col-start-2">{{ step.text }}</span>
+                    </li>
+                {% else %}
+                    {% set comment = item.comment %}
+                    {% set editing = editComment == comment.id %}
+                    <li id="comment-{{ comment.id }}" class="grid scroll-mt-4 grid-cols-[2rem_minmax(0,1fr)] gap-x-3 py-3" data-comment="{{ comment.id }}">
+                        <span class="grid size-8 place-items-center rounded-control text-caption font-semibold {{ comment.tone }}" aria-hidden="true">{{ comment.initials }}</span>
+                        <div class="grid min-w-0 gap-1.5">
+                            <div class="flex min-h-control flex-wrap items-center gap-x-2 gap-y-1">
+                                <span class="font-medium text-ink" data-comment-author>{{ comment.author }}</span>
+                                <time datetime="{{ comment.datetime }}" class="num text-small text-muted">{{ comment.time }}</time>
+                                {% if comment.edited and not comment.deleted %}
+                                    <span class="text-small text-muted" title="{{ 'work.discussion.edited_at'|trans({date: comment.edited}) }}" data-comment-edited>{{ 'work.discussion.edited'|trans }}</span>
+                                {% endif %}
+                                {% if comment.internal %}
+                                    <twig:Ui:Badge class="gap-1" data-comment-internal>{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.discussion.internal'|trans }}</twig:Ui:Badge>
+                                {% endif %}
+                                {% if (comment.canEdit or comment.canDelete) and not editing %}
+                                    {% set menuId = 'comment-menu-' ~ comment.id %}
+                                    <div class="relative ml-auto" data-controller="dropdown" data-dropdown-float-value="true" data-comment-menu>
+                                        <twig:Ui:IconButton icon="ellipsis" :label="'work.discussion.actions'|trans({name: comment.author})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+                                        <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
+                                            {% if comment.canEdit %}
+                                                <a href="{{ taskUrl }}?edit_comment={{ comment.id }}#comment-{{ comment.id }}" role="menuitem" tabindex="-1" class="{{ itemClass }}" data-comment-edit>{{ 'work.task.edit'|trans }}</a>
+                                            {% endif %}
+                                            {% if comment.canDelete %}
+                                                <form method="post" action="{{ path('app_task_comment_delete', {id: comment.id}) }}"
+                                                    data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                                    data-confirm-title="{{ 'work.discussion.delete_confirm.title'|trans }}" data-confirm-text="{{ 'work.discussion.delete_confirm.text'|trans }}"
+                                                    data-confirm-accept="{{ 'work.discussion.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-comment-delete>
+                                                    <input type="hidden" name="_token" value="{{ token }}">
+                                                    <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ 'work.discussion.delete'|trans }}</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% if comment.deleted %}
+                                <p class="m-0 text-muted" data-comment-deleted>{{ 'work.discussion.deleted'|trans }}</p>
+                            {% elseif editing %}
+                                <form method="post" action="{{ path('app_task_comment_edit', {id: comment.id}) }}" class="grid gap-3" novalidate data-turbo="false" data-controller="comment-form" data-comment-edit-form>
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <twig:Ui:MarkdownEditor name="body" :id="'comment-edit-' ~ comment.id" :label="'work.discussion.edit_label'|trans" :value="values.comment_edit ?? comment.text" :error="errors.comment_edit|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :autofocus="errors is empty" data-comment-editor data-action="keydown->comment-form#shortcut" />
+                                    <div class="flex flex-wrap gap-2">
+                                        <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+                                        <twig:Ui:Button :href="taskUrl ~ '#comment-' ~ comment.id">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+                                    </div>
+                                </form>
+                            {% else %}
+                                <div class="markdown [overflow-wrap:anywhere]" data-comment-body>{{ comment.html|raw }}</div>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    {% endif %}
+
+    <form method="post" action="{{ path('app_task_comment_add', {id: row.id}) }}" id="comment-form" class="grid gap-3 border-t border-divider pt-4" novalidate data-turbo="false" data-controller="comment-form" data-comment-composer>
+        <input type="hidden" name="_token" value="{{ token }}">
+        <twig:Ui:MarkdownEditor name="body" id="comment-body" :label="'work.discussion.composer'|trans" :value="values.comment" :error="errors.comment|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" data-comment-editor data-action="keydown->comment-form#shortcut" />
+        {% set internal = values.comment_internal == '1' %}
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="grid gap-1.5">
+                <twig:Ui:Checkbox name="internal" id="comment-internal" :label="'work.discussion.internal_switch'|trans" :help="'work.discussion.internal_help'|trans" :checked="internal" role="switch" data-comment-form-target="internal" data-action="change->comment-form#toggle" />
+                <p class="m-0 text-small text-muted" aria-live="polite" data-comment-visibility>
+                    <span{% if not internal %} hidden{% endif %} data-comment-form-target="internalLabel"><twig:Ui:Badge class="gap-1">{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.discussion.internal'|trans }}</twig:Ui:Badge></span>
+                    <span{% if internal %} hidden{% endif %} data-comment-form-target="publicLabel">{{ 'work.discussion.public'|trans }}</span>
+                </p>
+            </div>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'work.discussion.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </form>
+</section>
