@@ -60,4 +60,21 @@ final readonly class DoctrineProjects implements Projects
     {
         $this->entityManager->flush();
     }
+
+    public function transactional(callable $work): mixed
+    {
+        $connection = $this->entityManager->getConnection();
+        $connection->beginTransaction();
+        try {
+            $result = $work();
+            $this->entityManager->flush();
+            $connection->commit();
+
+            return $result;
+        } catch (\Throwable $failure) {
+            $connection->rollBack();
+
+            throw $failure;
+        }
+    }
 }

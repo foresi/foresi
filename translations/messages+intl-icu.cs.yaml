@@ -3127,6 +3127,7 @@ work:
     comment_not_yours: Tento komentář může měnit jen jeho autor.
     comment_deleted: Tento komentář byl smazán.
     task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
+    parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
   cancel: Zrušit
   save: Uložit
   history:

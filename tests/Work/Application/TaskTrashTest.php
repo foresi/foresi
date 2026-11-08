@@ -26,6 +26,8 @@ use App\Work\Domain\Project;
 use App\Work\Domain\Task;
 use App\Work\Domain\TaskComment;
 use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
+use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\Events;
 
 /**
  * The trash of tasks: what goes there together comes back together, only the
@@ -271,6 +273,54 @@ final class TaskTrashTest extends WorkTestCase
         // The log keeps what they were.
         self::assertSame(3, $this->number('SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND action = ?', [Task::class, AuditAction::Deleted->value]));
         self::assertSame(2, $this->number('SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND action = ?', [TaskComment::class, AuditAction::Deleted->value]));
+    }
+
+    public function testAPurgeThatFailsLeavesTheTaskInTheTrashWithItsFiles(): void
+    {
+        $task = $this->tasks->create($this->project->id(), 'Old');
+        $file = $this->attach(TaskAttachmentAccess::KIND, $task->id());
+        $this->tasks->delete($task->id());
+        $failing = new class {
+            public function onFlush(OnFlushEventArgs $args): void
+            {
+                foreach ($args->getObjectManager()->getUnitOfWork()->getScheduledEntityDeletions() as $entity) {
+                    if ($entity instanceof Task) {
+                        throw new \RuntimeException('The database is gone.');
+                    }
+                }
+            }
+        };
+        $this->em->getEventManager()->addEventListener(Events::onFlush, $failing);
+        try {
+            self::getContainer()->get(PurgeDeletedTasks::class)->run($this->clock->now()->modify('+31 days'));
+            self::fail('The purge should have failed.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('The database is gone.', $failure->getMessage());
+        } finally {
+            $this->em->getEventManager()->removeEventListener(Events::onFlush, $failing);
+        }
+        $this->em->clear();
+
+        self::assertSame(1, $this->number('SELECT COUNT(*) FROM task WHERE deleted_at IS NOT NULL'));
+        self::assertSame([$file->id()], $this->em->getConnection()->fetchFirstColumn('SELECT id FROM attachment'));
+        self::assertFileExists(self::getContainer()->get(AttachmentFiles::class)->locate(self::getContainer()->get(TenantContext::class)->current()->toString(), $file->storageKey()));
+    }
+
+    public function testASubtaskDoesNotBringBackATaskThePersonMayNotRestore(): void
+    {
+        $task = $this->tasks->create($this->project->id(), 'The owner’s');
+        $this->signIn($this->member);
+        $subtask = $this->tasks->create($this->project->id(), 'The member’s', parentId: $task->id());
+        $this->signIn($this->owner);
+        $this->tasks->delete($task->id());
+
+        $this->signIn($this->member);
+        $this->assertRefused('parent_in_trash', fn (): Task => $this->tasks->restore($subtask->id()));
+        self::assertSame([true, true], [$task->isDeleted(), $subtask->isDeleted()]);
+
+        $this->signIn($this->owner);
+        $this->tasks->restore($subtask->id());
+        self::assertSame([false, false], [$task->isDeleted(), $subtask->isDeleted()]);
     }
 
     public function testThePurgeRunsOnceADayFromThreeInTheMorningOfTheTenant(): void

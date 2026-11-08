@@ -3127,6 +3127,7 @@ work:
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
+    parent_in_trash: The parent task has to be restored first.
   cancel: Cancel
   save: Save
   history:

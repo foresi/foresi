@@ -21,9 +21,16 @@ final readonly class AttachmentTaskFiles implements TaskFiles
     {
     }
 
-    public function purge(array $taskIds, array $commentIds): void
+    public function forget(array $taskIds, array $commentIds): array
     {
-        $this->attachments->purge(TaskAttachmentAccess::KIND, $taskIds);
-        $this->attachments->purge(TaskAttachmentAccess::COMMENT_KIND, $commentIds);
+        return [
+            ...$this->attachments->forget(TaskAttachmentAccess::KIND, $taskIds),
+            ...$this->attachments->forget(TaskAttachmentAccess::COMMENT_KIND, $commentIds),
+        ];
+    }
+
+    public function removeFiles(array $files): void
+    {
+        $this->attachments->removeFiles($files);
     }
 }

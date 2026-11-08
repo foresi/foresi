@@ -17,8 +17,9 @@ use App\Work\Domain\TaskComment;
  * watchers, labels and files. The audit log keeps what they were: it is the
  * record of the organisation, as for invoices (ADR 0013).
  *
- * Each task goes as one step. Its files go first: when the rest then fails,
- * the task stays in the trash without them and the next run takes it again.
+ * Each task goes as one step, in one transaction with the records of its
+ * files; the files themselves go once it is committed. When the step fails,
+ * nothing of the task is gone, files included, and the next run takes it again.
  */
 final readonly class PurgeDeletedTasks
 {
@@ -60,8 +61,8 @@ final readonly class PurgeDeletedTasks
             array_push($comments, ...$this->comments->of($one));
         }
 
-        return $this->unit->run(function () use ($task, $tasks, $comments): int {
-            $this->files->purge(
+        $files = $this->unit->run(fn (): array => $this->projects->transactional(function () use ($task, $tasks, $comments): array {
+            $files = $this->files->forget(
                 array_map(static fn (Task $one): string => $one->id(), $tasks),
                 array_map(static fn (TaskComment $comment): string => $comment->id(), $comments),
             );
@@ -83,7 +84,10 @@ final readonly class PurgeDeletedTasks
             $this->projects->flush();
             $this->tasks->remove($task);
 
-            return \count($tasks);
-        });
+            return $files;
+        }));
+        $this->files->removeFiles($files);
+
+        return \count($tasks);
     }
 }

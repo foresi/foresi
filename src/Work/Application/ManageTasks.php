@@ -306,7 +306,8 @@ final readonly class ManageTasks
     /**
      * Takes the task out of the trash with the subtasks that went there with
      * it. A subtask whose task is in the trash brings the task back, and the
-     * subtasks that went with that. A task out of the trash already stays as it is.
+     * subtasks that went with that, when the person may restore that task too.
+     * A task out of the trash already stays as it is.
      *
      * @throws WorkRefused
      */
@@ -318,6 +319,10 @@ final readonly class ManageTasks
         }
         if (!$task->isDeleted()) {
             return $task;
+        }
+        $parent = $task->parent();
+        if ($parent instanceof Task && $parent->isDeleted() && !$this->trash->allows($parent)) {
+            throw new WorkRefused('parent_in_trash');
         }
 
         return $this->unit->run(function () use ($task): Task {

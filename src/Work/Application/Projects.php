@@ -38,4 +38,16 @@ interface Projects
     public function remove(ProjectStatus|Section $item): void;
 
     public function flush(): void;
+
+    /**
+     * Runs the work and saves what it changed in one database transaction:
+     * all of it, or nothing.
+     *
+     * @template T
+     *
+     * @param callable(): T $work
+     *
+     * @return T
+     */
+    public function transactional(callable $work): mixed;
 }
