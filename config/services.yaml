@@ -627,6 +627,7 @@ when@test:
         App\Work\Application\ManageTasks: { public: true }
         App\Work\Application\ManageLabels: { public: true }
         App\Work\Application\TaskHistory: { public: true }
+        App\Work\Application\ManageComments: { public: true }
         App\Work\Application\WorkQueries:
             alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true

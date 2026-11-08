@@ -50,6 +50,21 @@ interface WorkQueries
     public function task(string $taskId): ?TaskDetail;
 
     /**
+     * The comments and the history of a task in one timeline. A step that
+     * wrote a comment is the comment, not a step of its own.
+     *
+     * @return list<DiscussionItem>|null oldest first; null when the task is not visible
+     */
+    public function discussion(string $taskId, DiscussionFilter $filter = DiscussionFilter::All): ?array;
+
+    /**
+     * Active people who can see the task, whom a comment on it can mention.
+     *
+     * @return list<MentionCandidate>|null by name; null when the task is not visible
+     */
+    public function mentionCandidates(string $taskId): ?array;
+
+    /**
      * @return list<LabelBadge> by name
      */
     public function labels(): array;

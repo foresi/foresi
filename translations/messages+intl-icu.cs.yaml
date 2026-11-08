@@ -3110,6 +3110,10 @@ work:
     last_done: Projekt musí mít aspoň jeden stav typu hotový.
     target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
     label_taken: Štítek s tímto názvem už existuje.
+    comment_empty: Nejdřív něco napište.
+    comment_too_long: Komentář může mít nejvýš 20 000 znaků.
+    comment_not_yours: Tento komentář může měnit jen jeho autor.
+    comment_deleted: Tento komentář byl smazán.
   cancel: Zrušit
   save: Uložit
   history:

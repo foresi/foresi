@@ -3110,6 +3110,10 @@ work:
     last_done: The project must keep at least one status of type done.
     target_status: Choose another status of the same project for its tasks.
     label_taken: A label of this name exists already.
+    comment_empty: Write something first.
+    comment_too_long: A comment can have at most 20,000 characters.
+    comment_not_yours: Only the author can change this comment.
+    comment_deleted: This comment has been deleted.
   cancel: Cancel
   save: Save
   history:

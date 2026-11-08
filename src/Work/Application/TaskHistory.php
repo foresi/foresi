@@ -13,11 +13,13 @@ use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Application\People;
 use App\Identity\Application\UserRepository;
+use App\Work\Domain\CommentMention;
 use App\Work\Domain\Label;
 use App\Work\Domain\Priority;
 use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Task;
+use App\Work\Domain\TaskComment;
 use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
 
@@ -29,6 +31,10 @@ use App\Work\Domain\TaskWatcher;
  * neighbours shows nothing and is left out. The due date and the priority
  * are told from what they were to what they became. A status or label removed since
  * keeps the last name the log knew.
+ *
+ * Comments are told by the discussion of the task, not here: a step that
+ * wrote, edited or deleted a comment is left out, the watcher it may have
+ * added with it included.
  */
 final readonly class TaskHistory
 {
@@ -85,6 +91,11 @@ final readonly class TaskHistory
      */
     private function step(array $group, array $users, array $people, array $statuses, array &$labels): ?TaskHistoryEntry
     {
+        foreach ($group as $entry) {
+            if (\in_array($entry->entityClass(), [TaskComment::class, CommentMention::class], true)) {
+                return null;
+            }
+        }
         $userId = $group[0]->userId();
         $userName = null === $userId ? null : ($users[$userId] ?? null);
         $fields = [];
