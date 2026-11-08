@@ -205,6 +205,125 @@ dialog[data-controller~="dialog"]:not([open]) {
     font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Rendered Markdown (the "markdown" Twig filter): text people write, such as a task
+ * description. Only the design tokens; headings start at h3, under the page's own.
+ */
+.markdown {
+    color: var(--color-text);
+    overflow-wrap: anywhere;
+}
+
+.markdown > * + * {
+    margin-top: 8px;
+}
+
+.markdown :where(h3, h4, h5, h6) {
+    margin-top: 16px;
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.markdown h3 {
+    font-size: var(--text-heading);
+    line-height: var(--text-heading--line-height);
+}
+
+.markdown :where(h4, h5, h6) {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+}
+
+.markdown > :first-child {
+    margin-top: 0;
+}
+
+.markdown :where(ul, ol) {
+    padding-left: 20px;
+}
+
+.markdown ul {
+    list-style: disc;
+}
+
+.markdown ol {
+    list-style: decimal;
+}
+
+.markdown li + li,
+.markdown li > :where(ul, ol) {
+    margin-top: 4px;
+}
+
+/* A task list: the checkbox stands in for the bullet. */
+.markdown li:has(> input[type="checkbox"]:first-child) {
+    list-style: none;
+    margin-left: -20px;
+}
+
+.markdown input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: -2px;
+    accent-color: var(--color-green);
+}
+
+.markdown a {
+    color: var(--color-green);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.markdown a:hover {
+    color: var(--color-green-hover);
+}
+
+.markdown blockquote {
+    padding-left: 12px;
+    border-left: 3px solid var(--color-container);
+    color: var(--color-muted);
+}
+
+.markdown code {
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
+    background: var(--color-frame);
+    font-size: var(--text-small);
+    line-height: var(--text-small--line-height);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.markdown pre {
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-radius: var(--radius-control);
+    background: var(--color-frame);
+    overflow-wrap: normal;
+}
+
+.markdown pre code {
+    padding: 0;
+    background: none;
+}
+
+.markdown hr {
+    border: 0;
+    border-top: 1px solid var(--color-divider);
+}
+
+.markdown img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-control);
+}
+
+.markdown .mention {
+    padding: 0 4px;
+    border-radius: var(--radius-sm);
+    background: var(--color-green-tint);
+    color: var(--color-ink);
+    font-weight: 500;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

@@ -164,6 +164,23 @@ final class TaskControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-task-description] b'));
     }
 
+    public function testTheDescriptionIsShownAsMarkdown(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit=description');
+        $this->client->submit($crawler->filter('[data-task-description-form]')->form(['description' => "# Scope\n\n- [x] **Draft**\n- [ ] [Review](javascript:alert(1))"]));
+        $crawler = $this->client->followRedirect();
+
+        $description = $crawler->filter('[data-task-description]');
+        self::assertSame('Scope', $description->filter('h3')->text());
+        self::assertSame('Draft', $description->filter('li strong')->text());
+        self::assertCount(1, $description->filter('input[type=checkbox][checked][disabled]'));
+        self::assertCount(0, $description->filter('a[href]'));
+    }
+
     public function testTheLabelsAreTickedInADialogAndSavedTogether(): void
     {
         $this->signIn();

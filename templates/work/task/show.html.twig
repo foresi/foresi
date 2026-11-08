@@ -57,7 +57,7 @@
                         </div>
                     </form>
                 {% elseif task.description is not empty %}
-                    <p class="m-0 whitespace-pre-line text-text [overflow-wrap:anywhere]" data-task-description>{{ task.description }}</p>
+                    <div class="markdown" data-task-description>{{ task.description|markdown }}</div>
                 {% else %}
                     <p class="m-0 text-muted">{{ 'work.task.no_description'|trans }}</p>
                 {% endif %}

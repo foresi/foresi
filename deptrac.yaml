@@ -179,6 +179,8 @@ deptrac:
           must_not:
             - type: classLike
               value: ^Symfony\\Component\\Uid\\
+            - type: classLike
+              value: ^Symfony\\Component\\HtmlSanitizer\\
     # symfony/uid is an internal detail of App\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
@@ -213,6 +215,15 @@ deptrac:
       collectors:
         - type: classLike
           value: ^(DirectoryTree|Illuminate|Carbon)\\
+    # Markdown parsing and HTML sanitizing; only the shared infrastructure may use them.
+    - name: VendorCommonMark
+      collectors:
+        - type: classLike
+          value: ^League\\CommonMark\\
+    - name: VendorHtmlSanitizer
+      collectors:
+        - type: classLike
+          value: ^Symfony\\Component\\HtmlSanitizer\\
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -245,6 +256,8 @@ deptrac:
       - SharedApplication
       - VendorSymfony
       - VendorMonolog
+      - VendorCommonMark
+      - VendorHtmlSanitizer
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
