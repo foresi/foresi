@@ -35,7 +35,6 @@ use App\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -47,8 +46,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The projects of the organisation, for its staff: the index of active and
  * archived projects, a new project in a dialog over it (the same URL is a page
- * of its own), and the list of a project, section by section, with a line at
- * the end of each section that adds a task by its title. The board shows the
+ * of its own), and the list of a project, section by section; a new task opens
+ * in a dialog from the header of the list and of the board. The board shows the
  * same tasks as one column per status; a card moves by dragging it or by the
  * move items of its menu, which work as plain forms. The trash of a project
  * lists the tasks deleted from it, each restored by a button.
@@ -63,7 +62,7 @@ final class ProjectController extends AbstractController
     public const string MOVE_TOKEN = 'work_task_move';
     public const string TOKEN = 'work_project';
     public const string TASK_TOKEN = 'work_task_add';
-    /** The add-task line of the tasks in no section. */
+    /** The block of the tasks in no section. */
     public const string NO_SECTION = 'none';
     private const int MAX_QUERY = 100;
     private const string ARCHIVED = 'archived';
@@ -174,8 +173,8 @@ final class ProjectController extends AbstractController
         $seeds = $this->seeds();
         $sections = [];
         foreach ($list->sections as $section) {
-            // The tasks in no section only when there are some, or when the project has no section to add them to.
-            if (null === $section->id && [] === $section->tasks && \count($list->sections) > 1) {
+            // The tasks in no section only when there are some.
+            if (null === $section->id && [] === $section->tasks) {
                 continue;
             }
             $sections[] = $this->sectionView($section, $seeds);
@@ -186,7 +185,6 @@ final class ProjectController extends AbstractController
             'sections' => $sections,
             'query' => $query,
             'filtered' => '' !== $query['responsible'] || 'open' !== $query['status'] || '' !== $query['due'],
-            'adding' => $request->query->getString('add'),
             'responsibles' => $this->responsibles(),
             'statuses' => [
                 'open' => $this->translator->trans('work.filter.status_open'),
@@ -319,36 +317,89 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * Adds a task by its title to a section, or to no section, and goes back
-     * to the list with the same line ready for the next one. An empty title
-     * adds nothing.
+     * A new task, by its title and its section: a dialog over the list or the
+     * board (the same URL is a page of its own) that goes back to the view it
+     * was opened from, with its filters. On the board the task starts in the
+     * first open status, as every new task does.
      */
-    #[Route('/projects/{id}/tasks', name: 'app_project_task_add', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function addTask(string $id, Request $request): RedirectResponse
+    #[Route('/projects/{id}/tasks/new', name: 'app_project_task_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function newTask(string $id, Request $request): Response
     {
         $this->denyUnlessStaff();
-        $this->checkToken($request, self::TASK_TOKEN);
-        $section = $request->request->getString('section');
-        $section = '' === $section || self::NO_SECTION === $section ? null : $section;
-        $title = trim($request->request->getString('title'));
-        if ('' !== $title) {
-            try {
-                $this->tasks->create($id, $title, $section);
-            } catch (WorkRefused $refused) {
-                if ('unknown' === $refused->reason) {
-                    throw new NotFoundHttpException($refused->getMessage(), $refused);
+        $settings = $this->queries->projectSettings($id) ?? throw new NotFoundHttpException();
+        $post = $request->isMethod('POST');
+        $return = $this->returnPath($id, ($post ? $request->request : $request->query)->getString('return'));
+        if ($settings->project->archivedAt instanceof \DateTimeImmutable) {
+            $this->addFlash('error', $this->translator->trans('work.refused.archived'));
+
+            return $this->redirect($return, Response::HTTP_SEE_OTHER);
+        }
+        $sections = ['' => $this->translator->trans('work.list.no_section')];
+        foreach ($settings->sections as $section) {
+            $sections[$section->id] = $section->name;
+        }
+        $values = ['title' => '', 'section' => ($post ? $request->request : $request->query)->getString('section')];
+        $errors = [];
+        if (!$post && !isset($sections[$values['section']])) {
+            $values['section'] = '';
+        }
+        if ($post) {
+            $this->checkToken($request, self::TASK_TOKEN);
+            $values['title'] = trim($request->request->getString('title'));
+            if ('' === $values['title']) {
+                $errors['title'] = $this->translator->trans('work.task.error.title_required');
+            }
+            if (!isset($sections[$values['section']])) {
+                $errors['section'] = $this->translator->trans('work.task.error.section');
+            }
+            if ([] === $errors) {
+                try {
+                    $this->tasks->create($id, $values['title'], '' === $values['section'] ? null : $values['section']);
+                    $this->addFlash('success', $this->translator->trans('work.task.added', ['title' => $values['title']]));
+
+                    return $this->redirect($return, Response::HTTP_SEE_OTHER);
+                } catch (WorkRefused $refused) {
+                    if ('unknown' === $refused->reason) {
+                        throw new NotFoundHttpException($refused->getMessage(), $refused);
+                    }
+                    $errors['name' === $refused->reason ? 'title' : 'form'] = $this->translator->trans('work.refused.'.$refused->reason);
                 }
-                $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
             }
         }
-        $query = array_filter([
-            'responsible' => $request->request->getString('responsible'),
-            'status' => $request->request->getString('status'),
-            'due' => $request->request->getString('due'),
-        ], static fn (string $value): bool => '' !== $value);
-        $key = $section ?? self::NO_SECTION;
 
-        return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $id] + $query + ['add' => $key, '_fragment' => 'add-'.$key], Response::HTTP_SEE_OTHER);
+        return $this->render('work/projects/task_new.html.twig', [
+            'project' => $settings->project,
+            'values' => $values,
+            'errors' => $errors,
+            'sections' => $sections,
+            'return' => $return,
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    /**
+     * The list or the board of the project with the filters it had, from the
+     * path a form was opened from; anything else is the list.
+     */
+    private function returnPath(string $projectId, string $return): string
+    {
+        $parts = parse_url($return);
+        // Only a path of this installation: an address with a scheme or a host is the list.
+        if (!\is_array($parts) || isset($parts['scheme']) || isset($parts['host'])) {
+            $parts = [];
+        }
+        $path = $parts['path'] ?? '';
+        $board = $path === $this->generateUrl(self::BOARD_ROUTE, ['id' => $projectId]);
+        $fields = [];
+        if ($board || $path === $this->generateUrl(self::PROJECT_ROUTE, ['id' => $projectId])) {
+            parse_str($parts['query'] ?? '', $fields);
+        }
+        $field = static fn (string $name, string $default = ''): string => isset($fields[$name]) && \is_string($fields[$name]) ? $fields[$name] : $default;
+        $query = $this->filters($field('responsible'), $field('status', 'open'), $field('due'));
+        if ($board || 'open' === $query['status']) {
+            unset($query['status']);
+        }
+
+        return $this->generateUrl($board ? self::BOARD_ROUTE : self::PROJECT_ROUTE, ['id' => $projectId] + array_filter($query, static fn (string $value): bool => '' !== $value));
     }
 
     /**
@@ -358,10 +409,16 @@ final class ProjectController extends AbstractController
      */
     private function filterQuery(InputBag $input): array
     {
-        $responsible = $input->getString('responsible');
-        $status = $input->getString('status', 'open');
-        $due = $input->getString('due');
+        return $this->filters($input->getString('responsible'), $input->getString('status', 'open'), $input->getString('due'));
+    }
 
+    /**
+     * The filters of the list and the board, each one it does not know left at its default.
+     *
+     * @return array{responsible: string, status: string, due: string}
+     */
+    private function filters(string $responsible, string $status, string $due): array
+    {
         return [
             'responsible' => 'me' === $responsible || 1 === preg_match('/^'.Requirement::UUID.'$/', $responsible) ? $responsible : '',
             'status' => \in_array($status, self::STATUS_FILTERS, true) ? $status : 'open',

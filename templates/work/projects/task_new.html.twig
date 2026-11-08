@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new task of a project: its title and its section. A dialog over the list or the board it goes
+    back to; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: return}, {label: 'work.task.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'work.task.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="task-new-form" action="{{ path('app_project_task_new', {id: project.id}) }}" class="grid gap-4" novalidate data-task-new>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::TASK_TOKEN')) }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        {{ include('work/_form_errors.html.twig', {prefix: 'task-new-'}) }}
+        <twig:Ui:TextInput name="title" id="task-new-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" />
+        <twig:Ui:Select name="section" id="task-new-section" :label="'work.task.field.section'|trans" :options="sections" :value="values.section" :error="errors.section|default(null)" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="task-new-form" variant="primary">{{ 'work.task.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.task.new'|trans" icon="square-check-big" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="return">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="task-new-form" variant="primary">{{ 'work.task.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

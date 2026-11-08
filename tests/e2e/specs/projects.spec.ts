@@ -58,20 +58,23 @@ test.describe('projects', () => {
     await dialog.getByRole('button', { name: 'Založit projekt' }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Intranet');
-    await expect(page.locator('main')).toContainText('Zatím žádné úkoly.');
+    await expect(page.locator('[data-project-empty]')).toContainText('Zatím žádné úkoly');
+    await expect(page.locator('[data-project-empty]').getByRole('link', { name: 'Nový úkol' })).toBeVisible();
   });
 
-  test('quick add keeps the focus for the next task', async ({ page }) => {
+  test('two tasks are added through the dialog of the header', async ({ page }) => {
     await openWebsite(page);
-    const input = page.locator('#add-' + (await page.locator('[data-section]').filter({ hasText: 'Backlog' }).getAttribute('data-section')));
-    await input.fill('Prepare the sitemap');
-    await input.press('Enter');
-    await expect(page.locator('main')).toContainText('Prepare the sitemap');
-    await expect(input).toBeFocused();
-    await input.fill('Check the redirects');
-    await input.press('Enter');
-    await expect(page.locator('main')).toContainText('Check the redirects');
-    await expect(input).toBeFocused();
+    for (const title of ['Prepare the sitemap', 'Check the redirects']) {
+      await page.getByRole('link', { name: 'Nový úkol' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Nový úkol' });
+      await expect(dialog.getByLabel('Název')).toBeFocused();
+      await dialog.getByLabel('Název').fill(title);
+      await dialog.getByLabel('Sekce').selectOption({ label: 'Backlog' });
+      await dialog.getByRole('button', { name: 'Přidat úkol' }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.locator('main')).toContainText(`Úkol „${title}“ je přidaný.`);
+      await expect(page.locator('[data-section]').filter({ hasText: 'Backlog' }).locator('tbody tr').filter({ hasText: title })).toBeVisible();
+    }
   });
 
   test('a task changes its status and priority and the activity says so', async ({ page }) => {
@@ -129,9 +132,9 @@ test.describe('projects', () => {
   test('a task deleted from the list comes back by its Undo and from the trash', async ({ page }) => {
     await openWebsite(page);
     const title = 'Remove the old banner';
-    const input = page.locator('#add-' + (await page.locator('[data-section]').filter({ hasText: 'Backlog' }).getAttribute('data-section')));
-    await input.fill(title);
-    await input.press('Enter');
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
     const row = page.locator('[data-section] tbody tr').filter({ hasText: title });
     await expect(row).toBeVisible();
 

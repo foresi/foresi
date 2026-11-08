@@ -3090,7 +3090,12 @@ work:
     no_description: No description.
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
-    add_subtask: Add subtask
+    new: New task
+    create: Add task
+    added: 'The task “{title}” is added.'
+    new_subtask: New subtask
+    create_subtask: Add subtask
+    subtask_added: 'The subtask “{title}” is added.'
     details: Details
     edit: Edit
     nobody: Nobody
@@ -3108,6 +3113,7 @@ work:
       choose: Choose a person
     error:
       title_required: Enter the title of the task.
+      section: Choose a section of this project.
       due: Enter the due date as a date.
   refused:
     unknown: This project, task or label no longer exists.
@@ -3343,8 +3349,8 @@ work:
     no_section: No section
     empty: No tasks yet.
     empty_filtered: No task matches the filters.
-    add_task: Add task
-    add_placeholder: Task title, then Enter
+    empty_title: No tasks yet
+    empty_text: Add the first task of the project.
     overdue: 'Overdue {date}'
   board:
     columns: Status columns

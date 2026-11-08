@@ -3090,7 +3090,12 @@ work:
     no_description: Bez popisu.
     no_subtasks: Zatím žádné podúkoly.
     subtasks: Podúkoly
-    add_subtask: Přidat podúkol
+    new: Nový úkol
+    create: Přidat úkol
+    added: 'Úkol „{title}“ je přidaný.'
+    new_subtask: Nový podúkol
+    create_subtask: Přidat podúkol
+    subtask_added: 'Podúkol „{title}“ je přidaný.'
     details: Podrobnosti
     edit: Upravit
     nobody: Nikdo
@@ -3108,6 +3113,7 @@ work:
       choose: Vyberte člověka
     error:
       title_required: Zadejte název úkolu.
+      section: Vyberte sekci tohoto projektu.
       due: Zadejte termín jako datum.
   refused:
     unknown: Tento projekt, úkol nebo štítek už neexistuje.
@@ -3343,8 +3349,8 @@ work:
     no_section: Bez sekce
     empty: Zatím žádné úkoly.
     empty_filtered: Filtrům neodpovídá žádný úkol.
-    add_task: Přidat úkol
-    add_placeholder: Název úkolu a Enter
+    empty_title: Zatím žádné úkoly
+    empty_text: Přidejte první úkol projektu.
     overdue: 'Po termínu {date}'
   board:
     columns: Sloupce stavů

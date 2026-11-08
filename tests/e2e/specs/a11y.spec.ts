@@ -131,6 +131,14 @@ test.describe('projects and tasks', () => {
     await expectNoSeriousViolations(page);
   });
 
+  test('the dialog of a new task has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/projects');
+    await page.getByRole('link', { name: 'Website', exact: true }).click();
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await expect(page.getByRole('dialog', { name: 'Nový úkol' }).getByLabel('Název')).toBeFocused();
+    await expectNoSeriousViolations(page);
+  });
+
   test('task has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();

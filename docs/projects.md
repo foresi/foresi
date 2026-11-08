@@ -21,7 +21,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 
 A project opens as a list: one block per section, each task a row with its status, responsible, due date, priority and labels, and its subtasks under it. The filters above narrow the list by responsible person, status (unfinished by default, finished, or all) and due date (overdue, today, the next 7 days, none).
 
-Each section ends with a line to add a task: type the title and press Enter. The task is saved, the line stays focused and empty, and you can type the next one at once.
+**New task**, in the header of the list and of the board, opens a dialog for the title and the section (no section by default). The task starts in the first open status of the workflow, and you come back to the view you opened it from, with its filters, where a message confirms it. A project without tasks shows the same button in the middle of the page. An archived project has no **New task**. Without JavaScript the dialog is a page of its own.
 
 ## The board
 
@@ -34,7 +34,7 @@ The order of a card is the order of the task in its status; the list shows the s
 
 ## The task page
 
-Opening a task shows its title and description, its subtasks with a line to add one, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. The title and the description open in place with **Edit**.
+Opening a task shows its title and description, its subtasks, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. The title and the description open in place with **Edit**. **New subtask**, next to **Edit** in the header, opens a dialog for the title; the subtask goes into the section of its task and the page comes back at the subtasks. A subtask has no **New subtask**, and neither does a task of an archived project.
 
 ## Discussion
 

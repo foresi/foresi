@@ -63,7 +63,11 @@ final class TaskControllerTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Wireframes');
         self::assertSame("Three options.\nAnd a fourth.", $crawler->filter('[data-task-description]')->text(normalizeWhitespace: false));
         self::assertSame(['Logo'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        self::assertCount(1, $crawler->filter('form[data-quick-add] #add-subtask'));
+        $open = $crawler->filter('main a[data-subtask-new-open]');
+        self::assertSame('/tasks/'.$this->taskId('Wireframes').'/subtasks/new', $open->attr('href'));
+        self::assertNotNull($open->attr('data-dialog'));
+        self::assertSame('New subtask', trim($open->text()));
+        self::assertCount(0, $crawler->filter('main input[name="title"]'));
         self::assertSame('In progress', trim($crawler->filter('#task-status option[selected]')->text()));
         self::assertSame('Example Company', trim($crawler->filter('#task-responsible option[selected]')->text()));
         self::assertSame(['Nobody', 'Example Company', 'Jana Example'], $crawler->filter('#task-responsible option')->each(static fn (Crawler $option): string => trim($option->text())));
@@ -238,26 +242,55 @@ final class TaskControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-task-history]', 'Watcher removed: Example Company');
     }
 
-    public function testTheSubtaskLineAddsASubtaskAndIsReadyForTheNext(): void
+    public function testTheDialogAddsASubtaskInTheSectionOfItsTaskAndComesBackToTheSubtasks(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Wireframes');
+        $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'/subtasks/new', server: $dialog);
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('dialog#dialog-page form#subtask-new-form');
+        self::assertCount(1, $form);
+        self::assertCount(1, $form->filter('input[name="title"]'));
+        self::assertCount(0, $form->filter('select'));
+        $this->client->submit($form->form(['title' => '  Icons ']), serverParameters: $dialog);
+
+        self::assertSame(['location' => '/tasks/'.$id.'#task-subtasks-title'], json_decode((string) $this->client->getResponse()->getContent(), true));
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        self::assertSame(['Logo', 'Icons'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSelectorTextContains('main', 'The subtask “Icons” is added.');
+        self::assertSame(
+            ['parent_id' => $id, 'section_id' => $this->sectionId($this->projectId('Website'), 'Design')],
+            $this->em->getConnection()->fetchAssociative('SELECT parent_id, section_id FROM task WHERE title = ?', ['Icons']),
+        );
+    }
+
+    public function testWithoutJavaScriptTheSubtaskDialogIsAPageThatNeedsATitle(): void
     {
         $this->signIn();
         $this->seed();
         $id = $this->taskId('Wireframes');
 
-        $crawler = $this->client->request('GET', '/tasks/'.$id);
-        $this->client->submit($crawler->filter('form[data-quick-add]')->form(['title' => 'Icons']));
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'/subtasks/new');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main h1', 'New subtask');
 
-        self::assertResponseRedirects('/tasks/'.$id.'?add=1#add-subtask');
-        $crawler = $this->client->followRedirect();
-        self::assertSame(['Logo', 'Icons'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        self::assertNotNull($crawler->filter('#add-subtask')->attr('autofocus'));
-        self::assertSame(
-            ['parent_id' => $id, 'section_id' => $this->sectionId($this->projectId('Website'), 'Design')],
-            $this->em->getConnection()->fetchAssociative('SELECT parent_id, section_id FROM task WHERE title = ?', ['Icons']),
-        );
+        $crawler = $this->client->submit($crawler->filter('#subtask-new-form')->form(['title' => '  ']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Enter the title of the task.', trim($crawler->filter('#subtask-new-title-error')->text()));
+        self::assertSelectorTextContains('[data-error-summary]', 'Title: Enter the title of the task.');
 
-        // An empty line adds nothing.
-        $this->client->submit($crawler->filter('form[data-quick-add]')->form(['title' => ' ']));
+        $long = str_repeat('a', 501);
+        $crawler = $this->client->submit($crawler->filter('#subtask-new-form')->form(['title' => $long]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Enter a name that is not too long.', trim($crawler->filter('#subtask-new-title-error')->text()));
+        self::assertSame($long, $crawler->filter('#subtask-new-title')->attr('value'));
+
+        $this->client->submit($crawler->filter('#subtask-new-form')->form(['title' => 'Icons']));
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseRedirects('/tasks/'.$id.'#task-subtasks-title');
         self::assertSame(4, $this->rows('SELECT COUNT(*) FROM task', []));
     }
 
@@ -272,11 +305,34 @@ final class TaskControllerTest extends WebTestCase
         self::assertSame('Wireframes', trim($crawler->filter('nav a[href="/tasks/'.$this->taskId('Wireframes').'"]')->text()));
         self::assertCount(0, $crawler->filter('[data-task-subtasks]'));
         self::assertCount(0, $crawler->filter('[data-task-property="section"]'));
+        self::assertCount(0, $crawler->filter('a[data-subtask-new-open]'));
 
-        $this->client->request('POST', '/tasks/'.$logo.'/subtasks', ['_token' => $this->token($crawler), 'title' => 'Too deep']);
+        $this->client->request('GET', '/tasks/'.$logo.'/subtasks/new');
+        self::assertResponseRedirects('/tasks/'.$logo);
+        $this->client->request('POST', '/tasks/'.$logo.'/subtasks/new', ['_token' => $this->token($crawler), 'title' => 'Too deep']);
+        self::assertResponseRedirects('/tasks/'.$logo);
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'A subtask goes under a task of the same project that is not a subtask itself.');
         self::assertFalse($this->em->getConnection()->fetchOne('SELECT id FROM task WHERE title = ?', ['Too deep']));
+    }
+
+    public function testATaskOfAnArchivedProjectOffersNoNewSubtask(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $id = $this->taskId('Wireframes');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $this->scoped(function () use ($project): void {
+            ($this->em->find(Project::class, $project) ?? throw new \LogicException('Project.'))->archive(new \DateTimeImmutable());
+            $this->em->flush();
+        });
+
+        self::assertCount(0, $this->client->request('GET', '/tasks/'.$id)->filter('a[data-subtask-new-open]'));
+        $this->client->request('POST', '/tasks/'.$id.'/subtasks/new', ['_token' => $this->token($crawler), 'title' => 'Late']);
+        self::assertResponseRedirects('/tasks/'.$id);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The project is archived. Restore it first.');
+        self::assertFalse($this->em->getConnection()->fetchOne('SELECT id FROM task WHERE title = ?', ['Late']));
     }
 
     public function testAnInactivePersonCannotTakeOrFollowTheTask(): void
@@ -328,7 +384,7 @@ final class TaskControllerTest extends WebTestCase
         $this->seed();
         $id = $this->taskId('Brief');
 
-        foreach (['title', 'description', 'status', 'responsible', 'due', 'priority', 'labels', 'section', 'watch', 'unwatch', 'watchers', 'subtasks', 'comments'] as $action) {
+        foreach (['title', 'description', 'status', 'responsible', 'due', 'priority', 'labels', 'section', 'watch', 'unwatch', 'watchers', 'subtasks/new', 'comments'] as $action) {
             $this->client->request('POST', '/tasks/'.$id.'/'.$action, ['_token' => 'wrong', 'body' => 'Hello']);
             self::assertResponseStatusCodeSame(403, $action);
         }
@@ -345,7 +401,7 @@ final class TaskControllerTest extends WebTestCase
         $this->signIn(Role::Guest);
         $id = '01900000-0000-7000-8000-000000000000';
 
-        foreach (['GET' => ['', '/labels', '/mention-candidates'], 'POST' => ['/title', '/status', '/watch', '/subtasks', '/comments']] as $method => $paths) {
+        foreach (['GET' => ['', '/labels', '/mention-candidates', '/subtasks/new'], 'POST' => ['/title', '/status', '/watch', '/subtasks/new', '/comments']] as $method => $paths) {
             foreach ($paths as $path) {
                 $this->client->request($method, '/tasks/'.$id.$path);
                 self::assertResponseStatusCodeSame(403, $method.' '.$path);
