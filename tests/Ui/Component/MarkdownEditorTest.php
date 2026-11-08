@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Ui\Component;
 
+use App\Ui\Component\ErrorFocus;
+use App\Ui\Component\MarkdownEditor;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
@@ -85,6 +88,51 @@ final class MarkdownEditorTest extends KernelTestCase
     {
         $this->expectException(\Throwable::class);
         $this->render(['name' => 'body', 'label' => 'Comment']);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string|null>}>
+     */
+    public static function unsafe(): iterable
+    {
+        yield 'a script as the preview' => [['previewUrl' => 'javascript:alert(1)']];
+        yield 'a script as the people list' => [['mentionsUrl' => 'javascript:alert(1)']];
+        yield 'a script as the upload' => [['uploadUrl' => 'javascript:alert(1)', 'uploadKind' => 'task', 'uploadOwner' => 'x']];
+        yield 'an upload without the kind' => [['uploadUrl' => '/attachments', 'uploadOwner' => 'x']];
+        yield 'an upload without the record' => [['uploadUrl' => '/attachments', 'uploadKind' => 'task']];
+        yield 'an upload without both' => [['uploadUrl' => '/attachments']];
+    }
+
+    /**
+     * @param array<string, string|null> $props
+     */
+    #[DataProvider('unsafe')]
+    public function testUnsafeOrIncompleteUrlsAreRefused(array $props): void
+    {
+        $editor = new MarkdownEditor(new ErrorFocus());
+        $editor->previewUrl = $props['previewUrl'] ?? '/markdown/preview';
+        $editor->mentionsUrl = $props['mentionsUrl'] ?? null;
+        $editor->uploadUrl = $props['uploadUrl'] ?? null;
+        $editor->uploadKind = $props['uploadKind'] ?? null;
+        $editor->uploadOwner = $props['uploadOwner'] ?? null;
+
+        $this->expectException(\InvalidArgumentException::class);
+        $editor->validateUrls();
+    }
+
+    public function testSafeUrlsAndAnUploadWithItsRecordAreAccepted(): void
+    {
+        $editor = new MarkdownEditor(new ErrorFocus());
+        $editor->previewUrl = '/markdown/preview';
+        $editor->validateUrls();
+
+        $editor->mentionsUrl = '/mentions';
+        $editor->uploadUrl = '/attachments';
+        $editor->uploadKind = 'task';
+        $editor->uploadOwner = 'abc';
+        $editor->validateUrls();
+
+        self::assertSame('/attachments', $editor->uploadUrl);
     }
 
     /**

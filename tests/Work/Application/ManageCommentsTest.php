@@ -57,6 +57,16 @@ final class ManageCommentsTest extends WorkTestCase
         $this->assertRefused('comment_empty', fn () => $this->comments->edit($comment->id(), ' '));
     }
 
+    public function testABodyOfExactlyTheLimitInCharactersIsKept(): void
+    {
+        $comment = $this->comments->add($this->task->id(), str_repeat('é', TaskComment::MAX_BODY_LENGTH));
+        self::assertSame(TaskComment::MAX_BODY_LENGTH, mb_strlen($comment->text()));
+
+        $this->comments->edit($comment->id(), str_repeat('ž', TaskComment::MAX_BODY_LENGTH));
+        self::assertSame(str_repeat('ž', TaskComment::MAX_BODY_LENGTH), $comment->text());
+        $this->assertRefused('comment_too_long', fn () => $this->comments->edit($comment->id(), str_repeat('ž', TaskComment::MAX_BODY_LENGTH + 1)));
+    }
+
     public function testOnlyStaffCommentsOnTasksTheySee(): void
     {
         $this->assertRefused('unknown', fn (): TaskComment => $this->comments->add(Id::generate(), 'Hello'));

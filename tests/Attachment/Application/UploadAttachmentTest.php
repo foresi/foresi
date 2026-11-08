@@ -23,6 +23,7 @@ use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantScope;
 use App\Tenancy\Domain\TenantId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -39,13 +40,15 @@ final class UploadAttachmentTest extends TestCase
     private RecordingFiles $files;
     private FakeAccess $access;
     private ?string $actor;
+    private AuditCorrelation $correlation;
 
     protected function setUp(): void
     {
         $this->owner = Id::generate();
         $this->user = Id::generate();
         $this->actor = $this->user;
-        $this->attachments = new InMemoryAttachments();
+        $this->correlation = new AuditCorrelation();
+        $this->attachments = new InMemoryAttachments($this->correlation);
         $this->files = new RecordingFiles();
         $this->access = new FakeAccess();
     }
@@ -92,6 +95,85 @@ final class UploadAttachmentTest extends TestCase
         // A size the web server already refused, or reported larger than allowed.
         $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload('', 'big.txt', 0, false, true));
         $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload($this->file('x'), 'big.txt', UploadAttachment::MAX_BYTES + 1));
+    }
+
+    public function testAFileOfExactlyTheLimitIsKeptAndOneByteMoreIsRefused(): void
+    {
+        $atLimit = $this->upload(10)->upload('task', $this->owner, new AttachmentUpload($this->file('0123456789'), 'ten.txt', 10));
+        self::assertSame(10, $atLimit->size());
+
+        $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload($this->file('0123456789'), 'lie.txt', 11), 10);
+        // The size the browser reports is not trusted: the bytes are measured.
+        $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload($this->file('0123456789A'), 'lie.txt', 1), 10);
+    }
+
+    public function testTheLimitIsFiftyMegabytesExactly(): void
+    {
+        $path = $this->sparse(UploadAttachment::MAX_BYTES);
+        $kept = $this->upload()->upload('task', $this->owner, new AttachmentUpload($path, 'limit.bin', UploadAttachment::MAX_BYTES));
+        self::assertSame(UploadAttachment::MAX_BYTES, $kept->size());
+
+        $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload($this->sparse(UploadAttachment::MAX_BYTES + 1), 'over.bin', 1));
+        $this->assertRefused(AttachmentRefused::TOO_BIG, new AttachmentUpload($this->file('x'), 'over.bin', UploadAttachment::MAX_BYTES + 1));
+    }
+
+    public function testADirectoryOrAnUnreadableFileIsNoUpload(): void
+    {
+        $this->assertRefused(AttachmentRefused::FAILED, new AttachmentUpload(sys_get_temp_dir(), 'folder', 1));
+
+        $path = $this->file('secret');
+        chmod($path, 0o000);
+        if (!is_readable($path)) {
+            $this->assertRefused(AttachmentRefused::FAILED, new AttachmentUpload($path, 'secret.txt', 6));
+        }
+        chmod($path, 0o600);
+    }
+
+    public function testTheSizeIsMeasuredAfresh(): void
+    {
+        $path = $this->file('');
+        // The size of the empty file is remembered by PHP until the cache is cleared.
+        self::assertSame(0, filesize($path));
+        file_put_contents($path, 'now it has bytes');
+
+        self::assertSame(16, $this->upload()->upload('task', $this->owner, new AttachmentUpload($path, 'late.txt', 16))->size());
+    }
+
+    public function testTheRecordIsWrittenUnderTheAuditCorrelationOfTheFileUnlessOneIsRunning(): void
+    {
+        $attachment = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('x'), 'a.txt', 1));
+        $this->delete()->delete($attachment->id());
+        self::assertSame(['attachment:'.$attachment->id(), 'attachment:'.$attachment->id()], $this->attachments->flushedUnder);
+        self::assertNull($this->correlation->current());
+
+        $this->attachments->flushedUnder = [];
+        $this->correlation->within('import:1', function (): void {
+            $other = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('y'), 'b.txt', 1));
+            $this->delete()->delete($other->id());
+        });
+        self::assertSame(['import:1', 'import:1'], $this->attachments->flushedUnder);
+    }
+
+    /**
+     * @return iterable<string, array{string|false, string}>
+     */
+    public static function sniffed(): iterable
+    {
+        yield 'nothing sniffed' => [false, 'application/octet-stream'];
+        yield 'a plain type' => ['image/png', 'image/png'];
+        yield 'capitals are lowered' => ['Image/PNG', 'image/png'];
+        yield 'a structured suffix' => ['application/vnd.api+json', 'application/vnd.api+json'];
+        yield 'no subtype' => ['image', 'application/octet-stream'];
+        yield 'a trailing newline' => ["image/png\n", 'application/octet-stream'];
+        yield 'a space inside' => ['image/p ng', 'application/octet-stream'];
+        yield 'the longest type' => ['a/'.str_repeat('b', Attachment::MAX_MEDIA_TYPE_LENGTH - 2), 'a/'.str_repeat('b', Attachment::MAX_MEDIA_TYPE_LENGTH - 2)];
+        yield 'one character too long' => ['a/'.str_repeat('b', Attachment::MAX_MEDIA_TYPE_LENGTH - 1), 'application/octet-stream'];
+    }
+
+    #[DataProvider('sniffed')]
+    public function testASniffedTypeIsKeptOnlyWhenWellFormed(string|false $sniffed, string $expected): void
+    {
+        self::assertSame($expected, UploadAttachment::mediaType($sniffed));
     }
 
     public function testAFileThatDidNotArriveOrCannotBeStoredIsRefused(): void
@@ -162,6 +244,60 @@ final class UploadAttachmentTest extends TestCase
         new AttachmentPermissions([new FakeAccess(), new FakeAccess()])->canSee('task', $this->owner);
     }
 
+    public function testAFileCanBeAttachedOnlyWhereTheModuleLetsThePersonSeeAndAttach(): void
+    {
+        $access = new FakeAccess();
+        $permissions = new AttachmentPermissions([$access]);
+        $owner = Id::generate();
+
+        self::assertTrue($permissions->canAttach('task', $owner));
+
+        $access->see = false;
+        self::assertFalse($permissions->canAttach('task', $owner), 'Not seeing the record is not attaching to it.');
+
+        $access->see = true;
+        $access->attach = false;
+        self::assertFalse($permissions->canAttach('task', $owner));
+    }
+
+    public function testNothingIsAllowedOnAKindNoModuleClaims(): void
+    {
+        $permissions = new AttachmentPermissions([new FakeAccess()]);
+        $owner = Id::generate();
+
+        self::assertFalse($permissions->canSee('invoice', $owner));
+        self::assertFalse($permissions->canAttach('invoice', $owner));
+        self::assertFalse($permissions->canDelete($this->attachmentOf('invoice', $owner)));
+    }
+
+    public function testDeletingFollowsTheModuleOfTheKind(): void
+    {
+        $access = new FakeAccess();
+        $permissions = new AttachmentPermissions([$access]);
+        $file = $this->attachmentOf('task', Id::generate());
+
+        self::assertFalse($permissions->canDelete($file));
+        $access->delete = true;
+        self::assertTrue($permissions->canDelete($file));
+    }
+
+    public function testARefusalNamesItsReasonAndKeepsItsCause(): void
+    {
+        $cause = new \RuntimeException('The disk is full.');
+        $refused = new AttachmentRefused(AttachmentRefused::FAILED, $cause);
+
+        self::assertSame('failed', $refused->reason);
+        self::assertSame('The attachment was refused: failed.', $refused->getMessage());
+        self::assertSame(0, $refused->getCode());
+        self::assertSame($cause, $refused->getPrevious());
+        self::assertNull(new AttachmentRefused(AttachmentRefused::EMPTY)->getPrevious());
+    }
+
+    private function attachmentOf(string $kind, string $ownerId): Attachment
+    {
+        return new Attachment(Id::generate(), $kind, $ownerId, 'a.pdf', 'application/pdf', 3, hash('sha256', 'abc'), 'key', Id::generate(), new \DateTimeImmutable());
+    }
+
     private function assertRefused(string $reason, AttachmentUpload $file, int $limit = UploadAttachment::MAX_BYTES, string $kind = 'task', ?string $owner = null): void
     {
         try {
@@ -174,12 +310,12 @@ final class UploadAttachmentTest extends TestCase
 
     private function upload(int $limit = UploadAttachment::MAX_BYTES): UploadAttachment
     {
-        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$this->access]), $this->tenant(), $this->actor(), new AuditCorrelation(), new MockClock(), $limit);
+        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$this->access]), $this->tenant(), $this->actor(), $this->correlation, new MockClock(), $limit);
     }
 
     private function delete(): DeleteAttachment
     {
-        return new DeleteAttachment($this->attachments, new AttachmentPermissions([$this->access]), $this->actor(), new AuditCorrelation(), new MockClock());
+        return new DeleteAttachment($this->attachments, new AttachmentPermissions([$this->access]), $this->actor(), $this->correlation, new MockClock());
     }
 
     private function actor(): AuditActor
@@ -210,6 +346,18 @@ final class UploadAttachmentTest extends TestCase
         $context->set(TenantId::generate());
 
         return $context;
+    }
+
+    private function sparse(int $bytes): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'upload');
+        $this->paths[] = $path;
+        $handle = fopen($path, 'wb');
+        self::assertNotFalse($handle);
+        ftruncate($handle, max(0, $bytes));
+        fclose($handle);
+
+        return $path;
     }
 
     private function file(string $bytes): string
@@ -254,6 +402,12 @@ final class InMemoryAttachments implements Attachments
     /** @var list<Attachment> */
     public array $items = [];
     public bool $fail = false;
+    /** @var list<?string> the correlation id in force at each flush */
+    public array $flushedUnder = [];
+
+    public function __construct(private readonly ?AuditCorrelation $correlation = null)
+    {
+    }
 
     public function of(string $ownerKind, string $ownerId): array
     {
@@ -272,6 +426,7 @@ final class InMemoryAttachments implements Attachments
 
     public function flush(): void
     {
+        $this->flushedUnder[] = $this->correlation?->current();
         if ($this->fail) {
             $this->items = [];
 

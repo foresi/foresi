@@ -70,7 +70,7 @@ final readonly class UploadAttachment
         if (false === $sha256) {
             throw new AttachmentRefused(AttachmentRefused::FAILED);
         }
-        $mediaType = $this->sniff($file->path);
+        $mediaType = self::mediaType(new \finfo(\FILEINFO_MIME_TYPE)->file($file->path));
 
         $id = Id::generate();
         $tenantId = $this->context->current()->toString();
@@ -95,13 +95,15 @@ final readonly class UploadAttachment
         }
     }
 
-    private function sniff(string $path): string
+    /**
+     * The media type the bytes were sniffed as, when it is a well-formed one.
+     */
+    public static function mediaType(string|false $sniffed): string
     {
-        $type = new \finfo(\FILEINFO_MIME_TYPE)->file($path);
-        if (!\is_string($type) || \strlen($type) > Attachment::MAX_MEDIA_TYPE_LENGTH || 1 !== preg_match('~^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$~iD', $type)) {
+        if (!\is_string($sniffed) || \strlen($sniffed) > Attachment::MAX_MEDIA_TYPE_LENGTH || 1 !== preg_match('~^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$~iD', $sniffed)) {
             return self::FALLBACK_TYPE;
         }
 
-        return strtolower($type);
+        return strtolower($sniffed);
     }
 }

@@ -24,6 +24,13 @@ final class MentionSyntaxTest extends TestCase
         self::assertSame([self::PETR, self::JANA], MentionSyntax::ids($source));
     }
 
+    public function testTheListHasNoGapsWhenTheFirstMentionRepeats(): void
+    {
+        $source = sprintf('@[Petr](membership:%s) @[Petr](membership:%s) @[Jana](membership:%s)', self::PETR, self::PETR, self::JANA);
+
+        self::assertSame([self::PETR, self::JANA], MentionSyntax::ids($source));
+    }
+
     public function testIgnoresWhatIsNoMention(): void
     {
         $source = sprintf('[Jana](membership:%s) @[Jana](member:%s) @[](membership:%s) @[Jana](membership:not-an-id) jana@example.com', self::JANA, self::JANA, self::JANA);

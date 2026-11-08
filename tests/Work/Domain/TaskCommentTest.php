@@ -86,6 +86,25 @@ final class TaskCommentTest extends TestCase
         $comment->edit('Again', new \DateTimeImmutable('2026-11-07 11:00'));
     }
 
+    public function testTheBodyIsCheckedAndTrimmedWithoutAComment(): void
+    {
+        self::assertSame('Hi', TaskComment::checkedBody("  Hi\n"));
+    }
+
+    public function testWithoutATenantStampedOnPersistThereIsNoTenant(): void
+    {
+        $comment = $this->comment('Hi');
+
+        foreach ([$comment->tenantId(...), fn (): mixed => new CommentMention($comment, $this->author)->tenantId()] as $read) {
+            try {
+                $read();
+                self::fail('There is a tenant.');
+            } catch (\LogicException $unstamped) {
+                self::assertSame('The tenant is stamped on persist.', $unstamped->getMessage());
+            }
+        }
+    }
+
     private function comment(string $body): TaskComment
     {
         return new TaskComment($this->task, $this->author, $body, true, new \DateTimeImmutable('2026-11-07 08:30'));
