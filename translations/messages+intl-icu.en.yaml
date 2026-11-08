@@ -83,6 +83,19 @@ ui:
     cancel: Cancel
   combobox:
     found: 'Found: {count}'
+  markdown_editor:
+    write: Write
+    preview: Preview
+    nothing_to_preview: Nothing to preview
+    toolbar: Formatting
+    bold: Bold
+    italic: Italic
+    list: List
+    link: Link
+    code: Code
+    quote: Quote
+    mentions: People
+    no_match: No one matches
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Check this

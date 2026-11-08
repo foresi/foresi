@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+<div class="grid gap-5">
+{% embed 'catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
+<div class="w-96 max-w-full"><twig:Ui:MarkdownEditor name="cat-markdown" label="Comment" value="Pays within **14 days**." previewUrl="/_catalogue/none" mentionsUrl="/_catalogue/none" /></div>
+{% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'error'} %}{% block sample %}
+<div class="w-96 max-w-full"><twig:Ui:MarkdownEditor name="cat-markdown-error" label="Comment" error="Write the comment." previewUrl="/_catalogue/none" /></div>
+{% endblock %}{% endembed %}
+</div>

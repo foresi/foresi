@@ -83,6 +83,19 @@ ui:
     cancel: Zrušit
   combobox:
     found: 'Nalezeno: {count}'
+  markdown_editor:
+    write: Psát
+    preview: Náhled
+    nothing_to_preview: Nic k náhledu
+    toolbar: Formátování
+    bold: Tučně
+    italic: Kurzíva
+    list: Seznam
+    link: Odkaz
+    code: Kód
+    quote: Citace
+    mentions: Lidé
+    no_match: Nikdo neodpovídá
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Ověřte

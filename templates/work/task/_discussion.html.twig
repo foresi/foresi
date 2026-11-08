@@ -63,7 +63,7 @@
                             {% elseif editing %}
                                 <form method="post" action="{{ path('app_task_comment_edit', {id: comment.id}) }}" class="grid gap-3" novalidate data-controller="comment-form" data-comment-edit-form>
                                     <input type="hidden" name="_token" value="{{ token }}">
-                                    <twig:Ui:Textarea name="body" :id="'comment-edit-' ~ comment.id" :label="'work.discussion.edit_label'|trans" :value="values.comment_edit ?? comment.text" :error="errors.comment_edit|default(null)" :rows="4" :autofocus="errors is empty" data-comment-editor data-action="keydown->comment-form#shortcut" />
+                                    <twig:Ui:MarkdownEditor name="body" :id="'comment-edit-' ~ comment.id" :label="'work.discussion.edit_label'|trans" :value="values.comment_edit ?? comment.text" :error="errors.comment_edit|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :autofocus="errors is empty" data-comment-editor data-action="keydown->comment-form#shortcut" />
                                     <div class="flex flex-wrap gap-2">
                                         <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
                                         <twig:Ui:Button :href="taskUrl ~ '#comment-' ~ comment.id">{{ 'work.cancel'|trans }}</twig:Ui:Button>
@@ -81,7 +81,7 @@
 
     <form method="post" action="{{ path('app_task_comment_add', {id: row.id}) }}" id="comment-form" class="grid gap-3 border-t border-divider pt-4" novalidate data-controller="comment-form" data-comment-composer>
         <input type="hidden" name="_token" value="{{ token }}">
-        <twig:Ui:Textarea name="body" id="comment-body" :label="'work.discussion.composer'|trans" :value="values.comment" :error="errors.comment|default(null)" :rows="4" data-comment-editor data-action="keydown->comment-form#shortcut" />
+        <twig:Ui:MarkdownEditor name="body" id="comment-body" :label="'work.discussion.composer'|trans" :value="values.comment" :error="errors.comment|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" data-comment-editor data-action="keydown->comment-form#shortcut" />
         {% set internal = values.comment_internal == '1' %}
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="grid gap-1.5">

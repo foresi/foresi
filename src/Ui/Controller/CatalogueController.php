@@ -28,7 +28,7 @@ final class CatalogueController extends AbstractController
      * the name is the kebab-case component name and the anchor "component-<name>".
      */
     public const array SECTIONS = [
-        'tokens', 'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea',
+        'tokens', 'button', 'icon-button', 'badge', 'tag', 'field', 'text-input', 'select', 'checkbox', 'choice-chips', 'textarea', 'markdown-editor',
         'search-field', 'combobox', 'radio-cards', 'field-group', 'form-band', 'disclosure', 'card', 'description-list', 'tabs', 'stepper', 'alert', 'empty-state', 'kbd',
         'data-table', 'pagination', 'bulk-bar', 'action-bar', 'dialog', 'kpi-strip', 'facts-grid', 'timeline', 'progress-bar', 'mapping-row', 'page-header', 'command-palette',
     ];

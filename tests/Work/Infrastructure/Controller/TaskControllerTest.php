@@ -343,7 +343,7 @@ final class TaskControllerTest extends WebTestCase
         $this->signIn(Role::Guest);
         $id = '01900000-0000-7000-8000-000000000000';
 
-        foreach (['GET' => ['', '/labels'], 'POST' => ['/title', '/status', '/watch', '/subtasks', '/comments']] as $method => $paths) {
+        foreach (['GET' => ['', '/labels', '/mention-candidates'], 'POST' => ['/title', '/status', '/watch', '/subtasks', '/comments']] as $method => $paths) {
             foreach ($paths as $path) {
                 $this->client->request($method, '/tasks/'.$id.$path);
                 self::assertResponseStatusCodeSame(403, $method.' '.$path);
@@ -353,6 +353,59 @@ final class TaskControllerTest extends WebTestCase
             $this->client->request('POST', '/comments/'.$id.$path);
             self::assertResponseStatusCodeSame(403, 'comment '.$path);
         }
+        $this->client->request('POST', '/markdown/preview', ['text' => 'Hello']);
+        self::assertResponseStatusCodeSame(403, 'preview');
+    }
+
+    public function testThePreviewRendersTheTextAsTheSanitisedMarkdownOfThePage(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+        $jana = $this->membershipId('jana@example.com');
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        $editor = $crawler->filter('[data-comment-composer] [data-controller="markdown-editor"]');
+        self::assertSame('/markdown/preview', $editor->attr('data-markdown-editor-preview-url-value'));
+        self::assertSame('/tasks/'.$id.'/mention-candidates', $editor->attr('data-markdown-editor-mentions-url-value'));
+        $token = (string) $editor->attr('data-markdown-editor-token-value');
+
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => "**Bold** <script>alert(1)</script> [x](javascript:alert(1)) @[Jana Example](membership:{$jana})"]);
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'text/html; charset=UTF-8');
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('<strong>Bold</strong>', $html);
+        self::assertStringNotContainsString('<script', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertStringContainsString('Jana Example', $html);
+
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => str_repeat('a', 20_000)]);
+        self::assertResponseIsSuccessful();
+        $this->client->request('POST', '/markdown/preview', ['_token' => $token, 'text' => str_repeat('a', 20_001)]);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->request('POST', '/markdown/preview', ['_token' => 'wrong', 'text' => 'Hello']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/markdown/preview');
+        self::assertResponseStatusCodeSame(405);
+    }
+
+    public function testTheMentionListHoldsThePeopleWhoSeeTheTask(): void
+    {
+        $this->signIn();
+        $this->seed();
+        $id = $this->taskId('Brief');
+
+        $this->client->request('GET', '/tasks/'.$id.'/mention-candidates');
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        $data = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame(['results' => [
+            ['id' => $this->membershipId('testing@example.com'), 'name' => 'Example Company', 'initials' => 'EC'],
+            ['id' => $this->membershipId('jana@example.com'), 'name' => 'Jana Example', 'initials' => 'JE'],
+        ]], $data);
+
+        // A task one cannot see is one that does not exist.
+        $this->client->request('GET', '/tasks/01900000-0000-7000-8000-000000000000/mention-candidates');
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testTheDiscussionIsOneTimelineOldestFirstWithTheCommentBoxUnderIt(): void

@@ -22,6 +22,7 @@ use App\Work\Application\DiscussionItem;
 use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageComments;
 use App\Work\Application\ManageTasks;
+use App\Work\Application\MentionCandidate;
 use App\Work\Application\TaskDetail;
 use App\Work\Application\TaskHistoryEntry;
 use App\Work\Application\TaskRow;
@@ -29,6 +30,7 @@ use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -150,6 +152,23 @@ final class TaskController extends AbstractController
         }
 
         return $this->toComment($taskId, $id);
+    }
+
+    /**
+     * The people a comment or the description of the task can mention, for the
+     * list the Markdown editor opens after "@". A task one cannot see answers 404.
+     */
+    #[Route('/tasks/{id}/mention-candidates', name: 'app_task_mention_candidates', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function mentionCandidates(string $id): JsonResponse
+    {
+        $this->denyUnlessStaff();
+        $candidates = $this->queries->mentionCandidates($id) ?? throw new NotFoundHttpException();
+
+        return $this->json(['results' => array_map(static fn (MentionCandidate $candidate): array => [
+            'id' => $candidate->id,
+            'name' => $candidate->name,
+            'initials' => $candidate->initials,
+        ], $candidates)]);
     }
 
     /**

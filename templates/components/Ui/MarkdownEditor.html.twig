@@ -1,0 +1,53 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A text area for Markdown with Write and Preview tabs (as on GitLab), a small formatting
+    toolbar and, given a mentions URL, the people after "@" in a listbox (WAI-ARIA combobox).
+    The tabs and the toolbar are hidden until the controller connects: without JavaScript only
+    the text area shows. The controller gives the text area its combobox role.
+#}
+{% set ctl = this %}
+{# Captured here: inside the Field block "attributes" would be the Field's own. #}
+{% set controlAttributes = attributes %}
+{% set tabClass = 'inline-flex h-control shrink-0 cursor-pointer items-center whitespace-nowrap border-0 border-b-2 border-transparent bg-transparent px-0 font-medium text-muted hover:border-control-line hover:text-ink aria-selected:border-green aria-selected:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green' %}
+{% set tools = [
+    {format: 'bold', icon: 'bold', label: 'ui.markdown_editor.bold', keys: 'Control+B Meta+B'},
+    {format: 'italic', icon: 'italic', label: 'ui.markdown_editor.italic', keys: 'Control+I Meta+I'},
+    {format: 'list', icon: 'list', label: 'ui.markdown_editor.list', keys: null},
+    {format: 'link', icon: 'link-2', label: 'ui.markdown_editor.link', keys: 'Control+K Meta+K'},
+    {format: 'code', icon: 'code', label: 'ui.markdown_editor.code', keys: null},
+    {format: 'quote', icon: 'text-quote', label: 'ui.markdown_editor.quote', keys: null},
+] %}
+<twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required" :row="row" :width="width">
+    <div class="grid gap-2" data-controller="markdown-editor" data-markdown-editor-preview-url-value="{{ previewUrl }}" data-markdown-editor-token-value="{{ csrf_token(constant('App\\Ui\\Component\\MarkdownEditor::TOKEN')) }}"{% if mentionsUrl %} data-markdown-editor-mentions-url-value="{{ mentionsUrl }}"{% endif %} data-markdown-editor-found-value="{{ 'ui.combobox.found'|trans({count: '__COUNT__'}) }}" data-markdown-editor>
+        <div hidden class="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 inset-shadow-rail" data-markdown-editor-target="bar" data-markdown-editor-bar>
+            <div role="tablist" aria-label="{{ label }}" class="flex gap-x-5" data-action="keydown->markdown-editor#tabKey">
+                <button type="button" role="tab" id="{{ id }}-write-tab" aria-selected="true" aria-controls="{{ id }}-write" class="{{ tabClass }}" data-markdown-editor-target="writeTab" data-action="markdown-editor#write">{{ 'ui.markdown_editor.write'|trans }}</button>
+                <button type="button" role="tab" id="{{ id }}-preview-tab" aria-selected="false" aria-controls="{{ id }}-preview" tabindex="-1" class="{{ tabClass }}" data-markdown-editor-target="previewTab" data-action="markdown-editor#preview">{{ 'ui.markdown_editor.preview'|trans }}</button>
+            </div>
+            <div role="group" aria-label="{{ 'ui.markdown_editor.toolbar'|trans }}" class="flex flex-wrap gap-1 pb-1" data-markdown-editor-target="toolbar">
+                {% for tool in tools %}
+                    <twig:Ui:IconButton :icon="tool.icon" :label="tool.label|trans" variant="ghost" size="sm" :aria-keyshortcuts="tool.keys" aria-controls="{{ id }}" data-action="markdown-editor#format" data-markdown-editor-format-param="{{ tool.format }}" data-markdown-editor-tool="{{ tool.format }}" />
+                {% endfor %}
+            </div>
+        </div>
+        <div id="{{ id }}-write" class="relative" data-markdown-editor-target="writePanel">
+            <textarea id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} rows="{{ rows }}" {{ controlAttributes.defaults({class: 'block py-2 ' ~ ctl.classes, 'data-markdown-editor-target': 'input', 'data-action': 'keydown->markdown-editor#keydown input->markdown-editor#suggest click->markdown-editor#suggest blur->markdown-editor#close'}) }}>{{ value }}</textarea>
+            {% if mentionsUrl %}
+                <ul id="{{ id }}-mentions" role="listbox" aria-label="{{ 'ui.markdown_editor.mentions'|trans }}" hidden data-markdown-editor-target="list" class="absolute z-30 m-0 max-h-72 w-64 max-w-full list-none overflow-y-auto rounded-panel border border-container bg-white p-1.5 shadow-floating"></ul>
+                <p hidden aria-hidden="true" data-markdown-editor-target="empty" class="absolute z-30 m-0 w-64 max-w-full rounded-panel border border-container bg-white px-2.5 py-2 text-small text-muted shadow-floating">{{ 'ui.markdown_editor.no_match'|trans }}</p>
+                <p role="status" class="sr-only" data-markdown-editor-target="status"></p>
+                <template data-markdown-editor-target="option">
+                    <li role="option" aria-selected="false" class="flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-1.5 text-ink hover:bg-head aria-selected:bg-head">
+                        <span class="grid size-6 shrink-0 place-items-center rounded-control bg-badge-gray text-caption font-semibold text-badge-gray-text" aria-hidden="true" data-initials></span>
+                        <span class="min-w-0 truncate font-medium" data-name></span>
+                    </li>
+                </template>
+            {% endif %}
+        </div>
+        <div id="{{ id }}-preview" role="tabpanel" aria-labelledby="{{ id }}-preview-tab" tabindex="0" hidden class="rounded-control border border-control-line bg-white px-2.5 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green" data-markdown-editor-target="previewPanel" data-markdown-editor-preview>
+            <p hidden class="m-0 text-muted" data-markdown-editor-target="nothing">{{ 'ui.markdown_editor.nothing_to_preview'|trans }}</p>
+            <p hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-markdown-editor-target="failed">{{ 'ui.dialog.failed'|trans }}</p>
+            <div class="markdown [overflow-wrap:anywhere]" data-markdown-editor-target="rendered"></div>
+        </div>
+    </div>
+</twig:Ui:Field>

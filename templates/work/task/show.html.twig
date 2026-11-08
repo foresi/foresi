@@ -50,7 +50,7 @@
                 {% if edit == 'description' %}
                     <form method="post" action="{{ path('app_task_description', {id: row.id}) }}" class="grid gap-3" data-task-description-form>
                         <input type="hidden" name="_token" value="{{ token }}">
-                        <twig:Ui:Textarea name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" autofocus />
+                        <twig:Ui:MarkdownEditor name="description" id="description" :label="'work.task.field.description'|trans" :value="values.description" :rows="6" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" autofocus />
                         <div class="flex flex-wrap gap-2">
                             <twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
                             <twig:Ui:Button :href="taskUrl">{{ 'work.cancel'|trans }}</twig:Ui:Button>
