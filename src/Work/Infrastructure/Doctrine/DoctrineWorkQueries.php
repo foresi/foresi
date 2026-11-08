@@ -320,6 +320,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $comment->id(),
             $name,
             Avatar::initials($name),
+            $deleted ? '' : $comment->text(),
             $deleted ? '' : $this->markdown->toHtml($comment->text()),
             $comment->isInternal(),
             $comment->createdAt(),

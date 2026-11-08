@@ -15,6 +15,7 @@ namespace App\Work\Application;
 final readonly class CommentView
 {
     /**
+     * @param string                  $text        the Markdown source, which its author edits; empty once deleted
      * @param string                  $html        the body rendered from Markdown, safe to print; empty once deleted
      * @param bool                    $canEdit     whether the signed-in person may edit it: its author, while it stands
      * @param bool                    $canDelete   whether the signed-in person may delete it: its author or an owner, while it stands
@@ -24,6 +25,7 @@ final readonly class CommentView
         public string $id,
         public string $authorName,
         public string $authorInitials,
+        public string $text,
         public string $html,
         public bool $internal,
         public \DateTimeImmutable $createdAt,

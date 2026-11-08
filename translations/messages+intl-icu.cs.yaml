@@ -3077,8 +3077,6 @@ work:
     no_subtasks: Zatím žádné podúkoly.
     subtasks: Podúkoly
     add_subtask: Přidat podúkol
-    activity: Aktivita
-    no_activity: Zatím se nic nestalo.
     details: Podrobnosti
     edit: Upravit
     nobody: Nikdo
@@ -3131,6 +3129,30 @@ work:
     due: 'Termín {from} → {to}'
     priority: 'Priorita {from} → {to}'
     no_date: —
+  discussion:
+    title: Diskuse a historie
+    filter:
+      label: Zobrazit v diskusi
+      all: Vše
+      comments: Komentáře
+      history: Historie
+    empty: Zatím se nic nestalo.
+    no_comments: Zatím žádné komentáře.
+    internal: Interní
+    public: Veřejný komentář – uvidí ho i hosté
+    edited: upraveno
+    edited_at: 'Upraveno {date}'
+    deleted: Komentář byl smazán
+    actions: 'Akce komentáře od {name}'
+    delete: Smazat
+    delete_confirm:
+      title: Smazat komentář?
+      text: Tuto akci nelze vrátit.
+    edit_label: Upravit komentář
+    composer: Komentář
+    internal_switch: Interní komentář
+    internal_help: Hosté interní komentáře neuvidí.
+    submit: Přidat komentář
   settings:
     title: Nastavení
     saved: Uloženo.

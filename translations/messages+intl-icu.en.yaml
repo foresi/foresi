@@ -3077,8 +3077,6 @@ work:
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
     add_subtask: Add subtask
-    activity: Activity
-    no_activity: Nothing has happened yet.
     details: Details
     edit: Edit
     nobody: Nobody
@@ -3131,6 +3129,30 @@ work:
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
     no_date: —
+  discussion:
+    title: Discussion and history
+    filter:
+      label: Show in the discussion
+      all: All
+      comments: Comments
+      history: History
+    empty: Nothing has happened yet.
+    no_comments: No comments yet.
+    internal: Internal
+    public: Public comment – guests will see it too
+    edited: edited
+    edited_at: 'Edited {date}'
+    deleted: This comment was deleted
+    actions: 'Actions for the comment by {name}'
+    delete: Delete
+    delete_confirm:
+      title: Delete the comment?
+      text: This cannot be undone.
+    edit_label: Edit comment
+    composer: Comment
+    internal_switch: Internal comment
+    internal_help: Guests will not see internal comments.
+    submit: Add comment
   settings:
     title: Settings
     saved: Saved.

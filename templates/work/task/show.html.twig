@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     A task, as the work item view of Jira and the issue view of Linear: the title, the description,
-    the subtasks and the activity in the main column; the properties in the panel beside it (under it
+    the subtasks and the discussion in the main column; the properties in the panel beside it (under it
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript. The title and the description open their form in place.
 #}
@@ -80,14 +80,7 @@
                 </section>
             {% endif %}
 
-            <section class="grid gap-2" aria-labelledby="task-activity-title">
-                <h2 id="task-activity-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.task.activity'|trans }}</h2>
-                {% if timeline is empty %}
-                    <p class="m-0 text-muted">{{ 'work.task.no_activity'|trans }}</p>
-                {% else %}
-                    <twig:Ui:Timeline :items="timeline" data-task-history />
-                {% endif %}
-            </section>
+            {{ include('work/task/_discussion.html.twig') }}
         </div>
 
         <aside class="grid content-start gap-4 border-t border-divider pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0" aria-labelledby="task-details-title" data-task-details>
