@@ -8,10 +8,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Work\Application;
 
+use App\Audit\Application\AuditCorrelation;
 use App\Work\Application\TaskHistory;
 use App\Work\Application\TaskHistoryEntry;
 use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
+use App\Work\Domain\Task;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class TaskHistoryTest extends WorkTestCase
 {
@@ -52,5 +55,75 @@ final class TaskHistoryTest extends WorkTestCase
         self::assertSame(['Olga Owner'], $history[8]->watchersRemoved);
         self::assertSame(['Urgent'], $history[9]->labelsRemoved);
         self::assertSame('2026-11-10 09:01', $history[1]->occurredAt->format('Y-m-d H:i'));
+    }
+
+    public function testAStepThatOnlyMovedTheTaskShowsNothing(): void
+    {
+        $project = $this->project();
+        [$toDo] = $this->statuses($project);
+        $first = $this->tasks->create($project->id(), 'First');
+        $this->tasks->create($project->id(), 'Second');
+        $third = $this->tasks->create($project->id(), 'Third');
+        // The first two make room for the third.
+        $this->tasks->move($third->id(), $toDo->id(), $first->id());
+        $this->tasks->assign($first->id(), $this->member->id());
+        $this->tasks->assign($first->id(), null);
+
+        $history = $this->history($first->id());
+
+        self::assertSame([TaskHistoryEntry::CREATED, TaskHistoryEntry::CHANGED, TaskHistoryEntry::CHANGED], array_map(static fn (TaskHistoryEntry $entry): string => $entry->event, $history));
+        self::assertSame([false, false, false, []], [$history[0]->statusChanged, $history[0]->reassigned, $history[0]->dueChanged, $history[0]->fields]);
+        self::assertSame([true, null, 'Marek Member'], [$history[1]->reassigned, $history[1]->assignedFrom, $history[1]->assignedTo]);
+        self::assertSame([true, 'Marek Member', null], [$history[2]->reassigned, $history[2]->assignedFrom, $history[2]->assignedTo]);
+    }
+
+    public function testAFieldChangedSeveralTimesInOneStepIsToldOnce(): void
+    {
+        $task = $this->tasks->create($this->project()->id(), 'Draft');
+
+        self::getContainer()->get(AuditCorrelation::class)->within('edit', function () use ($task): void {
+            $this->tasks->rename($task->id(), 'First draft');
+            $this->tasks->rename($task->id(), 'Second draft');
+            $this->tasks->describe($task->id(), 'What to write');
+        });
+
+        $history = $this->history($task->id());
+        self::assertCount(2, $history);
+        self::assertSame(['work.task.field.title', 'work.task.field.description'], $history[1]->fields);
+    }
+
+    public function testAStatusRemovedSinceKeepsItsLastName(): void
+    {
+        $project = $this->project();
+        [, $inProgress, $done] = $this->statuses($project);
+        $task = $this->tasks->create($project->id(), 'Write the brief');
+        $this->tasks->changeStatus($task->id(), $inProgress->id());
+        $this->workflow->remove($inProgress->id(), $done->id());
+
+        $history = $this->history($task->id());
+
+        self::assertSame(['K udělání', 'Probíhá'], [$history[1]->statusFrom, $history[1]->statusTo]);
+        self::assertSame(['Probíhá', 'Hotovo'], [$history[2]->statusFrom, $history[2]->statusTo]);
+    }
+
+    public function testAStepOfNobodyHasNoUserName(): void
+    {
+        $task = $this->tasks->create($this->project()->id(), 'Write the brief');
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(null);
+        $this->em->find(Task::class, $task->id())?->rename('Write the short brief');
+        $this->em->flush();
+        $this->signIn($this->owner);
+
+        $history = $this->history($task->id());
+
+        self::assertSame(['Olga Owner', null], [$history[0]->userName, $history[1]->userName]);
+    }
+
+    /**
+     * @return list<TaskHistoryEntry>
+     */
+    private function history(string $taskId): array
+    {
+        return self::getContainer()->get(TaskHistory::class)->of($taskId);
     }
 }

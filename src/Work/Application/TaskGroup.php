@@ -52,6 +52,6 @@ final readonly class TaskGroup
             }][] = $task;
         }
 
-        return array_map(static fn (string $key, array $rows): self => new self($key, $rows), array_keys($groups), array_values($groups));
+        return array_map(static fn (string $key, array $rows): self => new self($key, $rows), array_keys($groups), $groups);
     }
 }
