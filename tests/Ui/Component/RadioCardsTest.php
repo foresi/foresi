@@ -57,9 +57,9 @@ final class RadioCardsTest extends KernelTestCase
         self::assertCount(3, $crawler->filter('input[aria-invalid="true"]'));
     }
 
-    public function testRejectsTooFewOptionsAndOptionsWithoutText(): void
+    public function testRejectsTooFewOptionsAndAnEmptyText(): void
     {
-        foreach ([[$this->options()[0]], [['value' => 'a', 'label' => 'A'], ['value' => 'b', 'label' => 'B', 'text' => 'B']]] as $options) {
+        foreach ([[$this->options()[0]], [['value' => 'a', 'label' => 'A', 'text' => ''], ['value' => 'b', 'label' => 'B', 'text' => 'B']]] as $options) {
             try {
                 $this->renderTwigComponent('Ui:RadioCards', ['name' => 'mode', 'id' => 'mode', 'legend' => 'Mode', 'options' => $options]);
                 self::fail('Radio cards should refuse these options.');
@@ -67,6 +67,14 @@ final class RadioCardsTest extends KernelTestCase
                 self::assertStringNotContainsString('should refuse', $error->getMessage());
             }
         }
+    }
+
+    public function testAnOptionWithoutTextShowsItsLabelAlone(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:RadioCards', ['name' => 'colour', 'id' => 'colour', 'legend' => 'Colour', 'options' => [['value' => 'gray', 'label' => 'Gray'], ['value' => 'green', 'label' => 'Green']]])->crawler();
+
+        self::assertSame('Gray', trim($crawler->filter('label')->eq(0)->text()));
+        self::assertCount(0, $crawler->filter('label .text-small'));
     }
 
     public function testTheFirstOptionOfAnInvalidGroupTakesTheFocus(): void

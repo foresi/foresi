@@ -3186,13 +3186,9 @@ work:
       colour: Colour
     colour:
       gray: Gray
-      gray_text: No emphasis
       green: Green
-      green_text: Positive
       amber: Amber
-      amber_text: Attention
       red: Red
-      red_text: Urgent
     delete_confirm:
       title: 'Delete the label {name}?'
       text: '{count, plural, =0 {The label is on no task.} one {Removes the label from # task.} other {Removes the label from # tasks.}}'

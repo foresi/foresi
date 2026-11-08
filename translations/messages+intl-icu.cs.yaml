@@ -3186,13 +3186,9 @@ work:
       colour: Barva
     colour:
       gray: Šedá
-      gray_text: Bez důrazu
       green: Zelená
-      green_text: Pozitivní
       amber: Oranžová
-      amber_text: Upozornění
       red: Červená
-      red_text: Naléhavé
     delete_confirm:
       title: 'Smazat štítek {name}?'
       text: '{count, plural, =0 {Štítek není na žádném úkolu.} one {Odebere se z jednoho úkolu.} other {Odebere se z úkolů: #.}}'

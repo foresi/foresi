@@ -28,11 +28,11 @@ final class RadioCards
     public string $value = '';
 
     /**
-     * @var list<array<string, mixed>> each with a string value, label and text, optional warning
+     * @var list<array<string, mixed>> each with a string value and label, an optional text under the label and an optional warning
      */
     public array $options = [];
 
-    /** @var list<array{value: string, label: string, text: string, warning: ?string}> */
+    /** @var list<array{value: string, label: string, text: ?string, warning: ?string}> */
     private array $views = [];
 
     private bool $focused = false;
@@ -56,10 +56,15 @@ final class RadioCards
             if (null !== $warning && (!\is_string($warning) || '' === $warning)) {
                 throw new \InvalidArgumentException('A radio card warning must be a non-empty string.');
             }
+            // A choice its label says all about, such as a colour, needs no text.
+            $text = $option['text'] ?? null;
+            if (null !== $text && (!\is_string($text) || '' === $text)) {
+                throw new \InvalidArgumentException('A radio card text must be a non-empty string.');
+            }
             $this->views[] = [
                 'value' => Style::requireString($option, 'value', 'A radio card'),
                 'label' => Style::requireString($option, 'label', 'A radio card'),
-                'text' => Style::requireString($option, 'text', 'A radio card'),
+                'text' => $text,
                 'warning' => $warning,
             ];
         }
@@ -67,7 +72,7 @@ final class RadioCards
     }
 
     /**
-     * @return list<array{value: string, label: string, text: string, warning: ?string}>
+     * @return list<array{value: string, label: string, text: ?string, warning: ?string}>
      */
     public function views(): array
     {

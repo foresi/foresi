@@ -139,7 +139,6 @@ final class LabelController extends AbstractController
             'colours' => array_map(fn (LabelColour $colour): array => [
                 'value' => $colour->value,
                 'label' => $this->translator->trans('work.labels.colour.'.$colour->value),
-                'text' => $this->translator->trans('work.labels.colour.'.$colour->value.'_text'),
             ], LabelColour::cases()),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
