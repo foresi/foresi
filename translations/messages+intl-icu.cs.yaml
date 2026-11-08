@@ -3301,3 +3301,8 @@ work:
     move_down: Posunout dolů
     moved: 'Přesunuto do: {status}, pozice {position} z {count}'
     subtasks: 'Hotové podúkoly: {done} z {total}'
+attachment:
+  error:
+    too_big: Soubor musí být menší než 50 MB
+    empty: Soubor je prázdný
+    failed: Soubor se nepodařilo nahrát – zkuste to znovu

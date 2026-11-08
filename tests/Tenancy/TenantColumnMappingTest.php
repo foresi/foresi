@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Tenancy;
 
+use App\Attachment\Domain\Attachment;
 use App\Audit\Domain\AuditEntry;
 use App\Banking\Domain\BankFeed;
 use App\Banking\Domain\BankMovement;
@@ -103,7 +104,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class, IdokladConnection::class, IdokladPull::class, IdokladRecord::class, IdokladLink::class, IdokladImportRun::class, IdokladJob::class, Project::class, ProjectStatus::class, Section::class, Task::class, TaskWatcher::class, Label::class, TaskLabel::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class, IdokladConnection::class, IdokladPull::class, IdokladRecord::class, IdokladLink::class, IdokladImportRun::class, IdokladJob::class, Project::class, ProjectStatus::class, Section::class, Task::class, TaskWatcher::class, Label::class, TaskLabel::class, Attachment::class] as $class) {
             yield $class => [$class];
         }
     }

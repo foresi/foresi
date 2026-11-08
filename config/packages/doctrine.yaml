@@ -71,6 +71,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Work/Domain'
                 prefix: 'App\Work\Domain'
                 alias: Work
+            Attachment:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Attachment/Domain'
+                prefix: 'App\Attachment\Domain'
+                alias: Attachment
         dql:
             string_functions:
                 CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction

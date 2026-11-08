@@ -3301,3 +3301,8 @@ work:
     move_down: Move down
     moved: 'Moved to {status}, position {position} of {count}'
     subtasks: '{done} of {total} subtasks done'
+attachment:
+  error:
+    too_big: The selected file must be smaller than 50 MB
+    empty: The selected file is empty
+    failed: The selected file could not be uploaded – try again
