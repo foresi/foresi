@@ -15,7 +15,8 @@ use App\Work\Domain\Task;
 
 /**
  * Loads what a command acts on, through WorkVisibility: what does not exist
- * and what the person may not see are both unknown.
+ * and what the person may not see are both unknown, and so is a task in the
+ * trash, except to what asks for the trash.
  */
 final readonly class VisibleWork
 {
@@ -69,6 +70,21 @@ final readonly class VisibleWork
     {
         $task = $this->tasks->task($id);
         if (!$task instanceof Task || !$this->visibility->canSeeTask($task)) {
+            throw new WorkRefused('unknown');
+        }
+
+        return $task;
+    }
+
+    /**
+     * A task in the trash, of a project the person may see.
+     *
+     * @throws WorkRefused
+     */
+    public function trashed(string $id): Task
+    {
+        $task = $this->tasks->trashed($id);
+        if (!$task instanceof Task || !$this->visibility->canSeeProject($task->project())) {
             throw new WorkRefused('unknown');
         }
 

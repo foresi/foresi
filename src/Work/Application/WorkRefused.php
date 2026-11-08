@@ -15,7 +15,7 @@ namespace App\Work\Application;
  */
 final class WorkRefused extends \DomainException
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'task_not_yours'];
 
     public function __construct(public readonly string $reason)
     {

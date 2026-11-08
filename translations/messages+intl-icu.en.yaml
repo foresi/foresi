@@ -3125,6 +3125,7 @@ work:
     comment_too_long: A comment can have at most 20,000 characters.
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
+    task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
   cancel: Cancel
   save: Save
   history:

@@ -3125,6 +3125,7 @@ work:
     comment_too_long: Komentář může mít nejvýš 20 000 znaků.
     comment_not_yours: Tento komentář může měnit jen jeho autor.
     comment_deleted: Tento komentář byl smazán.
+    task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
   cancel: Zrušit
   save: Uložit
   history:

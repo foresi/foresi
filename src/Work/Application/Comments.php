@@ -31,5 +31,8 @@ interface Comments
 
     public function add(TaskComment|CommentMention $item): void;
 
-    public function remove(CommentMention $mention): void;
+    /**
+     * Removes for good; a comment goes only once its mentions are gone.
+     */
+    public function remove(TaskComment|CommentMention $item): void;
 }

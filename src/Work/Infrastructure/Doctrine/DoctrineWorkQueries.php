@@ -34,6 +34,7 @@ use App\Work\Application\ProjectRow;
 use App\Work\Application\Projects;
 use App\Work\Application\ProjectSettings;
 use App\Work\Application\ProjectSummary;
+use App\Work\Application\ProjectTrash;
 use App\Work\Application\SectionTasks;
 use App\Work\Application\StatusChoice;
 use App\Work\Application\StatusTasks;
@@ -43,6 +44,8 @@ use App\Work\Application\TaskGroup;
 use App\Work\Application\TaskHistory;
 use App\Work\Application\TaskRow;
 use App\Work\Application\Tasks;
+use App\Work\Application\TrashedTask;
+use App\Work\Application\TrashPermission;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkVisibility;
 use App\Work\Domain\Label;
@@ -62,12 +65,15 @@ use Doctrine\ORM\EntityManagerInterface;
  * for the scope first; a scope it does not know yet shows nothing, so a new
  * kind of sharing never leaks through a query not taught about it. A project is
  * read whole and its tasks are put in order in PHP: one query for the tasks and
- * one for their labels, whatever the view.
+ * one for their labels, whatever the view. A task in the trash is left out of
+ * every view but the trash, and of every count.
  */
 final readonly class DoctrineWorkQueries implements WorkQueries
 {
     private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
     private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
+    /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
+    private const string TRASHED = 'SELECT t, pa FROM '.Task::class.' t LEFT JOIN t.parent pa WHERE t.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -84,6 +90,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private Markdown $markdown,
         private VisibleAttachments $attachments,
         private OwnerCheck $owner,
+        private TrashPermission $trash,
     ) {
     }
 
@@ -98,7 +105,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ->getResult();
         /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
         $counts = $this->entityManager
-            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s WHERE s.type IN (:unfinished) GROUP BY t.project')
+            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s WHERE s.type IN (:unfinished) AND t.deletedAt IS NULL GROUP BY t.project')
             ->setParameter('unfinished', $this->unfinished())
             ->getArrayResult();
         $open = [];
@@ -163,6 +170,44 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         );
     }
 
+    public function trash(string $projectId): ?ProjectTrash
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+        /** @var list<Task> $tasks */
+        $tasks = $this->entityManager
+            ->createQuery(self::TRASHED.' ORDER BY t.deletedAt DESC, t.id DESC')
+            ->setParameter('project', $project->id())
+            ->getResult();
+        $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (Task $task): ?string => $task->deletedBy(), $tasks), \is_string(...)))));
+        $restorable = $this->trash->rule();
+
+        return new ProjectTrash($this->summary($project), array_map(fn (Task $task): TrashedTask => new TrashedTask(
+            $task->id(),
+            $task->title(),
+            $task->parent()?->title(),
+            null === $task->deletedBy() ? null : ($names[$task->deletedBy()] ?? null),
+            $task->deletedAt() ?? throw new \LogicException('A task in the trash has its date.'),
+            $restorable($task->createdBy()),
+        ), $tasks));
+    }
+
+    public function trashCount(string $projectId): int
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return 0;
+        }
+        $count = $this->entityManager
+            ->createQuery(str_replace('SELECT t, pa ', 'SELECT COUNT(t.id) ', self::TRASHED))
+            ->setParameter('project', $project->id())
+            ->getSingleScalarResult();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
     public function myTasks(?string $clientId = null): array
     {
         $membership = $this->me();
@@ -180,7 +225,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             return 0;
         }
         $count = $this->entityManager
-            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.dueOn <= :today')
+            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL AND t.dueOn <= :today')
             ->setParameter('me', $membership->id())
             ->setParameter('unfinished', $this->unfinished())
             ->setParameter('today', $this->clock->today()->format('Y-m-d'))
@@ -208,7 +253,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $project = $task->project();
         $subtasks = $this->tasks->siblings($project, $task);
         $labels = $this->labelsOf([$task, ...$subtasks]);
-        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, 0), $subtasks);
+        $deletable = $this->trash->rule();
+        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, 0), $subtasks);
         /** @var list<TaskWatcher> $watchers */
         $watchers = $this->entityManager
             ->createQuery('SELECT w, m, u FROM '.TaskWatcher::class.' w JOIN w.membership m JOIN m.user u WHERE w.task = :task ORDER BY u.displayName ASC, w.id ASC')
@@ -223,7 +269,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $parent = $task->parent();
 
         return new TaskDetail(
-            $this->row($task, $labels, \count($subtasks), $subtaskRows),
+            $this->row($task, $labels, $deletable, \count($subtasks), $subtaskRows),
             $task->description(),
             $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
             $task->section()?->name(),
@@ -304,7 +350,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         /** @var list<array{label: string, tasks: int|string}> $counts */
         $counts = $this->entityManager
-            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl GROUP BY tl.label')
+            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl JOIN tl.task t WHERE t.deletedAt IS NULL GROUP BY tl.label')
             ->getArrayResult();
 
         return array_map(intval(...), array_column($counts, 'tasks', 'label'));
@@ -362,7 +408,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     {
         /** @var list<Task> $tasks */
         $tasks = $this->entityManager
-            ->createQuery(self::TASKS.' WHERE t.project = :project'.self::ORDER)
+            ->createQuery(self::TASKS.' WHERE t.project = :project AND t.deletedAt IS NULL'.self::ORDER)
             ->setParameter('project', $project->id())
             ->getResult();
 
@@ -377,7 +423,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private function openTasks(string $condition, Membership $me, ?string $clientId): array
     {
         $query = $this->entityManager
-            ->createQuery(self::TASKS.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL'.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER)
+            ->createQuery(self::TASKS.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL'.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER)
             ->setParameter('me', $me->id())
             ->setParameter('unfinished', $this->unfinished());
         if (null !== $clientId) {
@@ -400,18 +446,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private function tree(array $tasks): array
     {
         $labels = $this->labelsOf($tasks);
+        $deletable = $this->trash->rule();
         $children = [];
         foreach ($tasks as $task) {
             $parent = $task->parent();
             if ($parent instanceof Task) {
-                $children[$parent->id()][] = $this->row($task, $labels, 0);
+                $children[$parent->id()][] = $this->row($task, $labels, $deletable, 0);
             }
         }
         $rows = [];
         foreach ($tasks as $task) {
             if (!$task->isSubtask()) {
                 $subtasks = $children[$task->id()] ?? [];
-                $rows[] = $this->row($task, $labels, \count($subtasks), $subtasks);
+                $rows[] = $this->row($task, $labels, $deletable, \count($subtasks), $subtasks);
             }
         }
 
@@ -432,20 +479,23 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         /** @var list<array{parent: string, subtasks: int|string}> $counts */
         $counts = $this->entityManager
-            ->createQuery('SELECT IDENTITY(t.parent) AS parent, COUNT(t.id) AS subtasks FROM '.Task::class.' t WHERE t.parent IN (:tasks) GROUP BY t.parent')
+            ->createQuery('SELECT IDENTITY(t.parent) AS parent, COUNT(t.id) AS subtasks FROM '.Task::class.' t WHERE t.parent IN (:tasks) AND t.deletedAt IS NULL GROUP BY t.parent')
             ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
             ->getArrayResult();
         $subtasks = array_column($counts, 'subtasks', 'parent');
         $labels = $this->labelsOf($tasks);
 
-        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+        $deletable = $this->trash->rule();
+
+        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
     }
 
     /**
-     * @param array<string, list<LabelBadge>> $labels   by task id
+     * @param array<string, list<LabelBadge>> $labels    by task id
+     * @param \Closure(string): bool          $deletable whether the person may delete a task, by who created it
      * @param list<TaskRow>                   $subtasks
      */
-    private function row(Task $task, array $labels, int $subtaskCount, array $subtasks = []): TaskRow
+    private function row(Task $task, array $labels, \Closure $deletable, int $subtaskCount, array $subtasks = []): TaskRow
     {
         $status = $task->status();
         $responsible = $task->responsible();
@@ -468,6 +518,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $subtaskCount,
             $status->type()->isFinished(),
             $subtasks,
+            $deletable($task->createdBy()),
         );
     }
 

@@ -28,6 +28,9 @@ use App\Work\Domain\TaskComment;
  * The files of a comment are part of what its author said: they are seen with
  * the task while the comment stands, only the author attaches them, and an
  * owner may delete those of others, as the comment itself.
+ *
+ * Nobody reaches the files of a task in the trash, or of its comments, until
+ * the task is restored.
  */
 final readonly class TaskAttachmentAccess implements AttachmentAccess
 {
@@ -81,6 +84,6 @@ final readonly class TaskAttachmentAccess implements AttachmentAccess
     {
         $comment = $this->comments->comment($id);
 
-        return $comment instanceof TaskComment && !$comment->isDeleted() && $this->visibility->canSeeTask($comment->task()) ? $comment : null;
+        return $comment instanceof TaskComment && !$comment->isDeleted() && !$comment->task()->isDeleted() && $this->visibility->canSeeTask($comment->task()) ? $comment : null;
     }
 }

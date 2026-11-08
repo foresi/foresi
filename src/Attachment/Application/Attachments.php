@@ -11,7 +11,8 @@ namespace App\Attachment\Application;
 use App\Attachment\Domain\Attachment;
 
 /**
- * The attachments of the active tenant. Deleted ones are not found.
+ * The attachments of the active tenant. Deleted ones are not found, except by
+ * the purge, which removes them for good.
  */
 interface Attachments
 {
@@ -23,6 +24,20 @@ interface Attachments
     public function of(string $ownerKind, string $ownerId): array;
 
     public function get(string $id): ?Attachment;
+
+    /**
+     * Every attachment of these records, deleted ones included.
+     *
+     * @param list<string> $ownerIds
+     *
+     * @return list<Attachment>
+     */
+    public function allOf(string $ownerKind, array $ownerIds): array;
+
+    /**
+     * Removes the record of the attachment for good; its file is the caller's.
+     */
+    public function remove(Attachment $attachment): void;
 
     public function add(Attachment $attachment): void;
 
