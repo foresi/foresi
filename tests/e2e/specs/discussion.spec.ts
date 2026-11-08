@@ -27,6 +27,12 @@ function volatile(block: Locator) {
   return [block.locator('time'), block.locator('[aria-hidden="true"].place-items-center')];
 }
 
+// The times come from the clock of the run; one fixed text gives every run the same widths, so what
+// follows a time (the Interní label) does not move between runs.
+async function freezeTimes(page: Page): Promise<void> {
+  await page.locator('main time').evaluateAll((times) => times.forEach((time) => { time.textContent = '1. 1. 2026 12:00'; }));
+}
+
 async function write(page: Page, text: string): Promise<void> {
   const body = composer(page).locator('#comment-body');
   await body.fill(text);
@@ -37,6 +43,7 @@ test.describe('screens', () => {
     await openTask(page);
     await expect(comment(page, 'First sketch is ready')).toBeVisible();
     await expect(page.locator('[data-attachment-thumbnail]')).toBeVisible();
+    await freezeTimes(page);
     await expect(discussion(page)).toHaveScreenshot('discussion-content.png', { mask: volatile(discussion(page)) });
     const attachments = page.locator('[data-task-attachments]');
     await expect(attachments).toHaveScreenshot('attachments-content.png', { mask: volatile(attachments) });
