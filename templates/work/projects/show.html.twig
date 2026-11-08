@@ -1,0 +1,62 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A project as a list: the filters, then one block per section in order, each with its top-level
+    tasks and their subtasks under them, and a line at its end that adds a task by its title.
+    The tasks in no section come first, when there are some.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name}] %}
+{% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid grid-cols-1 gap-4">
+        {% if project.clientId %}
+            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: <a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a></p>
+        {% endif %}
+
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="shrink-0" />
+            <form method="get" action="{{ path('app_project', {id: project.id}) }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg" data-task-filters>
+                <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="responsible" id="filter-responsible" :label="'work.filter.responsible'|trans" :options="responsibles" :value="query.responsible" /></div>
+                <div class="w-full min-w-0 sm:w-40"><twig:Ui:Select name="status" id="filter-status" :label="'work.filter.status'|trans" :options="statuses" :value="query.status" /></div>
+                <div class="w-full min-w-0 sm:w-40"><twig:Ui:Select name="due" id="filter-due" :label="'work.filter.due'|trans" :options="dues" :value="query.due" /></div>
+                <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
+                {% if filtered %}<twig:Ui:Button variant="ghost" :href="path('app_project', {id: project.id})">{{ 'work.filter.reset'|trans }}</twig:Ui:Button>{% endif %}
+            </form>
+        </div>
+
+        {% for section in sections %}
+            <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
+                <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span></h2>
+                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows">
+                    <twig:block name="empty">
+                        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>
+                    </twig:block>
+                </twig:Ui:DataTable>
+                {% if not project.archivedAt %}
+                    <form method="post" action="{{ path('app_project_task_add', {id: project.id}) }}" class="max-w-field-long" data-controller="quick-add" data-action="submit->quick-add#submit" data-quick-add>
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::TASK_TOKEN')) }}">
+                        <input type="hidden" name="section" value="{{ section.key }}">
+                        {% for name, value in {responsible: query.responsible, status: query.status == 'open' ? '' : query.status, due: query.due} %}
+                            {% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}
+                        {% endfor %}
+                        <twig:Ui:TextInput name="title" :id="'add-' ~ section.key" :label="'work.list.add_task'|trans" :placeholder="'work.list.add_placeholder'|trans" maxlength="500" autocomplete="off" enterkeyhint="send" :autofocus="adding == section.key" data-quick-add-target="title" />
+                    </form>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The labels of a task: every label of the organisation to tick, saved together. A dialog over the
+    task; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set row = task.task %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: row.projectName, href: path('app_project', {id: row.projectId})}, {label: row.title, href: path('app_task', {id: row.id})}, {label: 'work.task.field.labels'|trans}] %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'work.task.labels_title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="task-labels-form" action="{{ path('app_task_labels', {id: row.id}) }}" class="grid gap-2" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
+        <fieldset class="m-0 grid gap-2 border-0 p-0">
+            <legend class="sr-only">{{ 'work.task.field.labels'|trans }}</legend>
+            {% for label in labels %}
+                <twig:Ui:Checkbox name="labels[]" :id="'label-' ~ label.id" :value="label.id" :label="label.name" :checked="label.id in checked" />
+            {% endfor %}
+        </fieldset>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="task-labels-form" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <div class="grid max-w-md gap-4">
+        {{ form }}
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_task', {id: row.id})">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="task-labels-form" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

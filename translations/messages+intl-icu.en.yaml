@@ -68,6 +68,9 @@ nav:
     sent_mail: Sent e-mails
     recurring: Recurring invoices
     bank: Bank
+    projects: Projects
+    labels: Labels
+    my_tasks: My tasks
 ui:
   dialog:
     close: Close
@@ -3048,3 +3051,253 @@ invitation:
   accepted:
     title: Invitation used
     text: This invitation was accepted already. Sign in to the organisation.
+work:
+  status:
+    to_do: To do
+    in_progress: In progress
+    done: Done
+    open: Open
+    review: Review
+    testing: Testing
+    blocked: Blocked
+    closed: Closed
+  task:
+    field:
+      title: Title
+      description: Description
+      section: Section
+      status: Status
+      responsible: Responsible
+      due_on: Due date
+      priority: Priority
+      labels: Labels
+      project: Project
+      watchers: Watchers
+    no_description: No description.
+    no_subtasks: No subtasks yet.
+    subtasks: Subtasks
+    add_subtask: Add subtask
+    activity: Activity
+    no_activity: Nothing has happened yet.
+    details: Details
+    edit: Edit
+    nobody: Nobody
+    due_clear: Clear
+    labels_edit: Choose labels
+    labels_title: Labels of the task
+    labels_none: The organisation has no labels yet.
+    created_by: 'Created by {name} on {date}'
+    created: 'Created on {date}'
+    watchers:
+      none: Nobody watches the task.
+      watch: Watch
+      unwatch: Stop watching
+      add: Add a watcher
+      choose: Choose a person
+    error:
+      title_required: Enter the title of the task.
+      due: Enter the due date as a date.
+  refused:
+    unknown: This project, task or label no longer exists.
+    not_allowed: Only people of the organisation can do this.
+    name: Enter a name that is not too long.
+    client: Choose an existing contact as the client.
+    archived: The project is archived. Restore it first.
+    parent: A subtask goes under a task of the same project that is not a subtask itself.
+    responsible: Choose an active person of the organisation as responsible.
+    watcher: Choose an active person of the organisation to follow the task.
+    last_open: The project must keep at least one status of type open.
+    last_done: The project must keep at least one status of type done.
+    target_status: Choose another status of the same project for its tasks.
+    label_taken: A label of this name exists already.
+  cancel: Cancel
+  save: Save
+  history:
+    entry: '{who}: {what}'
+    system: System
+    none: none
+    created: Created the task
+    status: 'Status {from} → {to}'
+    responsible: 'Responsible {from} → {to}'
+    fields: 'Changed {fields}'
+    watchers_added: '{count, plural, one {Watcher added} other {Watchers added}}: {names}'
+    watchers_removed: '{count, plural, one {Watcher removed} other {Watchers removed}}: {names}'
+    labels_added: '{count, plural, one {Label added} other {Labels added}}: {names}'
+    labels_removed: '{count, plural, one {Label removed} other {Labels removed}}: {names}'
+    due: 'Due date {from} → {to}'
+    priority: 'Priority {from} → {to}'
+    no_date: —
+  settings:
+    title: Settings
+    saved: Saved.
+    general: General
+    archive: Archive
+    restore: Restore
+    archived: The project is archived.
+    restored: The project is restored.
+    archive_confirm:
+      title: 'Archive the project {name}?'
+      text: It leaves the active projects. You can restore it any time.
+    restore_confirm:
+      title: 'Restore the project {name}?'
+      text: It goes back among the active projects.
+    sections: Sections
+    sections_empty: The project has no sections yet.
+    section_name: Section name
+    add_section: Add a section
+    add_section_placeholder: Section name and Enter
+    statuses: Statuses
+    status_name: Status name
+    status_type: Type
+    new_status: New status
+    add_status: Add a status
+    status_removed: 'The status {name} is removed.'
+    move_up: 'Move up: {name}'
+    move_down: 'Move down: {name}'
+    remove: Remove
+    remove_named: 'Remove: {name}'
+    remove_section:
+      title: 'Remove the section {name}?'
+      text: Tasks of the section move to No section.
+    remove_status:
+      title: 'Remove the status {name}'
+      text: 'The tasks in {name} move to another status.'
+      target: Move the tasks to
+      submit: Remove the status
+    type:
+      open: Open
+      active: Active
+      done: Done
+      closed: Closed
+  labels:
+    title: Labels
+    new: New label
+    edit: Edit
+    edit_title: 'Edit the label {name}'
+    delete: Delete
+    saved: 'The label {name} is saved.'
+    deleted: 'The label {name} is deleted.'
+    column:
+      name: Name
+      preview: Preview
+      tasks: Tasks
+    field:
+      name: Name
+      colour: Colour
+    colour:
+      gray: Gray
+      green: Green
+      amber: Amber
+      red: Red
+    delete_confirm:
+      title: 'Delete the label {name}?'
+      text: '{count, plural, =0 {The label is on no task.} one {Removes the label from # task.} other {Removes the label from # tasks.}}'
+    empty:
+      title: No labels yet
+      text: Labels sort tasks across projects.
+    error:
+      name_required: Enter the name of the label.
+      colour: Choose a colour.
+  my_tasks:
+    title: My tasks
+    views: Views of my tasks
+    tab:
+      assigned: Assigned to me
+      watching: Watching
+    client: Client
+    client_any: All clients
+    group:
+      overdue: Overdue
+      today: Today
+      upcoming: Next 7 days
+      later: Later
+      no_date: No date
+    empty:
+      assigned_title: You have no unfinished tasks
+      assigned_text: The tasks you are responsible for show here.
+      watching_title: You watch no unfinished tasks
+      watching_text: Watch a task from its page.
+      filtered: Nothing here for this client.
+  projects:
+    title: Projects
+    views: Project views
+    new: New project
+    tab:
+      active: Active
+      archived: Archived
+    column:
+      name: Name
+      client: Client
+      open: Open tasks
+      due: Nearest due date
+    empty:
+      title: No projects yet
+      text: Start a project and add its tasks.
+      archived_title: No archived projects
+  project:
+    create: Create project
+    archived: Archived
+    views: Project views
+    errors_title: 'Please fix:'
+    tab:
+      list: List
+      board: Board
+    field:
+      name: Name
+      client: Client
+      client_help: Any contact of the address book.
+      client_placeholder: Type the name of a contact
+      client_empty: No contact found
+      workflow: Workflow
+      description: Description
+    error:
+      name_required: Enter the name of the project.
+      workflow: Choose one of the workflows.
+  workflow:
+    simple: Simple
+    simple_text: To do, In progress, Done
+    development: Development
+    development_text: Open, In progress, Review, Testing, Blocked, Done, Closed
+  priority:
+    none: No priority
+    low: Low
+    medium: Medium
+    high: High
+    urgent: Urgent
+  filter:
+    responsible: Responsible
+    responsible_anyone: Anyone
+    responsible_me: Me
+    status: Status
+    status_open: Unfinished
+    status_all: All
+    status_finished: Finished
+    due: Due
+    due_any: Any time
+    due_overdue: Overdue
+    due_today: Today
+    due_next_7_days: Next 7 days
+    due_none: No date
+    apply: Filter
+    reset: Reset filters
+  list:
+    no_section: No section
+    empty: No tasks yet.
+    empty_filtered: No task matches the filters.
+    add_task: Add task
+    add_placeholder: Task title, then Enter
+    overdue: 'Overdue {date}'
+  board:
+    columns: Status columns
+    type:
+      open: 'Type: open'
+      active: 'Type: in progress'
+      done: 'Type: done'
+      closed: 'Type: closed'
+    drag: 'Drag {title}'
+    move_to: Move to
+    move_to_status: 'Move to {status}'
+    move_up: Move up
+    move_down: Move down
+    moved: 'Moved to {status}, position {position} of {count}'
+    subtasks: '{done} of {total} subtasks done'

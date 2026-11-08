@@ -1,0 +1,470 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Work\Infrastructure\Doctrine;
+
+use App\Audit\Application\AuditActor;
+use App\Identity\Application\People;
+use App\Identity\Application\UserRepository;
+use App\Identity\Domain\Membership;
+use App\Tenancy\Application\TenantClock;
+use App\Work\Application\Choice;
+use App\Work\Application\DueBucket;
+use App\Work\Application\LabelBadge;
+use App\Work\Application\Labels;
+use App\Work\Application\ProjectBoard;
+use App\Work\Application\ProjectList;
+use App\Work\Application\ProjectRow;
+use App\Work\Application\Projects;
+use App\Work\Application\ProjectSettings;
+use App\Work\Application\ProjectSummary;
+use App\Work\Application\SectionTasks;
+use App\Work\Application\StatusChoice;
+use App\Work\Application\StatusTasks;
+use App\Work\Application\TaskDetail;
+use App\Work\Application\TaskFilter;
+use App\Work\Application\TaskGroup;
+use App\Work\Application\TaskRow;
+use App\Work\Application\Tasks;
+use App\Work\Application\WorkQueries;
+use App\Work\Application\WorkVisibility;
+use App\Work\Domain\Label;
+use App\Work\Domain\Project;
+use App\Work\Domain\ProjectStatus;
+use App\Work\Domain\Section;
+use App\Work\Domain\StatusType;
+use App\Work\Domain\Task;
+use App\Work\Domain\TaskLabel;
+use App\Work\Domain\TaskWatcher;
+use Doctrine\ORM\EntityManagerInterface;
+
+/**
+ * The read side in DQL, under the tenant filter. Each query asks WorkVisibility
+ * for the scope first; a scope it does not know yet shows nothing, so a new
+ * kind of sharing never leaks through a query not taught about it. A project is
+ * read whole and its tasks are put in order in PHP: one query for the tasks and
+ * one for their labels, whatever the view.
+ */
+final readonly class DoctrineWorkQueries implements WorkQueries
+{
+    private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
+    private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
+
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private WorkVisibility $visibility,
+        private Projects $projects,
+        private Tasks $tasks,
+        private Labels $labels,
+        private People $people,
+        private UserRepository $users,
+        private AuditActor $actor,
+        private TenantClock $clock,
+    ) {
+    }
+
+    public function projects(bool $archived = false): array
+    {
+        if (!$this->visibility->scope()->isEverything()) {
+            return [];
+        }
+        /** @var list<Project> $projects */
+        $projects = $this->entityManager
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE p.archivedAt IS '.($archived ? 'NOT ' : '').'NULL ORDER BY p.name ASC, p.id ASC')
+            ->getResult();
+        /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
+        $counts = $this->entityManager
+            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s WHERE s.type IN (:unfinished) GROUP BY t.project')
+            ->setParameter('unfinished', $this->unfinished())
+            ->getArrayResult();
+        $open = [];
+        foreach ($counts as $count) {
+            $due = $count['due'];
+            $open[$count['project']] = [(int) $count['open'], null === $due ? null : new \DateTimeImmutable($due instanceof \DateTimeInterface ? $due->format('Y-m-d') : $due)];
+        }
+
+        return array_map(static fn (Project $project): ProjectRow => new ProjectRow(
+            $project->id(),
+            $project->name(),
+            $project->client()?->id(),
+            $project->client()?->displayName(),
+            $project->workflowTemplate(),
+            $open[$project->id()][0] ?? 0,
+            $open[$project->id()][1] ?? null,
+            $project->isArchived(),
+        ), $projects);
+    }
+
+    public function projectList(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectList
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+        $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
+        $sections = [new SectionTasks(null, null, array_values(array_filter($rows, static fn (TaskRow $row): bool => null === $row->sectionId)))];
+        foreach ($this->projects->sections($project) as $section) {
+            $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())));
+        }
+
+        return new ProjectList($this->summary($project), $sections);
+    }
+
+    public function board(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectBoard
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+        $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
+        $columns = [];
+        foreach ($this->projects->statuses($project) as $status) {
+            $columns[] = new StatusTasks($status->id(), $status->name(), $status->type(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->statusId === $status->id())));
+        }
+
+        return new ProjectBoard($this->summary($project), $columns);
+    }
+
+    public function projectSettings(string $projectId): ?ProjectSettings
+    {
+        $project = $this->visibleProject($projectId);
+        if (!$project instanceof Project) {
+            return null;
+        }
+
+        return new ProjectSettings(
+            $this->summary($project),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+        );
+    }
+
+    public function myTasks(?string $clientId = null): array
+    {
+        $membership = $this->me();
+        $rows = $membership instanceof Membership && $this->visibility->scope()->isEverything()
+            ? $this->sorted($this->flat($this->openTasks('t.responsible = :me', $membership, $clientId)))
+            : [];
+
+        return TaskGroup::split($rows, $this->clock->today());
+    }
+
+    public function myDueCount(): int
+    {
+        $membership = $this->me();
+        if (!$membership instanceof Membership || !$this->visibility->scope()->isEverything()) {
+            return 0;
+        }
+        $count = $this->entityManager
+            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.dueOn <= :today')
+            ->setParameter('me', $membership->id())
+            ->setParameter('unfinished', $this->unfinished())
+            ->setParameter('today', $this->clock->today()->format('Y-m-d'))
+            ->getSingleScalarResult();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    public function watchedTasks(?string $clientId = null): array
+    {
+        $membership = $this->me();
+        if (!$membership instanceof Membership || !$this->visibility->scope()->isEverything()) {
+            return [];
+        }
+
+        return $this->sorted($this->flat($this->openTasks('EXISTS (SELECT w.id FROM '.TaskWatcher::class.' w WHERE w.task = t AND w.membership = :me)', $membership, $clientId)));
+    }
+
+    public function task(string $taskId): ?TaskDetail
+    {
+        $task = $this->tasks->task($taskId);
+        if (!$task instanceof Task || !$this->visibility->canSeeTask($task)) {
+            return null;
+        }
+        $project = $task->project();
+        $subtasks = $this->tasks->siblings($project, $task);
+        $labels = $this->labelsOf([$task, ...$subtasks]);
+        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, 0), $subtasks);
+        /** @var list<TaskWatcher> $watchers */
+        $watchers = $this->entityManager
+            ->createQuery('SELECT w, m, u FROM '.TaskWatcher::class.' w JOIN w.membership m JOIN m.user u WHERE w.task = :task ORDER BY u.displayName ASC, w.id ASC')
+            ->setParameter('task', $task->id())
+            ->getResult();
+        $people = [];
+        foreach ($this->people->all() as $person) {
+            if ($person->active) {
+                $people[] = new Choice($person->membershipId, $person->name);
+            }
+        }
+        $parent = $task->parent();
+
+        return new TaskDetail(
+            $this->row($task, $labels, \count($subtasks), $subtaskRows),
+            $task->description(),
+            $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
+            $task->section()?->name(),
+            array_map(static fn (TaskWatcher $watcher): Choice => new Choice($watcher->membership()->id(), $watcher->membership()->user()->displayName()), $watchers),
+            array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            $people,
+            $project->isArchived(),
+            $task->createdAt(),
+            $this->users->namesOf([$task->createdBy()])[$task->createdBy()] ?? null,
+            $task->completedAt(),
+        );
+    }
+
+    public function labels(): array
+    {
+        if (!$this->visibility->scope()->isEverything()) {
+            return [];
+        }
+
+        return array_map(static fn (Label $label): LabelBadge => new LabelBadge($label->id(), $label->name(), $label->colour()), $this->labels->all());
+    }
+
+    public function labelUsage(): array
+    {
+        if (!$this->visibility->scope()->isEverything()) {
+            return [];
+        }
+        /** @var list<array{label: string, tasks: int|string}> $counts */
+        $counts = $this->entityManager
+            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl GROUP BY tl.label')
+            ->getArrayResult();
+
+        return array_map(intval(...), array_column($counts, 'tasks', 'label'));
+    }
+
+    private function visibleProject(string $id): ?Project
+    {
+        $project = $this->projects->project($id);
+
+        return $project instanceof Project && $this->visibility->canSeeProject($project) ? $project : null;
+    }
+
+    private function summary(Project $project): ProjectSummary
+    {
+        return new ProjectSummary(
+            $project->id(),
+            $project->name(),
+            $project->client()?->id(),
+            $project->client()?->displayName(),
+            $project->description(),
+            $project->workflowTemplate(),
+            $project->archivedAt(),
+        );
+    }
+
+    /**
+     * @return list<Task> top-level tasks and subtasks, by position
+     */
+    private function projectTasks(Project $project): array
+    {
+        /** @var list<Task> $tasks */
+        $tasks = $this->entityManager
+            ->createQuery(self::TASKS.' WHERE t.project = :project'.self::ORDER)
+            ->setParameter('project', $project->id())
+            ->getResult();
+
+        return $tasks;
+    }
+
+    /**
+     * Unfinished tasks, subtasks included, of the active projects.
+     *
+     * @return list<Task>
+     */
+    private function openTasks(string $condition, Membership $me, ?string $clientId): array
+    {
+        $query = $this->entityManager
+            ->createQuery(self::TASKS.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL'.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER)
+            ->setParameter('me', $me->id())
+            ->setParameter('unfinished', $this->unfinished());
+        if (null !== $clientId) {
+            $query->setParameter('client', $clientId);
+        }
+
+        /** @var list<Task> $tasks */
+        $tasks = $query->getResult();
+
+        return $tasks;
+    }
+
+    /**
+     * The top-level tasks, each with its subtasks.
+     *
+     * @param list<Task> $tasks by position
+     *
+     * @return list<TaskRow>
+     */
+    private function tree(array $tasks): array
+    {
+        $labels = $this->labelsOf($tasks);
+        $children = [];
+        foreach ($tasks as $task) {
+            $parent = $task->parent();
+            if ($parent instanceof Task) {
+                $children[$parent->id()][] = $this->row($task, $labels, 0);
+            }
+        }
+        $rows = [];
+        foreach ($tasks as $task) {
+            if (!$task->isSubtask()) {
+                $subtasks = $children[$task->id()] ?? [];
+                $rows[] = $this->row($task, $labels, \count($subtasks), $subtasks);
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Each task on its own, with the number of its subtasks.
+     *
+     * @param list<Task> $tasks
+     *
+     * @return list<TaskRow>
+     */
+    private function flat(array $tasks): array
+    {
+        if ([] === $tasks) {
+            return [];
+        }
+        /** @var list<array{parent: string, subtasks: int|string}> $counts */
+        $counts = $this->entityManager
+            ->createQuery('SELECT IDENTITY(t.parent) AS parent, COUNT(t.id) AS subtasks FROM '.Task::class.' t WHERE t.parent IN (:tasks) GROUP BY t.parent')
+            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
+            ->getArrayResult();
+        $subtasks = array_column($counts, 'subtasks', 'parent');
+        $labels = $this->labelsOf($tasks);
+
+        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+    }
+
+    /**
+     * @param array<string, list<LabelBadge>> $labels   by task id
+     * @param list<TaskRow>                   $subtasks
+     */
+    private function row(Task $task, array $labels, int $subtaskCount, array $subtasks = []): TaskRow
+    {
+        $status = $task->status();
+        $responsible = $task->responsible();
+
+        return new TaskRow(
+            $task->id(),
+            $task->project()->id(),
+            $task->project()->name(),
+            $task->section()?->id(),
+            $task->parent()?->id(),
+            $task->title(),
+            $status->id(),
+            $status->name(),
+            $status->type(),
+            $responsible?->id(),
+            $responsible?->user()->displayName(),
+            $task->dueDate(),
+            $task->priority(),
+            $labels[$task->id()] ?? [],
+            $subtaskCount,
+            $status->type()->isFinished(),
+            $subtasks,
+        );
+    }
+
+    /**
+     * @param list<Task> $tasks
+     *
+     * @return array<string, list<LabelBadge>> by task id, each by name
+     */
+    private function labelsOf(array $tasks): array
+    {
+        if ([] === $tasks) {
+            return [];
+        }
+        /** @var list<TaskLabel> $taskLabels */
+        $taskLabels = $this->entityManager
+            ->createQuery('SELECT tl, l FROM '.TaskLabel::class.' tl JOIN tl.label l WHERE tl.task IN (:tasks) ORDER BY l.name ASC, l.id ASC')
+            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
+            ->getResult();
+        $labels = [];
+        foreach ($taskLabels as $taskLabel) {
+            $label = $taskLabel->label();
+            $labels[$taskLabel->task()->id()][] = new LabelBadge($label->id(), $label->name(), $label->colour());
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @param list<TaskRow> $rows
+     *
+     * @return list<TaskRow>
+     */
+    private function filtered(array $rows, TaskFilter $filter): array
+    {
+        $today = null;
+        $week = null;
+        if ($filter->due instanceof DueBucket) {
+            $today = $this->clock->today()->format('Y-m-d');
+            $week = $this->clock->today()->modify('+7 days')->format('Y-m-d');
+        }
+
+        return array_values(array_filter($rows, static function (TaskRow $row) use ($filter, $today, $week): bool {
+            if (null !== $filter->responsibleId && $row->responsibleId !== $filter->responsibleId) {
+                return false;
+            }
+            if ($filter->statusType instanceof StatusType && $row->statusType !== $filter->statusType) {
+                return false;
+            }
+            if (null !== $filter->finished && $row->done !== $filter->finished) {
+                return false;
+            }
+            $due = $row->dueOn?->format('Y-m-d');
+
+            return match ($filter->due) {
+                null => true,
+                DueBucket::Overdue => null !== $due && $due < $today && !$row->done,
+                DueBucket::Today => $due === $today,
+                DueBucket::NextSevenDays => null !== $due && $due >= $today && $due <= $week,
+                DueBucket::None => null === $due,
+            };
+        }));
+    }
+
+    /**
+     * By due date, those without one last, then by priority, highest first.
+     *
+     * @param list<TaskRow> $rows
+     *
+     * @return list<TaskRow>
+     */
+    private function sorted(array $rows): array
+    {
+        usort($rows, static fn (TaskRow $one, TaskRow $other): int => [!$one->dueOn instanceof \DateTimeImmutable, $one->dueOn?->format('Y-m-d'), -$one->priority->rank()]
+            <=> [!$other->dueOn instanceof \DateTimeImmutable, $other->dueOn?->format('Y-m-d'), -$other->priority->rank()]);
+
+        return $rows;
+    }
+
+    private function me(): ?Membership
+    {
+        $userId = $this->actor->userId();
+        $membership = null === $userId ? null : $this->people->membershipOf($userId);
+
+        return $membership instanceof Membership && $membership->isActive() ? $membership : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function unfinished(): array
+    {
+        return array_values(array_map(static fn (StatusType $type): string => $type->value, array_filter(StatusType::cases(), static fn (StatusType $type): bool => !$type->isFinished())));
+    }
+}

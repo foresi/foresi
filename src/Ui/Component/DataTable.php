@@ -13,11 +13,11 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}, badges: list<array{label: string, tone: string}>}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
- * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
+ * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
  * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool}
  */
 #[AsTwigComponent]
@@ -45,7 +45,8 @@ final class DataTable
 
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
-     *                                 selected, secondary (the line a phone shows under the first cell), alert (what went wrong
+     *                                 selected, child (a row under the row before it, such as a subtask: its first cell
+     *                                 indented, its text smaller), secondary (the line a phone shows under the first cell), alert (what went wrong
      *                                 with the row: a text, the column key it shows under on a wider screen, and optionally an
      *                                 href and action label of the place that fixes it; a phone shows it as a line of its own
      *                                 under the first cell) and actions, each with a label, href and method, optional
@@ -221,6 +222,7 @@ final class DataTable
             'href' => $href,
             'label' => $label,
             'selected' => true === ($row['selected'] ?? false),
+            'child' => true === ($row['child'] ?? false),
             'cells' => $views,
             'actions' => array_values(array_map($this->action(...), $actions)),
             'secondary' => is_string($secondary) && '' !== $secondary ? $secondary : null,
@@ -330,7 +332,12 @@ final class DataTable
         $iconClass = '';
         $links = [];
         $avatar = null;
-        if (is_array($value) && isset($value['avatar'])) {
+        $badges = [];
+        if (is_array($value) && isset($value['badges'])) {
+            // Several badges in one cell, such as the labels of a task.
+            $badges = $this->badges($value['badges']);
+            $text = implode(', ', array_column($badges, 'label'));
+        } elseif (is_array($value) && isset($value['avatar'])) {
             // A person: the initials avatar, coloured by a stable seed such as the user id, before the name.
             $seed = is_string($value['avatar']) ? $value['avatar'] : throw new \InvalidArgumentException('An avatar seed must be a string.');
             $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('An avatar cell needs a name.');
@@ -379,7 +386,20 @@ final class DataTable
             'iconClass' => $iconClass,
             'links' => $links,
             'avatar' => $avatar,
+            'badges' => $badges,
         ];
+    }
+
+    /**
+     * @return list<array{label: string, tone: string}>
+     */
+    private function badges(mixed $badges): array
+    {
+        if (!is_array($badges) || [] === $badges) {
+            throw new \InvalidArgumentException('A badges cell needs a list of badges.');
+        }
+
+        return array_values(array_map(static fn (mixed $badge): array => Style::badge($badge, 'A badge of a cell'), $badges));
     }
 
     /**

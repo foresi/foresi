@@ -418,6 +418,21 @@ when@e2e:
         e2e.tenant_clock:
             alias: App\Tenancy\Application\TenantClock
             public: true
+        e2e.manage_projects:
+            alias: App\Work\Application\ManageProjects
+            public: true
+        e2e.manage_sections:
+            alias: App\Work\Application\ManageSections
+            public: true
+        e2e.manage_tasks:
+            alias: App\Work\Application\ManageTasks
+            public: true
+        e2e.manage_labels:
+            alias: App\Work\Application\ManageLabels
+            public: true
+        e2e.token_storage:
+            alias: security.token_storage
+            public: true
 
 when@test:
     parameters:
@@ -592,6 +607,16 @@ when@test:
                 $cache: !service { class: Symfony\Component\Cache\Adapter\ArrayAdapter }
         App\Tenancy\Application\Schedule\ScheduledJobRuns:
             alias: App\Tenancy\Infrastructure\Schedule\DoctrineScheduledJobRuns
+            public: true
+        # The tests drive the work services directly; the screens come next.
+        App\Work\Application\ManageProjects: { public: true }
+        App\Work\Application\ManageSections: { public: true }
+        App\Work\Application\ManageWorkflow: { public: true }
+        App\Work\Application\ManageTasks: { public: true }
+        App\Work\Application\ManageLabels: { public: true }
+        App\Work\Application\TaskHistory: { public: true }
+        App\Work\Application\WorkQueries:
+            alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true
         # Nothing uses the tenant's clock yet; the jobs that will are on their way.
         App\Tenancy\Application\TenantClock: { public: true }

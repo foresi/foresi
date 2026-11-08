@@ -98,7 +98,8 @@ jobs:
   coverage:
     name: Tests with coverage (sqlite)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The suite with coverage takes 19 to 28 minutes on a hosted runner and more on a slow one.
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:

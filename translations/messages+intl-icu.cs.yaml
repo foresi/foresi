@@ -68,6 +68,9 @@ nav:
     sent_mail: Odeslané e-maily
     recurring: Pravidelné faktury
     bank: Banka
+    projects: Projekty
+    labels: Štítky
+    my_tasks: Moje úkoly
 ui:
   dialog:
     close: Zavřít
@@ -3048,3 +3051,253 @@ invitation:
   accepted:
     title: Pozvánka použita
     text: Tato pozvánka už byla přijata. Přihlaste se do organizace.
+work:
+  status:
+    to_do: K udělání
+    in_progress: Probíhá
+    done: Hotovo
+    open: Otevřeno
+    review: Kontrola
+    testing: Testování
+    blocked: Blokováno
+    closed: Uzavřeno
+  task:
+    field:
+      title: Název
+      description: Popis
+      section: Sekce
+      status: Stav
+      responsible: Odpovědná osoba
+      due_on: Termín
+      priority: Priorita
+      labels: Štítky
+      project: Projekt
+      watchers: Sledující
+    no_description: Bez popisu.
+    no_subtasks: Zatím žádné podúkoly.
+    subtasks: Podúkoly
+    add_subtask: Přidat podúkol
+    activity: Aktivita
+    no_activity: Zatím se nic nestalo.
+    details: Podrobnosti
+    edit: Upravit
+    nobody: Nikdo
+    due_clear: Smazat
+    labels_edit: Vybrat štítky
+    labels_title: Štítky úkolu
+    labels_none: Organizace zatím nemá žádné štítky.
+    created_by: 'Vytvořil(a) {name} {date}'
+    created: 'Vytvořeno {date}'
+    watchers:
+      none: Úkol nikdo nesleduje.
+      watch: Sledovat
+      unwatch: Přestat sledovat
+      add: Přidat sledujícího
+      choose: Vyberte člověka
+    error:
+      title_required: Zadejte název úkolu.
+      due: Zadejte termín jako datum.
+  refused:
+    unknown: Tento projekt, úkol nebo štítek už neexistuje.
+    not_allowed: Tohle mohou jen lidé z organizace.
+    name: Zadejte název, který není příliš dlouhý.
+    client: Jako klienta vyberte existující kontakt.
+    archived: Projekt je archivovaný. Nejdřív ho obnovte.
+    parent: Podúkol patří pod úkol stejného projektu, který sám není podúkolem.
+    responsible: Jako odpovědnou osobu vyberte aktivního člověka z organizace.
+    watcher: Vyberte aktivního člověka z organizace, který bude úkol sledovat.
+    last_open: Projekt musí mít aspoň jeden stav typu otevřený.
+    last_done: Projekt musí mít aspoň jeden stav typu hotový.
+    target_status: Pro jeho úkoly vyberte jiný stav stejného projektu.
+    label_taken: Štítek s tímto názvem už existuje.
+  cancel: Zrušit
+  save: Uložit
+  history:
+    entry: '{who}: {what}'
+    system: Systém
+    none: žádný
+    created: Úkol vytvořen
+    status: 'Stav {from} → {to}'
+    responsible: 'Odpovědná osoba {from} → {to}'
+    fields: 'Změna: {fields}'
+    watchers_added: '{count, plural, one {Přidán sledující} other {Přidáni sledující}}: {names}'
+    watchers_removed: '{count, plural, one {Odebrán sledující} other {Odebráni sledující}}: {names}'
+    labels_added: '{count, plural, one {Přidán štítek} other {Přidány štítky}}: {names}'
+    labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
+    due: 'Termín {from} → {to}'
+    priority: 'Priorita {from} → {to}'
+    no_date: —
+  settings:
+    title: Nastavení
+    saved: Uloženo.
+    general: Obecné
+    archive: Archivovat
+    restore: Obnovit
+    archived: Projekt je archivovaný.
+    restored: Projekt je obnovený.
+    archive_confirm:
+      title: 'Archivovat projekt {name}?'
+      text: Zmizí z aktivních projektů. Kdykoli ho obnovíte.
+    restore_confirm:
+      title: 'Obnovit projekt {name}?'
+      text: Vrátí se mezi aktivní projekty.
+    sections: Sekce
+    sections_empty: Projekt zatím nemá žádné sekce.
+    section_name: Název sekce
+    add_section: Přidat sekci
+    add_section_placeholder: Název sekce a Enter
+    statuses: Stavy
+    status_name: Název stavu
+    status_type: Typ
+    new_status: Nový stav
+    add_status: Přidat stav
+    status_removed: 'Stav {name} je odebraný.'
+    move_up: 'Posunout nahoru: {name}'
+    move_down: 'Posunout dolů: {name}'
+    remove: Odebrat
+    remove_named: 'Odebrat: {name}'
+    remove_section:
+      title: 'Odebrat sekci {name}?'
+      text: Úkoly sekce se přesunou do Bez sekce.
+    remove_status:
+      title: 'Odebrat stav {name}'
+      text: 'Úkoly ve stavu {name} se přesunou do jiného stavu.'
+      target: Přesunout úkoly do
+      submit: Odebrat stav
+    type:
+      open: Otevřený
+      active: Aktivní
+      done: Hotový
+      closed: Uzavřený
+  labels:
+    title: Štítky
+    new: Nový štítek
+    edit: Upravit
+    edit_title: 'Upravit štítek {name}'
+    delete: Smazat
+    saved: 'Štítek {name} je uložený.'
+    deleted: 'Štítek {name} je smazaný.'
+    column:
+      name: Název
+      preview: Vzhled
+      tasks: Úkoly
+    field:
+      name: Název
+      colour: Barva
+    colour:
+      gray: Šedá
+      green: Zelená
+      amber: Oranžová
+      red: Červená
+    delete_confirm:
+      title: 'Smazat štítek {name}?'
+      text: '{count, plural, =0 {Štítek není na žádném úkolu.} one {Odebere se z jednoho úkolu.} other {Odebere se z úkolů: #.}}'
+    empty:
+      title: Zatím žádné štítky
+      text: Štítky třídí úkoly napříč projekty.
+    error:
+      name_required: Zadejte název štítku.
+      colour: Vyberte barvu.
+  my_tasks:
+    title: Moje úkoly
+    views: Pohledy na moje úkoly
+    tab:
+      assigned: Přiřazené mně
+      watching: Sledované
+    client: Klient
+    client_any: Všichni klienti
+    group:
+      overdue: Po termínu
+      today: Dnes
+      upcoming: Příštích 7 dní
+      later: Později
+      no_date: Bez termínu
+    empty:
+      assigned_title: Nemáte žádné nehotové úkoly
+      assigned_text: Úkoly, za které odpovídáte, uvidíte tady.
+      watching_title: Nesledujete žádné nehotové úkoly
+      watching_text: Úkol začnete sledovat na jeho stránce.
+      filtered: Pro tohoto klienta tu nic není.
+  projects:
+    title: Projekty
+    views: Pohledy na projekty
+    new: Nový projekt
+    tab:
+      active: Aktivní
+      archived: Archivované
+    column:
+      name: Název
+      client: Klient
+      open: Otevřené úkoly
+      due: Nejbližší termín
+    empty:
+      title: Zatím žádné projekty
+      text: Založte projekt a přidejte do něj úkoly.
+      archived_title: Žádné archivované projekty
+  project:
+    create: Založit projekt
+    archived: Archivovaný
+    views: Pohledy na projekt
+    errors_title: 'Opravte prosím:'
+    tab:
+      list: Seznam
+      board: Nástěnka
+    field:
+      name: Název
+      client: Klient
+      client_help: Jakýkoli kontakt z adresáře.
+      client_placeholder: Napište jméno kontaktu
+      client_empty: Žádný kontakt nenalezen
+      workflow: Postup práce
+      description: Popis
+    error:
+      name_required: Zadejte název projektu.
+      workflow: Vyberte jeden z postupů.
+  workflow:
+    simple: Jednoduchý
+    simple_text: K udělání, Probíhá, Hotovo
+    development: Vývoj
+    development_text: Otevřeno, Probíhá, Kontrola, Testování, Blokováno, Hotovo, Uzavřeno
+  priority:
+    none: Bez priority
+    low: Nízká
+    medium: Střední
+    high: Vysoká
+    urgent: Naléhavá
+  filter:
+    responsible: Odpovědná osoba
+    responsible_anyone: Kdokoli
+    responsible_me: Já
+    status: Stav
+    status_open: Nehotové
+    status_all: Vše
+    status_finished: Hotové
+    due: Termín
+    due_any: Kdykoli
+    due_overdue: Po termínu
+    due_today: Dnes
+    due_next_7_days: Příštích 7 dní
+    due_none: Bez termínu
+    apply: Filtrovat
+    reset: Zrušit filtry
+  list:
+    no_section: Bez sekce
+    empty: Zatím žádné úkoly.
+    empty_filtered: Filtrům neodpovídá žádný úkol.
+    add_task: Přidat úkol
+    add_placeholder: Název úkolu a Enter
+    overdue: 'Po termínu {date}'
+  board:
+    columns: Sloupce stavů
+    type:
+      open: 'Typ: otevřený'
+      active: 'Typ: rozpracovaný'
+      done: 'Typ: hotový'
+      closed: 'Typ: uzavřený'
+    drag: 'Přetáhnout {title}'
+    move_to: Přesunout do
+    move_to_status: 'Přesunout do: {status}'
+    move_up: Posunout nahoru
+    move_down: Posunout dolů
+    moved: 'Přesunuto do: {status}, pozice {position} z {count}'
+    subtasks: 'Hotové podúkoly: {done} z {total}'

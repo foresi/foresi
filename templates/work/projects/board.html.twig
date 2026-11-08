@@ -1,0 +1,124 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A project as a board: the filters, then one column per status in order, each with its top-level
+    tasks as cards in their order. A card is dragged by its handle, or moved by the items of its menu,
+    which are plain forms. The columns scroll sideways inside the board, never the page.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name}] %}
+{% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set editable = not project.archivedAt %}
+{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::MOVE_TOKEN')) %}
+{% set dots = {gray: 'bg-badge-gray-text', amber: 'bg-badge-amber-text', green: 'bg-badge-green-text', red: 'bg-badge-red-text'} %}
+{% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
+
+{% macro filters(query) %}
+    {% for name, value in query %}{% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}{% endfor %}
+{% endmacro %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid grid-cols-1 gap-4">
+        {% if project.clientId %}
+            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: <a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a></p>
+        {% endif %}
+
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}]" :label="'work.project.views'|trans" class="shrink-0" />
+            <form method="get" action="{{ path('app_project_board', {id: project.id}) }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg" data-task-filters>
+                <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="responsible" id="filter-responsible" :label="'work.filter.responsible'|trans" :options="responsibles" :value="query.responsible" /></div>
+                <div class="w-full min-w-0 sm:w-40"><twig:Ui:Select name="due" id="filter-due" :label="'work.filter.due'|trans" :options="dues" :value="query.due" /></div>
+                <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
+                {% if filtered %}<twig:Ui:Button variant="ghost" :href="path('app_project_board', {id: project.id})">{{ 'work.filter.reset'|trans }}</twig:Ui:Button>{% endif %}
+            </form>
+        </div>
+
+        <div class="overflow-x-auto pb-2 {{ focus }}" role="region" tabindex="0" aria-label="{{ 'work.board.columns'|trans }}"{% if editable %} data-controller="board" data-board-token-value="{{ token }}" data-board-moved-value="{{ 'work.board.moved'|trans({status: '__status__', position: '__position__', count: '__count__'}) }}"{% endif %} data-board>
+            <div class="flex items-start gap-3">
+                {% for column in columns %}
+                    <section class="flex w-72 shrink-0 flex-col gap-2 rounded-panel p-1 data-drop:bg-frame-hover" aria-labelledby="column-{{ column.id }}-title" data-board-column="{{ column.id }}">
+                        <h2 id="column-{{ column.id }}-title" class="m-0 flex min-w-0 items-center gap-2 px-1 pt-1 text-small font-semibold text-ink">
+                            <span class="size-2 shrink-0 rounded-sm {{ dots[column.tone] }}" title="{{ column.type }}" aria-hidden="true"></span>
+                            <span class="sr-only">{{ column.type }}, </span>
+                            <span class="min-w-0 truncate">{{ column.name }}</span>
+                            <span class="num font-normal text-muted" data-board-count>{{ column.count }}</span>
+                        </h2>
+                        <ol class="m-0 grid min-h-row list-none content-start gap-2 p-0 [&>.board-ghost]:h-0.5 [&>.board-ghost]:overflow-hidden [&>.board-ghost]:border-0 [&>.board-ghost]:bg-green [&>.board-ghost]:p-0 [&>.board-chosen]:border-green [&>.board-drag]:shadow-floating" data-board-target="list" data-status-id="{{ column.id }}" data-status-name="{{ column.name }}">
+                            {% for card in column.cards %}
+                                <li class="grid gap-2 rounded-panel border border-container bg-white p-2 shadow-raised" data-board-card data-task-id="{{ card.id }}" data-move-url="{{ path('app_task_move', {id: card.id}) }}">
+                                    <div class="flex min-w-0 items-start gap-1">
+                                        {% if editable %}<twig:Ui:IconButton icon="grip-vertical" :label="'work.board.drag'|trans({title: card.title})" variant="ghost" size="sm" class="shrink-0 cursor-grab" data-board-handle />{% endif %}
+                                        <a href="{{ card.href }}" class="min-w-0 flex-1 self-center break-words font-medium text-ink no-underline hover:underline {{ focus }}" data-card-title>{{ card.title }}</a>
+                                        {% if editable %}
+                                            {% set menuId = 'card-menu-' ~ card.id %}
+                                            <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
+                                                <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: card.title})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+                                                <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating" data-card-menu>
+                                                    <div role="group" aria-labelledby="{{ menuId }}-move">
+                                                        <div id="{{ menuId }}-move" role="presentation" class="px-2.5 pb-1 pt-0.5 text-caption text-muted">{{ 'work.board.move_to'|trans }}</div>
+                                                        {% for status in card.moveTo %}
+                                                            <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" data-move-status="{{ status.id }}"{% if status.current %} hidden{% endif %}>
+                                                                <input type="hidden" name="_token" value="{{ token }}">
+                                                                <input type="hidden" name="statusId" value="{{ status.id }}">
+                                                                {{ _self.filters(query) }}
+                                                                <button type="submit" role="menuitem" tabindex="-1" aria-label="{{ 'work.board.move_to_status'|trans({status: status.name}) }}" class="{{ itemClass }}">{{ status.name }}</button>
+                                                            </form>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <div role="separator" class="my-1 border-t border-divider"></div>
+                                                    {% for direction, shown in {up: card.up, down: card.down} %}
+                                                        <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" data-move="{{ direction }}"{% if not shown %} hidden{% endif %}>
+                                                            <input type="hidden" name="_token" value="{{ token }}">
+                                                            <input type="hidden" name="direction" value="{{ direction }}">
+                                                            {{ _self.filters(query) }}
+                                                            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ('work.board.move_' ~ direction)|trans }}</button>
+                                                        </form>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">
+                                        {% if card.responsible %}
+                                            <span class="flex min-w-0 items-center gap-1.5" data-card-responsible>
+                                                <span class="grid size-6 shrink-0 place-items-center rounded-control text-caption font-semibold {{ card.responsible.tone }}" aria-hidden="true">{{ card.responsible.initials }}</span>
+                                                <span class="sr-only">{{ 'work.task.field.responsible'|trans }}: </span><span class="min-w-0 truncate">{{ card.responsible.name }}</span>
+                                            </span>
+                                        {% endif %}
+                                        {% if card.due %}
+                                            <span data-card-due><span class="sr-only">{{ 'work.task.field.due_on'|trans }}: </span>
+                                                {%- if card.due is iterable %}<twig:Ui:Badge :tone="card.due.tone">{{ card.due.text }}</twig:Ui:Badge>{% else %}{{ card.due }}{% endif -%}
+                                            </span>
+                                        {% endif %}
+                                        {% if card.priority %}<span data-card-priority><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span>{{ card.priority }}</span>{% endif %}
+                                        {% if card.subtasks %}
+                                            <span class="num inline-flex items-center gap-1" data-card-subtasks>{{ ux_icon('lucide:square-check-big', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span aria-hidden="true">{{ card.subtasks.done }}/{{ card.subtasks.total }}</span><span class="sr-only">{{ 'work.board.subtasks'|trans({done: card.subtasks.done, total: card.subtasks.total}) }}</span></span>
+                                        {% endif %}
+                                    </div>
+                                    {% if card.labels is not empty %}
+                                        <span class="flex flex-wrap items-center gap-1" data-badges>
+                                            {%- for label in card.labels %}<twig:Ui:Badge :tone="label.tone">{{ label.label }}</twig:Ui:Badge>{% endfor -%}
+                                        </span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    </section>
+                {% endfor %}
+            </div>
+            <p class="sr-only" aria-live="polite" data-board-target="status"></p>
+        </div>
+    </div>
+{% endblock %}
