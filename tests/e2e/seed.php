@@ -844,11 +844,19 @@ $manageComments->add($homepage->id(), sprintf("First sketch is ready, **please r
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
 $manageComments->add($homepage->id(), 'Looks good, the *pitch* reads well.', false);
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
-// A 2x2 PNG and a one-page PDF, both written for the occasion and handed over like an upload.
+// A small wireframe PNG and a one-page PDF, both written for the occasion and handed over like an upload.
 $png = tempnam(sys_get_temp_dir(), 'seed');
-$chunk = static fn (string $type, string $data): string => pack('N', \strlen($data)).$type.$data.pack('N', crc32($type.$data));
-$pixels = str_repeat("\x00".str_repeat("\x2f\x9e\x5b", 2), 2);
-file_put_contents($png, "\x89PNG\r\n\x1a\n".$chunk('IHDR', pack('NNCCCCC', 2, 2, 8, 2, 0, 0, 0)).$chunk('IDAT', (string) gzcompress($pixels)).$chunk('IEND', ''));
+$sketch = imagecreatetruecolor(320, 200);
+\assert(false !== $sketch);
+$paper = (int) imagecolorallocate($sketch, 0xF4, 0xF2, 0xEC);
+$ink = (int) imagecolorallocate($sketch, 0x2F, 0x4A, 0x3C);
+$soft = (int) imagecolorallocate($sketch, 0xC9, 0xD6, 0xCD);
+imagefill($sketch, 0, 0, $paper);
+imagefilledrectangle($sketch, 0, 0, 319, 28, $ink);
+imagefilledrectangle($sketch, 24, 48, 296, 120, $soft);
+imagefilledrectangle($sketch, 24, 136, 144, 184, $soft);
+imagefilledrectangle($sketch, 176, 136, 296, 184, $soft);
+imagepng($sketch, $png);
 $uploadAttachment->upload('task', $homepage->id(), new AttachmentUpload($png, 'homepage-sketch.png', (int) filesize($png)));
 $pdf = tempnam(sys_get_temp_dir(), 'seed');
 file_put_contents($pdf, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n");
