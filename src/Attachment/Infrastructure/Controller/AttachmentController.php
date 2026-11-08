@@ -12,6 +12,7 @@ use App\Attachment\Application\AttachmentFiles;
 use App\Attachment\Application\AttachmentFileUnreadable;
 use App\Attachment\Application\AttachmentRefused;
 use App\Attachment\Application\AttachmentUpload;
+use App\Attachment\Application\DeleteAttachment;
 use App\Attachment\Application\UploadAttachment;
 use App\Attachment\Application\VisibleAttachments;
 use App\Attachment\Domain\FileName;
@@ -32,19 +33,33 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Downloading and uploading the files of records. A file is only ever served
- * from its own address with a sandbox policy and without sniffing, and shown
- * in the browser only when it is an image, a PDF or a video; anything else,
- * HTML and SVG included, is downloaded as bytes.
+ * Downloading, uploading and deleting the files of records. A file is only
+ * ever served from its own address with a policy that runs nothing and without
+ * sniffing, and shown in the browser only when it is an image, a PDF or a
+ * video; anything else, HTML and SVG included, is downloaded as bytes.
  *
  * The upload answers the editor with JSON; a plain form gives a return path
  * and is sent back there with the error, as the file upload pattern of GOV.UK.
+ * Deleting is a form that goes back to its return path.
  */
 final class AttachmentController extends AbstractController
 {
     public const string ROUTE = 'app_attachment';
     public const string UPLOAD_ROUTE = 'app_attachment_upload';
+    public const string DELETE_ROUTE = 'app_attachment_delete';
     public const string TOKEN = 'attachment_upload';
+    public const string DELETE_TOKEN = 'attachment_delete';
+
+    /** Every file but a PDF: no scripts, no plugins, no forms, an opaque origin. */
+    public const string POLICY = "sandbox; default-src 'none'";
+
+    /**
+     * A PDF: still nothing loads or runs from the document, but without the
+     * sandbox, which keeps a browser's own viewer from showing it in some
+     * browsers (Firefox's PDF.js runs in the document it renders). Chrome 156
+     * shows a PDF under either policy.
+     */
+    public const string PDF_POLICY = "default-src 'none'";
 
     /** Shown in the browser with their sniffed type; every other file is downloaded. */
     public const array INLINE_TYPES = [
@@ -57,6 +72,7 @@ final class AttachmentController extends AbstractController
         private readonly VisibleAttachments $attachments,
         private readonly AttachmentFiles $files,
         private readonly UploadAttachment $upload,
+        private readonly DeleteAttachment $delete,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -65,8 +81,14 @@ final class AttachmentController extends AbstractController
     public function download(string $id, Request $request): Response
     {
         $attachment = $this->attachments->get($id) ?? throw new NotFoundHttpException('No such attachment.');
+        $tenant = $attachment->tenantId()->toString();
         try {
-            $path = $this->files->read($attachment->tenantId()->toString(), $attachment->storageKey(), $attachment->sha256());
+            // A video seeks with many range requests, and hashing a large file for each would
+            // read it whole every time. A part is served from the stored file as it is: the whole
+            // is proved against its SHA-256 on every full read, and was when it was uploaded.
+            $path = $request->headers->has('Range')
+                ? $this->files->locate($tenant, $attachment->storageKey())
+                : $this->files->read($tenant, $attachment->storageKey(), $attachment->sha256());
         } catch (AttachmentFileUnreadable $unreadable) {
             throw new NotFoundHttpException('The file of the attachment cannot be read.', $unreadable);
         }
@@ -80,7 +102,7 @@ final class AttachmentController extends AbstractController
         $response->setEtag($attachment->sha256());
         $response->isNotModified($request);
 
-        return $this->guarded($response);
+        return $this->guarded($response, 'application/pdf' === $attachment->mediaType() ? self::PDF_POLICY : self::POLICY);
     }
 
     #[Route('/attachments', name: self::UPLOAD_ROUTE, methods: ['POST'])]
@@ -131,6 +153,29 @@ final class AttachmentController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
+    /**
+     * The uploader, or whom the module of the record lets, takes a file off its
+     * record; a refusal is told back on the page.
+     */
+    #[Route('/attachments/{id}/delete', name: self::DELETE_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function delete(string $id, Request $request): RedirectResponse
+    {
+        if (!$this->isCsrfTokenValid(self::DELETE_TOKEN, $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Invalid CSRF token.');
+        }
+        $return = self::localPath($request->request->getString('return')) ?? '/';
+        try {
+            $this->delete->delete($id);
+        } catch (AttachmentRefused $refused) {
+            if (AttachmentRefused::UNKNOWN === $refused->reason) {
+                throw new NotFoundHttpException('No such attachment.', $refused);
+            }
+            $this->addFlash('error', $this->translator->trans('attachment.error.cannot_delete'));
+        }
+
+        return new RedirectResponse($return, Response::HTTP_SEE_OTHER);
+    }
+
     private function refused(string $reason, bool $json, ?string $return): Response
     {
         $message = $this->translator->trans('attachment.error.'.$reason);
@@ -176,10 +221,10 @@ final class AttachmentController extends AbstractController
         return HeaderUtils::makeDisposition($disposition, $name, '' === trim($fallback) ? FileName::FALLBACK : $fallback);
     }
 
-    private function guarded(Response $response): Response
+    private function guarded(Response $response, string $policy): Response
     {
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('Content-Security-Policy', "sandbox; default-src 'none'");
+        $response->headers->set('Content-Security-Policy', $policy);
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
 
         return $response;

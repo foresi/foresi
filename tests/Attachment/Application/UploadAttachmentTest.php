@@ -301,6 +301,11 @@ final class RecordingFiles implements AttachmentFiles
         return $key;
     }
 
+    public function locate(string $tenantId, string $key): string
+    {
+        return $key;
+    }
+
     public function remove(string $tenantId, string $key): void
     {
         $this->stored = array_filter($this->stored, static fn (string $stored): bool => $stored !== $key);

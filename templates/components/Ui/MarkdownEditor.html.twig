@@ -3,7 +3,8 @@
     A text area for Markdown with Write and Preview tabs (as on GitLab), a small formatting
     toolbar and, given a mentions URL, the people after "@" in a listbox (WAI-ARIA combobox).
     The tabs and the toolbar are hidden until the controller connects: without JavaScript only
-    the text area shows. The controller gives the text area its combobox role.
+    the text area shows. The controller gives the text area its combobox role. Given an upload URL,
+    a pasted image or dropped files are uploaded and linked in the text (as on GitHub).
 #}
 {% set ctl = this %}
 {# Captured here: inside the Field block "attributes" would be the Field's own. #}
@@ -18,7 +19,7 @@
     {format: 'quote', icon: 'text-quote', label: 'ui.markdown_editor.quote', keys: null},
 ] %}
 <twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required" :row="row" :width="width">
-    <div class="grid gap-2" data-controller="markdown-editor" data-markdown-editor-preview-url-value="{{ previewUrl }}" data-markdown-editor-token-value="{{ csrf_token(constant('App\\Ui\\Component\\MarkdownEditor::TOKEN')) }}"{% if mentionsUrl %} data-markdown-editor-mentions-url-value="{{ mentionsUrl }}"{% endif %} data-markdown-editor-found-value="{{ 'ui.combobox.found'|trans({count: '__COUNT__'}) }}" data-markdown-editor>
+    <div class="grid gap-2" data-controller="markdown-editor" data-markdown-editor-preview-url-value="{{ previewUrl }}" data-markdown-editor-token-value="{{ csrf_token(constant('App\\Ui\\Component\\MarkdownEditor::TOKEN')) }}"{% if mentionsUrl %} data-markdown-editor-mentions-url-value="{{ mentionsUrl }}"{% endif %}{% if uploadUrl %} data-markdown-editor-upload-url-value="{{ uploadUrl }}" data-markdown-editor-upload-token-value="{{ csrf_token('attachment_upload') }}" data-markdown-editor-upload-kind-value="{{ uploadKind }}" data-markdown-editor-upload-owner-value="{{ uploadOwner }}" data-markdown-editor-uploading-value="{{ 'attachment.uploading'|trans({name: '__NAME__'}) }}" data-markdown-editor-upload-failed-value="{{ 'attachment.error.failed'|trans }}"{% endif %} data-markdown-editor-found-value="{{ 'ui.combobox.found'|trans({count: '__COUNT__'}) }}" data-markdown-editor>
         <div hidden class="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 inset-shadow-rail" data-markdown-editor-target="bar" data-markdown-editor-bar>
             <div role="tablist" aria-label="{{ label }}" class="flex gap-x-5" data-action="keydown->markdown-editor#tabKey">
                 <button type="button" role="tab" id="{{ id }}-write-tab" aria-selected="true" aria-controls="{{ id }}-write" class="{{ tabClass }}" data-markdown-editor-target="writeTab" data-action="markdown-editor#write">{{ 'ui.markdown_editor.write'|trans }}</button>
@@ -31,7 +32,7 @@
             </div>
         </div>
         <div id="{{ id }}-write" class="relative" data-markdown-editor-target="writePanel">
-            <textarea id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} rows="{{ rows }}" {{ controlAttributes.defaults({class: 'block py-2 ' ~ ctl.classes, 'data-markdown-editor-target': 'input', 'data-action': 'keydown->markdown-editor#keydown input->markdown-editor#suggest click->markdown-editor#suggest blur->markdown-editor#close'}) }}>{{ value }}</textarea>
+            <textarea id="{{ id }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if ctl.invalid %} aria-invalid="true"{% endif %}{% if ctl.describedBy %} aria-describedby="{{ ctl.describedBy }}"{% endif %}{% if ctl.focused and not controlAttributes.has('autofocus') %} autofocus{% endif %} rows="{{ rows }}" {{ controlAttributes.defaults({class: 'block py-2 ' ~ ctl.classes, 'data-markdown-editor-target': 'input', 'data-action': 'keydown->markdown-editor#keydown input->markdown-editor#suggest click->markdown-editor#suggest blur->markdown-editor#close paste->markdown-editor#paste dragover->markdown-editor#dragOver drop->markdown-editor#drop'}) }}>{{ value }}</textarea>
             {% if mentionsUrl %}
                 <ul id="{{ id }}-mentions" role="listbox" aria-label="{{ 'ui.markdown_editor.mentions'|trans }}" hidden data-markdown-editor-target="list" class="absolute z-30 m-0 max-h-72 w-64 max-w-full list-none overflow-y-auto rounded-panel border border-container bg-white p-1.5 shadow-floating"></ul>
                 <p hidden aria-hidden="true" data-markdown-editor-target="empty" class="absolute z-30 m-0 w-64 max-w-full rounded-panel border border-container bg-white px-2.5 py-2 text-small text-muted shadow-floating">{{ 'ui.markdown_editor.no_match'|trans }}</p>
@@ -44,6 +45,7 @@
                 </template>
             {% endif %}
         </div>
+        {% if uploadUrl %}<p id="{{ id }}-upload-error" hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-markdown-editor-target="uploadError" data-markdown-editor-upload-error></p>{% endif %}
         <div id="{{ id }}-preview" role="tabpanel" aria-labelledby="{{ id }}-preview-tab" tabindex="0" hidden class="rounded-control border border-control-line bg-white px-2.5 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green" data-markdown-editor-target="previewPanel" data-markdown-editor-preview>
             <p hidden class="m-0 text-muted" data-markdown-editor-target="nothing">{{ 'ui.markdown_editor.nothing_to_preview'|trans }}</p>
             <p hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-markdown-editor-target="failed">{{ 'ui.dialog.failed'|trans }}</p>

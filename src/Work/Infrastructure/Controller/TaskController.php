@@ -8,12 +8,16 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
+use App\Attachment\Application\AttachmentPermissions;
+use App\Attachment\Application\VisibleAttachments;
+use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
 use App\Tenancy\Application\TenantClock;
 use App\Ui\Avatar;
+use App\Ui\FileSize;
 use App\Work\Application\Choice;
 use App\Work\Application\Comments;
 use App\Work\Application\CommentView;
@@ -29,6 +33,7 @@ use App\Work\Application\TaskRow;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
+use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -47,7 +52,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * of its own that saves when a value is chosen and comes back to the page;
  * the title, the description and one's own comment open their form in place.
  * The discussion is one timeline, oldest first, with the comment box under it
- * as in Linear.
+ * as in Linear. The files of the task are listed under the description.
  */
 final class TaskController extends AbstractController
 {
@@ -55,6 +60,15 @@ final class TaskController extends AbstractController
     public const string TOKEN = 'work_task';
     private const array EDITABLE = ['title', 'description'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
+    /** Shown on the page: the image as a thumbnail, a PDF in a dialog, a video in a player. */
+    private const array PREVIEWS = [
+        'image/png' => 'image', 'image/jpeg' => 'image', 'image/gif' => 'image', 'image/webp' => 'image',
+        'application/pdf' => 'pdf',
+        'video/mp4' => 'video', 'video/webm' => 'video', 'video/quicktime' => 'video',
+    ];
+    /** The download of an attachment by its name: Work reaches the Attachment module through its application layer only. */
+    private const string ATTACHMENT_ROUTE = 'app_attachment';
+    private const array FILE_ICONS = ['pdf' => 'file-text', 'video' => 'file-video-camera', 'file' => 'file'];
     /** The refusals of a comment's text, told next to its field. */
     private const array COMMENT_TEXT = ['comment_empty', 'comment_too_long'];
 
@@ -68,6 +82,8 @@ final class TaskController extends AbstractController
         private readonly AuditActor $actor,
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly VisibleAttachments $attachments,
+        private readonly AttachmentPermissions $attachmentPermissions,
     ) {
     }
 
@@ -397,6 +413,7 @@ final class TaskController extends AbstractController
             $priorities[$priority->value] = $this->translator->trans('work.priority.'.$priority->value);
         }
 
+        $names = array_column(array_map(static fn (Person $person): array => [$person->userId, $person->name], $people), 1, 0);
         $discussion = $this->queries->discussion($row->id, $filter) ?? [];
         $editable = array_filter($discussion, static fn (DiscussionItem $item): bool => $item->comment instanceof CommentView && $item->comment->canEdit && $item->comment->id === $editComment);
 
@@ -439,6 +456,8 @@ final class TaskController extends AbstractController
             'editComment' => [] === $editable ? null : $editComment,
             'createdAt' => $task->createdAt->format($this->translator->trans('format.datetime')),
             'dueValue' => $row->dueOn?->format('Y-m-d') ?? '',
+            'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
+            'attachmentKind' => TaskAttachmentAccess::KIND,
         ], new Response(status: $status));
     }
 
@@ -467,6 +486,31 @@ final class TaskController extends AbstractController
                 'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName],
                 'due' => $due,
             ],
+        ];
+    }
+
+    /**
+     * A file of the task as its list shows it.
+     *
+     * @param array<string, string> $names the names of the people by user id
+     *
+     * @return array<string, mixed>
+     */
+    private function attachmentItem(Attachment $file, array $names): array
+    {
+        $preview = self::PREVIEWS[$file->mediaType()] ?? 'file';
+
+        return [
+            'id' => $file->id(),
+            'url' => $this->generateUrl(self::ATTACHMENT_ROUTE, ['id' => $file->id()]),
+            'name' => $file->fileName(),
+            'size' => FileSize::format($file->size(), $this->translator->getLocale()),
+            'preview' => $preview,
+            'icon' => self::FILE_ICONS[$preview] ?? null,
+            'uploader' => $names[$file->uploadedBy()] ?? null,
+            'time' => $file->createdAt()->format($this->translator->trans('format.datetime')),
+            'datetime' => $file->createdAt()->format(\DATE_ATOM),
+            'canDelete' => $file->uploadedBy() === $this->actor->userId() || $this->attachmentPermissions->canDelete($file),
         ];
     }
 

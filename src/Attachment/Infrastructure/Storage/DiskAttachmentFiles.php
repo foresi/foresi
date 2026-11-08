@@ -55,16 +55,26 @@ final readonly class DiskAttachmentFiles implements AttachmentFiles
 
     public function read(string $tenantId, string $key, string $sha256): string
     {
-        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
-            throw new AttachmentFileUnreadable('The attachment does not belong to the tenant.');
-        }
-        $path = $this->root.'/'.$key;
-        $actual = is_file($path) ? hash_file('sha256', $path) : false;
+        $path = $this->locate($tenantId, $key);
+        $actual = hash_file('sha256', $path);
         if (false === $actual) {
             throw new AttachmentFileUnreadable('The attachment is missing.');
         }
         if (!hash_equals($sha256, $actual)) {
             throw new AttachmentFileUnreadable('The attachment changed after it was uploaded.');
+        }
+
+        return $path;
+    }
+
+    public function locate(string $tenantId, string $key): string
+    {
+        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
+            throw new AttachmentFileUnreadable('The attachment does not belong to the tenant.');
+        }
+        $path = $this->root.'/'.$key;
+        if (!is_file($path)) {
+            throw new AttachmentFileUnreadable('The attachment is missing.');
         }
 
         return $path;

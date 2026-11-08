@@ -80,6 +80,26 @@ final class DiskAttachmentFilesTest extends TestCase
         self::assertSame([true, true, true], $refused);
     }
 
+    public function testLocatingAFileForAPartOfItChecksTheTenantButDoesNotHashIt(): void
+    {
+        $tenant = Id::generate();
+        $key = $this->files->store($tenant, Id::generate(), $this->source);
+        file_put_contents($this->root.'/'.$key, 'tampered');
+
+        self::assertSame($this->root.'/'.$key, $this->files->locate($tenant, $key));
+
+        $refused = [];
+        foreach ([[Id::generate(), $key], [$tenant, $tenant.'/'.Id::generate()]] as [$reader, $candidate]) {
+            try {
+                $this->files->locate($reader, $candidate);
+                $refused[] = false;
+            } catch (AttachmentFileUnreadable) {
+                $refused[] = true;
+            }
+        }
+        self::assertSame([true, true], $refused);
+    }
+
     public function testRemovingDeletesOnlyTheTenantsOwnFile(): void
     {
         $tenant = Id::generate();

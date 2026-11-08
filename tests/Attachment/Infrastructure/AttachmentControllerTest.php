@@ -104,6 +104,91 @@ final class AttachmentControllerTest extends WebTestCase
         }
     }
 
+    public function testAPdfIsShownWithoutTheSandboxThatKeepsBrowsersFromRenderingIt(): void
+    {
+        $this->seed();
+        $pdf = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n";
+
+        $this->upload($this->file($pdf, 'brief.pdf'));
+        self::assertResponseStatusCodeSame(201);
+        $this->client->request('GET', $this->uploaded('url'));
+
+        self::assertResponseIsSuccessful();
+        $headers = $this->client->getResponse()->headers;
+        self::assertSame('application/pdf', $headers->get('Content-Type'));
+        self::assertStringStartsWith('inline;', (string) $headers->get('Content-Disposition'));
+        $this->assertGuarded(AttachmentController::PDF_POLICY);
+        self::assertSame("default-src 'none'", $headers->get('Content-Security-Policy'));
+    }
+
+    public function testAPartOfAFileIsServedWithoutHashingItWhileTheWholeIsStillProved(): void
+    {
+        $this->seed();
+        $this->upload($this->file('0123456789', 'clip.txt'));
+        $id = $this->uploaded('id');
+        $key = $this->em->getConnection()->fetchOne('SELECT storage_key FROM attachment WHERE id = ?', [$id]);
+        self::assertIsString($key);
+        $directory = self::getContainer()->getParameter('app.attachments_dir');
+
+        $this->client->request('GET', '/attachments/'.$id, server: ['HTTP_RANGE' => 'bytes=2-5']);
+        self::assertResponseStatusCodeSame(206);
+        self::assertSame('2345', $this->client->getInternalResponse()->getContent());
+        $this->assertGuarded();
+
+        // Changed on the disk: a part is not proved, the whole still is.
+        file_put_contents($directory.'/'.$key, 'abcdefghij');
+        $this->client->request('GET', '/attachments/'.$id, server: ['HTTP_RANGE' => 'bytes=2-5']);
+        self::assertResponseStatusCodeSame(206);
+        self::assertSame('cdef', $this->client->getInternalResponse()->getContent());
+        $this->client->request('GET', '/attachments/'.$id);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheUploaderOrAnOwnerDeletesAFileAndGoesBackToTheLocalPage(): void
+    {
+        $this->seed();
+        $page = '/tasks/'.$this->task.'#task-attachments-title';
+        $this->upload($this->file('report', 'report.txt'));
+        $id = $this->uploaded('id');
+
+        $this->client->request('POST', '/attachments/'.$id.'/delete', ['_token' => 'forged', 'return' => $page]);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/attachments/'.Id::generate().'/delete', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $page]);
+        self::assertResponseStatusCodeSame(404);
+        self::assertNull($this->em->getConnection()->fetchOne('SELECT deleted_at FROM attachment WHERE id = ?', [$id]));
+
+        $this->client->request('POST', '/attachments/'.$id.'/delete', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $page]);
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseRedirects($page);
+        self::assertNotNull($this->em->getConnection()->fetchOne('SELECT deleted_at FROM attachment WHERE id = ?', [$id]));
+        $this->client->request('GET', '/attachments/'.$id);
+        self::assertResponseStatusCodeSame(404);
+
+        foreach (['https://evil.example.com/', '//evil.example.com/', '/\\evil.example.com', ''] as $elsewhere) {
+            $this->upload($this->file('report', 'report.txt'));
+            $this->client->request('POST', '/attachments/'.$this->uploaded('id').'/delete', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $elsewhere]);
+            self::assertResponseRedirects('/', 303, $elsewhere);
+        }
+    }
+
+    public function testAMemberCannotDeleteTheFileOfAnother(): void
+    {
+        $this->seed();
+        $page = '/tasks/'.$this->task;
+        $this->upload($this->file('report', 'report.txt'));
+        $id = $this->uploaded('id');
+        $connection = $this->em->getConnection();
+        $connection->update('attachment', ['uploaded_by' => Id::generate()], ['id' => $id]);
+        $connection->executeStatement('UPDATE membership SET role = ?', [Role::Member->value]);
+
+        $this->client->request('POST', '/attachments/'.$id.'/delete', ['_token' => $this->token(AttachmentController::DELETE_TOKEN), 'return' => $page]);
+
+        self::assertResponseRedirects($page, 303);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'You cannot delete this file');
+        self::assertNull($connection->fetchOne('SELECT deleted_at FROM attachment WHERE id = ?', [$id]));
+    }
+
     public function testARefusedFileIsToldInTheEditorsJson(): void
     {
         $this->seed();
@@ -198,11 +283,11 @@ final class AttachmentControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    private function assertGuarded(): void
+    private function assertGuarded(string $policy = "sandbox; default-src 'none'"): void
     {
         $headers = $this->client->getResponse()->headers;
         self::assertSame('nosniff', $headers->get('X-Content-Type-Options'));
-        self::assertSame("sandbox; default-src 'none'", $headers->get('Content-Security-Policy'));
+        self::assertSame($policy, $headers->get('Content-Security-Policy'));
         self::assertTrue($headers->hasCacheControlDirective('private'));
         self::assertTrue($headers->hasCacheControlDirective('no-cache'));
         self::assertFalse($headers->hasCacheControlDirective('public'));
@@ -223,7 +308,7 @@ final class AttachmentControllerTest extends WebTestCase
     /**
      * A token of the signed-in session, as the task page will render it.
      */
-    private function token(): string
+    private function token(string $id = AttachmentController::TOKEN): string
     {
         $session = $this->client->getRequest()->getSession();
         $request = new Request();
@@ -231,7 +316,7 @@ final class AttachmentControllerTest extends WebTestCase
         $stack = self::getContainer()->get('request_stack');
         $stack->push($request);
         try {
-            $token = self::getContainer()->get(CsrfTokenManagerInterface::class)->getToken(AttachmentController::TOKEN)->getValue();
+            $token = self::getContainer()->get(CsrfTokenManagerInterface::class)->getToken($id)->getValue();
         } finally {
             $stack->pop();
         }

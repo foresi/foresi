@@ -3341,7 +3341,22 @@ work:
     moved: 'Přesunuto do: {status}, pozice {position} z {count}'
     subtasks: 'Hotové podúkoly: {done} z {total}'
 attachment:
+  title: Přílohy
+  add: Přidat soubor
+  drop: Přetáhněte soubory sem nebo vyberte
+  upload: Nahrát
+  file_label: Soubor
+  uploading: 'Nahrávám {name}…'
+  preview: Náhled
+  open: 'Otevřít {name}'
+  download: Stáhnout
+  delete: Smazat
+  delete_label: 'Smazat {name}'
+  delete_confirm:
+    title: 'Smazat {name}?'
+    text: Soubor zmizí z úkolu.
   error:
+    cannot_delete: Tento soubor smazat nemůžete
     too_big: Soubor musí být menší než 50 MB
     empty: Soubor je prázdný
     failed: Soubor se nepodařilo nahrát – zkuste to znovu

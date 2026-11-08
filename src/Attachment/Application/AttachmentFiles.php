@@ -27,5 +27,13 @@ interface AttachmentFiles
      */
     public function read(string $tenantId, string $key, string $sha256): string;
 
+    /**
+     * The local path of the stored file without hashing it again, for a part
+     * of a file whose whole content is proved on every full read.
+     *
+     * @throws AttachmentFileUnreadable when it is missing or of another tenant
+     */
+    public function locate(string $tenantId, string $key): string;
+
     public function remove(string $tenantId, string $key): void;
 }

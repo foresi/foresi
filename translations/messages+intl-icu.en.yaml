@@ -3341,7 +3341,22 @@ work:
     moved: 'Moved to {status}, position {position} of {count}'
     subtasks: '{done} of {total} subtasks done'
 attachment:
+  title: Attachments
+  add: Add file
+  drop: Drag files here or choose
+  upload: Upload
+  file_label: File
+  uploading: 'Uploading {name}…'
+  preview: Preview
+  open: 'Open {name}'
+  download: Download
+  delete: Delete
+  delete_label: 'Delete {name}'
+  delete_confirm:
+    title: 'Delete {name}?'
+    text: The file is removed from the task.
   error:
+    cannot_delete: You cannot delete this file
     too_big: The selected file must be smaller than 50 MB
     empty: The selected file is empty
     failed: The selected file could not be uploaded – try again
