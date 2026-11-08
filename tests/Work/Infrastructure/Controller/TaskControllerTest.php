@@ -525,9 +525,10 @@ final class TaskControllerTest extends WebTestCase
         $this->client->submit($form);
         $crawler = $this->client->followRedirect();
 
+        // SQLite answers 1 and 0, PostgreSQL true and false.
         self::assertSame(
-            [['body' => 'Internal one', 'internal' => 1], ['body' => 'Public one', 'internal' => 0]],
-            $this->em->getConnection()->fetchAllAssociative('SELECT body, internal FROM task_comment ORDER BY created_at, id'),
+            [['body' => 'Internal one', 'internal' => true], ['body' => 'Public one', 'internal' => false]],
+            array_map(static fn (array $row): array => ['body' => $row['body'], 'internal' => (bool) $row['internal']], $this->em->getConnection()->fetchAllAssociative('SELECT body, internal FROM task_comment ORDER BY created_at, id')),
         );
         self::assertSame('Internal', trim($crawler->filter('#comment-'.$first.' [data-comment-internal]')->text()));
         $second = $this->fetchId('SELECT id FROM task_comment WHERE body = ?', ['Public one']);
