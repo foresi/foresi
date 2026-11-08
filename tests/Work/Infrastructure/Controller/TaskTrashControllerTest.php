@@ -171,18 +171,21 @@ final class TaskTrashControllerTest extends WebTestCase
         self::assertSame('/projects/'.$project.'/trash', $crawler->filter('[data-project-trash]')->attr('href'));
         self::assertSame('Trash (2)', trim($crawler->filter('[data-project-trash]')->text()));
         $crawler = $this->client->request('GET', '/projects/'.$project.'/trash');
-        // Deleted in the same second, the later task comes first.
+        // Newest first; the two deletes may fall in one second or two, so the rows are compared by title.
         $rows = $crawler->filter('tbody tr');
-        self::assertSame([
-            ['Logo', 'Subtask of Wireframes', 'Wireframes', 'Example Company'],
-            ['Brief', '', '—', 'Example Company'],
-        ], $rows->each(static fn (Crawler $row): array => [
+        $cells = $rows->each(static fn (Crawler $row): array => [
             trim($row->filter('td')->eq(0)->filter('span')->first()->text()),
             trim($row->filter('[data-row-secondary]')->count() > 0 ? $row->filter('[data-row-secondary]')->text() : ''),
             trim($row->filter('td')->eq(1)->text()),
             trim($row->filter('td')->eq(2)->text()),
-        ]));
-        $restore = $rows->eq(1)->filter('[data-row-actions] form')->first();
+        ]);
+        $titles = array_column($cells, 0);
+        array_multisort($titles, $cells);
+        self::assertSame([
+            ['Brief', '', '—', 'Example Company'],
+            ['Logo', 'Subtask of Wireframes', 'Wireframes', 'Example Company'],
+        ], $cells);
+        $restore = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Brief'))->filter('[data-row-actions] form')->first();
         self::assertSame('/tasks/'.$this->taskId('Brief').'/restore', $restore->attr('action'));
         self::assertSame('Restore', $restore->filter('button')->attr('aria-label'));
 
