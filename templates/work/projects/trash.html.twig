@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The trash of a project: the tasks deleted from it, the last first, each restored by its button.
+    A subtask deleted with its task is not listed on its own; it comes back with the task.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.trash.title'|trans}] %}
+{% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
+
+{% block title %}{{ 'work.trash.title'|trans }} · {{ project.name }}{% endblock %}
+
+{% block content %}
+    {{ include('work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4" data-project-trash-page>
+        <p class="m-0 text-small text-muted" data-trash-purge>{{ 'work.trash.purge'|trans({days: days}) }}</p>
+        <twig:Ui:DataTable :caption="'work.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="trash-2" :title="'work.trash.empty.title'|trans" :text="'work.trash.empty.text'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

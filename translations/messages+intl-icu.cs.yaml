@@ -182,6 +182,7 @@ catalogue:
     empty: Prázdné
     loading: Načítání
     titled: S nadpisem
+    action: S akcí
     long: Dlouhý text
     selectable: S výběrem a hromadnou lištou
     sorted: Seřazeno se součty
@@ -3209,6 +3210,23 @@ work:
       active: Aktivní
       done: Hotový
       closed: Uzavřený
+  trash:
+    title: Koš
+    link: '{count, plural, =0 {Koš} other {Koš (#)}}'
+    delete: Smazat úkol
+    deleted: 'Úkol „{title}“ je v koši.'
+    undo: Vrátit zpět
+    restore: Obnovit
+    restored: 'Úkol „{title}“ je zpět.'
+    purge: '{days, plural, one {Úkoly v koši se po # dni smažou natrvalo.} other {Úkoly v koši se po # dnech smažou natrvalo.}}'
+    subtask_of: 'Podúkol úkolu {title}'
+    column:
+      parent: Nadřazený úkol
+      deleted_by: Kdo smazal
+      deleted_at: Smazáno
+    empty:
+      title: Koš je prázdný
+      text: Smazané úkoly tu čekají, než zmizí natrvalo.
   labels:
     title: Štítky
     new: Nový štítek

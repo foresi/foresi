@@ -21,10 +21,12 @@ use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageTasks;
 use App\Work\Application\ProjectRow;
+use App\Work\Application\PurgeDeletedTasks;
 use App\Work\Application\SectionTasks;
 use App\Work\Application\StatusTasks;
 use App\Work\Application\TaskFilter;
 use App\Work\Application\TaskRow;
+use App\Work\Application\TrashedTask;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
@@ -48,13 +50,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * of its own), and the list of a project, section by section, with a line at
  * the end of each section that adds a task by its title. The board shows the
  * same tasks as one column per status; a card moves by dragging it or by the
- * move items of its menu, which work as plain forms.
+ * move items of its menu, which work as plain forms. The trash of a project
+ * lists the tasks deleted from it, each restored by a button.
  */
 final class ProjectController extends AbstractController
 {
     public const string ROUTE = 'app_projects';
     public const string PROJECT_ROUTE = 'app_project';
     public const string BOARD_ROUTE = 'app_project_board';
+    public const string TRASH_ROUTE = 'app_project_trash';
     /** The menu forms of a card and the drop on the board share it. */
     public const string MOVE_TOKEN = 'work_task_move';
     public const string TOKEN = 'work_project';
@@ -191,6 +195,7 @@ final class ProjectController extends AbstractController
             ],
             'dues' => $this->dues(),
             'columns' => $this->taskColumns(),
+            'trashCount' => $this->queries->trashCount($id),
         ]);
     }
 
@@ -226,6 +231,47 @@ final class ProjectController extends AbstractController
                     array_keys($column->tasks),
                 ),
             ], $board->columns),
+        ]);
+    }
+
+    /**
+     * The tasks deleted from the project, the last first: those deleted with
+     * their task are restored with it, so only it is listed. Restoring is
+     * offered to whom may restore each one.
+     */
+    #[Route('/projects/{id}/trash', name: self::TRASH_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function trash(string $id): Response
+    {
+        $this->denyUnlessStaff();
+        $trash = $this->queries->trash($id) ?? throw new NotFoundHttpException();
+
+        return $this->render('work/projects/trash.html.twig', [
+            'project' => $trash->project,
+            'days' => PurgeDeletedTasks::DAYS,
+            'columns' => [
+                ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
+                ['key' => 'parent', 'label' => $this->translator->trans('work.trash.column.parent'), 'truncate' => true, 'phone' => false],
+                ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false],
+                ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')],
+            ],
+            'rows' => array_map(fn (TrashedTask $task): array => [
+                'id' => $task->id,
+                'label' => $task->title,
+                'secondary' => null === $task->parentTitle ? null : $this->translator->trans('work.trash.subtask_of', ['title' => $task->parentTitle]),
+                'cells' => [
+                    'title' => $task->title,
+                    'parent' => $task->parentTitle,
+                    'deletedBy' => $task->deletedByName,
+                    'deletedAt' => $task->deletedAt->format($this->translator->trans('format.datetime')),
+                ],
+                'actions' => $task->restorable ? [[
+                    'label' => $this->translator->trans('work.trash.restore'),
+                    'href' => $this->generateUrl('app_task_restore', ['id' => $task->id]),
+                    'method' => 'POST',
+                    'icon' => 'archive-restore',
+                    'fields' => ['from' => 'trash', 'project' => $trash->project->id],
+                ]] : [],
+            ], $trash->tasks),
         ]);
     }
 
@@ -400,6 +446,7 @@ final class ProjectController extends AbstractController
             'moveTo' => array_map(static fn (array $status): array => $status + ['current' => $status['id'] === $statusId], $statuses),
             'up' => $at > 0,
             'down' => $at < $count - 1,
+            'deletable' => $task->deletable,
         ];
     }
 
@@ -496,6 +543,12 @@ final class ProjectController extends AbstractController
                 'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
                 'labels' => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels)],
             ],
+            'actions' => $task->deletable ? [[
+                'label' => $this->translator->trans('work.trash.delete'),
+                'href' => $this->generateUrl('app_task_delete', ['id' => $task->id]),
+                'method' => 'POST',
+                'fields' => ['from' => 'list'],
+            ]] : [],
         ];
     }
 

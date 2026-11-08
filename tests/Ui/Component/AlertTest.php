@@ -76,6 +76,30 @@ final class AlertTest extends KernelTestCase
         self::assertStringNotContainsString('<b>', $html);
     }
 
+    public function testAnActionPostsWithItsTokenAfterTheMessage(): void
+    {
+        $html = (string) $this->renderTwigComponent('Ui:Alert', ['tone' => 'success', 'actionLabel' => 'Undo', 'actionHref' => '/tasks/1/restore', 'actionToken' => 'abc'], 'Moved to the trash.');
+
+        self::assertMatchesRegularExpression('~Moved to the trash\..*<form method="post" action="/tasks/1/restore"[^>]*data-alert-action>.*name="_token" value="abc".*<button[^>]*type="submit"[^>]*>\s*Undo~s', $html);
+    }
+
+    public function testAPlainAlertHasNoAction(): void
+    {
+        self::assertStringNotContainsString('<form', (string) $this->renderTwigComponent('Ui:Alert', ['tone' => 'success'], 'Saved'));
+    }
+
+    public function testAnActionNeedsALabelAndAUrl(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Alert', ['actionLabel' => 'Undo']);
+    }
+
+    public function testAnActionGoesToAnAllowedUrlOnly(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:Alert', ['actionLabel' => 'Undo', 'actionHref' => 'javascript:alert(1)']);
+    }
+
     public function testUnknownToneThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);

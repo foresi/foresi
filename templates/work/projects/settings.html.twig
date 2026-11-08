@@ -14,12 +14,12 @@
 
 {% block title %}{{ 'work.settings.title'|trans }} · {{ project.name }}{% endblock %}
 
+{% block actions %}
+    <twig:Ui:Button icon="trash-2" :href="path('app_project_trash', {id: project.id})" data-project-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button>
+{% endblock %}
+
 {% block content %}
-    {% for tone in ['success', 'error'] %}
-        {% for message in app.flashes(tone) %}
-            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
-        {% endfor %}
-    {% endfor %}
+    {{ include('work/_flashes.html.twig') }}
     <div class="grid max-w-4xl grid-cols-1 gap-4">
         <twig:Ui:Card :title="'work.settings.general'|trans" icon="settings" data-settings-general>
             <twig:block name="actions">

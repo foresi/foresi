@@ -53,11 +53,21 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the title, the description and one's own comment open their form in place.
  * The discussion is one timeline, oldest first, with the comment box under it
  * as in Linear. The files of the task are listed under the description.
+ *
+ * A task is deleted from the menu of its page, of its row in the list or of its
+ * card on the board, without a question: it goes to the trash of its project,
+ * and the message that says so has an Undo, as Gmail and Linear do it.
  */
 final class TaskController extends AbstractController
 {
     public const string ROUTE = 'app_task';
     public const string TOKEN = 'work_task';
+    /** Deleting and restoring, from every place that offers it. */
+    public const string TRASH_TOKEN = 'work_task_trash';
+    /** The message of a deletion with its Undo: a message, a label, the URL that restores and the token it sends. */
+    public const string UNDO_FLASH = 'work_undo';
+    /** Where a deletion or a restore was asked from, and so where it goes back to. */
+    private const array PLACES = ['list', 'board', 'task', 'trash'];
     private const array EDITABLE = ['title', 'description'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
     /** Shown on the page: the image as a thumbnail, a PDF in a dialog, a video in a player. */
@@ -168,6 +178,63 @@ final class TaskController extends AbstractController
         }
 
         return $this->toComment($taskId, $id);
+    }
+
+    /**
+     * Puts the task in the trash with its subtasks and goes back to the list
+     * or the board it was deleted from; from its own page, to the list of its
+     * project. The message says so and undoes it.
+     */
+    #[Route('/tasks/{id}/delete', name: 'app_task_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function delete(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request, self::TRASH_TOKEN);
+        $from = $this->place($request);
+        $projectId = $this->detail($id)->task->projectId;
+        try {
+            $task = $this->tasks->delete($id);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+
+            return 'task' === $from ? $this->back($id) : $this->toPlace($from, $projectId);
+        }
+        $back = 'task' === $from ? 'list' : $from;
+        $this->addFlash(self::UNDO_FLASH, [
+            'message' => $this->translator->trans('work.trash.deleted', ['title' => $task->title()]),
+            'label' => $this->translator->trans('work.trash.undo'),
+            'href' => $this->generateUrl('app_task_restore', ['id' => $id, 'from' => $back]),
+            'token' => self::TRASH_TOKEN,
+        ]);
+
+        return $this->toPlace($back, $projectId);
+    }
+
+    /**
+     * Takes the task out of the trash, with its task when it is a subtask, and
+     * goes back to where it was asked: the trash, or the list or board whose
+     * message undid a deletion.
+     */
+    #[Route('/tasks/{id}/restore', name: 'app_task_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request, self::TRASH_TOKEN);
+        $from = $this->place($request);
+        try {
+            $task = $this->tasks->restore($id);
+        } catch (WorkRefused $refused) {
+            $this->notFoundIfUnknown($refused);
+            $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
+            // The trash says which project it is; nothing else of the task is shown to whom it is refused.
+            $project = $request->request->getString('project');
+
+            return 1 === preg_match('/^'.Requirement::UUID_V7.'$/D', $project) ? $this->toPlace($from, $project) : $this->redirectToRoute(ProjectController::ROUTE, status: Response::HTTP_SEE_OTHER);
+        }
+        $this->addFlash('success', $this->translator->trans('work.trash.restored', ['title' => $task->title()]));
+
+        return 'task' === $from ? $this->back($id) : $this->toPlace($from, $task->project()->id());
     }
 
     /**
@@ -623,6 +690,25 @@ final class TaskController extends AbstractController
         return $this->redirectToRoute(self::ROUTE, ['id' => $taskId, '_fragment' => 'comment-'.$commentId], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * @return value-of<self::PLACES>
+     */
+    private function place(Request $request): string
+    {
+        $from = $request->request->getString('from', $request->query->getString('from'));
+
+        return \in_array($from, self::PLACES, true) ? $from : 'list';
+    }
+
+    private function toPlace(string $place, string $projectId): RedirectResponse
+    {
+        return $this->redirectToRoute(match ($place) {
+            'board' => ProjectController::BOARD_ROUTE,
+            'trash' => ProjectController::TRASH_ROUTE,
+            default => ProjectController::PROJECT_ROUTE,
+        }, ['id' => $projectId], Response::HTTP_SEE_OTHER);
+    }
+
     private function back(string $id): RedirectResponse
     {
         return $this->redirectToRoute(self::ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
@@ -642,9 +728,9 @@ final class TaskController extends AbstractController
         }
     }
 
-    private function checkToken(Request $request): void
+    private function checkToken(Request $request, string $id = self::TOKEN): void
     {
-        if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
+        if (!$this->isCsrfTokenValid($id, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
     }

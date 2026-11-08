@@ -55,6 +55,15 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 - **Viewing.** Images and PDFs open in a dialog with a download link; videos play in the list. Any other file downloads. Files are served only to people who may see the task, never from a public address.
 - **Deleting.** The person who uploaded a file may delete it, and so may an owner of the organisation, after a confirmation.
 
+## Trash
+
+**Delete task** is in the **⋯** menu of the task page, of each row of the list and of each card on the board. Only the person who created the task and an owner of the organisation see it. There is no question first: the task goes to the trash of its project with its subtasks, you go back to the list or the board (to the list when you deleted it from its own page), and the message that says so has **Undo**.
+
+- **Hidden.** A task in the trash is gone from the list, the board, my tasks, the counts of the projects index and the menu, the subtasks of its task and the people a comment can mention. Its page is not found and its files and those of its comments are not served.
+- **Trash of a project.** **Trash (n)** at the end of the list, shown while something is in it, and in the header of the project settings, lists the deleted tasks, the last first, with who deleted them and when. A subtask deleted together with its task is not listed on its own: it comes back with the task. **Restore** is offered to whoever may delete the task.
+- **Restoring.** A restored task comes back where it was, with the subtasks deleted together with it. A subtask whose task is in the trash brings the task back too.
+- **For good.** Tasks in the trash for more than 30 days are deleted for good every night from 03:00 in the organisation's time zone, with their subtasks, comments, mentions, watchers, labels and files. The audit log keeps what they were, as for invoices.
+
 ## My tasks
 
 **Work, My tasks** lists the unfinished tasks you are responsible for, grouped by when they are due: overdue, today, the next 7 days, later and without a date. A group with nothing in it is left out. The **Watching** tab lists the tasks you follow instead. The client filter narrows both tabs. The count of tasks due by today is shown beside the item in the menu.
@@ -73,7 +82,7 @@ Open **Settings** on a project to:
 
 ## Operating it
 
-There is nothing to configure. Projects, tasks, comments and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
+There is nothing to configure. The trash is emptied by the scheduled job `task-trash-purge`, which the normal worker runs (see [ADR 0016](adr/0016-scheduled-jobs.md)); without the worker deleted tasks stay in the trash. Projects, tasks, comments and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
 
 ## What comes later
 

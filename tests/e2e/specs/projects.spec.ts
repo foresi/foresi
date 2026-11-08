@@ -126,6 +126,41 @@ test.describe('projects', () => {
     await expect(today).toContainText('Fix the contact form');
   });
 
+  test('a task deleted from the list comes back by its Undo and from the trash', async ({ page }) => {
+    await openWebsite(page);
+    const title = 'Remove the old banner';
+    const input = page.locator('#add-' + (await page.locator('[data-section]').filter({ hasText: 'Backlog' }).getAttribute('data-section')));
+    await input.fill(title);
+    await input.press('Enter');
+    const row = page.locator('[data-section] tbody tr').filter({ hasText: title });
+    await expect(row).toBeVisible();
+
+    // No question first: the message undoes it.
+    await row.getByRole('button', { name: `Další akce pro ${title}` }).click();
+    await page.getByRole('menuitem', { name: 'Smazat úkol' }).click();
+    const flash = page.locator('[data-task-trashed]');
+    await expect(flash).toContainText(`Úkol „${title}“ je v koši.`);
+    await expect(row).toHaveCount(0);
+    await flash.getByRole('button', { name: 'Vrátit zpět' }).click();
+    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je zpět.`);
+    await expect(row).toBeVisible();
+
+    await row.getByRole('button', { name: `Další akce pro ${title}` }).click();
+    await page.getByRole('menuitem', { name: 'Smazat úkol' }).click();
+    await expect(page.locator('[data-task-trashed]')).toContainText(`Úkol „${title}“ je v koši.`);
+    await expect(row).toHaveCount(0);
+    await page.getByRole('link', { name: 'Koš (1)' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Koš');
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly v koši se po 30 dnech smažou natrvalo.');
+    await page.locator('tbody tr').filter({ hasText: title }).getByRole('button', { name: 'Obnovit' }).click();
+    await expect(page.locator('main')).toContainText(`Úkol „${title}“ je zpět.`);
+    await expect(page.locator('main')).toContainText('Koš je prázdný');
+
+    await openWebsite(page);
+    await expect(row).toBeVisible();
+    await expect(page.locator('[data-project-trash]')).toHaveCount(0);
+  });
+
   test('the settings add a section and a status', async ({ page }) => {
     await openWebsite(page);
     await page.locator('[data-project-settings]').click();

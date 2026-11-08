@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The messages of the work screens; a deletion says so with its Undo in the message. #}
+{% for undo in app.flashes(constant('App\\Work\\Infrastructure\\Controller\\TaskController::UNDO_FLASH')) %}
+    <twig:Ui:Alert tone="success" class="mb-4" :actionLabel="undo.label" :actionHref="undo.href" :actionToken="csrf_token(undo.token)" data-task-trashed>{{ undo.message }}</twig:Ui:Alert>
+{% endfor %}
+{% for tone in ['success', 'error'] %}
+    {% for message in app.flashes(tone) %}
+        <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+{% endfor %}

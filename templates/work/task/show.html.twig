@@ -23,14 +23,23 @@
 
 {% block actions %}
     {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
+    {% if row.deletable %}
+        {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
+        <div class="relative" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
+            <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.title})" id="task-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="task-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
+            <div id="task-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="task-menu-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
+                <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
+                    <input type="hidden" name="from" value="task">
+                    <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
-    {% for tone in ['success', 'error'] %}
-        {% for message in app.flashes(tone) %}
-            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
-        {% endfor %}
-    {% endfor %}
+    {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
         <div class="grid min-w-0 content-start gap-6">
             {% if edit == 'title' %}

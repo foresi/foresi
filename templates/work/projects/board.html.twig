@@ -2,7 +2,7 @@
 {#
     A project as a board: the filters, then one column per status in order, each with its top-level
     tasks as cards in their order. A card is dragged by its handle, or moved by the items of its menu,
-    which are plain forms. The columns scroll sideways inside the board, never the page.
+    which are plain forms; the menu also deletes the task. The columns scroll sideways inside the board, never the page.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -11,8 +11,9 @@
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set editable = not project.archivedAt %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::MOVE_TOKEN')) %}
+{% set trashToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
 {% set dots = {gray: 'bg-badge-gray-text', amber: 'bg-badge-amber-text', green: 'bg-badge-green-text', red: 'bg-badge-red-text'} %}
-{% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
+{% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
 
 {% macro filters(query) %}
     {% for name, value in query %}{% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}{% endfor %}
@@ -25,11 +26,7 @@
 {% endblock %}
 
 {% block content %}
-    {% for tone in ['success', 'error'] %}
-        {% for message in app.flashes(tone) %}
-            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
-        {% endfor %}
-    {% endfor %}
+    {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
         {% if project.clientId %}
             <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: <a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a></p>
@@ -61,11 +58,12 @@
                                     <div class="flex min-w-0 items-start gap-1">
                                         {% if editable %}<twig:Ui:IconButton icon="grip-vertical" :label="'work.board.drag'|trans({title: card.title})" variant="ghost" size="sm" class="shrink-0 cursor-grab" data-board-handle />{% endif %}
                                         <a href="{{ card.href }}" class="min-w-0 flex-1 self-center break-words font-medium text-ink no-underline hover:underline {{ focus }}" data-card-title>{{ card.title }}</a>
-                                        {% if editable %}
+                                        {% if editable or card.deletable %}
                                             {% set menuId = 'card-menu-' ~ card.id %}
                                             <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
                                                 <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: card.title})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
                                                 <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating" data-card-menu>
+                                                    {% if editable %}
                                                     <div role="group" aria-labelledby="{{ menuId }}-move">
                                                         <div id="{{ menuId }}-move" role="presentation" class="px-2.5 pb-1 pt-0.5 text-caption text-muted">{{ 'work.board.move_to'|trans }}</div>
                                                         {% for status in card.moveTo %}
@@ -86,6 +84,15 @@
                                                             <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ('work.board.move_' ~ direction)|trans }}</button>
                                                         </form>
                                                     {% endfor %}
+                                                    {% endif %}
+                                                    {% if card.deletable %}
+                                                        {% if editable %}<div role="separator" class="my-1 border-t border-divider"></div>{% endif %}
+                                                        <form method="post" action="{{ path('app_task_delete', {id: card.id}) }}" data-card-delete>
+                                                            <input type="hidden" name="_token" value="{{ trashToken }}">
+                                                            <input type="hidden" name="from" value="board">
+                                                            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
+                                                        </form>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                         {% endif %}
