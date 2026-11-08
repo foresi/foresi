@@ -45,8 +45,8 @@ final readonly class DoctrineComments implements Comments
         $this->entityManager->persist($item);
     }
 
-    public function remove(CommentMention $mention): void
+    public function remove(TaskComment|CommentMention $item): void
     {
-        $this->entityManager->remove($mention);
+        $this->entityManager->remove($item);
     }
 }

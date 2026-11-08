@@ -16,6 +16,11 @@
     </twig:Ui:Alert>
 </div>
 {% endblock %}{% endembed %}
+{% embed 'catalogue/_state.html.twig' with {state: 'action'} %}{% block sample %}
+<div class="w-full max-w-xl">
+    <twig:Ui:Alert tone="success" actionLabel="Undo" actionHref="#">The task “Prepare the quarterly report” is in the trash.</twig:Ui:Alert>
+</div>
+{% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'long'} %}{% block sample %}
 <div class="w-72"><twig:Ui:Alert tone="error" role="note">The address accounting.department.of.the.example.company@subdomain.example.com could not be delivered to because the mailbox is full.</twig:Ui:Alert></div>
 {% endblock %}{% endembed %}

@@ -92,6 +92,7 @@ final class ProjectSettingsController extends AbstractController
             'sections' => $settings->sections,
             'statuses' => $settings->statuses,
             'types' => $this->types(),
+            'trashCount' => $this->queries->trashCount($id),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 

@@ -17,18 +17,42 @@ use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
 
 /**
- * The tasks of the active tenant with their watchers and labels.
+ * The tasks of the active tenant with their watchers and labels. A task in the
+ * trash is found only by what asks for the trash.
  */
 interface Tasks
 {
+    /**
+     * A task that is not in the trash.
+     */
     public function task(string $id): ?Task;
 
     /**
-     * The tasks of a project directly under a task, or at the top when the parent is null.
+     * A task in the trash.
+     */
+    public function trashed(string $id): ?Task;
+
+    /**
+     * The tasks of a project directly under a task, or at the top when the
+     * parent is null, those in the trash left out.
      *
      * @return list<Task> by position
      */
     public function siblings(Project $project, ?Task $parent): array;
+
+    /**
+     * Every subtask of a task, those in the trash included.
+     *
+     * @return list<Task> by position
+     */
+    public function subtasksOf(Task $parent): array;
+
+    /**
+     * The tasks put in the trash before the moment, subtasks included.
+     *
+     * @return list<Task>
+     */
+    public function trashedBefore(\DateTimeImmutable $moment): array;
 
     /**
      * The position after the last task of the project.
@@ -36,11 +60,15 @@ interface Tasks
     public function nextPosition(Project $project): int;
 
     /**
+     * Those in the trash included.
+     *
      * @return list<Task>
      */
     public function inStatus(ProjectStatus $status): array;
 
     /**
+     * Those in the trash included.
+     *
      * @return list<Task>
      */
     public function inSection(Section $section): array;
@@ -62,5 +90,8 @@ interface Tasks
 
     public function add(Task|TaskWatcher|TaskLabel $item): void;
 
-    public function remove(TaskWatcher|TaskLabel $item): void;
+    /**
+     * Removes for good; a task goes only once nothing points at it.
+     */
+    public function remove(Task|TaskWatcher|TaskLabel $item): void;
 }

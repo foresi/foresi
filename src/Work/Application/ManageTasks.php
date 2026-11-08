@@ -25,9 +25,16 @@ use Psr\Clock\ClockInterface;
  * Creating a task and changing it one property at a time, as the task page
  * saves each field on its own. The person who creates a task and the person
  * responsible for it follow it, as in ClickUp and Asana.
+ *
+ * Deleting puts a task in the trash with its subtasks, at one moment, as one
+ * step; restoring brings back what went there at that moment. A subtask does
+ * not come back without its task: restoring it restores the task too.
  */
 final readonly class ManageTasks
 {
+    /** The moment of a deletion as the database keeps it, to the second. */
+    private const string MOMENT = 'Y-m-d H:i:s';
+
     public function __construct(
         private Projects $projects,
         private Tasks $tasks,
@@ -37,6 +44,7 @@ final readonly class ManageTasks
         private AuditActor $actor,
         private ClockInterface $clock,
         private WorkUnit $unit,
+        private TrashPermission $trash,
     ) {
     }
 
@@ -268,6 +276,78 @@ final readonly class ManageTasks
                 }
             }
         });
+    }
+
+    /**
+     * Puts the task and its subtasks in the trash; a subtask there already
+     * keeps its own moment.
+     *
+     * @throws WorkRefused
+     */
+    public function delete(string $taskId): Task
+    {
+        $task = $this->work->task($taskId);
+        if (!$this->trash->allows($task)) {
+            throw new WorkRefused('task_not_yours');
+        }
+        $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
+        $now = $this->clock->now();
+
+        return $this->unit->run(function () use ($task, $userId, $now): Task {
+            $task->delete($userId, $now);
+            foreach ($this->tasks->subtasksOf($task) as $subtask) {
+                $subtask->delete($userId, $now);
+            }
+
+            return $task;
+        });
+    }
+
+    /**
+     * Takes the task out of the trash with the subtasks that went there with
+     * it. A subtask whose task is in the trash brings the task back, and the
+     * subtasks that went with that, when the person may restore that task too.
+     * A task out of the trash already stays as it is.
+     *
+     * @throws WorkRefused
+     */
+    public function restore(string $taskId): Task
+    {
+        $task = $this->tasks->task($taskId) instanceof Task ? $this->work->task($taskId) : $this->work->trashed($taskId);
+        if (!$this->trash->allows($task)) {
+            throw new WorkRefused('task_not_yours');
+        }
+        if (!$task->isDeleted()) {
+            return $task;
+        }
+        $parent = $task->parent();
+        if ($parent instanceof Task && $parent->isDeleted() && !$this->trash->allows($parent)) {
+            throw new WorkRefused('parent_in_trash');
+        }
+
+        return $this->unit->run(function () use ($task): Task {
+            $parent = $task->parent();
+            if ($parent instanceof Task && $parent->isDeleted()) {
+                $this->restoreWithSubtasks($parent);
+            }
+            $this->restoreWithSubtasks($task);
+
+            return $task;
+        });
+    }
+
+    private function restoreWithSubtasks(Task $task): void
+    {
+        $moment = $task->deletedAt()?->format(self::MOMENT);
+        if (null === $moment) {
+            return;
+        }
+        $task->restore();
+        foreach ($this->tasks->subtasksOf($task) as $subtask) {
+            if ($subtask->deletedAt()?->format(self::MOMENT) === $moment) {
+                $subtask->restore();
+            }
+        }
     }
 
     private function addWatcher(Task $task, Membership $membership): void

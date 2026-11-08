@@ -182,6 +182,7 @@ catalogue:
     empty: Empty
     loading: Loading
     titled: Titled
+    action: With an action
     long: Long text
     selectable: Selectable with bulk bar
     sorted: Sorted with totals
@@ -3125,6 +3126,8 @@ work:
     comment_too_long: A comment can have at most 20,000 characters.
     comment_not_yours: Only the author can change this comment.
     comment_deleted: This comment has been deleted.
+    task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
+    parent_in_trash: The parent task has to be restored first.
   cancel: Cancel
   save: Save
   history:
@@ -3208,6 +3211,23 @@ work:
       active: Active
       done: Done
       closed: Closed
+  trash:
+    title: Trash
+    link: '{count, plural, =0 {Trash} other {Trash (#)}}'
+    delete: Delete task
+    deleted: 'The task “{title}” is in the trash.'
+    undo: Undo
+    restore: Restore
+    restored: 'The task “{title}” is back.'
+    purge: '{days, plural, one {Tasks in the trash are deleted for good after # day.} other {Tasks in the trash are deleted for good after # days.}}'
+    subtask_of: 'Subtask of {title}'
+    column:
+      parent: Parent task
+      deleted_by: Deleted by
+      deleted_at: Deleted
+    empty:
+      title: The trash is empty
+      text: Deleted tasks wait here before they go for good.
   labels:
     title: Labels
     new: New label

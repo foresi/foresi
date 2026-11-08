@@ -419,6 +419,16 @@ final class InMemoryAttachments implements Attachments
         return array_find($this->items, static fn (Attachment $a): bool => !$a->isDeleted() && $a->id() === $id);
     }
 
+    public function allOf(string $ownerKind, array $ownerIds): array
+    {
+        return array_values(array_filter($this->items, static fn (Attachment $a): bool => $a->ownerKind() === $ownerKind && \in_array($a->ownerId(), $ownerIds, true)));
+    }
+
+    public function remove(Attachment $attachment): void
+    {
+        $this->items = array_values(array_filter($this->items, static fn (Attachment $a): bool => $a !== $attachment));
+    }
+
     public function add(Attachment $attachment): void
     {
         $this->items[] = $attachment;

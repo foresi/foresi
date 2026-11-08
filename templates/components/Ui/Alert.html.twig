@@ -1,5 +1,13 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {% set body %}{% block content %}{% endblock %}{% endset %}
+{% set action %}
+    {%- if actionHref -%}
+        <form method="post" action="{{ actionHref }}" class="m-0 shrink-0" data-alert-action>
+            {% if actionToken %}<input type="hidden" name="_token" value="{{ actionToken }}">{% endif %}
+            <twig:Ui:Button type="submit" size="sm">{{ actionLabel }}</twig:Ui:Button>
+        </form>
+    {%- endif -%}
+{% endset %}
 <div {{ attributes.defaults({role: this.role, class: this.classes}) }}>
     {% if title %}
         <p class="mb-1 flex items-center gap-2 text-body font-semibold">
@@ -7,6 +15,12 @@
             <span>{{ title }}</span>
         </p>
         <div>{{ body }}</div>
+        {% if actionHref %}<div class="mt-2">{{ action }}</div>{% endif %}
+    {% elseif actionHref %}
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="min-w-0 font-medium">{{ body }}</div>
+            {{ action }}
+        </div>
     {% else %}
         <div class="font-medium">{{ body }}</div>
     {% endif %}

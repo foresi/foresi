@@ -30,6 +30,10 @@ use Doctrine\ORM\Mapping as ORM;
  * The parent is set when the task is created and does not change: the domain
  * cannot see whether a task has subtasks of its own, so turning a task into a
  * subtask is left to the application, which can.
+ *
+ * A task in the trash keeps everything, its position included, and comes back
+ * as it was; the application puts its subtasks there with it and hides it from
+ * every view until it is restored or purged for good.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task')]
@@ -41,6 +45,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_task_parent', columns: ['parent_id'])]
 #[ORM\Index(name: 'idx_task_status', columns: ['status_id'])]
 #[ORM\Index(name: 'idx_task_responsible', columns: ['responsible_id'])]
+#[ORM\Index(name: 'idx_task_deleted', columns: ['tenant_id', 'deleted_at'])]
 class Task implements TenantOwned, Audited
 {
     public const int MAX_TITLE_LENGTH = 500;
@@ -78,6 +83,13 @@ class Task implements TenantOwned, Audited
 
     #[ORM\Column(name: 'completed_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $completedAt = null;
+
+    #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    /** The user who put the task in the trash. */
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
 
     /**
      * @throws \DomainException when the section, status or parent is of another project, or the parent is a subtask
@@ -165,6 +177,38 @@ class Task implements TenantOwned, Audited
     public function moveTo(int $position): void
     {
         $this->position = $position;
+    }
+
+    /**
+     * Deleting a task in the trash keeps the first date and person.
+     */
+    public function delete(string $userId, \DateTimeImmutable $now): void
+    {
+        if (!$this->isDeleted()) {
+            $this->deletedAt = $now;
+            $this->deletedBy = $userId;
+        }
+    }
+
+    public function restore(): void
+    {
+        $this->deletedAt = null;
+        $this->deletedBy = null;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt instanceof \DateTimeImmutable;
+    }
+
+    public function deletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
     }
 
     public function isSubtask(): bool

@@ -36,6 +36,21 @@ final readonly class DoctrineAttachments implements Attachments
         return Id::isValid($id) ? $this->entityManager->getRepository(Attachment::class)->findOneBy(['id' => $id, 'deletedAt' => null]) : null;
     }
 
+    public function allOf(string $ownerKind, array $ownerIds): array
+    {
+        $ownerIds = array_values(array_filter($ownerIds, Id::isValid(...)));
+        if ([] === $ownerIds) {
+            return [];
+        }
+
+        return $this->entityManager->getRepository(Attachment::class)->findBy(['ownerKind' => $ownerKind, 'ownerId' => $ownerIds], ['createdAt' => 'ASC', 'id' => 'ASC']);
+    }
+
+    public function remove(Attachment $attachment): void
+    {
+        $this->entityManager->remove($attachment);
+    }
+
     public function add(Attachment $attachment): void
     {
         $this->entityManager->persist($attachment);

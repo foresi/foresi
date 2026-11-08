@@ -17,9 +17,10 @@ use App\Work\Domain\StatusType;
 final readonly class TaskRow
 {
     /**
-     * @param list<LabelBadge> $labels   by name
-     * @param list<TaskRow>    $subtasks by position; empty where a view does not show them
-     * @param bool             $done     whether its status is finished
+     * @param list<LabelBadge> $labels    by name
+     * @param list<TaskRow>    $subtasks  by position; empty where a view does not show them
+     * @param bool             $done      whether its status is finished
+     * @param bool             $deletable whether the signed-in person may put it in the trash
      */
     public function __construct(
         public string $id,
@@ -39,6 +40,7 @@ final readonly class TaskRow
         public int $subtaskCount,
         public bool $done,
         public array $subtasks = [],
+        public bool $deletable = false,
     ) {
     }
 }

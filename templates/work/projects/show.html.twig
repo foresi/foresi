@@ -2,13 +2,15 @@
 {#
     A project as a list: the filters, then one block per section in order, each with its top-level
     tasks and their subtasks under them, and a line at its end that adds a task by its title.
-    The tasks in no section come first, when there are some.
+    The tasks in no section come first, when there are some. A row's menu deletes its task; the
+    trash of the project is linked at the end while it holds something.
 #}
 {% extends 'layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name}] %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set trashToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -17,11 +19,7 @@
 {% endblock %}
 
 {% block content %}
-    {% for tone in ['success', 'error'] %}
-        {% for message in app.flashes(tone) %}
-            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
-        {% endfor %}
-    {% endfor %}
+    {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
         {% if project.clientId %}
             <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: <a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a></p>
@@ -41,7 +39,7 @@
         {% for section in sections %}
             <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
                 <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span></h2>
-                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows">
+                <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows" :actionToken="trashToken">
                     <twig:block name="empty">
                         <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>
                     </twig:block>
@@ -58,5 +56,9 @@
                 {% endif %}
             </section>
         {% endfor %}
+
+        {% if trashCount > 0 %}
+            <div><twig:Ui:Button variant="ghost" size="sm" icon="trash-2" :href="path('app_project_trash', {id: project.id})" data-project-trash>{{ 'work.trash.link'|trans({count: trashCount}) }}</twig:Ui:Button></div>
+        {% endif %}
     </div>
 {% endblock %}

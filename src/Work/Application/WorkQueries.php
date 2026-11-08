@@ -11,7 +11,7 @@ namespace App\Work\Application;
 /**
  * The read side of the work module. Every query shows only what WorkVisibility
  * lets the signed-in person see; a project or task outside it is null, as if
- * it did not exist.
+ * it did not exist. A task in the trash is shown by the trash only.
  */
 interface WorkQueries
 {
@@ -25,6 +25,16 @@ interface WorkQueries
     public function board(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectBoard;
 
     public function projectSettings(string $projectId): ?ProjectSettings;
+
+    /**
+     * The tasks of the project in the trash that went there themselves.
+     */
+    public function trash(string $projectId): ?ProjectTrash;
+
+    /**
+     * How many tasks the trash of the project shows; 0 for a project not visible.
+     */
+    public function trashCount(string $projectId): int;
 
     /**
      * Unfinished tasks of active projects the signed-in person is responsible for.
