@@ -132,7 +132,7 @@ final class SharedWorkTest extends WorkTestCase
         $this->signIn($this->member);
 
         self::assertSame([['Website', 3]], array_map(static fn (ProjectRow $row): array => [$row->name, $row->openTasks], $this->queries->projects()));
-        self::assertSame([null => ['Write the brief'], 'Design' => ['Draw the logo']], $this->list($this->website));
+        self::assertSame(['' => ['Write the brief'], 'Design' => ['Draw the logo']], $this->list($this->website));
         self::assertNull($this->queries->projectList($this->chosen->id()));
         self::assertNull($this->queries->task($this->private->id()));
         self::assertNull($this->queries->task($this->hidden->id()));
@@ -145,7 +145,7 @@ final class SharedWorkTest extends WorkTestCase
         $this->signIn($this->owner);
         $this->sharing->shareSection($this->secret->id(), $this->member->id());
         $this->signIn($this->member);
-        self::assertSame([null => ['Write the brief'], 'Design' => ['Draw the logo'], 'Secret' => ['Hire a designer']], $this->list($this->website));
+        self::assertSame(['' => ['Write the brief'], 'Design' => ['Draw the logo'], 'Secret' => ['Hire a designer']], $this->list($this->website));
     }
 
     public function testAGuestWithASharedProjectSeesItsOpenWorkAndNoInternalComment(): void
@@ -159,7 +159,7 @@ final class SharedWorkTest extends WorkTestCase
 
         $this->signIn($this->guest);
         self::assertSame(['Website'], array_map(static fn (ProjectRow $row): string => $row->name, $this->queries->projects()));
-        self::assertSame([null => ['Write the brief'], 'Design' => ['Draw the logo']], $this->list($this->website));
+        self::assertSame(['' => ['Write the brief'], 'Design' => ['Draw the logo']], $this->list($this->website));
         self::assertSame([$public->id()], array_map(static fn (DiscussionItem $item): ?string => $item->comment?->id, $this->queries->discussion($this->brief->id(), DiscussionFilter::Comments) ?? []));
         $permissions = self::getContainer()->get(AttachmentPermissions::class);
         self::assertFalse($permissions->canSee('task_comment', $internal->id()));
@@ -186,7 +186,7 @@ final class SharedWorkTest extends WorkTestCase
         $this->signIn($this->guest);
 
         self::assertSame(['Website'], array_map(static fn (ProjectRow $row): string => $row->name, $this->queries->projects()));
-        self::assertSame([null => [], 'Design' => ['Draw the logo']], $this->list($this->website));
+        self::assertSame(['' => [], 'Design' => ['Draw the logo']], $this->list($this->website));
         $task = $this->tasks->create($this->website->id(), 'Sketch', sectionId: $this->design->id());
         self::assertSame($this->design->id(), $task->section()?->id());
         $this->assertRefused('unknown', fn (): Task => $this->tasks->create($this->website->id(), 'Loose'));
