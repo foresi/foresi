@@ -64,6 +64,26 @@ final class TaskTest extends TestCase
         $task->rename(str_repeat('a', Task::MAX_TITLE_LENGTH + 1));
     }
 
+    public function testAnEstimateIsPositiveAndBounded(): void
+    {
+        $task = $this->task();
+        self::assertNull($task->estimateMinutes());
+
+        $task->estimate(300);
+        self::assertSame(300, $task->estimateMinutes());
+        $task->estimate(Task::MAX_ESTIMATE_MINUTES);
+        self::assertSame(Task::MAX_ESTIMATE_MINUTES, $task->estimateMinutes());
+        foreach ([0, -1, Task::MAX_ESTIMATE_MINUTES + 1] as $minutes) {
+            try {
+                $task->estimate($minutes);
+                self::fail(sprintf('An estimate of %d minutes is refused.', $minutes));
+            } catch (\DomainException) {
+            }
+        }
+        $task->estimate(null);
+        self::assertNull($task->estimateMinutes());
+    }
+
     public function testEnteringAFinishedStatusRecordsTheCompletionAndLeavingItClearsIt(): void
     {
         $task = $this->task();

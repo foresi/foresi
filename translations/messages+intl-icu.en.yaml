@@ -3095,6 +3095,7 @@ work:
       labels: Labels
       project: Project
       watchers: Watchers
+      estimate: Estimate
     no_description: No description.
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
@@ -3143,6 +3144,13 @@ work:
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
+    duration: Enter the time as 1:30, 1,5 or 1h 30m, at least a minute and at most a day, or a start and an end after it.
+    time_note: A note can have at most 2,000 characters.
+    time_task: Choose a task of this project.
+    time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
+    time_invoiced: This time has been invoiced and can no longer be changed.
+    timer_running: Stop the timer first.
+    estimate: Enter an estimate of at least a minute and at most 9,999 hours.
   cancel: Cancel
   save: Save
   history:

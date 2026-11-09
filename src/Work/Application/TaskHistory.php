@@ -41,7 +41,7 @@ use App\Work\Domain\WorkShare;
 final readonly class TaskHistory
 {
     /** The plain fields of a task, by the last part of their translation key. */
-    private const array FIELDS = ['title' => 'title', 'description' => 'description', 'section' => 'section'];
+    private const array FIELDS = ['title' => 'title', 'description' => 'description', 'section' => 'section', 'estimateMinutes' => 'estimate'];
 
     public function __construct(
         private VisibleWork $work,

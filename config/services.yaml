@@ -641,6 +641,10 @@ when@test:
         App\Work\Application\ManageComments: { public: true }
         App\Work\Application\PurgeDeletedTasks: { public: true }
         App\Work\Application\ManageSharing: { public: true }
+        App\Work\Application\ManageTime: { public: true }
+        App\Work\Application\TimeQueries:
+            alias: App\Work\Infrastructure\Doctrine\DoctrineTimeQueries
+            public: true
         App\Work\Application\WorkVisibility:
             alias: App\Work\Application\SharedWorkVisibility
             public: true

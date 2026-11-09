@@ -22,6 +22,11 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * Statuses, sections and tasks point here and are read by query; the project
  * maps no collection of them, as the audit log rejects changed collections.
+ *
+ * Time logged on the project is billable by default when the project is for a
+ * client and not when it is internal (Kimai, Toggl); the default is set when
+ * the project is created, not when its client changes, and each entry may
+ * differ from it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project')]
@@ -50,6 +55,9 @@ class Project implements TenantOwned, Audited
     #[ORM\Column(type: 'string', length: 16, enumType: ProjectVisibility::class, options: ['default' => 'organisation'])]
     private ProjectVisibility $visibility = ProjectVisibility::Organisation;
 
+    #[ORM\Column(name: 'billable_by_default', type: 'boolean', options: ['default' => false])]
+    private bool $billableByDefault;
+
     public function __construct(
         string $name,
         /** The contact the work is for, of any kind; null for internal work. */
@@ -65,6 +73,7 @@ class Project implements TenantOwned, Audited
     ) {
         $this->id = Id::generate();
         $this->rename($name);
+        $this->billableByDefault = $client instanceof Party;
     }
 
     public function rename(string $name): void
@@ -110,6 +119,19 @@ class Project implements TenantOwned, Audited
     public function visibility(): ProjectVisibility
     {
         return $this->visibility;
+    }
+
+    /**
+     * Whether time logged on the project is billable unless said otherwise.
+     */
+    public function billTimeByDefault(bool $billable): void
+    {
+        $this->billableByDefault = $billable;
+    }
+
+    public function billsTimeByDefault(): bool
+    {
+        return $this->billableByDefault;
     }
 
     public function isArchived(): bool
