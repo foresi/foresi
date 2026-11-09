@@ -44,6 +44,27 @@ interface TimeQueries
     public function projectTarget(string $projectId): ?TimeTarget;
 
     /**
+     * The tasks of the project the signed-in person may log time on, by
+     * title: none for a guest, a project they do not see or an archived one.
+     *
+     * @return list<TimeTarget>
+     */
+    public function taskTargets(string $projectId): array;
+
+    /**
+     * The time the signed-in person sees in the period, with its totals by
+     * the grouping and a page of its entries. Running timers are left out.
+     */
+    public function report(TimeReportFilter $filter, TimeGrouping $grouping, int $page = 1): TimeReport;
+
+    /**
+     * Every entry of the report, oldest first, read in batches for a file.
+     *
+     * @return iterable<TimeEntryRow>
+     */
+    public function reportEntries(TimeReportFilter $filter): iterable;
+
+    /**
      * An entry the signed-in person may change, as its line; null otherwise.
      */
     public function editable(string $entryId): ?TimeEntryRow;

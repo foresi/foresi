@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The two views of time: a person's week and the report. #}
+<twig:Ui:Tabs :items="[
+    {label: 'work.time.tab.week'|trans, href: path('app_time'), active: active == 'week'},
+    {label: 'work.time.tab.report'|trans, href: path('app_time_report'), active: active == 'report'},
+]" :label="'work.time.views'|trans" class="min-w-0 flex-1" />

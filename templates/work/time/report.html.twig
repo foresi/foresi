@@ -1,0 +1,73 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The time report: the filter (period, project, client, person, billable, invoiced and what the totals
+    add up by), the sums of the period, the totals and the entries, newest first, as Freelo reports and
+    Productive do. The header downloads the entries as CSV with the same filter. Only the time the person
+    sees is in it. On a phone the tables keep the work and the time, with when, who and where under it.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set title = 'work.time.report.title'|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.title'|trans, href: path('app_time')}, {label: title}] %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    {% if not empty %}
+        <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" data-time-report-export>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">
+            {% for name, value in query %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+            <twig:Ui:Button type="submit" icon="download">{{ 'work.time.report.export'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {{ include('work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {{ include('work/time/_tabs.html.twig', {active: 'report'}) }}
+
+        <form method="get" action="{{ path('app_time_report') }}" role="search" class="grid gap-3 rounded-panel border border-container bg-white p-4 max-[899px]:p-3 max-sm:[&_button]:h-control-lg" data-time-report-filter>
+            <input type="hidden" name="shown" value="{{ query.period }}">
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                <div class="col-span-2 min-w-0 lg:col-span-1"><twig:Ui:Select name="period" id="report-period" :label="'work.time.report.period.label'|trans" :options="options.periods" :value="query.period" /></div>
+                <div class="min-w-0"><twig:Ui:TextInput type="date" name="from" id="report-from" :label="'work.time.report.from'|trans" :value="from" /></div>
+                <div class="min-w-0"><twig:Ui:TextInput type="date" name="until" id="report-until" :label="'work.time.report.until'|trans" :value="until" /></div>
+                <div class="col-span-2 min-w-0 lg:col-span-1"><twig:Ui:Select name="project" id="report-project" :label="'work.task.field.project'|trans" :options="options.projects" :value="query.project|default('')" /></div>
+                <div class="col-span-2 min-w-0 lg:col-span-1"><twig:Ui:Select name="client" id="report-client" :label="'work.project.field.client'|trans" :options="options.clients" :value="query.client|default('')" /></div>
+                <div class="col-span-2 min-w-0 lg:col-span-1"><twig:Ui:Select name="person" id="report-person" :label="'work.time.report.column.person'|trans" :options="options.people" :value="query.person|default('')" /></div>
+                <div class="min-w-0"><twig:Ui:Select name="billable" id="report-billable" :label="'work.time.billable'|trans" :options="options.billable" :value="query.billable|default('')" /></div>
+                <div class="min-w-0"><twig:Ui:Select name="invoiced" id="report-invoiced" :label="'work.time.invoiced'|trans" :options="options.invoiced" :value="query.invoiced|default('')" /></div>
+                <div class="col-span-2 min-w-0 lg:col-span-1"><twig:Ui:Select name="group" id="report-group" :label="'work.time.report.group'|trans" :options="options.groupings" :value="query.group|default('project')" /></div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
+                {% if filtered %}<twig:Ui:Button variant="ghost" :href="path('app_time_report')">{{ 'work.filter.reset'|trans }}</twig:Ui:Button>{% endif %}
+            </div>
+        </form>
+
+        <section class="grid gap-3" aria-labelledby="report-range" data-time-report>
+            <h2 id="report-range" class="m-0 text-heading font-semibold text-ink">{{ range }}</h2>
+            <twig:Ui:KpiStrip :items="kpis" />
+            {% if empty %}
+                <twig:Ui:EmptyState icon="clock-3" data-time-report-empty :title="'work.time.report.empty_title'|trans" :text="'work.time.report.empty_text'|trans" />
+            {% else %}
+                <section class="grid gap-2" aria-labelledby="report-totals-title" data-time-report-totals>
+                    <h3 id="report-totals-title" class="m-0 text-small font-semibold text-ink">{{ ('work.time.report.totals.' ~ grouping)|trans }}</h3>
+                    <twig:Ui:DataTable :caption="('work.time.report.totals.' ~ grouping)|trans" :columns="totalColumns" :rows="totalRows" :totals="totalSums" />
+                </section>
+                <section class="grid gap-2" aria-labelledby="report-entries-title" data-time-report-entries>
+                    <h3 id="report-entries-title" class="m-0 text-small font-semibold text-ink">{{ 'work.time.report.entries'|trans }}</h3>
+                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" :rows="entryRows">
+                        <twig:block name="footer">
+                            {%- if pages > 1 -%}
+                                <span class="num">{{ 'work.time.report.entries_count'|trans({count: entryCount}) }}</span>
+                                <twig:Ui:Pagination :page="page" :pages="pages" :baseUrl="baseUrl" />
+                            {%- endif -%}
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                </section>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

@@ -76,6 +76,7 @@ nav:
     projects: Projekty
     labels: Štítky
     my_tasks: Moje úkoly
+    time: Čas
     notifications: Oznámení
 ui:
   dialog:
@@ -1399,6 +1400,7 @@ invoice:
       trash: Koš
     column:
       sent: E-mail
+      entries_count: '{count, plural, one {# záznam} few {# záznamy} other {# záznamů}}'
       export: Export
       number: Číslo
       firm: Firma
@@ -3100,6 +3102,7 @@ work:
       duration: Doba
       note: Poznámka
       billable: Fakturovatelné
+      task: Úkol
     no_description: Bez popisu.
     no_subtasks: Zatím žádné podúkoly.
     subtasks: Podúkoly
@@ -3180,11 +3183,84 @@ work:
     stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
     error:
       worked_on: Zadejte den jako datum.
+      project: Vyberte projekt.
+      task: Vyberte úkol, nebo žádný.
     timer:
       start: Spustit časovač
       stop: Zastavit časovač
       stop_short: Zastavit
       region: Běžící časovač
+      started: Časovač běží.
+    choose_project: Vyberte projekt
+    no_task: Bez úkolu, na projekt
+    pick_project: Zobrazit jeho úkoly
+    tab:
+      week: Týden
+      report: Výkaz
+    views: Pohledy na čas
+    previous_week: Předchozí týden
+    next_week: Další týden
+    this_week: Tento týden
+    week_range: '{from} – {until}'
+    week_total: 'Za týden'
+    today: Dnes
+    person: Osoba
+    person_me: Já
+    person_inactive: '{name} (neaktivní)'
+    report:
+      title: Výkaz
+      period:
+        label: Období
+        this_month: Tento měsíc
+        last_month: Minulý měsíc
+        custom: Vlastní
+      from: Od
+      until: Do
+      group: Součty podle
+      by:
+        project: Projekt
+        person: Osoba
+        task: Úkol
+      totals:
+        project: Součty po projektech
+        person: Součty po lidech
+        task: Součty po úkolech
+      any: Vše
+      billable:
+        all: Vše
+        'yes': Fakturovatelné
+        'no': Nefakturovatelné
+      invoiced:
+        all: Vše
+        'yes': Vyfakturované
+        'no': Nevyfakturované
+      total: Celkem
+      billable_total: Fakturovatelné
+      unbillable_total: Nefakturovatelné
+      entries: Záznamy
+      column:
+        work: Práce
+        person: Osoba
+        date: Den
+        time: Čas
+      export: Exportovat CSV
+      file: vykaz-casu
+      archived: '{name} (archivovaný)'
+      empty_title: V tomto období žádný čas
+      empty_text: Zvolte jiné období nebo filtr, nebo zapište čas na úkol.
+      csv:
+        date: Datum
+        person: Osoba
+        client: Klient
+        project: Projekt
+        task: Úkol
+        minutes: Minuty
+        hours: Hodiny
+        billable: Fakturovatelné
+        note: Poznámka
+        decimal: ','
+        'yes': ano
+        'no': ne
   cancel: Zrušit
   save: Uložit
   history:

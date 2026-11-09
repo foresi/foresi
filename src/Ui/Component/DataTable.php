@@ -109,14 +109,16 @@ final class DataTable
     }
 
     /**
-     * @return list<array{key: string, align: string, text: string}>
+     * The totals under their columns, left out with them on a phone or a narrower screen.
+     *
+     * @return list<array{key: string, align: string, text: string, phone: bool, wide: bool}>
      */
     public function totalCells(): array
     {
         $cells = [];
         foreach ($this->columnViews as $column) {
             $value = $this->totals[$column['key']] ?? null;
-            $cells[] = ['key' => $column['key'], 'align' => $column['align'], 'text' => null === $value ? '' : (string) $value];
+            $cells[] = ['key' => $column['key'], 'align' => $column['align'], 'text' => null === $value ? '' : (string) $value, 'phone' => $column['phone'], 'wide' => $column['wide']];
         }
 
         return $cells;

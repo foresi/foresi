@@ -14,8 +14,9 @@ namespace App\Work\Application;
 final readonly class TimeEntryRow
 {
     /**
-     * @param ?int $minutes  null while the timer runs
-     * @param bool $editable whether the signed-in person may change or delete it
+     * @param ?int    $minutes    null while the timer runs
+     * @param bool    $editable   whether the signed-in person may change or delete it
+     * @param ?string $clientName the client of the project, for a report
      */
     public function __construct(
         public string $id,
@@ -34,6 +35,7 @@ final readonly class TimeEntryRow
         public bool $running,
         public bool $invoiced,
         public bool $editable,
+        public ?string $clientName = null,
     ) {
     }
 }

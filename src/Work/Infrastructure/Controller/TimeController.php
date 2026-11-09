@@ -13,6 +13,7 @@ use App\Work\Application\ManageTime;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
 use App\Work\Application\TimeTarget;
+use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Duration;
 use App\Work\Domain\Task;
@@ -37,6 +38,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The timer starts from the header of a task and stops from the bar at the
  * top of every page (Freelo, ClickUp); starting it on another task saves the
  * running one. Guests never log time: none of these pages is open to them.
+ *
+ * From the week of time the same dialog picks the project and, optionally, one
+ * of its tasks (Clockify, Harvest timesheet): choosing another project shows
+ * its tasks and its billable default, and the dialog starts the timer there as
+ * well as logging time. A page that opens the dialog may name itself as the
+ * place to go back to.
  */
 final class TimeController extends AbstractController
 {
@@ -50,7 +57,100 @@ final class TimeController extends AbstractController
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeFunctions $format,
+        private readonly WorkQueries $work,
     ) {
+    }
+
+    /**
+     * Time anywhere: the project and the task are chosen in the dialog.
+     */
+    #[Route('/time/new', name: 'app_time_new', methods: ['GET', 'POST'])]
+    public function newAnywhere(Request $request): Response
+    {
+        $return = $this->returnPath($request) ?? $this->generateUrl(TimeWeekController::ROUTE);
+        $projects = [];
+        foreach ($this->work->projects() as $row) {
+            $projects[$row->id] = $row->name;
+        }
+        $posted = $request->isMethod('POST');
+        $project = $posted ? $request->request->getString('project') : $request->query->getString('project');
+        $project = isset($projects[$project]) ? $project : '';
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $request->query->getString('day'));
+        $values = [
+            'worked_on' => ($day instanceof \DateTimeImmutable ? $day : $this->clock->today())->format('Y-m-d'),
+            'duration' => '',
+            'note' => '',
+            'billable' => $this->billableByDefault($project),
+        ];
+        $task = '';
+        $errors = [];
+        $picked = false;
+        if ($posted) {
+            $this->checkToken($request);
+            $values = $this->values($request);
+            $task = $request->request->getString('task');
+            if ($project !== $request->request->getString('picked_project') || $request->request->has('pick')) {
+                // Another project: its tasks to choose from and its billable default, nothing saved yet.
+                $values['billable'] = $this->billableByDefault($project);
+                $task = '';
+                $picked = true;
+            }
+        }
+        $tasks = '' === $project ? [] : $this->taskChoices($project);
+        if (!$posted || $picked) {
+            $task = (string) array_key_first($tasks);
+        }
+        if ($posted && !$picked) {
+            if ('' === $project) {
+                $errors['project'] = $this->translator->trans('work.time.error.project');
+            } elseif ([] === $tasks) {
+                $errors['project'] = $this->translator->trans('work.refused.not_allowed');
+            } elseif (!isset($tasks[$task])) {
+                $errors['task'] = $this->translator->trans('work.time.error.task');
+            }
+            $minutes = null;
+            $workedOn = null;
+            $timer = $request->request->has('timer');
+            if (!$timer) {
+                [$workedOn, $minutes, $readErrors] = $this->read($values);
+                $errors += $readErrors;
+            }
+            if ([] === $errors) {
+                try {
+                    if ($timer) {
+                        $this->time->startTimer($project, '' === $task ? null : $task, $values['note'], $values['billable']);
+                        $this->addFlash('success', $this->translator->trans('work.time.timer.started'));
+                    } elseif (null !== $workedOn && null !== $minutes) {
+                        $this->time->log($project, '' === $task ? null : $task, $workedOn, $minutes, note: $values['note'], billable: $values['billable']);
+                        $this->addFlash('success', $this->translator->trans('work.time.logged', ['duration' => $this->format->duration($minutes)]));
+                    }
+
+                    return $this->redirect($return, Response::HTTP_SEE_OTHER);
+                } catch (WorkRefused $refused) {
+                    $this->notFoundIfUnknown($refused);
+                    $errors = $this->refusal($refused);
+                }
+            }
+        }
+
+        return $this->render('work/time/entry.html.twig', [
+            'projectId' => null,
+            'projectName' => null,
+            'taskId' => null,
+            'taskTitle' => null,
+            'entry' => null,
+            'picker' => [
+                'projects' => ['' => $this->translator->trans('work.time.choose_project')] + $projects,
+                'project' => $project,
+                'tasks' => $tasks,
+                'task' => $task,
+                'picked' => $picked,
+            ],
+            'action' => $this->generateUrl('app_time_new', ['return' => $return]),
+            'back' => $return,
+            'values' => $values,
+            'errors' => $errors,
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/tasks/{id}/time/new', name: 'app_task_time_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
@@ -93,8 +193,9 @@ final class TimeController extends AbstractController
                 try {
                     $this->time->edit($id, $entry->taskId, $workedOn, $keep ? null : $minutes, $keep ? $entry->startedAt : null, $keep ? $entry->endedAt : null, $values['note'], $values['billable']);
                     $this->addFlash('success', $this->translator->trans('work.time.edited'));
+                    $return = $this->returnPath($request);
 
-                    return $this->back($entry->projectId, $entry->taskId);
+                    return null === $return ? $this->back($entry->projectId, $entry->taskId) : $this->redirect($return, Response::HTTP_SEE_OTHER);
                 } catch (WorkRefused $refused) {
                     $this->notFoundIfUnknown($refused);
                     $errors = $this->refusal($refused);
@@ -102,7 +203,7 @@ final class TimeController extends AbstractController
             }
         }
 
-        return $this->form($entry->projectId, $entry->projectName, $entry->taskId, $entry->taskTitle, $values, $errors, $entry);
+        return $this->form($entry->projectId, $entry->projectName, $entry->taskId, $entry->taskTitle, $values, $errors, $entry, $this->returnPath($request));
     }
 
     #[Route('/time/{id}/delete', name: 'app_time_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -117,8 +218,9 @@ final class TimeController extends AbstractController
             $this->notFoundIfUnknown($refused);
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
+        $return = $this->returnPath($request);
 
-        return $this->back($entry->projectId, $entry->taskId);
+        return null === $return ? $this->back($entry->projectId, $entry->taskId) : $this->redirect($return, Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -222,8 +324,10 @@ final class TimeController extends AbstractController
      * @param array{worked_on: string, duration: string, note: string, billable: bool} $values
      * @param array<string, string>                                                    $errors
      */
-    private function form(string $projectId, string $projectName, ?string $taskId, ?string $taskTitle, array $values, array $errors, ?TimeEntryRow $entry = null): Response
+    private function form(string $projectId, string $projectName, ?string $taskId, ?string $taskTitle, array $values, array $errors, ?TimeEntryRow $entry = null, ?string $return = null): Response
     {
+        $query = null === $return ? [] : ['return' => $return];
+
         return $this->render('work/time/entry.html.twig', [
             'projectId' => $projectId,
             'projectName' => $projectName,
@@ -231,9 +335,9 @@ final class TimeController extends AbstractController
             'taskTitle' => $taskTitle,
             'entry' => $entry,
             'action' => $entry instanceof TimeEntryRow
-                ? $this->generateUrl('app_time_edit', ['id' => $entry->id])
+                ? $this->generateUrl('app_time_edit', ['id' => $entry->id] + $query)
                 : (null === $taskId ? $this->generateUrl('app_project_time_new', ['id' => $projectId]) : $this->generateUrl('app_task_time_new', ['id' => $taskId])),
-            'back' => $this->backUrl($projectId, $taskId),
+            'back' => $return ?? $this->backUrl($projectId, $taskId),
             'values' => $values,
             'errors' => $errors,
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
@@ -298,6 +402,42 @@ final class TimeController extends AbstractController
         return null === $taskId
             ? $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $projectId])
             : $this->generateUrl(TaskController::ROUTE, ['id' => $taskId] + ($fragment ? ['_fragment' => 'task-time-title'] : []));
+    }
+
+    /**
+     * The page that opened the dialog, to go back to: a path of this installation.
+     */
+    private function returnPath(Request $request): ?string
+    {
+        $return = $request->query->has('return') ? $request->query->getString('return') : $request->request->getString('return');
+
+        return $this->isLocalPath($return) ? $return : null;
+    }
+
+    private function billableByDefault(string $projectId): bool
+    {
+        if ('' === $projectId) {
+            return false;
+        }
+        $target = $this->queries->projectTarget($projectId) ?? ($this->queries->taskTargets($projectId)[0] ?? null);
+
+        return $target->billableByDefault ?? false;
+    }
+
+    /**
+     * Where in the project time may go: on the project without a task when it
+     * is open as a whole, and on each task seen.
+     *
+     * @return array<string, string> titles by task id, '' for none
+     */
+    private function taskChoices(string $projectId): array
+    {
+        $choices = null === $this->queries->projectTarget($projectId) ? [] : ['' => $this->translator->trans('work.time.no_task')];
+        foreach ($this->queries->taskTargets($projectId) as $target) {
+            $choices[(string) $target->taskId] = (string) $target->taskTitle;
+        }
+
+        return $choices;
     }
 
     /**

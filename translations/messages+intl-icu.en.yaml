@@ -76,6 +76,7 @@ nav:
     projects: Projects
     labels: Labels
     my_tasks: My tasks
+    time: Time
     notifications: Notifications
 ui:
   dialog:
@@ -1399,6 +1400,7 @@ invoice:
       trash: Trash
     column:
       sent: E-mail
+      entries_count: '{count, plural, one {# entry} other {# entries}}'
       export: Export
       number: Number
       firm: Firm
@@ -3100,6 +3102,7 @@ work:
       duration: Duration
       note: Note
       billable: Billable
+      task: Task
     no_description: No description.
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
@@ -3180,11 +3183,84 @@ work:
     stopped: 'The timer is stopped, {duration} logged on “{title}”.'
     error:
       worked_on: Enter the day as a date.
+      project: Choose a project.
+      task: Choose a task, or none.
     timer:
       start: Start timer
       stop: Stop timer
       stop_short: Stop
       region: Running timer
+      started: The timer is running.
+    choose_project: Choose a project
+    no_task: No task, the project itself
+    pick_project: Show its tasks
+    tab:
+      week: Week
+      report: Report
+    views: Views of time
+    previous_week: Previous week
+    next_week: Next week
+    this_week: This week
+    week_range: '{from} – {until}'
+    week_total: 'Week total'
+    today: Today
+    person: Person
+    person_me: Me
+    person_inactive: '{name} (inactive)'
+    report:
+      title: Time report
+      period:
+        label: Period
+        this_month: This month
+        last_month: Last month
+        custom: Custom
+      from: From
+      until: Until
+      group: Totals by
+      by:
+        project: Project
+        person: Person
+        task: Task
+      totals:
+        project: Totals by project
+        person: Totals by person
+        task: Totals by task
+      any: Any
+      billable:
+        all: All
+        'yes': Billable
+        'no': Not billable
+      invoiced:
+        all: All
+        'yes': Invoiced
+        'no': Not invoiced
+      total: Total time
+      billable_total: Billable time
+      unbillable_total: Not billable
+      entries: Entries
+      column:
+        work: Work
+        person: Person
+        date: Day
+        time: Time
+      export: Export CSV
+      file: time-report
+      archived: '{name} (archived)'
+      empty_title: No time in this period
+      empty_text: Choose another period or filter, or log time on a task.
+      csv:
+        date: Date
+        person: Person
+        client: Client
+        project: Project
+        task: Task
+        minutes: Minutes
+        hours: Hours
+        billable: Billable
+        note: Note
+        decimal: '.'
+        'yes': 'yes'
+        'no': 'no'
   cancel: Cancel
   save: Save
   history:

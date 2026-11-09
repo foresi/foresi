@@ -1,0 +1,97 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A person's week of time, Monday to Sunday: each day with its entries and what it adds up to, and the
+    week's total (Clockify, Costlocker timesheet). The header moves a week back or on, or to this one, and
+    logs time in a dialog that picks the project and the task. An owner reads anyone's week. Each entry
+    links to its task, or its project without one; its author or an owner edits it in the entry dialog
+    and deletes it from its line, as on the task, and comes back to this week.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set title = 'work.time.title'|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: title}] %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set timeToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    <div class="flex gap-2 max-sm:col-span-2" data-time-week-nav>
+        <twig:Ui:IconButton icon="chevron-left" :href="previous" :label="'work.time.previous_week'|trans" data-time-week-previous />
+        <twig:Ui:Button :href="current" :aria-current="isCurrent ? 'date' : false" data-time-week-current>{{ 'work.time.this_week'|trans }}</twig:Ui:Button>
+        <twig:Ui:IconButton icon="chevron-right" :href="next" :label="'work.time.next_week'|trans" data-time-week-next />
+    </div>
+    {% if logUrl %}<twig:Ui:Button variant="primary" icon="plus" :href="logUrl" class="max-sm:col-span-2" data-dialog aria-haspopup="dialog" data-time-new-open>{{ 'work.time.log'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {{ include('work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            {{ include('work/time/_tabs.html.twig', {active: 'week'}) }}
+            {% if people is not empty %}
+                <form method="get" action="{{ path('app_time') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg" data-time-person-filter>
+                    {% if not isCurrent %}<input type="hidden" name="week" value="{{ week }}">{% endif %}
+                    <div class="w-full min-w-0 sm:w-56"><twig:Ui:Select name="person" id="filter-person" :label="'work.time.person'|trans" :options="people" :value="person" /></div>
+                    <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </div>
+
+        <section class="grid gap-3" aria-labelledby="time-week-title" data-time-week>
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 id="time-week-title" class="m-0 text-heading font-semibold text-ink">{{ range }}</h2>
+                <p class="m-0 text-small text-muted">{{ 'work.time.week_total'|trans }} <span class="num font-semibold text-ink" data-time-week-total>{{ total }}</span></p>
+            </div>
+            <ol class="m-0 grid list-none gap-3 p-0">
+                {% for day in days %}
+                    <li class="rounded-panel border border-container bg-white" data-time-day="{{ day.key }}">
+                        <div class="flex min-h-11 items-center justify-between gap-2 px-4 py-2 max-[899px]:px-3{{ day.entries is not empty ? ' border-b border-divider' : '' }}">
+                            <h3 id="time-day-{{ day.key }}" class="m-0 flex min-w-0 flex-wrap items-center gap-x-2 text-small font-semibold text-ink">
+                                <span>{{ day.weekday }}</span>
+                                <time datetime="{{ day.key }}" class="font-normal text-muted">{{ day.date }}</time>
+                                {% if day.today %}<twig:Ui:Badge tone="green" data-time-today>{{ 'work.time.today'|trans }}</twig:Ui:Badge>{% endif %}
+                            </h3>
+                            <span class="num shrink-0 text-small {{ day.entries is empty ? 'text-muted' : 'font-semibold text-ink' }}" data-time-day-total>{{ day.total }}</span>
+                        </div>
+                        {% if day.entries is not empty %}
+                            <ul class="m-0 grid list-none divide-y divide-divider p-0" aria-labelledby="time-day-{{ day.key }}">
+                                {% for entry in day.entries %}
+                                    <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-[899px]:px-3" data-time-entry>
+                                        <div class="grid min-w-0 flex-1 gap-0.5">
+                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small">
+                                                {% if entry.running %}
+                                                    <twig:Ui:Badge tone="amber" data-time-running>{{ 'work.time.running'|trans }}</twig:Ui:Badge>
+                                                {% else %}
+                                                    <span class="num font-semibold text-ink" data-time-duration>{{ entry.duration }}</span>
+                                                {% endif %}
+                                                <a href="{{ entry.href }}" class="inline-flex min-h-6 min-w-0 items-center font-medium text-ink no-underline [overflow-wrap:anywhere] hover:underline {{ focus }}" data-time-link>{{ entry.title }}</a>
+                                                {% if entry.project %}<span class="min-w-0 text-muted [overflow-wrap:anywhere]" data-time-project>{{ entry.project }}</span>{% endif %}
+                                                {% if entry.billable %}<twig:Ui:Badge tone="green" data-time-billable>{{ 'work.time.billable'|trans }}</twig:Ui:Badge>{% endif %}
+                                                {% if entry.invoiced %}<twig:Ui:Badge tone="gray" data-time-invoiced>{{ 'work.time.invoiced'|trans }}</twig:Ui:Badge>{% endif %}
+                                            </div>
+                                            {% if entry.note is not empty %}<p class="m-0 text-small text-text [overflow-wrap:anywhere]" data-time-note>{{ entry.note }}</p>{% endif %}
+                                        </div>
+                                        {% if entry.editable or entry.deletable %}
+                                            <div class="flex shrink-0 items-center gap-1">
+                                                {% if entry.editable %}<twig:Ui:IconButton icon="pencil" size="sm" variant="ghost" :label="'work.time.edit_label'|trans({date: entry.date})" :href="entry.editUrl" data-dialog aria-haspopup="dialog" data-time-edit />{% endif %}
+                                                <form method="post" action="{{ path('app_time_delete', {id: entry.id}) }}"
+                                                      data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                                      data-confirm-title="{{ 'work.time.delete_confirm.title'|trans }}" data-confirm-text="{{ 'work.time.delete_confirm.text'|trans }}"
+                                                      data-confirm-accept="{{ 'work.time.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-time-delete>
+                                                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                                                    <input type="hidden" name="return" value="{{ here }}">
+                                                    <twig:Ui:IconButton type="submit" icon="trash-2" size="sm" variant="ghost" :label="'work.time.delete_label'|trans({date: entry.date})" />
+                                                </form>
+                                            </div>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+    </div>
+{% endblock %}

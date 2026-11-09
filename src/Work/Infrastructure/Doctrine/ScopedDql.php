@@ -41,6 +41,42 @@ final readonly class ScopedDql
             return new self('', '', []);
         }
         $parameters = ['vs_no' => [false, Types::BOOLEAN]];
+
+        return new self(
+            sprintf(' JOIN %1$s.project vsp LEFT JOIN %1$s.section vss LEFT JOIN %1$s.parent vst LEFT JOIN vst.section vsts', $task),
+            ' AND '.self::seenTask($scope, $task, $parameters),
+            $parameters,
+        );
+    }
+
+    /**
+     * The time seen, on the aliases of the project of the entry and of its
+     * task, joined with LEFT JOIN: time on a task with the task, time without
+     * one where the whole project is open to the person (WorkScope::seesTime).
+     * Whether the task is in the trash is the query's to say.
+     */
+    public static function time(WorkScope $scope, string $project, string $task): self
+    {
+        if ($scope->isEverything()) {
+            return new self('', '', []);
+        }
+        $parameters = ['vs_no' => [false, Types::BOOLEAN]];
+        $seenTask = self::seenTask($scope, $task, $parameters);
+
+        return new self(
+            sprintf(' LEFT JOIN %1$s.project vsp LEFT JOIN %1$s.section vss LEFT JOIN %1$s.parent vst LEFT JOIN vst.section vsts', $task),
+            sprintf(' AND ((%1$s.id IS NULL AND %2$s) OR (%1$s.id IS NOT NULL AND %3$s))', $task, self::opens($scope, $project, $parameters), $seenTask),
+            $parameters,
+        );
+    }
+
+    /**
+     * The condition a task seen meets, on the joins of tasks() and time().
+     *
+     * @param array<string, array{mixed, ArrayParameterType|string}> $parameters
+     */
+    private static function seenTask(WorkScope $scope, string $task, array &$parameters): string
+    {
         $shared = self::in($task.'.id', 'vs_tasks', $scope->taskIds(), $parameters);
         $sharedParent = self::in('vst.id', 'vs_tasks', $scope->taskIds(), $parameters);
         $open = self::opens($scope, 'vsp', $parameters);
@@ -48,16 +84,12 @@ final readonly class ScopedDql
         $inParentSection = self::in('vsts.id', 'vs_sections', $scope->sectionIds(), $parameters);
 
         // A subtask follows its task, unless it is private itself and not shared.
-        return new self(
-            sprintf(' JOIN %1$s.project vsp LEFT JOIN %1$s.section vss LEFT JOIN %1$s.parent vst LEFT JOIN vst.section vsts', $task),
-            sprintf(
-                ' AND ((vst.id IS NULL AND %s) OR (vst.id IS NOT NULL AND (%s OR (%s.private = :vs_no AND %s))))',
-                self::top($task, 'vss', $shared, $inSection, $open),
-                $shared,
-                $task,
-                self::top('vst', 'vsts', $sharedParent, $inParentSection, $open),
-            ),
-            $parameters,
+        return sprintf(
+            '((vst.id IS NULL AND %s) OR (vst.id IS NOT NULL AND (%s OR (%s.private = :vs_no AND %s))))',
+            self::top($task, 'vss', $shared, $inSection, $open),
+            $shared,
+            $task,
+            self::top('vst', 'vsts', $sharedParent, $inParentSection, $open),
         );
     }
 

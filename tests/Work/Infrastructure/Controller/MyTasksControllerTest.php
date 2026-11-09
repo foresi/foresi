@@ -70,7 +70,7 @@ final class MyTasksControllerTest extends WebTestCase
         $link = $crawler->filter('#sidebar [data-nav-group="work"] li > a[href="/my-tasks"]');
         self::assertCount(1, $link);
         self::assertCount(0, $link->filter('[data-nav-count]'));
-        self::assertSame(['/projects', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group="work"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['/projects', '/my-tasks', '/time'], $crawler->filter('#sidebar [data-nav-group="work"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
     }
 
     public function testAGuestWithNothingSharedHasNoTasks(): void

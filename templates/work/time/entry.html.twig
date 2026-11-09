@@ -4,16 +4,25 @@
     one types it ("1:30", "1,5", "1h 30m"), an optional note and whether it is billable, the project's
     default unless changed. The same form edits an entry. A dialog over the page it goes back to; the
     same URL is a page of its own.
+
+    Opened from the week of time, it picks the project and one of its tasks or none, as Clockify and
+    Harvest do: choosing another project sends the form back for its tasks and its billable default
+    (a button without JavaScript), and "Start timer" starts the timer there instead of logging time.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
+{% set picker = picker|default(null) %}
 {% set title = (entry ? 'work.time.edit' : 'work.time.log')|trans %}
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: projectName, href: path('app_project', {id: projectId})}] %}
-{% if taskId %}{% set crumbs = crumbs|merge([{label: taskTitle, href: path('app_task', {id: taskId})}]) %}{% endif %}
-{% set crumbs = crumbs|merge([{label: title}]) %}
+{% if picker %}
+    {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.title'|trans, href: back}, {label: title}] %}
+{% else %}
+    {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: projectName, href: path('app_project', {id: projectId})}] %}
+    {% if taskId %}{% set crumbs = crumbs|merge([{label: taskTitle, href: path('app_task', {id: taskId})}]) %}{% endif %}
+    {% set crumbs = crumbs|merge([{label: title}]) %}
+    {% set dialog_description = taskTitle ?? projectName %}
+{% endif %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
-{% set dialog_description = taskTitle ?? projectName %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -21,9 +30,21 @@
     <form method="post" id="time-entry-form" action="{{ action }}" class="grid gap-4" novalidate data-time-entry-form>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) }}">
         {{ include('work/_form_errors.html.twig', {prefix: 'time-'}) }}
+        {% if picker %}
+            {# Enter logs the time: the first submit button of the form is the one it presses. #}
+            <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+            <input type="hidden" name="picked_project" value="{{ picker.project }}">
+            <div class="grid gap-2" data-controller="autosubmit" data-action="change->autosubmit#submit" data-time-project>
+                <twig:Ui:Select name="project" id="time-project" :label="'work.task.field.project'|trans" :options="picker.projects" :value="picker.project" :error="errors.project|default(null)" required />
+                <noscript><div><twig:Ui:Button type="submit" size="sm" name="pick" value="1">{{ 'work.time.pick_project'|trans }}</twig:Ui:Button></div></noscript>
+            </div>
+            {% if picker.tasks is not empty %}
+                <twig:Ui:Select name="task" id="time-task" :label="'work.task.field.task'|trans" :options="picker.tasks" :value="picker.task" :error="errors.task|default(null)" :autofocus="picker.picked" data-time-task />
+            {% endif %}
+        {% endif %}
         <div class="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
             <twig:Ui:TextInput type="date" name="worked_on" id="time-worked_on" :label="'work.task.field.worked_on'|trans" :value="values.worked_on" :error="errors.worked_on|default(null)" required />
-            <twig:Ui:TextInput name="duration" id="time-duration" :label="'work.task.field.duration'|trans" :help="'work.time.duration_help'|trans" :value="values.duration" :error="errors.duration|default(null)" required autocomplete="off" inputmode="text" spellcheck="false" autofocus />
+            <twig:Ui:TextInput name="duration" id="time-duration" :label="'work.task.field.duration'|trans" :help="'work.time.duration_help'|trans" :value="values.duration" :error="errors.duration|default(null)" required autocomplete="off" inputmode="text" spellcheck="false" :autofocus="not picker" />
         </div>
         <twig:Ui:Textarea name="note" id="time-note" :label="'work.task.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" maxlength="{{ constant('App\\Work\\Domain\\TimeEntry::MAX_NOTE_LENGTH') }}" />
         <twig:Ui:Checkbox name="billable" id="time-billable" :label="'work.task.field.billable'|trans" :checked="values.billable" />
@@ -32,6 +53,7 @@
 
 {% block dialog_footer %}
     <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    {% if picker %}<twig:Ui:Button type="submit" form="time-entry-form" icon="play" name="timer" value="1" data-time-timer-start>{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>{% endif %}
     <twig:Ui:Button type="submit" form="time-entry-form" variant="primary">{{ (entry ? 'work.save' : 'work.time.log')|trans }}</twig:Ui:Button>
 {% endblock %}
 
@@ -43,6 +65,7 @@
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="back">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            {% if picker %}<twig:Ui:Button type="submit" form="time-entry-form" icon="play" name="timer" value="1" data-time-timer-start>{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>{% endif %}
             <twig:Ui:Button type="submit" form="time-entry-form" variant="primary">{{ (entry ? 'work.save' : 'work.time.log')|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>
