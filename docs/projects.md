@@ -10,7 +10,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 - **Task.** A piece of work with a title, a description, a status, a section, a **responsible** person, a due date, a priority (none, low, medium, high, urgent) and labels. A task gets its completion date when it enters a status of type done or closed, and loses it when it leaves.
 - **Subtask.** A task one level under another task of the same project. A subtask cannot have subtasks of its own.
 - **Responsible.** The one person accountable for a task, picked from the active people of the organisation who can see the task, guests included.
-- **Watcher.** A person who follows a task. The person who creates a task and the person responsible for it follow it from the start; anyone can watch or stop watching, and add other people on the task page. Notifications to watchers come later.
+- **Watcher.** A person who follows a task. The person who creates a task and the person responsible for it follow it from the start; anyone can watch or stop watching, and add other people on the task page. Commenting on a task or being mentioned in it makes you a watcher too.
 - **Label.** A coloured tag, shared by all projects of the organisation, with a unique name. Colours are the badge tones of the interface: gray, green, amber and red.
 
 ## Projects
@@ -98,18 +98,25 @@ Making an item private keeps it shared with whoever made it private, so a team m
 
 A guest starts on **Shared with me**: the projects they see (the whole project, or the names of the sections shared with them), then the tasks shared with them on their own, under the name of their project. On a project or a task they see, a guest works as the staff do, at one level: they add tasks where they see a section (in no section only when the whole project is shared), add subtasks, change the status, responsible, due date, priority and existing labels, move cards on the board, comment, mention, watch, and attach files. They never see the settings of a project, its trash, the sharing dialog, the labels screen or any other module, and they cannot delete a task. The filter of the responsible person offers them the people of the organisation, never other guests. A page they may not see is not found; a screen of the staff is refused.
 
+## Notifications
+
+**Notifications** in the main menu, with the number of unread ones beside it, is the inbox of each person, guests included. It has one row per task, newest first, with the latest event and who did it: a mention, a task given to you, a comment or a change of status on a task you watch, a task shared with you. You are never told about your own actions, and only about tasks you can see; an internal comment tells only the team. Opening a task marks its row read; **Mark all as read** is in the header. **Done** moves a row to the **Done** tab, kept for three months; a later event on the task opens a new row. The filters show only mentions or only tasks given to you.
+
+E-mails go out through the system mailer of the installation, never a firm's server. A mention and a task given to you are e-mailed about two minutes later, unless you have read them in the inbox by then; the rest comes in one daily summary at the hour you choose, in the organisation's time zone. **Notification settings**, in the user menu and in the header of the inbox, sets for each kind of event: at once (mentions and tasks given to you only), in the daily summary, or not at all, the hour of the summary, and a switch to receive no e-mails. Every e-mail has a link that stops that kind of e-mail after one confirmation, and supports one-click unsubscribe in mail clients. Without a system mailer, notifications stay in the inbox.
+
 ## Labels
 
 **Settings, Labels** keeps the labels of the organisation: name and colour. The list shows how many tasks carry each label; deleting a label takes it off its tasks.
 
 ## Operating it
 
-There is nothing to configure. The trash is emptied by the scheduled job `task-trash-purge`, which the normal worker runs (see [ADR 0016](adr/0016-scheduled-jobs.md)); without the worker deleted tasks stay in the trash. Projects, tasks, comments and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
+Notification e-mails need the system mailer (see [operations](operations.md)). The trash is emptied by the scheduled job `task-trash-purge`, the daily summaries are sent by `notification-digest` and old done notifications removed by `notification-purge`, all run by the normal worker (see [ADR 0016](adr/0016-scheduled-jobs.md)); without the worker deleted tasks stay in the trash. Projects, tasks, comments and labels are rows of the application database, tenant-isolated like the rest, and every change, watchers and labels included, reaches the audit log. Attachments are files in the `attachments` directory of the share directory, outside the web root; the ops backup already includes the whole share directory (see [operations](operations.md)). Include the database in your backups as usual. Run `bin/console doctrine:migrations:migrate` on upgrade.
 
 ## What comes later
 
 Not in this release:
 
 - **Levels of sharing**, such as view only or comment only for a guest; today every guest has the one level above.
-- **Notifications** to the responsible person and the watchers.
+- **Reply by e-mail** to a notification, and quiet hours for e-mails.
+- **Notifications for a shared project or section**; today only a task shared on its own tells the person.
 - **Time tracking** against projects and tasks, and billing it on an invoice.
