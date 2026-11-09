@@ -64,6 +64,7 @@ final readonly class NavigationRegistry
                         self::isCurrent($entry[0], $currentRoute, $owned),
                         $entry[0]->commandLabelKey,
                         $entry[0]->commandRoute,
+                        $entry[0]->countCap,
                     ),
                     $items,
                 ),

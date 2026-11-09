@@ -133,6 +133,30 @@ final class NavigationRegistryTest extends TestCase
         self::assertNull($groups[0]['items'][0]->count);
     }
 
+    public function testACountAboveItsCapIsWrittenAsTheCapWithAPlus(): void
+    {
+        $groups = $this->registry(
+            new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(100), countCap: 99),
+            new NavigationItem('main', 'b', 'plus', 'r2', $this->counter(99), countCap: 99),
+            new NavigationItem('main', 'c', 'plus', 'r3', $this->counter(1000)),
+            new NavigationItem('main', 'd', 'plus', 'r4', $this->counter(null), countCap: 99),
+        )->groups(null, true);
+
+        self::assertSame(['99+', '99', '1000', null], array_map(static fn (\App\Ui\Navigation\NavigationEntry $entry): ?string => $entry->countText(), $groups[0]['items']));
+        self::assertSame(100, $groups[0]['items'][0]->count);
+        self::assertSame(99, $groups[0]['items'][0]->countCap);
+    }
+
+    public function testACapOfOneIsAllowedAndBelowItRefused(): void
+    {
+        self::assertSame(1, new NavigationItem('main', 'a', 'plus', 'r1', countCap: 1)->countCap);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('A count cap is a positive number.');
+
+        new NavigationItem('main', 'a', 'plus', 'r1', countCap: 0);
+    }
+
     public function testUnknownGroupIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

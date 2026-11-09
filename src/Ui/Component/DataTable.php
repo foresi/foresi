@@ -17,7 +17,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
- * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
+ * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, unread: ?bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
  * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool}
  */
 #[AsTwigComponent]
@@ -46,7 +46,9 @@ final class DataTable
     /**
      * @var list<array<string, mixed>> each with cells keyed by column key, optional id, href, plain (the link leaves Turbo), label,
      *                                 selected, child (a row under the row before it, such as a subtask: its first cell
-     *                                 indented, its text smaller), secondary (the line a phone shows under the first cell), alert (what went wrong
+     *                                 indented, its text smaller), unread (true marks a row not read yet, as an inbox
+     *                                 does: a dot before the first cell, said to a screen reader too, and its link in
+     *                                 bold; false keeps the room of the dot and sets the link in normal weight), secondary (the line a phone shows under the first cell), alert (what went wrong
      *                                 with the row: a text, the column key it shows under on a wider screen, and optionally an
      *                                 href and action label of the place that fixes it; a phone shows it as a line of its own
      *                                 under the first cell) and actions, each with a label, href and method, optional
@@ -223,6 +225,7 @@ final class DataTable
             'label' => $label,
             'selected' => true === ($row['selected'] ?? false),
             'child' => true === ($row['child'] ?? false),
+            'unread' => isset($row['unread']) ? true === $row['unread'] : null,
             'cells' => $views,
             'actions' => array_values(array_map($this->action(...), $actions)),
             'secondary' => is_string($secondary) && '' !== $secondary ? $secondary : null,

@@ -631,4 +631,45 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('pl-10', (string) $child->filter('td')->eq(0)->attr('class'));
         self::assertStringNotContainsString('pl-10', (string) $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(0)->attr('class'));
     }
+
+    public function testAnUnreadRowHasADotTheWordForAScreenReaderAndABoldLink(): void
+    {
+        $rows = [
+            ['id' => 'a1', 'href' => '/tasks/a1', 'unread' => true, 'secondary' => 'Website', 'cells' => ['name' => 'New', 'email' => 'x@example.com', 'balance' => '']],
+            ['id' => 'b2', 'href' => '/tasks/b2', 'unread' => false, 'cells' => ['name' => 'Seen', 'email' => '', 'balance' => '']],
+            ['id' => 'c3', 'href' => '/tasks/c3', 'cells' => ['name' => 'Plain', 'email' => '', 'balance' => '']],
+        ];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $unread = $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(0);
+        $mark = $unread->filter('[data-unread]');
+        self::assertSame('true', $mark->attr('data-unread'));
+        self::assertStringContainsString('[&_a]:font-semibold', (string) $mark->attr('class'));
+        self::assertStringContainsString('bg-green', (string) $mark->filter('[aria-hidden="true"]')->attr('class'));
+        self::assertSame('Nepřečteno:', trim($mark->filter('.sr-only')->text()));
+        self::assertSame('/tasks/a1', $mark->filter('a[data-row-link]')->attr('href'));
+        // The line a phone shows under the title stays outside the mark.
+        self::assertCount(0, $mark->filter('[data-row-secondary]'));
+        self::assertCount(1, $unread->filter('[data-row-secondary]'));
+        // Only the first cell carries it.
+        self::assertCount(0, $crawler->filter('tbody tr')->eq(0)->filter('td')->eq(1)->filter('[data-unread]'));
+
+        $read = $crawler->filter('tbody tr')->eq(1)->filter('[data-unread]');
+        self::assertSame('false', $read->attr('data-unread'));
+        self::assertStringContainsString('[&_a]:font-normal', (string) $read->attr('class'));
+        self::assertStringNotContainsString('bg-green', (string) $read->filter('[aria-hidden="true"]')->attr('class'));
+        self::assertCount(0, $read->filter('.sr-only'));
+
+        self::assertCount(0, $crawler->filter('tbody tr')->eq(2)->filter('[data-unread]'));
+    }
+
+    public function testOnlyTrueMarksARowUnread(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/tasks/a1', 'unread' => 'yes', 'cells' => ['name' => 'Odd', 'email' => '', 'balance' => '']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        self::assertSame('false', $crawler->filter('[data-unread]')->attr('data-unread'));
+    }
 }

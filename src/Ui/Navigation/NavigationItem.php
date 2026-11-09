@@ -17,6 +17,7 @@ use App\Ui\Component\Style;
  *
  * The entry is marked as current on its own route and on every route whose name
  * starts with one of the prefixes, so the pages that belong to it keep it marked.
+ * A count above the cap is shown as the cap with a plus, as "99+" of an inbox.
  */
 final readonly class NavigationItem
 {
@@ -34,12 +35,16 @@ final readonly class NavigationItem
         public ?string $commandRoute = null,
         /** @var list<string> */
         public array $routePrefixes = [],
+        public ?int $countCap = null,
     ) {
         if (!\in_array($groupKey, self::GROUPS, true)) {
             throw new \InvalidArgumentException(sprintf('Unknown navigation group "%s", expected one of: %s.', $groupKey, implode(', ', self::GROUPS)));
         }
         if ('' === $labelKey || '' === $route) {
             throw new \InvalidArgumentException('A navigation item needs a label key and a route.');
+        }
+        if (null !== $countCap && $countCap < 1) {
+            throw new \InvalidArgumentException('A count cap is a positive number.');
         }
         Style::icon($icon);
     }
