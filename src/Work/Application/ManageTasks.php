@@ -75,7 +75,12 @@ final readonly class ManageTasks
             throw new WorkRefused('archived');
         }
         $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
-        $section = null === $sectionId ? null : $this->work->section($sectionId);
+        // A subtask sits in the section of its task, which a person shown only that task may not see.
+        $section = match (true) {
+            null === $sectionId => null,
+            $parent instanceof Task && $parent->section()?->id() === $sectionId => $parent->section(),
+            default => $this->work->section($sectionId),
+        };
         $status = null === $statusId ? $this->firstOpen($project) : $this->work->status($statusId);
         if ($parent instanceof Task && ($parent->isSubtask() || $parent->project()->id() !== $project->id())) {
             throw new WorkRefused('parent');

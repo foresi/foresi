@@ -5,7 +5,7 @@
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: return}, {label: 'work.task.new'|trans}] %}
+{% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name, href: return}, {label: 'work.task.new'|trans}]) %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
 

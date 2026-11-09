@@ -7,7 +7,7 @@
 
 {% set row = task.task %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: row.projectName, href: path('app_project', {id: row.projectId})}, {label: row.title, href: taskUrl}, {label: 'work.task.new_subtask'|trans}] %}
+{% set crumbs = (task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([row.projectSeen ? {label: row.projectName, href: path('app_project', {id: row.projectId})} : {label: row.projectName}, {label: row.title, href: taskUrl}, {label: 'work.task.new_subtask'|trans}]) %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
 

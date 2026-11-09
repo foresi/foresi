@@ -73,13 +73,14 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertSame(['/projects', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group="work"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
     }
 
-    public function testAGuestIsDenied(): void
+    public function testAGuestWithNothingSharedHasNoTasks(): void
     {
         $this->signIn(Role::Guest);
 
-        $this->client->request('GET', '/my-tasks');
+        $crawler = $this->client->request('GET', '/my-tasks');
 
-        self::assertResponseStatusCodeSame(403);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-task-group]'));
     }
 
     public function testMyTasksAreGroupedByWhenTheyAreDue(): void

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Navigation;
 
 use App\Identity\Application\GuestCheck;
-use App\Identity\Infrastructure\Controller\SharedWithMeController;
+use App\Identity\Infrastructure\Controller\DashboardController;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -27,7 +27,7 @@ final readonly class StartNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->guest->isGuest()) {
-            yield new NavigationItem('main', 'nav.item.shared_with_me', 'share-2', SharedWithMeController::ROUTE, weight: 10);
+            yield new NavigationItem('main', 'nav.item.shared_with_me', 'share-2', DashboardController::GUEST_HOME, weight: 10, routePrefixes: ['app_project', 'app_task']);
 
             return;
         }

@@ -12,6 +12,7 @@ use App\Attachment\Application\AttachmentPermissions;
 use App\Attachment\Application\VisibleAttachments;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
@@ -46,8 +47,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The page of a task, for the staff, as the work item view of Jira and the
- * issue view of Linear: the title, the description, the subtasks and the
+ * The page of a task, for whoever sees it, a guest included, as the work item
+ * view of Jira and the issue view of Linear: the title, the description, the subtasks and the
  * discussion on the left, the properties on the right. Each property is a form
  * of its own that saves when a value is chosen and comes back to the page;
  * the title, the description and one's own comment open their form in place.
@@ -56,7 +57,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * A task is deleted from the menu of its page, of its row in the list or of its
  * card on the board, without a question: it goes to the trash of its project,
- * and the message that says so has an Undo, as Gmail and Linear do it.
+ * and the message that says so has an Undo, as Gmail and Linear do it. The
+ * trash is the staff's: a guest neither deletes nor restores.
  */
 final class TaskController extends AbstractController
 {
@@ -97,10 +99,10 @@ final class TaskController extends AbstractController
     ) {
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $task = $this->detail($id);
         $edit = $request->query->getString('edit');
         $editComment = $request->query->getString('edit_comment');
@@ -119,10 +121,10 @@ final class TaskController extends AbstractController
      * A comment on the task, internal unless the switch is turned off. A text
      * it cannot have is told next to the field, which keeps what was typed.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/comments', name: 'app_task_comment_add', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function addComment(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request);
         $body = $request->request->getString('body');
         $internal = $request->request->has('internal');
@@ -140,10 +142,10 @@ final class TaskController extends AbstractController
         }
     }
 
+    #[OpenToGuest]
     #[Route('/comments/{id}/edit', name: 'app_task_comment_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function editComment(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request);
         $taskId = $this->taskOfComment($id);
         $body = $request->request->getString('body');
@@ -163,10 +165,10 @@ final class TaskController extends AbstractController
     /**
      * The comment stays in its place in the timeline as a note that it was deleted.
      */
+    #[OpenToGuest]
     #[Route('/comments/{id}/delete', name: 'app_task_comment_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function deleteComment(string $id, Request $request): RedirectResponse
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request);
         $taskId = $this->taskOfComment($id);
         try {
@@ -240,10 +242,10 @@ final class TaskController extends AbstractController
      * The people a comment or the description of the task can mention, for the
      * list the Markdown editor opens after "@". A task one cannot see answers 404.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/mention-candidates', name: 'app_task_mention_candidates', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function mentionCandidates(string $id): JsonResponse
     {
-        $this->denyUnlessStaff();
         $candidates = $this->queries->mentionCandidates($id) ?? throw new NotFoundHttpException();
 
         return $this->json(['results' => array_map(static fn (MentionCandidate $candidate): array => [
@@ -256,10 +258,10 @@ final class TaskController extends AbstractController
     /**
      * A title it cannot have is told next to the field, which keeps what was typed.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/title', name: 'app_task_title', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function title(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request);
         $title = trim($request->request->getString('title'));
         $error = null;
@@ -279,6 +281,7 @@ final class TaskController extends AbstractController
         return $this->page($this->detail($id), 'title', ['title' => $title], ['title' => $error], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/description', name: 'app_task_description', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function description(string $id, Request $request): RedirectResponse
     {
@@ -287,6 +290,7 @@ final class TaskController extends AbstractController
         return $this->save($id, $request, fn () => $this->tasks->describe($id, $description));
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/status', name: 'app_task_status', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function status(string $id, Request $request): RedirectResponse
     {
@@ -295,6 +299,7 @@ final class TaskController extends AbstractController
         return $this->save($id, $request, fn () => $this->tasks->changeStatus($id, $status));
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/responsible', name: 'app_task_responsible', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function responsible(string $id, Request $request): RedirectResponse
     {
@@ -306,6 +311,7 @@ final class TaskController extends AbstractController
     /**
      * A date, or none: the clear button empties it.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/due', name: 'app_task_due', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function due(string $id, Request $request): RedirectResponse
     {
@@ -322,6 +328,7 @@ final class TaskController extends AbstractController
         });
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/priority', name: 'app_task_priority', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function priority(string $id, Request $request): RedirectResponse
     {
@@ -335,6 +342,7 @@ final class TaskController extends AbstractController
     /**
      * The labels of the organisation to tick, saved together: a dialog over the task, or a page of its own.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/labels', name: 'app_task_labels', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function labels(string $id, Request $request): Response
     {
@@ -343,7 +351,6 @@ final class TaskController extends AbstractController
 
             return $this->save($id, $request, fn () => $this->tasks->setLabels($id, $labels));
         }
-        $this->denyUnlessStaff();
         $task = $this->detail($id);
 
         return $this->render('work/task/labels.html.twig', [
@@ -353,6 +360,7 @@ final class TaskController extends AbstractController
         ]);
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/section', name: 'app_task_section', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function section(string $id, Request $request): RedirectResponse
     {
@@ -361,12 +369,14 @@ final class TaskController extends AbstractController
         return $this->save($id, $request, fn () => $this->tasks->moveToSection($id, '' === $section ? null : $section));
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/watch', name: 'app_task_watch', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function watch(string $id, Request $request): RedirectResponse
     {
         return $this->save($id, $request, fn () => $this->tasks->watch($id, $this->myMembership() ?? throw new WorkRefused('watcher')));
     }
 
+    #[OpenToGuest]
     #[Route('/tasks/{id}/unwatch', name: 'app_task_unwatch', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function unwatch(string $id, Request $request): RedirectResponse
     {
@@ -381,6 +391,7 @@ final class TaskController extends AbstractController
     /**
      * Another person follows the task.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/watchers', name: 'app_task_watchers', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function watchers(string $id, Request $request): RedirectResponse
     {
@@ -398,10 +409,10 @@ final class TaskController extends AbstractController
      * the task (the same URL is a page of its own) that goes back to its
      * subtasks. A subtask has none, nor has a task of an archived project.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/subtasks/new', name: 'app_task_subtask_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function newSubtask(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $task = $this->detail($id);
         $subtasks = $this->generateUrl(self::ROUTE, ['id' => $id, '_fragment' => 'task-subtasks-title']);
         if ($task->parent instanceof Choice || $task->projectArchived) {
@@ -443,7 +454,6 @@ final class TaskController extends AbstractController
      */
     private function save(string $id, Request $request, callable $change): RedirectResponse
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request);
         try {
             $change();
@@ -470,32 +480,36 @@ final class TaskController extends AbstractController
     ): Response {
         $people = $this->people->all();
         $seeds = array_column(array_map(static fn (Person $person): array => [$person->membershipId, $person->userId], $people), 1, 0);
-        $staff = array_values(array_filter($people, static fn (Person $person): bool => $person->active && $person->role->isStaff()));
         $me = $this->myMembership();
         $watching = array_map(static fn (Choice $watcher): string => $watcher->id, $task->watchers);
         $row = $task->task;
 
+        // Only someone who sees the task can be responsible for it or follow it.
         $responsibles = ['' => $this->translator->trans('work.task.nobody')];
-        foreach ($staff as $person) {
-            $responsibles[$person->membershipId] = $person->name;
+        foreach ($task->people as $person) {
+            $responsibles[$person->id] = $person->name;
         }
         // Someone no longer active stays shown as long as the task is theirs.
         if (null !== $row->responsibleId && !isset($responsibles[$row->responsibleId])) {
             $responsibles[$row->responsibleId] = $row->responsibleName ?? '';
         }
         $candidates = ['' => $this->translator->trans('work.task.watchers.choose')];
-        foreach ($staff as $person) {
-            if (!\in_array($person->membershipId, $watching, true)) {
-                $candidates[$person->membershipId] = $person->name;
+        foreach ($task->people as $person) {
+            if (!\in_array($person->id, $watching, true)) {
+                $candidates[$person->id] = $person->name;
             }
         }
         $statuses = [];
         foreach ($task->statuses as $choice) {
             $statuses[$choice->id] = $choice->name;
         }
-        $sections = ['' => $this->translator->trans('work.list.no_section')];
+        // No section only for whom the whole project is open; the section of the task stays offered.
+        $sections = $task->projectOpen ? ['' => $this->translator->trans('work.list.no_section')] : [];
         foreach ($task->sections as $choice) {
             $sections[$choice->id] = $choice->name;
+        }
+        if (null !== $row->sectionId && !isset($sections[$row->sectionId])) {
+            $sections[$row->sectionId] = $task->sectionName ?? '';
         }
         $priorities = [];
         foreach (Priority::cases() as $priority) {
@@ -568,6 +582,8 @@ final class TaskController extends AbstractController
             'id' => $task->id,
             'href' => $this->generateUrl(self::ROUTE, ['id' => $task->id]),
             'label' => $task->title,
+            // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
+            'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),
             'cells' => [
                 'title' => $task->title,
                 'status' => ['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]],

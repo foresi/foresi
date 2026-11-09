@@ -9,6 +9,11 @@ login:
   submit: Přihlásit se
 shared_with_me:
   title: Sdíleno se mnou
+  projects: Projekty
+  tasks: Samostatné úkoly
+  whole_project: Celý projekt
+  column:
+    shared: Sdíleno
   empty:
     title: Zatím s vámi nikdo nic nesdílí
     text: Až s vámi organizace začne sdílet práci, najdete ji tady.
@@ -3230,6 +3235,7 @@ work:
       text: Tuto akci nelze vrátit.
     edit_label: Upravit komentář
     composer: Komentář
+    guest_visibility: Komentář uvidí všichni, kdo vidí tento úkol.
     internal_switch: Interní komentář
     internal_help: Hosté interní komentáře neuvidí.
     submit: Přidat komentář

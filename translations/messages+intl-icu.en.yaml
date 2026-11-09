@@ -9,6 +9,11 @@ login:
   submit: Sign in
 shared_with_me:
   title: Shared with me
+  projects: Projects
+  tasks: Single tasks
+  whole_project: Whole project
+  column:
+    shared: Shared
   empty:
     title: Nothing is shared with you yet
     text: Once the organisation shares work with you, you will find it here.
@@ -3230,6 +3235,7 @@ work:
       text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
+    guest_visibility: Everyone who sees this task will see the comment.
     internal_switch: Internal comment
     internal_help: Guests will not see internal comments.
     submit: Add comment

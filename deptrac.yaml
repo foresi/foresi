@@ -631,9 +631,12 @@ deptrac:
       - TenancyApplication
       - AuditDomain
       - AuditApplication
+    # Its controller is open to guests (Identity's OpenToGuest marker): what a
+    # guest may see of a record is the module's AttachmentAccess to decide.
     AttachmentInfrastructure:
       - AttachmentDomain
       - AttachmentApplication
+      - IdentityApplication
       - SharedDomain
       - SharedApplication
       - SharedInfrastructure

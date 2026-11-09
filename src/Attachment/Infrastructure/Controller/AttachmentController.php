@@ -16,6 +16,7 @@ use App\Attachment\Application\DeleteAttachment;
 use App\Attachment\Application\UploadAttachment;
 use App\Attachment\Application\VisibleAttachments;
 use App\Attachment\Domain\FileName;
+use App\Identity\Application\OpenToGuest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -40,8 +41,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The upload answers the editor with JSON; a plain form gives a return path
  * and is sent back there with the error, as the file upload pattern of GOV.UK.
- * Deleting is a form that goes back to its return path.
+ * Deleting is a form that goes back to its return path. A guest reaches it
+ * too: the module of the record decides what they see, attach and delete.
  */
+#[OpenToGuest]
 final class AttachmentController extends AbstractController
 {
     public const string ROUTE = 'app_attachment';

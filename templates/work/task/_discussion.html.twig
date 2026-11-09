@@ -85,13 +85,17 @@
         <twig:Ui:MarkdownEditor name="body" id="comment-body" :label="'work.discussion.composer'|trans" :value="values.comment" :error="errors.comment|default(null)" :rows="4" :previewUrl="path('app_markdown_preview')" :mentionsUrl="path('app_task_mention_candidates', {id: row.id})" :uploadUrl="path('app_attachment_upload')" :uploadKind="attachmentKind" :uploadOwner="row.id" data-comment-editor data-action="keydown->comment-form#shortcut" />
         {% set internal = values.comment_internal == '1' %}
         <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="grid gap-1.5">
-                <twig:Ui:Checkbox name="internal" id="comment-internal" :label="'work.discussion.internal_switch'|trans" :help="'work.discussion.internal_help'|trans" :checked="internal" role="switch" data-comment-form-target="internal" data-action="change->comment-form#toggle" />
-                <p class="m-0 text-small text-muted" aria-live="polite" data-comment-visibility>
-                    <span{% if not internal %} hidden{% endif %} data-comment-form-target="internalLabel"><twig:Ui:Badge class="gap-1">{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.discussion.internal'|trans }}</twig:Ui:Badge></span>
-                    <span{% if internal %} hidden{% endif %} data-comment-form-target="publicLabel">{{ 'work.discussion.public'|trans }}</span>
-                </p>
-            </div>
+            {% if task.manageable %}
+                <div class="grid gap-1.5">
+                    <twig:Ui:Checkbox name="internal" id="comment-internal" :label="'work.discussion.internal_switch'|trans" :help="'work.discussion.internal_help'|trans" :checked="internal" role="switch" data-comment-form-target="internal" data-action="change->comment-form#toggle" />
+                    <p class="m-0 text-small text-muted" aria-live="polite" data-comment-visibility>
+                        <span{% if not internal %} hidden{% endif %} data-comment-form-target="internalLabel"><twig:Ui:Badge class="gap-1">{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.discussion.internal'|trans }}</twig:Ui:Badge></span>
+                        <span{% if internal %} hidden{% endif %} data-comment-form-target="publicLabel">{{ 'work.discussion.public'|trans }}</span>
+                    </p>
+                </div>
+            {% else %}
+                <p class="m-0 text-small text-muted" data-comment-visibility>{{ 'work.discussion.guest_visibility'|trans }}</p>
+            {% endif %}
             <twig:Ui:Button type="submit" variant="primary">{{ 'work.discussion.submit'|trans }}</twig:Ui:Button>
         </div>
     </form>

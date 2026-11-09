@@ -272,13 +272,13 @@ final class AttachmentControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testAGuestIsDenied(): void
+    public function testAGuestFindsNoFileOfARecordNotSharedWithThem(): void
     {
         [$this->tenant] = $this->browser->seed(['Example Organisation'], role: Role::Guest);
         $this->browser->signIn();
 
         $this->client->request('GET', '/attachments/'.Id::generate());
-        self::assertResponseStatusCodeSame(403);
+        self::assertResponseStatusCodeSame(404);
         $this->client->request('POST', '/attachments');
         self::assertResponseStatusCodeSame(403);
     }

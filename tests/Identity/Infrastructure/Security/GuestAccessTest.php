@@ -21,7 +21,8 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * A guest reaches only the sign-in, their account, the public links
  * and what is shared with them: every other route of the application, those of
- * modules yet to come included, answers 403.
+ * modules yet to come included, answers 403. The settings of a project, its
+ * trash, sharing, new projects and the labels stay the staff's.
  */
 final class GuestAccessTest extends WebTestCase
 {
@@ -41,6 +42,14 @@ final class GuestAccessTest extends WebTestCase
         'app_invitation',
         // The start page, which sends them on to what is shared with them.
         'app_dashboard', 'app_shared_with_me',
+        // The work shared with them: the projects index sends them to it, the project, its board and
+        // the task are what they see of them, the rest what they do on a task they see. Each answers
+        // 404 for what is not shared with them (tests/Work/Infrastructure/Controller/GuestWorkTest.php).
+        'app_projects', 'app_project', 'app_project_board', 'app_project_task_new', 'app_task_move', 'app_my_tasks',
+        'app_task', 'app_task_comment_add', 'app_task_comment_edit', 'app_task_comment_delete', 'app_task_mention_candidates',
+        'app_task_title', 'app_task_description', 'app_task_status', 'app_task_responsible', 'app_task_due', 'app_task_priority',
+        'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_watchers', 'app_task_subtask_new',
+        'app_markdown_preview', 'app_attachment', 'app_attachment_upload', 'app_attachment_delete',
         // No live components exist: an unknown one is not found before any controller runs.
         'ux_live_component',
     ];
@@ -92,9 +101,9 @@ final class GuestAccessTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Shared with me');
         self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
-        // The sidebar offers what is shared and nothing of the modules (the
-        // extensions group holds the test environment's own probe item).
-        self::assertSame(['/shared'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
+        // The sidebar offers what is shared and their tasks, nothing else of the
+        // modules (the extensions group holds the test environment's own probe item).
+        self::assertSame(['/shared', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
     }
 
     public function testTheStaffKeepTheirDashboardAndTheAddressBook(): void
@@ -138,10 +147,13 @@ final class GuestAccessTest extends WebTestCase
         $parameters = [];
         foreach ($route->compile()->getPathVariables() as $variable) {
             self::assertIsString($variable);
-            $parameters[$variable] = Id::generate();
+            // A parameter of a few words, such as the kind of a shared item, takes the first.
+            $requirement = $route->getRequirement($variable) ?? '';
+            $parameters[$variable] = 1 === preg_match('/^[a-z_]+(\|[a-z_]+)*$/', $requirement) ? explode('|', $requirement)[0] : Id::generate();
         }
         $router = self::getContainer()->get(RouterInterface::class);
-        foreach ([$parameters, array_map(static fn (): string => '1', $parameters), array_map(static fn (): string => 'x', $parameters)] as $candidate) {
+        $words = array_filter($parameters, static fn (string $value): bool => 1 === preg_match('/^[a-z_]+$/', $value));
+        foreach ([$parameters, $words + array_map(static fn (): string => '1', $parameters), $words + array_map(static fn (): string => 'x', $parameters)] as $candidate) {
             try {
                 return [$method, $router->generate($name, $candidate)];
             } catch (InvalidParameterException) {
