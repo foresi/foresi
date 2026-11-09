@@ -639,13 +639,6 @@ when@test:
         App\Work\Application\ManageComments: { public: true }
         App\Work\Application\PurgeDeletedTasks: { public: true }
         App\Work\Application\ManageSharing: { public: true }
-        # The inbox: no screen reads it until the notifications page comes.
-        App\Work\Application\ManageNotifications: { public: true }
-        App\Work\Application\Notifier: { public: true }
-        App\Work\Application\PurgeDoneNotificationsDaily: { public: true }
-        App\Work\Application\NotificationQueries:
-            alias: App\Work\Infrastructure\Doctrine\DoctrineNotificationQueries
-            public: true
         App\Work\Application\WorkVisibility:
             alias: App\Work\Application\SharedWorkVisibility
             public: true

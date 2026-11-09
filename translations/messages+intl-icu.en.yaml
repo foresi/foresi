@@ -76,6 +76,7 @@ nav:
     projects: Projects
     labels: Labels
     my_tasks: My tasks
+    notifications: Notifications
 ui:
   dialog:
     close: Close
@@ -113,6 +114,7 @@ ui:
     actions: Actions
     more_actions: 'More actions for {label}'
     total: Total
+    unread: Unread
   bulk:
     label: Bulk actions
     selected:
@@ -3347,6 +3349,38 @@ work:
       watching_title: You watch no unfinished tasks
       watching_text: Watch a task from its page.
       filtered: Nothing here for this client.
+  notifications:
+    title: Notifications
+    views: Notification views
+    read_all: Mark all as read
+    tab:
+      new: New
+      done: Done
+    filter:
+      label: Show
+      all: All
+      mentions: Mentions
+      assigned: Assigned
+    column:
+      task: Task
+      event: What happened
+      at: When
+    event:
+      mentioned: Mentioned you in a comment
+      assigned: Assigned the task to you
+      commented: New comment
+      status_changed: Changed the status
+      shared: Shared the task with you
+    more: '{event} {count, plural, other {(+# more)}}'
+    done: Done
+    undone: Back to new
+    kept: Done notifications are kept for 3 months, then deleted.
+    empty:
+      new_title: No new notifications
+      new_text: Mentions, tasks assigned to you and news on the tasks you watch show up here.
+      done_title: Nothing done yet
+      done_text: Notifications you mark as done stay here for 3 months.
+      filtered: Nothing here with this filter.
   projects:
     title: Projects
     views: Project views

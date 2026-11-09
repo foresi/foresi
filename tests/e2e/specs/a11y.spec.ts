@@ -175,6 +175,18 @@ test.describe('projects and tasks', () => {
     await expectNoSeriousViolations(page);
   });
 
+  test('the inbox has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/notifications');
+    await expect(page.locator('[data-notifications] tbody tr').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
+  test('the done notifications have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/notifications?tab=done');
+    await expect(page.locator('[data-notifications-kept]')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
   test('labels have no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/settings/labels');
     await expect(page.locator('tbody tr').first()).toBeVisible();

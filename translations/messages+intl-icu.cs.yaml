@@ -76,6 +76,7 @@ nav:
     projects: Projekty
     labels: Štítky
     my_tasks: Moje úkoly
+    notifications: Oznámení
 ui:
   dialog:
     close: Zavřít
@@ -113,6 +114,7 @@ ui:
     actions: Akce
     more_actions: 'Další akce pro {label}'
     total: Celkem
+    unread: Nepřečteno
   bulk:
     label: Hromadné akce
     selected:
@@ -3347,6 +3349,38 @@ work:
       watching_title: Nesledujete žádné nehotové úkoly
       watching_text: Úkol začnete sledovat na jeho stránce.
       filtered: Pro tohoto klienta tu nic není.
+  notifications:
+    title: Oznámení
+    views: Pohledy na oznámení
+    read_all: Označit vše jako přečtené
+    tab:
+      new: Nové
+      done: Hotové
+    filter:
+      label: Zobrazit
+      all: Vše
+      mentions: Zmínky
+      assigned: Přiřazené
+    column:
+      task: Úkol
+      event: Co se stalo
+      at: Kdy
+    event:
+      mentioned: Zmínka v komentáři
+      assigned: Úkol přiřazen vám
+      commented: Nový komentář
+      status_changed: Změna stavu
+      shared: Úkol sdílen s vámi
+    more: '{event} {count, plural, one {(+# další)} few {(+# další)} other {(+# dalších)}}'
+    done: Hotovo
+    undone: Vrátit do nových
+    kept: Hotová oznámení se uchovávají 3 měsíce, pak se smažou.
+    empty:
+      new_title: Žádná nová oznámení
+      new_text: Zmínky, přiřazené úkoly a novinky ve sledovaných úkolech uvidíte tady.
+      done_title: Zatím nic hotového
+      done_text: Oznámení, která označíte jako hotová, tu zůstanou 3 měsíce.
+      filtered: S tímto filtrem tu nic není.
   projects:
     title: Projekty
     views: Pohledy na projekty
