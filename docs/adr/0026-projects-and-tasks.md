@@ -34,6 +34,19 @@ Watchers (`TaskWatcher`) and labels (`TaskLabel`) are rows of their own, audited
 * Good, because the firms of an organisation see the same projects and a client project needs no firm until it is invoiced.
 * Good, because reports and the completion date rely on status types, not on names a team may change.
 * Bad, because moving a task among many may renumber the positions of its neighbours.
-* Room for sharing: `Project.visibility`, a private flag on `Section` and `Task`, and a `work_share` table; every read will pass through one `WorkVisibility` port in the application layer.
+* Room for sharing: `Project.visibility`, a private flag on `Section` and `Task`, and a `work_share` table; every read will pass through one `WorkVisibility` port in the application layer. Implemented on 2026-11-09, see below.
 * Room for comments, attachments and notifications, which will point at a task by its id.
 * Room for time: a `TimeEntry` of a project, optionally a task, a membership, minutes, a date, billable or not and the invoice line that billed it, with rates beside it.
+
+## Sharing (2026-11-09)
+
+Sharing is implemented as planned above.
+
+* **Data.** `Project.visibility` (`organisation`, the default, or `chosen`), `Section.private` and `Task.private`, and `WorkShare`: one membership and one project, section or task, unique per membership and item, audited and rooted to its task or project.
+* **The rule.** Owners see everything. A project is open to a team member when it is open to the organisation or shared with them, to a guest only when it is shared with them. In an open project everything not private is seen; a shared section is seen, private or not, with its tasks that are not private; a shared task is seen wherever it is; a subtask follows its task unless it is private itself and not shared. A shared section makes its project seen with only that section; a task shared alone makes the name of its project known, nothing else of it.
+* **One rule, two languages.** `WorkScope` holds the rule and the shared ids, in plain PHP for commands (`VisibleWork` loads through it: what is not seen is unknown, 404). `ScopedDql` turns the same scope into joins and conditions for every query of `DoctrineWorkQueries`; a test checks both give the same ids. `SharedWorkVisibility` reads the shares again on every question, so a share given or taken back counts at once.
+* **Making an item private keeps a share for whoever did it** (Asana, ClickUp), so a team member does not lock themselves out.
+* **A deleted private section leaves its tasks private**, shared with the people the section was shared with, rather than opening them to the project.
+* **Guests have one level of rights**: on what they see they create tasks and subtasks, comment, attach files, change the status and the other properties, set existing labels, watch and may be responsible. They never share, change visibility, see internal comments or their files, keep projects, labels, workflows, the trash or settings, or delete a task. Routes a guest may use carry `#[OpenToGuest]` (ADR 0025); every other route stays closed to them, and a test walks all routes to keep it so. The guest's start page `/shared` lists their projects, then single tasks by the name of their project.
+* Good, because one rule decides lists, counts, pages, mentions, the responsible picker and file access alike.
+* Bad, because every query of the module carries the scope's joins, and the shares are read on every request.
