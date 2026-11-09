@@ -663,7 +663,18 @@ final class TaskController extends AbstractController
                     $parts[] = $this->translator->trans('work.history.'.$key, ['count' => \count($names), 'names' => implode(', ', $names)]);
                 }
             }
+            if (null !== $entry->madePrivate) {
+                $parts[] = $this->translator->trans('work.history.private.tasks.'.($entry->madePrivate ? 'closed' : 'opened'));
+            }
+            foreach (['shared' => $entry->sharedWith, 'unshared' => $entry->unsharedWith] as $key => $names) {
+                if ([] !== $names) {
+                    $parts[] = $this->translator->trans('work.history.'.$key, ['names' => implode(', ', $names)]);
+                }
+            }
             $icon = match (true) {
+                null !== $entry->madePrivate => 'lock',
+                [] !== $entry->sharedWith => 'user-plus',
+                [] !== $entry->unsharedWith => 'users',
                 $entry->statusChanged => 'refresh-cw',
                 $entry->reassigned => 'user',
                 [] !== $entry->fields, $entry->dueChanged, $entry->priorityFrom instanceof Priority => 'pencil',

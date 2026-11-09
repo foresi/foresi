@@ -14,10 +14,11 @@ namespace App\Work\Application;
 final readonly class ProjectSettings
 {
     /**
-     * @param list<Choice>       $sections by position
-     * @param list<StatusChoice> $statuses by position
+     * @param list<Choice>       $sections        by position
+     * @param list<StatusChoice> $statuses        by position
+     * @param list<string>       $privateSections the ids of the sections only the people they are shared with see
      */
-    public function __construct(public ProjectSummary $project, public array $sections, public array $statuses)
+    public function __construct(public ProjectSummary $project, public array $sections, public array $statuses, public array $privateSections = [])
     {
     }
 }

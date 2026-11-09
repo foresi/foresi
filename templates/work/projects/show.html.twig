@@ -3,7 +3,7 @@
     A project as a list: the filters, then one block per section in order, each with its top-level
     tasks and their subtasks under them. The tasks in no section come first, when there are some.
     A new task opens in a dialog from the header, and from the empty state of a project with nothing
-    to show. A row's menu deletes its task; the trash of the project is linked at the end while it
+    to show; so does the sharing dialog. A private section or task has its badge. A row's menu deletes its task; the trash of the project is linked at the end while it
     holds something.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -11,6 +11,8 @@
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name}] %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set share %}{% if project.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'projects', id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-project-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+{% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set newTask %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_task_new', {id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-new-open>{{ 'work.task.new'|trans }}</twig:Ui:Button>{% endset %}
 {% set trashToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
 
@@ -18,6 +20,7 @@
 
 {% block actions %}
     <twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>
+    {{ share }}
     {% if not project.archivedAt %}{{ newTask }}{% endif %}
 {% endblock %}
 
@@ -41,7 +44,7 @@
 
         {% for section in sections %}
             <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
-                <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span></h2>
+                <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span>{% if section.private %} {{ include('work/_private_badge.html.twig') }}{% endif %}</h2>
                 <twig:Ui:DataTable :caption="section.name" :columns="columns" :rows="section.rows" :actionToken="trashToken">
                     <twig:block name="empty">
                         <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>

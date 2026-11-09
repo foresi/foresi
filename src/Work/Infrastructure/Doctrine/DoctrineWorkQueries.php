@@ -141,7 +141,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
         $sections = [new SectionTasks(null, null, array_values(array_filter($rows, static fn (TaskRow $row): bool => null === $row->sectionId)))];
         foreach ($this->sections($project) as $section) {
-            $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())));
+            $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())), $section->isPrivate());
         }
 
         return new ProjectList($this->summary($project), $sections);
@@ -169,10 +169,13 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             return null;
         }
 
+        $sections = $this->sections($project);
+
         return new ProjectSettings(
             $this->summary($project),
-            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->sections($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $sections),
             array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+            array_values(array_map(static fn (Section $section): string => $section->id(), array_filter($sections, static fn (Section $section): bool => $section->isPrivate()))),
         );
     }
 
@@ -289,6 +292,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $task->createdAt(),
             $this->users->namesOf([$task->createdBy()])[$task->createdBy()] ?? null,
             $task->completedAt(),
+            $this->visibility->canShare($task),
         );
     }
 
@@ -410,6 +414,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $project->description(),
             $project->workflowTemplate(),
             $project->archivedAt(),
+            $project->visibility(),
+            $this->visibility->canShare($project),
         );
     }
 
@@ -555,6 +561,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $status->type()->isFinished(),
             $subtasks,
             $deletable($task->createdBy()),
+            $task->isPrivate(),
         );
     }
 

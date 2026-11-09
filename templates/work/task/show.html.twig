@@ -5,7 +5,8 @@
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
-    opens in the viewer dialog. A new subtask opens in a dialog from the header.
+    opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
+    dialog; a private task has its badge next to the title.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -17,6 +18,7 @@
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
+{% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set save %}<noscript><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></noscript>{% endset %}
 
 {% block title %}{{ row.title }}{% endblock %}
@@ -24,6 +26,7 @@
 {% block actions %}
     {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
     {% if not task.parent and not task.projectArchived %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}
+    {% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}
     {% if row.deletable %}
         {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
         <div class="relative" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>

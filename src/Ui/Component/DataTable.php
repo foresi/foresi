@@ -13,7 +13,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}, badges: list<array{label: string, tone: string}>}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string}>, avatar: ?array{initials: string, tone: string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -333,7 +333,14 @@ final class DataTable
         $links = [];
         $avatar = null;
         $badges = [];
-        if (is_array($value) && isset($value['badges'])) {
+        $flag = null;
+        if (is_array($value) && isset($value['flag'])) {
+            // A text with a badge after it that marks the row, such as a private task.
+            $text = isset($value['text']) && is_string($value['text']) && '' !== $value['text'] ? $value['text'] : throw new \InvalidArgumentException('A flagged cell needs a text.');
+            $flagIcon = is_array($value['flag']) && isset($value['flag']['icon']) && is_string($value['flag']['icon']) ? $value['flag']['icon'] : null;
+            Style::icon($flagIcon);
+            $flag = Style::badge($value['flag'], 'A table cell flag') + ['icon' => $flagIcon];
+        } elseif (is_array($value) && isset($value['badges'])) {
             // Several badges in one cell, such as the labels of a task.
             $badges = $this->badges($value['badges']);
             $text = implode(', ', array_column($badges, 'label'));
@@ -387,6 +394,7 @@ final class DataTable
             'links' => $links,
             'avatar' => $avatar,
             'badges' => $badges,
+            'flag' => $flag,
         ];
     }
 

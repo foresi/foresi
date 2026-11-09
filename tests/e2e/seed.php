@@ -23,8 +23,9 @@ declare(strict_types=1);
  * this month for the accountant pack specs, and "Example Move" with idoklad@example.com and
  * "Example Move Screens" with idoklad-screens@example.com a stored iDoklad pull each for the
  * iDoklad import spec, and "Example People" with people@example.com the organisation the
- * people spec invites into, and "Example Projects" with projects@example.com and the team member
- * member@example.com the project "Website" with sections, tasks, a subtask and labels for the
+ * people spec invites into, and "Example Projects" with projects@example.com, the team member
+ * member@example.com and the guest guest@example.com of its client the project "Website" with
+ * sections, tasks, a subtask and labels for the
  * projects spec; its task "Design the homepage" carries two comments (an internal one of the
  * owner that mentions Jana Example, a public one of hers), a PNG and a PDF for the discussion spec. Run it after the migrations, in the e2e
  * environment:
@@ -825,6 +826,11 @@ $teamMember = new Membership($teamUser, Role::Member);
 $entityManager->persist($teamMember);
 $entityManager->flush();
 $projectClient = $createParty->createFrom($party(PartyKind::Company, 'Example Client s.r.o.', [PartyRole::Customer], 'client@example.com', 8, '12345695', 'CZ12345695'));
+// A guest for the client: sees only what is shared with them.
+$guestUser = new User('guest@example.com', $hash, 'Guest Example', 'cs');
+$entityManager->persist($guestUser);
+$entityManager->persist(new Membership($guestUser, Role::Guest, $projectClient));
+$entityManager->flush();
 $projectOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'projects@example.com']) ?? throw new LogicException('The owner of the projects tenant is missing.');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
 

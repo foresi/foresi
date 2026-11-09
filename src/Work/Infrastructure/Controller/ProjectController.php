@@ -490,6 +490,7 @@ final class ProjectController extends AbstractController
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
             'title' => $task->title,
+            'private' => $task->private,
             'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : [
                 'name' => $task->responsibleName,
                 'initials' => Avatar::initials($task->responsibleName),
@@ -544,7 +545,7 @@ final class ProjectController extends AbstractController
     /**
      * @param array<string, string> $seeds user ids by membership id, for the avatar colours the people screen uses
      *
-     * @return array{id: ?string, key: string, name: string, count: int, rows: list<array<string, mixed>>}
+     * @return array{id: ?string, key: string, name: string, count: int, private: bool, rows: list<array<string, mixed>>}
      */
     private function sectionView(SectionTasks $section, array $seeds): array
     {
@@ -561,6 +562,7 @@ final class ProjectController extends AbstractController
             'key' => $section->id ?? self::NO_SECTION,
             'name' => $section->name ?? $this->translator->trans('work.list.no_section'),
             'count' => \count($section->tasks),
+            'private' => $section->private,
             'rows' => $rows,
         ];
     }
@@ -593,7 +595,7 @@ final class ProjectController extends AbstractController
             'label' => $task->title,
             'child' => $child,
             'cells' => [
-                'title' => $task->title,
+                'title' => $task->private ? ['text' => $task->title, 'flag' => $this->privateFlag()] : $task->title,
                 'status' => $this->statusBadge($task->statusName, $task->statusType),
                 'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName],
                 'due' => $this->due($task),
@@ -607,6 +609,16 @@ final class ProjectController extends AbstractController
                 'fields' => ['from' => 'list'],
             ]] : [],
         ];
+    }
+
+    /**
+     * The badge after the title of a task only the people it is shared with see.
+     *
+     * @return array{label: string, tone: string, icon: string}
+     */
+    private function privateFlag(): array
+    {
+        return ['label' => $this->translator->trans('work.sharing.private_badge'), 'tone' => 'gray', 'icon' => 'lock'];
     }
 
     /**

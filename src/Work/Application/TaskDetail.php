@@ -14,10 +14,11 @@ namespace App\Work\Application;
 final readonly class TaskDetail
 {
     /**
-     * @param list<Choice>       $watchers by name, membership ids
-     * @param list<StatusChoice> $statuses of the project, in order
-     * @param list<Choice>       $sections of the project, in order
-     * @param list<Choice>       $people   active people of the organisation who can be responsible or watch
+     * @param list<Choice>       $watchers  by name, membership ids
+     * @param list<StatusChoice> $statuses  of the project, in order
+     * @param list<Choice>       $sections  of the project, in order
+     * @param list<Choice>       $people    active people of the organisation who can be responsible or watch
+     * @param bool               $shareable whether the signed-in person may share the task or make it private
      */
     public function __construct(
         public TaskRow $task,
@@ -32,6 +33,7 @@ final readonly class TaskDetail
         public \DateTimeImmutable $createdAt,
         public ?string $createdByName,
         public ?\DateTimeImmutable $completedAt,
+        public bool $shareable = false,
     ) {
     }
 }
