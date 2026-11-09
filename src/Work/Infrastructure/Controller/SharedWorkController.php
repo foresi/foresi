@@ -10,7 +10,6 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\StaffCheck;
-use App\Identity\Infrastructure\Controller\DashboardController;
 use App\Tenancy\Application\TenantClock;
 use App\Work\Application\SharedProject;
 use App\Work\Application\SharedTaskGroup;
@@ -30,7 +29,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[OpenToGuest]
 final class SharedWorkController extends AbstractController
 {
-    public const string ROUTE = DashboardController::GUEST_HOME;
+    /** The guest home the dashboard sends a guest to. */
+    public const string ROUTE = 'app_shared_with_me';
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
     public function __construct(
