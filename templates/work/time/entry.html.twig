@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Time on a task, or on a project without a task: the day (today unless changed), the duration as
+    one types it ("1:30", "1,5", "1h 30m"), an optional note and whether it is billable, the project's
+    default unless changed. The same form edits an entry. A dialog over the page it goes back to; the
+    same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set title = (entry ? 'work.time.edit' : 'work.time.log')|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: projectName, href: path('app_project', {id: projectId})}] %}
+{% if taskId %}{% set crumbs = crumbs|merge([{label: taskTitle, href: path('app_task', {id: taskId})}]) %}{% endif %}
+{% set crumbs = crumbs|merge([{label: title}]) %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = taskTitle ?? projectName %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="time-entry-form" action="{{ action }}" class="grid gap-4" novalidate data-time-entry-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) }}">
+        {{ include('work/_form_errors.html.twig', {prefix: 'time-'}) }}
+        <div class="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
+            <twig:Ui:TextInput type="date" name="worked_on" id="time-worked_on" :label="'work.task.field.worked_on'|trans" :value="values.worked_on" :error="errors.worked_on|default(null)" required />
+            <twig:Ui:TextInput name="duration" id="time-duration" :label="'work.task.field.duration'|trans" :help="'work.time.duration_help'|trans" :value="values.duration" :error="errors.duration|default(null)" required autocomplete="off" inputmode="text" spellcheck="false" autofocus />
+        </div>
+        <twig:Ui:Textarea name="note" id="time-note" :label="'work.task.field.note'|trans" :value="values.note" :error="errors.note|default(null)" :rows="2" maxlength="{{ constant('App\\Work\\Domain\\TimeEntry::MAX_NOTE_LENGTH') }}" />
+        <twig:Ui:Checkbox name="billable" id="time-billable" :label="'work.task.field.billable'|trans" :checked="values.billable" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="time-entry-form" variant="primary">{{ (entry ? 'work.save' : 'work.time.log')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="clock-3" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="time-entry-form" variant="primary">{{ (entry ? 'work.save' : 'work.time.log')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

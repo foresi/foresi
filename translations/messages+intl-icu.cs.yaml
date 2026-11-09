@@ -3096,6 +3096,10 @@ work:
       project: Projekt
       watchers: Sledující
       estimate: Odhad
+      worked_on: Den
+      duration: Doba
+      note: Poznámka
+      billable: Fakturovatelné
     no_description: Bez popisu.
     no_subtasks: Zatím žádné podúkoly.
     subtasks: Podúkoly
@@ -3151,6 +3155,36 @@ work:
     time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
     timer_running: Nejdřív zastavte časovač.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
+  time:
+    title: Čas
+    log: Zapsat čas
+    edit: Upravit čas
+    edit_label: 'Upravit čas ze dne {date}'
+    delete: Smazat
+    delete_label: 'Smazat čas ze dne {date}'
+    delete_confirm:
+      title: Smazat zapsaný čas?
+      text: Tohle nejde vrátit.
+    none: Zatím žádný zapsaný čas.
+    hours: '{hours} h'
+    minutes: '{minutes} min'
+    total_of: '{total} z {estimate}'
+    running: Běží
+    billable: Fakturovatelné
+    invoiced: Vyfakturováno
+    duration_help: Třeba 1:30, 1,5 nebo 1h 30m.
+    estimate_help: Třeba 5 h nebo 2h 30m.
+    logged: 'Zapsáno {duration}.'
+    edited: Čas je upravený.
+    deleted: Čas je smazaný.
+    stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
+    error:
+      worked_on: Zadejte den jako datum.
+    timer:
+      start: Spustit časovač
+      stop: Zastavit časovač
+      stop_short: Zastavit
+      region: Běžící časovač
   cancel: Zrušit
   save: Uložit
   history:

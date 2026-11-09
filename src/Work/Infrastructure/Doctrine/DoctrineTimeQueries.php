@@ -17,9 +17,11 @@ use App\Work\Application\TimeDay;
 use App\Work\Application\TimeEntries;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
+use App\Work\Application\TimeTarget;
 use App\Work\Application\TimeWeek;
 use App\Work\Application\WorkScope;
 use App\Work\Application\WorkVisibility;
+use App\Work\Domain\Project;
 use App\Work\Domain\Task;
 use App\Work\Domain\TimeEntry;
 use Doctrine\DBAL\Types\Types;
@@ -99,6 +101,43 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         $entry = $this->entries->running($me);
 
         return $entry instanceof TimeEntry ? $this->row($entry, $me->id(), $this->owner->isOwner()) : null;
+    }
+
+    public function taskTarget(string $taskId): ?TimeTarget
+    {
+        $task = $this->entityManager->getRepository(Task::class)->findOneBy(['id' => $taskId, 'deletedAt' => null]);
+        if (!$task instanceof Task || !$this->me() instanceof Membership) {
+            return null;
+        }
+        $project = $task->project();
+
+        return $project->isArchived() || !$this->visibility->canLogTime($project, $task)
+            ? null
+            : new TimeTarget($project->id(), $project->name(), $task->id(), $task->title(), $project->billsTimeByDefault());
+    }
+
+    public function projectTarget(string $projectId): ?TimeTarget
+    {
+        $project = $this->entityManager->getRepository(Project::class)->findOneBy(['id' => $projectId]);
+        if (!$project instanceof Project || !$this->me() instanceof Membership) {
+            return null;
+        }
+
+        return $project->isArchived() || !$this->visibility->canLogTime($project, null)
+            ? null
+            : new TimeTarget($project->id(), $project->name(), null, null, $project->billsTimeByDefault());
+    }
+
+    public function editable(string $entryId): ?TimeEntryRow
+    {
+        $me = $this->me();
+        $entry = $this->entries->entry($entryId);
+        if (!$me instanceof Membership || !$entry instanceof TimeEntry) {
+            return null;
+        }
+        $rows = $this->rows([$entry], $this->visibility->scope(), $me);
+
+        return [] !== $rows && $rows[0]->editable ? $rows[0] : null;
     }
 
     /**

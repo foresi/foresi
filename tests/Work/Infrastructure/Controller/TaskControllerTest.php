@@ -77,8 +77,8 @@ final class TaskControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-task-labels]', 'Design');
         self::assertSame('/projects/'.$project, $crawler->filter('[data-task-project]')->attr('href'));
         self::assertSelectorTextContains('[data-task-created]', 'Created by Example Company');
-        self::assertCount(6, $crawler->filter('[data-task-details] noscript'));
-        self::assertCount(6, $crawler->filter('[data-task-details] form[data-controller="autosubmit"]'));
+        self::assertCount(7, $crawler->filter('[data-task-details] noscript'));
+        self::assertCount(7, $crawler->filter('[data-task-details] form[data-controller="autosubmit"]'));
         self::assertSelectorTextContains('[data-task-history]', 'Created the task');
 
         $this->client->request('GET', '/tasks/01900000-0000-7000-8000-000000000000');

@@ -2,6 +2,7 @@
 {#
     The page frame of every signed-in page: sidebar, one white panel with the page header.
     Pages extend it and fill the blocks "title" (plain text), "actions" (header buttons) and "content".
+    The timer the person runs shows in a bar over the page header, on every page.
     Breadcrumbs are given as a "crumbs" variable: {% set crumbs = [{label: 'Contacts', href: path('...')}, {label: 'Detail'}] %}.
     A status badge next to the title is given as a "badge" variable: {% set badge = {label: 'Archived', tone: 'gray'} %};
     more after it as "badges", each with an optional icon: {% set badges = [{label: 'Private', tone: 'gray', icon: 'lock'}] %}.
@@ -23,6 +24,7 @@
                 <twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="sidebar" aria-expanded="false" />
                 <span class="font-semibold text-ink">{{ product_name }}</span>
             </div>
+            {% if shell and shell.tenantActive %}{% include 'work/_running_timer.html.twig' %}{% endif %}
             <twig:Ui:PageHeader :title="pageTitle" :crumbs="crumbs|default([])" :badge="badge|default(null)" :badges="badges|default([])">{{ headerActions }}</twig:Ui:PageHeader>
             <div class="p-6 max-[899px]:p-3.5">
                 {% set notices = shell_notices(shell ? shell.tenantActive : false) %}

@@ -1,0 +1,21 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The timer the signed-in person runs, over every page (Freelo, ClickUp): its task, or its project,
+    linking to it, the time since it started, counted from the stored start so a reload or another
+    device shows the same, and the button that stops it and logs the time. Nothing while none runs.
+#}
+{% set timer = running_timer() %}
+{% if timer %}
+    {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+    {% set elapsed = date().timestamp - timer.startedAt.timestamp %}
+    <div class="flex min-w-0 items-center gap-2 border-b border-divider bg-head px-3.5 py-1.5 text-small min-[900px]:rounded-t-panel" role="region" aria-label="{{ 'work.time.timer.region'|trans }}" data-running-timer>
+        {{ ux_icon('lucide:timer', {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}
+        <a href="{{ timer.taskId ? path('app_task', {id: timer.taskId}) : path('app_project', {id: timer.projectId}) }}" class="min-w-0 truncate font-medium text-ink no-underline hover:underline {{ focus }}" data-running-timer-link>{{ timer.taskTitle ?? timer.projectName }}</a>
+        <time datetime="{{ timer.startedAt|date('c') }}" class="num shrink-0 font-semibold text-ink" data-controller="elapsed" data-elapsed-start-value="{{ timer.startedAt|date('c') }}" data-running-timer-elapsed>{{ (elapsed // 3600) ~ ':' ~ '%02d'|format(elapsed // 60 % 60) ~ ':' ~ '%02d'|format(elapsed % 60) }}</time>
+        <form method="post" action="{{ path('app_timer_stop') }}" class="ml-auto shrink-0" data-running-timer-stop>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) }}">
+            <input type="hidden" name="return" value="{{ app.request.method == 'GET' ? app.request.requestUri : '' }}">
+            <twig:Ui:Button type="submit" size="sm" icon="square">{{ 'work.time.timer.stop_short'|trans }}</twig:Ui:Button>
+        </form>
+    </div>
+{% endif %}

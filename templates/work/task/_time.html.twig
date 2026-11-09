@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The time logged on the task, for the people of the organisation: the total against the estimate
+    (Teamwork), then each entry, newest day first, with its day, person, duration, note and whether it
+    is billable. Time is logged in a dialog; its author or an owner edits an entry in the same dialog
+    and deletes it from its line, until it is invoiced. A running timer shows as running.
+#}
+<section class="grid gap-2" aria-labelledby="task-time-title" data-task-time>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="task-time-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.time.title'|trans }} <span class="num font-normal text-muted" data-task-time-total>{{ time.total }}</span></h2>
+        {% if timeLoggable %}<twig:Ui:Button variant="ghost" size="sm" icon="plus" :href="path('app_task_time_new', {id: row.id})" data-dialog aria-haspopup="dialog" data-time-new-open>{{ 'work.time.log'|trans }}</twig:Ui:Button>{% endif %}
+    </div>
+    {% if time.empty %}
+        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'work.time.none'|trans }}</p>
+    {% else %}
+        <ul class="m-0 grid list-none divide-y divide-divider rounded-panel border border-container bg-white p-0">
+            {% for entry in time.entries %}
+                <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-[899px]:px-3" data-time-entry>
+                    <div class="grid min-w-0 flex-1 gap-0.5">
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small">
+                            {% if entry.running %}
+                                <twig:Ui:Badge tone="amber" data-time-running>{{ 'work.time.running'|trans }}</twig:Ui:Badge>
+                            {% else %}
+                                <span class="num font-semibold text-ink" data-time-duration>{{ entry.duration }}</span>
+                            {% endif %}
+                            <span class="min-w-0 text-text" data-time-person>{{ entry.person }}</span>
+                            <time datetime="{{ entry.datetime }}" class="text-muted">{{ entry.date }}</time>
+                            {% if entry.billable %}<twig:Ui:Badge tone="green" data-time-billable>{{ 'work.time.billable'|trans }}</twig:Ui:Badge>{% endif %}
+                            {% if entry.invoiced %}<twig:Ui:Badge tone="gray" data-time-invoiced>{{ 'work.time.invoiced'|trans }}</twig:Ui:Badge>{% endif %}
+                        </div>
+                        {% if entry.note is not empty %}<p class="m-0 text-small text-text [overflow-wrap:anywhere]" data-time-note>{{ entry.note }}</p>{% endif %}
+                    </div>
+                    {% if entry.editable or entry.deletable %}
+                        <div class="flex shrink-0 items-center gap-1">
+                            {% if entry.editable %}<twig:Ui:IconButton icon="pencil" size="sm" variant="ghost" :label="'work.time.edit_label'|trans({date: entry.date})" :href="path('app_time_edit', {id: entry.id})" data-dialog aria-haspopup="dialog" data-time-edit />{% endif %}
+                            <form method="post" action="{{ path('app_time_delete', {id: entry.id}) }}"
+                                  data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                  data-confirm-title="{{ 'work.time.delete_confirm.title'|trans }}" data-confirm-text="{{ 'work.time.delete_confirm.text'|trans }}"
+                                  data-confirm-accept="{{ 'work.time.delete'|trans }}" data-confirm-cancel="{{ 'work.cancel'|trans }}" data-confirm-tone="danger" data-time-delete>
+                                <input type="hidden" name="_token" value="{{ timeToken }}">
+                                <twig:Ui:IconButton type="submit" icon="trash-2" size="sm" variant="ghost" :label="'work.time.delete_label'|trans({date: entry.date})" />
+                            </form>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

@@ -6,7 +6,9 @@
     button for a browser without JavaScript. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
-    dialog; a private task has its badge next to the title. A guest finds the way back through what is
+    dialog; a private task has its badge next to the title. The people of the organisation see the time
+    logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
+    estimate in the panel; a guest sees none of it. A guest finds the way back through what is
     shared with them, and the project by its name only when they do not see it.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -18,6 +20,7 @@
 {% set crumbs = crumbs|merge([{label: row.title}]) %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
+{% set timeToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
 {% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
@@ -28,6 +31,18 @@
 {% block actions %}
     {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
     {% if not task.parent and not task.projectArchived %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}
+    {% if timerHere %}
+        <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
+            <input type="hidden" name="_token" value="{{ timeToken }}">
+            <input type="hidden" name="return" value="{{ taskUrl }}">
+            <twig:Ui:Button type="submit" icon="square">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
+        </form>
+    {% elseif timeLoggable %}
+        <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
+            <input type="hidden" name="_token" value="{{ timeToken }}">
+            <twig:Ui:Button type="submit" icon="play">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
     {% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}
     {% if row.deletable %}
         {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
@@ -92,6 +107,8 @@
                     </twig:Ui:DataTable>
                 </section>
             {% endif %}
+
+            {% if time %}{{ include('work/task/_time.html.twig') }}{% endif %}
 
             {{ include('work/task/_discussion.html.twig') }}
 
@@ -161,6 +178,17 @@
                 <twig:Ui:Select name="priority" id="task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="row.priority.value" />
                 {{ save }}
             </form>
+
+            {% if time %}
+                <form method="post" action="{{ path('app_task_estimate', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="estimate">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <twig:Ui:TextInput name="estimate" id="task-estimate" :label="'work.task.field.estimate'|trans" :help="'work.time.estimate_help'|trans" :value="estimateValue" autocomplete="off" spellcheck="false" />
+                    <div class="flex flex-wrap gap-2">
+                        {{ save }}
+                        {% if estimateValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}
+                    </div>
+                </form>
+            {% endif %}
 
             <div class="grid gap-1.5" data-task-labels>
                 <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.labels'|trans }}</h3>

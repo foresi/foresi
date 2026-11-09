@@ -30,4 +30,21 @@ interface TimeQueries
      * The timer the signed-in person runs, if any, whatever they see now.
      */
     public function running(): ?TimeEntryRow;
+
+    /**
+     * The task as a place to log time on, for the signed-in person: null when
+     * they may not, a guest, a task they do not see or of an archived project.
+     */
+    public function taskTarget(string $taskId): ?TimeTarget;
+
+    /**
+     * The project as a place to log time without a task: null unless the
+     * whole project is open to the person and it is not archived.
+     */
+    public function projectTarget(string $projectId): ?TimeTarget;
+
+    /**
+     * An entry the signed-in person may change, as its line; null otherwise.
+     */
+    public function editable(string $entryId): ?TimeEntryRow;
 }

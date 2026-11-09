@@ -32,10 +32,14 @@ use App\Work\Application\MentionCandidate;
 use App\Work\Application\TaskDetail;
 use App\Work\Application\TaskHistoryEntry;
 use App\Work\Application\TaskRow;
+use App\Work\Application\TaskTime;
+use App\Work\Application\TimeEntryRow;
+use App\Work\Application\TimeQueries;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
 use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
+use App\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -55,6 +59,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the title, the description and one's own comment open their form in place.
  * The discussion is one timeline, oldest first, with the comment box under it
  * as in Linear. The files of the task are listed under the description.
+ *
+ * The time logged on the task follows its subtasks for the people of the
+ * organisation, with the total against the estimate (Teamwork); the estimate
+ * is a property of the panel, and the timer starts from the header.
  *
  * A task is deleted from the menu of its page, of its row in the list or of its
  * card on the board, without a question: it goes to the trash of its project,
@@ -102,6 +110,8 @@ final class TaskController extends AbstractController
         private readonly VisibleAttachments $attachments,
         private readonly AttachmentPermissions $attachmentPermissions,
         private readonly ManageNotifications $notifications,
+        private readonly TimeQueries $time,
+        private readonly TimeFunctions $duration,
     ) {
     }
 
@@ -528,6 +538,9 @@ final class TaskController extends AbstractController
         $names = array_column(array_map(static fn (Person $person): array => [$person->userId, $person->name], $people), 1, 0);
         $discussion = $this->queries->discussion($row->id, $filter) ?? [];
         $editable = array_filter($discussion, static fn (DiscussionItem $item): bool => $item->comment instanceof CommentView && $item->comment->canEdit && $item->comment->id === $editComment);
+        // Time is the organisation's, as internal comments are: a guest neither sees nor logs it.
+        $time = $task->manageable ? $this->time->ofTask($row->id) : null;
+        $timer = $task->manageable ? $this->time->running() : null;
 
         return $this->render('work/task/show.html.twig', [
             'task' => $task,
@@ -569,7 +582,40 @@ final class TaskController extends AbstractController
             'dueValue' => $row->dueOn?->format('Y-m-d') ?? '',
             'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
             'attachmentKind' => TaskAttachmentAccess::KIND,
+            'time' => $time instanceof TaskTime ? $this->timeView($time) : null,
+            'timeLoggable' => $task->manageable && null !== $this->time->taskTarget($row->id),
+            'timerHere' => $timer instanceof TimeEntryRow && $timer->taskId === $row->id,
+            'estimateValue' => null === $time?->estimateMinutes ? '' : $this->duration->duration($time->estimateMinutes),
         ], new Response(status: $status));
+    }
+
+    /**
+     * The time block: the total against the estimate, and each entry newest first.
+     *
+     * @return array{total: string, entries: list<array<string, mixed>>, empty: bool}
+     */
+    private function timeView(TaskTime $time): array
+    {
+        $total = $this->duration->duration($time->totalMinutes);
+        $date = $this->translator->trans('format.date');
+
+        return [
+            'total' => null === $time->estimateMinutes ? $total : $this->translator->trans('work.time.total_of', ['total' => $total, 'estimate' => $this->duration->duration($time->estimateMinutes)]),
+            'empty' => [] === $time->entries,
+            'entries' => array_map(fn (TimeEntryRow $entry): array => [
+                'id' => $entry->id,
+                'date' => $entry->workedOn->format($date),
+                'datetime' => $entry->workedOn->format('Y-m-d'),
+                'person' => $entry->personName,
+                'duration' => null === $entry->minutes ? null : $this->duration->duration($entry->minutes),
+                'note' => $entry->note,
+                'billable' => $entry->billable,
+                'running' => $entry->running,
+                'invoiced' => $entry->invoiced,
+                'editable' => $entry->editable && !$entry->running,
+                'deletable' => $entry->editable,
+            ], $time->entries),
+        ];
     }
 
     /**
