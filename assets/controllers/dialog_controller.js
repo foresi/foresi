@@ -25,7 +25,10 @@ const isType = (response, type) => (response.headers.get('Content-Type') || '').
  *   URL in place; without JavaScript, or with a modified click, it is the page.
  *   Its form posts with fetch: 422 swaps the dialog, a JSON answer finishes it
  *   by reloading the page (or following the server's location, or sending an
- *   event with the result). The same code runs on Turbo and on plain pages.
+ *   event with the result). A dialog the server answers marked
+ *   data-dialog-reload="1" took a change and stays open; the page under it is
+ *   loaded again once it closes.
+ *   The same code runs on Turbo and on plain pages.
  * - Focus goes to the first problem, else the autofocus element, else the first
  *   field, else the title; on close it returns to the opener, or to the field a
  *   result was put in.
@@ -147,6 +150,11 @@ export default class extends Controller {
         Array.from(this.element.attributes).filter((attribute) => !own.includes(attribute.name)).forEach((attribute) => this.element.removeAttribute(attribute.name));
         Array.from(source.attributes).filter((attribute) => !own.includes(attribute.name)).forEach((attribute) => this.element.setAttribute(attribute.name, attribute.value));
         this.element.replaceChildren(...Array.from(source.childNodes).map((node) => document.importNode(node, true)));
+        if (this.element.dataset.dialogReload === '1') {
+            // The server took a change and shows the dialog again: nothing typed is left to lose.
+            this.reload = true;
+            this.dirty = false;
+        }
     }
 
     focusInitial() {
@@ -210,6 +218,12 @@ export default class extends Controller {
             this.restoreFocus();
             if (this.remoteValue) {
                 this.element.replaceChildren();
+            }
+        }
+        if (this.reload) {
+            this.reload = false;
+            if (!this.navigating) {
+                this.go(window.location.href);
             }
         }
         if (this.answer) {

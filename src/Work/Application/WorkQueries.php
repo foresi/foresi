@@ -60,6 +60,13 @@ interface WorkQueries
     public function task(string $taskId): ?TaskDetail;
 
     /**
+     * What is shared with the signed-in person in the active projects: the
+     * projects they see, and the tasks shared with them that no project of
+     * theirs lists, grouped by the name of their project.
+     */
+    public function sharedWithMe(): SharedWork;
+
+    /**
      * The comments and the history of a task in one timeline. A step that
      * wrote a comment is the comment, not a step of its own.
      *

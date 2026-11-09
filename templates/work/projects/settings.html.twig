@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The settings of a project: what it is and for whom, with its archiving; its sections in order,
-    each renamed, moved or removed by a form of its own, and a line that adds one; its statuses in
+    each renamed, moved or removed by a form of its own, or shared in a dialog, and a line that adds one; its statuses in
     order, each with its name and type, moved, or removed in a dialog that asks where its tasks go.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -11,6 +11,7 @@
 {% set form_invalid = errors is not empty %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 
 {% block title %}{{ 'work.settings.title'|trans }} · {{ project.name }}{% endblock %}
 
@@ -64,12 +65,14 @@
                     <ol class="m-0 grid list-none divide-y divide-divider p-0">
                         {% for section in sections %}
                             <li class="flex flex-wrap items-end gap-2 py-2 first:pt-0" data-settings-section="{{ section.id }}">
-                                <form method="post" action="{{ path('app_project_section_rename', {id: project.id, sectionId: section.id}) }}" class="flex min-w-0 flex-1 items-end gap-2">
+                                <form method="post" action="{{ path('app_project_section_rename', {id: project.id, sectionId: section.id}) }}" class="flex w-full min-w-0 items-end gap-2 sm:w-auto sm:flex-1">
                                     <input type="hidden" name="_token" value="{{ token }}">
                                     <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" :id="'section-' ~ section.id" :label="'work.settings.section_name'|trans" :value="section.name" maxlength="120" required autocomplete="off" /></div>
                                     <twig:Ui:Button type="submit">{{ 'work.save'|trans }}</twig:Ui:Button>
                                 </form>
                                 <div class="flex items-center gap-1">
+                                    {% if section.id in privateSections %}<span class="mr-1">{{ include('work/_private_badge.html.twig') }}</span>{% endif %}
+                                    <twig:Ui:Button variant="ghost" icon="share-2" :href="path('app_sharing', {kind: 'sections', id: section.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" :aria-label="'work.sharing.open_section_named'|trans({name: section.name})" data-section-share>{{ 'work.sharing.open_section'|trans }}</twig:Ui:Button>
                                     {{ include('work/projects/_move.html.twig', {action: path('app_project_section_move', {id: project.id, sectionId: section.id}), direction: 'up', enabled: not loop.first, label: 'work.settings.move_up'|trans({name: section.name}), token: token}, with_context = false) }}
                                     {{ include('work/projects/_move.html.twig', {action: path('app_project_section_move', {id: project.id, sectionId: section.id}), direction: 'down', enabled: not loop.last, label: 'work.settings.move_down'|trans({name: section.name}), token: token}, with_context = false) }}
                                     <form method="post" action="{{ path('app_project_section_remove', {id: project.id, sectionId: section.id}) }}"

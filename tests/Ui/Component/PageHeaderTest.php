@@ -92,4 +92,26 @@ final class PageHeaderTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:PageHeader', ['title' => 'T', 'badge' => ['label' => 'x', 'tone' => 'pink']]);
     }
+
+    public function testMoreBadgesFollowTheFirstEachWithItsOptionalIcon(): void
+    {
+        $crawler = $this->renderTwigComponent('Ui:PageHeader', [
+            'title' => 'T',
+            'badge' => ['label' => 'Archived', 'tone' => 'gray'],
+            'badges' => [['label' => 'Private', 'tone' => 'amber', 'icon' => 'lock'], ['label' => 'Plain', 'tone' => 'green']],
+        ])->crawler();
+
+        $extra = $crawler->filter('[data-header-badge]');
+        self::assertSame(['Private', 'Plain'], $extra->each(static fn ($badge): string => trim($badge->text())));
+        self::assertStringContainsString('bg-badge-amber', (string) $extra->eq(0)->attr('class'));
+        self::assertCount(1, $extra->eq(0)->filter('svg'));
+        self::assertCount(0, $extra->eq(1)->filter('svg'));
+        self::assertSame('Archived', trim($crawler->filter('h1 + span')->text()));
+    }
+
+    public function testAnExtraBadgeWithAnIconOutsideTheSetThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->mountTwigComponent('Ui:PageHeader', ['title' => 'T', 'badges' => [['label' => 'x', 'tone' => 'gray', 'icon' => 'no-such-icon']]]);
+    }
 }

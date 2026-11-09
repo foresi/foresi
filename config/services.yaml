@@ -445,6 +445,9 @@ when@e2e:
         e2e.manage_comments:
             alias: App\Work\Application\ManageComments
             public: true
+        e2e.manage_sharing:
+            alias: App\Work\Application\ManageSharing
+            public: true
         e2e.upload_attachment:
             alias: App\Attachment\Application\UploadAttachment
             public: true
@@ -635,6 +638,10 @@ when@test:
         App\Work\Application\TaskHistory: { public: true }
         App\Work\Application\ManageComments: { public: true }
         App\Work\Application\PurgeDeletedTasks: { public: true }
+        App\Work\Application\ManageSharing: { public: true }
+        App\Work\Application\WorkVisibility:
+            alias: App\Work\Application\SharedWorkVisibility
+            public: true
         App\Work\Application\WorkQueries:
             alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true

@@ -1,0 +1,102 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Who sees a project, a section or a task: the switch that closes it (who sees a project, the private
+    switch of a section or a task), the people it is shared with, each taken back by a button, and the
+    picker that shares it with one more. Each change is a form of its own that comes back here with its
+    message; the switch saves once it is changed. A project and a section show the steps of who saw
+    them; a task tells them in its own history. A dialog over the page it was opened from, which is
+    loaded again when the dialog closes after a change; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\SharingController::TOKEN')) %}
+{% set dialog_description = view.name %}
+{% set dialog_reload = changed %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: view.projectName, href: path('app_project', {id: view.projectId})}] %}
+{% if kind == 'sections' %}{% set crumbs = crumbs|merge([{label: 'work.settings.title'|trans, href: return}]) %}{% endif %}
+{% if kind == 'tasks' %}{% set crumbs = crumbs|merge([{label: view.name, href: return}]) %}{% endif %}
+{% set crumbs = crumbs|merge([{label: 'work.sharing.open'|trans}]) %}
+{% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
+
+{% block title %}{{ ('work.sharing.title.' ~ kind)|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-5" data-sharing="{{ kind }}">
+        {% if in_dialog() %}
+            {% set flashes %}{{ include('work/_flashes.html.twig') }}{% endset %}
+            {% if flashes|trim is not empty %}<div class="grid [&>*:last-child]:mb-0" data-sharing-messages>{{ flashes }}</div>{% endif %}
+        {% endif %}
+
+        <form method="post" action="{{ path('app_sharing_private', {kind: kind, id: view.id}) }}" class="grid gap-2" {{ autosubmit|raw }} data-sharing-private>
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="return" value="{{ return }}">
+            {% if kind == 'projects' %}
+                <twig:Ui:RadioCards name="visibility" id="sharing-visibility" :legend="'work.sharing.visibility.legend'|trans" :options="visibilities" :value="view.closed ? 'chosen' : 'organisation'" />
+            {% else %}
+                <twig:Ui:Checkbox name="private" id="sharing-private" :label="('work.sharing.private.' ~ kind)|trans" :help="('work.sharing.private.' ~ kind ~ '_help')|trans" :checked="view.closed" />
+            {% endif %}
+            <noscript><div><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></div></noscript>
+        </form>
+
+        <section class="grid gap-2" aria-labelledby="sharing-people-title" data-sharing-people>
+            <h3 id="sharing-people-title" class="m-0 text-small font-medium text-ink">{{ 'work.sharing.people'|trans }} <span class="num font-normal text-muted">({{ people|length }})</span></h3>
+            {% if people is empty %}
+                <p class="m-0 text-small text-muted">{{ 'work.sharing.people_empty'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none divide-y divide-divider p-0">
+                    {% for person in people %}
+                        <li class="flex min-w-0 items-center gap-2.5 py-1.5" data-sharing-person="{{ person.id }}">
+                            <span class="grid size-7 shrink-0 place-items-center rounded-control text-caption font-semibold {{ person.tone }}" aria-hidden="true">{{ person.initials }}</span>
+                            <span class="grid min-w-0 flex-1">
+                                <span class="truncate font-medium text-ink">{{ person.name }}</span>
+                                <span class="text-caption text-muted">{{ ('role.' ~ person.role)|trans }}</span>
+                            </span>
+                            <form method="post" action="{{ path('app_sharing_remove', {kind: kind, id: view.id, membershipId: person.id}) }}" class="shrink-0" data-sharing-remove>
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="return" value="{{ return }}">
+                                <twig:Ui:Button type="submit" size="sm" variant="ghost" :aria-label="'work.sharing.remove_named'|trans({name: person.name})">{{ 'work.sharing.remove'|trans }}</twig:Ui:Button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <p class="m-0 text-caption text-muted">{{ 'work.sharing.owners'|trans }}</p>
+        </section>
+
+        {% if candidates|length > 1 %}
+            <form method="post" action="{{ path('app_sharing_add', {kind: kind, id: view.id}) }}" class="flex flex-wrap items-end gap-2" data-sharing-add>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="return" value="{{ return }}">
+                <div class="min-w-0 flex-1 basis-48"><twig:Ui:Select name="person" id="sharing-person" :label="'work.sharing.add'|trans" :options="candidates" value="" /></div>
+                <twig:Ui:Button type="submit" icon="user-plus">{{ 'work.sharing.add_submit'|trans }}</twig:Ui:Button>
+            </form>
+        {% else %}
+            <p class="m-0 text-small text-muted" data-sharing-no-candidates>{{ 'work.sharing.no_candidates'|trans }}</p>
+        {% endif %}
+
+        {% if history is not empty %}
+            <section class="grid gap-1 border-t border-divider pt-4" aria-labelledby="sharing-history-title" data-sharing-history>
+                <h3 id="sharing-history-title" class="m-0 text-small font-medium text-ink">{{ 'work.sharing.history'|trans }}</h3>
+                <twig:Ui:Timeline :items="history" class="text-small" />
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button variant="primary" data-action="dialog#dismiss" data-sharing-done>{{ 'work.sharing.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('work/_flashes.html.twig') }}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="block('title')" icon="share-2" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ view.name }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button variant="primary" :href="return" data-sharing-done>{{ 'work.sharing.done'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

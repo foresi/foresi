@@ -23,6 +23,7 @@
         <div class="flex min-w-0 items-center gap-2.5">
             <h1 class="m-0 min-w-0 max-w-[60ch] truncate text-title font-semibold text-ink" title="{{ title }}">{{ title }}</h1>
             {% if badgeView %}<twig:Ui:Badge :tone="badgeView.tone" class="shrink-0">{{ badgeView.label }}</twig:Ui:Badge>{% endif %}
+            {% for extra in this.badgeViews %}<twig:Ui:Badge :tone="extra.tone" class="shrink-0 gap-1" data-header-badge>{% if extra.icon %}{{ ux_icon('lucide:' ~ extra.icon, {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{% endif %}{{ extra.label }}</twig:Ui:Badge>{% endfor %}
         </div>
     </div>
     {% if actionsHtml|trim is not empty %}<div data-page-actions class="grid w-full grid-cols-2 gap-2 [&>:last-child:nth-child(odd)]:col-span-2 max-sm:[&_a]:h-control-lg max-sm:[&_a]:w-full max-sm:[&_button]:h-control-lg max-sm:[&_button]:w-full sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center">{{ actionsHtml|raw }}</div>{% endif %}

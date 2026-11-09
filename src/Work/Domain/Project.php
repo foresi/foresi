@@ -47,6 +47,9 @@ class Project implements TenantOwned, Audited
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
+    #[ORM\Column(type: 'string', length: 16, enumType: ProjectVisibility::class, options: ['default' => 'organisation'])]
+    private ProjectVisibility $visibility = ProjectVisibility::Organisation;
+
     public function __construct(
         string $name,
         /** The contact the work is for, of any kind; null for internal work. */
@@ -93,6 +96,20 @@ class Project implements TenantOwned, Audited
     public function restore(): void
     {
         $this->archivedAt = null;
+    }
+
+    /**
+     * Open to the whole organisation, as a new project is, or only to the
+     * people it is shared with.
+     */
+    public function changeVisibility(ProjectVisibility $visibility): void
+    {
+        $this->visibility = $visibility;
+    }
+
+    public function visibility(): ProjectVisibility
+    {
+        return $this->visibility;
     }
 
     public function isArchived(): bool

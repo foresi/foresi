@@ -5,18 +5,22 @@
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
-    opens in the viewer dialog. A new subtask opens in a dialog from the header.
+    opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
+    dialog; a private task has its badge next to the title. A guest finds the way back through what is
+    shared with them, and the project by its name only when they do not see it.
 #}
 {% extends 'layout/app.html.twig' %}
 
 {% set row = task.task %}
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: row.projectName, href: path('app_project', {id: row.projectId})}] %}
+{% set crumbs = task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}] %}
+{% set crumbs = crumbs|merge([row.projectSeen ? {label: row.projectName, href: path('app_project', {id: row.projectId})} : {label: row.projectName}]) %}
 {% if task.parent %}{% set crumbs = crumbs|merge([{label: task.parent.name, href: path('app_task', {id: task.parent.id})}]) %}{% endif %}
 {% set crumbs = crumbs|merge([{label: row.title}]) %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
+{% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set save %}<noscript><twig:Ui:Button type="submit" size="sm">{{ 'work.save'|trans }}</twig:Ui:Button></noscript>{% endset %}
 
 {% block title %}{{ row.title }}{% endblock %}
@@ -24,6 +28,7 @@
 {% block actions %}
     {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
     {% if not task.parent and not task.projectArchived %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}
+    {% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}
     {% if row.deletable %}
         {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
         <div class="relative" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
@@ -171,7 +176,7 @@
                 {% endif %}
             </div>
 
-            {% if not task.parent %}
+            {% if not task.parent and (task.projectOpen or sections|length > 1) %}
                 <form method="post" action="{{ path('app_task_section', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="section">
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Select name="section" id="task-section" :label="'work.task.field.section'|trans" :options="sections" :value="row.sectionId ?? ''" />
@@ -181,7 +186,11 @@
 
             <div class="grid gap-1.5">
                 <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.project'|trans }}</h3>
-                <a href="{{ path('app_project', {id: row.projectId}) }}" class="text-small font-medium text-ink no-underline hover:underline {{ focus }}" data-task-project>{{ row.projectName }}</a>
+                {% if row.projectSeen %}
+                    <a href="{{ path('app_project', {id: row.projectId}) }}" class="text-small font-medium text-ink no-underline hover:underline {{ focus }}" data-task-project>{{ row.projectName }}</a>
+                {% else %}
+                    <p class="m-0 text-small text-text" data-task-project>{{ row.projectName }}</p>
+                {% endif %}
             </div>
 
             <p class="m-0 border-t border-divider pt-3 text-caption text-muted" data-task-created>

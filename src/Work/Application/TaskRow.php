@@ -17,10 +17,12 @@ use App\Work\Domain\StatusType;
 final readonly class TaskRow
 {
     /**
-     * @param list<LabelBadge> $labels    by name
-     * @param list<TaskRow>    $subtasks  by position; empty where a view does not show them
-     * @param bool             $done      whether its status is finished
-     * @param bool             $deletable whether the signed-in person may put it in the trash
+     * @param list<LabelBadge> $labels      by name
+     * @param list<TaskRow>    $subtasks    by position; empty where a view does not show them
+     * @param bool             $done        whether its status is finished
+     * @param bool             $deletable   whether the signed-in person may put it in the trash
+     * @param bool             $private     whether only the people it is shared with see it
+     * @param bool             $projectSeen whether the signed-in person sees its project, not only its name
      */
     public function __construct(
         public string $id,
@@ -41,6 +43,8 @@ final readonly class TaskRow
         public bool $done,
         public array $subtasks = [],
         public bool $deletable = false,
+        public bool $private = false,
+        public bool $projectSeen = true,
     ) {
     }
 }

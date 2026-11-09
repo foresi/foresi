@@ -9,6 +9,11 @@ login:
   submit: Přihlásit se
 shared_with_me:
   title: Sdíleno se mnou
+  projects: Projekty
+  tasks: Samostatné úkoly
+  whole_project: Celý projekt
+  column:
+    shared: Sdíleno
   empty:
     title: Zatím s vámi nikdo nic nesdílí
     text: Až s vámi organizace začne sdílet práci, najdete ji tady.
@@ -3134,6 +3139,7 @@ work:
     comment_deleted: Tento komentář byl smazán.
     task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
     parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
+    share_person: Vyberte aktivního člověka z organizace, se kterým chcete sdílet.
   cancel: Zrušit
   save: Uložit
   history:
@@ -3151,6 +3157,63 @@ work:
     due: 'Termín {from} → {to}'
     priority: 'Priorita {from} → {to}'
     no_date: —
+    shared: 'Sdíleno s: {names}'
+    unshared: 'Sdílení odebráno: {names}'
+    private:
+      tasks:
+        closed: Úkol nastaven jako soukromý
+        opened: Úkol už není soukromý
+      sections:
+        closed: Sekce nastavena jako soukromá
+        opened: Sekce už není soukromá
+      projects:
+        closed: Projekt vidí jen vybraní lidé
+        opened: Projekt vidí celá organizace
+  sharing:
+    open: Sdílet
+    open_section: 'Sdílení'
+    open_section_named: 'Sdílení sekce {name}'
+    title:
+      projects: Sdílet projekt
+      sections: Sdílet sekci
+      tasks: Sdílet úkol
+    visibility:
+      legend: Kdo projekt vidí
+      organisation: Celá organizace
+      organisation_text: Všichni členové týmu. Hosté jen to, co s nimi sdílíte.
+      chosen: Jen vybraní lidé
+      chosen_text: Jen lidé ze seznamu níže a vlastníci organizace.
+    private:
+      sections: Soukromá sekce
+      sections_help: Sekci a její úkoly uvidí jen lidé ze seznamu a vlastníci.
+      tasks: Soukromý úkol
+      tasks_help: Úkol a jeho podúkoly uvidí jen lidé ze seznamu a vlastníci.
+    people: Sdíleno s
+    people_empty: Zatím s nikým nesdíleno.
+    owners: Vlastníci organizace vidí vše, sdílet s nimi není potřeba.
+    remove: Odebrat
+    remove_named: 'Odebrat {name}'
+    add: Přidat osobu
+    choose: Vyberte osobu
+    add_submit: Přidat
+    no_candidates: Všichni aktivní lidé organizace už jsou v seznamu.
+    history: Historie sdílení
+    done: Hotovo
+    private_badge: Soukromé
+    chosen_badge: Jen vybraní lidé
+    shared: 'Sdíleno s osobou {name}.'
+    unshared: 'Osoba {name} už nemá přístup.'
+    projects:
+      closed: Projekt teď vidí jen vybraní lidé.
+      opened: Projekt teď vidí celá organizace.
+    sections:
+      closed: Sekce je teď soukromá.
+      opened: Sekce už není soukromá.
+    tasks:
+      closed: Úkol je teď soukromý.
+      opened: Úkol už není soukromý.
+    error:
+      visibility: Vyberte, kdo projekt vidí.
   discussion:
     title: Diskuse a historie
     filter:
@@ -3172,6 +3235,7 @@ work:
       text: Tuto akci nelze vrátit.
     edit_label: Upravit komentář
     composer: Komentář
+    guest_visibility: Komentář uvidí všichni, kdo vidí tento úkol.
     internal_switch: Interní komentář
     internal_help: Hosté interní komentáře neuvidí.
     submit: Přidat komentář

@@ -36,7 +36,7 @@ final readonly class ManageWorkflow
      */
     public function add(string $projectId, string $name, StatusType $type, ?int $position = null): ProjectStatus
     {
-        $project = $this->work->project($projectId);
+        $project = $this->work->managedProject($projectId);
         $statuses = $this->projects->statuses($project);
         $status = WorkRefused::unlessNamed(static fn (): ProjectStatus => new ProjectStatus($project, $name, $type, \count($statuses)));
 
@@ -53,7 +53,7 @@ final readonly class ManageWorkflow
      */
     public function rename(string $statusId, string $name): void
     {
-        $status = $this->work->status($statusId);
+        $status = $this->work->managedStatus($statusId);
         WorkRefused::unlessNamed(static fn () => $status->rename($name));
         $this->unit->run(static fn (): null => null);
     }
@@ -63,7 +63,7 @@ final readonly class ManageWorkflow
      */
     public function retype(string $statusId, StatusType $type): void
     {
-        $status = $this->work->status($statusId);
+        $status = $this->work->managedStatus($statusId);
         $after = array_map(
             static fn (ProjectStatus $other): StatusType => $other->id() === $status->id() ? $type : $other->type(),
             $this->projects->statuses($status->project()),
@@ -79,7 +79,7 @@ final readonly class ManageWorkflow
      */
     public function move(string $statusId, int $position): void
     {
-        $status = $this->work->status($statusId);
+        $status = $this->work->managedStatus($statusId);
         $this->unit->run(fn () => Positions::place($this->projects->statuses($status->project()), $status, $position));
     }
 
@@ -90,7 +90,7 @@ final readonly class ManageWorkflow
      */
     public function remove(string $statusId, string $moveTasksToId): void
     {
-        $status = $this->work->status($statusId);
+        $status = $this->work->managedStatus($statusId);
         $target = $this->target($status->project(), $status, $moveTasksToId);
         $rest = array_values(array_filter($this->projects->statuses($status->project()), static fn (ProjectStatus $other): bool => $other->id() !== $status->id()));
         $this->assertKept(array_map(static fn (ProjectStatus $other): StatusType => $other->type(), $rest));

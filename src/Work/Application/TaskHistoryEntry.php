@@ -29,6 +29,9 @@ final readonly class TaskHistoryEntry
      * @param list<string>  $labelsRemoved   names
      * @param bool          $dueChanged      whether the due date changed, from $dueFrom to $dueTo; null is none
      * @param Priority|null $priorityFrom    with $priorityTo, the priority before and after; both null when it did not change
+     * @param bool|null     $madePrivate     true when the task was made private, false when it was opened again, null when neither
+     * @param list<string>  $sharedWith      names
+     * @param list<string>  $unsharedWith    names
      */
     public function __construct(
         public \DateTimeImmutable $occurredAt,
@@ -50,6 +53,9 @@ final readonly class TaskHistoryEntry
         public ?\DateTimeImmutable $dueTo = null,
         public ?Priority $priorityFrom = null,
         public ?Priority $priorityTo = null,
+        public ?bool $madePrivate = null,
+        public array $sharedWith = [],
+        public array $unsharedWith = [],
     ) {
     }
 }

@@ -17,7 +17,8 @@ use App\Work\Infrastructure\Controller\MyTasksController;
 /**
  * The projects in the sidebar for the staff, a task belonging to them too, my
  * tasks with how many are due by today, and the labels of the organisation in
- * the settings.
+ * the settings. A guest gets my tasks alone: what is shared with them is their
+ * start page, which holds their projects and tasks.
  */
 final readonly class WorkNavigation implements NavigationItemProvider
 {
@@ -28,6 +29,8 @@ final readonly class WorkNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if (!$this->staff->isStaff()) {
+            yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE]);
+
             return;
         }
         yield new NavigationItem('work', 'nav.item.projects', 'columns-3', 'app_projects', weight: 10, routePrefixes: ['app_project', 'app_task']);

@@ -36,6 +36,9 @@ use App\Work\Application\ProjectSettings;
 use App\Work\Application\ProjectSummary;
 use App\Work\Application\ProjectTrash;
 use App\Work\Application\SectionTasks;
+use App\Work\Application\SharedProject;
+use App\Work\Application\SharedTaskGroup;
+use App\Work\Application\SharedWork;
 use App\Work\Application\StatusChoice;
 use App\Work\Application\StatusTasks;
 use App\Work\Application\TaskDetail;
@@ -47,6 +50,7 @@ use App\Work\Application\Tasks;
 use App\Work\Application\TrashedTask;
 use App\Work\Application\TrashPermission;
 use App\Work\Application\WorkQueries;
+use App\Work\Application\WorkScope;
 use App\Work\Application\WorkVisibility;
 use App\Work\Domain\Label;
 use App\Work\Domain\Project;
@@ -59,21 +63,24 @@ use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
 use App\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 
 /**
  * The read side in DQL, under the tenant filter. Each query asks WorkVisibility
- * for the scope first; a scope it does not know yet shows nothing, so a new
- * kind of sharing never leaks through a query not taught about it. A project is
- * read whole and its tasks are put in order in PHP: one query for the tasks and
- * one for their labels, whatever the view. A task in the trash is left out of
- * every view but the trash, and of every count.
+ * for the scope first and keeps to it through ScopedDql, or through WorkScope
+ * for what it already holds in PHP: a private task, a private section, a task
+ * of a project the person does not see are left out of every view and count
+ * as if they did not exist. A project is read with the tasks the person sees
+ * and they are put in order in PHP: one query for the tasks and one for their
+ * labels, whatever the view. A task in the trash is left out of every view but
+ * the trash, and of every count.
  */
 final readonly class DoctrineWorkQueries implements WorkQueries
 {
     private const string TASKS = 'SELECT t, s, r, u, p FROM '.Task::class.' t JOIN t.status s JOIN t.project p LEFT JOIN t.responsible r LEFT JOIN r.user u';
     private const string ORDER = ' ORDER BY t.position ASC, t.createdAt ASC, t.id ASC';
     /** What the trash shows: a task that went there itself, not a subtask that went with its task. */
-    private const string TRASHED = 'SELECT t, pa FROM '.Task::class.' t LEFT JOIN t.parent pa WHERE t.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
+    private const string TRASHED = 't.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -96,16 +103,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
 
     public function projects(bool $archived = false): array
     {
-        if (!$this->visibility->scope()->isEverything()) {
+        $scope = $this->visibility->scope();
+        $seen = ScopedDql::projects($scope, 'p');
+        /** @var list<Project> $projects */
+        $projects = $seen->apply($this->entityManager
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE p.archivedAt IS '.($archived ? 'NOT ' : '').'NULL'.$seen->where.' ORDER BY p.name ASC, p.id ASC'))
+            ->getResult();
+        if ([] === $projects) {
             return [];
         }
-        /** @var list<Project> $projects */
-        $projects = $this->entityManager
-            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE p.archivedAt IS '.($archived ? 'NOT ' : '').'NULL ORDER BY p.name ASC, p.id ASC')
-            ->getResult();
+        $tasks = ScopedDql::tasks($scope, 't');
         /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
-        $counts = $this->entityManager
-            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s WHERE s.type IN (:unfinished) AND t.deletedAt IS NULL GROUP BY t.project')
+        $counts = $tasks->apply($this->entityManager
+            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s'.$tasks->joins.' WHERE s.type IN (:unfinished) AND t.deletedAt IS NULL'.$tasks->where.' GROUP BY t.project'))
             ->setParameter('unfinished', $this->unfinished())
             ->getArrayResult();
         $open = [];
@@ -134,8 +144,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
         $sections = [new SectionTasks(null, null, array_values(array_filter($rows, static fn (TaskRow $row): bool => null === $row->sectionId)))];
-        foreach ($this->projects->sections($project) as $section) {
-            $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())));
+        foreach ($this->sections($project) as $section) {
+            $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())), $section->isPrivate());
         }
 
         return new ProjectList($this->summary($project), $sections);
@@ -159,26 +169,28 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function projectSettings(string $projectId): ?ProjectSettings
     {
         $project = $this->visibleProject($projectId);
-        if (!$project instanceof Project) {
+        if (!$project instanceof Project || !$this->visibility->canManage()) {
             return null;
         }
 
+        $sections = $this->sections($project);
+
         return new ProjectSettings(
             $this->summary($project),
-            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $sections),
             array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
+            array_values(array_map(static fn (Section $section): string => $section->id(), array_filter($sections, static fn (Section $section): bool => $section->isPrivate()))),
         );
     }
 
     public function trash(string $projectId): ?ProjectTrash
     {
         $project = $this->visibleProject($projectId);
-        if (!$project instanceof Project) {
+        if (!$project instanceof Project || !$this->visibility->canManage()) {
             return null;
         }
         /** @var list<Task> $tasks */
-        $tasks = $this->entityManager
-            ->createQuery(self::TRASHED.' ORDER BY t.deletedAt DESC, t.id DESC')
+        $tasks = $this->trashed('SELECT t, pa ', ' ORDER BY t.deletedAt DESC, t.id DESC')
             ->setParameter('project', $project->id())
             ->getResult();
         $names = $this->users->namesOf(array_values(array_unique(array_filter(array_map(static fn (Task $task): ?string => $task->deletedBy(), $tasks), \is_string(...)))));
@@ -197,11 +209,10 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function trashCount(string $projectId): int
     {
         $project = $this->visibleProject($projectId);
-        if (!$project instanceof Project) {
+        if (!$project instanceof Project || !$this->visibility->canManage()) {
             return 0;
         }
-        $count = $this->entityManager
-            ->createQuery(str_replace('SELECT t, pa ', 'SELECT COUNT(t.id) ', self::TRASHED))
+        $count = $this->trashed('SELECT COUNT(t.id) ', '')
             ->setParameter('project', $project->id())
             ->getSingleScalarResult();
 
@@ -211,7 +222,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function myTasks(?string $clientId = null): array
     {
         $membership = $this->me();
-        $rows = $membership instanceof Membership && $this->visibility->scope()->isEverything()
+        $rows = $membership instanceof Membership
             ? $this->sorted($this->flat($this->openTasks('t.responsible = :me', $membership, $clientId)))
             : [];
 
@@ -221,11 +232,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function myDueCount(): int
     {
         $membership = $this->me();
-        if (!$membership instanceof Membership || !$this->visibility->scope()->isEverything()) {
+        if (!$membership instanceof Membership) {
             return 0;
         }
-        $count = $this->entityManager
-            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL AND t.dueOn <= :today')
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+        $count = $seen->apply($this->entityManager
+            ->createQuery('SELECT COUNT(t.id) FROM '.Task::class.' t JOIN t.status s JOIN t.project p'.$seen->joins.' WHERE t.responsible = :me AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL AND t.dueOn <= :today'.$seen->where))
             ->setParameter('me', $membership->id())
             ->setParameter('unfinished', $this->unfinished())
             ->setParameter('today', $this->clock->today()->format('Y-m-d'))
@@ -237,7 +249,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function watchedTasks(?string $clientId = null): array
     {
         $membership = $this->me();
-        if (!$membership instanceof Membership || !$this->visibility->scope()->isEverything()) {
+        if (!$membership instanceof Membership) {
             return [];
         }
 
@@ -247,41 +259,97 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     public function task(string $taskId): ?TaskDetail
     {
         $task = $this->tasks->task($taskId);
-        if (!$task instanceof Task || !$this->visibility->canSeeTask($task)) {
+        $scope = $this->visibility->scope();
+        if (!$task instanceof Task || !$scope->seesTask($task)) {
             return null;
         }
         $project = $task->project();
-        $subtasks = $this->tasks->siblings($project, $task);
+        $subtasks = array_values(array_filter($this->tasks->siblings($project, $task), $scope->seesTask(...)));
         $labels = $this->labelsOf([$task, ...$subtasks]);
         $deletable = $this->trash->rule();
-        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, 0), $subtasks);
+        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, $scope, 0), $subtasks);
         /** @var list<TaskWatcher> $watchers */
         $watchers = $this->entityManager
             ->createQuery('SELECT w, m, u FROM '.TaskWatcher::class.' w JOIN w.membership m JOIN m.user u WHERE w.task = :task ORDER BY u.displayName ASC, w.id ASC')
             ->setParameter('task', $task->id())
             ->getResult();
+        // Only someone who sees the task can be responsible for it or follow it.
         $people = [];
         foreach ($this->people->all() as $person) {
-            if ($person->active) {
+            $membership = $person->active ? $this->people->membership($person->membershipId) : null;
+            if ($membership instanceof Membership && $this->visibility->canMembershipSeeTask($membership, $task)) {
                 $people[] = new Choice($person->membershipId, $person->name);
             }
         }
         $parent = $task->parent();
 
         return new TaskDetail(
-            $this->row($task, $labels, $deletable, \count($subtasks), $subtaskRows),
+            $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows),
             $task->description(),
             $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
             $task->section()?->name(),
             array_map(static fn (TaskWatcher $watcher): Choice => new Choice($watcher->membership()->id(), $watcher->membership()->user()->displayName()), $watchers),
             array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
-            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->projects->sections($project)),
+            array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), array_values(array_filter($this->projects->sections($project), $scope->seesSection(...)))),
             $people,
             $project->isArchived(),
             $task->createdAt(),
             $this->users->namesOf([$task->createdBy()])[$task->createdBy()] ?? null,
             $task->completedAt(),
+            $this->visibility->canShare($task),
+            $this->visibility->canManage(),
+            $scope->opens($project),
         );
+    }
+
+    public function sharedWithMe(): SharedWork
+    {
+        $scope = $this->visibility->scope();
+        $projects = [];
+        foreach ($this->projects() as $row) {
+            $project = $this->projects->project($row->id);
+            if ($project instanceof Project) {
+                $projects[] = new SharedProject($row, $scope->opens($project) ? [] : array_map(static fn (Section $section): string => $section->name(), $this->sections($project)));
+            }
+        }
+        $single = [];
+        foreach ($scope->taskIds() as $taskId) {
+            $task = $this->tasks->task($taskId);
+            if ($task instanceof Task && !$task->project()->isArchived() && !$this->listed($task, $scope)) {
+                $single[] = $task;
+            }
+        }
+        $groups = [];
+        foreach ($this->flat($single) as $row) {
+            $groups[$row->projectId][] = $row;
+        }
+        $tasks = array_map(static function (array $rows): SharedTaskGroup {
+            usort($rows, static fn (TaskRow $a, TaskRow $b): int => strnatcasecmp($a->title, $b->title));
+
+            return new SharedTaskGroup($rows[0]->projectName, $rows);
+        }, array_values($groups));
+        usort($tasks, static fn (SharedTaskGroup $a, SharedTaskGroup $b): int => strnatcasecmp($a->projectName, $b->projectName));
+
+        return new SharedWork($projects, $tasks);
+    }
+
+    /**
+     * Whether the list of a project the person sees shows the task already:
+     * its top-level task sits in a section they see, or in none of a project open to them.
+     */
+    private function listed(Task $task, WorkScope $scope): bool
+    {
+        $project = $task->project();
+        if (!$scope->seesProject($project)) {
+            return false;
+        }
+        $parent = $task->parent();
+        if ($parent instanceof Task && !$scope->seesTask($parent)) {
+            return false;
+        }
+        $section = ($parent ?? $task)->section();
+
+        return $section instanceof Section ? $scope->seesSection($section) : $scope->opens($project);
     }
 
     public function discussion(string $taskId, DiscussionFilter $filter = DiscussionFilter::All): ?array
@@ -294,8 +362,11 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         if ($filter->showsComments()) {
             $me = $this->me();
             $owner = $this->owner->isOwner();
+            $internal = $this->visibility->canSeeInternal();
             foreach ($this->comments->of($task) as $comment) {
-                $comments[] = DiscussionItem::comment($this->commentView($comment, $me, $owner));
+                if ($internal || !$comment->isInternal()) {
+                    $comments[] = DiscussionItem::comment($this->commentView($comment, $me, $owner));
+                }
             }
         }
         $steps = $filter->showsHistory() ? array_map(DiscussionItem::step(...), $this->history->of($task->id())) : [];
@@ -334,9 +405,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $candidates;
     }
 
+    /**
+     * The labels of the organisation: anyone who has work in it puts them on a task they see.
+     */
     public function labels(): array
     {
-        if (!$this->visibility->scope()->isEverything()) {
+        if (!$this->me() instanceof Membership) {
             return [];
         }
 
@@ -345,12 +419,13 @@ final readonly class DoctrineWorkQueries implements WorkQueries
 
     public function labelUsage(): array
     {
-        if (!$this->visibility->scope()->isEverything()) {
+        if (!$this->visibility->canManage()) {
             return [];
         }
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         /** @var list<array{label: string, tasks: int|string}> $counts */
-        $counts = $this->entityManager
-            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl JOIN tl.task t WHERE t.deletedAt IS NULL GROUP BY tl.label')
+        $counts = $seen->apply($this->entityManager
+            ->createQuery('SELECT IDENTITY(tl.label) AS label, COUNT(tl.id) AS tasks FROM '.TaskLabel::class.' tl JOIN tl.task t'.$seen->joins.' WHERE t.deletedAt IS NULL'.$seen->where.' GROUP BY tl.label'))
             ->getArrayResult();
 
         return array_map(intval(...), array_column($counts, 'tasks', 'label'));
@@ -390,6 +465,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
 
     private function summary(Project $project): ProjectSummary
     {
+        $open = $this->visibility->scope()->opens($project);
+
         return new ProjectSummary(
             $project->id(),
             $project->name(),
@@ -398,17 +475,45 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $project->description(),
             $project->workflowTemplate(),
             $project->archivedAt(),
+            $project->visibility(),
+            $this->visibility->canShare($project),
+            $this->visibility->canManage(),
+            $open,
+            $open || [] !== $this->sections($project),
         );
     }
 
     /**
-     * @return list<Task> top-level tasks and subtasks, by position
+     * The sections of the project the person sees.
+     *
+     * @return list<Section> by position
+     */
+    private function sections(Project $project): array
+    {
+        return array_values(array_filter($this->projects->sections($project), $this->visibility->scope()->seesSection(...)));
+    }
+
+    /**
+     * The tasks of the project in the trash that the person would see out of it.
+     *
+     * @return Query<mixed, mixed>
+     */
+    private function trashed(string $select, string $order): Query
+    {
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+
+        return $seen->apply($this->entityManager->createQuery($select.'FROM '.Task::class.' t LEFT JOIN t.parent pa'.$seen->joins.' WHERE '.self::TRASHED.$seen->where.$order));
+    }
+
+    /**
+     * @return list<Task> top-level tasks and subtasks the person sees, by position
      */
     private function projectTasks(Project $project): array
     {
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         /** @var list<Task> $tasks */
-        $tasks = $this->entityManager
-            ->createQuery(self::TASKS.' WHERE t.project = :project AND t.deletedAt IS NULL'.self::ORDER)
+        $tasks = $seen->apply($this->entityManager
+            ->createQuery(self::TASKS.$seen->joins.' WHERE t.project = :project AND t.deletedAt IS NULL'.$seen->where.self::ORDER))
             ->setParameter('project', $project->id())
             ->getResult();
 
@@ -422,8 +527,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
      */
     private function openTasks(string $condition, Membership $me, ?string $clientId): array
     {
-        $query = $this->entityManager
-            ->createQuery(self::TASKS.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL'.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER)
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+        $query = $seen->apply($this->entityManager
+            ->createQuery(self::TASKS.$seen->joins.' WHERE '.$condition.' AND s.type IN (:unfinished) AND p.archivedAt IS NULL AND t.deletedAt IS NULL'.$seen->where.(null === $clientId ? '' : ' AND IDENTITY(p.client) = :client').self::ORDER))
             ->setParameter('me', $me->id())
             ->setParameter('unfinished', $this->unfinished());
         if (null !== $clientId) {
@@ -447,18 +553,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     {
         $labels = $this->labelsOf($tasks);
         $deletable = $this->trash->rule();
+        $scope = $this->visibility->scope();
         $children = [];
         foreach ($tasks as $task) {
             $parent = $task->parent();
             if ($parent instanceof Task) {
-                $children[$parent->id()][] = $this->row($task, $labels, $deletable, 0);
+                $children[$parent->id()][] = $this->row($task, $labels, $deletable, $scope, 0);
             }
         }
         $rows = [];
         foreach ($tasks as $task) {
             if (!$task->isSubtask()) {
                 $subtasks = $children[$task->id()] ?? [];
-                $rows[] = $this->row($task, $labels, $deletable, \count($subtasks), $subtasks);
+                $rows[] = $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtasks);
             }
         }
 
@@ -486,8 +593,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $labels = $this->labelsOf($tasks);
 
         $deletable = $this->trash->rule();
+        $scope = $this->visibility->scope();
 
-        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
     }
 
     /**
@@ -495,7 +603,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
      * @param \Closure(string): bool          $deletable whether the person may delete a task, by who created it
      * @param list<TaskRow>                   $subtasks
      */
-    private function row(Task $task, array $labels, \Closure $deletable, int $subtaskCount, array $subtasks = []): TaskRow
+    private function row(Task $task, array $labels, \Closure $deletable, WorkScope $scope, int $subtaskCount, array $subtasks = []): TaskRow
     {
         $status = $task->status();
         $responsible = $task->responsible();
@@ -519,6 +627,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $status->type()->isFinished(),
             $subtasks,
             $deletable($task->createdBy()),
+            $task->isPrivate(),
+            $scope->seesProject($task->project()),
         );
     }
 

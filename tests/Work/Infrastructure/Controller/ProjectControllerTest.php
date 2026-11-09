@@ -66,14 +66,18 @@ final class ProjectControllerTest extends WebTestCase
         self::assertCount(2, $crawler->filter('main a[href="/projects/new"][data-dialog]'));
     }
 
-    public function testAGuestIsDenied(): void
+    public function testAGuestHasNoIndexNorNewProjectsAndFindsNoProjectNotSharedWithThem(): void
     {
         $this->signIn(Role::Guest);
 
-        foreach (['/projects', '/projects/new', '/projects/clients?q=exa', '/projects/01900000-0000-7000-8000-000000000000/tasks/new'] as $url) {
+        $this->client->request('GET', '/projects');
+        self::assertResponseRedirects('/shared');
+        foreach (['/projects/new', '/projects/clients?q=exa'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
+        $this->client->request('GET', '/projects/01900000-0000-7000-8000-000000000000/tasks/new');
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testANewProjectGoesToItsPage(): void
@@ -180,9 +184,12 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['No section (1)', 'Design (1)', 'Build (0)'], $crawler->filter('[data-section] h2')->each(static fn (Crawler $heading): string => preg_replace('/\s+/', ' ', trim($heading->text())) ?? ''));
 
         $design = $crawler->filter('[data-section]')->eq(1);
-        self::assertSame(['Wireframes', 'Logo'], $design->filter('tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Wireframes', 'Logo'], $design->filter('tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertCount(1, $design->filter('tbody tr[data-row-child]'));
-        self::assertSame('Logo', trim($design->filter('tbody tr[data-row-child] td')->eq(0)->text()));
+        // A phone hides who and when in columns of their own: the line under the title says them.
+        self::assertStringStartsWith('Example Company · ', trim($design->filter('tbody tr')->eq(0)->filter('[data-row-secondary]')->text()));
+        self::assertSame('Nobody', trim($design->filter('tbody tr[data-row-child] [data-row-secondary]')->text()));
+        self::assertSame('Logo', trim($design->filter('tbody tr[data-row-child] [data-row-link]')->text()));
         $wireframes = $design->filter('tbody tr')->eq(0)->filter('td');
         self::assertSame('/tasks/'.$this->taskId('Wireframes'), $wireframes->eq(0)->filter('a')->attr('href'));
         self::assertSame('In progress', trim($wireframes->eq(1)->text()));
@@ -275,7 +282,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['location' => '/projects/'.$id.'?due=overdue'], json_decode((string) $this->client->getResponse()->getContent(), true));
         $crawler = $this->client->request('GET', '/projects/'.$id);
         self::assertSelectorTextContains('main', 'The task “Colours” is added.');
-        self::assertSame(['Wireframes', 'Logo', 'Colours'], $crawler->filter('[data-section="'.$design.'"] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Wireframes', 'Logo', 'Colours'], $crawler->filter('[data-section="'.$design.'"] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSame('To do', $this->statusOf('Colours'));
     }
 
@@ -296,7 +303,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(303);
         self::assertResponseRedirects('/projects/'.$id);
         $crawler = $this->client->followRedirect();
-        self::assertSame(['Brief', 'Kick-off'], $crawler->filter('[data-section="none"] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Brief', 'Kick-off'], $crawler->filter('[data-section="none"] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
     }
 
     public function testANewTaskNeedsATitleAndASectionOfTheProjectAndKeepsWhatWasTyped(): void
@@ -541,13 +548,14 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['To do' => ['Brief'], 'In progress' => ['Wireframes'], 'Done' => ['Launch']], $this->board($this->client->request('GET', '/projects/'.$id.'/board')));
     }
 
-    public function testAGuestHasNoBoard(): void
+    public function testAGuestFindsNoBoardNotSharedWithThem(): void
     {
         $this->signIn(Role::Guest);
         $id = '01900000-0000-7000-8000-000000000000';
 
         $this->client->request('GET', '/projects/'.$id.'/board');
-        self::assertResponseStatusCodeSame(403);
+        self::assertResponseStatusCodeSame(404);
+        // The token comes first: a move without it is refused before the task is looked for.
         $this->client->request('POST', '/tasks/'.$id.'/move', ['direction' => 'down']);
         self::assertResponseStatusCodeSame(403);
     }
@@ -636,7 +644,7 @@ final class ProjectControllerTest extends WebTestCase
      */
     private function titles(Crawler $crawler): array
     {
-        return $crawler->filter('[data-section] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text()));
+        return $crawler->filter('[data-section] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
     }
 
     private function contact(string $name): string

@@ -62,7 +62,7 @@ final class TaskControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Wireframes');
         self::assertSame("Three options.\nAnd a fourth.", $crawler->filter('[data-task-description]')->text(normalizeWhitespace: false));
-        self::assertSame(['Logo'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Logo'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         $open = $crawler->filter('main a[data-subtask-new-open]');
         self::assertSame('/tasks/'.$this->taskId('Wireframes').'/subtasks/new', $open->attr('href'));
         self::assertNotNull($open->attr('data-dialog'));
@@ -259,7 +259,7 @@ final class TaskControllerTest extends WebTestCase
 
         self::assertSame(['location' => '/tasks/'.$id.'#task-subtasks-title'], json_decode((string) $this->client->getResponse()->getContent(), true));
         $crawler = $this->client->request('GET', '/tasks/'.$id);
-        self::assertSame(['Logo', 'Icons'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertSame(['Logo', 'Icons'], $crawler->filter('[data-task-subtasks] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSelectorTextContains('main', 'The subtask “Icons” is added.');
         self::assertSame(
             ['parent_id' => $id, 'section_id' => $this->sectionId($this->projectId('Website'), 'Design')],
@@ -396,23 +396,25 @@ final class TaskControllerTest extends WebTestCase
         self::assertSame(1, $this->rows('SELECT COUNT(*) FROM task_comment WHERE deleted_at IS NULL AND body = ?', ['Jana was here.']));
     }
 
-    public function testAGuestIsDenied(): void
+    public function testAGuestFindsNoTaskNotSharedWithThemAndNeverReachesTheTrash(): void
     {
         $this->signIn(Role::Guest);
         $id = '01900000-0000-7000-8000-000000000000';
 
-        foreach (['GET' => ['', '/labels', '/mention-candidates', '/subtasks/new'], 'POST' => ['/title', '/status', '/watch', '/subtasks/new', '/comments']] as $method => $paths) {
-            foreach ($paths as $path) {
-                $this->client->request($method, '/tasks/'.$id.$path);
-                self::assertResponseStatusCodeSame(403, $method.' '.$path);
-            }
+        foreach (['', '/labels', '/mention-candidates', '/subtasks/new'] as $path) {
+            $this->client->request('GET', '/tasks/'.$id.$path);
+            self::assertResponseStatusCodeSame(404, 'GET '.$path);
         }
-        foreach (['/edit', '/delete'] as $path) {
-            $this->client->request('POST', '/comments/'.$id.$path);
-            self::assertResponseStatusCodeSame(403, 'comment '.$path);
+        foreach (['/delete', '/restore'] as $path) {
+            $this->client->request('POST', '/tasks/'.$id.$path);
+            self::assertResponseStatusCodeSame(403, 'POST '.$path);
         }
-        $this->client->request('POST', '/markdown/preview', ['text' => 'Hello']);
-        self::assertResponseStatusCodeSame(403, 'preview');
+        // What a guest does on a task they see (tests/Work/Infrastructure/Controller/GuestWorkTest.php)
+        // still needs its token.
+        foreach (['/tasks/'.$id.'/title', '/tasks/'.$id.'/comments', '/comments/'.$id.'/edit', '/markdown/preview'] as $url) {
+            $this->client->request('POST', $url, ['text' => 'Hello']);
+            self::assertResponseStatusCodeSame(403, $url);
+        }
     }
 
     public function testThePreviewRendersTheTextAsTheSanitisedMarkdownOfThePage(): void

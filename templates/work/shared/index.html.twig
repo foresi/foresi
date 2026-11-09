@@ -1,0 +1,35 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The start page of a guest: the projects shared with them, then the tasks shared with them on
+    their own, each block under the name of its project as plain text, since they see the task and
+    not the project. Nothing shared yet is an empty state.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% block title %}{{ 'shared_with_me.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% if empty %}
+        <twig:Ui:EmptyState icon="share-2" :title="'shared_with_me.empty.title'|trans" :text="'shared_with_me.empty.text'|trans" data-shared-empty />
+    {% else %}
+        <div class="grid grid-cols-1 gap-6">
+            {% if projects is not empty %}
+                <section class="grid gap-2" aria-labelledby="shared-projects-title" data-shared-projects>
+                    <h2 id="shared-projects-title" class="m-0 text-heading font-semibold text-ink">{{ 'shared_with_me.projects'|trans }} <span class="num font-normal text-muted">({{ projects|length }})</span></h2>
+                    <twig:Ui:DataTable :caption="'shared_with_me.projects'|trans" :columns="projectColumns" :rows="projects" />
+                </section>
+            {% endif %}
+            {% if groups is not empty %}
+                <section class="grid gap-4" aria-labelledby="shared-tasks-title" data-shared-tasks>
+                    <h2 id="shared-tasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'shared_with_me.tasks'|trans }}</h2>
+                    {% for group in groups %}
+                        <section class="grid gap-2" aria-labelledby="shared-group-{{ group.key }}-title" data-shared-group>
+                            <h3 id="shared-group-{{ group.key }}-title" class="m-0 text-small font-medium text-muted">{{ 'work.task.field.project'|trans }}: <span class="text-ink">{{ group.name }}</span></h3>
+                            <twig:Ui:DataTable :caption="group.name" :columns="taskColumns" :rows="group.rows" />
+                        </section>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

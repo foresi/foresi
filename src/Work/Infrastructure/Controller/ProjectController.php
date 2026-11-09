@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
@@ -44,13 +45,14 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The projects of the organisation, for its staff: the index of active and
- * archived projects, a new project in a dialog over it (the same URL is a page
- * of its own), and the list of a project, section by section; a new task opens
- * in a dialog from the header of the list and of the board. The board shows the
- * same tasks as one column per status; a card moves by dragging it or by the
- * move items of its menu, which work as plain forms. The trash of a project
- * lists the tasks deleted from it, each restored by a button.
+ * The projects of the organisation: the index of active and archived projects
+ * and a new project in a dialog over it (the same URL is a page of its own),
+ * for its staff; the list of a project, section by section, for whoever sees
+ * it, a guest included, with what they see of it; a new task opens in a dialog
+ * from the header of the list and of the board. The board shows the same tasks
+ * as one column per status; a card moves by dragging it or by the move items
+ * of its menu, which work as plain forms. The trash of a project lists the
+ * tasks deleted from it, each restored by a button, for the staff.
  */
 final class ProjectController extends AbstractController
 {
@@ -82,10 +84,16 @@ final class ProjectController extends AbstractController
     ) {
     }
 
+    /**
+     * A guest has no index of the projects of the organisation: what is shared with them is their start.
+     */
+    #[OpenToGuest]
     #[Route('/projects', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $this->denyUnlessStaff();
+        if (!$this->staff->isStaff()) {
+            return $this->redirectToRoute(SharedWorkController::ROUTE);
+        }
         $archived = self::ARCHIVED === $request->query->getString('tab');
         $url = $this->generateUrl(self::ROUTE);
 
@@ -164,10 +172,10 @@ final class ProjectController extends AbstractController
         ], $page->rows)]);
     }
 
+    #[OpenToGuest]
     #[Route('/projects/{id}', name: self::PROJECT_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $query = $this->filterQuery($request->query);
         $list = $this->queries->projectList($id, $this->filter($query)) ?? throw new NotFoundHttpException();
         $seeds = $this->seeds();
@@ -202,10 +210,10 @@ final class ProjectController extends AbstractController
      * the top-level tasks as cards in their order. The status filter of the
      * list does not apply: every status has its column.
      */
+    #[OpenToGuest]
     #[Route('/projects/{id}/board', name: self::BOARD_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function board(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $query = $this->filterQuery($request->query);
         $board = $this->queries->board($id, $this->filter(['status' => 'all'] + $query)) ?? throw new NotFoundHttpException();
         $seeds = $this->seeds();
@@ -279,10 +287,10 @@ final class ProjectController extends AbstractController
      * reason; the menu of a card sends a status, or a direction within its
      * column, and comes back to the board, where a refusal is told.
      */
+    #[OpenToGuest]
     #[Route('/tasks/{id}/move', name: 'app_task_move', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function move(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
         $this->checkToken($request, self::MOVE_TOKEN);
         $task = $this->queries->task($id) ?? throw new NotFoundHttpException();
         $query = $this->filterQuery($request->request);
@@ -320,28 +328,34 @@ final class ProjectController extends AbstractController
      * A new task, by its title and its section: a dialog over the list or the
      * board (the same URL is a page of its own) that goes back to the view it
      * was opened from, with its filters. On the board the task starts in the
-     * first open status, as every new task does.
+     * first open status, as every new task does. The sections offered are those
+     * the person sees, and no section only when the whole project is open to them.
      */
+    #[OpenToGuest]
     #[Route('/projects/{id}/tasks/new', name: 'app_project_task_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function newTask(string $id, Request $request): Response
     {
-        $this->denyUnlessStaff();
-        $settings = $this->queries->projectSettings($id) ?? throw new NotFoundHttpException();
+        $list = $this->queries->projectList($id) ?? throw new NotFoundHttpException();
+        if (!$list->project->taskable) {
+            throw new NotFoundHttpException('No task of the person may go into the project.');
+        }
         $post = $request->isMethod('POST');
         $return = $this->returnPath($id, ($post ? $request->request : $request->query)->getString('return'));
-        if ($settings->project->archivedAt instanceof \DateTimeImmutable) {
+        if ($list->project->archivedAt instanceof \DateTimeImmutable) {
             $this->addFlash('error', $this->translator->trans('work.refused.archived'));
 
             return $this->redirect($return, Response::HTTP_SEE_OTHER);
         }
-        $sections = ['' => $this->translator->trans('work.list.no_section')];
-        foreach ($settings->sections as $section) {
-            $sections[$section->id] = $section->name;
+        $sections = $list->project->open ? ['' => $this->translator->trans('work.list.no_section')] : [];
+        foreach ($list->sections as $section) {
+            if (null !== $section->id) {
+                $sections[$section->id] = $section->name ?? '';
+            }
         }
         $values = ['title' => '', 'section' => ($post ? $request->request : $request->query)->getString('section')];
         $errors = [];
         if (!$post && !isset($sections[$values['section']])) {
-            $values['section'] = '';
+            $values['section'] = (string) array_key_first($sections);
         }
         if ($post) {
             $this->checkToken($request, self::TASK_TOKEN);
@@ -368,7 +382,7 @@ final class ProjectController extends AbstractController
         }
 
         return $this->render('work/projects/task_new.html.twig', [
-            'project' => $settings->project,
+            'project' => $list->project,
             'values' => $values,
             'errors' => $errors,
             'sections' => $sections,
@@ -490,6 +504,7 @@ final class ProjectController extends AbstractController
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
             'title' => $task->title,
+            'private' => $task->private,
             'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : [
                 'name' => $task->responsibleName,
                 'initials' => Avatar::initials($task->responsibleName),
@@ -521,8 +536,10 @@ final class ProjectController extends AbstractController
     private function responsibles(): array
     {
         $responsibles = ['' => $this->translator->trans('work.filter.responsible_anyone'), 'me' => $this->translator->trans('work.filter.responsible_me')];
+        // A guest is not told who else the organisation works with: its own people only.
+        $staff = $this->staff->isStaff();
         foreach ($this->people->all() as $person) {
-            if ($person->active) {
+            if ($person->active && ($staff || $person->role->isStaff())) {
                 $responsibles[$person->membershipId] = $person->name;
             }
         }
@@ -544,7 +561,7 @@ final class ProjectController extends AbstractController
     /**
      * @param array<string, string> $seeds user ids by membership id, for the avatar colours the people screen uses
      *
-     * @return array{id: ?string, key: string, name: string, count: int, rows: list<array<string, mixed>>}
+     * @return array{id: ?string, key: string, name: string, count: int, private: bool, rows: list<array<string, mixed>>}
      */
     private function sectionView(SectionTasks $section, array $seeds): array
     {
@@ -561,6 +578,7 @@ final class ProjectController extends AbstractController
             'key' => $section->id ?? self::NO_SECTION,
             'name' => $section->name ?? $this->translator->trans('work.list.no_section'),
             'count' => \count($section->tasks),
+            'private' => $section->private,
             'rows' => $rows,
         ];
     }
@@ -587,16 +605,20 @@ final class ProjectController extends AbstractController
      */
     private function taskRow(TaskRow $task, array $seeds, bool $child): array
     {
+        $due = $this->due($task);
+
         return [
             'id' => $task->id,
             'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
             'label' => $task->title,
             'child' => $child,
+            // A phone hides the columns of who and when: the line under the title says them, and lets a long title wrap.
+            'secondary' => implode(' · ', array_filter([$task->responsibleName ?? $this->translator->trans('work.task.nobody'), \is_array($due) ? $due['text'] : $due], \is_string(...))),
             'cells' => [
-                'title' => $task->title,
+                'title' => $task->private ? ['text' => $task->title, 'flag' => $this->privateFlag()] : $task->title,
                 'status' => $this->statusBadge($task->statusName, $task->statusType),
                 'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName],
-                'due' => $this->due($task),
+                'due' => $due,
                 'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
                 'labels' => [] === $task->labels ? null : ['badges' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels)],
             ],
@@ -607,6 +629,16 @@ final class ProjectController extends AbstractController
                 'fields' => ['from' => 'list'],
             ]] : [],
         ];
+    }
+
+    /**
+     * The badge after the title of a task only the people it is shared with see.
+     *
+     * @return array{label: string, tone: string, icon: string}
+     */
+    private function privateFlag(): array
+    {
+        return ['label' => $this->translator->trans('work.sharing.private_badge'), 'tone' => 'gray', 'icon' => 'lock'];
     }
 
     /**

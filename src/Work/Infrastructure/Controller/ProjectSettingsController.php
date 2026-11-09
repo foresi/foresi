@@ -90,6 +90,7 @@ final class ProjectSettingsController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'sections' => $settings->sections,
+            'privateSections' => $settings->privateSections,
             'statuses' => $settings->statuses,
             'types' => $this->types(),
             'trashCount' => $this->queries->trashCount($id),

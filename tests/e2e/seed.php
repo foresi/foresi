@@ -23,10 +23,13 @@ declare(strict_types=1);
  * this month for the accountant pack specs, and "Example Move" with idoklad@example.com and
  * "Example Move Screens" with idoklad-screens@example.com a stored iDoklad pull each for the
  * iDoklad import spec, and "Example People" with people@example.com the organisation the
- * people spec invites into, and "Example Projects" with projects@example.com and the team member
- * member@example.com the project "Website" with sections, tasks, a subtask and labels for the
+ * people spec invites into, and "Example Projects" with projects@example.com, the team member
+ * member@example.com and the guest guest@example.com of its client the project "Website" with
+ * sections, tasks, a subtask and labels for the
  * projects spec; its task "Design the homepage" carries two comments (an internal one of the
- * owner that mentions Jana Example, a public one of hers), a PNG and a PDF for the discussion spec. Run it after the migrations, in the e2e
+ * owner that mentions Jana Example, a public one of hers), a PNG and a PDF for the discussion spec;
+ * its section "Shared with client" is shared with the guest, and so is, on its own, the task
+ * "Sign the lease" of "Office move", a project only chosen people see, for the sharing spec. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -120,10 +123,12 @@ use App\Work\Application\ManageComments;
 use App\Work\Application\ManageLabels;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageSections;
+use App\Work\Application\ManageSharing;
 use App\Work\Application\ManageTasks;
 use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
 use App\Work\Domain\ProjectStatus;
+use App\Work\Domain\ProjectVisibility;
 use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
@@ -808,9 +813,11 @@ $manageSections = $container->get('e2e.manage_sections');
 $manageTasks = $container->get('e2e.manage_tasks');
 $manageLabels = $container->get('e2e.manage_labels');
 $manageComments = $container->get('e2e.manage_comments');
+$manageSharing = $container->get('e2e.manage_sharing');
 $uploadAttachment = $container->get('e2e.upload_attachment');
 $tokenStorage = $container->get('e2e.token_storage');
 \assert($manageComments instanceof ManageComments);
+\assert($manageSharing instanceof ManageSharing);
 \assert($uploadAttachment instanceof UploadAttachment);
 \assert($manageProjects instanceof ManageProjects);
 \assert($manageSections instanceof ManageSections);
@@ -825,6 +832,12 @@ $teamMember = new Membership($teamUser, Role::Member);
 $entityManager->persist($teamMember);
 $entityManager->flush();
 $projectClient = $createParty->createFrom($party(PartyKind::Company, 'Example Client s.r.o.', [PartyRole::Customer], 'client@example.com', 8, '12345695', 'CZ12345695'));
+// A guest for the client: sees only what is shared with them.
+$guestUser = new User('guest@example.com', $hash, 'Guest Example', 'cs');
+$entityManager->persist($guestUser);
+$guestMembership = new Membership($guestUser, Role::Guest, $projectClient);
+$entityManager->persist($guestMembership);
+$entityManager->flush();
 $projectOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'projects@example.com']) ?? throw new LogicException('The owner of the projects tenant is missing.');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
 
@@ -867,6 +880,14 @@ $manageTasks->setLabels($contact->id(), [$bug->id()]);
 $manageTasks->create($website->id(), 'Write the copy for the about page', $backlog->id(), null, $statuses[0]->id(), $teamMember->id(), $day('+7 days'), Priority::Medium);
 $manageTasks->create($website->id(), 'Review the cookie banner', $shared->id(), null, $statuses[2]->id(), $teamMember->id(), null, Priority::Low);
 $manageTasks->create($website->id(), 'Set up the domain', $backlog->id(), null, $statuses[5]->id(), $ownerMembership->id());
+// What the guest of the client sees: the section of the website meant for them, and one task of a
+// project of the office that only chosen people see; nothing else of either.
+$manageSharing->shareSection($shared->id(), $guestMembership->id());
+$office = $manageProjects->create('Office move', null, WorkflowTemplate::Simple, '');
+$manageSharing->changeVisibility($office->id(), ProjectVisibility::Chosen);
+$lease = $manageTasks->create($office->id(), 'Sign the lease');
+$manageSharing->shareTask($lease->id(), $guestMembership->id());
+$manageTasks->create($office->id(), 'Order the moving boxes');
 $tokenStorage->setToken(null);
 $context->reset();
 

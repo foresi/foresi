@@ -22,6 +22,7 @@ use App\Work\Domain\Task;
 use App\Work\Domain\TaskComment;
 use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
+use App\Work\Domain\WorkShare;
 
 /**
  * The audit log of a task as steps a person recognises: one action is one
@@ -30,7 +31,8 @@ use App\Work\Domain\TaskWatcher;
  * translation key of their label. A step that only moved the task among its
  * neighbours shows nothing and is left out. The due date and the priority
  * are told from what they were to what they became. A status or label removed since
- * keeps the last name the log knew.
+ * keeps the last name the log knew. Making the task private or open again,
+ * and sharing it with people or taking it back, are told with their names.
  *
  * Comments are told by the discussion of the task, not here: a step that
  * wrote, edited or deleted a comment is left out, the watcher it may have
@@ -72,7 +74,7 @@ final readonly class TaskHistory
         }
 
         $steps = [];
-        foreach ($this->grouped($entries) as $group) {
+        foreach (AuditSteps::of($entries) as $group) {
             $step = $this->step($group, $users, $people, $statuses, $labels);
             if ($step instanceof TaskHistoryEntry) {
                 $steps[] = $step;
@@ -105,6 +107,8 @@ final readonly class TaskHistory
         $priority = null;
         $watchers = [[], []];
         $tagged = [[], []];
+        $shares = [[], []];
+        $private = null;
         foreach ($group as $entry) {
             $changes = $entry->changes();
             $removed = AuditAction::Deleted === $entry->action();
@@ -121,6 +125,12 @@ final readonly class TaskHistory
                 $responsible = \array_key_exists('responsible', $changes) ? [$this->id($changes['responsible'][0] ?? null), $this->id($changes['responsible'][1] ?? null)] : $responsible;
                 $due = \array_key_exists('dueOn', $changes) ? [$this->date($changes['dueOn'][0] ?? null), $this->date($changes['dueOn'][1] ?? null)] : $due;
                 $priority = isset($changes['priority']) ? [$this->priority($changes['priority'][0] ?? null), $this->priority($changes['priority'][1] ?? null)] : $priority;
+                $private = \array_key_exists('private', $changes) ? self::flag($changes['private'][1] ?? null) : $private;
+            } elseif (WorkShare::class === $entry->entityClass()) {
+                $id = $this->id($changes['membership'][$removed ? 0 : 1] ?? null);
+                if (null !== $id) {
+                    $shares[$removed ? 1 : 0][] = $people[$id] ?? '';
+                }
             } elseif (TaskWatcher::class === $entry->entityClass()) {
                 $id = $this->id($changes['membership'][$removed ? 0 : 1] ?? null);
                 if (null !== $id) {
@@ -133,7 +143,7 @@ final readonly class TaskHistory
                 }
             }
         }
-        if ([] === $fields && null === $status && null === $responsible && null === $due && null === $priority && [[], []] === $watchers && [[], []] === $tagged) {
+        if ([] === $fields && null === $status && null === $responsible && null === $due && null === $priority && [[], []] === $watchers && [[], []] === $tagged && null === $private && [[], []] === $shares) {
             return null;
         }
 
@@ -157,6 +167,9 @@ final readonly class TaskHistory
             $due[1] ?? null,
             $priority[0] ?? null,
             $priority[1] ?? null,
+            $private,
+            $shares[0],
+            $shares[1],
         );
     }
 
@@ -216,32 +229,16 @@ final readonly class TaskHistory
         return (\is_string($value) ? Priority::tryFrom($value) : null) ?? Priority::None;
     }
 
+    /**
+     * A flag as the log keeps it.
+     */
+    public static function flag(mixed $value): bool
+    {
+        return true === $value || 1 === $value || '1' === $value;
+    }
+
     private function id(mixed $value): ?string
     {
         return \is_string($value) ? $value : null;
-    }
-
-    /**
-     * Consecutive entries of one correlation make one step; an entry without one is a step of its own.
-     *
-     * @param list<AuditEntry> $entries
-     *
-     * @return list<non-empty-list<AuditEntry>>
-     */
-    private function grouped(array $entries): array
-    {
-        $groups = [];
-        $previous = null;
-        foreach ($entries as $entry) {
-            $key = $entry->correlationId();
-            if (null !== $key && $key === $previous) {
-                $groups[array_key_last($groups)][] = $entry;
-            } else {
-                $groups[] = [$entry];
-            }
-            $previous = $key;
-        }
-
-        return $groups;
     }
 }

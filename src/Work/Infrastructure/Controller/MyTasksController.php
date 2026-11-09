@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
-use App\Identity\Application\StaffCheck;
+use App\Identity\Application\OpenToGuest;
 use App\Tenancy\Application\TenantClock;
 use App\Work\Application\TaskGroup;
 use App\Work\Application\TaskRow;
@@ -17,16 +17,17 @@ use App\Work\Domain\Priority;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * My unfinished tasks across the active projects, for the staff: those I am
+ * My unfinished tasks across the active projects I see, a guest's too: those I am
  * responsible for, or those I watch, by when they are due, as the My Tasks of
  * Asana. A group with nothing in it is left out; the client filter narrows
- * both tabs to the projects of one client.
+ * both tabs to the projects of one client. A project known only by its name,
+ * for a task shared on its own, is not a link.
  */
+#[OpenToGuest]
 final class MyTasksController extends AbstractController
 {
     public const string ROUTE = 'app_my_tasks';
@@ -35,7 +36,6 @@ final class MyTasksController extends AbstractController
 
     public function __construct(
         private readonly WorkQueries $queries,
-        private readonly StaffCheck $staff,
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -44,9 +44,6 @@ final class MyTasksController extends AbstractController
     #[Route('/my-tasks', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
-        if (!$this->staff->isStaff()) {
-            throw new AccessDeniedHttpException('Only the staff have tasks of the organisation.');
-        }
         $watching = self::WATCHING === $request->query->getString('tab');
         $clients = $this->clients();
         $client = $request->query->getString('client');
@@ -127,7 +124,7 @@ final class MyTasksController extends AbstractController
             'secondary' => $task->projectName,
             'cells' => [
                 'title' => $task->title,
-                'project' => ['links' => [['text' => $task->projectName, 'href' => $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $task->projectId])]]],
+                'project' => $task->projectSeen ? ['links' => [['text' => $task->projectName, 'href' => $this->generateUrl(ProjectController::PROJECT_ROUTE, ['id' => $task->projectId])]]] : $task->projectName,
                 'status' => ['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]],
                 'due' => $due,
                 'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),

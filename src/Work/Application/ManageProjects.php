@@ -61,7 +61,7 @@ final readonly class ManageProjects
      */
     public function edit(string $projectId, string $name, ?string $clientId, string $description): void
     {
-        $project = $this->work->project($projectId);
+        $project = $this->work->managedProject($projectId);
         $client = $this->client($clientId);
         WorkRefused::unlessNamed(static fn () => $project->rename($name));
         $this->unit->run(static function () use ($project, $client, $description): void {
@@ -75,7 +75,7 @@ final readonly class ManageProjects
      */
     public function archive(string $projectId): void
     {
-        $project = $this->work->project($projectId);
+        $project = $this->work->managedProject($projectId);
         $this->unit->run(fn () => $project->archive($this->clock->now()));
     }
 
@@ -84,7 +84,7 @@ final readonly class ManageProjects
      */
     public function restore(string $projectId): void
     {
-        $project = $this->work->project($projectId);
+        $project = $this->work->managedProject($projectId);
         $this->unit->run(static fn () => $project->restore());
     }
 

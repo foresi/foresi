@@ -60,6 +60,15 @@
                                                     <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% endif %} class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.text }}</a>
                                                 {%- endfor -%}
                                             </span>
+                                        {%- elseif cell.flag -%}
+                                            <span class="flex min-w-0 items-center gap-2" data-flag-cell>
+                                                {%- if cell.link -%}
+                                                    <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ cell.text }}</a>
+                                                {%- else -%}
+                                                    <span class="block min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
+                                                {%- endif -%}
+                                                <twig:Ui:Badge :tone="cell.flag.tone" class="shrink-0 gap-1">{% if cell.flag.icon %}{{ ux_icon('lucide:' ~ cell.flag.icon, {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{% endif %}{{ cell.flag.label }}</twig:Ui:Badge>
+                                            </span>
                                         {%- elseif cell.badges -%}
                                             <span class="flex flex-wrap items-center gap-1" data-badges>
                                                 {%- for badge in cell.badges %}<twig:Ui:Badge :tone="badge.tone">{{ badge.label }}</twig:Ui:Badge>{% endfor -%}

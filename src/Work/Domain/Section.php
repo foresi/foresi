@@ -18,6 +18,9 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * A group of tasks in the list of a project, independent of their status: a
  * phase, a deliverable, a part of the work. Audited under the project.
+ *
+ * A private section is hidden, with its tasks, from everyone it is not shared
+ * with, even from those who see the project.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project_section')]
@@ -36,6 +39,9 @@ class Section implements TenantOwned, Audited, AuditRooted
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME_LENGTH)]
     private string $name;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $private = false;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Project::class)]
@@ -57,6 +63,16 @@ class Section implements TenantOwned, Audited, AuditRooted
     public function moveTo(int $position): void
     {
         $this->position = $position;
+    }
+
+    public function makePrivate(bool $private): void
+    {
+        $this->private = $private;
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->private;
     }
 
     public function id(): string

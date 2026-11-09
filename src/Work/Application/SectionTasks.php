@@ -15,9 +15,10 @@ namespace App\Work\Application;
 final readonly class SectionTasks
 {
     /**
-     * @param list<TaskRow> $tasks by position
+     * @param list<TaskRow> $tasks   by position
+     * @param bool          $private whether only the people it is shared with see it
      */
-    public function __construct(public ?string $id, public ?string $name, public array $tasks)
+    public function __construct(public ?string $id, public ?string $name, public array $tasks, public bool $private = false)
     {
     }
 }

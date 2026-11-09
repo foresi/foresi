@@ -572,6 +572,37 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('bg-badge-gray', (string) $badges->eq(1)->attr('class'));
     }
 
+    public function testAFlaggedCellKeepsItsLinkAndShowsTheBadgeAfterIt(): void
+    {
+        $rows = [['id' => 'a1', 'href' => '/tasks/a1', 'cells' => ['name' => ['text' => 'Logo', 'flag' => ['label' => 'Private', 'tone' => 'gray', 'icon' => 'lock']], 'email' => ['text' => 'Plain', 'flag' => ['label' => 'Mark', 'tone' => 'amber']], 'balance' => '']]];
+
+        $crawler = new Crawler($this->render(['rows' => $rows]));
+
+        $cells = $crawler->filter('[data-flag-cell]');
+        self::assertCount(2, $cells);
+        self::assertSame('/tasks/a1', $cells->eq(0)->filter('a[data-row-link]')->attr('href'));
+        self::assertSame('Logo', $cells->eq(0)->filter('a')->text());
+        self::assertSame('Private', trim($cells->eq(0)->filter('span.rounded-sm')->text()));
+        self::assertStringContainsString('bg-badge-gray', (string) $cells->eq(0)->filter('span.rounded-sm')->attr('class'));
+        self::assertCount(1, $cells->eq(0)->filter('span.rounded-sm svg'));
+        self::assertCount(0, $cells->eq(1)->filter('a'));
+        self::assertSame('Plain', $cells->eq(1)->filter('span.truncate')->text());
+        self::assertStringContainsString('bg-badge-amber', (string) $cells->eq(1)->filter('span.rounded-sm')->attr('class'));
+        self::assertCount(0, $cells->eq(1)->filter('svg'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function testAFlaggedCellNeedsATextAndAKnownBadge(): void
+    {
+        foreach ([['flag' => ['label' => 'x']], ['text' => '', 'flag' => ['label' => 'x']], ['text' => 'T', 'flag' => ['tone' => 'gray']], ['text' => 'T', 'flag' => ['label' => 'x', 'tone' => 'pink']], ['text' => 'T', 'flag' => ['label' => 'x', 'icon' => 'no-such-icon']]] as $cell) {
+            try {
+                $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
+                self::fail('A flagged cell without a text or with an unknown badge was accepted.');
+            } catch (\InvalidArgumentException) {
+            }
+        }
+    }
+
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testABadgesCellNeedsBadgesWithLabelsAndKnownTones(): void
     {

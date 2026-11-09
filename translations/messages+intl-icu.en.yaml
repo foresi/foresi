@@ -9,6 +9,11 @@ login:
   submit: Sign in
 shared_with_me:
   title: Shared with me
+  projects: Projects
+  tasks: Single tasks
+  whole_project: Whole project
+  column:
+    shared: Shared
   empty:
     title: Nothing is shared with you yet
     text: Once the organisation shares work with you, you will find it here.
@@ -3134,6 +3139,7 @@ work:
     comment_deleted: This comment has been deleted.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
+    share_person: Choose an active person of the organisation to share with.
   cancel: Cancel
   save: Save
   history:
@@ -3151,6 +3157,63 @@ work:
     due: 'Due date {from} → {to}'
     priority: 'Priority {from} → {to}'
     no_date: —
+    shared: 'Shared with: {names}'
+    unshared: 'Stopped sharing with: {names}'
+    private:
+      tasks:
+        closed: Made the task private
+        opened: Made the task open again
+      sections:
+        closed: Made the section private
+        opened: Made the section open again
+      projects:
+        closed: Only chosen people see the project
+        opened: The whole organisation sees the project
+  sharing:
+    open: Share
+    open_section: Sharing
+    open_section_named: 'Sharing of the section {name}'
+    title:
+      projects: Share the project
+      sections: Share the section
+      tasks: Share the task
+    visibility:
+      legend: Who sees the project
+      organisation: The whole organisation
+      organisation_text: All team members. Guests only what you share with them.
+      chosen: Only chosen people
+      chosen_text: Only the people listed below and the owners of the organisation.
+    private:
+      sections: Private section
+      sections_help: Only the people listed and the owners see it and its tasks.
+      tasks: Private task
+      tasks_help: Only those listed and the owners see it and its subtasks.
+    people: Shared with
+    people_empty: Not shared with anyone yet.
+    owners: The owners of the organisation see everything; no need to share with them.
+    remove: Remove
+    remove_named: 'Remove {name}'
+    add: Add a person
+    choose: Choose a person
+    add_submit: Add
+    no_candidates: Every active person of the organisation is listed already.
+    history: Sharing history
+    done: Done
+    private_badge: Private
+    chosen_badge: Only chosen people
+    shared: 'Shared with {name}.'
+    unshared: '{name} no longer has access.'
+    projects:
+      closed: Only chosen people see the project now.
+      opened: The whole organisation sees the project now.
+    sections:
+      closed: The section is private now.
+      opened: The section is no longer private.
+    tasks:
+      closed: The task is private now.
+      opened: The task is no longer private.
+    error:
+      visibility: Choose who sees the project.
   discussion:
     title: Discussion and history
     filter:
@@ -3172,6 +3235,7 @@ work:
       text: This cannot be undone.
     edit_label: Edit comment
     composer: Comment
+    guest_visibility: Everyone who sees this task will see the comment.
     internal_switch: Internal comment
     internal_help: Guests will not see internal comments.
     submit: Add comment

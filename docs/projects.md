@@ -1,6 +1,6 @@
 # Projects and tasks
 
-Work of the organisation, kept in projects. This page says what the screens do and what is still to come; the decisions behind the model are in [ADR 0026](adr/0026-projects-and-tasks.md). Only the owner and the team members of an organisation see its projects. A guest sees none of them yet (see [people](people.md)).
+Work of the organisation, kept in projects. This page says what the screens do and what is still to come; the decisions behind the model are in [ADR 0026](adr/0026-projects-and-tasks.md). Owners see every project; team members see the projects open to the organisation and those shared with them; a guest sees only what is shared with them (see [Sharing](#sharing) and [people](people.md)).
 
 ## Concepts
 
@@ -9,7 +9,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 - **Status and workflow.** The statuses of a project are its workflow: the steps a task goes through, in order. A new project starts from a template, **Simple** (To do, In progress, Done) or **Development** (Open, In progress, Review, Testing, Blocked, Done, Closed). The names are translated once into your language and are plain text afterwards: rename, add, reorder or remove them in the project settings. What cannot change is the **type** of each status: open, active, done or closed. Reports and the completion date rely on the type, never on the name. A project always keeps at least one open and one done status.
 - **Task.** A piece of work with a title, a description, a status, a section, a **responsible** person, a due date, a priority (none, low, medium, high, urgent) and labels. A task gets its completion date when it enters a status of type done or closed, and loses it when it leaves.
 - **Subtask.** A task one level under another task of the same project. A subtask cannot have subtasks of its own.
-- **Responsible.** The one person accountable for a task, picked from the active people of the organisation.
+- **Responsible.** The one person accountable for a task, picked from the active people of the organisation who can see the task, guests included.
 - **Watcher.** A person who follows a task. The person who creates a task and the person responsible for it follow it from the start; anyone can watch or stop watching, and add other people on the task page. Notifications to watchers come later.
 - **Label.** A coloured tag, shared by all projects of the organisation, with a unique name. Colours are the badge tones of the interface: gray, green, amber and red.
 
@@ -40,7 +40,7 @@ Opening a task shows its title and description, its subtasks, its **attachments*
 
 Under the task, **Discussion and history** is one timeline, oldest first: every change with who made it and when (status, responsible, due date, priority, labels, watchers and edited fields) as a small line, and every comment as a full item. The tabs **All**, **Comments** and **History** narrow it. The comment box is under the timeline.
 
-- **Comments are internal by default.** An internal comment carries an **Internal** label with a lock, in words, never by colour alone. Only people of the organisation see it. Switch **Internal comment** off to write a public comment, which guests who may see the task read too. The default is internal because a slip into a public comment cannot be taken back, while making one public on purpose is a single switch. Guests cannot comment yet.
+- **Comments are internal by default.** An internal comment carries an **Internal** label with a lock, in words, never by colour alone. Only people of the organisation see it. Switch **Internal comment** off to write a public comment, which guests who may see the task read too. The default is internal because a slip into a public comment cannot be taken back, while making one public on purpose is a single switch. A guest has no switch: their comments are always public, and they never see an internal comment or its files.
 - **Sending.** The button **Add comment**, or Ctrl+Enter (Cmd+Enter on a Mac). The page lands on the new comment.
 - **Mentions.** Type `@` and the first letters of a name: the people who can see the task appear in a list; Up and Down move, Enter or a click chooses. The mention is stored as `@[Name](membership:id)` and shown as a chip. It is kept only for an active person who can see the task, whatever the text claims.
 - **Markdown.** Comments and the description use a safe subset: paragraphs and line breaks, **bold**, *italic*, ~~strikethrough~~, lists and task lists, links (`http`, `https`, `mailto`), `code`, code blocks, quotes, rules and headings (from the third level down, so a text never outranks the page). Everything else is removed: raw HTML is shown as text, scripts, styles and other tags and attributes are dropped, and so are links with other schemes and images from elsewhere (only the installation's own attachments show as images). The **Preview** tab shows the result before you send; the toolbar (bold, italic, list, link, code, quote) and Ctrl/Cmd+B, I and K help writing.
@@ -66,7 +66,7 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 
 ## My tasks
 
-**Work, My tasks** lists the unfinished tasks you are responsible for, grouped by when they are due: overdue, today, the next 7 days, later and without a date. A group with nothing in it is left out. The **Watching** tab lists the tasks you follow instead. The client filter narrows both tabs. The count of tasks due by today is shown beside the item in the menu.
+**Work, My tasks** lists the unfinished tasks you are responsible for, grouped by when they are due: overdue, today, the next 7 days, later and without a date. A group with nothing in it is left out. The **Watching** tab lists the tasks you follow instead. The client filter narrows both tabs. The count of tasks due by today is shown beside the item in the menu. A guest has **My tasks** too, with the tasks they see; the project of a task shared on its own is named, not linked.
 
 ## Project settings
 
@@ -75,6 +75,28 @@ Open **Settings** on a project to:
 - change its name, client and description, and archive or restore it;
 - add, rename, reorder and remove **sections**. A removed section does not delete its tasks, they move to "No section";
 - add, rename, retype, reorder and remove **statuses**. Removing a status asks where its tasks go.
+
+## Sharing
+
+Who sees what follows one rule:
+
+- **Owners** see everything.
+- **Team members** see the projects open to **the whole organisation** (the default) and the projects, sections and tasks shared with them.
+- **Guests** see only what is shared with them: a project, a section or a single task.
+- Inside a project a person sees, everything that is not **private**. A private section or task is seen only by the people it is shared with (and the owners), even by those who see the rest of the project. A subtask follows its task; the tasks of a private section follow the section; a task shared with someone is seen by them wherever it is.
+- A guest with a **section** shared sees its project with only that section. A guest with a **single task** shared sees that task, its subtasks and the name of its project for orientation, never its other tasks, its sections or the project page.
+
+**Share**, in the header of the list, the board and the task, and **Sharing** on each section in the project settings, open one dialog:
+
+- **Who sees the project**: the whole organisation or only chosen people; for a section or a task, the **Private** switch.
+- **Shared with**: the people it is shared with, each with **Remove**. Removing takes effect at once.
+- **Add person**: a picker of the active team members and guests. Owners are left out: they see everything.
+
+Making an item private keeps it shared with whoever made it private, so a team member never locks themselves out. Removing a private section leaves its tasks private, shared with the same people. Every share, removal and change of visibility reaches the audit log; the task history says it, and the dialog of a project or a section shows its sharing history. Only the people of the organisation share, and only what they see. A private item carries a **Private** badge, a project only chosen people see a **Chosen people only** badge.
+
+### Guests
+
+A guest starts on **Shared with me**: the projects they see (the whole project, or the names of the sections shared with them), then the tasks shared with them on their own, under the name of their project. On a project or a task they see, a guest works as the staff do, at one level: they add tasks where they see a section (in no section only when the whole project is shared), add subtasks, change the status, responsible, due date, priority and existing labels, move cards on the board, comment, mention, watch, and attach files. They never see the settings of a project, its trash, the sharing dialog, the labels screen or any other module, and they cannot delete a task. The filter of the responsible person offers them the people of the organisation, never other guests. A page they may not see is not found; a screen of the staff is refused.
 
 ## Labels
 
@@ -88,8 +110,6 @@ There is nothing to configure. The trash is emptied by the scheduled job `task-t
 
 Not in this release:
 
-- **Sharing with guests.** Sharing a project, a section or a task with a client or a subcontractor, who then sees only that.
-- **Comments** on a task.
-- **Attachments** on a task.
+- **Levels of sharing**, such as view only or comment only for a guest; today every guest has the one level above.
 - **Notifications** to the responsible person and the watchers.
 - **Time tracking** against projects and tasks, and billing it on an invoice.

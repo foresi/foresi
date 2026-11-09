@@ -3,13 +3,15 @@
     A project as a board: the filters, then one column per status in order, each with its top-level
     tasks as cards in their order. A card is dragged by its handle, or moved by the items of its menu,
     which are plain forms; the menu also deletes the task. A new task opens in a dialog from the
-    header and starts in the first open status. The columns scroll sideways inside the board, never the page.
+    header and starts in the first open status; so does the sharing dialog. A private task has its badge. The columns scroll sideways inside the board, never the page.
 #}
 {% extends 'layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name}] %}
+{% set crumbs = (project.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([{label: project.name}]) %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+{% set share %}{% if project.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'projects', id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-project-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+{% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
 {% set editable = not project.archivedAt %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\ProjectController::MOVE_TOKEN')) %}
 {% set newTask %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_task_new', {id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-new-open>{{ 'work.task.new'|trans }}</twig:Ui:Button>{% endset %}
@@ -24,15 +26,16 @@
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>
-    {% if not project.archivedAt %}{{ newTask }}{% endif %}
+    {% if project.manageable %}<twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>{% endif %}
+    {{ share }}
+    {% if not project.archivedAt and project.taskable %}{{ newTask }}{% endif %}
 {% endblock %}
 
 {% block content %}
     {{ include('work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
         {% if project.clientId %}
-            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: <a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a></p>
+            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
         {% endif %}
 
         <div class="flex flex-wrap items-end justify-between gap-3">
@@ -60,7 +63,7 @@
                                 <li class="grid gap-2 rounded-panel border border-container bg-white p-2 shadow-raised" data-board-card data-task-id="{{ card.id }}" data-move-url="{{ path('app_task_move', {id: card.id}) }}">
                                     <div class="flex min-w-0 items-start gap-1">
                                         {% if editable %}<twig:Ui:IconButton icon="grip-vertical" :label="'work.board.drag'|trans({title: card.title})" variant="ghost" size="sm" class="shrink-0 cursor-grab" data-board-handle />{% endif %}
-                                        <a href="{{ card.href }}" class="min-w-0 flex-1 self-center break-words font-medium text-ink no-underline hover:underline {{ focus }}" data-card-title>{{ card.title }}</a>
+                                        <span class="min-w-0 flex-1 self-center"><a href="{{ card.href }}" class="break-words font-medium text-ink no-underline hover:underline {{ focus }}" data-card-title>{{ card.title }}</a>{% if card.private %} {{ include('work/_private_badge.html.twig') }}{% endif %}</span>
                                         {% if editable or card.deletable %}
                                             {% set menuId = 'card-menu-' ~ card.id %}
                                             <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
