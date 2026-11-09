@@ -18,7 +18,18 @@ async function openWebsite(page: Page, view: '' | '/board' = ''): Promise<void> 
 // What changes from one run or day to the next: the colour of a person's initials follows a random
 // id, and the due dates are relative to today.
 function volatile(page: Page) {
-  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('main td').filter({ hasText: /\d{1,2}\. \d{1,2}\. \d{4}/ }), page.locator('[data-card-due]')];
+  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('main td').filter({ hasText: /\d{1,2}\.\s\d{1,2}\.\s\d{4}/ }), page.locator('[data-card-due]')];
+}
+
+// Relative due dates change the width of their column from one day to the next, so every date
+// gets the same text before a screenshot.
+async function freezeDates(page: Page): Promise<void> {
+  await page.locator('main td, main [data-card-due]').evaluateAll((elements) => elements.forEach((element) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); null !== node; node = walker.nextNode()) {
+      node.textContent = (node.textContent ?? '').replace(/\d{1,2}\.\s\d{1,2}\.\s\d{4}/g, '1. 1. 2026');
+    }
+  }));
 }
 
 function card(page: Page, title: string) {
@@ -33,12 +44,15 @@ test.describe('screens', () => {
   test('the list, the board and my tasks look as approved @visual', async ({ page }) => {
     await openWebsite(page);
     await expect(page.locator('[data-section]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png', { mask: volatile(page) });
     await page.getByRole('link', { name: 'Nástěnka' }).click();
     await expect(page.locator('[data-board-card]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('board-content.png', { mask: volatile(page) });
     await page.goto('/my-tasks');
     await expect(page.locator('[data-task-group]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('my-tasks-content.png', { mask: volatile(page) });
   });
 });
@@ -58,20 +72,23 @@ test.describe('projects', () => {
     await dialog.getByRole('button', { name: 'Založit projekt' }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Intranet');
-    await expect(page.locator('main')).toContainText('Zatím žádné úkoly.');
+    await expect(page.locator('[data-project-empty]')).toContainText('Zatím žádné úkoly');
+    await expect(page.locator('[data-project-empty]').getByRole('link', { name: 'Nový úkol' })).toBeVisible();
   });
 
-  test('quick add keeps the focus for the next task', async ({ page }) => {
+  test('two tasks are added through the dialog of the header', async ({ page }) => {
     await openWebsite(page);
-    const input = page.locator('#add-' + (await page.locator('[data-section]').filter({ hasText: 'Backlog' }).getAttribute('data-section')));
-    await input.fill('Prepare the sitemap');
-    await input.press('Enter');
-    await expect(page.locator('main')).toContainText('Prepare the sitemap');
-    await expect(input).toBeFocused();
-    await input.fill('Check the redirects');
-    await input.press('Enter');
-    await expect(page.locator('main')).toContainText('Check the redirects');
-    await expect(input).toBeFocused();
+    for (const title of ['Prepare the sitemap', 'Check the redirects']) {
+      await page.getByRole('link', { name: 'Nový úkol' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Nový úkol' });
+      await expect(dialog.getByLabel('Název')).toBeFocused();
+      await dialog.getByLabel('Název').fill(title);
+      await dialog.getByLabel('Sekce').selectOption({ label: 'Backlog' });
+      await dialog.getByRole('button', { name: 'Přidat úkol' }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.locator('main')).toContainText(`Úkol „${title}“ je přidaný.`);
+      await expect(page.locator('[data-section]').filter({ hasText: 'Backlog' }).locator('tbody tr').filter({ hasText: title })).toBeVisible();
+    }
   });
 
   test('a task changes its status and priority and the activity says so', async ({ page }) => {
@@ -129,9 +146,9 @@ test.describe('projects', () => {
   test('a task deleted from the list comes back by its Undo and from the trash', async ({ page }) => {
     await openWebsite(page);
     const title = 'Remove the old banner';
-    const input = page.locator('#add-' + (await page.locator('[data-section]').filter({ hasText: 'Backlog' }).getAttribute('data-section')));
-    await input.fill(title);
-    await input.press('Enter');
+    await page.getByRole('link', { name: 'Nový úkol' }).click();
+    await page.getByRole('dialog').getByLabel('Název').fill(title);
+    await page.getByRole('dialog').getByRole('button', { name: 'Přidat úkol' }).click();
     const row = page.locator('[data-section] tbody tr').filter({ hasText: title });
     await expect(row).toBeVisible();
 

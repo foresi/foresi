@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The summary of what to fix in a form of a task: a problem of no field takes the focus itself;
+    otherwise the first field to fix does. Each field links to its input, whose id is the prefix and the field.
+#}
+{% if errors is not empty %}
+    {% set fieldErrors = errors|filter((message, field) => field != 'form') %}
+    <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+        <p class="m-0 mb-1 font-semibold">{{ 'work.project.errors_title'|trans }}</p>
+        <ul class="m-0 grid list-none gap-0.5 p-0">
+            {% for field, message in errors %}
+                <li>
+                    {%- if field == 'form' %}{{ message }}
+                    {%- else %}<a href="#{{ prefix ~ field }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ('work.task.field.' ~ field)|trans }}</a>: {{ message }}
+                    {%- endif -%}
+                </li>
+            {% endfor %}
+        </ul>
+    </twig:Ui:Alert>
+{% endif %}

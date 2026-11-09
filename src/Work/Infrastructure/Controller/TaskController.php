@@ -110,7 +110,6 @@ final class TaskController extends AbstractController
             \in_array($edit, self::EDITABLE, true) ? $edit : null,
             [],
             [],
-            $request->query->has('add'),
             editComment: '' === $editComment ? null : $editComment,
             filter: DiscussionFilter::tryFrom($request->query->getString('activity')) ?? DiscussionFilter::All,
         );
@@ -137,7 +136,7 @@ final class TaskController extends AbstractController
                 return $this->back($id);
             }
 
-            return $this->page($this->detail($id), null, ['comment' => $body, 'comment_internal' => $internal ? '1' : ''], ['comment' => $this->translator->trans('work.refused.'.$refused->reason)], false, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->page($this->detail($id), null, ['comment' => $body, 'comment_internal' => $internal ? '1' : ''], ['comment' => $this->translator->trans('work.refused.'.$refused->reason)], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
     }
 
@@ -153,7 +152,7 @@ final class TaskController extends AbstractController
         } catch (WorkRefused $refused) {
             $this->notFoundIfUnknown($refused);
             if (\in_array($refused->reason, self::COMMENT_TEXT, true)) {
-                return $this->page($this->detail($taskId), null, ['comment_edit' => $body], ['comment_edit' => $this->translator->trans('work.refused.'.$refused->reason)], false, Response::HTTP_UNPROCESSABLE_ENTITY, $id);
+                return $this->page($this->detail($taskId), null, ['comment_edit' => $body], ['comment_edit' => $this->translator->trans('work.refused.'.$refused->reason)], Response::HTTP_UNPROCESSABLE_ENTITY, $id);
             }
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
@@ -277,7 +276,7 @@ final class TaskController extends AbstractController
             }
         }
 
-        return $this->page($this->detail($id), 'title', ['title' => $title], ['title' => $error], false, Response::HTTP_UNPROCESSABLE_ENTITY);
+        return $this->page($this->detail($id), 'title', ['title' => $title], ['title' => $error], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     #[Route('/tasks/{id}/description', name: 'app_task_description', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -395,22 +394,46 @@ final class TaskController extends AbstractController
     }
 
     /**
-     * Adds a subtask by its title, in the section of its task, and comes back
-     * with the line ready for the next one. An empty title adds nothing.
+     * A new subtask by its title, in the section of its task: a dialog over
+     * the task (the same URL is a page of its own) that goes back to its
+     * subtasks. A subtask has none, nor has a task of an archived project.
      */
-    #[Route('/tasks/{id}/subtasks', name: 'app_task_subtasks', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
-    public function subtasks(string $id, Request $request): RedirectResponse
+    #[Route('/tasks/{id}/subtasks/new', name: 'app_task_subtask_new', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    public function newSubtask(string $id, Request $request): Response
     {
-        $title = trim($request->request->getString('title'));
-        $this->save($id, $request, function () use ($id, $title): void {
-            if ('' === $title) {
-                return;
-            }
-            $task = $this->detail($id)->task;
-            $this->tasks->create($task->projectId, $title, $task->sectionId, $id);
-        });
+        $this->denyUnlessStaff();
+        $task = $this->detail($id);
+        $subtasks = $this->generateUrl(self::ROUTE, ['id' => $id, '_fragment' => 'task-subtasks-title']);
+        if ($task->parent instanceof Choice || $task->projectArchived) {
+            $this->addFlash('error', $this->translator->trans('work.refused.'.($task->projectArchived ? 'archived' : 'parent')));
 
-        return $this->redirectToRoute(self::ROUTE, ['id' => $id, 'add' => 1, '_fragment' => 'add-subtask'], Response::HTTP_SEE_OTHER);
+            return $this->back($id);
+        }
+        $title = '';
+        $error = null;
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $title = trim($request->request->getString('title'));
+            if ('' === $title) {
+                $error = $this->translator->trans('work.task.error.title_required');
+            } else {
+                try {
+                    $this->tasks->create($task->task->projectId, $title, $task->task->sectionId, $id);
+                    $this->addFlash('success', $this->translator->trans('work.task.subtask_added', ['title' => $title]));
+
+                    return $this->redirect($subtasks, Response::HTTP_SEE_OTHER);
+                } catch (WorkRefused $refused) {
+                    $this->notFoundIfUnknown($refused);
+                    $error = $this->translator->trans('work.refused.'.$refused->reason);
+                }
+            }
+        }
+
+        return $this->render('work/task/subtask_new.html.twig', [
+            'task' => $task,
+            'values' => ['title' => $title],
+            'errors' => null === $error ? [] : ['title' => $error],
+        ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**
@@ -441,7 +464,6 @@ final class TaskController extends AbstractController
         ?string $edit,
         array $values,
         array $errors,
-        bool $adding,
         int $status = Response::HTTP_OK,
         ?string $editComment = null,
         DiscussionFilter $filter = DiscussionFilter::All,
@@ -489,7 +511,6 @@ final class TaskController extends AbstractController
             'edit' => $edit,
             'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => '1'],
             'errors' => array_filter($errors, \is_string(...)),
-            'adding' => $adding,
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
             'statuses' => $statuses,
             'responsibles' => $responsibles,

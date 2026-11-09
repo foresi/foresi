@@ -5,7 +5,7 @@
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
     button for a browser without JavaScript. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
-    opens in the viewer dialog.
+    opens in the viewer dialog. A new subtask opens in a dialog from the header.
 #}
 {% extends 'layout/app.html.twig' %}
 
@@ -23,6 +23,7 @@
 
 {% block actions %}
     {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
+    {% if not task.parent and not task.projectArchived %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}
     {% if row.deletable %}
         {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
         <div class="relative" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
@@ -84,12 +85,6 @@
                             <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'work.task.no_subtasks'|trans }}</p>
                         </twig:block>
                     </twig:Ui:DataTable>
-                    {% if not task.projectArchived %}
-                        <form method="post" action="{{ path('app_task_subtasks', {id: row.id}) }}" class="max-w-field-long" data-controller="quick-add" data-action="submit->quick-add#submit" data-quick-add>
-                            <input type="hidden" name="_token" value="{{ token }}">
-                            <twig:Ui:TextInput name="title" id="add-subtask" :label="'work.task.add_subtask'|trans" :placeholder="'work.list.add_placeholder'|trans" maxlength="500" autocomplete="off" enterkeyhint="send" :autofocus="adding" data-quick-add-target="title" />
-                        </form>
-                    {% endif %}
                 </section>
             {% endif %}
 

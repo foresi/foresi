@@ -33,7 +33,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The projects index, a new project in its dialog, the list of a project section
- * by section with its filters, the line that adds a task, and the task page.
+ * by section with its filters, the dialog of a new task, and the task page.
  */
 final class ProjectControllerTest extends WebTestCase
 {
@@ -70,7 +70,7 @@ final class ProjectControllerTest extends WebTestCase
     {
         $this->signIn(Role::Guest);
 
-        foreach (['/projects', '/projects/new', '/projects/clients?q=exa'] as $url) {
+        foreach (['/projects', '/projects/new', '/projects/clients?q=exa', '/projects/01900000-0000-7000-8000-000000000000/tasks/new'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
@@ -232,54 +232,179 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->titles($crawler));
     }
 
-    public function testTheLineAtTheEndOfASectionAddsATaskAndIsReadyForTheNext(): void
+    public function testTheHeaderOfTheListAndTheBoardOpensTheDialogOfANewTask(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        foreach (['/projects/'.$id.'?due=overdue', '/projects/'.$id.'/board?due=overdue'] as $url) {
+            $crawler = $this->client->request('GET', $url);
+            $open = $crawler->filter('main a[data-task-new-open]');
+            self::assertCount(1, $open, $url);
+            $href = (string) $open->attr('href');
+            self::assertStringStartsWith('/projects/'.$id.'/tasks/new?', $href);
+            parse_str((string) parse_url($href, \PHP_URL_QUERY), $query);
+            self::assertSame(['return' => $url], $query);
+            self::assertNotNull($open->attr('data-dialog'));
+            self::assertSame('follow', $open->attr('data-dialog-then'));
+            self::assertSame('New task', trim($open->text()));
+            // No line to add a task in the content any more.
+            self::assertCount(0, $crawler->filter('main input[name="title"]'), $url);
+        }
+    }
+
+    public function testTheDialogAddsATaskToTheChosenSectionAndGoesBackToTheListWithItsFilters(): void
     {
         $this->signIn();
         $id = $this->seedList();
         $design = $this->sectionId($id, 'Design');
-        $crawler = $this->client->request('GET', '/projects/'.$id.'?due=overdue');
+        $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
 
-        $form = $crawler->filter('[data-section="'.$design.'"] form[data-quick-add]')->form(['title' => '  Colours  ']);
-        $this->client->submit($form);
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?section='.$design.'&return='.rawurlencode('/projects/'.$id.'?due=overdue'), server: $dialog);
 
-        self::assertResponseStatusCodeSame(303);
-        self::assertResponseRedirects('/projects/'.$id.'?due=overdue&add='.$design.'#add-'.$design);
-        $this->client->request('GET', '/projects/'.$id.'?add='.$design);
-        $crawler = $this->client->getCrawler();
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('dialog#dialog-page form#task-new-form');
+        self::assertCount(1, $form);
+        self::assertSame(['No section', 'Design', 'Build'], $form->filter('#task-new-section option')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame($design, $form->filter('#task-new-section option[selected]')->attr('value'));
+        self::assertSame('/projects/'.$id.'?due=overdue', $form->filter('input[name="return"]')->attr('value'));
+
+        $this->client->submit($form->form(['title' => '  Colours  ']), serverParameters: $dialog);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['location' => '/projects/'.$id.'?due=overdue'], json_decode((string) $this->client->getResponse()->getContent(), true));
+        $crawler = $this->client->request('GET', '/projects/'.$id);
+        self::assertSelectorTextContains('main', 'The task “Colours” is added.');
         self::assertSame(['Wireframes', 'Logo', 'Colours'], $crawler->filter('[data-section="'.$design.'"] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        $input = $crawler->filter('#add-'.$design);
-        self::assertSame('', $input->attr('value'));
-        self::assertNotNull($input->attr('autofocus'));
-        self::assertCount(1, $crawler->filter('input[name="title"][autofocus]'));
-
-        // An empty line adds nothing, and the tasks in no section get their own line.
-        $this->client->submit($crawler->filter('[data-section="none"] form[data-quick-add]')->form(['title' => '   ']));
-        self::assertResponseRedirects('/projects/'.$id.'?add=none#add-none');
-        $this->client->submit($crawler->filter('[data-section="none"] form[data-quick-add]')->form(['title' => 'Kick-off']));
-        $crawler = $this->client->followRedirect();
-        self::assertSame(['Brief', 'Kick-off'], $crawler->filter('[data-section="none"] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        self::assertCount(6, $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task'));
+        self::assertSame('To do', $this->statusOf('Colours'));
     }
 
-    public function testAQuickAddNeedsItsToken(): void
+    public function testWithoutJavaScriptTheDialogIsAPageThatAddsToNoSectionByDefault(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?section=01900000-0000-7000-8000-000000000000');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main h1', 'New task');
+        // A section the project does not have is no choice; the page goes back to the list.
+        self::assertSame('', $crawler->filter('#task-new-section option[selected]')->attr('value'));
+        self::assertSame('/projects/'.$id, $crawler->filter('input[name="return"]')->attr('value'));
+        $this->client->submit($crawler->filter('#task-new-form')->form(['title' => 'Kick-off']));
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseRedirects('/projects/'.$id);
+        $crawler = $this->client->followRedirect();
+        self::assertSame(['Brief', 'Kick-off'], $crawler->filter('[data-section="none"] tbody tr td:first-child')->each(static fn (Crawler $cell): string => trim($cell->text())));
+    }
+
+    public function testANewTaskNeedsATitleAndASectionOfTheProjectAndKeepsWhatWasTyped(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $build = $this->sectionId($id, 'Build');
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new');
+
+        $crawler = $this->client->submit($crawler->filter('#task-new-form')->form(['title' => '   ', 'section' => $build]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Enter the title of the task.', trim($crawler->filter('#task-new-title-error')->text()));
+        self::assertSame('true', $crawler->filter('#task-new-title')->attr('aria-invalid'));
+        self::assertSelectorTextContains('[data-error-summary]', 'Title: Enter the title of the task.');
+        self::assertSame($build, $crawler->filter('#task-new-section option[selected]')->attr('value'));
+
+        $long = str_repeat('a', 501);
+        $crawler = $this->client->submit($crawler->filter('#task-new-form')->form(['title' => $long]));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Enter a name that is not too long.', trim($crawler->filter('#task-new-title-error')->text()));
+        self::assertSame($long, $crawler->filter('#task-new-title')->attr('value'));
+
+        $this->client->request('POST', '/projects/'.$id.'/tasks/new', ['_token' => $crawler->filter('#task-new-form input[name="_token"]')->attr('value'), 'title' => 'Colours', 'section' => '01900000-0000-7000-8000-000000000000']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Choose a section of this project.', trim($this->client->getCrawler()->filter('#task-new-section-error')->text()));
+        self::assertSame('Colours', $this->client->getCrawler()->filter('#task-new-title')->attr('value'));
+        self::assertCount(4, $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task'));
+    }
+
+    public function testFromTheBoardTheTaskStartsInTheFirstOpenStatusAndTheBoardComesBack(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode('/projects/'.$id.'/board?responsible=me&status=finished&due=nonsense'));
+
+        $this->client->submit($crawler->filter('#task-new-form')->form(['title' => 'Sitemap']));
+
+        self::assertResponseRedirects('/projects/'.$id.'/board?responsible=me');
+        self::assertSame('To do', $this->statusOf('Sitemap'));
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/board');
+        self::assertContains('Sitemap', $this->board($crawler)['To do']);
+        self::assertSelectorTextContains('main', 'The task “Sitemap” is added.');
+    }
+
+    public function testAReturnPathElsewhereGoesBackToTheList(): void
     {
         $this->signIn();
         $id = $this->createProject('Website');
 
-        $this->client->request('POST', '/projects/'.$id.'/tasks', ['_token' => 'wrong', 'title' => 'Brief', 'section' => 'none']);
-
-        self::assertResponseStatusCodeSame(403);
+        foreach (['https://evil.example.com/projects/'.$id.'/board', '//evil.example.com', '/contacts?status=all', 'nonsense'] as $return) {
+            $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode($return));
+            self::assertSame('/projects/'.$id, $crawler->filter('input[name="return"]')->attr('value'), $return);
+        }
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode('https://evil.example.com/'));
+        $this->client->submit($crawler->filter('#task-new-form')->form(['title' => 'Brief']));
+        self::assertResponseRedirects('/projects/'.$id);
     }
 
-    public function testANewProjectWithoutSectionsAddsToNoSection(): void
+    public function testAnArchivedProjectOffersNoNewTask(): void
+    {
+        $this->signIn();
+        $id = $this->seedList();
+        $this->scoped(function () use ($id): void {
+            ($this->em->find(Project::class, $id) ?? throw new \LogicException('Project.'))->archive(new \DateTimeImmutable());
+            $this->em->flush();
+        });
+
+        foreach (['/projects/'.$id, '/projects/'.$id.'/board'] as $url) {
+            $crawler = $this->client->request('GET', $url);
+            self::assertCount(0, $crawler->filter('a[data-task-new-open]'), $url);
+        }
+        $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode('/projects/'.$id.'/board'));
+        self::assertResponseRedirects('/projects/'.$id.'/board');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'The project is archived. Restore it first.');
+        $this->client->request('POST', '/projects/'.$id.'/tasks/new', ['_token' => 'any', 'title' => 'Late']);
+        self::assertResponseRedirects('/projects/'.$id);
+        self::assertCount(4, $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task'));
+    }
+
+    public function testANewTaskNeedsItsTokenAndAnExistingProject(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+
+        $this->client->request('POST', '/projects/'.$id.'/tasks/new', ['_token' => 'wrong', 'title' => 'Brief']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('GET', '/projects/01900000-0000-7000-8000-000000000000/tasks/new');
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame([], $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task'));
+    }
+
+    public function testAProjectWithoutTasksShowsAnEmptyStateThatAddsTheFirst(): void
     {
         $this->signIn();
         $id = $this->createProject('Website');
 
         $crawler = $this->client->request('GET', '/projects/'.$id);
 
-        self::assertSame(['none'], $crawler->filter('[data-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-section')));
-        self::assertCount(1, $crawler->filter('form[data-quick-add]'));
+        self::assertCount(0, $crawler->filter('[data-section]'));
+        self::assertSelectorTextContains('[data-project-empty]', 'No tasks yet');
+        self::assertCount(1, $crawler->filter('[data-project-empty] a[data-task-new-open]'));
+        self::assertCount(2, $crawler->filter('main a[data-task-new-open]'));
+
+        $crawler = $this->client->request('GET', '/projects/'.$id.'?status=finished');
+        self::assertSelectorTextContains('[data-project-empty]', 'No task matches the filters.');
+        self::assertCount(0, $crawler->filter('[data-project-empty] a'));
     }
 
     public function testTheTaskPageShowsWhatTheTaskIs(): void
@@ -547,6 +672,14 @@ final class ProjectControllerTest extends WebTestCase
         self::assertIsString($id);
 
         return $id;
+    }
+
+    private function statusOf(string $title): string
+    {
+        $name = $this->em->getConnection()->fetchOne('SELECT s.name FROM task t JOIN project_status s ON s.id = t.status_id WHERE t.title = ?', [$title]);
+        self::assertIsString($name);
+
+        return $name;
     }
 
     /**
