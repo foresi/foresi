@@ -152,7 +152,7 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame(1, new NavigationItem('main', 'a', 'plus', 'r1', countCap: 1)->countCap);
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('A count cap is a positive number.');
+        $this->expectExceptionMessageIsOrContains('A count cap is a positive number.');
 
         new NavigationItem('main', 'a', 'plus', 'r1', countCap: 0);
     }
