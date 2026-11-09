@@ -480,6 +480,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $this->visibility->canManage(),
             $open,
             $open || [] !== $this->sections($project),
+            $project->billsTimeByDefault(),
         );
     }
 

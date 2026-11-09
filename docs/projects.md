@@ -72,7 +72,7 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 
 Open **Settings** on a project to:
 
-- change its name, client and description, and archive or restore it;
+- change its name, client and description and whether it bills its time, and archive or restore it;
 - add, rename, reorder and remove **sections**. A removed section does not delete its tasks, they move to "No section";
 - add, rename, retype, reorder and remove **statuses**. Removing a status asks where its tasks go.
 
@@ -112,7 +112,7 @@ Owners and team members log the time they spend on the work; guests never see ti
 - **Timer.** **Start timer** in the header of a task, or in the dialog of the week page for a project or a task, starts a timer from now on the organisation's today. Each person runs one timer: starting another stops the running one and logs its time first. While it runs, a bar above every page names its task or project, links to it, counts the time and has **Stop**, which logs the time; the task header says **Stop timer**. The start is stored, so a reload or another device shows the same time.
 - **On the task.** The **Time** block shows the total against the estimate, as "3 h 20 min of 5 h", then each entry, newest day first, with its day, person, duration, note and whether it is billable; a running timer shows as **Running**. The author or an owner edits an entry in the same dialog and deletes it from its line. A running timer is stopped, not edited.
 - **Estimate.** A property of the task in the panel beside it, in hours and minutes typed like a duration, such as `5 h` or `2h 30m`.
-- **Billable.** Every entry is billable or not. The dialog starts from the project's default: a project for a client bills its time, an internal project does not. Change it per entry.
+- **Billable.** Every entry is billable or not. The dialog starts from the project's default: a project created for a client bills its time, an internal project does not. **Bill time** in the project settings changes the default for new time; existing entries keep theirs. Change it per entry.
 - **Week.** **Work, Time** opens the person's week, Monday to Sunday: each day with its entries and its total, and the total of the week. The header moves a week back or on, or to this one, and logs time. Each entry links to its task, or its project without one, and is edited and deleted from the week as on the task. An owner switches to the week of anyone of the team.
 - **Report.** The **Report** tab reads a period, this month unless last month or other dates are chosen, narrowed to a project, a client, a person, billable or not and invoiced or not. It shows the total, the billable and the non-billable time and the number of entries, the totals by project, person or task, and the entries, newest first. **Export CSV** in the header downloads the entries with the same filter: date, person, client, project, task, minutes, hours, billable and note, separated by semicolons. The report and the week hold only the time of what the person sees: time on a task follows the task, time without a task needs the whole project.
 
@@ -134,5 +134,4 @@ Not in this release:
 - **Reply by e-mail** to a notification, and quiet hours for e-mails.
 - **Notifications for a shared project or section**; today only a task shared on its own tells the person.
 - **Invoicing time**: hourly rates on the project, the client and the person, a dialog that turns unbilled billable time into the lines of a new invoice, and entries locked once invoiced. Until then every entry reads as not invoiced.
-- **A switch for the billable default** of a project; today it follows whether the project has a client.
 - **Import from ClickUp**: folders, lists, tasks, comments, attachments and time entries.

@@ -3590,6 +3590,8 @@ work:
       client_empty: No contact found
       workflow: Workflow
       description: Description
+      billable: Bill time
+      billable_help: New time on this project starts as billable.
     error:
       name_required: Enter the name of the project.
       workflow: Choose one of the workflows.

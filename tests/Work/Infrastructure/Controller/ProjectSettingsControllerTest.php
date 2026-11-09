@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Work\Infrastructure\Controller;
 
+use App\Audit\Application\AuditTrail;
+use App\Audit\Domain\AuditAction;
+use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Role;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
@@ -18,10 +21,12 @@ use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Section;
 use App\Work\Domain\Task;
+use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * The settings of a project: its general part and archiving, its sections and
@@ -98,6 +103,62 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Saved.');
         self::assertSame('Example Client', $crawler->filter('#client')->attr('value'));
         self::assertSame(['name' => 'New website', 'client_id' => $client, 'description' => 'The new site.'], $this->em->getConnection()->fetchAssociative('SELECT name, client_id, description FROM project WHERE id = ?', [$id]));
+    }
+
+    public function testAnOwnerChoosesWhetherTheTimeOfTheProjectIsBillable(): void
+    {
+        $this->signIn();
+        $id = $this->createProject('Website');
+        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
+        // An internal project starts with its time not billable.
+        self::assertNull($crawler->filter('#billable')->attr('checked'));
+        self::assertSame('New time on this project starts as billable.', trim($crawler->filter('#billable-help')->text()));
+
+        $this->client->submit($crawler->filter('#project-settings-form')->form(['billable' => '1']));
+        self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
+        $crawler = $this->client->followRedirect();
+        self::assertNotNull($crawler->filter('#billable')->attr('checked'));
+        self::assertTrue($this->billable($id));
+
+        // The change is in the history of the project, as its other fields are.
+        $this->context->switchTo($this->tenant);
+        try {
+            $updates = array_values(array_filter(
+                self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
+                static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
+            ));
+        } finally {
+            $this->context->reset();
+        }
+        self::assertSame([false, true], $updates[0]->changes()['billableByDefault'] ?? null);
+
+        $form = $crawler->filter('#project-settings-form')->form();
+        $checkbox = $form['billable'];
+        self::assertInstanceOf(ChoiceFormField::class, $checkbox);
+        $checkbox->untick();
+        $this->client->submit($form);
+        self::assertFalse($this->billable($id));
+    }
+
+    public function testAGuestCannotChangeWhetherTheTimeIsBillable(): void
+    {
+        $this->signIn(Role::Guest);
+        $this->context->switchTo($this->tenant);
+        try {
+            $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
+            self::assertIsString($userId);
+            $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, new \DateTimeImmutable());
+            $this->em->persist($project);
+            $this->em->flush();
+            $id = $project->id();
+        } finally {
+            $this->context->reset();
+        }
+
+        $this->client->request('POST', '/projects/'.$id.'/settings', ['name' => 'Website', 'billable' => '1']);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertFalse($this->billable($id));
     }
 
     public function testAProjectIsArchivedAndRestoredAfterAQuestion(): void
@@ -274,6 +335,11 @@ final class ProjectSettingsControllerTest extends WebTestCase
         } finally {
             $this->context->reset();
         }
+    }
+
+    private function billable(string $project): bool
+    {
+        return (bool) $this->em->getConnection()->fetchOne('SELECT billable_by_default FROM project WHERE id = ?', [$project]);
     }
 
     private function contact(string $name): string
