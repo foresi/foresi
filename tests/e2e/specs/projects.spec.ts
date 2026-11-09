@@ -18,7 +18,7 @@ async function openWebsite(page: Page, view: '' | '/board' = ''): Promise<void> 
 // What changes from one run or day to the next: the colour of a person's initials follows a random
 // id, and the due dates are relative to today.
 function volatile(page: Page) {
-  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('main td').filter({ hasText: /\d{1,2}\. \d{1,2}\. \d{4}/ }), page.locator('[data-card-due]')];
+  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('main td').filter({ hasText: /\d{1,2}\.\s\d{1,2}\.\s\d{4}/ }), page.locator('[data-card-due]')];
 }
 
 // Relative due dates change the width of their column from one day to the next, so every date
@@ -27,7 +27,7 @@ async function freezeDates(page: Page): Promise<void> {
   await page.locator('main td, main [data-card-due]').evaluateAll((elements) => elements.forEach((element) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); null !== node; node = walker.nextNode()) {
-      node.textContent = (node.textContent ?? '').replace(/\d{1,2}\. \d{1,2}\. \d{4}/g, '1. 1. 2026');
+      node.textContent = (node.textContent ?? '').replace(/\d{1,2}\.\s\d{1,2}\.\s\d{4}/g, '1. 1. 2026');
     }
   }));
 }
