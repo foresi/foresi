@@ -124,7 +124,7 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorExists('#sidebar[data-sidebar-target="panel"]');
     }
 
-    public function testUserMenuListsProfileApiLanguageOrganisationAndLogout(): void
+    public function testUserMenuListsProfileNotificationsApiLanguageOrganisationAndLogout(): void
     {
         $this->browser->seed(['Tenant A', 'Tenant B']);
         $this->browser->signIn();
@@ -136,7 +136,8 @@ final class AppShellTest extends WebTestCase
         $menu = $crawler->filter('[data-controller="dropdown"] [role="menu"]');
         self::assertCount(1, $menu);
         self::assertTrue($menu->matches('[hidden]'));
-        self::assertCount(5, $menu->filter('[role="menuitem"]'));
+        self::assertCount(6, $menu->filter('[role="menuitem"]'));
+        self::assertSelectorExists('[role="menu"] a[href="/account/notifications"]');
         self::assertSelectorExists('[role="menu"] form[action="/account/language"] input[name="_token"]');
         self::assertSelectorExists('[role="menu"] form[action="/logout"][method="post"] input[name="_csrf_token"]');
         self::assertSelectorExists('[role="menu"] a[href="/organisation/choose"]');

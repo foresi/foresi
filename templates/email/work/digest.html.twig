@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The HTML content of the daily digest of notifications, by project, inline styled for mail clients; the system mail layout wraps it. #}
+<p style="margin:0 0 16px;font-size:17px;font-weight:bold;color:#1f2933;">{{ 'work.notification_mail.digest_intro'|trans({count: count}, null, locale) }}</p>
+{% for project in projects %}
+<p style="margin:0 0 6px;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;color:#616e7c;">{{ project.name }}</p>
+<ul style="margin:0 0 16px;padding:0;list-style:none;">
+{% for row in project.rows %}
+    <li style="margin:0 0 8px;"><a href="{{ row.url }}" style="color:#2f4a3a;font-weight:bold;">{{ row.task }}</a><br><span style="color:#3e4c59;">{{ row.event }}</span></li>
+{% endfor %}
+</ul>
+{% endfor %}
+<p style="margin:8px 0 24px;"><a href="{{ inboxUrl }}" style="display:inline-block;padding:10px 16px;border-radius:6px;background:#2f4a3a;color:#ffffff;font-weight:bold;text-decoration:none;">{{ 'work.notification_mail.open_inbox'|trans({}, null, locale) }}</a></p>
+<p style="margin:0;font-size:13px;color:#616e7c;"><a href="{{ settingsUrl }}" style="color:#616e7c;">{{ 'work.notification_mail.settings'|trans({}, null, locale) }}</a> · <a href="{{ unsubscribeUrl }}" style="color:#616e7c;">{{ unsubscribeLabel }}</a></p>

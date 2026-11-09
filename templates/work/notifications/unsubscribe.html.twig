@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page of the link that stops a kind of notification e-mail: a question with a button first, as
+    mail filters open links, then what changed and where to change it back.
+#}
+{% extends 'layout/auth.html.twig' %}
+
+{% block title %}{{ (done ? 'work.unsubscribe.done_title' : 'work.unsubscribe.title')|trans({}, 'messages', locale) }}{% endblock %}
+
+{% block content %}
+    {% if done %}
+        <p class="m-0 mb-4 text-body text-text" data-unsubscribe-done>{{ ('work.unsubscribe.done.' ~ what)|trans({}, 'messages', locale) }}</p>
+        <p class="m-0 text-small text-muted">{{ 'work.unsubscribe.inbox'|trans({}, 'messages', locale) }}</p>
+        <p class="m-0 mt-4"><twig:Ui:Button :href="path('app_notification_settings')" variant="ghost" size="sm">{{ 'work.notification_settings.title'|trans({}, 'messages', locale) }}</twig:Ui:Button></p>
+    {% else %}
+        <p class="m-0 mb-4 text-body text-text" data-unsubscribe-question>{{ ('work.unsubscribe.question.' ~ what)|trans({}, 'messages', locale) }}</p>
+        <form method="post" action="{{ action }}" data-turbo="false">
+            <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'work.unsubscribe.submit'|trans({}, 'messages', locale) }}</twig:Ui:Button>
+        </form>
+        <p class="m-0 mt-4 text-small text-muted">{{ 'work.unsubscribe.inbox'|trans({}, 'messages', locale) }}</p>
+    {% endif %}
+{% endblock %}

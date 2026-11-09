@@ -26,6 +26,7 @@ use App\Work\Application\DiscussionFilter;
 use App\Work\Application\DiscussionItem;
 use App\Work\Application\LabelBadge;
 use App\Work\Application\ManageComments;
+use App\Work\Application\ManageNotifications;
 use App\Work\Application\ManageTasks;
 use App\Work\Application\MentionCandidate;
 use App\Work\Application\TaskDetail;
@@ -59,6 +60,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * card on the board, without a question: it goes to the trash of its project,
  * and the message that says so has an Undo, as Gmail and Linear do it. The
  * trash is the staff's: a guest neither deletes nor restores.
+ *
+ * Opening the page reads the row of the task in one's inbox, as opening an
+ * issue does in Linear and GitHub; a link Turbo fetches ahead on hover is
+ * not an opening.
  */
 final class TaskController extends AbstractController
 {
@@ -96,6 +101,7 @@ final class TaskController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly VisibleAttachments $attachments,
         private readonly AttachmentPermissions $attachmentPermissions,
+        private readonly ManageNotifications $notifications,
     ) {
     }
 
@@ -104,6 +110,9 @@ final class TaskController extends AbstractController
     public function show(string $id, Request $request): Response
     {
         $task = $this->detail($id);
+        if ('prefetch' !== $request->headers->get('X-Sec-Purpose')) {
+            $this->notifications->markRead($id);
+        }
         $edit = $request->query->getString('edit');
         $editComment = $request->query->getString('edit_comment');
 

@@ -33,6 +33,9 @@ final readonly class DeliverSystemMailHandler
             ->to($mail->to)
             ->subject($mail->subject)
             ->text($this->twig->render('email/system.txt.twig', $context));
+        foreach ($mail->headers as $name => $value) {
+            $email->getHeaders()->addTextHeader($name, $value);
+        }
         if (null !== $mail->html) {
             $email->html($this->twig->render('email/system.html.twig', $context));
         }

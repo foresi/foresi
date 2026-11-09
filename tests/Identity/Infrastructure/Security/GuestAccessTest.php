@@ -50,6 +50,10 @@ final class GuestAccessTest extends WebTestCase
         'app_task_title', 'app_task_description', 'app_task_status', 'app_task_responsible', 'app_task_due', 'app_task_priority',
         'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_watchers', 'app_task_subtask_new',
         'app_markdown_preview', 'app_attachment', 'app_attachment_upload', 'app_attachment_delete',
+        // Their own inbox, which holds only the tasks they see.
+        'app_notifications', 'app_notifications_read_all', 'app_notification_done', 'app_notification_undone',
+        // Their own e-mail settings, and the signed link in an e-mail that stops one kind of them.
+        'app_notification_settings', 'app_notification_unsubscribe',
         // No live components exist: an unknown one is not found before any controller runs.
         'ux_live_component',
     ];
@@ -101,9 +105,9 @@ final class GuestAccessTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Shared with me');
         self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
-        // The sidebar offers what is shared and their tasks, nothing else of the
+        // The sidebar offers what is shared, their inbox and their tasks, nothing else of the
         // modules (the extensions group holds the test environment's own probe item).
-        self::assertSame(['/shared', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn ($link): string => (string) $link->attr('href')));
     }
 
     public function testTheStaffKeepTheirDashboardAndTheAddressBook(): void

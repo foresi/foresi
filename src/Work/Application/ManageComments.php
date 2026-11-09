@@ -25,11 +25,13 @@ use Psr\Clock\ClockInterface;
  * reads an internal comment, nor writes one. The author alone edits or
  * deletes a comment; an owner of the organisation may also delete one, to
  * moderate, but never puts words in someone else's mouth. Whoever comments
- * follows the task, as in ClickUp and Asana.
+ * follows the task, as in ClickUp and Asana, and so does whoever it mentions,
+ * as in Basecamp, Linear and GitHub.
  *
  * The people a comment mentions are kept as rows beside it, in step with its
  * text: only active people who can see the task, and the comment when it is
- * internal, whatever the text claims.
+ * internal, whatever the text claims. They hear of the mention, the other
+ * watchers of the comment; an edit tells only the people it adds.
  */
 final readonly class ManageComments
 {
@@ -43,6 +45,7 @@ final readonly class ManageComments
         private AuditActor $actor,
         private ClockInterface $clock,
         private WorkUnit $unit,
+        private Notifier $notifier,
     ) {
     }
 
@@ -57,8 +60,9 @@ final readonly class ManageComments
 
         return $this->unit->run(function () use ($task, $author, $comment): TaskComment {
             $this->comments->add($comment);
-            $this->syncMentions($comment, []);
-            $this->watch($task, $author);
+            $mentioned = $this->syncMentions($comment, []);
+            $this->watch($task, [$author, ...$mentioned]);
+            $this->notifier->commented($comment, $mentioned);
 
             return $comment;
         });
@@ -79,7 +83,9 @@ final readonly class ManageComments
         $body = $this->body($body);
         $this->unit->run(function () use ($comment, $body): void {
             $comment->edit($body, $this->clock->now());
-            $this->syncMentions($comment, $this->comments->mentions($comment));
+            $mentioned = $this->syncMentions($comment, $this->comments->mentions($comment));
+            $this->watch($comment->task(), $mentioned);
+            $this->notifier->mentioned($comment, $mentioned);
         });
     }
 
@@ -102,8 +108,10 @@ final readonly class ManageComments
 
     /**
      * @param list<CommentMention> $current
+     *
+     * @return list<Membership> the people mentioned anew
      */
-    private function syncMentions(TaskComment $comment, array $current): void
+    private function syncMentions(TaskComment $comment, array $current): array
     {
         $wanted = [];
         foreach (MentionSyntax::ids($comment->text()) as $id) {
@@ -122,16 +130,27 @@ final readonly class ManageComments
         foreach ($wanted as $membership) {
             $this->comments->add(new CommentMention($comment, $membership));
         }
+
+        return array_values($wanted);
     }
 
-    private function watch(Task $task, Membership $membership): void
+    /**
+     * Each person follows the task once, however often they are named.
+     *
+     * @param list<Membership> $memberships
+     */
+    private function watch(Task $task, array $memberships): void
     {
+        $watching = [];
         foreach ($this->tasks->watchers($task) as $watcher) {
-            if ($watcher->membership()->id() === $membership->id()) {
-                return;
+            $watching[$watcher->membership()->id()] = true;
+        }
+        foreach ($memberships as $membership) {
+            if (!isset($watching[$membership->id()])) {
+                $watching[$membership->id()] = true;
+                $this->tasks->add(new TaskWatcher($task, $membership));
             }
         }
-        $this->tasks->add(new TaskWatcher($task, $membership));
     }
 
     /**

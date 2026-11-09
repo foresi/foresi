@@ -22,8 +22,9 @@ function volatile(page: Page) {
 }
 
 // Relative due dates change the width of their column from one day to the next, so every date
-// gets the same text before a screenshot.
+// gets the same text before a screenshot; the pointer leaves the page, so no row shows its hover.
 async function freezeDates(page: Page): Promise<void> {
+  await page.mouse.move(0, 0);
   await page.locator('main td, main [data-card-due]').evaluateAll((elements) => elements.forEach((element) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); null !== node; node = walker.nextNode()) {

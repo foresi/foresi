@@ -79,7 +79,7 @@ final class GuestWorkTest extends WebTestCase
         // The project of the task is known by its name only: no link to it anywhere.
         self::assertCount(0, $crawler->filter('main a[href="/projects/'.$this->projectId('Office move').'"]'));
         self::assertStringNotContainsString('Hidden', $crawler->filter('main')->text());
-        self::assertSame(['/shared', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/my-tasks'], $crawler->filter('#sidebar [data-nav-group]:not([data-nav-group="extensions"]) li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
     }
 
     public function testAGuestWithNothingSharedSeesTheEmptyStartPage(): void

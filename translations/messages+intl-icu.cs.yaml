@@ -76,6 +76,7 @@ nav:
     projects: Projekty
     labels: Štítky
     my_tasks: Moje úkoly
+    notifications: Oznámení
 ui:
   dialog:
     close: Zavřít
@@ -113,6 +114,7 @@ ui:
     actions: Akce
     more_actions: 'Další akce pro {label}'
     total: Celkem
+    unread: Nepřečteno
   bulk:
     label: Hromadné akce
     selected:
@@ -147,6 +149,7 @@ shell:
   user_menu:
     label: Menu účtu
     profile: Můj profil
+    notifications: Nastavení oznámení
     api_access: Přístupy k API a MCP
     language: 'Přepnout jazyk na {language}'
     switch_organisation: Přepnout organizaci
@@ -3347,6 +3350,96 @@ work:
       watching_title: Nesledujete žádné nehotové úkoly
       watching_text: Úkol začnete sledovat na jeho stránce.
       filtered: Pro tohoto klienta tu nic není.
+  notifications:
+    settings: Nastavení
+    title: Oznámení
+    views: Pohledy na oznámení
+    read_all: Označit vše jako přečtené
+    tab:
+      new: Nové
+      done: Hotové
+    filter:
+      label: Zobrazit
+      all: Vše
+      mentions: Zmínky
+      assigned: Přiřazené
+    column:
+      task: Úkol
+      event: Co se stalo
+      at: Kdy
+    event:
+      mentioned: Zmínka v komentáři
+      assigned: Úkol přiřazen vám
+      commented: Nový komentář
+      status_changed: Změna stavu
+      shared: Úkol sdílen s vámi
+    more: '{event} {count, plural, one {(+# další)} few {(+# další)} other {(+# dalších)}}'
+    done: Hotovo
+    undone: Vrátit do nových
+    kept: Hotová oznámení se uchovávají 3 měsíce, pak se smažou.
+    empty:
+      new_title: Žádná nová oznámení
+      new_text: Zmínky, přiřazené úkoly a novinky ve sledovaných úkolech uvidíte tady.
+      done_title: Zatím nic hotového
+      done_text: Oznámení, která označíte jako hotová, tu zůstanou 3 měsíce.
+      filtered: S tímto filtrem tu nic není.
+  notification_settings:
+    title: Nastavení oznámení
+    email_card: E-maily
+    intro: Oznámení máte vždy v aplikaci. Tady vyberete, o čem vám přijde i e-mail.
+    event:
+      mentioned: Zmínky v komentářích
+      assigned: Přiřazené úkoly
+      commented: Komentáře ve sledovaných úkolech
+      status_changed: Změny stavu sledovaných úkolů
+      shared: Úkoly sdílené s vámi
+    delivery:
+      immediate: Hned
+      digest: V denním souhrnu
+      'off': Nic
+    digest_card: Denní souhrn
+    digest_hour: Čas souhrnu
+    digest_hour_help: Čas organizace. Souhrn přijde, jen když je co nového.
+    no_email: Nechci žádné e-maily
+    no_email_help: Oznámení zůstanou jen v aplikaci.
+    unavailable: Tato instalace zatím neposílá e-maily, oznámení jsou pro všechny jen v aplikaci.
+    save: Uložit
+    cancel: Zrušit
+    saved: Nastavení oznámení je uložené.
+  notification_mail:
+    subject:
+      mentioned: 'Zmínka v úkolu „{task}“'
+      assigned: 'Přiřazený úkol „{task}“'
+      digest: '{count, plural, one {Denní souhrn: # novinka} few {Denní souhrn: # novinky} other {Denní souhrn: # novinek}}'
+    task: Úkol
+    project: Projekt
+    open_task: Otevřít úkol
+    open_inbox: Otevřít oznámení
+    digest_intro: '{count, plural, one {# novinka ve vašich úkolech} few {# novinky ve vašich úkolech} other {# novinek ve vašich úkolech}}'
+    settings: Nastavení oznámení
+    unsubscribe:
+      mentioned: Neposílat e-maily o zmínkách
+      assigned: Neposílat e-maily o přiřazených úkolech
+      digest: Neposílat denní souhrn
+  unsubscribe:
+    title: Vypnout e-maily
+    done_title: E-maily vypnuté
+    question:
+      mentioned: Vypnout e-maily o zmínkách v komentářích?
+      assigned: Vypnout e-maily o úkolech, které vám někdo přiřadí?
+      commented: Vypnout e-maily o komentářích ve sledovaných úkolech?
+      status_changed: Vypnout e-maily o změnách stavu sledovaných úkolů?
+      shared: Vypnout e-maily o úkolech sdílených s vámi?
+      digest: Vypnout denní souhrn oznámení?
+    done:
+      mentioned: E-maily o zmínkách už nepřijdou.
+      assigned: E-maily o přiřazených úkolech už nepřijdou.
+      commented: E-maily o komentářích už nepřijdou.
+      status_changed: E-maily o změnách stavu už nepřijdou.
+      shared: E-maily o sdílených úkolech už nepřijdou.
+      digest: Denní souhrn už nepřijde.
+    submit: Vypnout
+    inbox: Oznámení dál uvidíte v aplikaci a e-maily znovu zapnete v nastavení oznámení.
   projects:
     title: Projekty
     views: Pohledy na projekty

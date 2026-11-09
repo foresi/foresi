@@ -21,6 +21,19 @@ final readonly class NavigationEntry
         public bool $current,
         public ?string $commandLabelKey = null,
         public ?string $commandRoute = null,
+        public ?int $countCap = null,
     ) {
+    }
+
+    /**
+     * The count as the sidebar writes it: above the cap, the cap with a plus.
+     */
+    public function countText(): ?string
+    {
+        if (null === $this->count) {
+            return null;
+        }
+
+        return null !== $this->countCap && $this->count > $this->countCap ? $this->countCap.'+' : (string) $this->count;
     }
 }

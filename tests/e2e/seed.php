@@ -29,7 +29,10 @@ declare(strict_types=1);
  * projects spec; its task "Design the homepage" carries two comments (an internal one of the
  * owner that mentions Jana Example, a public one of hers), a PNG and a PDF for the discussion spec;
  * its section "Shared with client" is shared with the guest, and so is, on its own, the task
- * "Sign the lease" of "Office move", a project only chosen people see, for the sharing spec. Run it after the migrations, in the e2e
+ * "Sign the lease" of "Office move", a project only chosen people see, for the sharing spec. For
+ * the notifications spec Jana Example mentions the owner on "Set up the domain" and gives them
+ * "Book the launch venue" of "Launch" (done, so My tasks stays as it is); the guest hears of the
+ * task shared with them. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -129,6 +132,7 @@ use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
 use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\ProjectVisibility;
+use App\Work\Domain\StatusType;
 use App\Work\Domain\WorkflowTemplate;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Dotenv\Dotenv;
@@ -879,7 +883,7 @@ $contact = $manageTasks->create($website->id(), 'Fix the contact form', $backlog
 $manageTasks->setLabels($contact->id(), [$bug->id()]);
 $manageTasks->create($website->id(), 'Write the copy for the about page', $backlog->id(), null, $statuses[0]->id(), $teamMember->id(), $day('+7 days'), Priority::Medium);
 $manageTasks->create($website->id(), 'Review the cookie banner', $shared->id(), null, $statuses[2]->id(), $teamMember->id(), null, Priority::Low);
-$manageTasks->create($website->id(), 'Set up the domain', $backlog->id(), null, $statuses[5]->id(), $ownerMembership->id());
+$domain = $manageTasks->create($website->id(), 'Set up the domain', $backlog->id(), null, $statuses[5]->id(), $ownerMembership->id());
 // What the guest of the client sees: the section of the website meant for them, and one task of a
 // project of the office that only chosen people see; nothing else of either.
 $manageSharing->shareSection($shared->id(), $guestMembership->id());
@@ -888,6 +892,12 @@ $manageSharing->changeVisibility($office->id(), ProjectVisibility::Chosen);
 $lease = $manageTasks->create($office->id(), 'Sign the lease');
 $manageSharing->shareTask($lease->id(), $guestMembership->id());
 $manageTasks->create($office->id(), 'Order the moving boxes');
+// The inbox of the owner, from Jana: a mention, and a task given to them.
+$launch = $manageProjects->create('Launch', null, WorkflowTemplate::Simple, '');
+$launchDone = $entityManager->getRepository(ProjectStatus::class)->findOneBy(['project' => $launch, 'type' => StatusType::Done]) ?? throw new LogicException('The done status of Launch is missing.');
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
+$manageComments->add($domain->id(), sprintf('@[Projects Example](membership:%s) the DNS records are in, can you check them?', $ownerMembership->id()), true);
+$manageTasks->create($launch->id(), 'Book the launch venue', null, null, $launchDone->id(), $ownerMembership->id());
 $tokenStorage->setToken(null);
 $context->reset();
 

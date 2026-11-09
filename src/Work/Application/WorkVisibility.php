@@ -68,4 +68,11 @@ interface WorkVisibility
     public function canMembershipSeeTask(Membership $membership, Task $task): bool;
 
     public function scope(): WorkScope;
+
+    /**
+     * The scope of another person of the organisation, for what is read for
+     * them rather than by them: their inbox, their mail. Nothing for a person
+     * whose membership is deactivated.
+     */
+    public function scopeOf(Membership $membership): WorkScope;
 }

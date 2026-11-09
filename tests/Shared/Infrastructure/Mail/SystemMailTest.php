@@ -106,6 +106,28 @@ final class SystemMailTest extends KernelTestCase
         self::assertStringEndsWith("Sent by Foresi\n", (string) $email->getTextBody());
     }
 
+    public function testTheHeadersOfAListReachTheMail(): void
+    {
+        self::bootKernel();
+        $transport = new RecordingTransport();
+        $handler = new DeliverSystemMailHandler(SystemMailSettings::through($transport, 'noreply@example.com'), self::getContainer()->get(Environment::class));
+
+        $handler(new SystemMail('jana@example.com', 'Digest', 'News.', null, 'en', null, ['List-Unsubscribe' => '<https://foresi.example.com/unsubscribe/x>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click']));
+
+        $email = $transport->sent[0];
+        self::assertInstanceOf(Email::class, $email);
+        self::assertSame('<https://foresi.example.com/unsubscribe/x>', $email->getHeaders()->get('List-Unsubscribe')?->getBodyAsString());
+        self::assertSame('List-Unsubscribe=One-Click', $email->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
+    }
+
+    public function testAMailCarriesNoOtherHeader(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('A system mail does not carry the header "Bcc".');
+
+        new SystemMail('jana@example.com', 'Digest', 'News.', null, 'en', null, ['List-Unsubscribe' => '<x>', 'Bcc' => 'someone@example.com']);
+    }
+
     public function testTheHandlerIsUnavailableWithoutAMailer(): void
     {
         self::bootKernel();

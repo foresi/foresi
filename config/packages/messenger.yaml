@@ -74,6 +74,8 @@ framework:
             App\Invoicing\Application\IssueRecurringTemplate: async
             # Sending documents by e-mail, on its own queue.
             App\Invoicing\Application\DeliverInvoiceSend: mail
+            # The delayed e-mail of a mention or an assignment, decided in its tenant; it queues system mail.
+            App\Work\Application\SendNotificationMail: async
             # Mail of the installation itself, such as invitations, with the same retries.
             App\Shared\Application\SystemMail: mail
 
