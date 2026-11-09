@@ -65,7 +65,7 @@
                     <ol class="m-0 grid list-none divide-y divide-divider p-0">
                         {% for section in sections %}
                             <li class="flex flex-wrap items-end gap-2 py-2 first:pt-0" data-settings-section="{{ section.id }}">
-                                <form method="post" action="{{ path('app_project_section_rename', {id: project.id, sectionId: section.id}) }}" class="flex min-w-0 flex-1 items-end gap-2">
+                                <form method="post" action="{{ path('app_project_section_rename', {id: project.id, sectionId: section.id}) }}" class="flex w-full min-w-0 items-end gap-2 sm:w-auto sm:flex-1">
                                     <input type="hidden" name="_token" value="{{ token }}">
                                     <div class="min-w-0 flex-1"><twig:Ui:TextInput name="name" :id="'section-' ~ section.id" :label="'work.settings.section_name'|trans" :value="section.name" maxlength="120" required autocomplete="off" /></div>
                                     <twig:Ui:Button type="submit">{{ 'work.save'|trans }}</twig:Ui:Button>
