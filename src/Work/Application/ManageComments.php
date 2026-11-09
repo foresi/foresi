@@ -20,14 +20,16 @@ use App\Work\Domain\TaskWatcher;
 use Psr\Clock\ClockInterface;
 
 /**
- * Writing on a task. Only the people of the organisation comment for now, and
- * a new comment is internal unless said otherwise. The author alone edits or
+ * Writing on a task. Whoever sees a task comments on it. A comment of the
+ * people of the organisation is internal unless said otherwise; a guest never
+ * reads an internal comment, nor writes one. The author alone edits or
  * deletes a comment; an owner of the organisation may also delete one, to
  * moderate, but never puts words in someone else's mouth. Whoever comments
  * follows the task, as in ClickUp and Asana.
  *
  * The people a comment mentions are kept as rows beside it, in step with its
- * text: only active people who can see the task, whatever the text claims.
+ * text: only active people who can see the task, and the comment when it is
+ * internal, whatever the text claims.
  */
 final readonly class ManageComments
 {
@@ -50,8 +52,8 @@ final readonly class ManageComments
     public function add(string $taskId, string $body, bool $internal = true): TaskComment
     {
         $task = $this->work->task($taskId);
-        $author = $this->commenter();
-        $comment = new TaskComment($task, $author, $this->body($body), $internal, $this->clock->now());
+        $author = $this->commenter($task);
+        $comment = new TaskComment($task, $author, $this->body($body), $internal && $this->visibility->canSeeInternal(), $this->clock->now());
 
         return $this->unit->run(function () use ($task, $author, $comment): TaskComment {
             $this->comments->add($comment);
@@ -68,7 +70,7 @@ final readonly class ManageComments
     public function edit(string $commentId, string $body): void
     {
         $comment = $this->comment($commentId);
-        if ($comment->author()->id() !== $this->commenter()->id()) {
+        if ($comment->author()->id() !== $this->commenter($comment->task())->id()) {
             throw new WorkRefused('comment_not_yours');
         }
         if ($comment->isDeleted()) {
@@ -89,7 +91,7 @@ final readonly class ManageComments
     public function delete(string $commentId): void
     {
         $comment = $this->comment($commentId);
-        if ($comment->author()->id() !== $this->commenter()->id() && !$this->owner->isOwner()) {
+        if ($comment->author()->id() !== $this->commenter($comment->task())->id() && !$this->owner->isOwner()) {
             throw new WorkRefused('comment_not_yours');
         }
         $this->unit->run(function () use ($comment): void {
@@ -106,7 +108,7 @@ final readonly class ManageComments
         $wanted = [];
         foreach (MentionSyntax::ids($comment->text()) as $id) {
             $membership = $this->people->membership($id);
-            if ($membership instanceof Membership && $membership->isActive() && $this->visibility->canMembershipSeeTask($membership, $comment->task())) {
+            if ($membership instanceof Membership && $this->visibility->canMembershipSeeTask($membership, $comment->task()) && (!$comment->isInternal() || $membership->role()->isStaff())) {
                 $wanted[$membership->id()] = $membership;
             }
         }
@@ -133,14 +135,14 @@ final readonly class ManageComments
     }
 
     /**
-     * A comment on a task the person may see.
+     * A comment the person may read, on a task they may see.
      *
      * @throws WorkRefused
      */
     private function comment(string $id): TaskComment
     {
         $comment = $this->comments->comment($id);
-        if (!$comment instanceof TaskComment) {
+        if (!$comment instanceof TaskComment || ($comment->isInternal() && !$this->visibility->canSeeInternal())) {
             throw new WorkRefused('unknown');
         }
         $this->work->task($comment->task()->id());
@@ -149,13 +151,15 @@ final readonly class ManageComments
     }
 
     /**
-     * The active membership of the signed-in person, who works for the organisation.
+     * The active membership of the signed-in person, who may comment on the task.
      *
      * @throws WorkRefused
      */
-    private function commenter(): Membership
+    private function commenter(Task $task): Membership
     {
-        $this->work->assertManager();
+        if (!$this->visibility->canComment($task)) {
+            throw new WorkRefused('not_allowed');
+        }
         $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
         $membership = $this->people->membershipOf($userId);
         if (!$membership instanceof Membership || !$membership->isActive()) {

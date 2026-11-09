@@ -10,16 +10,18 @@ namespace App\Work\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
+use App\Identity\Application\StaffCheck;
 use App\Work\Domain\Task;
 
 /**
  * Who puts a task in the trash and takes it out again: the person who created
  * it, or an owner of the organisation, as with a comment. Anyone else who sees
- * the task may change it, but not make it disappear for the team.
+ * the task may change it, but not make it disappear for the team. A guest
+ * never does, not even with a task they created.
  */
 final readonly class TrashPermission
 {
-    public function __construct(private AuditActor $actor, private OwnerCheck $owner)
+    public function __construct(private AuditActor $actor, private OwnerCheck $owner, private StaffCheck $staff)
     {
     }
 
@@ -36,7 +38,7 @@ final readonly class TrashPermission
     public function rule(): \Closure
     {
         $userId = $this->actor->userId();
-        if (null === $userId) {
+        if (null === $userId || !$this->staff->isStaff()) {
             return static fn (string $createdBy): bool => false;
         }
         if ($this->owner->isOwner()) {

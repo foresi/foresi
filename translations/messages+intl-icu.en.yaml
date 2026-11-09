@@ -3134,6 +3134,7 @@ work:
     comment_deleted: This comment has been deleted.
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
+    share_person: Choose an active person of the organisation to share with.
   cancel: Cancel
   save: Save
   history:

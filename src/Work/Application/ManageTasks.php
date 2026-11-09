@@ -29,6 +29,8 @@ use Psr\Clock\ClockInterface;
  * Deleting puts a task in the trash with its subtasks, at one moment, as one
  * step; restoring brings back what went there at that moment. A subtask does
  * not come back without its task: restoring it restores the task too.
+ *
+ * Only someone who sees a task is responsible for it or follows it.
  */
 final readonly class ManageTasks
 {
@@ -40,6 +42,7 @@ final readonly class ManageTasks
         private Tasks $tasks,
         private Labels $labels,
         private VisibleWork $work,
+        private WorkVisibility $visibility,
         private People $people,
         private AuditActor $actor,
         private ClockInterface $clock,
@@ -65,14 +68,15 @@ final readonly class ManageTasks
         ?\DateTimeImmutable $dueOn = null,
         Priority $priority = Priority::None,
     ): Task {
-        $project = $this->work->project($projectId);
+        // A subtask needs only its task to be seen, not the whole project.
+        $parent = null === $parentId ? null : $this->work->task($parentId);
+        $project = $parent instanceof Task && $parent->project()->id() === $projectId ? $parent->project() : $this->work->project($projectId);
         if ($project->isArchived()) {
             throw new WorkRefused('archived');
         }
         $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
         $section = null === $sectionId ? null : $this->work->section($sectionId);
         $status = null === $statusId ? $this->firstOpen($project) : $this->work->status($statusId);
-        $parent = null === $parentId ? null : $this->work->task($parentId);
         if ($parent instanceof Task && ($parent->isSubtask() || $parent->project()->id() !== $project->id())) {
             throw new WorkRefused('parent');
         }
@@ -82,9 +86,13 @@ final readonly class ManageTasks
         if ($status->project()->id() !== $project->id()) {
             throw new WorkRefused('unknown');
         }
-        $responsible = null === $responsibleId ? null : $this->activeMembership($responsibleId, 'responsible');
+        // A task goes where the person sees the section, or the whole project for none.
+        if (!$parent instanceof Task) {
+            $this->work->assertTaskIn($project, $section);
+        }
         $now = $this->clock->now();
         $task = WorkRefused::unlessNamed(fn (): Task => new Task($project, $title, $status, $this->tasks->nextPosition($project), $userId, $now, $section, $parent));
+        $responsible = null === $responsibleId ? null : $this->seeingMembership($responsibleId, $task, 'responsible');
         $task->assign($responsible);
         $task->dueOn($dueOn);
         $task->prioritise($priority);
@@ -131,7 +139,7 @@ final readonly class ManageTasks
     public function assign(string $taskId, ?string $membershipId): void
     {
         $task = $this->work->task($taskId);
-        $responsible = null === $membershipId ? null : $this->activeMembership($membershipId, 'responsible');
+        $responsible = null === $membershipId ? null : $this->seeingMembership($membershipId, $task, 'responsible');
         $this->unit->run(function () use ($task, $responsible): void {
             $task->assign($responsible);
             if ($responsible instanceof Membership) {
@@ -170,6 +178,7 @@ final readonly class ManageTasks
         if ($section instanceof Section && $section->project()->id() !== $task->project()->id()) {
             throw new WorkRefused('unknown');
         }
+        $this->work->assertTaskIn($task->project(), $section);
         $this->unit->run(static fn () => $task->moveToSection($section));
     }
 
@@ -259,7 +268,7 @@ final readonly class ManageTasks
     public function watch(string $taskId, string $membershipId): void
     {
         $task = $this->work->task($taskId);
-        $membership = $this->activeMembership($membershipId, 'watcher');
+        $membership = $this->seeingMembership($membershipId, $task, 'watcher');
         $this->unit->run(fn () => $this->addWatcher($task, $membership));
     }
 
@@ -360,10 +369,13 @@ final readonly class ManageTasks
         $this->tasks->add(new TaskWatcher($task, $membership));
     }
 
-    private function activeMembership(string $id, string $reason): Membership
+    /**
+     * An active person who sees the task: only they can be responsible for it or follow it.
+     */
+    private function seeingMembership(string $id, Task $task, string $reason): Membership
     {
         $membership = $this->people->membership($id);
-        if (!$membership instanceof Membership || !$membership->isActive()) {
+        if (!$membership instanceof Membership || !$this->visibility->canMembershipSeeTask($membership, $task)) {
             throw new WorkRefused($reason);
         }
 
