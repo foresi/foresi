@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The HTML content of the e-mail of a mention or an assignment, inline styled for mail clients; the system mail layout wraps it. #}
+<p style="margin:0 0 8px;font-size:17px;font-weight:bold;color:#1f2933;">{{ event }}</p>
+<p style="margin:0 0 16px;color:#1f2933;"><span style="color:#616e7c;">{{ 'work.notification_mail.task'|trans({}, null, locale) }}:</span> {{ task }}<br><span style="color:#616e7c;">{{ 'work.notification_mail.project'|trans({}, null, locale) }}:</span> {{ project }}</p>
+{% if excerpt %}
+<blockquote style="margin:0 0 16px;padding:8px 12px;border-left:3px solid #d9dee3;color:#3e4c59;">{{ excerpt }}</blockquote>
+{% endif %}
+<p style="margin:0 0 24px;"><a href="{{ taskUrl }}" style="display:inline-block;padding:10px 16px;border-radius:6px;background:#2f4a3a;color:#ffffff;font-weight:bold;text-decoration:none;">{{ 'work.notification_mail.open_task'|trans({}, null, locale) }}</a></p>
+<p style="margin:0;font-size:13px;color:#616e7c;"><a href="{{ settingsUrl }}" style="color:#616e7c;">{{ 'work.notification_mail.settings'|trans({}, null, locale) }}</a> · <a href="{{ unsubscribeUrl }}" style="color:#616e7c;">{{ unsubscribeLabel }}</a></p>

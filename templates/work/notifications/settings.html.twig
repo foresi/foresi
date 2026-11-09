@@ -1,0 +1,46 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The person's e-mails about their notifications: per event at once, in the daily digest or never
+    (at once only for mentions and assignments), the hour of the digest, or no e-mail at all. The inbox
+    always has everything. Saved from the docked action bar, as every form.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'work.notifications.title'|trans, href: path('app_notifications')}, {label: 'work.notification_settings.title'|trans}] %}
+
+{% block title %}{{ 'work.notification_settings.title'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('work/_flashes.html.twig') }}
+    <form method="post" action="{{ path('app_notification_settings') }}" class="grid max-w-4xl gap-4" novalidate data-notification-settings>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\NotificationSettingsController::TOKEN')) }}">
+
+        {% if not configured %}
+            <p class="m-0 text-small text-muted" data-notification-settings-unavailable>{{ 'work.notification_settings.unavailable'|trans }}</p>
+        {% endif %}
+
+        <twig:Ui:Card :title="'work.notification_settings.email_card'|trans" icon="send">
+            <p class="m-0 mb-4 text-small text-muted">{{ 'work.notification_settings.intro'|trans }}</p>
+            <div class="grid gap-3" data-notification-settings-events>
+                {% for event in events %}
+                    <twig:Ui:Select :name="'email_' ~ event.kind" :id="'email-' ~ event.kind" :label="event.label" :options="event.options" :value="event.value" :row="true" width="medium" />
+                {% endfor %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'work.notification_settings.digest_card'|trans" icon="clock-3">
+            <div class="grid gap-3">
+                <twig:Ui:Select name="digestHour" id="digest-hour" :label="'work.notification_settings.digest_hour'|trans" :help="'work.notification_settings.digest_hour_help'|trans" :options="hours" :value="digestHour ~ ''" :row="true" width="short" />
+                {# Under the fields of the rows above, as a form of label rows lines up its controls. #}
+                <div class="md:grid md:grid-cols-[var(--spacing-label)_minmax(0,1fr)] md:gap-x-4">
+                    <div class="md:col-start-2"><twig:Ui:Checkbox name="noEmail" id="no-email" value="1" :checked="noEmail" :label="'work.notification_settings.no_email'|trans" :help="'work.notification_settings.no_email_help'|trans" /></div>
+                </div>
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_notifications')">{{ 'work.notification_settings.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary">{{ 'work.notification_settings.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </form>
+{% endblock %}

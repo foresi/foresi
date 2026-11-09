@@ -32,6 +32,16 @@ final readonly class DoctrineNotifications implements Notifications
         return Id::isValid($id) ? $this->entityManager->getRepository(Notification::class)->findOneBy(['id' => $id, 'recipient' => $recipient]) : null;
     }
 
+    public function find(string $id): ?Notification
+    {
+        return Id::isValid($id) ? $this->entityManager->find(Notification::class, $id) : null;
+    }
+
+    public function waitingForMail(): array
+    {
+        return $this->entityManager->getRepository(Notification::class)->findBy(['readAt' => null, 'doneAt' => null, 'emailedAt' => null], ['createdAt' => 'DESC', 'id' => 'ASC']);
+    }
+
     public function unread(Membership $recipient): array
     {
         return $this->entityManager->getRepository(Notification::class)->findBy(['recipient' => $recipient, 'readAt' => null, 'doneAt' => null]);

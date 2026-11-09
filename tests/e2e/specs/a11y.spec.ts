@@ -187,6 +187,12 @@ test.describe('projects and tasks', () => {
     await expectNoSeriousViolations(page);
   });
 
+  test('the notification settings have no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/account/notifications');
+    await expect(page.locator('[data-notification-settings-events] select').first()).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
+
   test('labels have no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/settings/labels');
     await expect(page.locator('tbody tr').first()).toBeVisible();

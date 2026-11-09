@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The plain text of the daily digest of notifications, by project; the system mail layout adds the footer. #}
+{% autoescape false %}
+{{ 'work.notification_mail.digest_intro'|trans({count: count}, null, locale) }}
+{% for project in projects %}
+
+{{ project.name }}
+{% for row in project.rows %}
+- {{ row.task }}: {{ row.event }}
+  {{ row.url }}
+{% endfor %}
+{% endfor %}
+
+{{ 'work.notification_mail.open_inbox'|trans({}, null, locale) }}:
+{{ inboxUrl }}
+
+--
+{{ 'work.notification_mail.settings'|trans({}, null, locale) }}: {{ settingsUrl }}
+{{ unsubscribeLabel }}: {{ unsubscribeUrl }}
+{% endautoescape %}

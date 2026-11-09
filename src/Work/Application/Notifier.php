@@ -31,6 +31,10 @@ use Psr\Clock\ClockInterface;
  *
  * Sharing tells only the person a task is shared with directly; a shared
  * project or section tells nobody, as it would mean a row for every task in it.
+ *
+ * A mention or becoming responsible is queued for an e-mail, sent after a
+ * short delay, for a person who wants such e-mail at once; the rest waits for
+ * the daily digest (NotificationMailing).
  */
 final readonly class Notifier
 {
@@ -41,6 +45,8 @@ final readonly class Notifier
         private People $people,
         private AuditActor $auditActor,
         private ClockInterface $clock,
+        private NotificationMailing $mailing,
+        private NotificationMailQueue $mailQueue,
     ) {
     }
 
@@ -73,7 +79,7 @@ final readonly class Notifier
     public function mentioned(TaskComment $comment, array $mentioned): void
     {
         foreach ($mentioned as $membership) {
-            $this->tell($membership, $comment->task(), NotificationKind::Mentioned, $comment->isInternal());
+            $this->tell($membership, $comment->task(), NotificationKind::Mentioned, $comment->isInternal(), comment: $comment);
         }
     }
 
@@ -98,7 +104,7 @@ final readonly class Notifier
         $this->tell($membership, $task, NotificationKind::Shared, false, false);
     }
 
-    private function tell(Membership $recipient, Task $task, NotificationKind $kind, bool $internal = false, bool $checkSight = true): void
+    private function tell(Membership $recipient, Task $task, NotificationKind $kind, bool $internal = false, bool $checkSight = true, ?TaskComment $comment = null): void
     {
         $actor = $this->actor();
         if (!$actor instanceof Membership || $actor->id() === $recipient->id()) {
@@ -115,7 +121,11 @@ final readonly class Notifier
         if ($open instanceof Notification) {
             $open->record($kind, $actor, $now);
         } else {
-            $this->notifications->add(new Notification($recipient, $task, $kind, $actor, $now));
+            $open = new Notification($recipient, $task, $kind, $actor, $now);
+            $this->notifications->add($open);
+        }
+        if ($this->mailing->wantsAtOnce($recipient, $kind)) {
+            $this->mailQueue->queue(new SendNotificationMail($open->id(), $kind->value, $actor->id(), $comment?->id()));
         }
     }
 

@@ -28,6 +28,18 @@ interface Notifications
     public function ofRecipient(string $id, Membership $recipient): ?Notification;
 
     /**
+     * A row of anyone in the tenant, for the worker that mails it.
+     */
+    public function find(string $id): ?Notification;
+
+    /**
+     * The rows of everyone not read, not done and not mailed yet, newest first.
+     *
+     * @return list<Notification>
+     */
+    public function waitingForMail(): array;
+
+    /**
      * The rows of the person not read and not done.
      *
      * @return list<Notification>

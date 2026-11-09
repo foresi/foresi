@@ -114,6 +114,28 @@ test.describe('the inbox', () => {
   });
 });
 
+test.describe('the settings', () => {
+  test('are reached from the inbox and keep a changed choice', async ({ page }) => {
+    await page.goto('/notifications');
+    await page.locator('main header').getByRole('link', { name: 'Nastavení' }).click();
+    await expect(page).toHaveURL(/\/account\/notifications$/);
+    await expect(page.locator('main h1')).toHaveText('Nastavení oznámení');
+    await expect(page.getByLabel('Zmínky v komentářích')).toHaveValue('immediate');
+    // At once only what is addressed to the person.
+    await expect(page.getByLabel('Komentáře ve sledovaných úkolech').locator('option')).toHaveText(['V denním souhrnu', 'Nic']);
+
+    await page.getByLabel('Komentáře ve sledovaných úkolech').selectOption('off');
+    await page.getByLabel('Čas souhrnu').selectOption('17');
+    await page.locator('[data-action-bar]').getByRole('button', { name: 'Uložit' }).click();
+    await expect(page.getByText('Nastavení oznámení je uložené.')).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel('Komentáře ve sledovaných úkolech')).toHaveValue('off');
+    await expect(page.getByLabel('Čas souhrnu')).toHaveValue('17');
+    await expect(page.getByLabel('Zmínky v komentářích')).toHaveValue('immediate');
+  });
+});
+
 test.describe('the guest', () => {
   test.use({ storageState: PROJECTS_GUEST_STATE });
 

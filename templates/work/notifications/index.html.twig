@@ -9,6 +9,7 @@
 {% block title %}{{ 'work.notifications.title'|trans }}{% endblock %}
 
 {% block actions %}
+    <twig:Ui:Button :href="path('app_notification_settings')" icon="settings" data-notifications-settings>{{ 'work.notifications.settings'|trans }}</twig:Ui:Button>
     {% if unread > 0 %}
         <form method="post" action="{{ readAllUrl }}" data-notifications-read-all>
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\NotificationController::TOKEN')) }}">

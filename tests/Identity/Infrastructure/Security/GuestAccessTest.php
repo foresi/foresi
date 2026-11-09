@@ -52,6 +52,8 @@ final class GuestAccessTest extends WebTestCase
         'app_markdown_preview', 'app_attachment', 'app_attachment_upload', 'app_attachment_delete',
         // Their own inbox, which holds only the tasks they see.
         'app_notifications', 'app_notifications_read_all', 'app_notification_done', 'app_notification_undone',
+        // Their own e-mail settings, and the signed link in an e-mail that stops one kind of them.
+        'app_notification_settings', 'app_notification_unsubscribe',
         // No live components exist: an unknown one is not found before any controller runs.
         'ux_live_component',
     ];

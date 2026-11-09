@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The plain text of the e-mail of a mention or an assignment; the system mail layout adds the footer. #}
+{% autoescape false %}
+{{ event }}
+
+{{ 'work.notification_mail.task'|trans({}, null, locale) }}: {{ task }}
+{{ 'work.notification_mail.project'|trans({}, null, locale) }}: {{ project }}
+{% if excerpt %}
+
+> {{ excerpt }}
+{% endif %}
+
+{{ 'work.notification_mail.open_task'|trans({}, null, locale) }}:
+{{ taskUrl }}
+
+--
+{{ 'work.notification_mail.settings'|trans({}, null, locale) }}: {{ settingsUrl }}
+{{ unsubscribeLabel }}: {{ unsubscribeUrl }}
+{% endautoescape %}

@@ -73,6 +73,8 @@ security:
         - { path: ^/health$, roles: PUBLIC_ACCESS }
         # Invitation links, opened before the invited person has an account or has signed in.
         - { path: ^/invitation/, roles: PUBLIC_ACCESS }
+        # The signed link in a notification e-mail that stops that kind of e-mail, and its one-click POST.
+        - { path: ^/unsubscribe/, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:
