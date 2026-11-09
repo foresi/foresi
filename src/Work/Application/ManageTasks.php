@@ -24,7 +24,9 @@ use Psr\Clock\ClockInterface;
 /**
  * Creating a task and changing it one property at a time, as the task page
  * saves each field on its own. The person who creates a task and the person
- * responsible for it follow it, as in ClickUp and Asana.
+ * responsible for it follow it, as in ClickUp and Asana. Whoever becomes
+ * responsible hears of it, and the watchers of a task hear of a change of its
+ * status, through the Notifier in the same unit of work.
  *
  * Deleting puts a task in the trash with its subtasks, at one moment, as one
  * step; restoring brings back what went there at that moment. A subtask does
@@ -48,6 +50,7 @@ final readonly class ManageTasks
         private ClockInterface $clock,
         private WorkUnit $unit,
         private TrashPermission $trash,
+        private Notifier $notifier,
     ) {
     }
 
@@ -112,6 +115,9 @@ final readonly class ManageTasks
                     $this->tasks->add(new TaskWatcher($task, $membership));
                 }
             }
+            if ($responsible instanceof Membership) {
+                $this->notifier->assigned($task, $responsible);
+            }
 
             return $task;
         });
@@ -146,9 +152,13 @@ final readonly class ManageTasks
         $task = $this->work->task($taskId);
         $responsible = null === $membershipId ? null : $this->seeingMembership($membershipId, $task, 'responsible');
         $this->unit->run(function () use ($task, $responsible): void {
+            $before = $task->responsible();
             $task->assign($responsible);
             if ($responsible instanceof Membership) {
                 $this->addWatcher($task, $responsible);
+                if ($before?->id() !== $responsible->id()) {
+                    $this->notifier->assigned($task, $responsible);
+                }
             }
         });
     }
@@ -196,7 +206,12 @@ final readonly class ManageTasks
     {
         $task = $this->work->task($taskId);
         $status = $this->statusOf($task, $statusId);
-        $this->unit->run(fn () => $task->moveToStatus($status, $this->clock->now()));
+        $this->unit->run(function () use ($task, $status): void {
+            if ($task->status()->id() !== $status->id()) {
+                $task->moveToStatus($status, $this->clock->now());
+                $this->notifier->statusChanged($task);
+            }
+        });
     }
 
     /**
@@ -232,6 +247,7 @@ final readonly class ManageTasks
             Positions::place($siblings, $task, $index);
             if ($task->status()->id() !== $status->id()) {
                 $task->moveToStatus($status, $this->clock->now());
+                $this->notifier->statusChanged($task);
             }
         });
     }

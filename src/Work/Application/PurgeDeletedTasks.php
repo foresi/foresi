@@ -14,7 +14,7 @@ use App\Work\Domain\TaskComment;
 /**
  * Removes for good the tasks that have been in the trash for more than 30
  * days, each with its subtasks, comments and the people they mention,
- * watchers, labels, shares and files. The audit log keeps what they were: it
+ * watchers, labels, shares, notifications and files. The audit log keeps what they were: it
  * is the record of the organisation, as for invoices (ADR 0013).
  *
  * Each task goes as one step, in one transaction with the records of its
@@ -31,6 +31,7 @@ final readonly class PurgeDeletedTasks
         private TaskFiles $files,
         private Projects $projects,
         private WorkShares $shares,
+        private Notifications $notifications,
         private WorkUnit $unit,
     ) {
     }
@@ -79,6 +80,9 @@ final readonly class PurgeDeletedTasks
                 }
                 foreach ($this->shares->on($one) as $share) {
                     $this->shares->remove($share);
+                }
+                foreach ($this->notifications->ofTask($one) as $notification) {
+                    $this->notifications->remove($notification);
                 }
                 if ($one !== $task) {
                     $this->tasks->remove($one);

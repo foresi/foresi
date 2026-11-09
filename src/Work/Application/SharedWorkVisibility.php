@@ -87,7 +87,7 @@ final readonly class SharedWorkVisibility implements WorkVisibility
 
     public function canMembershipSeeTask(Membership $membership, Task $task): bool
     {
-        return $membership->isActive() && $this->scopeOf($membership)->seesTask($task);
+        return $this->scopeOf($membership)->seesTask($task);
     }
 
     public function scope(): WorkScope
@@ -97,8 +97,12 @@ final readonly class SharedWorkVisibility implements WorkVisibility
         return $me instanceof Membership ? $this->scopeOf($me) : WorkScope::nothing();
     }
 
-    private function scopeOf(Membership $membership): WorkScope
+    public function scopeOf(Membership $membership): WorkScope
     {
+        if (!$membership->isActive()) {
+            return WorkScope::nothing();
+        }
+
         return match ($membership->role()) {
             Role::Owner => WorkScope::everything(),
             Role::Member => WorkScope::shared(true, $this->shares->of($membership)),

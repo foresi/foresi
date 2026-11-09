@@ -28,6 +28,9 @@ use Psr\Clock\ClockInterface;
  * Whoever closes an item they would then no longer see is kept on it with a
  * share of their own, as the creator of a private item stays in it in Asana
  * and ClickUp; an owner sees everything and needs none.
+ *
+ * A task shared with a person directly tells them so; a project or a section
+ * does not, and taking a share back tells nobody (Basecamp).
  */
 final readonly class ManageSharing
 {
@@ -39,6 +42,7 @@ final readonly class ManageSharing
         private AuditActor $actor,
         private ClockInterface $clock,
         private WorkUnit $unit,
+        private Notifier $notifier,
     ) {
     }
 
@@ -146,7 +150,12 @@ final readonly class ManageSharing
         if ($this->shares->find($item, $membership) instanceof WorkShare) {
             return;
         }
-        $this->unit->run(fn () => $this->shares->add(WorkShare::of($item, $membership, $this->clock->now())));
+        $this->unit->run(function () use ($item, $membership): void {
+            $this->shares->add(WorkShare::of($item, $membership, $this->clock->now()));
+            if ($item instanceof Task) {
+                $this->notifier->shared($item, $membership);
+            }
+        });
     }
 
     /**
