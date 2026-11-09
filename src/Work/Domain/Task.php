@@ -34,6 +34,9 @@ use Doctrine\ORM\Mapping as ORM;
  * A task in the trash keeps everything, its position included, and comes back
  * as it was; the application puts its subtasks there with it and hides it from
  * every view until it is restored or purged for good.
+ *
+ * A private task is hidden from everyone it is not shared with, even from
+ * those who see its project and section; its subtasks follow it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task')]
@@ -80,6 +83,9 @@ class Task implements TenantOwned, Audited
 
     #[ORM\Column(type: 'string', length: 16, enumType: Priority::class)]
     private Priority $priority = Priority::None;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $private = false;
 
     #[ORM\Column(name: 'completed_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $completedAt = null;
@@ -172,6 +178,16 @@ class Task implements TenantOwned, Audited
     public function prioritise(Priority $priority): void
     {
         $this->priority = $priority;
+    }
+
+    public function makePrivate(bool $private): void
+    {
+        $this->private = $private;
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->private;
     }
 
     public function moveTo(int $position): void
