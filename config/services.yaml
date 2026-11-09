@@ -450,6 +450,9 @@ when@e2e:
         e2e.manage_sharing:
             alias: App\Work\Application\ManageSharing
             public: true
+        e2e.manage_time:
+            alias: App\Work\Application\ManageTime
+            public: true
         e2e.upload_attachment:
             alias: App\Attachment\Application\UploadAttachment
             public: true

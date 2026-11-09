@@ -47,7 +47,7 @@ test.describe('navigation', () => {
     expect(groups).toEqual(['main', 'sales', 'money', 'contacts', 'work', 'settings']);
     // The inbox sits under the start page: where a person begins, not a part of the projects.
     await expect(sidebar.locator('[data-nav-group="main"]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
-    await expect(sidebar.locator('[data-nav-group="work"]').getByRole('link')).toHaveText([/Projekty/, /Moje úkoly/]);
+    await expect(sidebar.locator('[data-nav-group="work"]').getByRole('link')).toHaveText([/Projekty/, /Moje úkoly/, /Čas/]);
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('heading', { name: 'Prodej' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury', exact: true })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="money"]').getByRole('heading', { name: 'Finance' })).toBeVisible();
