@@ -37,7 +37,7 @@ files. Never put a production secret in a committed file.
 | Variable | Secret | What it is |
 | --- | --- | --- |
 | `APP_ENV` | no | `prod` on a server. |
-| `APP_SECRET` | **yes** | Signs the public links of sent documents, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
+| `APP_SECRET` | **yes** | Signs the public links of sent documents and the links that stop notification e-mails, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
 | `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
 | `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`. |
@@ -164,6 +164,29 @@ stopwaitsecs=3600
 On PostgreSQL more workers may run (`foresi-worker@2`, `numprocs=2`); on SQLite
 exactly one. Under **Ploi**, add a daemon (Server › Daemons) with the same
 command, the site user, and the site directory as its directory.
+
+### Notification e-mails
+
+People hear about mentions, tasks assigned to them and news on the tasks they
+watch in the app's inbox; with `SYSTEM_MAILER_DSN` and `SYSTEM_MAIL_FROM` set,
+also by e-mail, through the same system mailer as invitations. Without them the
+inbox is the only channel and the notification settings say so; nothing fails.
+
+- A mention or a task assigned to someone is queued on the `async` transport
+  with a delay of two minutes (`app.notification_mail_delay` in
+  `config/services.yaml`, in seconds) and sent only if the inbox row is still
+  unread then, so it needs the worker consuming `async` as well as `mail`.
+- Everything else goes into a **daily digest**: the job `notification-digest`
+  of the schedule runs once an hour in each organisation and sends each person
+  their digest at the hour they chose (08:00 by default) in the organisation's
+  time zone, at most once a day. It runs only while the worker consumes
+  `scheduler_foresi`; a digest missed while the worker was down goes out at the
+  next hourly run the same day.
+- Each e-mail has a signed link, also in its `List-Unsubscribe` header with
+  one-click unsubscribing (RFC 8058), that stops that kind of e-mail without
+  signing in; the signature uses `APP_SECRET`, so changing it voids the links
+  in e-mails already sent. Links are built on `DEFAULT_URI`, which must be the
+  public address of the installation.
 
 ## Scheduled jobs
 
