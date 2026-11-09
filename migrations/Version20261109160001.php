@@ -23,7 +23,7 @@ use Doctrine\Migrations\AbstractMigration;
  *
  * An existing project is billable by default when it has a client, as a new
  * one is. That statement needs the column, so it runs in postUp(), after the
- * schema change, and --dry-run does not show it.
+ * schema change, and --dry-run neither shows nor runs it.
  */
 final class Version20261109160001 extends AbstractMigration
 {
@@ -66,6 +66,11 @@ final class Version20261109160001 extends AbstractMigration
 
     public function postUp(Schema $schema): void
     {
+        // A dry run changes no schema, so the column is not there to fill.
+        if (!\array_key_exists('billable_by_default', $this->connection->createSchemaManager()->listTableColumns('project'))) {
+            return;
+        }
+
         $this->connection->executeStatement('UPDATE project SET billable_by_default = (client_id IS NOT NULL)');
     }
 
