@@ -21,6 +21,17 @@ function volatile(page: Page) {
   return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('main td').filter({ hasText: /\d{1,2}\. \d{1,2}\. \d{4}/ }), page.locator('[data-card-due]')];
 }
 
+// Relative due dates change the width of their column from one day to the next, so every date
+// gets the same text before a screenshot.
+async function freezeDates(page: Page): Promise<void> {
+  await page.locator('main td, main [data-card-due]').evaluateAll((elements) => elements.forEach((element) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); null !== node; node = walker.nextNode()) {
+      node.textContent = (node.textContent ?? '').replace(/\d{1,2}\. \d{1,2}\. \d{4}/g, '1. 1. 2026');
+    }
+  }));
+}
+
 function card(page: Page, title: string) {
   return page.locator('[data-board-card]').filter({ hasText: title });
 }
@@ -33,12 +44,15 @@ test.describe('screens', () => {
   test('the list, the board and my tasks look as approved @visual', async ({ page }) => {
     await openWebsite(page);
     await expect(page.locator('[data-section]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png', { mask: volatile(page) });
     await page.getByRole('link', { name: 'Nástěnka' }).click();
     await expect(page.locator('[data-board-card]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('board-content.png', { mask: volatile(page) });
     await page.goto('/my-tasks');
     await expect(page.locator('[data-task-group]').first()).toBeVisible();
+    await freezeDates(page);
     await expect(page.locator('main')).toHaveScreenshot('my-tasks-content.png', { mask: volatile(page) });
   });
 });
