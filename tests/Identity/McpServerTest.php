@@ -8,37 +8,37 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity;
 
-use App\Identity\Application\ManageApiTokens;
 use App\Identity\Domain\ApiScope;
-use App\Identity\Domain\Role;
-use App\Identity\Domain\User;
+use App\Invoicing\Domain\Invoice;
 use App\Shared\Infrastructure\Mcp\ReadToolCall;
-use App\Tenancy\Application\TenantContext;
-use App\Tenancy\Domain\TenantId;
-use App\Tests\Identity\Support\IdentityFixtures;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * The MCP server over Streamable HTTP at /mcp: a client signs in with its
  * personal API token on every request, finds the Foresi tools, all of them
- * read-only, and calls one. No request sets a cookie.
+ * read-only, and calls them. No request sets a cookie, and every request spends
+ * the budget of the token the REST API spends.
  */
-final class McpServerTest extends WebTestCase
+final class McpServerTest extends ApiTestCase
 {
-    private KernelBrowser $client;
-    private User $user;
-    private TenantId $tenant;
-    private string $secret;
+    /** Every tool the server offers, by name. */
+    private const array TOOLS = [
+        'foresi_get_contact',
+        'foresi_get_invoice',
+        'foresi_get_payment',
+        'foresi_list_firms',
+        'foresi_search_contacts',
+        'foresi_search_invoices',
+        'foresi_search_payments',
+        'foresi_whoami',
+    ];
+
     private ?string $session = null;
     private string $protocol = '2025-06-18';
 
     public function testWithoutATokenNothingIsServed(): void
     {
-        $this->start();
-
         $this->client->request('POST', '/mcp', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: $this->message('initialize', $this->initialize()));
 
         self::assertResponseStatusCodeSame(401);
@@ -52,46 +52,96 @@ final class McpServerTest extends WebTestCase
     public function testAClientFindsTheReadOnlyToolsAndCallsOne(string $protocol): void
     {
         $this->protocol = $protocol;
-        $this->start();
 
         $initialized = $this->rpc('initialize', $this->initialize());
-        self::assertSame('foresi', $this->at($initialized, 'result', 'serverInfo', 'name'));
-        self::assertSame(self::getContainer()->getParameter('app.version'), $this->at($initialized, 'result', 'serverInfo', 'version'));
-        self::assertSame($this->protocol, $this->at($initialized, 'result', 'protocolVersion'));
+        self::assertSame('foresi', $this->in($initialized, 'result', 'serverInfo', 'name'));
+        self::assertSame(self::getContainer()->getParameter('app.version'), $this->in($initialized, 'result', 'serverInfo', 'version'));
+        self::assertSame($this->protocol, $this->in($initialized, 'result', 'protocolVersion'));
         self::assertStringContainsString('These tools only read', $this->text($initialized, 'result', 'instructions'));
         self::assertNotNull($this->session);
         $this->notify('notifications/initialized');
 
-        $tools = $this->at($this->rpc('tools/list'), 'result', 'tools');
+        $tools = $this->in($this->rpc('tools/list'), 'result', 'tools');
         self::assertIsArray($tools);
-        self::assertContains('foresi_whoami', array_column($tools, 'name'));
+        $names = array_column($tools, 'name');
+        sort($names);
+        self::assertSame(self::TOOLS, $names);
         foreach ($tools as $tool) {
             self::assertStringStartsWith('foresi_', $this->text($tool, 'name'));
-            self::assertSame(['title' => $this->at($tool, 'title'), 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false], $this->at($tool, 'annotations'));
+            self::assertSame(['title' => $this->in($tool, 'title'), 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false], $this->in($tool, 'annotations'));
         }
 
-        $call = $this->at($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
-        self::assertFalse($this->at($call, 'isError'));
-        self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->at($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->at($call, 'structuredContent', 'data', 'user'));
-        self::assertSame(['id' => $this->tenant->toString(), 'name' => 'Tenant A'], $this->at($call, 'structuredContent', 'data', 'tenant'));
-        self::assertSame('Reporting', $this->at($call, 'structuredContent', 'data', 'token', 'name'));
-        self::assertSame(['read'], $this->at($call, 'structuredContent', 'data', 'token', 'scopes'));
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
+        self::assertFalse($this->in($call, 'isError'));
+        self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
+        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->in($call, 'structuredContent', 'data', 'user'));
+        self::assertSame(['id' => $this->tenant->toString(), 'name' => 'Example Organisation'], $this->in($call, 'structuredContent', 'data', 'tenant'));
+        self::assertSame('Reporting', $this->in($call, 'structuredContent', 'data', 'token', 'name'));
+        self::assertSame(['read'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
         $text = $this->text($call, 'content', '0', 'text');
         self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $text);
         self::assertStringContainsString('"email":"testing@example.com"', $text);
     }
 
+    public function testASearchAnswersTheRestDataMarkedAsData(): void
+    {
+        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
+        $this->get('/api/v1/invoices');
+        $rest = $this->at('data');
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['firm_id' => $this->firmId, 'limit' => 10]]), 'result');
+
+        self::assertFalse($this->in($call, 'isError'));
+        self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
+        self::assertSame(['items' => $rest, 'next_cursor' => null], $this->in($call, 'structuredContent', 'data'));
+        self::assertSame($invoice->id(), $this->in($call, 'structuredContent', 'data', 'items', '0', 'id'));
+        $text = $this->text($call, 'content', '0', 'text');
+        self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE."\n\n1 document, newest first; no more match.\n\n", $text);
+        self::assertStringContainsString('"name":"Example Customer a.s."', $text);
+    }
+
+    public function testAnUnknownIdIsAnErrorResultTheModelCanReadAndABadDayAnInvalidCall(): void
+    {
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_get_invoice', 'arguments' => ['id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
+        self::assertTrue($this->in($call, 'isError'));
+        self::assertSame('not_found', $this->in($call, 'structuredContent', 'error', 'code'));
+
+        // The SDK checks the arguments against the schema before the tool runs.
+        $this->post($this->message('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['issued_from' => '1. 11. 2026']], 1));
+        self::assertResponseIsSuccessful();
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame(-32602, $this->in($body, 'error', 'code'));
+    }
+
+    public function testOverTheBudgetOfTheTokenTheServerAnswersTooManyRequests(): void
+    {
+        $this->get('/api/v1/me');
+        $tokenId = $this->at('token', 'id');
+        self::assertIsString($tokenId);
+        self::assertTrue(self::getContainer()->get('test.api_token_limiter')->create($tokenId)->consume(599)->isAccepted());
+
+        $this->post($this->message('initialize', $this->initialize(), 1));
+
+        $this->assertProblem(429, 'rate_limited');
+        self::assertResponseHeaderSame('RateLimit-Remaining', '0');
+        self::assertGreaterThanOrEqual(1, (int) $this->client->getResponse()->headers->get('Retry-After'));
+    }
+
     public function testATokenWithoutTheReadScopeGetsAnErrorResult(): void
     {
-        $this->start([ApiScope::Write]);
+        $this->secret = $this->issued([ApiScope::Write]);
 
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
-        $call = $this->at($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
 
-        self::assertTrue($this->at($call, 'isError'));
-        self::assertSame('insufficient_scope', $this->at($call, 'structuredContent', 'error', 'code'));
+        self::assertTrue($this->in($call, 'isError'));
+        self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
     }
 
     /**
@@ -101,27 +151,6 @@ final class McpServerTest extends WebTestCase
     {
         yield '2025-06-18' => ['2025-06-18'];
         yield '2025-11-25' => ['2025-11-25'];
-    }
-
-    /**
-     * @param list<ApiScope> $scopes
-     */
-    private function start(array $scopes = [ApiScope::Read]): void
-    {
-        $this->client = self::createClient();
-        // The test database lives in memory, so every request must share the kernel.
-        $this->client->disableReboot();
-        $fixtures = new IdentityFixtures($this->em(), $this->context());
-        $fixtures->rebuildSchema();
-        $this->user = $fixtures->user();
-        $this->tenant = $fixtures->tenant('Tenant A');
-        $fixtures->join($this->user, $this->tenant, Role::Member);
-        $this->context()->switchTo($this->tenant);
-        try {
-            $this->secret = self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret;
-        } finally {
-            $this->context()->reset();
-        }
     }
 
     /**
@@ -190,7 +219,7 @@ final class McpServerTest extends WebTestCase
         return json_encode($message, \JSON_THROW_ON_ERROR);
     }
 
-    private function at(mixed $value, string ...$path): mixed
+    private function in(mixed $value, string ...$path): mixed
     {
         foreach ($path as $key) {
             self::assertIsArray($value);
@@ -203,19 +232,9 @@ final class McpServerTest extends WebTestCase
 
     private function text(mixed $value, string ...$path): string
     {
-        $text = $this->at($value, ...$path);
+        $text = $this->in($value, ...$path);
         self::assertIsString($text);
 
         return $text;
-    }
-
-    private function em(): EntityManagerInterface
-    {
-        return self::getContainer()->get('doctrine.orm.entity_manager');
-    }
-
-    private function context(): TenantContext
-    {
-        return self::getContainer()->get(TenantContext::class);
     }
 }

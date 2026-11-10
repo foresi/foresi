@@ -18,8 +18,9 @@ use Symfony\Component\RateLimiter\RateLimit;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 /**
- * Counts every request of the REST API against the budget of its token (the
- * api_token limiter, config/packages/rate_limiter.yaml). Every answer to a signed-in
+ * Counts every request of the REST API and of the MCP server over HTTP against
+ * one budget of its token (the api_token limiter, config/packages/rate_limiter.yaml),
+ * so a client cannot spend twice by switching surface. Every answer to a signed-in
  * request says the budget, what is left of it and the seconds until the next request
  * is let through, zero while some is left; over the budget the answer is 429
  * rate_limited with Retry-After. It runs after the firewall, which signs the token
@@ -28,6 +29,8 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 final readonly class ApiRateLimit
 {
     public const string RATE_LIMITED = 'rate_limited';
+    /** The path of the MCP server and what lies below it, as its firewall matches it. */
+    public const string MCP_PATH = '#^/mcp(/|$)#';
     private const string ATTRIBUTE = '_api_rate_limit';
 
     public function __construct(private RateLimiterFactoryInterface $apiTokenLimiter, private ApiClient $client)
@@ -38,7 +41,7 @@ final readonly class ApiRateLimit
     public function onRequest(RequestEvent $event): void
     {
         $request = $event->getRequest();
-        if (!$event->isMainRequest() || !str_starts_with($request->getPathInfo(), ApiErrors::PATH_PREFIX)) {
+        if (!$event->isMainRequest() || !$this->counts($request->getPathInfo())) {
             return;
         }
         $tokenId = $this->client->tokenId();
@@ -68,6 +71,11 @@ final readonly class ApiRateLimit
         $headers->set('RateLimit-Limit', (string) $limit->getLimit());
         $headers->set('RateLimit-Remaining', (string) $limit->getRemainingTokens());
         $headers->set('RateLimit-Reset', (string) $this->secondsUntil($limit));
+    }
+
+    private function counts(string $path): bool
+    {
+        return str_starts_with($path, ApiErrors::PATH_PREFIX) || 1 === preg_match(self::MCP_PATH, $path);
     }
 
     private function secondsUntil(RateLimit $limit): int

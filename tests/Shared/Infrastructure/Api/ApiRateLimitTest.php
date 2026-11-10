@@ -85,7 +85,7 @@ final class ApiRateLimitTest extends TestCase
 
     public function testOtherPathsSubRequestsAndRequestsWithoutATokenAreNotCounted(): void
     {
-        foreach ([['/invoices', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/mcp', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/api/v1/me', 'token-1', HttpKernelInterface::SUB_REQUEST], ['/api/v1/me', null, HttpKernelInterface::MAIN_REQUEST]] as [$path, $token, $type]) {
+        foreach ([['/invoices', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/mcpx', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/x/mcp', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/api', 'token-1', HttpKernelInterface::MAIN_REQUEST], ['/mcp', 'token-1', HttpKernelInterface::SUB_REQUEST], ['/api/v1/me', 'token-1', HttpKernelInterface::SUB_REQUEST], ['/api/v1/me', null, HttpKernelInterface::MAIN_REQUEST]] as [$path, $token, $type]) {
             $limit = $this->limit($token);
             [$request, $event] = $this->request($path, $type);
 
@@ -97,6 +97,25 @@ final class ApiRateLimitTest extends TestCase
         [$request, $event] = $this->request('/api/v1/me');
         $this->limit('token-1')->onRequest($event);
         self::assertSame('2', $this->respond($this->limit('token-1'), $request)->headers->get('RateLimit-Remaining'), 'Nothing above was counted.');
+    }
+
+    public function testTheMcpServerSpendsTheSameBudget(): void
+    {
+        $limit = $this->limit('token-1');
+        $limit->onRequest($this->request('/api/v1/me')[1]);
+        $limit->onRequest($this->request('/mcp/')[1]);
+
+        [$request, $event] = $this->request('/mcp');
+        $limit->onRequest($event);
+        self::assertNull($event->getResponse());
+        self::assertSame('0', $this->respond($limit, $request)->headers->get('RateLimit-Remaining'));
+
+        [, $event] = $this->request('/mcp');
+        $limit->onRequest($event);
+        $refusal = $event->getResponse();
+        self::assertInstanceOf(Response::class, $refusal);
+        self::assertSame(429, $refusal->getStatusCode());
+        self::assertTrue($refusal->headers->has('Retry-After'));
     }
 
     private function limit(?string $tokenId): ApiRateLimit

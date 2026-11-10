@@ -22,6 +22,8 @@ final class ToolRefusal extends \RuntimeException
     public const string INVALID_ARGUMENT = 'invalid_argument';
     /** The token does not have the scope the tool needs. */
     public const string INSUFFICIENT_SCOPE = 'insufficient_scope';
+    /** The token's person may not read this, such as a guest of the organisation. */
+    public const string FORBIDDEN = 'forbidden';
 
     public function __construct(public readonly string $errorCode, string $message)
     {
@@ -36,5 +38,10 @@ final class ToolRefusal extends \RuntimeException
     public static function invalidArgument(string $message): self
     {
         return new self(self::INVALID_ARGUMENT, $message);
+    }
+
+    public static function forbidden(string $message): self
+    {
+        return new self(self::FORBIDDEN, $message);
     }
 }
