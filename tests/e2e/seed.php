@@ -978,12 +978,12 @@ foreach ($entityManager->getRepository(Party::class)->findAll() as $candidate) {
 $recordDocument = $container->get('e2e.record_received_document');
 \assert($recordDocument instanceof RecordReceivedDocument);
 $october = new DateTimeImmutable('2026-10-14');
-$recordDocument->create((string) $studio->id(), new ReceivedDocumentInput(
+$recordDocument->create($studio->id(), new ReceivedDocumentInput(
     ReceivedDocumentKind::ForeignInvoice, PurchaseTaxTreatment::NonEuService, $suppliers['Example Cloud Inc.'], 'INV-2026-1014', '',
     $october, $october, $october->modify('+14 days'), $october->modify('+1 day'), Currency::USD, Money::of('49.00', Currency::USD),
     null, null, [new VatRecapLine(VatRate::of('21'), Money::of('49.00', Currency::USD), Money::of('0.00', Currency::USD))],
 ));
-$recordDocument->create((string) $studio->id(), new ReceivedDocumentInput(
+$recordDocument->create($studio->id(), new ReceivedDocumentInput(
     ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, $suppliers['Example Office Supplies s.r.o.'], 'FV-2026-0412', '2026041200',
     $october, $october, $october->modify('+14 days'), $october->modify('+2 days'), Currency::CZK, Money::of('1795.00', Currency::CZK),
     null, null, [
