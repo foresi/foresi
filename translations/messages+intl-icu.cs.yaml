@@ -3864,6 +3864,7 @@ purchasing:
     title: "Přepočet do Kč"
     base_czk: "Základ v Kč"
     vat_czk: "DPH v Kč"
+    vat_self_assessed_czk: "DPH k samovyměření v Kč"
     total_czk: "Celkem v Kč"
     deduction: "Odpočet DPH od období {period}."
     deduction_until: "Odpočet DPH od období {period}, nejpozději {date}."

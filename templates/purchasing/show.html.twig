@@ -86,7 +86,7 @@
 
             {% set facts = [
                 {label: 'purchasing.figures.base_czk'|trans, value: figures.base ?? ''},
-                {label: 'purchasing.figures.vat_czk'|trans, value: figures.vat ?? ''},
+                {label: (figures.selfAssessed ? 'purchasing.figures.vat_self_assessed_czk' : 'purchasing.figures.vat_czk')|trans, value: figures.vat ?? ''},
                 {label: 'purchasing.figures.total_czk'|trans, value: figures.total ?? '', big: true},
             ]|filter(fact => fact.value != '') %}
             {% if facts is not empty or figures.rows is not empty or deduction.period %}

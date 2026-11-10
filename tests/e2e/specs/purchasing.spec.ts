@@ -54,8 +54,9 @@ test.describe('received documents', () => {
     const dialog = page.getByRole('dialog', { name: 'Nahrát přijaté doklady' });
     await dialog.locator('#upload-files').setInputFiles({ name: 'faktura-fv-7741.pdf', mimeType: 'application/pdf', buffer: PDF });
     await expect(dialog.locator('[data-attachment-upload-item][data-uploaded]')).toHaveCount(1);
-    // The page under the dialog is loaded again, as it is when the dialog closes.
-    await page.goto('/purchasing');
+    // The upload saved itself, so closing asks nothing and the list underneath is loaded again.
+    await dialog.getByRole('button', { name: 'Hotovo' }).click();
+    await expect(dialog).toBeHidden();
 
     const row = page.locator('tbody tr').filter({ hasText: 'Koncept z' });
     await expect(row).toHaveCount(1);
@@ -94,6 +95,9 @@ test.describe('received documents', () => {
     const figures = page.locator('[data-purchasing-figures]');
     await expect(figures).toContainText('2 310,00 Kč');
     await expect(figures).toContainText('485,10 Kč');
+    // The supplier charges no VAT, so the total is the base; the VAT is declared by the firm.
+    await expect(figures).toContainText('DPH k samovyměření v Kč');
+    await expect(figures).not.toContainText('2 795,10 Kč');
     // Self-assessed in the month of the tax point, with no latest day.
     await expect(page.locator('[data-purchasing-deduction]')).toHaveText('Odpočet DPH od období 10/2026.');
     await expect(page.locator('#treatment option:checked')).toHaveText('Služba ze třetí země');

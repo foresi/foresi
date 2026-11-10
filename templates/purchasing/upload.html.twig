@@ -25,7 +25,7 @@
             {% endif %}
             <div class="flex flex-wrap items-center gap-3 rounded-panel border border-dashed border-control-line bg-white px-4 py-6 data-dragging:border-green data-dragging:bg-green-tint" data-attachments-target="drop" data-action="dragenter->attachments#dragEnter dragover->attachments#dragOver dragleave->attachments#dragLeave drop->attachments#drop" data-attachment-drop>
                 <label for="upload-files" class="sr-only">{{ 'purchasing.upload.files'|trans }}</label>
-                <input type="file" id="upload-files" name="files[]" multiple accept="application/pdf,image/png,image/jpeg,image/gif,image/webp" class="text-small text-text" data-attachments-target="input" data-action="change->attachments#chosen">
+                <input type="file" id="upload-files" data-dialog-untracked name="files[]" multiple accept="application/pdf,image/png,image/jpeg,image/gif,image/webp" class="text-small text-text" data-attachments-target="input" data-action="change->attachments#chosen">
                 <span hidden class="text-small text-muted" data-attachments-target="hint">{{ 'purchasing.upload.drop'|trans }}</span>
                 <twig:Ui:Button hidden icon="paperclip" size="sm" data-attachments-target="choose" data-action="attachments#choose">{{ 'purchasing.upload.choose'|trans }}</twig:Ui:Button>
                 <twig:Ui:Button type="submit" size="sm" variant="primary" data-attachments-target="submit">{{ 'purchasing.upload.submit'|trans }}</twig:Ui:Button>

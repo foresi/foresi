@@ -171,7 +171,7 @@ final readonly class ReceivedDocumentScreen
     /**
      * The amounts of a stored recap in words, row by row, with its totals in CZK.
      *
-     * @return array{rows: list<array{rate: string, base: string, vat: string, baseCzk: ?string, vatCzk: ?string}>, base: ?string, vat: ?string, total: ?string}
+     * @return array{rows: list<array{rate: string, base: string, vat: string, baseCzk: ?string, vatCzk: ?string}>, base: ?string, vat: ?string, selfAssessed: bool, total: ?string}
      */
     public function figures(ReceivedDocument $document): array
     {
@@ -187,12 +187,19 @@ final readonly class ReceivedDocumentScreen
         }
         $base = $document->baseCzk();
         $vat = $document->vatCzk();
+        // A self-assessed VAT is declared by the firm, the supplier does not charge it: the total is what is paid.
+        $selfAssessed = $document->treatment()->isSelfAssessed();
+        $total = $selfAssessed ? $base : null;
+        if (!$selfAssessed && $base instanceof Money && $vat instanceof Money) {
+            $total = $base->plus($vat);
+        }
 
         return [
             'rows' => $rows,
             'base' => $base instanceof Money ? $this->text->amount($base) : null,
             'vat' => $vat instanceof Money ? $this->text->amount($vat) : null,
-            'total' => !$base instanceof Money || !$vat instanceof Money ? null : $this->text->amount($base->plus($vat)),
+            'selfAssessed' => $selfAssessed,
+            'total' => $total instanceof Money ? $this->text->amount($total) : null,
         ];
     }
 

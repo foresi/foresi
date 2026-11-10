@@ -275,7 +275,8 @@ export default class extends Controller {
     // Unsaved changes
 
     changed(event) {
-        if (event.target instanceof Element && event.target.name && event.target.closest('form')) {
+        // A field that saves itself (an upload sent on choosing) leaves nothing to lose.
+        if (event.target instanceof Element && event.target.name && event.target.closest('form') && !event.target.closest('[data-dialog-untracked]')) {
             this.dirty = true;
         }
     }
