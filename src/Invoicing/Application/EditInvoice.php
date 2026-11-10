@@ -22,8 +22,11 @@ use Psr\Clock\ClockInterface;
  * Saving an issued invoice. Firm, regime, rounding and the copy of the issuer stay
  * as they were at issue; the rest is recalculated from the input. Series and number
  * change only when the input asks for it, and only until delivery. Lines change in
- * place by position, so a line saved unchanged writes no audit entry. The whole save
- * runs under the lock of the invoice, rules included, so what it checks stays true.
+ * place by position, so a line saved unchanged writes no audit entry. The form keeps
+ * with each row the id of the line it was loaded from, so the work a row billed, such
+ * as time, follows the row when it moves, and is free again when the row is removed.
+ * The whole save runs under the lock of the invoice, rules included, so what it checks
+ * stays true.
  */
 final readonly class EditInvoice
 {
@@ -42,6 +45,7 @@ final readonly class EditInvoice
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
         private ClockInterface $clock,
+        private BilledWorkRelease $billed,
     ) {
     }
 
@@ -106,12 +110,19 @@ final readonly class EditInvoice
         foreach ($this->store->lines($invoice) as $line) {
             $stored[$line->position()] = $line;
         }
+        $origins = $this->origins($stored, array_map(static fn (LineInput $line): ?string => $line->source, $input->lines));
+        $moved = array_fill_keys(array_map(static fn (InvoiceLine $line): string => $line->id(), $stored), null);
         foreach ($lines as $position => $line) {
             $typed = $line->input;
             if (isset($stored[$position])) {
-                $stored[$position]->revise($typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts);
+                $saved = $stored[$position];
+                $saved->revise($typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts);
             } else {
-                $this->store->addLine(new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts));
+                $saved = new InvoiceLine($invoice, $position, $typed->text, $typed->unit, $typed->rateKind, $typed->supplyCode, $line->values, $line->amounts, $typed->deducts);
+                $this->store->addLine($saved);
+            }
+            if (isset($origins[$position])) {
+                $moved[$origins[$position]] = $saved->id();
             }
         }
         foreach ($stored as $position => $line) {
@@ -119,7 +130,39 @@ final readonly class EditInvoice
                 $this->store->removeLine($line);
             }
         }
+        $moved = array_filter($moved, static fn (?string $now, string $was): bool => $now !== $was, \ARRAY_FILTER_USE_BOTH);
+        if ([] !== $moved) {
+            $this->billed->revised($invoice, $moved);
+        }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $invoice->rounding(), $country));
         $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
+    }
+
+    /**
+     * The id of the stored line each row was loaded from. A row names it by its
+     * source; the first row naming a line is that line, and a copy of it is new.
+     * Input whose rows name no stored line at all, as from a caller other than
+     * the form, is by position: each row is the line it lands on.
+     *
+     * @param array<int, InvoiceLine> $stored  by position
+     * @param array<int, ?string>     $sources the source of each row, by position
+     *
+     * @return array<int, string> by the position of the row
+     */
+    private function origins(array $stored, array $sources): array
+    {
+        $ids = array_map(static fn (InvoiceLine $line): string => $line->id(), $stored);
+        $known = array_flip($ids);
+        $origins = [];
+        foreach ($sources as $position => $source) {
+            if (null !== $source && isset($known[$source]) && !\in_array($source, $origins, true)) {
+                $origins[$position] = $source;
+            }
+        }
+        if ([] !== $origins) {
+            return $origins;
+        }
+
+        return array_intersect_key($ids, $sources);
     }
 }

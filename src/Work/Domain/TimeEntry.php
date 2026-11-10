@@ -248,6 +248,20 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
     }
 
     /**
+     * Billed on another line of the same invoice, as when the line it was on
+     * moved there; rate and billed minutes stay.
+     *
+     * @throws \DomainException when the entry is not invoiced
+     */
+    public function moveToLine(string $lineId): void
+    {
+        if (!$this->isInvoiced()) {
+            throw new \DomainException('Only invoiced time moves to another line.');
+        }
+        $this->invoiceLineId = $lineId;
+    }
+
+    /**
      * Unbilled again, as before the invoice: its line, rate and billed minutes
      * are forgotten. Releasing time that is not invoiced changes nothing.
      */

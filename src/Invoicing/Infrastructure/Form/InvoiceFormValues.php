@@ -438,7 +438,8 @@ final readonly class InvoiceFormValues
             'supplyCode' => $line->supplyCode() ?? '',
             'discount' => 0 === $line->discount()->basisPoints() ? '' : $this->amounts->trimmed($line->discount()->decimal()),
             'deducts' => $line->deducts() ?? '',
-            'source' => '',
+            // The row keeps the line it was loaded from, so the work it billed follows it when it moves.
+            'source' => $line->id(),
         ];
     }
 
