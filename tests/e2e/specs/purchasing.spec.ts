@@ -27,7 +27,8 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 // The supplier combobox: type a part of the name, take the option.
 async function pickSupplier(page: Page, name: string): Promise<void> {
   await page.locator('#supplier').fill(name.slice(0, 12));
-  await page.getByRole('option', { name }).click();
+  // The list filter behind the dialog has a supplier select of its own; the combobox offers its names in a listbox.
+  await page.getByRole('listbox').getByRole('option', { name }).click();
 }
 
 // A field of the form whose change sends it back for what the new value needs: the answer replaces the
@@ -140,7 +141,8 @@ test.describe('received documents', () => {
     await page.goto('/purchasing');
     await expect(page.getByRole('link', { name: /^K doplnění 0/ })).toBeVisible();
     await page.getByRole('link', { name: /^Zaevidované/ }).click();
-    await expect(page.locator('tbody tr')).toHaveCount(2);
+    // The two recorded here and the two of the seeded studio firm.
+    await expect(page.locator('tbody tr')).toHaveCount(4);
     await expectNoSeriousViolations(page);
   });
 
@@ -176,7 +178,10 @@ test.describe('received documents', () => {
 
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
+    // The seeded studio firm keeps its own two documents, whatever the other tests recorded.
     await page.goto('/purchasing?tab=recorded');
+    const studio = await page.locator('select[name="firm"] option', { hasText: 'Example Studio s.r.o.' }).getAttribute('value');
+    await page.goto(`/purchasing?tab=recorded&firm=${studio}`);
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await page.mouse.move(0, 0);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png');

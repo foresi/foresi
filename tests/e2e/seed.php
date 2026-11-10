@@ -124,6 +124,12 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
+use App\Purchasing\Application\ReceivedDocumentInput;
+use App\Purchasing\Application\RecordReceivedDocument;
+use App\Purchasing\Domain\PurchaseTaxTreatment;
+use App\Purchasing\Domain\ReceivedDocumentKind;
+use App\Purchasing\Domain\VatRate;
+use App\Purchasing\Domain\VatRecapLine;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantClock;
@@ -958,6 +964,34 @@ $createParty->createFrom($party(PartyKind::Company, 'Example Office Supplies s.r
 $rateStore = $container->get('e2e.rate_store');
 \assert($rateStore instanceof RateStore);
 $rateStore->save(new DateTimeImmutable('2026-10-14'), new PublishedRates(new DateTimeImmutable('2026-10-14'), ['USD' => new Quote('USD', 1, '23.500'), 'EUR' => new Quote('EUR', 1, '24.300')]), 'seed');
+// A second firm with two recorded documents of its own for the screenshots: its series starts at one and
+// nothing the other tests record lands in it, so the screens look the same in a full run and alone.
+$studio = $firmAccount(new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address(3), VatStatus::Registered, 'Example register, entry C 9012'));
+$entityManager->persist($studio);
+$entityManager->flush();
+$purchasingOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'purchasing@example.com']) ?? throw new LogicException('The owner of the purchasing tenant is missing.');
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($purchasingOwner->id(), $purchasingOwner->email(), 'hash'), 'main', ['ROLE_USER']));
+$suppliers = [];
+foreach ($entityManager->getRepository(Party::class)->findAll() as $candidate) {
+    $suppliers[$candidate->displayName()] = (string) $candidate->id();
+}
+$recordDocument = $container->get('e2e.record_received_document');
+\assert($recordDocument instanceof RecordReceivedDocument);
+$october = new DateTimeImmutable('2026-10-14');
+$recordDocument->create((string) $studio->id(), new ReceivedDocumentInput(
+    ReceivedDocumentKind::ForeignInvoice, PurchaseTaxTreatment::NonEuService, $suppliers['Example Cloud Inc.'], 'INV-2026-1014', '',
+    $october, $october, $october->modify('+14 days'), $october->modify('+1 day'), Currency::USD, Money::of('49.00', Currency::USD),
+    null, null, [new VatRecapLine(VatRate::of('21'), Money::of('49.00', Currency::USD), Money::of('0.00', Currency::USD))],
+));
+$recordDocument->create((string) $studio->id(), new ReceivedDocumentInput(
+    ReceivedDocumentKind::TaxInvoice, PurchaseTaxTreatment::Domestic, $suppliers['Example Office Supplies s.r.o.'], 'FV-2026-0412', '2026041200',
+    $october, $october, $october->modify('+14 days'), $october->modify('+2 days'), Currency::CZK, Money::of('1795.00', Currency::CZK),
+    null, null, [
+        new VatRecapLine(VatRate::of('21'), Money::of('1000.00', Currency::CZK), Money::of('210.00', Currency::CZK)),
+        new VatRecapLine(VatRate::of('12'), Money::of('500.00', Currency::CZK), Money::of('60.00', Currency::CZK)),
+    ],
+));
+$tokenStorage->setToken(null);
 $context->reset();
 
 fwrite(\STDOUT, sprintf("Seeded %d parties.\n", \count($inputs)));
