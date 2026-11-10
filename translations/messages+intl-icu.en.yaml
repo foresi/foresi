@@ -3133,6 +3133,8 @@ timesheet:
     time_changed: Some of the time chosen was changed or deleted meanwhile. Open the invoicing of time again.
     time_invoiced: Some of the time chosen was invoiced by another invoice meanwhile. Open the invoicing of time again.
     selection_gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
+    restore_time_changed: Some of the time of this invoice was changed or deleted meanwhile, so the invoice cannot be restored.
+    restore_time_invoiced: Some of the time of this invoice was invoiced by another invoice meanwhile, so the invoice cannot be restored.
 work:
   status:
     to_do: To do

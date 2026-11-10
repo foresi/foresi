@@ -3133,6 +3133,8 @@ timesheet:
     time_changed: Část vybraného času se mezitím změnila nebo smazala. Otevřete znovu fakturaci času.
     time_invoiced: Část vybraného času je mezitím vyfakturovaná jinou fakturou. Otevřete znovu fakturaci času.
     selection_gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
+    restore_time_changed: Část času této faktury se mezitím změnila nebo smazala, takže fakturu nelze obnovit.
+    restore_time_invoiced: Část času této faktury je mezitím vyfakturovaná jinou fakturou, takže fakturu nelze obnovit.
 work:
   status:
     to_do: K udělání

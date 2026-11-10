@@ -132,7 +132,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
                 return '01963c5e-0000-7000-8000-00000000000a';
             }
         };
-        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions());
+        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\App\Invoicing\Application\BilledWorkRelease::class));
 
         $trash->trash($invoice->id(), 'Wrong customer');
 
