@@ -231,7 +231,8 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
      */
     public function invoice(string $invoiceId, string $lineId, Money $rate, int $minutes): void
     {
-        if ($this->isRunning() || null === $this->minutes) {
+        // Only a running timer has no minutes.
+        if (null === $this->minutes) {
             throw new \DomainException('A running timer is not invoiced.');
         }
         if ($this->isInvoiced()) {

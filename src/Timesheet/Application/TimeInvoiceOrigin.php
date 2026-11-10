@@ -56,11 +56,11 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
         // The first row that kept a line's source bills its time; a copy of the row bills nothing.
         $rows = [];
         foreach ($this->sources as $position => $source) {
-            if (null !== $source && isset($lines[$position])) {
+            if (null !== $source) {
                 $rows[$source] ??= $lines[$position];
             }
         }
-        $billed = array_values(array_filter($this->selection->lines, static fn (SelectedLine $line): bool => isset($rows[$line->key])));
+        $billed = array_filter($this->selection->lines, static fn (SelectedLine $line): bool => isset($rows[$line->key]));
         $ids = [];
         foreach ($billed as $line) {
             foreach ($line->entries as $entry) {
@@ -75,7 +75,8 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
                 if ($entry->isInvoiced()) {
                     throw $this->refused('timesheet.problem.time_invoiced');
                 }
-                if (!$entry->isBillable() || $entry->isRunning() || EntryFingerprint::ofEntry($entry) !== $chosen->fingerprint || true === $entry->task()?->isDeleted()) {
+                // The fingerprint holds whether the entry is billable and its minutes, which a running timer has none of.
+                if (EntryFingerprint::ofEntry($entry) !== $chosen->fingerprint || true === $entry->task()?->isDeleted()) {
                     throw $this->refused('timesheet.problem.time_changed');
                 }
                 $this->bill($entry, $invoice, $row, $line, $chosen);

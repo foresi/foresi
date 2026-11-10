@@ -57,16 +57,14 @@ final readonly class ReleaseTime implements BilledWorkRelease
     public function reclaim(Invoice $invoice): void
     {
         $released = $this->released->ofInvoice($invoice->id());
-        if ([] === $released) {
-            return;
-        }
         $locked = $this->entries->lockForInvoicing(array_map(static fn (ReleasedTime $time): string => $time->entryId(), $released));
         foreach ($released as $time) {
             $entry = $locked[$time->entryId()] ?? throw $this->refused('timesheet.problem.restore_time_changed');
             if ($entry->isInvoiced()) {
                 throw $this->refused('timesheet.problem.restore_time_invoiced');
             }
-            if (!$entry->isBillable() || $entry->isRunning() || EntryFingerprint::ofEntry($entry) !== $time->fingerprint()) {
+            // The fingerprint holds whether the entry is billable and its minutes, which a running timer has none of.
+            if (EntryFingerprint::ofEntry($entry) !== $time->fingerprint()) {
                 throw $this->refused('timesheet.problem.restore_time_changed');
             }
             $this->bill($entry, $time);

@@ -163,6 +163,7 @@ final readonly class EditInvoice
             return $origins;
         }
 
-        return array_intersect_key($ids, $sources);
+        // A line past the last row lands on no row, so it is removed all the same.
+        return $ids;
     }
 }

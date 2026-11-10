@@ -84,10 +84,11 @@ final readonly class TimeInvoicing
         $rates = [];
         $candidates = [];
         foreach ($this->time->reportEntries(new TimeReportFilter($scope->from, $scope->until, clientId: $scope->clientId, billable: true, invoiced: false)) as $entry) {
-            if (!isset($projects[$entry->projectId]) || $entry->running || null === $entry->minutes) {
+            // A timer that still runs has no minutes yet.
+            if (!isset($projects[$entry->projectId]) || null === $entry->minutes) {
                 continue;
             }
-            $pair = $entry->projectId.'/'.$entry->membershipId;
+            $pair = "{$entry->projectId}/{$entry->membershipId}";
             if (!\array_key_exists($pair, $rates)) {
                 $rates[$pair] = $this->rates->resolve($entry->projectId, $entry->membershipId, $firm->id())?->rate;
             }
@@ -123,11 +124,10 @@ final readonly class TimeInvoicing
         if ([] === $times) {
             throw new TimeInvoicingRefused('nothing');
         }
-        $currencies = array_values(array_unique(array_map(static fn (BillableTime $time): string => $time->rate->currency()->value, $times)));
-        if (\count($currencies) > 1) {
+        if (\count(array_unique(array_map(static fn (BillableTime $time): string => $time->rate->currency()->value, $times))) > 1) {
             throw new TimeInvoicingRefused('currencies');
         }
-        if (Currency::from($currencies[0]) !== $this->currencyOf($scope->firmId)) {
+        if ($times[0]->rate->currency() !== $this->currencyOf($scope->firmId)) {
             throw new TimeInvoicingRefused('firm_currency');
         }
         $lines = TimeLines::of($times, $grouping, $rounding);
@@ -172,7 +172,7 @@ final readonly class TimeInvoicing
      *
      * @throws TimeInvoicingRefused for a firm whose country has no invoicing rules
      */
-    public function currencyOf(string $firmId): Currency
+    private function currencyOf(string $firmId): Currency
     {
         try {
             return $this->countries->for($this->firms->get($firmId)->address()->countryCode)->homeCurrency();
