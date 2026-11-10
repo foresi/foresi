@@ -415,7 +415,7 @@ party:
     payment_method: Payment method
     reverse_charge: Reverse charge
     hourly_rate: Hourly rate
-    hourly_rate_help: Applies to the client's projects without a rate of their own.
+    hourly_rate_help: For the client's projects without a rate of their own.
     hourly_rate_currency: Rate currency
   payment_method:
     bank_transfer: Bank transfer
@@ -3653,7 +3653,7 @@ work:
       billable: Bill time
       billable_help: New time on this project starts as billable.
       rate: Hourly rate
-      rate_help: Comes before the rate of the client and of the person. Leave it empty for no project rate.
+      rate_help: Comes before the rate of the client and of the person.
       rate_currency: Currency
     error:
       name_required: Enter the name of the project.

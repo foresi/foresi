@@ -3653,7 +3653,7 @@ work:
       billable: Fakturovat čas
       billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.
       rate: Hodinová sazba
-      rate_help: Má přednost před sazbou klienta i člověka. Nevyplněná znamená, že projekt vlastní sazbu nemá.
+      rate_help: Má přednost před sazbou klienta i člověka.
       rate_currency: Měna
     error:
       name_required: Zadejte název projektu.
