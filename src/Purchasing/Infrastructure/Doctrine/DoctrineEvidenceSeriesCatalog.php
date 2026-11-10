@@ -27,5 +27,7 @@ final readonly class DoctrineEvidenceSeriesCatalog implements EvidenceSeriesCata
     public function add(EvidenceSeries $series): void
     {
         $this->entityManager->persist($series);
+        // Stored at once: the counter of its numbers refers to it in the same transaction.
+        $this->entityManager->flush();
     }
 }

@@ -52,7 +52,7 @@ The supplier's number is a field of the document, the number KH reports. The fir
 | Not a VAT document | nowhere | nowhere |
 | Non-deductible | nowhere, as no deduction is claimed | nowhere |
 
-A simplified receipt is a domestic document: it is refused in the three self-assessed treatments. A credit note takes the treatment of its original and reports negative amounts. KH B.1 also needs the code of the supply; it is not stored yet and comes with the control statement export.
+A simplified receipt is a domestic document: it is refused in the three self-assessed treatments. A credit note takes the treatment of its original and reports negative amounts. KH B.1 also needs the code of the supply: a domestic reverse charge may carry it, optional as on issued documents, and no other treatment takes one.
 
 ### The VAT recap and the VAT in CZK
 

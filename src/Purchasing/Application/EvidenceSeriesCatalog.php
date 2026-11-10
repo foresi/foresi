@@ -18,5 +18,9 @@ interface EvidenceSeriesCatalog
 {
     public function ofFirm(LegalEntity $firm): ?EvidenceSeries;
 
+    /**
+     * Stores the series at once, with whatever else the unit of work holds,
+     * so its numbers can be counted in the same transaction.
+     */
     public function add(EvidenceSeries $series): void;
 }

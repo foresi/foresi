@@ -46,6 +46,15 @@ final class ReceivedDocumentRefused extends \DomainException
     public const string ORIGINAL_FILE_INVALID = 'original_file_invalid';
     public const string REASON_MISSING = 'reason_missing';
     public const string REASON_TOO_LONG = 'reason_too_long';
+    public const string SUPPLY_CODE_NOT_ALLOWED = 'supply_code_not_allowed';
+    public const string SUPPLY_CODE_INVALID = 'supply_code_invalid';
+    // Refused by the use cases, which know more than the document.
+    public const string FIRM_ARCHIVED = 'firm_archived';
+    public const string SUPPLIER_UNKNOWN = 'supplier_unknown';
+    public const string EXCHANGE_RATE_UNAVAILABLE = 'exchange_rate_unavailable';
+    public const string EVIDENCE_NUMBERS_EXHAUSTED = 'evidence_numbers_exhausted';
+    public const string STALE = 'stale';
+    public const string LOCKED = 'locked';
 
     public const array REASONS = [
         self::TRASHED, self::RECORDED, self::SUPPLIER_MISSING, self::ISSUE_DATE_MISSING, self::RECEIVED_DATE_MISSING,
@@ -55,7 +64,9 @@ final class ReceivedDocumentRefused extends \DomainException
         self::ORIGINAL_MISSING, self::ORIGINAL_NOT_CREDIT_NOTE, self::ORIGINAL_INVALID, self::SIMPLIFIED_SELF_ASSESSED,
         self::TREATMENT_FOR_KIND, self::SUPPLIER_NUMBER_TOO_LONG, self::VARIABLE_SYMBOL, self::EVIDENCE_NUMBER_MISSING,
         self::EVIDENCE_NUMBER_FIXED, self::EVIDENCE_NUMBER_INVALID, self::ORIGINAL_FILE_FIXED, self::ORIGINAL_FILE_INVALID,
-        self::REASON_MISSING, self::REASON_TOO_LONG,
+        self::REASON_MISSING, self::REASON_TOO_LONG, self::SUPPLY_CODE_NOT_ALLOWED, self::SUPPLY_CODE_INVALID,
+        self::FIRM_ARCHIVED, self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
+        self::STALE, self::LOCKED,
     ];
 
     public function __construct(public readonly string $reason)

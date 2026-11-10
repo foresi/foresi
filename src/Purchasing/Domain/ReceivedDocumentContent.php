@@ -15,7 +15,9 @@ use App\Shared\Domain\Money;
 /**
  * The values of a received document a person or a reader of the file gives.
  * A draft may leave most of them out; recording checks they are complete. The
- * exchange rate of a CZK document is one, so it may be left out there.
+ * exchange rate of a CZK document is one, so it may be left out there. The
+ * supply code is the code of the supply a domestic reverse charge reports in
+ * the control statement (KH B.1); it is optional, as on issued documents.
  */
 final readonly class ReceivedDocumentContent
 {
@@ -39,6 +41,7 @@ final readonly class ReceivedDocumentContent
         public ?\DateTimeImmutable $exchangeRateDate,
         public array $vatRecap,
         public ?string $originalDocumentId,
+        public ?string $supplyCode = null,
     ) {
     }
 

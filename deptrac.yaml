@@ -749,9 +749,10 @@ deptrac:
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
-    # Purchasing builds on Party (firms and suppliers), Identity (people) and the
-    # attachment store, which keeps the original files; no module uses Purchasing
-    # but the navigation of Ui, and it never uses Invoicing.
+    # Purchasing builds on Party (firms and suppliers), Identity (people), the
+    # attachment store, which keeps the original files, and the exchange rates;
+    # no module uses Purchasing but the navigation of Ui, and it never uses
+    # Invoicing.
     PurchasingDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain
@@ -772,6 +773,9 @@ deptrac:
       - IdentityApplication
       - AttachmentDomain
       - AttachmentApplication
+      - ExchangeRateDomain
+      - ExchangeRateApplication
+      - VendorBrick
     PurchasingInfrastructure:
       - SharedInfrastructure
       - PurchasingDomain

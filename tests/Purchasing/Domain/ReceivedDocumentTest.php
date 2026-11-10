@@ -243,6 +243,23 @@ final class ReceivedDocumentTest extends TestCase
         self::assertSame($issued, $document->issueDate());
     }
 
+    public function testADomesticReverseChargeMayCarryTheCodeOfItsSupply(): void
+    {
+        $lines = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(0, Currency::CZK))];
+        $document = $this->recorded($this->content(treatment: PurchaseTaxTreatment::DomesticReverseCharge, total: 100_000, lines: $lines, supplyCode: ' 4 '));
+
+        self::assertSame('4', $document->supplyCode());
+
+        $document->record($this->content(treatment: PurchaseTaxTreatment::DomesticReverseCharge, total: 100_000, lines: $lines, supplyCode: ''), null, new \DateTimeImmutable(self::AT));
+        self::assertNull($document->supplyCode(), 'The code is optional.');
+        $this->assertRefused(ReceivedDocumentRefused::SUPPLY_CODE_INVALID, fn () => $document->record($this->content(treatment: PurchaseTaxTreatment::DomesticReverseCharge, total: 100_000, lines: $lines, supplyCode: '4/a'), null, new \DateTimeImmutable(self::AT)));
+    }
+
+    public function testOnlyADomesticReverseChargeTakesASupplyCode(): void
+    {
+        $this->assertRefused(ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED, fn (): ReceivedDocument => $this->recorded($this->content(supplyCode: '4')));
+    }
+
     /**
      * @param list<VatRecapLine>|null $lines
      */
@@ -261,6 +278,7 @@ final class ReceivedDocumentTest extends TestCase
         string $variableSymbol = '2026123',
         string $supplierNumber = 'FV-2026-123',
         ?Currency $totalCurrency = null,
+        ?string $supplyCode = null,
     ): ReceivedDocumentContent {
         $party = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '');
 
@@ -281,6 +299,7 @@ final class ReceivedDocumentTest extends TestCase
             null,
             $lines ?? [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK))],
             $original,
+            $supplyCode,
         );
     }
 

@@ -51,7 +51,9 @@ class ReceivedDocument implements TenantOwned, Audited
     public const int MAX_EVIDENCE_NUMBER_LENGTH = 64;
     public const int MAX_SUPPLIER_NUMBER_LENGTH = 64;
     public const int MAX_REASON_LENGTH = 500;
+    public const int MAX_SUPPLY_CODE_LENGTH = 8;
     private const string VARIABLE_SYMBOL = '/^\d{1,10}$/D';
+    private const string SUPPLY_CODE = '/^[0-9A-Za-z]{1,8}$/D';
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -145,6 +147,10 @@ class ReceivedDocument implements TenantOwned, Audited
     #[ORM\Column(name: 'latest_deduction_date', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $latestDeductionDate;
 
+    // The code of the supply of a domestic reverse charge, for KH B.1; optional.
+    #[ORM\Column(name: 'supply_code', type: 'string', length: self::MAX_SUPPLY_CODE_LENGTH, nullable: true)]
+    private ?string $supplyCode;
+
     #[ORM\Column(name: 'original_attachment_id', type: 'guid', nullable: true)]
     private ?string $originalAttachmentId = null;
 
@@ -219,6 +225,19 @@ class ReceivedDocument implements TenantOwned, Audited
             $this->recordedBy = $userId;
         }
         ++$this->version;
+    }
+
+    /**
+     * Refuses what record() would refuse but the missing evidence number, so a
+     * number is only taken for a document that can be recorded.
+     *
+     * @throws ReceivedDocumentRefused in the trash, or for values incomplete or not fitting together
+     */
+    public function checkRecordable(ReceivedDocumentContent $content): void
+    {
+        $this->refuseTrashed();
+        $this->refuseUnfit($content);
+        $this->refuseIncomplete($content);
     }
 
     /**
@@ -429,6 +448,11 @@ class ReceivedDocument implements TenantOwned, Audited
         return $this->latestDeductionDate;
     }
 
+    public function supplyCode(): ?string
+    {
+        return $this->supplyCode;
+    }
+
     public function originalAttachmentId(): ?string
     {
         return $this->originalAttachmentId;
@@ -523,6 +547,7 @@ class ReceivedDocument implements TenantOwned, Audited
         $this->deductionPeriod = $this->keepDay($this->deductionPeriod ?? null, $deduction->periodStart);
         $this->latestDeductionDate = $this->keepDay($this->latestDeductionDate ?? null, $deduction->latestDate);
         $this->originalDocumentId = $content->originalDocumentId;
+        $this->supplyCode = $this->supplyCodeOf($content);
     }
 
     /**
@@ -560,6 +585,26 @@ class ReceivedDocument implements TenantOwned, Audited
         if ($content->total instanceof Money && $content->total->currency() !== $content->currency) {
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::CURRENCY_MISMATCH);
         }
+        $code = $this->supplyCodeOf($content);
+        if (null !== $code) {
+            // Only the supply the firm self-assesses at home has a code (KH B.1).
+            if (PurchaseTaxTreatment::DomesticReverseCharge !== $content->treatment) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED);
+            }
+            if (1 !== preg_match(self::SUPPLY_CODE, $code)) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SUPPLY_CODE_INVALID);
+            }
+        }
+    }
+
+    /**
+     * The code as given, without spaces around it; none for an empty one.
+     */
+    private function supplyCodeOf(ReceivedDocumentContent $content): ?string
+    {
+        $code = trim($content->supplyCode ?? '');
+
+        return '' === $code ? null : $code;
     }
 
     /**

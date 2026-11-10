@@ -566,6 +566,14 @@ when@test:
         App\Import\Application\CancelImport: { public: true }
         App\Import\Application\ImportErrorFile: { public: true }
 
+        # The use cases of received documents have no screen yet (plan 25, A4); the tests drive them.
+        App\Purchasing\Application\UploadReceivedDocuments: { public: true }
+        App\Purchasing\Application\RecordReceivedDocument: { public: true }
+        App\Purchasing\Application\EditReceivedDocument: { public: true }
+        App\Purchasing\Application\TrashReceivedDocument: { public: true }
+        App\Purchasing\Application\RestoreReceivedDocument: { public: true }
+        App\Purchasing\Application\DeleteReceivedDocumentDraft: { public: true }
+
         # Public for the tests, which use the ports directly.
         App\Import\Application\Imports:
             alias: App\Import\Infrastructure\Doctrine\DoctrineImports
