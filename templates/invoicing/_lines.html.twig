@@ -28,4 +28,6 @@
         {{ include('invoicing/_line.html.twig', {index: loop.index0, line: line, total: figures.lines[loop.index0].total|default(''), discount: figures.lines[loop.index0].discount|default(''), textAttributes: textAttributes|default('')}) }}
     {% endfor %}
 </table>
+{# The data-source of every row in their order, one field for all so a line costs no field of max_input_vars; the form controller writes it again on submit. #}
+<input type="hidden" name="lineSources" value="{{ values.lines|map(line => line.source|default(''))|json_encode }}" data-invoice-form-target="lineSources">
 <template data-invoice-form-target="lineTemplate">{{ include('invoicing/_line.html.twig', {index: '__INDEX__', line: emptyLine, total: '', discount: '', textAttributes: textAttributes|default('')}) }}</template>

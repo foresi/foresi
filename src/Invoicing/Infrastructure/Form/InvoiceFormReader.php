@@ -43,7 +43,7 @@ final readonly class InvoiceFormReader
 {
     public const int MAX_TEXT = 2000;
 
-    /** With eight fields a line this stays well under the 1000 of PHP's max_input_vars. */
+    /** With nine fields a line this stays under the 1000 of PHP's max_input_vars; the sources of the lines are one field of their own. */
     public const int MAX_LINES = Invoice::MAX_LINES;
 
     /** A valid id of nothing: the rules answer it as unknown on either database. */
@@ -61,7 +61,7 @@ final readonly class InvoiceFormReader
     private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
     private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
     private const string DATE = '/^20\d{2}-\d{2}-\d{2}$/D';
-    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount', 'deducts', 'source'];
+    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount', 'deducts'];
     private const array CUSTOMER_FIELDS = ['name', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode', 'email', 'phone', 'web', 'registerEntry'];
 
     /**
@@ -238,8 +238,39 @@ final readonly class InvoiceFormReader
                 $rows[] = $row;
             }
         }
+        foreach ($this->sources($post, \count($rows)) as $index => $source) {
+            $rows[$index]['source'] = $source;
+        }
 
         return $rows;
+    }
+
+    /**
+     * Where each row came from, a line of time or a stored line, comes in one field
+     * in the order of the rows, so it costs a line no field of max_input_vars.
+     * Sources that do not go row for row are none: the rows are read without them.
+     *
+     * @param array<string, mixed> $post
+     *
+     * @return list<string>
+     */
+    private function sources(array $post, int $rows): array
+    {
+        $sent = $post['lineSources'] ?? '';
+        $sources = \is_string($sent) ? json_decode($sent, true) : null;
+        $none = array_fill(0, $rows, '');
+        if (!\is_array($sources) || !array_is_list($sources) || \count($sources) !== $rows) {
+            return $none;
+        }
+        $read = [];
+        foreach ($sources as $source) {
+            if (!\is_string($source)) {
+                return $none;
+            }
+            $read[] = trim($source);
+        }
+
+        return $read;
     }
 
     /**

@@ -140,7 +140,7 @@ final class TimeInvoiceControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', $location);
         self::assertResponseIsSuccessful();
-        /** @var array{firmId: string, customerId: string, billedWork: string, lines: list<array<string, string>>} $values */
+        /** @var array{firmId: string, customerId: string, billedWork: string, lineSources: string, lines: list<array<string, string>>} $values */
         $values = $crawler->filter('form#invoice-form')->form()->getPhpValues();
         self::assertSame($this->firm, $values['firmId']);
         self::assertSame($this->customer, $values['customerId']);
@@ -149,10 +149,11 @@ final class TimeInvoiceControllerTest extends WebTestCase
             ['Website', '0.25', 'h', '1000.00', 'base'],
             ['Website – Design the homepage', '1.5', 'h', '1000.00', 'base'],
         ], array_map(static fn (array $line): array => [$line['text'], $line['quantity'], $line['unit'], $line['price'], $line['vat']], $values['lines']));
-        self::assertSame(['line-1', 'line-2'], array_column($values['lines'], 'source'));
+        self::assertSame(['line-1', 'line-2'], json_decode($values['lineSources'], true));
 
         // The project's line is removed and the other edited: its time is billed all the same.
         $values['lines'] = [array_merge($values['lines'][1], ['text' => 'Homepage', 'price' => '900'])];
+        $values['lineSources'] = '["line-2"]';
         $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'save']));
         self::assertResponseRedirects('/invoices');
 

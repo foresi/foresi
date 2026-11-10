@@ -21,7 +21,7 @@ export default class extends Controller {
     static targets = [
         'line', 'lines', 'lineCount', 'lineTemplate', 'totals', 'summaries', 'net', 'vat', 'rounding', 'roundingRow', 'payable',
         'stale', 'addLine', 'lineLimit', 'dueDateSet', 'originalSeries', 'originalNumber', 'numberPeek', 'series', 'variableSymbol', 'issueDate', 'taxPointDate', 'dueDate',
-        'errors', 'paymentMethod', 'bankRow', 'language', 'customerBox', 'summary', 'contactLink', 'notice', 'noticeText', 'noScript',
+        'lineSources', 'errors', 'paymentMethod', 'bankRow', 'language', 'customerBox', 'summary', 'contactLink', 'notice', 'noticeText', 'noScript',
     ];
 
     static values = {
@@ -591,6 +591,8 @@ export default class extends Controller {
         }
         this.leaving = true;
         clearTimeout(this.timer);
+        // The line each row came from, in the order on screen, as one field: a field on each row takes 100 lines past max_input_vars.
+        this.lineSourcesTarget.value = JSON.stringify(this.lineTargets.map((row) => row.dataset.source ?? ''));
     }
 
     beforeUnload(event) {

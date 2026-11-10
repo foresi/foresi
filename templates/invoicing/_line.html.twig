@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# One row of the lines table (see _lines.html.twig for its columns), a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. A recurring template's form passes textAttributes, which its variable chips need on the text cell. #}
+{# One row of the lines table (see _lines.html.twig for its columns), a card below the wide layout. Also rendered with index "__INDEX__" as the template of a new row. The line the row came from, a line of time or a stored line, is its data-source; the sources go as one field, see _lines.html.twig. A recurring template's form passes textAttributes, which its variable chips need on the text cell. #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% macro classes(invalid) %}w-full rounded-control border bg-white px-2.5 text-ink {{ invalid ? 'border-badge-red-text' : 'border-control-line' }} {{ constant('App\\Ui\\Component\\Style::FOCUS') }}{% endmacro %}
 {% macro input(index, cell, label, value, errorFields, extra, numeric) %}
@@ -28,14 +28,14 @@
 {% set discountError = errorFields[discountId]|default(null) %}
 {% set discounted = line.discount != '' or discountError is not null %}
 {% set totalLabel = (payer ? 'invoice.line.total_with_vat' : 'invoice.line.total')|trans %}
-<tbody data-invoice-form-target="line" class="block rounded-panel border border-container p-3 xl:table-row-group xl:border-0 xl:p-0 max-xl:mb-3"{% if line.deducts|default('') %} data-deducts="{{ line.deducts }}"{% endif %}>
+<tbody data-invoice-form-target="line" class="block rounded-panel border border-container p-3 xl:table-row-group xl:border-0 xl:p-0 max-xl:mb-3"{% if line.deducts|default('') %} data-deducts="{{ line.deducts }}"{% endif %}{% if line.source|default('') %} data-source="{{ line.source }}"{% endif %}>
     <tr class="grid grid-cols-2 gap-2 xl:table-row">
         <td class="hidden align-top xl:table-cell xl:p-1">
             <div class="flex items-center justify-center xl:h-control">
                 <span class="cursor-grab text-muted" data-action="mousedown->invoice-form#armDrag" title="{{ 'invoice.line.drag'|trans }}">{{ ux_icon('lucide:grip-vertical', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
             </div>
         </td>
-        <td class="col-span-2 {{ cell }}"><input type="hidden" name="lines[{{ index }}][deducts]" value="{{ line.deducts|default('') }}" data-cell="deducts"><input type="hidden" name="lines[{{ index }}][source]" value="{{ line.source|default('') }}" data-cell="source">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, textAttributes|default(''), false) }}</td>
+        <td class="col-span-2 {{ cell }}"><input type="hidden" name="lines[{{ index }}][deducts]" value="{{ line.deducts|default('') }}" data-cell="deducts">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, textAttributes|default(''), false) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, 'data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, 'data-controller="number-input" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>
