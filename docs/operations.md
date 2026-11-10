@@ -133,7 +133,7 @@ start fresh after a deploy.
 ## The worker
 
 One long-running process handles mail, timed jobs (recurring invoices,
-reminders, bank polling), imports and register checks; see the
+reminders, bank polling, exchange rates), imports and register checks; see the
 [background worker](../README.md#background-worker). It must run all the time.
 
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):
@@ -219,6 +219,36 @@ the time and `result=ok` or `result=failed`, for a monitoring agent to read: ale
 when the result is failed or the time is older than a day (backup) or eight days
 (restore check). Errors of the application itself go to its log; see
 [docs/logging.md](logging.md).
+
+## Exchange rates
+
+Received documents in a foreign currency are converted at the rate of the Czech
+National Bank (see [received documents](purchasing.md#foreign-currency)). The
+rates are fetched by a timed job of the worker, `exchange-rates`: it ticks every
+ten minutes and does nothing before 14:35 Prague time, when the bank has
+published the day's rates (around 14:30), or once the day has rates, so a missed
+tick, a late publication and a failed fetch are all made up by the next tick.
+The worker therefore must run all the time and reach `www.cnb.cz` over HTTPS; a
+fetch is one request with a 5 second timeout, and a failure is logged as a
+warning and retried. On a day without a publication (a weekend, a holiday) the
+rates of the previous publication are stored under that day once it is settled at
+15:00, so asking for it later is a read.
+
+The rates are global to the installation, kept in the database, and need no
+backup of their own. A document keeps the rate it was saved with, so fetching
+later never changes a recorded document.
+
+To fetch by hand, for a date missed or to check the connection:
+
+```bash
+bin/console app:exchange-rate:fetch              # today
+bin/console app:exchange-rate:fetch 2026-11-06   # a date, as YYYY-MM-DD
+```
+
+It stores the rates of the date and prints how many it stored and the day they
+were published; it exits non-zero when the bank gave no usable answer, and
+nothing is stored then. Without the fetch, a document in a foreign currency takes
+no rate on its own and a rate has to be typed by hand.
 
 ## Web server
 

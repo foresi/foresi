@@ -468,6 +468,9 @@ when@e2e:
         e2e.token_storage:
             alias: security.token_storage
             public: true
+        e2e.rate_store:
+            alias: App\ExchangeRate\Application\RateStore
+            public: true
 
 when@test:
     parameters:
