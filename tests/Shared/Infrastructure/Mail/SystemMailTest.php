@@ -142,6 +142,14 @@ final class SystemMailTest extends KernelTestCase
         self::assertSame('null://', (string) new SystemMailSettings('null://null', 'noreply@example.com')->transport());
     }
 
+    public function testTheContainerSendsThroughTheSystemMailerNotTheFrameworkMailer(): void
+    {
+        self::bootKernel();
+
+        // The test environment's SYSTEM_MAILER_DSN; the framework's mailer would read "(null://)".
+        self::assertSame('null://', (string) self::getContainer()->get(SystemMailSettings::class)->transport());
+    }
+
     public function testAMailLogsNoneOfItsContent(): void
     {
         $mail = new SystemMail('jana@example.com', 'Secret subject', 'Secret body', '<p>Secret</p>', 'en', 'Example Ltd');
