@@ -51,6 +51,9 @@ use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
+use App\Purchasing\Domain\EvidenceCounter;
+use App\Purchasing\Domain\EvidenceSeries;
+use App\Purchasing\Domain\ReceivedDocument;
 use App\Tenancy\Domain\ScheduledJobRun;
 use App\Tenancy\Domain\TenantOwned;
 use App\Timesheet\Domain\ReleasedTime;
@@ -111,7 +114,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class, IdokladConnection::class, IdokladPull::class, IdokladRecord::class, IdokladLink::class, IdokladImportRun::class, IdokladJob::class, Project::class, ProjectStatus::class, Section::class, Task::class, TaskWatcher::class, Label::class, TaskLabel::class, Attachment::class, TaskComment::class, CommentMention::class, WorkShare::class, Notification::class, NotificationPreference::class, TimeEntry::class, ReleasedTime::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, AuditEntry::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class, IdokladConnection::class, IdokladPull::class, IdokladRecord::class, IdokladLink::class, IdokladImportRun::class, IdokladJob::class, Project::class, ProjectStatus::class, Section::class, Task::class, TaskWatcher::class, Label::class, TaskLabel::class, Attachment::class, TaskComment::class, CommentMention::class, WorkShare::class, Notification::class, NotificationPreference::class, TimeEntry::class, ReleasedTime::class, EvidenceSeries::class, EvidenceCounter::class, ReceivedDocument::class] as $class) {
             yield $class => [$class];
         }
     }

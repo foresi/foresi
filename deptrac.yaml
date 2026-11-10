@@ -188,6 +188,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Attachment/Infrastructure/.*
+    # Received documents: the cost side of a firm (ADR 0028).
+    - name: PurchasingDomain
+      collectors:
+        - type: directory
+          value: src/Purchasing/Domain/.*
+    - name: PurchasingApplication
+      collectors:
+        - type: directory
+          value: src/Purchasing/Application/.*
+    - name: PurchasingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Purchasing/Infrastructure/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -713,6 +726,51 @@ deptrac:
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
+    # Purchasing builds on Party (firms and suppliers), Identity (people) and the
+    # attachment store, which keeps the original files; no module uses Purchasing
+    # but the navigation of Ui, and it never uses Invoicing.
+    PurchasingDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+    PurchasingApplication:
+      - PurchasingDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - AttachmentDomain
+      - AttachmentApplication
+    PurchasingInfrastructure:
+      - SharedInfrastructure
+      - PurchasingDomain
+      - PurchasingApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - AttachmentDomain
+      - AttachmentApplication
+      - Ui
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers. It plugs its banks' mail
