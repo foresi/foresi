@@ -94,7 +94,7 @@ final class TimeReportController extends AbstractController
             ],
             'empty' => 0 === $report->entryCount,
             'totalColumns' => $this->totalColumns($grouping),
-            'totalRows' => array_map(fn (TimeTotal $total): array => $this->totalRow($total, $grouping), $report->totals),
+            'totalRows' => array_map($this->totalRow(...), $report->totals),
             'totalSums' => ['minutes' => $this->format->duration($report->totalMinutes), 'billable' => $this->format->duration($report->billableMinutes), 'entries' => (string) $report->entryCount],
             'grouping' => $grouping->value,
             'entryColumns' => [
@@ -153,10 +153,10 @@ final class TimeReportController extends AbstractController
         $from = $this->date($input->getString('from'));
         $until = $this->date($input->getString('until'));
         // Dates changed under the period they were shown for make it a custom one.
-        if (self::CUSTOM !== $period && $period === $input->getString('shown') && null !== $from && null !== $until && !$this->isPreset($period, $from, $until)) {
+        if (self::CUSTOM !== $period && $period === $input->getString('shown') && $from instanceof \DateTimeImmutable && $until instanceof \DateTimeImmutable && !$this->isPreset($period, $from, $until)) {
             $period = self::CUSTOM;
         }
-        if (self::CUSTOM === $period && null !== $from && null !== $until) {
+        if (self::CUSTOM === $period && $from instanceof \DateTimeImmutable && $until instanceof \DateTimeImmutable) {
             [$from, $until] = $from <= $until ? [$from, $until] : [$until, $from];
         } else {
             $period = self::CUSTOM === $period ? self::THIS_MONTH : $period;
@@ -278,7 +278,7 @@ final class TimeReportController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function totalRow(TimeTotal $total, TimeGrouping $grouping): array
+    private function totalRow(TimeTotal $total): array
     {
         $name = $total->label ?? $this->translator->trans('work.time.no_task');
 

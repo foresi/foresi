@@ -28,6 +28,7 @@ use App\Work\Application\StatusTasks;
 use App\Work\Application\TaskFilter;
 use App\Work\Application\TaskRow;
 use App\Work\Application\TimeQueries;
+use App\Work\Application\TimeTarget;
 use App\Work\Application\TrashedTask;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
@@ -204,7 +205,7 @@ final class ProjectController extends AbstractController
             'dues' => $this->dues(),
             'columns' => $this->taskColumns(),
             'trashCount' => $this->queries->trashCount($id),
-            'timeLoggable' => null !== $this->time->projectTarget($id),
+            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
         ]);
     }
 
@@ -228,7 +229,7 @@ final class ProjectController extends AbstractController
             'filtered' => '' !== $query['responsible'] || '' !== $query['due'],
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
-            'timeLoggable' => null !== $this->time->projectTarget($id),
+            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
             'columns' => array_map(fn (StatusTasks $column): array => [
                 'id' => $column->id,
                 'name' => $column->name,

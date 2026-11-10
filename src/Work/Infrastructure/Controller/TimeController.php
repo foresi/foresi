@@ -17,6 +17,7 @@ use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Duration;
 use App\Work\Domain\Task;
+use App\Work\Domain\TimeEntry;
 use App\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -189,7 +190,7 @@ final class TimeController extends AbstractController
             [$workedOn, $minutes, $errors] = $this->read($values);
             if ([] === $errors && null !== $workedOn && null !== $minutes) {
                 // The start and the end of a stopped timer stay while its length does.
-                $keep = $values['duration'] === $shown && null !== $entry->startedAt && null !== $entry->endedAt;
+                $keep = $values['duration'] === $shown && $entry->startedAt instanceof \DateTimeImmutable && $entry->endedAt instanceof \DateTimeImmutable;
                 try {
                     $this->time->edit($id, $entry->taskId, $workedOn, $keep ? null : $minutes, $keep ? $entry->startedAt : null, $keep ? $entry->endedAt : null, $values['note'], $values['billable']);
                     $this->addFlash('success', $this->translator->trans('work.time.edited'));
@@ -257,7 +258,7 @@ final class TimeController extends AbstractController
 
             return $this->redirectToRoute(ProjectController::ROUTE, status: Response::HTTP_SEE_OTHER);
         }
-        if (null === $stopped) {
+        if (!$stopped instanceof TimeEntry) {
             return $this->redirectToRoute(ProjectController::ROUTE, status: Response::HTTP_SEE_OTHER);
         }
         $this->addFlash('success', $this->translator->trans('work.time.stopped', [
@@ -432,7 +433,7 @@ final class TimeController extends AbstractController
      */
     private function taskChoices(string $projectId): array
     {
-        $choices = null === $this->queries->projectTarget($projectId) ? [] : ['' => $this->translator->trans('work.time.no_task')];
+        $choices = $this->queries->projectTarget($projectId) instanceof TimeTarget ? ['' => $this->translator->trans('work.time.no_task')] : [];
         foreach ($this->queries->taskTargets($projectId) as $target) {
             $choices[(string) $target->taskId] = (string) $target->taskTitle;
         }

@@ -182,7 +182,7 @@ final class TimePagesControllerTest extends WebTestCase
         $this->logged('Wireframes', 90, $today, billable: true);
         $this->logged(null, 30, $today);
         $this->logged('Brief', 60, $today, self::JANA, billable: true);
-        $this->logged(null, 45, $today, project: 'Secret', billable: true);
+        $this->logged(null, 45, $today, billable: true, project: 'Secret');
         $this->logged('Brief', 120, $today->modify('first day of last month'));
         $this->invoiced($this->entryId(90));
 
@@ -237,7 +237,7 @@ final class TimePagesControllerTest extends WebTestCase
         $today = $this->today();
         $this->logged('Wireframes', 90, $today, billable: true, note: 'Sketches');
         $this->logged(null, 25, $today, self::JANA, note: '=SUM(A1)');
-        $this->logged(null, 45, $today, project: 'Secret', billable: true);
+        $this->logged(null, 45, $today, billable: true, project: 'Secret');
         $this->signInAs(self::JANA);
 
         $crawler = $this->client->request('GET', '/time/report');

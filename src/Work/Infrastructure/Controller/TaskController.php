@@ -35,6 +35,7 @@ use App\Work\Application\TaskRow;
 use App\Work\Application\TaskTime;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
+use App\Work\Application\TimeTarget;
 use App\Work\Application\WorkQueries;
 use App\Work\Application\WorkRefused;
 use App\Work\Domain\Priority;
@@ -583,7 +584,7 @@ final class TaskController extends AbstractController
             'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
             'attachmentKind' => TaskAttachmentAccess::KIND,
             'time' => $time instanceof TaskTime ? $this->timeView($time) : null,
-            'timeLoggable' => $task->manageable && null !== $this->time->taskTarget($row->id),
+            'timeLoggable' => $task->manageable && $this->time->taskTarget($row->id) instanceof TimeTarget,
             'timerHere' => $timer instanceof TimeEntryRow && $timer->taskId === $row->id,
             'estimateValue' => null === $time?->estimateMinutes ? '' : $this->duration->duration($time->estimateMinutes),
         ], new Response(status: $status));

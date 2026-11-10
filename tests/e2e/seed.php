@@ -861,6 +861,9 @@ $day = static fn (string $modifier): DateTimeImmutable => $today->modify($modifi
 
 $homepage = $manageTasks->create($website->id(), 'Design the homepage', $shared->id(), null, $statuses[1]->id(), $ownerMembership->id(), $day('-2 days'), Priority::High);
 $manageTasks->setLabels($homepage->id(), [$design->id()]);
+// Estimated before the comments: a history step in the same second as a comment comes first, so the
+// discussion reads the same in every run.
+$manageTime->setEstimate($homepage->id(), 300);
 $manageComments->add($homepage->id(), sprintf("First sketch is ready, **please review**.\n\n- hero with the new logo\n- a short pitch\n\n@[Jana Example](membership:%s) can you check the copy?", $teamMember->id()), true);
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
 $manageComments->add($homepage->id(), 'Looks good, the *pitch* reads well.', false);
@@ -905,13 +908,12 @@ $manageTasks->create($launch->id(), 'Book the launch venue', null, null, $launch
 // Time for the time spec, this week and the week before, Monday to Sunday: always on or before
 // today, so the previous week reads the same whatever day the tests run. Jana logs on her tasks;
 // the owner on tasks, once on the project without a task and once not billable, though the
-// project of a client bills its time by default. "Design the homepage" is estimated at 5 h.
+// project of a client bills its time by default. "Design the homepage" is estimated at 5 h above.
 $thisMonday = $today->modify('monday this week');
 $lastMonday = $thisMonday->modify('-7 days');
 $manageTime->log($website->id(), $palette->id(), $lastMonday->modify('+1 day'), 150, note: 'Three palettes for the client');
 $manageTime->log($website->id(), $copy->id(), $thisMonday, 60, note: 'First draft of the about page');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
-$manageTime->setEstimate($homepage->id(), 300);
 $manageTime->log($website->id(), $homepage->id(), $lastMonday, 120, note: 'Wireframes for the hero');
 $manageTime->log($website->id(), $contact->id(), $lastMonday->modify('+2 days'), 45, note: 'Reproduced the error in Safari');
 $manageTime->log($website->id(), $homepage->id(), $lastMonday->modify('+3 days'), 60, note: 'Internal review of the sketches', billable: false);
