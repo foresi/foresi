@@ -8,9 +8,12 @@ import { Controller } from '@hotwired/stimulus';
  * JavaScript the form keeps its own Save button inside <noscript>.
  *
  *     <form data-controller="autosubmit" data-action="change->autosubmit#submit">
+ *
+ * On an element inside a form, a change of what it holds sends the whole form.
  */
 export default class extends Controller {
     submit() {
-        this.element.requestSubmit();
+        const form = this.element instanceof HTMLFormElement ? this.element : this.element.closest('form');
+        form?.requestSubmit();
     }
 }

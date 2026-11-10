@@ -6,7 +6,9 @@
     button for a browser without JavaScript. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
-    dialog; a private task has its badge next to the title. A guest finds the way back through what is
+    dialog; a private task has its badge next to the title. The people of the organisation see the time
+    logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
+    estimate in the panel; a guest sees none of it. A guest finds the way back through what is
     shared with them, and the project by its name only when they do not see it.
 #}
 {% extends 'layout/app.html.twig' %}
@@ -18,6 +20,7 @@
 {% set crumbs = crumbs|merge([{label: row.title}]) %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set token = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
+{% set timeToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
 {% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
@@ -26,19 +29,50 @@
 {% block title %}{{ row.title }}{% endblock %}
 
 {% block actions %}
-    {% if edit != 'title' %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}
-    {% if not task.parent and not task.projectArchived %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}
-    {% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}
-    {% if row.deletable %}
-        {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
-        <div class="relative" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
+    {#
+        On a phone, when the header holds more than two actions, it keeps the timer and the "…" menu on
+        one row; editing, a new subtask and sharing move into the menu, as the actions of a table row do.
+        The wrappers count as children of the header in pairs, so the menu never takes a row of its own;
+        on a wider screen they are not boxes.
+    #}
+    {% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
+    {% set editable = edit != 'title' %}
+    {% set subtaskable = not task.parent and not task.projectArchived %}
+    {% set timed = timerHere or timeLoggable %}
+    {% set collapse = [editable, subtaskable, timed, task.shareable, row.deletable]|filter(shown => shown)|length > 2 %}
+    {% set editButton %}{% if editable %}<twig:Ui:Button icon="pencil" :href="taskUrl ~ '?edit=title'" data-task-edit-title>{{ 'work.task.edit'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+    {% set subtaskButton %}{% if subtaskable %}<twig:Ui:Button icon="plus" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+    {% set shareButton %}{% if task.shareable %}<twig:Ui:Button icon="share-2" :href="path('app_sharing', {kind: 'tasks', id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:Button>{% endif %}{% endset %}
+    {% if collapse %}<div class="hidden sm:contents">{{ editButton }}{{ subtaskButton }}</div>{% else %}{{ editButton }}{{ subtaskButton }}{% endif %}
+    {% if timerHere %}
+        <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
+            <input type="hidden" name="_token" value="{{ timeToken }}">
+            <input type="hidden" name="return" value="{{ taskUrl }}">
+            <twig:Ui:Button type="submit" icon="square">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
+        </form>
+    {% elseif timeLoggable %}
+        <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
+            <input type="hidden" name="_token" value="{{ timeToken }}">
+            <twig:Ui:Button type="submit" icon="play">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+    {% if collapse %}<div class="hidden sm:contents">{{ shareButton }}</div>{% else %}{{ shareButton }}{% endif %}
+    {% if row.deletable or collapse %}
+        <div class="relative{{ row.deletable ? '' : ' sm:hidden' }}" data-controller="dropdown" data-dropdown-float-value="true" data-task-menu>
             <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.title})" id="task-menu-button" aria-haspopup="menu" aria-expanded="false" aria-controls="task-menu" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
             <div id="task-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="task-menu-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
-                <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
-                    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
-                    <input type="hidden" name="from" value="task">
-                    <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
-                </form>
+                {% if collapse %}
+                    {% if editable %}<a href="{{ taskUrl ~ '?edit=title' }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-task-menu-edit>{{ ux_icon('lucide:pencil', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.task.edit'|trans }}</span></a>{% endif %}
+                    {% if subtaskable %}<a href="{{ path('app_task_subtask_new', {id: row.id}) }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.task.new_subtask'|trans }}</span></a>{% endif %}
+                    {% if task.shareable %}<a href="{{ path('app_sharing', {kind: 'tasks', id: row.id}) }}" role="menuitem" tabindex="-1" class="{{ itemClass }} sm:hidden" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-share>{{ ux_icon('lucide:share-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.sharing.open'|trans }}</span></a>{% endif %}
+                {% endif %}
+                {% if row.deletable %}
+                    <form method="post" action="{{ path('app_task_delete', {id: row.id}) }}" role="none" data-task-delete>
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) }}">
+                        <input type="hidden" name="from" value="task">
+                        <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     {% endif %}
@@ -92,6 +126,8 @@
                     </twig:Ui:DataTable>
                 </section>
             {% endif %}
+
+            {% if time %}{{ include('work/task/_time.html.twig') }}{% endif %}
 
             {{ include('work/task/_discussion.html.twig') }}
 
@@ -161,6 +197,17 @@
                 <twig:Ui:Select name="priority" id="task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="row.priority.value" />
                 {{ save }}
             </form>
+
+            {% if time %}
+                <form method="post" action="{{ path('app_task_estimate', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="estimate">
+                    <input type="hidden" name="_token" value="{{ timeToken }}">
+                    <twig:Ui:TextInput name="estimate" id="task-estimate" :label="'work.task.field.estimate'|trans" :help="'work.time.estimate_help'|trans" :value="estimateValue" autocomplete="off" spellcheck="false" />
+                    <div class="flex flex-wrap gap-2">
+                        {{ save }}
+                        {% if estimateValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}
+                    </div>
+                </form>
+            {% endif %}
 
             <div class="grid gap-1.5" data-task-labels>
                 <h3 class="m-0 text-small font-medium text-ink">{{ 'work.task.field.labels'|trans }}</h3>

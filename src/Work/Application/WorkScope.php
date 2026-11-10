@@ -197,6 +197,15 @@ final readonly class WorkScope
     }
 
     /**
+     * Whether time on the task, or on the project without a task, is seen: with
+     * the task, or where the whole project is open to the person.
+     */
+    public function seesTime(Project $project, ?Task $task): bool
+    {
+        return $task instanceof Task ? $this->seesTask($task) : $this->opens($project);
+    }
+
+    /**
      * Whether a new task may go into the project, in the section or in none:
      * where the person sees the section, or the whole project for none.
      */

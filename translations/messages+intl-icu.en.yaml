@@ -76,6 +76,7 @@ nav:
     projects: Projects
     labels: Labels
     my_tasks: My tasks
+    time: Time
     notifications: Notifications
 ui:
   dialog:
@@ -1399,6 +1400,7 @@ invoice:
       trash: Trash
     column:
       sent: E-mail
+      entries_count: '{count, plural, one {# entry} other {# entries}}'
       export: Export
       number: Number
       firm: Firm
@@ -3095,6 +3097,12 @@ work:
       labels: Labels
       project: Project
       watchers: Watchers
+      estimate: Estimate
+      worked_on: Day
+      duration: Duration
+      note: Note
+      billable: Billable
+      task: Task
     no_description: No description.
     no_subtasks: No subtasks yet.
     subtasks: Subtasks
@@ -3143,6 +3151,116 @@ work:
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
+    duration: Enter the time as 1:30, 1,5 or 1h 30m, at least a minute and at most a day, or a start and an end after it.
+    time_note: A note can have at most 2,000 characters.
+    time_task: Choose a task of this project.
+    time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
+    time_invoiced: This time has been invoiced and can no longer be changed.
+    timer_running: Stop the timer first.
+    estimate: Enter an estimate of at least a minute and at most 9,999 hours.
+  time:
+    title: Time
+    log: Log time
+    edit: Edit time
+    edit_label: 'Edit the time of {date}'
+    delete: Delete
+    delete_label: 'Delete the time of {date}'
+    delete_confirm:
+      title: Delete the logged time?
+      text: This cannot be undone.
+    none: No time logged yet.
+    hours: '{hours} h'
+    minutes: '{minutes} min'
+    total_of: '{total} of {estimate}'
+    running: Running
+    billable: Billable
+    invoiced: Invoiced
+    duration_help: For example 1:30, 1.5 or 1h 30m.
+    estimate_help: For example 5 h or 2h 30m.
+    logged: '{duration} logged.'
+    edited: The time is changed.
+    deleted: The time is deleted.
+    stopped: 'The timer is stopped, {duration} logged on “{title}”.'
+    error:
+      worked_on: Enter the day as a date.
+      project: Choose a project.
+      task: Choose a task, or none.
+    timer:
+      start: Start timer
+      stop: Stop timer
+      stop_short: Stop
+      region: Running timer
+      started: The timer is running.
+    choose_project: Choose a project
+    no_task: No task, the project itself
+    pick_project: Show its tasks
+    tab:
+      week: Week
+      report: Report
+    views: Views of time
+    previous_week: Previous week
+    next_week: Next week
+    this_week: This week
+    week_range: '{from} – {until}'
+    week_total: 'Week total'
+    today: Today
+    person: Person
+    person_me: Me
+    person_inactive: '{name} (inactive)'
+    report:
+      title: Time report
+      period:
+        label: Period
+        this_month: This month
+        last_month: Last month
+        custom: Custom
+      from: From
+      until: Until
+      group: Totals by
+      by:
+        project: Project
+        person: Person
+        task: Task
+      totals:
+        project: Totals by project
+        person: Totals by person
+        task: Totals by task
+      any: Any
+      billable:
+        all: All
+        'yes': Billable
+        'no': Not billable
+      invoiced:
+        all: All
+        'yes': Invoiced
+        'no': Not invoiced
+      total: Total time
+      billable_total: Billable time
+      unbillable_total: Not billable
+      entries: Entries
+      column:
+        work: Work
+        person: Person
+        date: Day
+        time: Time
+      export: Export CSV
+      file: time-report
+      archived: '{name} (archived)'
+      empty_title: No time in this period
+      empty_text: Choose another period or filter, or log time on a task.
+      csv:
+        date: Date
+        person: Person
+        client: Client
+        project: Project
+        task: Task
+        minutes: Minutes
+        hours: Hours
+        billable: Billable
+        note: Note
+        decimal: '.'
+        'yes': 'yes'
+        'no': 'no'
   cancel: Cancel
   save: Save
   history:
@@ -3472,6 +3590,8 @@ work:
       client_empty: No contact found
       workflow: Workflow
       description: Description
+      billable: Bill time
+      billable_help: New time on this project starts as billable.
     error:
       name_required: Enter the name of the project.
       workflow: Choose one of the workflows.

@@ -33,6 +33,8 @@ final readonly class ProjectSummary
         public bool $open = false,
         /** Whether the signed-in person may add a task somewhere in it: the whole project or a section they see. */
         public bool $taskable = false,
+        /** Whether new time on it starts as billable. */
+        public bool $billable = false,
     ) {
     }
 }

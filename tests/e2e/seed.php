@@ -32,7 +32,8 @@ declare(strict_types=1);
  * "Sign the lease" of "Office move", a project only chosen people see, for the sharing spec. For
  * the notifications spec Jana Example mentions the owner on "Set up the domain" and gives them
  * "Book the launch venue" of "Launch" (done, so My tasks stays as it is); the guest hears of the
- * task shared with them. Run it after the migrations, in the e2e
+ * task shared with them. For the time spec the owner and Jana Example have time on "Website" this
+ * week and the week before, and "Design the homepage" an estimate. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -128,6 +129,7 @@ use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageSections;
 use App\Work\Application\ManageSharing;
 use App\Work\Application\ManageTasks;
+use App\Work\Application\ManageTime;
 use App\Work\Domain\LabelColour;
 use App\Work\Domain\Priority;
 use App\Work\Domain\ProjectStatus;
@@ -818,10 +820,12 @@ $manageTasks = $container->get('e2e.manage_tasks');
 $manageLabels = $container->get('e2e.manage_labels');
 $manageComments = $container->get('e2e.manage_comments');
 $manageSharing = $container->get('e2e.manage_sharing');
+$manageTime = $container->get('e2e.manage_time');
 $uploadAttachment = $container->get('e2e.upload_attachment');
 $tokenStorage = $container->get('e2e.token_storage');
 \assert($manageComments instanceof ManageComments);
 \assert($manageSharing instanceof ManageSharing);
+\assert($manageTime instanceof ManageTime);
 \assert($uploadAttachment instanceof UploadAttachment);
 \assert($manageProjects instanceof ManageProjects);
 \assert($manageSections instanceof ManageSections);
@@ -857,6 +861,9 @@ $day = static fn (string $modifier): DateTimeImmutable => $today->modify($modifi
 
 $homepage = $manageTasks->create($website->id(), 'Design the homepage', $shared->id(), null, $statuses[1]->id(), $ownerMembership->id(), $day('-2 days'), Priority::High);
 $manageTasks->setLabels($homepage->id(), [$design->id()]);
+// Estimated before the comments: a history step in the same second as a comment comes first, so the
+// discussion reads the same in every run.
+$manageTime->setEstimate($homepage->id(), 300);
 $manageComments->add($homepage->id(), sprintf("First sketch is ready, **please review**.\n\n- hero with the new logo\n- a short pitch\n\n@[Jana Example](membership:%s) can you check the copy?", $teamMember->id()), true);
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
 $manageComments->add($homepage->id(), 'Looks good, the *pitch* reads well.', false);
@@ -878,10 +885,10 @@ $uploadAttachment->upload('task', $homepage->id(), new AttachmentUpload($png, 'h
 $pdf = tempnam(sys_get_temp_dir(), 'seed');
 file_put_contents($pdf, "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n");
 $uploadAttachment->upload('task', $homepage->id(), new AttachmentUpload($pdf, 'brief.pdf', (int) filesize($pdf)));
-$manageTasks->create($website->id(), 'Pick the colour palette', $shared->id(), $homepage->id(), $statuses[0]->id(), $teamMember->id());
+$palette = $manageTasks->create($website->id(), 'Pick the colour palette', $shared->id(), $homepage->id(), $statuses[0]->id(), $teamMember->id());
 $contact = $manageTasks->create($website->id(), 'Fix the contact form', $backlog->id(), null, $statuses[0]->id(), $ownerMembership->id(), $day('+0 days'), Priority::Urgent);
 $manageTasks->setLabels($contact->id(), [$bug->id()]);
-$manageTasks->create($website->id(), 'Write the copy for the about page', $backlog->id(), null, $statuses[0]->id(), $teamMember->id(), $day('+7 days'), Priority::Medium);
+$copy = $manageTasks->create($website->id(), 'Write the copy for the about page', $backlog->id(), null, $statuses[0]->id(), $teamMember->id(), $day('+7 days'), Priority::Medium);
 $manageTasks->create($website->id(), 'Review the cookie banner', $shared->id(), null, $statuses[2]->id(), $teamMember->id(), null, Priority::Low);
 $domain = $manageTasks->create($website->id(), 'Set up the domain', $backlog->id(), null, $statuses[5]->id(), $ownerMembership->id());
 // What the guest of the client sees: the section of the website meant for them, and one task of a
@@ -898,6 +905,20 @@ $launchDone = $entityManager->getRepository(ProjectStatus::class)->findOneBy(['p
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
 $manageComments->add($domain->id(), sprintf('@[Projects Example](membership:%s) the DNS records are in, can you check them?', $ownerMembership->id()), true);
 $manageTasks->create($launch->id(), 'Book the launch venue', null, null, $launchDone->id(), $ownerMembership->id());
+// Time for the time spec, this week and the week before, Monday to Sunday: always on or before
+// today, so the previous week reads the same whatever day the tests run. Jana logs on her tasks;
+// the owner on tasks, once on the project without a task and once not billable, though the
+// project of a client bills its time by default. "Design the homepage" is estimated at 5 h above.
+$thisMonday = $today->modify('monday this week');
+$lastMonday = $thisMonday->modify('-7 days');
+$manageTime->log($website->id(), $palette->id(), $lastMonday->modify('+1 day'), 150, note: 'Three palettes for the client');
+$manageTime->log($website->id(), $copy->id(), $thisMonday, 60, note: 'First draft of the about page');
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
+$manageTime->log($website->id(), $homepage->id(), $lastMonday, 120, note: 'Wireframes for the hero');
+$manageTime->log($website->id(), $contact->id(), $lastMonday->modify('+2 days'), 45, note: 'Reproduced the error in Safari');
+$manageTime->log($website->id(), $homepage->id(), $lastMonday->modify('+3 days'), 60, note: 'Internal review of the sketches', billable: false);
+$manageTime->log($website->id(), null, $lastMonday->modify('+4 days'), 30, note: 'Call with the client');
+$manageTime->log($website->id(), $homepage->id(), $thisMonday, 90, note: 'Second round of the hero');
 $tokenStorage->setToken(null);
 $context->reset();
 

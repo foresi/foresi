@@ -144,7 +144,9 @@ test.describe('the owner', () => {
     await dialog.getByRole('button', { name: 'Hotovo' }).click();
     await expect(page.locator('[data-header-badge]')).toContainText('Soukromé');
 
-    const context = await browser.newContext();
+    // Without the owner's cookie, which the context would inherit: signing in moves the session to a
+    // new id and ends the old one, the owner's for the specs that come after.
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const member = await context.newPage();
     await member.goto('/login');
     await member.locator('#username').fill(PROJECTS_MEMBER);

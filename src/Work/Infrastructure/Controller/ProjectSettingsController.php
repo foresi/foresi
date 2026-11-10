@@ -12,6 +12,7 @@ use App\Identity\Application\StaffCheck;
 use App\Work\Application\Choice;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageSections;
+use App\Work\Application\ManageTime;
 use App\Work\Application\ManageWorkflow;
 use App\Work\Application\ProjectSettings;
 use App\Work\Application\StatusChoice;
@@ -29,8 +30,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The settings of a project, for the staff: what it is and for whom, its
- * archiving, its sections and its statuses. Each change is a plain form that
+ * The settings of a project, for the staff: what it is and for whom, whether
+ * its time is billable, its archiving, its sections and its statuses. Each change is a plain form that
  * comes back to the page, where a refusal is told; the removal of a status
  * asks in a dialog where its tasks go.
  */
@@ -45,13 +46,15 @@ final class ProjectSettingsController extends AbstractController
         private readonly ManageProjects $projects,
         private readonly ManageSections $sections,
         private readonly ManageWorkflow $workflow,
+        private readonly ManageTime $time,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
     ) {
     }
 
     /**
-     * The page, and the save of its general part: the name, the client and the description.
+     * The page, and the save of its general part: the name, the client, the
+     * description and whether new time on it starts as billable.
      */
     #[Route('/projects/{id}/settings', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function settings(string $id, Request $request): Response
@@ -60,17 +63,22 @@ final class ProjectSettingsController extends AbstractController
         $settings = $this->load($id);
         $project = $settings->project;
         $values = ['name' => $project->name, 'clientId' => $project->clientId ?? '', 'clientQuery' => $project->clientName ?? '', 'description' => $project->description];
+        $billable = $project->billable;
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
+            $billable = '1' === $request->request->getString('billable');
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             } else {
                 try {
                     $this->projects->edit($id, $values['name'], '' === $values['clientId'] ? null : $values['clientId'], $values['description']);
+                    if ($billable !== $project->billable) {
+                        $this->time->setProjectBillableDefault($id, $billable);
+                    }
                     $this->addFlash('success', $this->translator->trans('work.settings.saved'));
 
                     return $this->back($id);
@@ -88,6 +96,7 @@ final class ProjectSettingsController extends AbstractController
         return $this->render('work/projects/settings.html.twig', [
             'project' => $project,
             'values' => $values,
+            'billable' => $billable,
             'errors' => $errors,
             'sections' => $settings->sections,
             'privateSections' => $settings->privateSections,

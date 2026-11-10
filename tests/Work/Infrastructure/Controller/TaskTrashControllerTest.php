@@ -67,9 +67,11 @@ final class TaskTrashControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/tasks/'.$mine);
         self::assertSame('Delete task', trim($crawler->filter('[data-task-menu] form[data-task-delete] button')->text()));
-        self::assertCount(1, $crawler->filter('[data-task-menu] [role="menuitem"] svg'));
+        self::assertCount(1, $crawler->filter('[data-task-menu] form[data-task-delete] svg'));
         $crawler = $this->client->request('GET', '/tasks/'.$janas);
-        self::assertCount(0, $crawler->filter('[data-task-menu]'));
+        // The menu holds only what a phone moves into it, and is not shown on a wider screen.
+        self::assertCount(0, $crawler->filter('[data-task-menu] form[data-task-delete]'));
+        self::assertStringContainsString('sm:hidden', (string) $crawler->filter('[data-task-menu]')->attr('class'));
 
         // A post is refused all the same.
         $this->client->request('POST', '/tasks/'.$janas.'/delete', ['_token' => $token, 'from' => 'board']);

@@ -147,7 +147,7 @@
                             <tr>
                                 {% if selectable %}<td class="h-row border-t border-divider bg-head px-4"></td>{% endif %}
                                 {% for cell in this.totalCells %}
-                                    <td class="num h-row whitespace-nowrap border-t border-divider bg-head px-4 font-semibold text-ink {{ this.alignClass(cell.align) }}">
+                                    <td class="num h-row whitespace-nowrap border-t border-divider bg-head px-4 font-semibold text-ink {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}">
                                         {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                     </td>
                                 {% endfor %}

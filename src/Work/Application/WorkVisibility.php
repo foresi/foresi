@@ -51,6 +51,12 @@ interface WorkVisibility
     public function canComment(Task $task): bool;
 
     /**
+     * Whether the person may log time on the task, or on the project without a
+     * task: the people of the organisation where they see it, never guests.
+     */
+    public function canLogTime(Project $project, ?Task $task): bool;
+
+    /**
      * Whether the person reads internal comments and their files: the people
      * of the organisation do, guests never.
      */

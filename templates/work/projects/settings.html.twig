@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The settings of a project: what it is and for whom, with its archiving; its sections in order,
+    The settings of a project: what it is and for whom, whether its time is billable, with its archiving; its sections in order,
     each renamed, moved or removed by a form of its own, or shared in a dialog, and a line that adds one; its statuses in
     order, each with its name and type, moved, or removed in a dialog that asks where its tasks go.
 #}
@@ -53,6 +53,7 @@
                 <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
                 <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
                 <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
+                <twig:Ui:Checkbox name="billable" id="billable" value="1" :label="'work.project.field.billable'|trans" :help="'work.project.field.billable_help'|trans" :checked="billable" />
                 <div><twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button></div>
             </form>
         </twig:Ui:Card>

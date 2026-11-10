@@ -1,0 +1,71 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace App\Work\Application;
+
+/**
+ * The read side of time, under the same rule as the work it is logged on: an
+ * entry is seen with its task, or with the whole project when it has no task.
+ * Time on a task in the trash is left out, as the task is.
+ */
+interface TimeQueries
+{
+    /**
+     * Null when the person does not see the task.
+     */
+    public function ofTask(string $taskId): ?TaskTime;
+
+    /**
+     * The week of the day for the person, the signed-in one by default. Only an
+     * owner reads the week of someone else; null otherwise, and for no one.
+     */
+    public function week(\DateTimeImmutable $day, ?string $membershipId = null): ?TimeWeek;
+
+    /**
+     * The timer the signed-in person runs, if any, whatever they see now.
+     */
+    public function running(): ?TimeEntryRow;
+
+    /**
+     * The task as a place to log time on, for the signed-in person: null when
+     * they may not, a guest, a task they do not see or of an archived project.
+     */
+    public function taskTarget(string $taskId): ?TimeTarget;
+
+    /**
+     * The project as a place to log time without a task: null unless the
+     * whole project is open to the person and it is not archived.
+     */
+    public function projectTarget(string $projectId): ?TimeTarget;
+
+    /**
+     * The tasks of the project the signed-in person may log time on, by
+     * title: none for a guest, a project they do not see or an archived one.
+     *
+     * @return list<TimeTarget>
+     */
+    public function taskTargets(string $projectId): array;
+
+    /**
+     * The time the signed-in person sees in the period, with its totals by
+     * the grouping and a page of its entries. Running timers are left out.
+     */
+    public function report(TimeReportFilter $filter, TimeGrouping $grouping, int $page = 1): TimeReport;
+
+    /**
+     * Every entry of the report, oldest first, read in batches for a file.
+     *
+     * @return iterable<TimeEntryRow>
+     */
+    public function reportEntries(TimeReportFilter $filter): iterable;
+
+    /**
+     * An entry the signed-in person may change, as its line; null otherwise.
+     */
+    public function editable(string $entryId): ?TimeEntryRow;
+}

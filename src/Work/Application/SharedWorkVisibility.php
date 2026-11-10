@@ -66,6 +66,11 @@ final readonly class SharedWorkVisibility implements WorkVisibility
         return $this->me() instanceof Membership && $this->canSeeTask($task);
     }
 
+    public function canLogTime(Project $project, ?Task $task): bool
+    {
+        return $this->canManage() && $this->scope()->seesTime($project, $task);
+    }
+
     public function canSeeInternal(): bool
     {
         return $this->canManage();

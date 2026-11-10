@@ -37,6 +37,9 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * A private task is hidden from everyone it is not shared with, even from
  * those who see its project and section; its subtasks follow it.
+ *
+ * The estimate is the time the work should take, in minutes, set against the
+ * time logged on the task (Teamwork); a subtask has one of its own.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task')]
@@ -52,6 +55,8 @@ use Doctrine\ORM\Mapping as ORM;
 class Task implements TenantOwned, Audited
 {
     public const int MAX_TITLE_LENGTH = 500;
+    /** 9,999 hours: more is no estimate. */
+    public const int MAX_ESTIMATE_MINUTES = 9_999 * 60;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -86,6 +91,9 @@ class Task implements TenantOwned, Audited
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $private = false;
+
+    #[ORM\Column(name: 'estimate_minutes', type: 'integer', nullable: true)]
+    private ?int $estimateMinutes = null;
 
     #[ORM\Column(name: 'completed_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $completedAt = null;
@@ -178,6 +186,22 @@ class Task implements TenantOwned, Audited
     public function prioritise(Priority $priority): void
     {
         $this->priority = $priority;
+    }
+
+    /**
+     * @throws \DomainException when the estimate is not positive or longer than MAX_ESTIMATE_MINUTES
+     */
+    public function estimate(?int $minutes): void
+    {
+        if (null !== $minutes && ($minutes < 1 || $minutes > self::MAX_ESTIMATE_MINUTES)) {
+            throw new \DomainException(sprintf('An estimate is between a minute and %d minutes.', self::MAX_ESTIMATE_MINUTES));
+        }
+        $this->estimateMinutes = $minutes;
+    }
+
+    public function estimateMinutes(): ?int
+    {
+        return $this->estimateMinutes;
     }
 
     public function makePrivate(bool $private): void

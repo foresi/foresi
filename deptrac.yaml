@@ -613,6 +613,8 @@ deptrac:
       - IdentityApplication
       # The project screens, the sidebar item and "Shared with me".
       - Ui
+      # The time report as CSV, as the address book and the invoice list export.
+      - VendorOpenSpout
       # Who reaches the files of a task.
       - AttachmentDomain
       - AttachmentApplication

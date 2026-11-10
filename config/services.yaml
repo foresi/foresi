@@ -450,6 +450,9 @@ when@e2e:
         e2e.manage_sharing:
             alias: App\Work\Application\ManageSharing
             public: true
+        e2e.manage_time:
+            alias: App\Work\Application\ManageTime
+            public: true
         e2e.upload_attachment:
             alias: App\Attachment\Application\UploadAttachment
             public: true
@@ -641,6 +644,10 @@ when@test:
         App\Work\Application\ManageComments: { public: true }
         App\Work\Application\PurgeDeletedTasks: { public: true }
         App\Work\Application\ManageSharing: { public: true }
+        App\Work\Application\ManageTime: { public: true }
+        App\Work\Application\TimeQueries:
+            alias: App\Work\Infrastructure\Doctrine\DoctrineTimeQueries
+            public: true
         App\Work\Application\WorkVisibility:
             alias: App\Work\Application\SharedWorkVisibility
             public: true
