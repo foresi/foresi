@@ -15,7 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * One line of the append-only audit log: who changed which entity, when, and
- * how. Exposes no mutators; the audit listener rejects any update or removal
+ * how; through which personal API token, when it was one. Exposes no mutators; the audit listener rejects any update or removal
  * of a persisted entry at flush.
  */
 #[ORM\Entity]
@@ -67,6 +67,9 @@ class AuditEntry implements TenantOwned
         private ?string $correlationId = null,
         ?string $rootClass = null,
         ?string $rootId = null,
+        // The personal API token the change was made through, if any.
+        #[ORM\Column(name: 'api_token_id', type: 'guid', nullable: true)]
+        private ?string $apiTokenId = null,
     ) {
         $this->id = Id::generate();
         if ('' === $entityClass || '' === $entityId) {
@@ -128,6 +131,11 @@ class AuditEntry implements TenantOwned
     public function userId(): ?string
     {
         return $this->userId;
+    }
+
+    public function apiTokenId(): ?string
+    {
+        return $this->apiTokenId;
     }
 
     public function occurredAt(): \DateTimeImmutable

@@ -36,6 +36,8 @@ final class GuestAccessTest extends WebTestCase
         'app_account_language', 'app_organisation_choose', 'app_organisation_switch', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
+        // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
+        'api_v1_me', '_mcp_endpoint_default',
         // The public links to sent documents.
         'app_document_link', 'app_document_link_pdf', 'app_document_link_open', 'app_document_link_download', 'app_document_link_other',
         // The link of an invitation, which may well be for a guest.

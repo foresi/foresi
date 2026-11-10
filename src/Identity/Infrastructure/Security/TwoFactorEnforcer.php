@@ -21,7 +21,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * With APP_REQUIRE_2FA on, a user signed in without two-factor sign-in reaches
- * no page but its enrolment (and signing out) until they have set it up.
+ * no page but its enrolment (and signing out) until they have set it up. A
+ * request signed in with a personal API token is left alone: only someone who
+ * had two-factor sign-in when it was issued has one.
  */
 final readonly class TwoFactorEnforcer
 {
@@ -46,6 +48,9 @@ final readonly class TwoFactorEnforcer
     public function onRequest(RequestEvent $event): void
     {
         if (!$this->required || !$event->isMainRequest() || \in_array($event->getRequest()->attributes->get('_route'), self::OPEN_ROUTES, true)) {
+            return;
+        }
+        if (\in_array($this->security->getFirewallConfig($event->getRequest())?->getName(), ApiFirewalls::NAMES, true)) {
             return;
         }
         $user = $this->security->getUser();
