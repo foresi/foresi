@@ -14,11 +14,9 @@ use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\ExportDocumentList;
 use App\Invoicing\Application\InvoiceFilter;
-use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\InvoiceHistoryLine;
 use App\Invoicing\Application\InvoicePage;
-use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
@@ -34,6 +32,8 @@ use App\Invoicing\Application\MissingTaxDocument;
 use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\PaymentRefused;
 use App\Invoicing\Application\PaymentState;
+use App\Invoicing\Application\Query\InvoiceDetails;
+use App\Invoicing\Application\Query\InvoiceList;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\TrashInvoice;
@@ -99,7 +99,6 @@ final class InvoiceListController extends AbstractController
         private readonly InvoiceStore $store,
         private readonly TrashInvoice $trash,
         private readonly MarkDelivered $delivered,
-        private readonly InvoiceHistory $history,
         private readonly InvoicingCountries $countries,
         private readonly UserRepository $users,
         private readonly AmountText $amounts,
@@ -108,7 +107,6 @@ final class InvoiceListController extends AbstractController
         private readonly InvoiceSends $sends,
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
-        private readonly InvoicePayments $payments,
         private readonly RecurringInvoices $recurring,
         private readonly TenantClock $tenantClock,
         private readonly MissingTaxDocuments $missing,
@@ -117,6 +115,8 @@ final class InvoiceListController extends AbstractController
         private readonly DocumentExports $exports,
         private readonly ExportDocumentList $listExport,
         private readonly DocumentMonths $months,
+        private readonly InvoiceList $list,
+        private readonly InvoiceDetails $details,
     ) {
     }
 
@@ -126,12 +126,11 @@ final class InvoiceListController extends AbstractController
     #[Route('/corrections', name: 'app_corrections', defaults: ['kind' => 'correction_document'], methods: ['GET'])]
     public function index(Request $request, string $kind): Response
     {
-        $this->denyUnlessStaff();
         $kind = DocumentKind::from($kind);
         $route = self::ROUTES[$kind->value];
         $filter = $this->filterOf($request->query, $kind);
         [$tab, $text, $sort, $firm, $toSend, $export, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->firmId ?? '', $filter->toSend, $filter->export, $filter->month];
-        $page = $this->store->page($filter);
+        $page = $this->list->page($filter);
         $firm = isset($page->firms[$firm]) ? $firm : '';
         $query = array_filter(['tab' => InvoiceFilter::ALL === $tab ? null : $tab, 'firm' => '' === $firm ? null : $firm, 'q' => '' === $text ? null : $text, 'sort' => InvoiceFilter::DEFAULT_SORT === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'export' => $export?->value, 'month' => $month], static fn (?string $value): bool => null !== $value);
         // Within the firm the list is filtered by, so the chip counts what pressing it shows.
@@ -174,7 +173,7 @@ final class InvoiceListController extends AbstractController
             // The months with a document of the list, and the one asked for, though it has none.
             'months' => ['' => $this->translator->trans('invoice.month.all')] + MonthChoices::of([...$this->months->months($kind, '' === $firm ? null : $firm), ...(null === $month ? [] : [$month])], $this->translator->getLocale()),
             // An empty list adds up to nothing to show, and saves the queries.
-            'sums' => 0 === $page->total ? null : $this->sums($this->store->sums($filter)),
+            'sums' => 0 === $page->total ? null : $this->sums($this->list->sums($filter)),
             'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,
         ]);
     }
@@ -238,8 +237,7 @@ final class InvoiceListController extends AbstractController
     #[Route('/advances/needs-tax-document', name: 'app_advances_missing', methods: ['GET'])]
     public function missing(): Response
     {
-        $this->denyUnlessStaff();
-        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::Advance));
+        $page = $this->list->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::Advance));
         $missing = $this->missing->on($this->today());
         $date = $this->translator->trans('format.date');
         $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('advance.missing.column.'.$key), 'align' => \in_array($key, ['received', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'receivedOn', 'received', 'deadline', 'daysLeft']);
@@ -278,8 +276,7 @@ final class InvoiceListController extends AbstractController
     #[Route('/tax-documents/needs-correction', name: 'app_tax_documents_uncorrected', methods: ['GET'])]
     public function uncorrected(): Response
     {
-        $this->denyUnlessStaff();
-        $page = $this->store->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
+        $page = $this->list->page(new InvoiceFilter(null, InvoiceFilter::ALL, '', InvoiceFilter::DEFAULT_SORT, 1, kind: DocumentKind::PaymentTaxDocument));
         $waiting = $this->uncorrected->on($this->today());
         $date = $this->translator->trans('format.date');
         $columns = array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('tax_document.uncorrected.column.'.$key), 'align' => \in_array($key, ['amount', 'daysLeft'], true) ? 'right' : 'left', 'phone' => \in_array($key, ['number', 'daysLeft'], true)], ['number', 'customer', 'decisiveDate', 'amount', 'deadline', 'daysLeft']);
@@ -427,16 +424,17 @@ final class InvoiceListController extends AbstractController
     #[Route('/invoices/{id}/history', name: 'app_invoice_history', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function showHistory(string $id): Response
     {
-        $this->denyUnlessStaff();
-        $invoice = $this->invoice($id);
+        $detail = $this->details->of($id);
+        $invoice = $detail->invoice;
+        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $detail->paid, $detail->corrections);
 
         $timezone = $this->timezoneOf($invoice);
-        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone, $invoice->currency()), $this->history->of($invoice));
+        $changes = array_map(fn (InvoiceHistoryEntry $entry): array => $this->timelineItem($entry, $timezone, $invoice->currency()), $detail->history);
 
         return $this->render('invoicing/history.html.twig', [
             'invoice' => $invoice,
-            'badge' => $this->badge($invoice),
-            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice)))),
+            'badge' => ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()],
+            'timeline' => $this->inTime($changes, $this->sendItems($invoice, $timezone, InvoiceStatus::Overdue === $status)),
         ]);
     }
 
@@ -711,16 +709,6 @@ final class InvoiceListController extends AbstractController
             'tone' => $changed ? 'amber' : 'gray',
             'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->tenantClock->timezone())->format($this->translator->trans('format.datetime'))]),
         ];
-    }
-
-    /**
-     * @return array{label: string, tone: string}
-     */
-    private function badge(Invoice $invoice): array
-    {
-        $status = InvoiceStatus::ofInvoice($invoice, $this->today(), $this->payments->paidOf($invoice), $this->payments->correctionsOf($invoice));
-
-        return ['label' => $this->translator->trans('invoice.list.status.'.$status->value), 'tone' => $status->tone()];
     }
 
     /**

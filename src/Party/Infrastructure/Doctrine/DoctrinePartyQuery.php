@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Doctrine;
 
-use App\Import\Domain\ImportMissingRecord;
-use App\Import\Domain\ImportRow;
 use App\Party\Application\ImportedBy;
 use App\Party\Application\PartyCounts;
 use App\Party\Application\PartyPage;
@@ -42,13 +40,13 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     private const int MAX_TEXT = 100;
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions)
     {
     }
 
     public function search(string $text, ?PartyRole $role, bool $archived, string $sort, int $page, ?ImportedBy $import = null): PartyPage
     {
-        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
+        [$where, $parameters] = $this->conditions->build(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
 
         $count = $this->em->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p WHERE '.$where);
         foreach ($parameters as $name => $value) {
@@ -80,7 +78,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     public function matchingIds(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array
     {
-        [$where, $parameters] = $this->conditions(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
+        [$where, $parameters] = $this->conditions->build(mb_substr($text, 0, self::MAX_TEXT), $role, $archived, $import);
         $query = $this->em->createQuery('SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY LOWER(p.displayName), p.id');
         foreach ($parameters as $name => $value) {
             $query->setParameter($name, $value);
@@ -94,8 +92,8 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         $active = 'p.archivedAt IS NULL';
         $row = $this->em->createQuery(
             'SELECT SUM(CASE WHEN '.$active.' THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN '.$active.' AND '.$this->roleCondition('customer').' THEN 1 ELSE 0 END), '
-            .'SUM(CASE WHEN '.$active.' AND '.$this->roleCondition('supplier').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN '.$active.' AND '.$this->conditions->role('customer').' THEN 1 ELSE 0 END), '
+            .'SUM(CASE WHEN '.$active.' AND '.$this->conditions->role('supplier').' THEN 1 ELSE 0 END), '
             .'SUM(CASE WHEN '.$active.' AND p.unreliablePayerResult = :unreliable THEN 1 ELSE 0 END), '
             .'SUM(CASE WHEN p.archivedAt IS NOT NULL THEN 1 ELSE 0 END) FROM '.Party::class.' p',
         )->setParameter('unreliable', RegistryResult::Unreliable)->getSingleResult(Query::HYDRATE_ARRAY);
@@ -132,50 +130,6 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         )->setParameter('kind', PartyKind::Person)->setParameter('company', $company)->getResult();
 
         return $persons;
-    }
-
-    /**
-     * @return array{string, array<string, int|string>}
-     */
-    private function conditions(string $text, ?PartyRole $role, bool $archived, ?ImportedBy $import = null): array
-    {
-        $where = $archived ? 'p.archivedAt IS NOT NULL' : 'p.archivedAt IS NULL';
-        $parameters = [];
-        if ($import instanceof ImportedBy) {
-            // The import's rows name the records they wrote; the records a full replace archived are kept apart.
-            $rows = 'p.id IN (SELECT r.recordId FROM '.ImportRow::class.' r WHERE IDENTITY(r.import) = :import AND r.outcome = :outcome)';
-            $missing = 'p.id IN (SELECT m.recordId FROM '.ImportMissingRecord::class.' m WHERE IDENTITY(m.import) = :import AND m.outcome = :outcome)';
-            $where = match ($import->outcome) {
-                'archive' => $missing,
-                'changed_after_import' => '('.$rows.' OR '.$missing.')',
-                default => $rows,
-            };
-            $parameters = ['import' => $import->importId, 'outcome' => $import->outcome];
-        }
-        if ($role instanceof PartyRole) {
-            $where .= ' AND '.$this->roleCondition($role->value);
-        }
-        $text = trim($text);
-        if ('' !== $text) {
-            $conditions = ['LOWER(p.displayName) LIKE :name ESCAPE \'!\'', 'LOWER(p.vatId) LIKE :vat ESCAPE \'!\''];
-            $parameters['name'] = '%'.self::like(mb_strtolower($text)).'%';
-            $parameters['vat'] = '%'.self::like(mb_strtolower((string) preg_replace('/\s+/', '', $text))).'%';
-            $key = mb_strtoupper((string) preg_replace('/[^\p{L}\p{N}]/u', '', $text));
-            if ('' !== $key) {
-                $conditions[] = 'p.registrationKey LIKE :key ESCAPE \'!\'';
-                $parameters['key'] = '%'.self::like($key).'%';
-            }
-            $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND e.legalEntity IS NULL AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
-            $parameters['email'] = '%'.self::like(mb_strtolower($text)).'%';
-            $where .= ' AND ('.implode(' OR ', $conditions).')';
-        }
-
-        return [$where, $parameters];
-    }
-
-    private function roleCondition(string $role): string
-    {
-        return 'CAST_TEXT(p.roles) LIKE \'%"'.$role.'"%\'';
     }
 
     /**
@@ -224,10 +178,5 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         }
 
         return $rows;
-    }
-
-    private function like(string $value): string
-    {
-        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 }
