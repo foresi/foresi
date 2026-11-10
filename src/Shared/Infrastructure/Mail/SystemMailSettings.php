@@ -18,15 +18,18 @@ use Symfony\Component\Mime\Address;
  * The system mailer of the installation: its DSN (SYSTEM_MAILER_DSN) and its
  * sender (SYSTEM_MAIL_FROM, such as "Foresi <noreply@example.com>"). Either one
  * empty, or a sender that is no address, and the installation sends no mail.
+ * The transport of tests is no constructor argument: autowiring would fill it
+ * with the framework's mailer, and the mail would never reach SYSTEM_MAILER_DSN.
  */
-final readonly class SystemMailSettings
+final class SystemMailSettings
 {
+    private ?TransportInterface $transport = null;
+
     public function __construct(
         #[Autowire(env: 'SYSTEM_MAILER_DSN')]
-        private string $dsn,
+        private readonly string $dsn,
         #[Autowire(env: 'SYSTEM_MAIL_FROM')]
-        private string $from,
-        private ?TransportInterface $transport = null,
+        private readonly string $from,
     ) {
     }
 
@@ -35,7 +38,10 @@ final readonly class SystemMailSettings
      */
     public static function through(TransportInterface $transport, string $from): self
     {
-        return new self('through://', $from, $transport);
+        $settings = new self('through://', $from);
+        $settings->transport = $transport;
+
+        return $settings;
     }
 
     public function isConfigured(): bool
