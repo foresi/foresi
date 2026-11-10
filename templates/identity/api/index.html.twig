@@ -1,0 +1,52 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The personal API tokens: a person's own, and for the owner those of the other people. A new
+    token opens in a dialog over the list; revoking asks first. Without two-factor sign-in there is
+    no new token, only the way to set it up.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans}] %}
+
+{% block title %}{{ 'api_tokens.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if canIssue %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_api_token_new')" id="api-token-new" data-dialog aria-haspopup="dialog">{{ 'api_tokens.new'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set token = csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    {% if not canIssue %}
+        <twig:Ui:Alert tone="warning" class="mb-4" data-api-token-two-factor>
+            <span>{{ 'api_tokens.two_factor.text'|trans }}</span>
+            <a href="{{ path(constant('App\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+        </twig:Ui:Alert>
+    {% endif %}
+    <div class="grid gap-6">
+        <section class="grid gap-2" aria-labelledby="api-tokens-mine-title" data-api-tokens="mine">
+            <h2 id="api-tokens-mine-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.mine'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'api_tokens.mine'|trans" :columns="mineColumns" :rows="mineRows" :actionToken="token">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="key-round" :title="'api_tokens.empty.title'|trans" :text="'api_tokens.empty.text'|trans">
+                        {% if canIssue %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_api_token_new')" data-dialog aria-haspopup="dialog">{{ 'api_tokens.new'|trans }}</twig:Ui:Button>{% endif %}
+                    </twig:Ui:EmptyState>
+                </twig:block>
+            </twig:Ui:DataTable>
+        </section>
+        {% if othersRows is not null %}
+            <section class="grid gap-2" aria-labelledby="api-tokens-others-title" data-api-tokens="others">
+                <h2 id="api-tokens-others-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.others'|trans }}</h2>
+                <twig:Ui:DataTable :caption="'api_tokens.others'|trans" :columns="othersColumns" :rows="othersRows" :actionToken="token">
+                    <twig:block name="empty">
+                        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.others_empty'|trans }}</p>
+                    </twig:block>
+                </twig:Ui:DataTable>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -198,4 +198,12 @@ test.describe('projects and tasks', () => {
     await expect(page.locator('tbody tr').first()).toBeVisible();
     await expectNoSeriousViolations(page);
   });
+
+  // The e2e owner has no two-factor sign-in, so the page shows the notice and the empty list.
+  test('API access has no serious accessibility violations @a11y', async ({ page }) => {
+    await page.goto('/settings/api');
+    await expect(page.getByRole('heading', { level: 1, name: 'Přístup k API' })).toBeVisible();
+    await expect(page.locator('[data-api-token-two-factor]')).toBeVisible();
+    await expectNoSeriousViolations(page);
+  });
 });

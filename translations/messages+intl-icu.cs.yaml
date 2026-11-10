@@ -61,6 +61,7 @@ nav:
     settings: Nastavení
   item:
     people: Lidé
+    api: Přístup k API
     dashboard: Přehled
     shared_with_me: Sdíleno se mnou
     contacts: Adresář
@@ -3051,6 +3052,65 @@ people:
     action: Přijmout pozvánku
     validity: '{days, plural, one {Odkaz funguje jednou, # den.} few {Odkaz funguje jednou, # dny.} other {Odkaz funguje jednou, # dní.}}'
     ignore: Pokud jste pozvánku nečekali, e-mail ignorujte.
+api_tokens:
+  title: Přístup k API
+  new: Nový token
+  mine: Moje tokeny
+  others: Tokeny ostatních lidí
+  others_empty: Ostatní lidé nemají žádné tokeny.
+  create: Vytvořit token
+  cancel: Zrušit
+  never: Nikdy
+  column:
+    name: Název
+    person: Osoba
+    email: E-mail
+    access: Přístup
+    token: Token
+    created: Vytvořen
+    expires: Platí do
+    last_used: Naposledy použit
+  scope:
+    read: Čtení
+  state:
+    expired: Vypršel
+    revoked: Zrušen
+  field:
+    name: Název
+    name_help: Kde ho použijete, třeba Reporting
+    expiry: Platnost
+    access: Přístup
+    access_help: Token zatím umí jen číst
+  expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
+  action:
+    revoke: Zrušit token
+  confirm:
+    revoke:
+      title: 'Zrušit token {name}?'
+      text: Programy, které ho používají, přestanou hned fungovat. Nejde to vrátit.
+  empty:
+    title: Žádné tokeny
+    text: Token dovolí jinému programu číst vaše data bez hesla.
+  two_factor:
+    text: Token jde vytvořit jen s dvoufázovým přihlášením.
+    link: Nastavit dvoufázové přihlášení
+  created:
+    title: Váš nový token
+    once: Zkopírujte si token teď. Zobrazí se jen jednou a už ho neuvidíte.
+    text: 'Token {name} platí do {date}.'
+    field: Token
+    copy: Kopírovat token
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; token je označený, stiskněte Ctrl+C.
+    use: Použijte ho jako bearer token v REST API (docs/api.md) nebo v MCP serveru (docs/mcp.md). Chraňte ho jako heslo.
+    done: Hotovo
+  flash:
+    revoked: Token je zrušený.
+  refused:
+    two_factor_required: Token jde vytvořit jen s dvoufázovým přihlášením.
+    name: Zadejte název dlouhý nejvýše 80 znaků.
+    expiry: Vyberte, jak dlouho token platí.
+    scopes: Vyberte, co smí token dělat.
 invitation:
   title: 'Připojit se k {organisation}'
   field:
