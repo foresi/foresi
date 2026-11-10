@@ -11,6 +11,7 @@ namespace App\Tests\Timesheet\Domain;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Timesheet\Domain\BillableTime;
+use App\Timesheet\Domain\BilledTime;
 use App\Timesheet\Domain\LineGrouping;
 use App\Timesheet\Domain\TimeLine;
 use App\Timesheet\Domain\TimeLines;
@@ -140,6 +141,72 @@ final class TimeLinesTest extends TestCase
         self::assertSame(['1000.00 CZK', '40.00 EUR'], array_map(static fn (TimeLine $line): string => self::money($line->amount()), $lines));
     }
 
+    public function testRatesOfTheSameAmountInAnotherCurrencySplitALine(): void
+    {
+        $times = [self::time('e1', 'Website', null, 'Jana', 60, '1000 CZK'), self::time('e2', 'Website', null, 'Jana', 60, '1000 EUR')];
+
+        $lines = TimeLines::of($times, LineGrouping::Task, TimeRounding::None);
+
+        self::assertSame(['1000.00 CZK', '1000.00 EUR'], array_map(static fn (TimeLine $line): string => self::money($line->amount()), $lines));
+    }
+
+    public function testRatesGoByTheirAmount(): void
+    {
+        $times = [self::time('e1', 'Website', null, 'Jana', 60, '1200 CZK'), self::time('e2', 'Website', null, 'Petr', 60, '900 CZK')];
+
+        $lines = TimeLines::of($times, LineGrouping::Project, TimeRounding::None);
+
+        self::assertSame(['900.00 CZK', '1200.00 CZK'], array_map(static fn (TimeLine $line): string => self::money($line->amount()), $lines));
+    }
+
+    public function testLinesGoByNameInNaturalOrderNotById(): void
+    {
+        $times = [
+            $this->entry('e1', 'p1', 'Website', 't1', 'Write the copy'),
+            $this->entry('e2', 'p1', 'Website', 't2', 'Phase 10'),
+            $this->entry('e3', 'p1', 'Website', 't3', 'phase 9'),
+            $this->entry('e4', 'p1', 'Website', null, null),
+            $this->entry('e5', 'p2', 'Shop', 't4', 'Checkout'),
+        ];
+
+        $lines = TimeLines::of($times, LineGrouping::Task, TimeRounding::None);
+
+        self::assertSame(['Shop – Checkout', 'Website', 'Website – phase 9', 'Website – Phase 10', 'Website – Write the copy'], array_map(static fn (TimeLine $line): string => $line->text('j. n. Y'), $lines));
+    }
+
+    public function testTasksOfTheSameTitleKeepTheirOwnLines(): void
+    {
+        $times = [$this->entry('e1', 'p1', 'Website', 't2', 'Design'), $this->entry('e2', 'p1', 'Website', 't1', 'Design')];
+
+        $lines = TimeLines::of($times, LineGrouping::Task, TimeRounding::None);
+
+        self::assertSame([['e2'], ['e1']], $this->entriesOf($lines));
+    }
+
+    /**
+     * @return iterable<string, array{LineGrouping}>
+     */
+    public static function everyGrouping(): iterable
+    {
+        foreach (LineGrouping::cases() as $grouping) {
+            yield $grouping->value => [$grouping];
+        }
+    }
+
+    /**
+     * Two projects of one name stay apart, the one of the lower id first, even
+     * when the other has the earlier entry.
+     */
+    #[DataProvider('everyGrouping')]
+    public function testProjectsOfTheSameNameKeepTheirOwnLines(LineGrouping $grouping): void
+    {
+        $times = [$this->entry('e1', 'p2', 'Website', null, null), $this->entry('e2', 'p1', 'Website', null, null)];
+
+        $lines = TimeLines::of($times, $grouping, TimeRounding::None);
+
+        self::assertSame([['e2'], ['e1']], $this->entriesOf($lines));
+    }
+
     public function testNoTimeMakesNoLines(): void
     {
         self::assertSame([], TimeLines::of([], LineGrouping::Task, TimeRounding::None));
@@ -171,6 +238,24 @@ final class TimeLinesTest extends TestCase
             \in_array($key, ['e1', 'e3'], true) ? 'Note '.$key : '',
             Money::of($amount, Currency::from($currency)),
         );
+    }
+
+    /**
+     * An hour of Jana's at 1000 CZK, on the day its key numbers.
+     */
+    private function entry(string $key, string $projectId, string $project, ?string $taskId, ?string $task): BillableTime
+    {
+        return new BillableTime($key, $projectId, $project, $taskId, $task, 'person-Jana', 'Jana', new \DateTimeImmutable(\sprintf('2026-10-%02d', (int) substr($key, 1))), 60, '', Money::of('1000', Currency::CZK));
+    }
+
+    /**
+     * @param list<TimeLine> $lines
+     *
+     * @return list<list<string>> the entries of each line
+     */
+    private function entriesOf(array $lines): array
+    {
+        return array_map(static fn (TimeLine $line): array => array_map(static fn (BilledTime $billed): string => $billed->time->entryId, $line->entries), $lines);
     }
 
     private static function money(Money $money): string

@@ -27,9 +27,11 @@ final class TimeLines
         /** @var array<string, array{order: list<int|string>, names: list<string>, entries: list<BillableTime>}> $groups */
         $groups = [];
         foreach ($times as $time) {
-            [$group, $order, $names] = self::group($time, $grouping);
-            $key = $group.'|'.$time->rate->currency()->value.'|'.$time->rate->minor();
-            $groups[$key] ??= ['order' => [...$order, $time->rate->currency()->value, $time->rate->minor()], 'names' => $names, 'entries' => []];
+            [$order, $names] = self::group($time, $grouping);
+            // What a line sorts by also tells it apart: it ends with the ids of what groups it.
+            $order = [...$order, $time->rate->currency()->value, $time->rate->minor()];
+            $key = json_encode($order, \JSON_THROW_ON_ERROR);
+            $groups[$key] ??= ['order' => $order, 'names' => $names, 'entries' => []];
             $groups[$key]['entries'][] = $time;
         }
         uasort($groups, static fn (array $a, array $b): int => self::compare($a['order'], $b['order']));
@@ -45,21 +47,22 @@ final class TimeLines
     }
 
     /**
-     * What groups the entry, how its line sorts and what names it.
+     * How the line of the entry sorts, ending with the ids of what groups it,
+     * and what names it.
      *
-     * @return array{string, list<int|string>, list<string>}
+     * @return array{list<int|string>, list<string>}
      */
     private static function group(BillableTime $time, LineGrouping $grouping): array
     {
         $project = [$time->projectName, $time->projectId];
+        $named = null === $time->taskTitle ? [$time->projectName] : [$time->projectName, $time->taskTitle];
 
         return match ($grouping) {
-            LineGrouping::Project => [$time->projectId, $project, [$time->projectName]],
-            LineGrouping::Task => null === $time->taskId
-                ? [$time->projectId.'/', [...$project, 0, '', ''], [$time->projectName]]
-                : [$time->projectId.'/'.$time->taskId, [...$project, 1, (string) $time->taskTitle, $time->taskId], [$time->projectName, (string) $time->taskTitle]],
-            LineGrouping::Person => [$time->projectId.'/'.$time->membershipId, [...$project, $time->personName, $time->membershipId], [$time->projectName, $time->personName]],
-            LineGrouping::Entry => [$time->entryId, [...$project, $time->workedOn->format('Y-m-d'), $time->entryId], null === $time->taskTitle ? [$time->projectName] : [$time->projectName, $time->taskTitle]],
+            LineGrouping::Project => [$project, [$time->projectName]],
+            // Time without a task has neither title nor id, so it sorts first.
+            LineGrouping::Task => [[...$project, $time->taskTitle ?? '', $time->taskId ?? ''], $named],
+            LineGrouping::Person => [[...$project, $time->personName, $time->membershipId], [$time->projectName, $time->personName]],
+            LineGrouping::Entry => [[...$project, $time->workedOn->format('Y-m-d'), $time->entryId], $named],
         };
     }
 
@@ -71,7 +74,8 @@ final class TimeLines
     {
         foreach ($a as $index => $value) {
             $other = $b[$index] ?? '';
-            $order = \is_int($value) && \is_int($other) ? $value <=> $other : strnatcasecmp((string) $value, (string) $other);
+            // Natural order puts the rates, which are never negative, by their amount.
+            $order = strnatcasecmp((string) $value, (string) $other);
             if (0 !== $order) {
                 return $order;
             }

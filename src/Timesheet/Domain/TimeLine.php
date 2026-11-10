@@ -60,11 +60,13 @@ final readonly class TimeLine
     }
 
     /**
-     * The hours, rounded half up to a hundredth.
+     * The hours, rounded to a hundredth. A minute is 5/3 of a hundredth, so the
+     * hundredths of whole minutes end in a third or two and never in a half:
+     * adding a third rounds two thirds up and one down.
      */
     public function hours(): Quantity
     {
-        return Quantity::ofTenThousandths(intdiv($this->minutes() * 100 + 30, 60) * 100);
+        return Quantity::ofTenThousandths(intdiv($this->minutes() * 5 + 1, 3) * 100);
     }
 
     /**
