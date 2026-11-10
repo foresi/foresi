@@ -41,6 +41,13 @@ interface TimeEntries
      */
     public function lockForInvoicing(array $ids): array;
 
+    /**
+     * The ids of the entries the invoice bills, in no particular order.
+     *
+     * @return list<string>
+     */
+    public function idsInvoicedBy(string $invoiceId): array;
+
     public function add(TimeEntry $entry): void;
 
     /**

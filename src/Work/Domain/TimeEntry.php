@@ -32,7 +32,8 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * The invoice line that billed an entry locks it (Teamwork). The entry keeps
  * the invoice, the line, the rate it was billed at and the minutes billed,
- * rounded as the invoice took them; its own minutes stay as worked.
+ * rounded as the invoice took them; its own minutes stay as worked. An invoice
+ * going to the trash releases its time, which is then unbilled again (Clockify).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'time_entry')]
@@ -244,6 +245,19 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
         $this->invoicedRateMinor = $rate->minor();
         $this->invoicedRateCurrency = $rate->currency();
         $this->invoicedMinutes = $minutes;
+    }
+
+    /**
+     * Unbilled again, as before the invoice: its line, rate and billed minutes
+     * are forgotten. Releasing time that is not invoiced changes nothing.
+     */
+    public function release(): void
+    {
+        $this->invoiceId = null;
+        $this->invoiceLineId = null;
+        $this->invoicedRateMinor = null;
+        $this->invoicedRateCurrency = null;
+        $this->invoicedMinutes = null;
     }
 
     /**

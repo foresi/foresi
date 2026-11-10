@@ -58,6 +58,19 @@ final readonly class DoctrineTimeEntries implements TimeEntries
         return $byId;
     }
 
+    public function idsInvoicedBy(string $invoiceId): array
+    {
+        if (!Id::isValid($invoiceId)) {
+            return [];
+        }
+        /** @var list<string> $ids */
+        $ids = $this->entityManager->createQuery('SELECT e.id FROM '.TimeEntry::class.' e WHERE e.invoiceId = :invoice')
+            ->setParameter('invoice', $invoiceId)
+            ->getSingleColumnResult();
+
+        return $ids;
+    }
+
     public function add(TimeEntry $entry): void
     {
         $this->entityManager->persist($entry);
