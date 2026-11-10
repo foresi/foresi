@@ -93,7 +93,7 @@
                                         {%- elseif cell.numeric -%}
                                             <span class="num"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- elseif cell.text is same as('') -%}
-                                            <span class="text-control-line" aria-hidden="true">—</span>
+                                            <span class="text-muted" aria-hidden="true">—</span>
                                         {%- else -%}
                                             <span class="block {{ cell.truncate ? '' : 'max-w-[32ch] ' }}truncate"{% if cell.title %} title="{{ cell.title }}"{% endif %}>{{ cell.text }}</span>
                                         {%- endif -%}
@@ -107,31 +107,19 @@
                                     <td class="h-row whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
                                         <div class="flex items-center justify-end gap-0.5">
                                             {% set menuId = 'row-menu-' ~ row.id %}
-                                            {% set inMenu = row.actions|filter(action => action.icon is null) %}
-                                            {% for action in row.actions|filter(action => action.icon is not null) %}
-                                                {% if action.method == 'POST' %}
-                                                    <form method="post" action="{{ action.href }}" class="max-sm:hidden"{{ _self.confirm(action.confirm) }}>
-                                                        <input type="hidden" name="_token" value="{{ actionToken }}">
-                                                        {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-                                                        <twig:Ui:IconButton type="submit" :icon="action.icon" :label="action.label" variant="ghost" size="sm" />
-                                                    </form>
-                                                {% else %}
-                                                    <twig:Ui:IconButton :href="action.href" :icon="action.icon" :label="action.label" variant="ghost" size="sm" class="max-sm:hidden" data-turbo="{{ action.plain ? 'false' : 'true' }}" :data-dialog="action.dialog ? true : false" :aria-haspopup="action.dialog ? 'dialog' : false" />
-                                                {% endif %}
-                                            {% endfor %}
-                                            <div class="relative{{ inMenu is empty ? ' sm:hidden' : '' }}" data-controller="dropdown" data-dropdown-float-value="true">
+                                            <div class="relative" data-controller="dropdown" data-dropdown-float-value="true">
                                                 <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.label})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
                                                 <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
                                                     {% for action in row.actions %}
-                                                        {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus ~ (action.icon ? ' sm:hidden' : '') %}
+                                                        {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
                                                         {% if action.method == 'POST' %}
-                                                            <form method="post" action="{{ action.href }}"{{ _self.confirm(action.confirm) }}{% if action.icon %} class="sm:hidden" {% endif %}>
+                                                            <form method="post" action="{{ action.href }}"{{ _self.confirm(action.confirm) }}>
                                                                 <input type="hidden" name="_token" value="{{ actionToken }}">
                                                                 {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-                                                                <button type="submit" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %} class="{{ itemClass }}">{{ action.label }}</button>
+                                                                <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ action.label }}</button>
                                                             </form>
                                                         {% else %}
-                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.icon %} data-phone-only{% endif %}{% if action.plain %} data-turbo="false"{% endif %}{% if action.dialog %} data-dialog aria-haspopup="dialog"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
+                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.plain %} data-turbo="false"{% endif %}{% if action.dialog %} data-dialog aria-haspopup="dialog"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
                                                         {% endif %}
                                                     {% endfor %}
                                                 </div>

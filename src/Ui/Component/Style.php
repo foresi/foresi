@@ -20,9 +20,9 @@ final class Style
 
     private const array BUTTON_VARIANTS = [
         'primary' => 'bg-green border-green text-white shadow-raised hover:bg-green-hover',
-        'secondary' => 'bg-white border-control-line text-ink shadow-raised hover:border-muted hover:bg-head',
+        'secondary' => 'bg-white border-container text-ink shadow-raised hover:bg-head',
         'ghost' => 'bg-transparent border-transparent text-text hover:bg-head',
-        'danger' => 'bg-white border-control-line text-badge-red-text shadow-raised hover:border-badge-red-text hover:bg-badge-red',
+        'danger' => 'bg-white border-container text-badge-red-text shadow-raised hover:bg-badge-red',
     ];
 
     private const array BUTTON_SIZES = ['md' => 'h-control', 'sm' => 'h-control-sm text-small'];

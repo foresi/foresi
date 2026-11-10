@@ -419,11 +419,11 @@ final class InvoiceListControllerTest extends WebTestCase
         $rows = $this->client->request('GET', '/invoices')->filter('tbody tr');
 
         $unpaidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $unpaid->number()));
-        $pay = $unpaidRow->filter('a[aria-label="Pay"]');
+        $pay = $unpaidRow->filter('[role="menu"] a[role="menuitem"][href="/invoices/'.$unpaid->id().'/pay"]');
+        self::assertSame('Pay', $pay->text());
         self::assertSame('/invoices/'.$unpaid->id().'/pay', $pay->attr('href'));
         self::assertNotNull($pay->attr('data-dialog'));
         self::assertSame('dialog', $pay->attr('aria-haspopup'));
-        self::assertCount(1, $unpaidRow->filter('[role="menu"] a[data-phone-only][href="/invoices/'.$unpaid->id().'/pay"]'), 'on a phone it is in the menu');
         $paidRow = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $paid->number()));
         self::assertCount(0, $paidRow->filter('a[href$="/pay"]'));
     }
@@ -492,11 +492,13 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $this->client->request('GET', '/invoices')->filter('tbody tr')->first();
 
-        self::assertSame('false', $row->filter('a[aria-label="Edit"]')->attr('data-turbo'));
-        self::assertSame('/invoices/'.$invoice->id().'/edit', $row->filter('a[aria-label="Edit"]')->attr('href'));
-        self::assertSame('false', $row->filter('a[aria-label="PDF"]')->attr('data-turbo'));
-        self::assertSame('/invoices/'.$invoice->id().'/pdf', $row->filter('a[aria-label="PDF"]')->attr('href'));
-        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
+        $edit = $row->filter('[role="menu"] a[role="menuitem"][href="/invoices/'.$invoice->id().'/edit"]');
+        self::assertSame('Edit', $edit->text());
+        self::assertSame('false', $edit->attr('data-turbo'));
+        $pdf = $row->filter('[role="menu"] a[role="menuitem"][href="/invoices/'.$invoice->id().'/pdf"]');
+        self::assertSame('PDF', $pdf->text());
+        self::assertSame('false', $pdf->attr('data-turbo'));
+        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'History', 'Delete'], $this->menu($row));
         self::assertSame('false', $row->filter('a[href="/invoices/'.$invoice->id().'/copy"]')->attr('data-turbo'));
         self::assertCount(1, $row->filter('form[action="/invoices/'.$invoice->id().'/delivered"][data-turbo-confirm]'));
     }
@@ -679,9 +681,9 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $this->client->request('GET', '/invoices?tab=trash')->filter('tbody tr')->first();
 
-        self::assertCount(2, $row->filter('form[action="/invoices/'.$invoice->id().'/restore"]'), 'In the row, and in the menu of a phone.');
-        self::assertCount(0, $row->filter('a[aria-label="Edit"]'));
-        self::assertSame(['Copy', 'History'], $this->menu($row));
+        self::assertCount(1, $row->filter('[role="menu"] form[action="/invoices/'.$invoice->id().'/restore"]'));
+        self::assertCount(0, $row->filter('[role="menu"] a[href$="/edit"]'));
+        self::assertSame(['Restore', 'PDF', 'Copy', 'History'], $this->menu($row));
     }
 
     public function testDeliveredOffersNoDelete(): void
@@ -694,8 +696,8 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $row = $crawler->filter('tbody tr')->first();
         self::assertStringContainsString('Delivered', $row->text());
-        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'History'], $this->menu($row));
-        self::assertCount(1, $row->filter('a[aria-label="Edit"]'));
+        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'History'], $this->menu($row));
+        self::assertCount(1, $row->filter('[role="menu"] a[href$="/edit"]'));
     }
 
     public function testDeleteOnADeliveredDocumentIsRefusedClearly(): void
@@ -936,7 +938,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         self::assertNotContains('Clear export state', $this->menu($this->client->request('GET', '/invoices')->filter('tr[data-id="'.$none->id().'"]')));
         $row = $crawler->filter('tr[data-id="'.$invoice->id().'"]');
-        self::assertSame(['Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'Clear export state', 'History', 'Delete'], $this->menu($row));
+        self::assertSame(['Edit', 'PDF', 'Pay', 'Send', 'Copy', 'Recurring invoice', 'Issue a corrective document', 'Mark as delivered', 'Clear export state', 'History', 'Delete'], $this->menu($row));
         $form = $row->filter('form[action="/invoices/'.$invoice->id().'/clear-export"]');
         self::assertCount(0, $form->filter('[data-turbo-confirm]'));
         $return = $form->filter('input[name="return"]')->attr('value');
@@ -1427,13 +1429,13 @@ final class InvoiceListControllerTest extends WebTestCase
     }
 
     /**
-     * What the menu of a row offers on the desktop.
+     * What the menu of a row offers.
      *
      * @return list<string>
      */
     private function menu(Crawler $row): array
     {
-        return $row->filter('[role="menu"] [role="menuitem"]:not([data-phone-only])')->each(static fn (Crawler $item): string => $item->text());
+        return $row->filter('[role="menu"] [role="menuitem"]')->each(static fn (Crawler $item): string => $item->text());
     }
 
     /**

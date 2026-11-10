@@ -76,7 +76,9 @@ test.describe.serial('the bank movements', () => {
     await page.goto('/bank?tab=unmatched');
     const waiting = row(page, '2 420,00');
     // Keyboard only. The bank did not vouch for this payment: the dialog warns, and nothing is ticked or filled in.
-    await waiting.getByRole('link', { name: 'Spárovat' }).focus();
+    await waiting.getByRole('button', { name: /Další akce/ }).focus();
+    await page.keyboard.press('Enter');
+    await waiting.getByRole('menuitem', { name: 'Spárovat' }).focus();
     await page.keyboard.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Spárovat platbu 2 420,00 Kč' });
     await expect(dialog).toBeVisible();
@@ -133,7 +135,8 @@ test.describe.serial('the bank movements', () => {
 
   test('the flash right after pairing undoes it by keyboard, and the invoice is unpaid again', async ({ page }) => {
     await page.goto('/bank?tab=unmatched');
-    await row(page, '350,00').getByRole('link', { name: 'Spárovat' }).click();
+    await row(page, '350,00').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, '350,00').getByRole('menuitem', { name: 'Spárovat' }).click();
     const dialog = page.getByRole('dialog', { name: 'Spárovat platbu 350,00 Kč' });
     await expect(dialog).toBeVisible();
     // A verified payment: no warning and no bank check; a ticked invoice fills in what it has left.

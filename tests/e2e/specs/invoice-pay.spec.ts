@@ -60,12 +60,8 @@ test.describe.serial('paying an invoice', () => {
     for (const [name, size] of [['desktop', DESKTOP], ['phone', PHONE]] as const) {
       await page.setViewportSize(size);
       await page.goto('/invoices');
-      if (name === 'desktop') {
-        await row(page, '20260002').getByRole('link', { name: 'Uhradit' }).click();
-      } else {
-        await row(page, '20260002').getByRole('button', { name: /Další akce/ }).click();
-        await row(page, '20260002').getByRole('menuitem', { name: 'Uhradit' }).click();
-      }
+      await row(page, '20260002').getByRole('button', { name: /Další akce/ }).click();
+      await row(page, '20260002').getByRole('menuitem', { name: 'Uhradit' }).click();
       const dialog = page.getByRole('dialog', { name: 'Uhradit fakturu 20260002' });
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText('Zbývá 1 420,00 Kč z 2 420,00 Kč');
@@ -108,7 +104,9 @@ test.describe.serial('paying an invoice', () => {
   test('Enter records the payment and the row shows it paid', async ({ page }) => {
     await page.goto('/invoices');
     // Keyboard only: the row's Pay opens the dialog, the amount is ready, Enter records it.
-    await row(page, '20260001').getByRole('link', { name: 'Uhradit' }).focus();
+    await row(page, '20260001').getByRole('button', { name: /Další akce/ }).focus();
+    await page.keyboard.press('Enter');
+    await row(page, '20260001').getByRole('menuitem', { name: 'Uhradit' }).focus();
     await page.keyboard.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Uhradit fakturu 20260001' });
     await expect(dialog).toBeVisible();
@@ -119,12 +117,14 @@ test.describe.serial('paying an invoice', () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('status').filter({ hasText: 'Úhrada 1 210,00 Kč k faktuře 20260001 je zaznamenaná.' })).toBeVisible();
     await expect(status(page, '20260001')).toHaveText('Uhrazeno');
-    await expect(row(page, '20260001').getByRole('link', { name: 'Uhradit' })).toHaveCount(0);
+    await row(page, '20260001').getByRole('button', { name: /Další akce/ }).click();
+    await expect(row(page, '20260001').getByRole('menuitem', { name: 'Uhradit' })).toHaveCount(0);
   });
 
   test('a refusal keeps what was typed and puts the focus on what to fix @a11y', async ({ page }) => {
     await page.goto('/invoices');
-    await row(page, '20260002').getByRole('link', { name: 'Uhradit' }).click();
+    await row(page, '20260002').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, '20260002').getByRole('menuitem', { name: 'Uhradit' }).click();
     await page.locator('#pay-amount').fill('0');
     await page.locator('#pay-note').fill('Hotově na pobočce');
     await page.getByRole('button', { name: 'Zaznamenat úhradu' }).click();

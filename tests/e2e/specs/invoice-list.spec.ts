@@ -108,8 +108,15 @@ test.describe.serial('the invoice list', () => {
     await page.keyboard.press('ArrowDown');
     const menu = first.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Odeslat' })).toBeFocused();
+    await expect(menu.getByRole('menuitem', { name: 'Upravit' })).toBeFocused();
     await expect(menu).toBeInViewport({ ratio: 1 });
+    await page.keyboard.press('ArrowDown');
+    await expect(menu.getByRole('menuitem', { name: 'PDF', exact: true })).toBeFocused();
+    const send = menu.getByRole('menuitem', { name: 'Odeslat', exact: true });
+    for (let presses = 0; presses < 10 && !(await send.evaluate((element) => element === document.activeElement)); presses++) {
+      await page.keyboard.press('ArrowDown');
+    }
+    await expect(send).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(menu.getByRole('menuitem', { name: 'Kopírovat' })).toBeFocused();
     await page.keyboard.press('ArrowDown');
@@ -144,7 +151,8 @@ test.describe.serial('the invoice list', () => {
     await expect(page.locator('tbody tr')).toContainText('Invoicing Example');
     await expectNoSeriousViolations(page);
 
-    await page.locator('tbody tr').getByRole('button', { name: 'Obnovit' }).click();
+    await page.locator('tbody tr').getByRole('button', { name: /Další akce/ }).click();
+    await page.locator('tbody tr').getByRole('menuitem', { name: 'Obnovit' }).click();
     await expect(page.getByText(/je zpět v seznamu\./)).toBeVisible();
     await expect(page).toHaveURL(/tab=trash/);
     await expect(page.getByRole('heading', { name: 'Koš je prázdný' })).toBeVisible();
@@ -170,7 +178,8 @@ test.describe.serial('the invoice list', () => {
   test('shows the history of a document with what changed', async ({ page }) => {
     await page.goto('/invoices');
     const first = page.locator('tbody tr').first();
-    await first.getByRole('link', { name: 'Upravit' }).click();
+    await first.getByRole('button', { name: /Další akce/ }).click();
+    await first.getByRole('menuitem', { name: 'Upravit' }).click();
     await expect(page).toHaveURL(/\/edit$/);
     await describe(page, 'Jiný popis');
     await page.locator('#lines-0-price').fill('700');

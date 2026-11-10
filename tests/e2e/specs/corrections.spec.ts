@@ -100,7 +100,8 @@ test.describe.serial('corrective tax documents', () => {
 
     const first = page.locator('tbody tr').first();
     await expect(first.getByRole('button', { name: /^Další akce pro O7/ })).toBeVisible();
-    const href = (await first.getByRole('link', { name: 'PDF', exact: true }).getAttribute('href')) ?? '';
+    await first.getByRole('button', { name: /^Další akce pro O7/ }).click();
+    const href = (await first.getByRole('menuitem', { name: 'PDF', exact: true }).getAttribute('href')) ?? '';
     expect(href).toMatch(/\/invoices\/[0-9a-f-]+\/pdf$/);
     const response = await page.request.get(href);
     expect(response.status()).toBe(200);

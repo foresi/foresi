@@ -6,9 +6,9 @@
         <ul class="flex list-none items-center gap-1 p-0">
             <li>
                 {% if page > 1 %}
-                    <a href="{{ this.url(page - 1) }}" aria-label="{{ 'ui.pagination.previous'|trans }}" class="{{ box }}border-control-line bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                    <a href="{{ this.url(page - 1) }}" aria-label="{{ 'ui.pagination.previous'|trans }}" class="{{ box }}border-container bg-white text-ink shadow-raised hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                 {% else %}
-                    <span aria-disabled="true" class="{{ box }}border-control-line bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.previous'|trans }}</span></span>
+                    <span aria-disabled="true" class="{{ box }}border-container bg-white text-ink shadow-raised opacity-50">{{ ux_icon('lucide:chevron-left', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.previous'|trans }}</span></span>
                 {% endif %}
             </li>
             {% for item in this.items %}
@@ -18,15 +18,15 @@
                     {% elseif item == page %}
                         <a href="{{ this.url(item) }}" aria-current="page" aria-label="{{ 'ui.pagination.page'|trans({page: item}) }}" class="{{ box }}num border-green bg-green text-white {{ focus }}">{{ item }}</a>
                     {% else %}
-                        <a href="{{ this.url(item) }}" aria-label="{{ 'ui.pagination.page'|trans({page: item}) }}" class="{{ box }}num border-control-line bg-white text-ink hover:bg-head {{ focus }}">{{ item }}</a>
+                        <a href="{{ this.url(item) }}" aria-label="{{ 'ui.pagination.page'|trans({page: item}) }}" class="{{ box }}num border-container bg-white text-ink shadow-raised hover:bg-head {{ focus }}">{{ item }}</a>
                     {% endif %}
                 </li>
             {% endfor %}
             <li>
                 {% if page < pages %}
-                    <a href="{{ this.url(page + 1) }}" aria-label="{{ 'ui.pagination.next'|trans }}" class="{{ box }}border-control-line bg-white text-ink hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+                    <a href="{{ this.url(page + 1) }}" aria-label="{{ 'ui.pagination.next'|trans }}" class="{{ box }}border-container bg-white text-ink shadow-raised hover:bg-head {{ focus }}">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                 {% else %}
-                    <span aria-disabled="true" class="{{ box }}border-control-line bg-white text-ink opacity-50">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.next'|trans }}</span></span>
+                    <span aria-disabled="true" class="{{ box }}border-container bg-white text-ink shadow-raised opacity-50">{{ ux_icon('lucide:chevron-right', {class: 'size-4', 'aria-hidden': 'true'}) }}<span class="sr-only">{{ 'ui.pagination.next'|trans }}</span></span>
                 {% endif %}
             </li>
         </ul>

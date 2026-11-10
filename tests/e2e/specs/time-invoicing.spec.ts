@@ -133,7 +133,9 @@ test.describe('invoicing time', () => {
     // Restored: the same time is locked to it again.
     await page.goto('/invoices');
     await page.getByRole('link', { name: /^Koš/ }).click();
-    await page.locator('tbody tr').filter({ hasText: number }).getByRole('button', { name: 'Obnovit' }).click();
+    const trashed = page.locator('tbody tr').filter({ hasText: number });
+    await trashed.getByRole('button', { name: /Další akce/ }).click();
+    await trashed.getByRole('menuitem', { name: 'Obnovit' }).click();
     await expect(page.getByText(/je zpět v seznamu\./)).toBeVisible();
     await expectLockedBy(page, number);
   });

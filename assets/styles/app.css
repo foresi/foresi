@@ -64,9 +64,11 @@
     --color-muted: #6b695f;
 
     /*
-     * Border roles: a line inside a surface, the edge of a surface, the edge of a control.
-     * Only the control edge identifies a component, so only it must reach 3:1 against
-     * white and the frame (WCAG 2.2 SC 1.4.11, tests/Ui/ContrastTest.php).
+     * Border roles: a line inside a surface, the edge of a surface (also of buttons, chips and
+     * pagination, which their text identifies), the edge of a field. Only the field edge
+     * identifies its component, so only it must reach 3:1 against white and the frame
+     * (WCAG 2.2 SC 1.4.11, tests/Ui/ContrastTest.php). Fields alone wear the strong edge, so
+     * controls do not outweigh the content.
      */
     --color-divider: #ece9e2;
     --color-container: #e6e2d8;

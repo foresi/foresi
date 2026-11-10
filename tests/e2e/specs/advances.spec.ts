@@ -63,7 +63,8 @@ test.describe.serial('advances and tax documents on payment', () => {
     await expectNoSidewaysScroll(page);
     await page.setViewportSize(DESKTOP);
 
-    await page.locator('tbody tr').filter({ hasText: 'Z920260002' }).getByRole('button', { name: 'Vystavit daňový doklad' }).click();
+    await row(page, 'Z920260002').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Z920260002').getByRole('menuitem', { name: 'Vystavit daňový doklad' }).click();
 
     await expect(page.locator('main').getByRole('status')).toContainText('Daňový doklad D820260001 je vystavený.');
     await expect(page.locator('main')).toContainText('Každá uhrazená záloha má svůj daňový doklad.');
@@ -72,7 +73,8 @@ test.describe.serial('advances and tax documents on payment', () => {
 
   test('a payment of an advance issues its tax document, and its links show the chain', async ({ page }) => {
     await page.goto('/advances');
-    await row(page, 'Z920260001').getByRole('link', { name: 'Uhradit' }).click();
+    await row(page, 'Z920260001').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Z920260001').getByRole('menuitem', { name: 'Uhradit' }).click();
     const dialog = page.getByRole('dialog', { name: /Z920260001/ });
     await dialog.getByRole('button', { name: 'Zaznamenat úhradu' }).click();
     await expect(page.locator('main').getByRole('status')).toContainText('Z920260001');
@@ -83,7 +85,8 @@ test.describe.serial('advances and tax documents on payment', () => {
 
     await page.goto('/tax-documents');
     await expect(page.locator('tbody')).toContainText('D820260002');
-    await expect(row(page, 'D820260002').getByRole('link', { name: 'Uhradit' })).toHaveCount(0);
+    await row(page, 'D820260002').getByRole('button', { name: /Další akce/ }).click();
+    await expect(row(page, 'D820260002').getByRole('menuitem', { name: 'Uhradit' })).toHaveCount(0);
 
     await page.goto('/advances');
     await page.getByRole('link', { name: 'Z920260001', exact: true }).click();

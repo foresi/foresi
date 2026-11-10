@@ -81,7 +81,7 @@ test.describe.serial('reminders of overdue invoices', () => {
     // The firm and the customer give way: cut short where needed, the full name in a title.
     const firm = row(page, 'R0001').locator('td').nth(1).locator('span');
     await expect(firm).toHaveAttribute('title', /^Example /);
-    await expect(row(page, 'R0001').getByRole('link', { name: 'Upravit' })).toBeInViewport({ ratio: 1 });
+    await expect(row(page, 'R0001').getByRole('button', { name: /Další akce/ })).toBeInViewport({ ratio: 1 });
   });
 
   test('a reminder by hand opens over the list with the reminder text and Send focused @a11y @layout', async ({ page }) => {
