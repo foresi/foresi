@@ -1,0 +1,129 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A received document, as iDoklad and Xero show a bill: the original file on the left, its values on
+    the right (under it on a narrower screen), the amounts in CZK and the history below. Recording,
+    saving, the trash, a restore and deleting a draft sit in the page header; the trash asks for a
+    reason in a dialog, deleting a draft asks first. A save that went through tells its warnings, which
+    never stop it; a refusal is told next to its field and in the summary over the form.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title}] %}
+{% set form_invalid = errors is not empty %}
+{% set token = csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) %}
+{% set draft = not document.recorded %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    {% if editable %}
+        {% if draft %}
+            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="record" variant="primary" icon="circle-check" data-purchasing-record>{{ 'purchasing.record'|trans }}</twig:Ui:Button>
+        {% else %}
+            <twig:Ui:Button type="submit" form="received-document-form" name="_action" value="save" variant="primary" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>
+        {% endif %}
+        <twig:Ui:Button icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:Button>
+    {% else %}
+        <form method="post" action="{{ path('app_purchasing_restore', {id: document.id}) }}" data-purchasing-restore>
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="archive-restore" variant="primary">{{ 'purchasing.restore'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+    {% if draft %}
+        <form method="post" action="{{ path('app_purchasing_delete', {id: document.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+            data-confirm-title="{{ 'purchasing.delete.confirm_title'|trans }}" data-confirm-text="{{ 'purchasing.delete.confirm_text'|trans }}"
+            data-confirm-accept="{{ 'purchasing.delete.submit'|trans }}" data-confirm-cancel="{{ 'purchasing.cancel'|trans }}" data-confirm-tone="danger" data-purchasing-delete>
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'purchasing.delete.submit'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+    {% set notices %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('warning') %}<twig:Ui:Alert tone="warning" role="status" data-purchasing-warning>{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% if stale %}
+            <twig:Ui:Alert tone="error" role="alert" data-reload-prompt>
+                <span>{{ 'purchasing.refused.stale'|trans }}</span>
+                <a href="{{ path('app_purchasing_document', {id: document.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'purchasing.reload'|trans }}</a>
+            </twig:Ui:Alert>
+        {% endif %}
+        {% if document.trashed %}<twig:Ui:Alert tone="warning" data-purchasing-trashed>{{ 'purchasing.detail.trashed'|trans({reason: document.deletedReason ?? ''}) }}</twig:Ui:Alert>{% endif %}
+    {% endset %}
+    {% if notices|trim %}<div class="mb-4 grid gap-2">{{ notices }}</div>{% endif %}
+
+    <div class="grid grid-cols-1 gap-4 {{ file ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : '' }}">
+        {% if file %}
+            <section class="grid content-start gap-2 xl:sticky xl:top-4 xl:self-start" aria-labelledby="original-title" data-purchasing-original>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 id="original-title" class="m-0 text-heading font-semibold text-ink">{{ 'purchasing.detail.original'|trans }}</h2>
+                    <a href="{{ file.url }}" download="{{ file.name }}" class="inline-flex items-center gap-1.5 text-small font-medium text-text underline underline-offset-2 {{ focus }}">{{ ux_icon('lucide:download', {class: 'size-4', 'aria-hidden': 'true'}) }}{{ file.name }}</a>
+                </div>
+                {% if file.preview == 'pdf' %}
+                    <iframe src="{{ file.url }}" title="{{ file.name }}" class="block h-dvh max-h-[75vh] w-full rounded-panel border border-container bg-white" data-purchasing-preview="pdf"></iframe>
+                {% elseif file.preview == 'image' %}
+                    <img src="{{ file.url }}" alt="{{ file.name }}" class="block h-auto max-w-full rounded-panel border border-container" data-purchasing-preview="image">
+                {% else %}
+                    <p class="m-0 text-small text-muted">{{ 'purchasing.detail.no_preview'|trans }}</p>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        <div class="grid min-w-0 content-start gap-4">
+            <twig:Ui:Card>
+                <form method="post" id="received-document-form" action="{{ path('app_purchasing_document', {id: document.id}) }}" class="grid gap-4" novalidate data-turbo="false" data-purchasing-form>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <input type="hidden" name="version" value="{{ version }}">
+                    {{ include('purchasing/_form_errors.html.twig') }}
+                    {% if corrected and values.kind == 'credit_note' %}<p class="m-0 text-small text-muted" data-purchasing-corrects>{{ 'purchasing.detail.corrects'|trans({document: corrected}) }}</p>{% endif %}
+                    {{ include('purchasing/_fields.html.twig', {contactDialog: true}) }}
+                </form>
+            </twig:Ui:Card>
+
+            {% set facts = [
+                {label: 'purchasing.figures.base_czk'|trans, value: figures.base ?? ''},
+                {label: 'purchasing.figures.vat_czk'|trans, value: figures.vat ?? ''},
+                {label: 'purchasing.figures.total_czk'|trans, value: figures.total ?? '', big: true},
+            ]|filter(fact => fact.value != '') %}
+            {% if facts is not empty or figures.rows is not empty or deduction.period %}
+                <section class="grid gap-2" aria-labelledby="figures-title" data-purchasing-figures>
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <h2 id="figures-title" class="m-0 text-small font-semibold text-ink">{{ 'purchasing.figures.title'|trans }}</h2>
+                        {% if app.request.method == 'POST' %}<p class="m-0 text-caption text-muted">{{ 'purchasing.figures.after_save'|trans }}</p>{% endif %}
+                    </div>
+                    {% if facts is not empty %}<twig:Ui:FactsGrid :items="facts" />{% endif %}
+                    {% if deduction.period %}
+                        <p class="m-0 text-small text-muted" data-purchasing-deduction>
+                            {{- deduction.latest ? 'purchasing.figures.deduction_until'|trans({period: deduction.period, date: deduction.latest}) : 'purchasing.figures.deduction'|trans({period: deduction.period}) -}}
+                        </p>
+                    {% endif %}
+                    {% if figures.rows is not empty %}
+                        {# ARIA table roles, as the sums under the invoice list. #}
+                        <div role="table" aria-labelledby="figures-title" tabindex="0" class="overflow-x-auto rounded-panel border border-container bg-white text-small {{ focus }}" data-purchasing-figure-rows>
+                            <div role="row" class="grid grid-cols-[minmax(4rem,1fr)_repeat(2,minmax(0,auto))] gap-x-4 bg-head px-4 py-2 text-caption text-muted sm:grid-cols-[minmax(0,1fr)_repeat(2,10rem)]">
+                                <span role="columnheader" class="font-medium">{{ 'purchasing.recap.rate'|trans }}</span>
+                                <span role="columnheader" class="text-right font-medium">{{ 'purchasing.figures.base_czk'|trans }}</span>
+                                <span role="columnheader" class="text-right font-medium">{{ 'purchasing.figures.vat_czk'|trans }}</span>
+                            </div>
+                            {% for row in figures.rows %}
+                                <div role="row" class="grid grid-cols-[minmax(4rem,1fr)_repeat(2,minmax(0,auto))] gap-x-4 border-t border-divider px-4 py-2 sm:grid-cols-[minmax(0,1fr)_repeat(2,10rem)]">
+                                    <span role="rowheader" class="num text-ink">{{ row.rate }}</span>
+                                    <span role="cell" class="num whitespace-nowrap text-right">{{ row.baseCzk ?? '—' }}</span>
+                                    <span role="cell" class="num whitespace-nowrap text-right">{{ row.vatCzk ?? '—' }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            <twig:Ui:Card :title="'purchasing.history.title'|trans" icon="history">
+                <twig:Ui:Timeline :items="timeline" data-purchasing-history />
+            </twig:Ui:Card>
+        </div>
+    </div>
+{% endblock %}

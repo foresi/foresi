@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A received document typed in without a file, a dialog over the list and a page of its own: the same
+    fields as the page of a document, recorded at once, after which the dialog leads to it. Changing the
+    kind, the treatment or the currency sends the form back for what they need, and so do the buttons of
+    the recap; none of them records.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: 'purchasing.new'|trans}] %}
+{% set dialog_size = 'lg' %}
+{% set form_invalid = errors is not empty %}
+
+{% block title %}{{ 'purchasing.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="received-document-new" action="{{ path('app_purchasing_new') }}" class="grid gap-4" novalidate data-purchasing-new-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
+        {{ include('purchasing/_form_errors.html.twig') }}
+        {% if firms|length > 1 %}
+            <twig:Ui:Select name="firm" id="firm" :row="true" width="medium" :label="'purchasing.field.firm'|trans" :options="firms" :value="firm" :error="errors.firm|default(null)" data-controller="autosubmit" data-action="change->autosubmit#submit" />
+        {% else %}
+            <input type="hidden" name="firm" value="{{ firm }}">
+        {% endif %}
+        {{ include('purchasing/_fields.html.twig', {editable: true, contactDialog: false}) }}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="received-document-new" name="_action" value="record" variant="primary" icon="circle-check">{{ 'purchasing.record'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'purchasing.new'|trans" icon="file-text" class="max-w-4xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-4xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_purchasing')">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="received-document-new" name="_action" value="record" variant="primary" icon="circle-check">{{ 'purchasing.record'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

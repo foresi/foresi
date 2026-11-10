@@ -1,0 +1,71 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The received documents, as Fakturoid lists its costs and Xero its bills: the drafts to complete
+    first, then the recorded ones and the trash, each a tab with its count; the filters and the search
+    as the invoice list has them. Uploading and a new document open a dialog from the header.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans}] %}
+
+{% block title %}{{ 'purchasing.list.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if not noFirm %}
+        <twig:Ui:Button icon="plus" :href="path('app_purchasing_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-purchasing-new>{{ 'purchasing.new'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button variant="primary" icon="upload" :href="path('app_purchasing_upload')" data-dialog aria-haspopup="dialog" data-purchasing-upload>{{ 'purchasing.upload.open'|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('success') %}<twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('warning') %}<twig:Ui:Alert tone="warning" role="status">{{ message }}</twig:Ui:Alert>{% endfor %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    {% if noFirm %}
+        <twig:Ui:EmptyState icon="building-2" :title="'purchasing.list.no_firm_title'|trans" :text="'purchasing.list.no_firm_text'|trans">
+            <twig:Ui:Button :href="path('app_firm_new')" variant="primary" icon="plus">{{ 'purchasing.list.add_firm'|trans }}</twig:Ui:Button>
+        </twig:Ui:EmptyState>
+    {% else %}
+        <div class="grid grid-cols-1 gap-4">
+            <twig:Ui:Tabs :items="tabs" :label="'purchasing.list.views'|trans" />
+            <form method="get" action="{{ path('app_purchasing') }}" role="search" class="flex w-full flex-wrap items-end gap-2 max-sm:[&_button]:h-control-lg max-sm:[&_input]:h-control-lg" data-purchasing-filter>
+                {% if filter.tab != 'drafts' %}<input type="hidden" name="tab" value="{{ filter.tab }}">{% endif %}
+                {% if firms is not empty %}
+                    <div class="w-full min-w-0 sm:w-52"><twig:Ui:Select name="firm" id="purchasing-firm" :label="'purchasing.field.firm'|trans" :options="firms" :value="filter.firmId ?? ''" /></div>
+                {% endif %}
+                <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="month" id="purchasing-month" :label="'purchasing.list.month'|trans" :options="months" :value="filter.month ?? ''" /></div>
+                <div class="w-full min-w-0 sm:w-52"><twig:Ui:Select name="supplier" id="purchasing-supplier" :label="'purchasing.field.supplier'|trans" :options="suppliers" :value="filter.supplierId ?? ''" /></div>
+                <div class="w-full min-w-0 sm:w-44"><twig:Ui:Select name="kind" id="purchasing-kind" :label="'purchasing.field.kind'|trans" :options="kinds" :value="filter.kind.value ?? ''" /></div>
+                <div class="w-full min-w-0 sm:w-52"><twig:Ui:Select name="treatment" id="purchasing-treatment" :label="'purchasing.field.treatment'|trans" :options="treatments" :value="filter.treatment.value ?? ''" /></div>
+                <twig:Ui:SearchField name="q" :value="filter.text" :label="'purchasing.list.search_label'|trans" :placeholder="'purchasing.list.search_placeholder'|trans" maxlength="100" class="min-w-0 flex-1 sm:w-64 sm:flex-none" />
+                <twig:Ui:Button type="submit" icon="search">{{ 'purchasing.list.search'|trans }}</twig:Ui:Button>
+            </form>
+
+            <twig:Ui:DataTable :caption="'purchasing.list.title'|trans" :columns="columns" :rows="rows">
+                <twig:block name="empty">
+                    {% if filtered %}
+                        <twig:Ui:EmptyState icon="search" :title="'purchasing.list.empty.filtered_title'|trans" :text="'purchasing.list.empty.filtered_text'|trans">
+                            <twig:Ui:Button :href="path('app_purchasing', filter.tab == 'drafts' ? {} : {tab: filter.tab})">{{ 'purchasing.list.empty.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% elseif filter.tab == 'trash' %}
+                        <twig:Ui:EmptyState icon="trash-2" :title="'purchasing.list.empty.trash_title'|trans" />
+                    {% elseif filter.tab == 'recorded' %}
+                        <twig:Ui:EmptyState icon="file-text" :title="'purchasing.list.empty.recorded_title'|trans" :text="'purchasing.list.empty.recorded_text'|trans" />
+                    {% else %}
+                        <twig:Ui:EmptyState icon="circle-check" :title="'purchasing.list.empty.drafts_title'|trans" :text="'purchasing.list.empty.drafts_text'|trans">
+                            <twig:Ui:Button variant="primary" icon="upload" :href="path('app_purchasing_upload')" data-dialog aria-haspopup="dialog">{{ 'purchasing.upload.open'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% endif %}
+                </twig:block>
+                <twig:block name="footer">
+                    <span class="num">{{ 'purchasing.list.summary'|trans({total: page.total}) }}</span>
+                    <twig:Ui:Pagination :page="page.page" :pages="page.pages" :baseUrl="baseUrl" />
+                </twig:block>
+            </twig:Ui:DataTable>
+        </div>
+    {% endif %}
+{% endblock %}
