@@ -219,7 +219,14 @@
             // Equivalent mutants: a tax document on payment out of the trash always names its payment and its advance,
             // and one with something owed after a refund always has the day of that refund.
             "App\\Invoicing\\Application\\CorrectPaymentTaxDocument::due::62",
-            "App\\Invoicing\\Application\\CorrectPaymentTaxDocument::due::76"
+            "App\\Invoicing\\Application\\CorrectPaymentTaxDocument::due::76",
+            // Equivalent mutants: an hourly or invoiced rate is stored from one Money, so its amount and its currency
+            // are always both set or both empty.
+            "App\\Identity\\Domain\\Membership::hourlyRate",
+            "App\\Party\\Domain\\InvoicingDefaults::hourlyRate",
+            "App\\Party\\Domain\\PartyFirmSettings::invoicingDefaults::136",
+            "App\\Work\\Domain\\Project::hourlyRate",
+            "App\\Work\\Domain\\TimeEntry::invoicedRate"
         ]},
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
         // string fails the check of its column below.
