@@ -1,0 +1,5 @@
+# The OpenAPI document of the REST API; public, it holds no data (config/packages/security.yaml).
+api_v1_openapi:
+    path: /api/v1/openapi.json
+    methods: [GET]
+    defaults: { _controller: nelmio_api_doc.controller.swagger }

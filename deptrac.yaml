@@ -349,6 +349,7 @@ deptrac:
       - TenancyDomain
       - PartyApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -459,6 +460,7 @@ deptrac:
       - IdentityDomain
       - IdentityApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -523,6 +525,7 @@ deptrac:
       - InvoicingDomain
       - InvoicingApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping

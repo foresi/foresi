@@ -45,6 +45,7 @@
         "symfony/runtime": "7.4.*",
         "symfony/scheduler": "7.4.*",
         "symfony/security-bundle": "7.4.*",
+        "symfony/serializer": "7.4.*",
         "symfony/stimulus-bundle": "^3.6",
         "symfony/translation": "7.4.*",
         "symfony/twig-bundle": "7.4.*",

@@ -17,20 +17,20 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * What the query services of the address book refuse, as the screens answer
- * it: forbidden for one who may not read it, not found for a contact the
- * organisation does not have. Only on the contact routes, so the controller
- * carries no check of its own.
+ * What the query services of the address book refuse, as the screens and the
+ * API answer it: forbidden for one who may not read it, not found for a contact
+ * the organisation does not have. Only on the contact routes of the screens and
+ * the API, so the controllers carry no check of their own.
  */
 final readonly class PartyErrors
 {
-    public const string ROUTE_PREFIX = 'app_contact';
+    public const array ROUTE_PREFIXES = ['app_contact', 'api_v1_contact'];
 
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
     public function onException(ExceptionEvent $event): void
     {
         $route = $event->getRequest()->attributes->get('_route');
-        if (!\is_string($route) || !str_starts_with($route, self::ROUTE_PREFIX)) {
+        if (!\is_string($route) || !array_any(self::ROUTE_PREFIXES, static fn (string $prefix): bool => str_starts_with($route, $prefix))) {
             return;
         }
         $error = $event->getThrowable();

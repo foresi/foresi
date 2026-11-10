@@ -22,7 +22,7 @@ final class PartyErrorsTest extends TestCase
 {
     public function testNotAllowedIsForbiddenAndUnknownIsNotFoundOnTheContactRoutes(): void
     {
-        foreach (['app_contacts', 'app_contact_show', 'app_contact_archive'] as $route) {
+        foreach (['app_contacts', 'app_contact_show', 'app_contact_archive', 'api_v1_contacts', 'api_v1_contact'] as $route) {
             $notAllowed = new PartyNotAllowed();
             $event = $this->event($route, $notAllowed);
             new PartyErrors()->onException($event);
@@ -41,7 +41,7 @@ final class PartyErrorsTest extends TestCase
     public function testOtherRoutesAndOtherErrorsAreLeftAlone(): void
     {
         $error = new PartyNotAllowed();
-        foreach (['app_invoices', 'app_dashboard', null] as $route) {
+        foreach (['app_invoices', 'app_dashboard', 'api_v1_invoices', 'api_v1_me', null] as $route) {
             $event = $this->event($route, $error);
             new PartyErrors()->onException($event);
             self::assertSame($error, $event->getThrowable());
