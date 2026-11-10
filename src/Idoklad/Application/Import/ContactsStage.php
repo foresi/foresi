@@ -295,7 +295,7 @@ final readonly class ContactsStage implements ImportStage
         $party = $this->parties->find($partyId) ?? throw new \LogicException('The created contact is stored.');
         $defaults = $this->settings->defaultsFor($party, $context->firm);
         if ($defaults->sendReminders !== $sendReminders) {
-            $this->settings->changeDefaults($party, $context->firm, new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders));
+            $this->settings->changeDefaults($party, $context->firm, new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders, $defaults->hourlyRate()));
         }
     }
 

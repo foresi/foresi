@@ -81,6 +81,23 @@ final readonly class NewInvoiceDefaults
     }
 
     /**
+     * A new invoice of the work another module bills: its lines with the tax a new
+     * line of the firm has, in the currency of the work, for the customer the module
+     * names when it is one to pick.
+     *
+     * @throws UnsupportedCountry for a firm whose country has no invoicing rules
+     */
+    public function forBilledWork(LegalEntity $firm, BilledWorkDraft $work, ?CustomerOption $customer): InvoiceDraftValues
+    {
+        $draft = $this->for($firm);
+        $new = $draft->lines[0];
+        $lines = array_map(static fn (BilledLine $line): LineInput => new LineInput($line->text, $line->quantity, $line->unit, $line->price, $new->priceType, $new->treatment, $new->rateKind, $new->supplyCode, $new->discount, source: $line->source), $work->lines);
+        $draft = $draft->with(['lines' => $lines, 'currency' => $work->currency, 'billedWork' => $work->reference]);
+
+        return $customer instanceof CustomerOption ? $this->withCustomer($draft, $customer) : $draft;
+    }
+
+    /**
      * The firm a new invoice opens in: where the user issued last, else the first active one.
      */
     public function firmFor(?string $userId): ?LegalEntity
@@ -119,7 +136,7 @@ final readonly class NewInvoiceDefaults
 
     private static function line(LineInput $line, TaxTreatment $treatment, ?VatRateKind $kind): LineInput
     {
-        return new LineInput($line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $treatment, $kind, null, $line->discount);
+        return new LineInput($line->text, $line->quantity, $line->unit, $line->price, $line->priceType, $treatment, $kind, null, $line->discount, source: $line->source);
     }
 
     private function emptyLine(VatRegime $regime, Currency $currency): LineInput

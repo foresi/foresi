@@ -71,6 +71,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Work/Domain'
                 prefix: 'App\Work\Domain'
                 alias: Work
+            Timesheet:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Timesheet/Domain'
+                prefix: 'App\Timesheet\Domain'
+                alias: Timesheet
             Attachment:
                 type: attribute
                 is_bundle: false

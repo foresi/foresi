@@ -32,7 +32,7 @@ Following the link:
 
 The owner sees, for each person, their role, the linked contact, whether two-factor sign-in is on and whether they are active, and can:
 
-- **Edit**: change the role and the linked contact. A guest needs a contact; clearing the contact unlinks it.
+- **Edit**: change the role, the linked contact and the hourly rate. A guest needs a contact; clearing the contact unlinks it. The rate, an amount and its currency, is what the person's time is billed at when neither the project nor its client has one; only owners see it (see [projects](projects.md)).
 - **Deactivate**: the person can no longer sign in to this organisation. The membership and everything they did stay, and **Reactivate** lets them in again. Nobody deactivates themselves.
 - **Reset two-factor sign-in**: the person sets it up again on the next sign-in and trusted browsers are forgotten. This is offered only for someone who belongs to this organisation alone; for anyone else the operator runs `bin/console app:user:reset-2fa <email>`, so the owner of one organisation never weakens the sign-in to another.
 

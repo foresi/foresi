@@ -22,6 +22,7 @@
     {% if project.manageable %}<twig:Ui:Button icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:Button>{% endif %}
     {{ share }}
     {% if timeLoggable %}<twig:Ui:Button icon="clock-3" :href="path('app_project_time_new', {id: project.id})" data-dialog aria-haspopup="dialog" data-project-time-new>{{ 'work.time.log'|trans }}</twig:Ui:Button>{% endif %}
+    {% if timeInvoiceable %}<twig:Ui:Button icon="receipt-text" :href="path('app_time_invoice', {project: project.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'work.time.invoice_time'|trans }}</twig:Ui:Button>{% endif %}
     {% if not project.archivedAt and project.taskable %}{{ newTask }}{% endif %}
 {% endblock %}
 

@@ -13,6 +13,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
+    {% if invoiceTime %}<twig:Ui:Button icon="receipt-text" :href="invoiceTime" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'work.time.invoice_time'|trans }}</twig:Ui:Button>{% endif %}
     {% if not empty %}
         <form method="post" action="{{ path('app_time_report_export') }}" data-turbo="false" data-time-report-export>
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TimeReportController::TOKEN')) }}">

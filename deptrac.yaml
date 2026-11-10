@@ -161,6 +161,20 @@ deptrac:
       collectors:
         - type: directory
           value: src/Work/Infrastructure/.*
+    # Rates of time and, later, the invoicing of time. The layers exist before all
+    # their code does: a directory collector matching nothing is no error.
+    - name: TimesheetDomain
+      collectors:
+        - type: directory
+          value: src/Timesheet/Domain/.*
+    - name: TimesheetApplication
+      collectors:
+        - type: directory
+          value: src/Timesheet/Application/.*
+    - name: TimesheetInfrastructure
+      collectors:
+        - type: directory
+          value: src/Timesheet/Infrastructure/.*
     # Files kept for records of any module; the owning module decides who reaches them.
     - name: AttachmentDomain
       collectors:
@@ -618,6 +632,58 @@ deptrac:
       # Who reaches the files of a task.
       - AttachmentDomain
       - AttachmentApplication
+    # Timesheet builds on Work (projects and time), Party (clients and firms),
+    # Identity (people) and Invoicing; none of them uses Timesheet, which reads
+    # them through their application ports, as Banking reads Party.
+    TimesheetDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - WorkDomain
+      - PartyDomain
+      - IdentityDomain
+      - InvoicingDomain
+    TimesheetApplication:
+      - TimesheetDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - WorkDomain
+      - WorkApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - InvoicingDomain
+      - InvoicingApplication
+    TimesheetInfrastructure:
+      - SharedInfrastructure
+      - TimesheetDomain
+      - TimesheetApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - WorkDomain
+      - WorkApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - InvoicingDomain
+      - InvoicingApplication
+      - Ui
     # Attachments build on Tenancy and Audit only; modules plug into them with
     # AttachmentAccess (Work -> Attachment), never the other way round.
     AttachmentDomain:

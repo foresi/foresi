@@ -213,6 +213,7 @@ final readonly class ImportPartyValues
             $method ?? ($clear && $row->blank('payment_method') ? $standard->paymentMethod : $base->paymentMethod),
             $base->reverseCharge,
             $base->sendReminders,
+            $base->hourlyRate(),
         );
     }
 

@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The owner changes the role of a person and the contact they represent; a guest needs one. #}
+{# The owner changes the role of a person, the contact they represent (a guest needs one) and their hourly rate. #}
 {% extends 'layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'people.title'|trans, href: path('app_people')}, {label: person.displayName}] %}
@@ -16,6 +16,8 @@
                 <twig:Ui:TextInput id="email" :label="'people.field.email'|trans" :value="person.email" readonly />
                 <twig:Ui:Select name="role" id="role" :label="'people.field.role'|trans" :help="'people.field.role_help'|trans" :options="roles" :value="values.role" :error="errors.role|default(null)" />
                 <div class="sm:col-span-2"><twig:Ui:Combobox name="contactId" id="contact" textName="contactQuery" width="long" :label="'people.field.contact'|trans" :help="'people.field.contact_edit_help'|trans" :placeholder="'people.field.contact_placeholder'|trans" :value="values.contactId" :text="values.contactQuery" :url="path('app_people_contacts')" :emptyText="'people.field.contact_empty'|trans" :error="errors.contact|default(null)" /></div>
+                <twig:Ui:TextInput name="rate" id="rate" inputmode="decimal" maxlength="20" :label="'people.field.rate'|trans" :help="'people.field.rate_help'|trans" :value="values.rate" :error="errors.rate|default(null)" autocomplete="off" />
+                <twig:Ui:Select name="rateCurrency" id="rate-currency" :label="'people.field.rate_currency'|trans" :options="currencies" :value="values.rateCurrency" />
             </div>
         </twig:Ui:Card>
 

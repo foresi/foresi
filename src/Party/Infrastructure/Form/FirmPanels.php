@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
+use App\Identity\Application\OwnerCheck;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\InvoicingDefaults;
@@ -15,12 +16,14 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyRole;
+use App\Shared\Infrastructure\Http\TypedAmount;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * What the template needs for the panels of the contact form that have a firm
  * scope: every firm's values are in the page, so switching takes no request. A
- * firm without its own values holds the shared ones, read only.
+ * firm without its own values holds the shared ones, read only. The hourly rate
+ * is in the values of an owner only.
  *
  * @phpstan-import-type Values from FirmSettingsSubmission
  *
@@ -29,7 +32,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class FirmPanels
 {
-    public function __construct(private ContactSettingsForFirm $settings, private TranslatorInterface $translator)
+    public function __construct(private ContactSettingsForFirm $settings, private TranslatorInterface $translator, private OwnerCheck $owner)
     {
     }
 
@@ -161,7 +164,10 @@ final readonly class FirmPanels
             'paymentMethod' => $defaults->paymentMethod->value,
             'reverseCharge' => $defaults->reverseCharge ? '1' : '',
             'sendReminders' => $defaults->sendReminders ? '1' : '',
-        ];
+        ] + ($this->owner->isOwner() ? [
+            'hourlyRate' => TypedAmount::field($defaults->hourlyRate(), $this->translator->getLocale()),
+            'hourlyRateCurrency' => ($defaults->hourlyRate()?->currency() ?? $defaults->currency)->value,
+        ] : []);
     }
 
     /**
@@ -185,7 +191,7 @@ final readonly class FirmPanels
     private function errors(string $scope, string $panel, ?FirmSettingsSubmission $submission): array
     {
         $fields = match ($panel) {
-            'invoicing' => ['dueDays', 'currency', 'language', 'paymentMethod'],
+            'invoicing' => ['dueDays', 'currency', 'language', 'paymentMethod', 'hourlyRate'],
             'emails' => ['invoiceEmails', 'copyEmails'],
             default => [],
         };

@@ -613,6 +613,7 @@ final class TaskController extends AbstractController
                 'billable' => $entry->billable,
                 'running' => $entry->running,
                 'invoiced' => $entry->invoiced,
+                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber ? null : ['number' => $entry->invoiceNumber, 'href' => $this->generateUrl(TimeController::INVOICE_ROUTE, ['id' => $entry->invoiceId])],
                 'editable' => $entry->editable && !$entry->running,
                 'deletable' => $entry->editable,
             ], $time->entries),

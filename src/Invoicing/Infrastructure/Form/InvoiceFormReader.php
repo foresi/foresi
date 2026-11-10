@@ -43,7 +43,7 @@ final readonly class InvoiceFormReader
 {
     public const int MAX_TEXT = 2000;
 
-    /** With eight fields a line this stays well under the 1000 of PHP's max_input_vars. */
+    /** With nine fields a line this stays under the 1000 of PHP's max_input_vars; the sources of the lines are one field of their own. */
     public const int MAX_LINES = Invoice::MAX_LINES;
 
     /** A valid id of nothing: the rules answer it as unknown on either database. */
@@ -137,6 +137,7 @@ final readonly class InvoiceFormReader
             $kind,
             TaxOnReceiptChoice::tryFrom($values['taxOnReceipt']),
             $correction,
+            '' === $values['billedWork'] ? null : $values['billedWork'],
         );
         $version = $this->text($post, 'version');
 
@@ -200,7 +201,7 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, billedWork: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
@@ -213,6 +214,7 @@ final readonly class InvoiceFormReader
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),
             'textBefore' => $field('textBefore'), 'textAfter' => $field('textAfter'), 'language' => $field('language'),
             'correctedInvoiceId' => $field('correctedInvoiceId'), 'correctionReason' => $field('correctionReason'), 'correctionType' => $field('correctionType'), 'decisiveDate' => $field('decisiveDate'),
+            'billedWork' => $field('billedWork'),
             'customer' => $customer, 'lines' => $rows,
         ];
     }
@@ -236,8 +238,39 @@ final readonly class InvoiceFormReader
                 $rows[] = $row;
             }
         }
+        foreach ($this->sources($post, \count($rows)) as $index => $source) {
+            $rows[$index]['source'] = $source;
+        }
 
         return $rows;
+    }
+
+    /**
+     * Where each row came from, a line of time or a stored line, comes in one field
+     * in the order of the rows, so it costs a line no field of max_input_vars.
+     * Sources that do not go row for row are none: the rows are read without them.
+     *
+     * @param array<string, mixed> $post
+     *
+     * @return list<string>
+     */
+    private function sources(array $post, int $rows): array
+    {
+        $sent = $post['lineSources'] ?? '';
+        $sources = \is_string($sent) ? json_decode($sent, true) : null;
+        $none = array_fill(0, $rows, '');
+        if (!\is_array($sources) || !array_is_list($sources) || \count($sources) !== $rows) {
+            return $none;
+        }
+        $read = [];
+        foreach ($sources as $source) {
+            if (!\is_string($source)) {
+                return $none;
+            }
+            $read[] = trim($source);
+        }
+
+        return $read;
     }
 
     /**
@@ -283,6 +316,7 @@ final readonly class InvoiceFormReader
                 '' === $row['supplyCode'] ? null : $row['supplyCode'],
                 $this->discount($row['discount'], $field, $errors),
                 Uuid::isValid($row['deducts']) ? $row['deducts'] : null,
+                '' === $row['source'] ? null : $row['source'],
             );
         }
 

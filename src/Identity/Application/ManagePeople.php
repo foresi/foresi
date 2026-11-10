@@ -13,13 +13,14 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Party\Application\PartyQuery;
 use App\Party\Domain\Party;
+use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * What the owner changes about the people of the organisation: the role and the
- * contact a person represents, whether they may still come in, and their
- * two-factor sign-in. The organisation always keeps an active owner.
+ * contact a person represents, their hourly rate, whether they may still come
+ * in, and their two-factor sign-in. The organisation always keeps an active owner.
  */
 final readonly class ManagePeople
 {
@@ -34,9 +35,11 @@ final readonly class ManagePeople
     }
 
     /**
+     * @param ?Money $hourlyRate what the person's time is billed at when neither its project nor its client has a rate; null for none
+     *
      * @throws PeopleRefused
      */
-    public function change(string $membershipId, Role $role, ?string $contactId): void
+    public function change(string $membershipId, Role $role, ?string $contactId, ?Money $hourlyRate): void
     {
         $membership = $this->membership($membershipId);
         $party = null;
@@ -50,6 +53,7 @@ final readonly class ManagePeople
             $this->keepAnOwner($membership);
         }
         $membership->changeRole($role, $party);
+        $membership->changeHourlyRate($hourlyRate);
         $this->people->flush();
     }
 

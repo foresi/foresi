@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
+use App\Identity\Application\OwnerCheck;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
@@ -87,6 +88,7 @@ final class PartyFormController extends AbstractController
         private readonly FirmPanels $firmPanels,
         private readonly TransactionalWork $transaction,
         private readonly ArchiveParty $archiveParty,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -264,6 +266,8 @@ final class PartyFormController extends AbstractController
             ], $matches),
             'token' => $token,
             'firmPanels' => $this->panels($party, $values, $firmSubmission),
+            // Only an owner sees and sets the hourly rate of a contact.
+            'rates' => $this->owner->isOwner(),
             'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
             'languages' => array_combine(array_map(static fn (DocumentLanguage $language): string => $language->value, DocumentLanguage::cases()), array_map(fn (DocumentLanguage $language): string => $this->translator->trans('locale.'.$language->value), DocumentLanguage::cases())),
             'paymentMethods' => array_combine(array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases()), array_map(fn (PaymentMethod $method): string => $this->translator->trans('party.payment_method.'.$method->value), PaymentMethod::cases())),

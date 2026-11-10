@@ -8,7 +8,11 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
+use App\Shared\Infrastructure\Http\TypedAmount;
 use App\Work\Application\Choice;
 use App\Work\Application\ManageProjects;
 use App\Work\Application\ManageSections;
@@ -31,7 +35,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The settings of a project, for the staff: what it is and for whom, whether
- * its time is billable, its archiving, its sections and its statuses. Each change is a plain form that
+ * its time is billable and, for an owner only, its hourly rate, its archiving,
+ * its sections and its statuses. Each change is a plain form that
  * comes back to the page, where a refusal is told; the removal of a status
  * asks in a dialog where its tasks go.
  */
@@ -48,13 +53,15 @@ final class ProjectSettingsController extends AbstractController
         private readonly ManageWorkflow $workflow,
         private readonly ManageTime $time,
         private readonly StaffCheck $staff,
+        private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
     ) {
     }
 
     /**
      * The page, and the save of its general part: the name, the client, the
-     * description and whether new time on it starts as billable.
+     * description, whether new time on it starts as billable and, for an owner,
+     * its hourly rate. Anyone else's form has no rate, and a rate they post is ignored.
      */
     #[Route('/projects/{id}/settings', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function settings(string $id, Request $request): Response
@@ -64,6 +71,8 @@ final class ProjectSettingsController extends AbstractController
         $project = $settings->project;
         $values = ['name' => $project->name, 'clientId' => $project->clientId ?? '', 'clientQuery' => $project->clientName ?? '', 'description' => $project->description];
         $billable = $project->billable;
+        $owner = $this->owner->isOwner();
+        $rate = ['rate' => TypedAmount::field($project->hourlyRate, $request->getLocale()), 'rateCurrency' => ($project->hourlyRate?->currency() ?? Currency::CZK)->value];
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
@@ -71,13 +80,26 @@ final class ProjectSettingsController extends AbstractController
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
             $billable = '1' === $request->request->getString('billable');
+            $hourlyRate = $project->hourlyRate;
+            if ($owner) {
+                $rate = ['rate' => trim($request->request->getString('rate')), 'rateCurrency' => $request->request->getString('rateCurrency')];
+                $currency = Currency::tryFrom($rate['rateCurrency']);
+                $hourlyRate = $currency instanceof Currency ? TypedAmount::read($rate['rate'], $currency, $request->getLocale()) : false;
+                if (false === $hourlyRate) {
+                    $errors['rate'] = $this->translator->trans('work.project.error.rate');
+                }
+            }
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
-            } else {
+            }
+            if ([] === $errors) {
                 try {
                     $this->projects->edit($id, $values['name'], '' === $values['clientId'] ? null : $values['clientId'], $values['description']);
                     if ($billable !== $project->billable) {
                         $this->time->setProjectBillableDefault($id, $billable);
+                    }
+                    if ($owner && !$this->sameRate($hourlyRate, $project->hourlyRate)) {
+                        $this->time->setProjectHourlyRate($id, $hourlyRate);
                     }
                     $this->addFlash('success', $this->translator->trans('work.settings.saved'));
 
@@ -97,6 +119,9 @@ final class ProjectSettingsController extends AbstractController
             'project' => $project,
             'values' => $values,
             'billable' => $billable,
+            'owner' => $owner,
+            'rate' => $rate,
+            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
             'errors' => $errors,
             'sections' => $settings->sections,
             'privateSections' => $settings->privateSections,
@@ -332,6 +357,11 @@ final class ProjectSettingsController extends AbstractController
     private function back(string $id): RedirectResponse
     {
         return $this->redirectToRoute(self::ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
+    }
+
+    private function sameRate(?Money $one, ?Money $other): bool
+    {
+        return $one instanceof Money && $other instanceof Money ? $one->equals($other) : $one === $other;
     }
 
     private function notFoundIfUnknown(WorkRefused $refused): void

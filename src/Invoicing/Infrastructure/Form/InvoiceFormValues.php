@@ -81,7 +81,25 @@ final readonly class InvoiceFormValues
             'correctionReason' => '',
             'correctionType' => CorrectionType::Change->value,
             'decisiveDate' => $draft->taxPointDate->format('Y-m-d'),
+            'billedWork' => $draft->billedWork ?? '',
         ];
+    }
+
+    /**
+     * A new invoice of work another module bills, with the customer it names as
+     * the picker shows it.
+     *
+     * @return array<string, mixed>
+     */
+    public function ofBilledWork(InvoiceDraftValues $draft, LegalEntity $firm): array
+    {
+        $values = $this->ofDraft($draft);
+        $party = null === $draft->customerId ? null : $this->parties->find($draft->customerId);
+        if ($party instanceof Party) {
+            $values = $this->withCustomerShown($values, $this->picker->option($party, $firm));
+        }
+
+        return $this->withoutHiddenCodes($values, $firm->address()->countryCode);
     }
 
     /**
@@ -137,6 +155,7 @@ final readonly class InvoiceFormValues
             'correctionReason' => $invoice->correctionReason() ?? '',
             'correctionType' => $invoice->correctionType()->value ?? CorrectionType::Change->value,
             'decisiveDate' => $invoice->decisiveDate()?->format('Y-m-d') ?? '',
+            'billedWork' => '',
         ];
     }
 
@@ -145,7 +164,7 @@ final readonly class InvoiceFormValues
      */
     public function emptyLine(VatRegime $regime, bool $reverseCharge): array
     {
-        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => $this->newLineVat($regime, $reverseCharge), 'supplyCode' => '', 'discount' => '', 'deducts' => ''];
+        return ['text' => '', 'price' => '', 'quantity' => '1', 'unit' => '', 'priceType' => PriceType::WithoutVat->value, 'vat' => $this->newLineVat($regime, $reverseCharge), 'supplyCode' => '', 'discount' => '', 'deducts' => '', 'source' => ''];
     }
 
     /**
@@ -400,6 +419,7 @@ final readonly class InvoiceFormValues
             'supplyCode' => $line->supplyCode ?? '',
             'discount' => 0 === $line->discount->basisPoints() ? '' : $this->amounts->trimmed($line->discount->decimal()),
             'deducts' => $line->deducts ?? '',
+            'source' => $line->source ?? '',
         ];
     }
 
@@ -418,6 +438,8 @@ final readonly class InvoiceFormValues
             'supplyCode' => $line->supplyCode() ?? '',
             'discount' => 0 === $line->discount()->basisPoints() ? '' : $this->amounts->trimmed($line->discount()->decimal()),
             'deducts' => $line->deducts() ?? '',
+            // The row keeps the line it was loaded from, so the work it billed follows it when it moves.
+            'source' => $line->id(),
         ];
     }
 

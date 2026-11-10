@@ -33,7 +33,9 @@ declare(strict_types=1);
  * the notifications spec Jana Example mentions the owner on "Set up the domain" and gives them
  * "Book the launch venue" of "Launch" (done, so My tasks stays as it is); the guest hears of the
  * task shared with them. For the time spec the owner and Jana Example have time on "Website" this
- * week and the week before, and "Design the homepage" an estimate. Run it after the migrations, in the e2e
+ * week and the week before, and "Design the homepage" an estimate; for the time invoicing spec the
+ * tenant has the firm "Example Agency s.r.o.", "Website" an hourly rate and billable time of last
+ * month that is not invoiced yet. Run it after the migrations, in the e2e
  * environment:
  *
  *     APP_ENV=e2e php tests/e2e/seed.php
@@ -919,6 +921,22 @@ $manageTime->log($website->id(), $contact->id(), $lastMonday->modify('+2 days'),
 $manageTime->log($website->id(), $homepage->id(), $lastMonday->modify('+3 days'), 60, note: 'Internal review of the sketches', billable: false);
 $manageTime->log($website->id(), null, $lastMonday->modify('+4 days'), 30, note: 'Call with the client');
 $manageTime->log($website->id(), $homepage->id(), $thisMonday, 90, note: 'Second round of the hero');
+// For the time invoicing spec: the firm that bills the client, the hourly rate of "Website" and
+// billable time of last month not invoiced yet, the period the dialog opens with. Early in last
+// month, so it never falls in the two weeks the time spec reads, and on tasks whose time no other
+// spec counts: the owner's on "Set up the domain" and on the project, Jana's on the palette.
+$agency = $firmAccount(new LegalEntity('Example Agency s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address(2), VatStatus::Registered, 'Example register, entry C 4321'));
+$entityManager->persist($agency);
+$agencySeries = new Series($agency, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+$agencySeries->markDefault();
+$entityManager->persist($agencySeries);
+$entityManager->flush();
+$manageTime->setProjectHourlyRate($website->id(), Money::of('1200.00', Currency::CZK));
+$lastMonth = $today->modify('first day of last month');
+$manageTime->log($website->id(), $domain->id(), $lastMonth->modify('+1 day'), 90, note: 'DNS records and the certificate');
+$manageTime->log($website->id(), null, $lastMonth->modify('+2 days'), 30, note: 'Kick-off call with the client');
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
+$manageTime->log($website->id(), $palette->id(), $lastMonth->modify('+3 days'), 60, note: 'Mood board for the palette');
 $tokenStorage->setToken(null);
 $context->reset();
 

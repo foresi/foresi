@@ -104,6 +104,8 @@
             <input type="hidden" name="version" value="{{ version }}">
             <input type="hidden" name="invoiceId" value="{{ editing ? invoice.id : '' }}">
             <input type="hidden" name="copyOf" value="{{ copyOf }}">
+            {# The work another module bills; each line it filled keeps its source, however it is edited. #}
+            <input type="hidden" name="billedWork" value="{{ values.billedWork|default('') }}">
             <input type="hidden" name="firmShown" value="{{ values.firmShown }}">
             <input type="hidden" name="kind" value="{{ kind }}">
             <input type="hidden" name="dueDateSet" value="{{ values.dueDateSet }}" data-invoice-form-target="dueDateSet">

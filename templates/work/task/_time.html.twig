@@ -3,8 +3,10 @@
     The time logged on the task, for the people of the organisation: the total against the estimate
     (Teamwork), then each entry, newest day first, with its day, person, duration, note and whether it
     is billable. Time is logged in a dialog; its author or an owner edits an entry in the same dialog
-    and deletes it from its line, until it is invoiced. A running timer shows as running.
+    and deletes it from its line, until it is invoiced; an invoiced entry names its invoice instead.
+    A running timer shows as running.
 #}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 <section class="grid gap-2" aria-labelledby="task-time-title" data-task-time>
     <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 id="task-time-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.time.title'|trans }} <span class="num font-normal text-muted" data-task-time-total>{{ time.total }}</span></h2>
@@ -26,11 +28,14 @@
                             <span class="min-w-0 text-text" data-time-person>{{ entry.person }}</span>
                             <time datetime="{{ entry.datetime }}" class="text-muted">{{ entry.date }}</time>
                             {% if entry.billable %}<twig:Ui:Badge tone="green" data-time-billable>{{ 'work.time.billable'|trans }}</twig:Ui:Badge>{% endif %}
-                            {% if entry.invoiced %}<twig:Ui:Badge tone="gray" data-time-invoiced>{{ 'work.time.invoiced'|trans }}</twig:Ui:Badge>{% endif %}
+                            {% if entry.invoiced and not entry.invoice %}<twig:Ui:Badge tone="gray" data-time-invoiced>{{ 'work.time.invoiced'|trans }}</twig:Ui:Badge>{% endif %}
                         </div>
                         {% if entry.note is not empty %}<p class="m-0 text-small text-text [overflow-wrap:anywhere]" data-time-note>{{ entry.note }}</p>{% endif %}
                     </div>
-                    {% if entry.editable or entry.deletable %}
+                    {% if entry.invoice %}
+                        {# Invoiced time is locked: the invoice that billed it stands where its actions were. #}
+                        <a href="{{ entry.invoice.href }}" class="inline-flex min-h-6 shrink-0 items-center text-small font-medium text-ink no-underline hover:underline {{ focus }}" data-time-invoice>{{ 'work.time.invoiced_by'|trans({number: entry.invoice.number}) }}</a>
+                    {% elseif entry.editable or entry.deletable %}
                         <div class="flex shrink-0 items-center gap-1">
                             {% if entry.editable %}<twig:Ui:IconButton icon="pencil" size="sm" variant="ghost" :label="'work.time.edit_label'|trans({date: entry.date})" :href="path('app_time_edit', {id: entry.id})" data-dialog aria-haspopup="dialog" data-time-edit />{% endif %}
                             <form method="post" action="{{ path('app_time_delete', {id: entry.id}) }}"

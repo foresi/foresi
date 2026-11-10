@@ -253,6 +253,15 @@ services:
     # A cancelled bank payment returns its movement to the unmatched ones.
     App\Invoicing\Application\PaymentSourceRelease:
         alias: App\Banking\Infrastructure\ReleaseMovement
+    # Time is the work an invoice may bill; issuing it locks the time.
+    App\Invoicing\Application\BilledWork:
+        alias: App\Timesheet\Application\TimeBilledWork
+    # An invoice in the trash frees its time, and restoring it bills the time again.
+    App\Invoicing\Application\BilledWorkRelease:
+        alias: App\Timesheet\Application\ReleaseTime
+    # A line of invoiced time names its invoice.
+    App\Work\Application\InvoiceNumbers:
+        alias: App\Timesheet\Infrastructure\Doctrine\DoctrineInvoiceNumbers
 
     # Links to sent documents are derived from the application secret, never stored.
     App\Invoicing\Application\LinkTokens:

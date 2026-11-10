@@ -601,6 +601,8 @@ final readonly class PartyImportTarget implements ImportTarget
             PaymentMethod::tryFrom($text('paymentMethod')) ?? $standard->paymentMethod,
             true === ($fields['reverseCharge'] ?? null),
             false !== ($fields['sendReminders'] ?? null),
+            // An import never sets the hourly rate, so the undo leaves it as it is.
+            $party->invoicingDefaults()->hourlyRate(),
         ));
 
         $billing = $data['billing'] ?? null;

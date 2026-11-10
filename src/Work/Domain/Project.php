@@ -10,7 +10,9 @@ namespace App\Work\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Party\Domain\Party;
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -27,6 +29,9 @@ use Doctrine\ORM\Mapping as ORM;
  * client and not when it is internal (Kimai, Toggl); the default is set when
  * the project is created, not when its client changes, and each entry may
  * differ from it.
+ *
+ * An hour on the project may be billed at a rate of its own, which comes
+ * before the rate of its client and of the person who worked.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project')]
@@ -57,6 +62,12 @@ class Project implements TenantOwned, Audited
 
     #[ORM\Column(name: 'billable_by_default', type: 'boolean', options: ['default' => false])]
     private bool $billableByDefault;
+
+    #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
+    private ?int $hourlyRateMinor = null;
+
+    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    private ?Currency $hourlyRateCurrency = null;
 
     public function __construct(
         string $name,
@@ -132,6 +143,26 @@ class Project implements TenantOwned, Audited
     public function billsTimeByDefault(): bool
     {
         return $this->billableByDefault;
+    }
+
+    /**
+     * Null for none: the client's or the person's rate applies then. Zero is a
+     * rate, for work that is not charged.
+     *
+     * @throws \DomainException for a negative rate
+     */
+    public function changeHourlyRate(?Money $rate): void
+    {
+        if (true === $rate?->isNegative()) {
+            throw new \DomainException('An hourly rate is not negative.');
+        }
+        $this->hourlyRateMinor = $rate?->minor();
+        $this->hourlyRateCurrency = $rate?->currency();
+    }
+
+    public function hourlyRate(): ?Money
+    {
+        return null === $this->hourlyRateMinor || !$this->hourlyRateCurrency instanceof Currency ? null : Money::ofMinor($this->hourlyRateMinor, $this->hourlyRateCurrency);
     }
 
     public function isArchived(): bool

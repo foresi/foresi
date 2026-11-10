@@ -20,7 +20,8 @@ use Psr\Clock\ClockInterface;
  * ends every link of the invoice, in the same transaction; restoring brings no
  * link back, and sending again makes a new one. A document with payments is not a
  * mistake to bin: they are removed first. A tax document of a cancelled payment
- * stays in the trash.
+ * stays in the trash. The work an invoice billed, such as time, is free while it
+ * is in the trash and billed again on restore.
  */
 final readonly class TrashInvoice
 {
@@ -33,6 +34,7 @@ final readonly class TrashInvoice
         private AuditActor $actor,
         private ClockInterface $clock,
         private AdvanceDeductions $deductions,
+        private BilledWorkRelease $billed,
     ) {
     }
 
@@ -54,6 +56,7 @@ final readonly class TrashInvoice
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             $invoice->trash($now, $this->actor->userId(), $reason);
             $this->deductions->release($invoice);
+            $this->billed->released($invoice);
             $this->sends->cancelQueued($invoice, $now);
             $this->sends->revokeAll($invoice, $now);
 
@@ -65,7 +68,7 @@ final readonly class TrashInvoice
      * @return Invoice the invoice as saved; anything loaded before is detached
      *
      * @throws PaymentRefused with CANCELLED for a tax document whose payment is cancelled, or that was replaced
-     * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile
+     * @throws IssueRefused   with invoice.problem.already_deducted when another invoice deducts what it deducted meanwhile, or when the work it billed was billed elsewhere, changed or deleted
      * @throws UnknownInvoice also for an invoice of another tenant
      */
     public function restore(string $id): Invoice
@@ -82,6 +85,7 @@ final readonly class TrashInvoice
             $invoice->restore();
             if ($wasTrashed) {
                 $this->reclaim($invoice);
+                $this->billed->reclaim($invoice);
             }
 
             return $invoice;

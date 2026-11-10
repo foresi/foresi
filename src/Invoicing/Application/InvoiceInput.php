@@ -37,6 +37,8 @@ final readonly class InvoiceInput
      * @param DocumentKind         $kind                        what a new document is; its series must be of this
      *                                                          kind, and without one it takes the default of it
      * @param CorrectionInput|null $correction                  what a corrective tax document corrects; other kinds have none
+     * @param string|null          $billedWork                  the work of another module a new invoice bills, as BilledWork
+     *                                                          refers to it; its lines name their part of it by their source
      */
     public function __construct(
         public string $firmId,
@@ -61,6 +63,7 @@ final readonly class InvoiceInput
         public DocumentKind $kind = DocumentKind::Invoice,
         public ?TaxOnReceiptChoice $taxOnReceipt = null,
         public ?CorrectionInput $correction = null,
+        public ?string $billedWork = null,
     ) {
         $this->lines = array_values($lines);
     }

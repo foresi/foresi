@@ -12,6 +12,7 @@ use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -66,6 +67,13 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
     /** Null on rows from before the flag, which read as on. */
     #[ORM\Column(name: 'invoicing_send_reminders', type: 'boolean', nullable: true)]
     private ?bool $invoicingSendReminders = null;
+
+    /** Part of the firm's own defaults: null with them set is no rate for this firm. */
+    #[ORM\Column(name: 'invoicing_hourly_rate_minor', type: 'bigint', nullable: true)]
+    private ?int $invoicingHourlyRateMinor = null;
+
+    #[ORM\Column(name: 'invoicing_hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    private ?Currency $invoicingHourlyRateCurrency = null;
 
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
@@ -125,7 +133,9 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
             return null;
         }
 
-        return new InvoicingDefaults($this->invoicingDueDays, $this->invoicingCurrency, $this->invoicingLanguage, $this->invoicingPaymentMethod, $this->invoicingReverseCharge, $this->invoicingSendReminders ?? true);
+        $rate = null === $this->invoicingHourlyRateMinor || !$this->invoicingHourlyRateCurrency instanceof Currency ? null : Money::ofMinor($this->invoicingHourlyRateMinor, $this->invoicingHourlyRateCurrency);
+
+        return new InvoicingDefaults($this->invoicingDueDays, $this->invoicingCurrency, $this->invoicingLanguage, $this->invoicingPaymentMethod, $this->invoicingReverseCharge, $this->invoicingSendReminders ?? true, $rate);
     }
 
     public function changeInvoicingDefaults(?InvoicingDefaults $defaults): void
@@ -136,6 +146,8 @@ class PartyFirmSettings implements TenantOwned, Audited, AuditRooted
         $this->invoicingPaymentMethod = $defaults?->paymentMethod;
         $this->invoicingReverseCharge = $defaults?->reverseCharge;
         $this->invoicingSendReminders = $defaults?->sendReminders;
+        $this->invoicingHourlyRateMinor = $defaults?->hourlyRate()?->minor();
+        $this->invoicingHourlyRateCurrency = $defaults?->hourlyRate()?->currency();
     }
 
     public function archivedAt(): ?\DateTimeImmutable

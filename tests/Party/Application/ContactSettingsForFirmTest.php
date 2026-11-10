@@ -32,6 +32,7 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -622,6 +623,65 @@ final class ContactSettingsForFirmTest extends WebTestCase
         self::assertEquals(false, $shared(), 'The shared flag stays off.');
         self::assertEquals(false, $own(), "The firm's own flag stays off.");
         self::assertEquals(21, $connection->fetchOne('SELECT invoicing_due_days FROM party WHERE id = ?', [$party->id()]));
+    }
+
+    public function testAnOwnerSetsTheHourlyRateForAllFirmsOrForOne(): void
+    {
+        $party = $this->party();
+        $first = $this->firm('Example Firm', '12345695');
+        $second = $this->firm('Other Firm', '12345687');
+        $this->browser->signIn();
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertSame('', $crawler->filter('input[name="firms[shared][hourlyRate]"]')->attr('value'));
+        // A blank rate offers the contact's invoicing currency.
+        self::assertSame('CZK', $crawler->filter('select[name="firms[shared][hourlyRateCurrency]"] option[selected]')->attr('value'));
+        $defaults = ['dueDays' => '14', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer'];
+
+        $this->post($party, ['shared' => $defaults + ['hourlyRate' => 'many', 'hourlyRateCurrency' => 'CZK']]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('main', 'Enter a rate, such as 1500 or 1500.50.');
+
+        $this->post($party, [
+            'shared' => $defaults + ['hourlyRate' => '1200', 'hourlyRateCurrency' => 'CZK'],
+            $first->id() => ['own' => ['invoicing' => '1'], 'hourlyRate' => '50.5', 'hourlyRateCurrency' => 'EUR'] + $defaults,
+        ]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $this->reload();
+        $stored = $this->em()->find(Party::class, $party->id()) ?? self::fail();
+        self::assertEquals(Money::of('1200', Currency::CZK), $stored->invoicingDefaults()->hourlyRate());
+        self::assertEquals(Money::of('50.50', Currency::EUR), $this->settings()->defaultsFor($stored, $this->firms()->get($first->id()))->hourlyRate());
+        self::assertEquals(Money::of('1200', Currency::CZK), $this->settings()->defaultsFor($stored, $this->firms()->get($second->id()))->hourlyRate());
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertSame('50.50', $crawler->filter(\sprintf('input[name="firms[%s][hourlyRate]"]', $first->id()))->attr('value'));
+
+        // A panel without the field keeps the rate; an empty field takes it away.
+        $this->post($stored, ['shared' => ['dueDays' => '21'] + $defaults, $first->id() => ['own' => ['invoicing' => '1'], 'dueDays' => '30'] + $defaults]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        $connection = $this->em()->getConnection();
+        self::assertEquals([120000, 'CZK'], $connection->fetchNumeric('SELECT invoicing_hourly_rate_minor, invoicing_hourly_rate_currency FROM party WHERE id = ?', [$party->id()]));
+        self::assertEquals([5050, 'EUR'], $connection->fetchNumeric('SELECT invoicing_hourly_rate_minor, invoicing_hourly_rate_currency FROM party_firm_settings WHERE legal_entity_id = ?', [$first->id()]));
+        $this->post($stored, [$first->id() => ['own' => ['invoicing' => '1'], 'hourlyRate' => '', 'hourlyRateCurrency' => 'EUR'] + $defaults]);
+        self::assertEquals([null, null], $connection->fetchNumeric('SELECT invoicing_hourly_rate_minor, invoicing_hourly_rate_currency FROM party_firm_settings WHERE legal_entity_id = ?', [$first->id()]));
+    }
+
+    public function testATeamMemberNeitherSeesNorChangesTheHourlyRate(): void
+    {
+        $party = $this->party();
+        $this->firm('Example Firm', '12345695');
+        $this->firm('Other Firm', '12345687');
+        $rate = Money::of('1200', Currency::CZK);
+        $this->transaction()->run(static fn () => $party->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, $rate)));
+        $this->em()->getConnection()->executeStatement("UPDATE membership SET role = 'member'");
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('input[name$="[hourlyRate]"], select[name$="[hourlyRateCurrency]"]'));
+        self::assertStringNotContainsString('1200.00', (string) $this->client->getResponse()->getContent());
+
+        $this->post($party, ['shared' => ['dueDays' => '21', 'currency' => 'CZK', 'language' => 'cs', 'paymentMethod' => 'bank_transfer', 'hourlyRate' => '1', 'hourlyRateCurrency' => 'USD']]);
+        self::assertResponseRedirects('/contacts/'.$party->id());
+        self::assertEquals([21, 120000, 'CZK'], $this->em()->getConnection()->fetchNumeric('SELECT invoicing_due_days, invoicing_hourly_rate_minor, invoicing_hourly_rate_currency FROM party WHERE id = ?', [$party->id()]));
     }
 
     public function testAFirmsOwnDefaultsFromBeforeTheReminderFlagStillRemind(): void

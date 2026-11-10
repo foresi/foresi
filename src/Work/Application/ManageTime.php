@@ -12,6 +12,7 @@ use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantClock;
 use App\Work\Domain\Duration;
 use App\Work\Domain\Project;
@@ -188,6 +189,20 @@ final readonly class ManageTime
     {
         $project = $this->work->managedProject($projectId);
         $this->unit->run(static fn () => $project->billTimeByDefault($billable));
+    }
+
+    /**
+     * The project's own hourly rate, null for none; only an owner sets it.
+     *
+     * @throws WorkRefused
+     */
+    public function setProjectHourlyRate(string $projectId, ?Money $rate): void
+    {
+        $project = $this->work->managedProject($projectId);
+        if (!$this->owner->isOwner()) {
+            throw new WorkRefused('not_allowed');
+        }
+        $this->unit->run(static fn () => $project->changeHourlyRate($rate));
     }
 
     /**

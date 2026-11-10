@@ -1,0 +1,106 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Invoice time, for an owner: the firm, the client, its projects and the period (last month unless
+    changed) pick the time, which is listed with a tick each, all ticked, and the totals of what is
+    ticked. A change of the firm, the client, the projects or the period sends the form back for the
+    time it holds (a button without JavaScript); ticks, the grouping of the lines and the rounding of
+    each entry change the totals in place. Continue opens the new invoice form with the lines.
+    A dialog over the page it was opened from; the same URL is a page of its own.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set title = 'timesheet.invoice.title'|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.report.title'|trans, href: path('app_time_report')}, {label: title}] %}
+{% set dialog_size = 'lg' %}
+{% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    {% if blocked %}
+        <twig:Ui:Alert tone="warning" data-time-invoice-blocked>{{ ('timesheet.invoice.blocked.' ~ blocked)|trans }}</twig:Ui:Alert>
+    {% else %}
+        <form method="post" id="time-invoice-form" action="{{ action }}" class="grid gap-4" novalidate
+              data-controller="time-invoice" data-time-invoice-locale-value="{{ app.request.locale }}" data-time-invoice-hours-value="{{ 'timesheet.invoice.hours'|trans({hours: '{hours}'}) }}" data-time-invoice-form>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Timesheet\\Infrastructure\\Controller\\TimeInvoiceController::TOKEN')) }}">
+            <input type="hidden" name="shown_client" value="{{ client }}">
+            {# Enter refreshes the time, never continues: the first submit button of the form is the one it presses. #}
+            <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+            {% if error %}<twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-time-invoice-error>{{ error }}</twig:Ui:Alert>{% endif %}
+
+            <div class="grid gap-4" data-action="change->autosubmit#submit" data-controller="autosubmit" data-time-invoice-scope>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <twig:Ui:Select name="firm" id="time-invoice-firm" :label="'timesheet.invoice.firm'|trans" :options="firms" :value="firm" required />
+                    <twig:Ui:Select name="client" id="time-invoice-client" :label="'timesheet.invoice.client'|trans" :options="clients" :value="client" required />
+                </div>
+                {% if projects is not empty %}
+                    <twig:Ui:ChoiceChips name="projects[]" id="time-invoice-projects" :legend="'timesheet.invoice.projects'|trans" :options="projects" :values="ticked" data-time-invoice-projects />
+                {% endif %}
+                <div class="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
+                    <twig:Ui:TextInput type="date" name="from" id="time-invoice-from" :label="'timesheet.invoice.from'|trans" :value="from" required />
+                    <twig:Ui:TextInput type="date" name="until" id="time-invoice-until" :label="'timesheet.invoice.until'|trans" :value="until" required />
+                </div>
+                <noscript><div><twig:Ui:Button type="submit" size="sm">{{ 'timesheet.invoice.refresh'|trans }}</twig:Ui:Button></div></noscript>
+            </div>
+
+            {% if client == '' %}
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted" data-time-invoice-empty>{{ 'timesheet.invoice.no_client'|trans }}</p>
+            {% elseif entries is empty %}
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted" data-time-invoice-empty>{{ 'timesheet.invoice.none'|trans }}</p>
+            {% else %}
+                <fieldset class="m-0 grid min-w-0 gap-1.5 border-0 p-0">
+                    <legend class="mb-1.5 p-0 text-small font-medium text-ink">{{ 'timesheet.invoice.entries'|trans }}</legend>
+                    <ul class="m-0 grid list-none divide-y divide-divider rounded-panel border border-container bg-white p-0" data-action="change->time-invoice#count">
+                        {% for entry in entries %}
+                            <li class="flex items-start gap-3 px-4 py-2.5 max-[899px]:px-3" data-time-invoice-entry="{{ entry.id }}"
+                                data-minutes="{{ entry.minutes }}" data-rate="{{ entry.rateMinor ?? '' }}" data-currency="{{ entry.rateCurrency ?? '' }}" data-scale="{{ entry.rateScale ?? 1 }}"
+                                {% for grouping, group in entry.groups %} data-group-{{ grouping }}="{{ group }}"{% endfor %}>
+                                <input type="hidden" name="listed[]" value="{{ entry.id }}">
+                                <input type="checkbox" id="time-invoice-entry-{{ entry.id }}" name="entries[]" value="{{ entry.id }}"{% if entry.ticked %} checked{% endif %} class="mt-0.5 size-4 shrink-0 accent-green {{ focus }}" data-time-invoice-target="tick">
+                                <label for="time-invoice-entry-{{ entry.id }}" class="grid min-w-0 flex-1 gap-0.5">
+                                    <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small">
+                                        <span class="num font-semibold text-ink">{{ entry.minutes|duration }}</span>
+                                        <span class="min-w-0 font-medium text-ink [overflow-wrap:anywhere]">{{ entry.title }}</span>
+                                        <span class="text-text">{{ entry.person }}</span>
+                                        <time datetime="{{ entry.datetime }}" class="text-muted">{{ entry.date }}</time>
+                                        {% if entry.rate %}<span class="num text-muted" data-time-invoice-rate>{{ entry.rate }}</span>{% else %}<twig:Ui:Badge tone="red" data-time-invoice-no-rate>{{ 'timesheet.invoice.no_rate'|trans }}</twig:Ui:Badge>{% endif %}
+                                    </span>
+                                    {% if entry.note is not empty %}<span class="text-small text-text [overflow-wrap:anywhere]">{{ entry.note }}</span>{% endif %}
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </fieldset>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" data-action="change->time-invoice#count">
+                    <twig:Ui:Select name="grouping" id="time-invoice-grouping" :label="'timesheet.invoice.grouping.label'|trans" :options="groupings" :value="grouping" data-time-invoice-target="grouping" />
+                    <twig:Ui:Select name="rounding" id="time-invoice-rounding" :label="'timesheet.invoice.rounding.label'|trans" :help="'timesheet.invoice.rounding.help'|trans" :options="roundings" :value="rounding" data-time-invoice-target="rounding" />
+                </div>
+
+                <p class="m-0 text-small text-badge-red-text" hidden data-time-invoice-target="noRate">{{ 'timesheet.refused.rate_missing'|trans }}</p>
+                <dl class="m-0 flex flex-wrap gap-x-6 gap-y-1 text-body" aria-live="polite" data-time-invoice-totals>
+                    <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_hours'|trans }}</dt><dd class="num m-0 font-semibold text-ink" data-time-invoice-target="hours" data-time-invoice-hours>{{ totals.hours }}</dd></div>
+                    <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_amount'|trans }}</dt><dd class="num m-0 font-semibold text-ink" data-time-invoice-target="amount" data-time-invoice-amount>{{ totals.amount ?? '—' }}</dd></div>
+                </dl>
+            {% endif %}
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    {% if not blocked %}<twig:Ui:Button type="submit" form="time-invoice-form" variant="primary" name="continue" value="1" data-time-invoice-continue>{{ 'timesheet.invoice.continue'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="receipt-text" class="max-w-3xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-3xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back|default(path('app_time_report'))">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            {% if not blocked %}<twig:Ui:Button type="submit" form="time-invoice-form" variant="primary" name="continue" value="1" data-time-invoice-continue>{{ 'timesheet.invoice.continue'|trans }}</twig:Ui:Button>{% endif %}
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

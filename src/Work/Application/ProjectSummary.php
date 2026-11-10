@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Application;
 
+use App\Shared\Domain\Money;
 use App\Work\Domain\ProjectVisibility;
 use App\Work\Domain\WorkflowTemplate;
 
@@ -35,6 +36,8 @@ final readonly class ProjectSummary
         public bool $taskable = false,
         /** Whether new time on it starts as billable. */
         public bool $billable = false,
+        /** The project's own hourly rate, for an owner only: null for none and for everyone else. */
+        public ?Money $hourlyRate = null,
     ) {
     }
 }

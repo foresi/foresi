@@ -14,9 +14,11 @@ namespace App\Work\Application;
 final readonly class TimeEntryRow
 {
     /**
-     * @param ?int    $minutes    null while the timer runs
-     * @param bool    $editable   whether the signed-in person may change or delete it
-     * @param ?string $clientName the client of the project, for a report
+     * @param ?int    $minutes       null while the timer runs
+     * @param bool    $editable      whether the signed-in person may change or delete it
+     * @param ?string $clientName    the client of the project, for a report
+     * @param ?string $invoiceId     the invoice that billed it
+     * @param ?string $invoiceNumber the number of that invoice, where a line names it
      */
     public function __construct(
         public string $id,
@@ -36,6 +38,8 @@ final readonly class TimeEntryRow
         public bool $invoiced,
         public bool $editable,
         public ?string $clientName = null,
+        public ?string $invoiceId = null,
+        public ?string $invoiceNumber = null,
     ) {
     }
 }

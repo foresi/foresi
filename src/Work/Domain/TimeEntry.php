@@ -11,7 +11,9 @@ namespace App\Work\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Identity\Domain\Membership;
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -28,8 +30,10 @@ use Doctrine\ORM\Mapping as ORM;
  * membership, and a unique index over it keeps a second one out. A null never
  * collides with another, so stopped entries do not count.
  *
- * The invoice line that billed an entry locks it (Teamwork); invoicing sets it
- * later, nothing here does.
+ * The invoice line that billed an entry locks it (Teamwork). The entry keeps
+ * the invoice, the line, the rate it was billed at and the minutes billed,
+ * rounded as the invoice took them; its own minutes stay as worked. An invoice
+ * going to the trash releases its time, which is then unbilled again (Clockify).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'time_entry')]
@@ -37,6 +41,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_time_entry_project', columns: ['project_id', 'worked_on'])]
 #[ORM\Index(name: 'idx_time_entry_task', columns: ['task_id'])]
 #[ORM\Index(name: 'idx_time_entry_membership', columns: ['membership_id', 'worked_on'])]
+#[ORM\Index(name: 'idx_time_entry_invoice', columns: ['invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_time_entry_running', columns: ['running_for'])]
 class TimeEntry implements TenantOwned, Audited, AuditRooted
 {
@@ -76,6 +81,20 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
     /** The invoice line that billed the entry. */
     #[ORM\Column(name: 'invoice_line_id', type: 'guid', nullable: true)]
     private ?string $invoiceLineId = null;
+
+    /** The invoice of that line. */
+    #[ORM\Column(name: 'invoice_id', type: 'guid', nullable: true)]
+    private ?string $invoiceId = null;
+
+    #[ORM\Column(name: 'invoiced_rate_minor', type: 'bigint', nullable: true)]
+    private ?int $invoicedRateMinor = null;
+
+    #[ORM\Column(name: 'invoiced_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    private ?Currency $invoicedRateCurrency = null;
+
+    /** The minutes billed: the minutes worked, rounded up as the invoice asked. */
+    #[ORM\Column(name: 'invoiced_minutes', type: 'integer', nullable: true)]
+    private ?int $invoicedMinutes = null;
 
     private function __construct(
         #[ORM\ManyToOne(targetEntity: Project::class)]
@@ -205,6 +224,58 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
     }
 
     /**
+     * Billed on the line of the invoice, at the rate, for the minutes: those
+     * worked or more, as rounding up makes them.
+     *
+     * @throws \DomainException when the timer runs, the entry is invoiced already or fewer minutes are billed than worked
+     */
+    public function invoice(string $invoiceId, string $lineId, Money $rate, int $minutes): void
+    {
+        // Only a running timer has no minutes.
+        if (null === $this->minutes) {
+            throw new \DomainException('A running timer is not invoiced.');
+        }
+        if ($this->isInvoiced()) {
+            throw new \DomainException('The entry is invoiced already.');
+        }
+        if ($minutes < $this->minutes) {
+            throw new \DomainException('Billed time is at least the time worked.');
+        }
+        $this->invoiceId = $invoiceId;
+        $this->invoiceLineId = $lineId;
+        $this->invoicedRateMinor = $rate->minor();
+        $this->invoicedRateCurrency = $rate->currency();
+        $this->invoicedMinutes = $minutes;
+    }
+
+    /**
+     * Billed on another line of the same invoice, as when the line it was on
+     * moved there; rate and billed minutes stay.
+     *
+     * @throws \DomainException when the entry is not invoiced
+     */
+    public function moveToLine(string $lineId): void
+    {
+        if (!$this->isInvoiced()) {
+            throw new \DomainException('Only invoiced time moves to another line.');
+        }
+        $this->invoiceLineId = $lineId;
+    }
+
+    /**
+     * Unbilled again, as before the invoice: its line, rate and billed minutes
+     * are forgotten. Releasing time that is not invoiced changes nothing.
+     */
+    public function release(): void
+    {
+        $this->invoiceId = null;
+        $this->invoiceLineId = null;
+        $this->invoicedRateMinor = null;
+        $this->invoicedRateCurrency = null;
+        $this->invoicedMinutes = null;
+    }
+
+    /**
      * Keeps the time on the project once its task is gone for good.
      */
     public function leaveTask(): void
@@ -283,6 +354,21 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
     public function invoiceLineId(): ?string
     {
         return $this->invoiceLineId;
+    }
+
+    public function invoiceId(): ?string
+    {
+        return $this->invoiceId;
+    }
+
+    public function invoicedRate(): ?Money
+    {
+        return null === $this->invoicedRateMinor || !$this->invoicedRateCurrency instanceof Currency ? null : Money::ofMinor($this->invoicedRateMinor, $this->invoicedRateCurrency);
+    }
+
+    public function invoicedMinutes(): ?int
+    {
+        return $this->invoicedMinutes;
     }
 
     public function createdBy(): string

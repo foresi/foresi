@@ -12,6 +12,7 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -51,6 +52,21 @@ final class InvoicingDefaultsTest extends TestCase
         self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::Cash, false, true)));
         self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true, true)));
         self::assertFalse($base->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false)));
+    }
+
+    public function testTheHourlyRateIsOptionalNeverNegativeAndTakesPartInEquality(): void
+    {
+        $base = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true);
+        $rated = new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::EUR));
+
+        self::assertNull($base->hourlyRate());
+        self::assertEquals(Money::of('1200', Currency::EUR), $rated->hourlyRate());
+        self::assertFalse($base->equals($rated));
+        self::assertFalse($rated->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::USD))));
+        self::assertTrue($rated->equals(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('1200', Currency::EUR))));
+
+        $this->expectException(\DomainException::class);
+        new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, true, Money::of('-1', Currency::CZK));
     }
 
     #[DataProvider('validDueDays')]

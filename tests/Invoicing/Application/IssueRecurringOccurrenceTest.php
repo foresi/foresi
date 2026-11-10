@@ -341,7 +341,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
             $origin = new RecurringOccurrence($this->templates, $id, new \DateTimeImmutable($occurrence), $this->templates->current($id)->version());
             try {
                 self::getContainer()->get(TransactionalWork::class)->run(static function () use ($origin, $invoice): void {
-                    $origin->recordIn($invoice);
+                    $origin->recordIn($invoice, []);
                 });
             } catch (OccurrenceTaken) {
                 ++$refused;
