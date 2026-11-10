@@ -201,6 +201,29 @@ deptrac:
       collectors:
         - type: directory
           value: src/Purchasing/Infrastructure/.*
+    # Exchange rates to CZK: the port, the store and the schedule. A source plugs in from a country module.
+    - name: ExchangeRateDomain
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Domain/.*
+    - name: ExchangeRateApplication
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Application/.*
+    - name: ExchangeRateInfrastructure
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/ExchangeRate/Infrastructure/.*
+          must_not:
+            - type: directory
+              value: src/ExchangeRate/Infrastructure/Schedule/.*
+    # The one class that joins the rates to the schedule of the installation.
+    - name: ExchangeRateSchedule
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Infrastructure/Schedule/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -778,12 +801,33 @@ deptrac:
     CountryCzechRepublic:
       - SharedDomain
       - SharedInfrastructure
+      - ExchangeRateApplication
       - PartyDomain
       - PartyApplication
       - InvoicingDomain
       - InvoicingApplication
       - BankingDomain
       - BankingApplication
+    ExchangeRateDomain:
+      - VendorDoctrineOrmMapping
+    ExchangeRateApplication:
+      - ExchangeRateDomain
+      - SharedDomain
+      - SharedApplication
+    ExchangeRateInfrastructure:
+      - ExchangeRateDomain
+      - ExchangeRateApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+    # The operator task contract lives in Tenancy's application layer.
+    ExchangeRateSchedule:
+      - ExchangeRateApplication
+      - TenancyApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony
