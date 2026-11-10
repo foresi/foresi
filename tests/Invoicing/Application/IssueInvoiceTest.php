@@ -809,6 +809,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $container->get(ContactSettingsForFirm::class),
             $this->deductions(),
             $container->get(\App\Invoicing\Application\CorrectionRules::class),
+            $container->get(\App\Invoicing\Application\BilledWork::class),
         );
 
         try {

@@ -61,7 +61,7 @@ final readonly class InvoiceFormReader
     private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
     private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
     private const string DATE = '/^20\d{2}-\d{2}-\d{2}$/D';
-    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount', 'deducts'];
+    private const array LINE_FIELDS = ['text', 'price', 'quantity', 'unit', 'priceType', 'vat', 'supplyCode', 'discount', 'deducts', 'source'];
     private const array CUSTOMER_FIELDS = ['name', 'registrationNumber', 'vatId', 'street', 'city', 'postalCode', 'countryCode', 'email', 'phone', 'web', 'registerEntry'];
 
     /**
@@ -137,6 +137,7 @@ final readonly class InvoiceFormReader
             $kind,
             TaxOnReceiptChoice::tryFrom($values['taxOnReceipt']),
             $correction,
+            '' === $values['billedWork'] ? null : $values['billedWork'],
         );
         $version = $this->text($post, 'version');
 
@@ -200,7 +201,7 @@ final readonly class InvoiceFormReader
      * @param list<array<string, string>> $rows
      * @param array<string, string>       $customer
      *
-     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, customer: array<string, string>, lines: list<array<string, string>>}
+     * @return array{firmId: string, firmShown: string, kind: string, taxOnReceipt: string, seriesId: string, number: string, numberPeek: string, customerId: string, customerQuery: string, customerEdit: string, dueDateSet: string, issueDate: string, taxPointDate: string, dueDate: string, paymentMethod: string, bankAccount: string, variableSymbol: string, constantSymbol: string, orderNumber: string, description: string, textBefore: string, textAfter: string, language: string, correctedInvoiceId: string, correctionReason: string, correctionType: string, decisiveDate: string, billedWork: string, customer: array<string, string>, lines: list<array<string, string>>}
      */
     private function values(array $post, array $rows, array $customer): array
     {
@@ -213,6 +214,7 @@ final readonly class InvoiceFormReader
             'variableSymbol' => $field('variableSymbol'), 'constantSymbol' => $field('constantSymbol'), 'orderNumber' => $field('orderNumber'), 'description' => $field('description'),
             'textBefore' => $field('textBefore'), 'textAfter' => $field('textAfter'), 'language' => $field('language'),
             'correctedInvoiceId' => $field('correctedInvoiceId'), 'correctionReason' => $field('correctionReason'), 'correctionType' => $field('correctionType'), 'decisiveDate' => $field('decisiveDate'),
+            'billedWork' => $field('billedWork'),
             'customer' => $customer, 'lines' => $rows,
         ];
     }
@@ -283,6 +285,7 @@ final readonly class InvoiceFormReader
                 '' === $row['supplyCode'] ? null : $row['supplyCode'],
                 $this->discount($row['discount'], $field, $errors),
                 Uuid::isValid($row['deducts']) ? $row['deducts'] : null,
+                '' === $row['source'] ? null : $row['source'],
             );
         }
 

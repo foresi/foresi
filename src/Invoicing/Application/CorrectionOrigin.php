@@ -26,7 +26,7 @@ final readonly class CorrectionOrigin implements IssueOrigin
         return $text;
     }
 
-    public function recordIn(Invoice $invoice): void
+    public function recordIn(Invoice $invoice, array $lines): void
     {
         CorrectionRules::record($invoice, $this->correction);
     }

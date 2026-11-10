@@ -13,6 +13,8 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AdvanceTaxation;
+use App\Invoicing\Application\BilledWork;
+use App\Invoicing\Application\BilledWorkDraft;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CorrectInvoice;
 use App\Invoicing\Application\CorrectionDue;
@@ -149,6 +151,7 @@ final class InvoiceController extends AbstractController
         private readonly AdvanceDocuments $advanceDocuments,
         private readonly CorrectInvoice $corrections,
         private readonly CorrectPaymentTaxDocument $taxCorrections,
+        private readonly BilledWork $billedWork,
     ) {
     }
 
@@ -158,6 +161,10 @@ final class InvoiceController extends AbstractController
         $this->denyUnlessStaff();
         if ($request->isMethod('POST')) {
             return $this->submitNew($request);
+        }
+        $billed = $request->query->getString('billedWork');
+        if ('' !== $billed) {
+            return $this->newOfBilledWork($billed);
         }
 
         $id = $request->query->getString('firm');
@@ -179,6 +186,31 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->form($context, $this->values->ofDraft($this->defaults->for($firm, kind: $kind)), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
+    }
+
+    /**
+     * The form of a new invoice of work another module bills, such as time: its
+     * firm, customer, currency and lines, the rest as on any new invoice. Nothing
+     * is written until Save, which records what the lines bill as it issues.
+     */
+    private function newOfBilledWork(string $reference): Response
+    {
+        $work = $this->billedWork->draft($reference);
+        if (!$work instanceof BilledWorkDraft) {
+            $this->addFlash('error', $this->translator->trans('invoice.billed_work.gone'));
+
+            return $this->redirectToRoute('app_invoice_new');
+        }
+        $firm = $this->firm($work->firmId);
+        try {
+            $context = $this->newContext($firm);
+            $party = $this->parties->find($work->customerId);
+            $draft = $this->defaults->forBilledWork($firm, $work, $party instanceof Party ? $this->picker->option($party, $firm) : null);
+        } catch (UnsupportedCountry) {
+            return $this->render('invoicing/form.html.twig', ['blocked' => 'country']);
+        }
+
+        return $this->form($context, $this->values->ofBilledWork($draft, $firm), [], [], $this->tokens->issue(), 0, Response::HTTP_OK);
     }
 
     #[Route('/invoices/{id}/edit', name: 'app_invoice_edit', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]

@@ -45,7 +45,7 @@ final readonly class RecurringOccurrence implements IssueOrigin
      * @throws OccurrenceTaken           when the occurrence is not the template's to issue any more
      * @throws RecurringChangedMeanwhile when the template was saved since the invoice was built
      */
-    public function recordIn(Invoice $invoice): void
+    public function recordIn(Invoice $invoice, array $lines): void
     {
         $template = $this->templates->lockDuringWrite($this->templateId);
         $next = $template->nextOccurrence();

@@ -26,6 +26,7 @@ final readonly class InvoiceDraftValues
      * @param Currency|null   $currencyNotice     the other currency the contact prefers; the document stays in $currency
      * @param list<string>    $notices            translation keys of what the form must say when it opens
      * @param string|null     $correctedInvoiceId the invoice a corrective tax document corrects
+     * @param string|null     $billedWork         the work of another module the invoice bills (BilledWork)
      */
     public function __construct(
         public string $firmId,
@@ -50,6 +51,7 @@ final readonly class InvoiceDraftValues
         public array $notices = [],
         public DocumentKind $kind = DocumentKind::Invoice,
         public ?string $correctedInvoiceId = null,
+        public ?string $billedWork = null,
     ) {
     }
 

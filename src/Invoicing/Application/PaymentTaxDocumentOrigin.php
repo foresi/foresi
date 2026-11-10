@@ -29,7 +29,7 @@ final readonly class PaymentTaxDocumentOrigin implements IssueOrigin
     /**
      * @throws IssueRefused when the payment got its document meanwhile: a retry after losing to it
      */
-    public function recordIn(Invoice $invoice): void
+    public function recordIn(Invoice $invoice, array $lines): void
     {
         if (null !== $this->documents->taxDocumentOf($this->advanceId, $this->paymentId)) {
             throw new IssueRefused([new IssueProblem('document', 'invoice.problem.tax_document_exists')]);

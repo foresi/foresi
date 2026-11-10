@@ -1367,6 +1367,8 @@ invoice:
     note:
       reverse_charge: 'Reverse charge. The customer accounts for the tax (daň odvede zákazník).{code, select, none {} other { Supply code: {code}.}}'
       exempt: The supply is exempt from VAT.
+  billed_work:
+    gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
   copy:
     firm_archived: This firm is archived, so it issues no new documents. Choose another firm.
     series_archived: The series of the original is archived, so this copy uses the default series.
@@ -3083,6 +3085,54 @@ invitation:
   accepted:
     title: Invitation used
     text: This invitation was accepted already. Sign in to the organisation.
+timesheet:
+  invoice:
+    title: Invoice time
+    firm: Invoicing firm
+    client: Client
+    choose_client: Choose a client
+    projects: Projects
+    from: From
+    until: Until
+    refresh: Show the time
+    no_client: Choose the client whose time to invoice.
+    none: There is no billable time here in this period that is not invoiced yet.
+    entries: Time to invoice
+    no_rate: No rate
+    per_hour: '{rate}/h'
+    hours: '{hours} h'
+    unit: h
+    total_hours: Total hours
+    total_amount: Total before VAT
+    continue: Continue
+    grouping:
+      label: Invoice lines
+      project: One line per project
+      task: A line per task
+      person: A line per person
+      entry: A line per entry
+    rounding:
+      label: Rounding of entries
+      help: Each entry rounds up; the time logged stays as it is.
+      none: No rounding
+      '15': Up to 15 minutes
+      '30': Up to 30 minutes
+    blocked:
+      no_firm: Add a firm to invoice from first.
+  refused:
+    not_allowed: Only an owner of the organisation invoices time.
+    client: Choose a client.
+    nothing: Tick at least one entry of time.
+    rate_missing: Ticked time has no hourly rate. Set one on the project, the client or the person, or untick the entry.
+    currencies: Ticked time has rates in different currencies. Choose time in one currency for one invoice.
+    firm_currency: The rates of the ticked time are in another currency than this firm invoices in.
+    country: The firm is from a country we cannot invoice for yet.
+    too_many_lines: That would give the invoice more than 100 lines. Group the time into fewer lines.
+  problem:
+    other_document: The time chosen is invoiced by an invoice of the firm it was priced for. Open the invoicing of time again.
+    time_changed: Some of the time chosen was changed or deleted meanwhile. Open the invoicing of time again.
+    time_invoiced: Some of the time chosen was invoiced by another invoice meanwhile. Open the invoicing of time again.
+    selection_gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
 work:
   status:
     to_do: To do
@@ -3183,6 +3233,8 @@ work:
     running: Running
     billable: Billable
     invoiced: Invoiced
+    invoice_time: Invoice time
+    invoiced_by: 'Invoice {number}'
     duration_help: For example 1:30, 1.5 or 1h 30m.
     estimate_help: For example 5 h or 2h 30m.
     logged: '{duration} logged.'

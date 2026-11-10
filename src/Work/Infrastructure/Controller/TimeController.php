@@ -49,6 +49,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class TimeController extends AbstractController
 {
     public const string TOKEN = 'work_time';
+    /** Where a line of invoiced time links its invoice; the route belongs to invoicing, Work names it only. */
+    public const string INVOICE_ROUTE = 'app_invoice_edit';
     /** The refusals told next to their field; any other is told over the form. */
     private const array FIELDS = ['duration' => 'duration', 'time_note' => 'note'];
 

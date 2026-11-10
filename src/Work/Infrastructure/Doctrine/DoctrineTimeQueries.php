@@ -12,6 +12,7 @@ use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Membership;
+use App\Work\Application\InvoiceNumbers;
 use App\Work\Application\TaskTime;
 use App\Work\Application\TimeDay;
 use App\Work\Application\TimeEntries;
@@ -37,7 +38,8 @@ use Doctrine\ORM\Query;
  * scope of WorkVisibility through ScopedDql, so a report over a year reads only
  * what the person sees and adds it up in the database; a single entry is
  * checked in PHP through WorkScope, the rule commands use too. Time on a task
- * in the trash is left out everywhere.
+ * in the trash is left out everywhere. The lines of a task and of a week name
+ * the invoice that billed them.
  */
 final readonly class DoctrineTimeQueries implements TimeQueries
 {
@@ -54,6 +56,7 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         private People $people,
         private AuditActor $actor,
         private OwnerCheck $owner,
+        private InvoiceNumbers $invoices,
     ) {
     }
 
@@ -71,7 +74,8 @@ final readonly class DoctrineTimeQueries implements TimeQueries
             ->getResult();
         $me = $this->me();
         $owner = $this->owner->isOwner();
-        $rows = array_map(fn (TimeEntry $entry): TimeEntryRow => $this->row($entry, $me?->id(), $owner), $entries);
+        $numbers = $this->invoiceNumbers($entries);
+        $rows = array_map(fn (TimeEntry $entry): TimeEntryRow => $this->row($entry, $me?->id(), $owner, $numbers), $entries);
 
         return new TaskTime($task->id(), $rows, $this->total($rows), $task->estimateMinutes());
     }
@@ -93,9 +97,10 @@ final readonly class DoctrineTimeQueries implements TimeQueries
             ->setParameter('until', $monday->modify('+7 days'), Types::DATE_IMMUTABLE)
             ->getResult();
         $owner = $this->owner->isOwner();
+        $numbers = $this->invoiceNumbers($entries);
         $byDay = [];
         foreach ($entries as $entry) {
-            $byDay[$entry->workedOn()->format('Y-m-d')][] = $this->row($entry, $me?->id(), $owner);
+            $byDay[$entry->workedOn()->format('Y-m-d')][] = $this->row($entry, $me?->id(), $owner, $numbers);
         }
         $days = [];
         for ($i = 0; $i < 7; ++$i) {
@@ -317,11 +322,14 @@ final readonly class DoctrineTimeQueries implements TimeQueries
     }
 
     /**
-     * @param ?string $me    the membership of the signed-in person
-     * @param bool    $owner whether they are an owner of the organisation
+     * @param ?string               $me      the membership of the signed-in person
+     * @param bool                  $owner   whether they are an owner of the organisation
+     * @param array<string, string> $numbers invoice numbers by invoice id, for the lines that name them
      */
-    private function row(TimeEntry $entry, ?string $me, bool $owner): TimeEntryRow
+    private function row(TimeEntry $entry, ?string $me, bool $owner, array $numbers = []): TimeEntryRow
     {
+        $invoiceId = $entry->invoiceId();
+
         $mine = $entry->membership()->id() === $me;
 
         return new TimeEntryRow(
@@ -342,7 +350,23 @@ final readonly class DoctrineTimeQueries implements TimeQueries
             $entry->isInvoiced(),
             !$entry->isInvoiced() && ($mine || $owner),
             $entry->project()->client()?->displayName(),
+            $invoiceId,
+            null === $invoiceId ? null : $numbers[$invoiceId] ?? null,
         );
+    }
+
+    /**
+     * The numbers of the invoices that billed the entries.
+     *
+     * @param list<TimeEntry> $entries
+     *
+     * @return array<string, string> by invoice id
+     */
+    private function invoiceNumbers(array $entries): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(static fn (TimeEntry $entry): ?string => $entry->invoiceId(), $entries), static fn (?string $id): bool => null !== $id)));
+
+        return [] === $ids ? [] : $this->invoices->numbersOf($ids);
     }
 
     /**

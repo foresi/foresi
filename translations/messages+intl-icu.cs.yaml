@@ -1367,6 +1367,8 @@ invoice:
     note:
       reverse_charge: 'Přenesení daňové povinnosti: daň odvede zákazník.{code, select, none {} other { Kód předmětu plnění: {code}.}}'
       exempt: Plnění je osvobozeno od daně.
+  billed_work:
+    gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
   copy:
     firm_archived: Tato firma je archivovaná, takže nové doklady nevystavuje. Vyberte jinou firmu.
     series_archived: Řada původní faktury je archivovaná, kopie proto používá výchozí řadu.
@@ -3083,6 +3085,54 @@ invitation:
   accepted:
     title: Pozvánka použita
     text: Tato pozvánka už byla přijata. Přihlaste se do organizace.
+timesheet:
+  invoice:
+    title: Vyfakturovat čas
+    firm: Fakturující firma
+    client: Klient
+    choose_client: Vyberte klienta
+    projects: Projekty
+    from: Od
+    until: Do
+    refresh: Zobrazit čas
+    no_client: Vyberte klienta, jehož čas chcete vyfakturovat.
+    none: V tomto období tu není žádný fakturovatelný a dosud nevyfakturovaný čas.
+    entries: Čas k vyfakturování
+    no_rate: Bez sazby
+    per_hour: '{rate}/hod'
+    hours: '{hours} hod'
+    unit: hod
+    total_hours: Celkem hodin
+    total_amount: Celkem bez DPH
+    continue: Pokračovat
+    grouping:
+      label: Řádky faktury
+      project: Jeden řádek za projekt
+      task: Řádek za úkol
+      person: Řádek za osobu
+      entry: Řádek za každý záznam
+    rounding:
+      label: Zaokrouhlení záznamů
+      help: Každý záznam nahoru, zapsaný čas zůstane, jak je.
+      none: Bez zaokrouhlení
+      '15': Nahoru na 15 minut
+      '30': Nahoru na 30 minut
+    blocked:
+      no_firm: Nejdřív přidejte firmu, která bude fakturovat.
+  refused:
+    not_allowed: Čas fakturuje jen vlastník organizace.
+    client: Vyberte klienta.
+    nothing: Zaškrtněte aspoň jeden záznam času.
+    rate_missing: Zaškrtnutý čas nemá hodinovou sazbu. Nastavte ji u projektu, klienta nebo osoby, nebo záznam odškrtněte.
+    currencies: Zaškrtnutý čas má sazby v různých měnách. Na jednu fakturu vyberte čas v jedné měně.
+    firm_currency: Sazby zaškrtnutého času jsou v jiné měně, než ve které tato firma fakturuje.
+    country: Firma je ze země, pro kterou zatím neumíme fakturovat.
+    too_many_lines: Takhle by faktura měla přes 100 řádků. Seskupte čas do méně řádků.
+  problem:
+    other_document: Vybraný čas se fakturuje fakturou firmy, pro kterou byl oceněn. Otevřete znovu fakturaci času.
+    time_changed: Část vybraného času se mezitím změnila nebo smazala. Otevřete znovu fakturaci času.
+    time_invoiced: Část vybraného času je mezitím vyfakturovaná jinou fakturou. Otevřete znovu fakturaci času.
+    selection_gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
 work:
   status:
     to_do: K udělání
@@ -3183,6 +3233,8 @@ work:
     running: Běží
     billable: Fakturovatelné
     invoiced: Vyfakturováno
+    invoice_time: Vyfakturovat čas
+    invoiced_by: 'Faktura {number}'
     duration_help: Třeba 1:30, 1,5 nebo 1h 30m.
     estimate_help: Třeba 5 h nebo 2h 30m.
     logged: 'Zapsáno {duration}.'

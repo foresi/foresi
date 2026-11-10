@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Invoicing\Domain\Invoice;
+use App\Invoicing\Domain\InvoiceLine;
 
 /**
  * Where an invoice comes from, when something other than a person's form issues
@@ -28,6 +29,8 @@ interface IssueOrigin
      * Called once the invoice, its number and its lines are in the session and
      * before they are written. Throwing aborts the issue: nothing is stored and no
      * number is used up.
+     *
+     * @param list<InvoiceLine> $lines the lines of the invoice, in the order of the lines of its input
      */
-    public function recordIn(Invoice $invoice): void;
+    public function recordIn(Invoice $invoice, array $lines): void;
 }

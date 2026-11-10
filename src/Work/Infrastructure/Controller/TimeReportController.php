@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Controller;
 
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Domain\Role;
 use App\Tenancy\Application\TenantClock;
@@ -59,6 +60,7 @@ final class TimeReportController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly TimeFunctions $format,
         private readonly TimeReportCsv $csv,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -111,6 +113,8 @@ final class TimeReportController extends AbstractController
             'page' => $report->page,
             'pages' => $report->pages,
             'baseUrl' => $baseUrl,
+            // Only an owner sees rates, so only an owner invoices time; the client of the filter comes along.
+            'invoiceTime' => $this->owner->isOwner() ? $this->generateUrl('app_time_invoice', null === $filter->clientId ? [] : ['client' => $filter->clientId]) : null,
         ]);
     }
 

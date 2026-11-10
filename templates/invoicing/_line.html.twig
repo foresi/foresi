@@ -35,7 +35,7 @@
                 <span class="cursor-grab text-muted" data-action="mousedown->invoice-form#armDrag" title="{{ 'invoice.line.drag'|trans }}">{{ ux_icon('lucide:grip-vertical', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
             </div>
         </td>
-        <td class="col-span-2 {{ cell }}"><input type="hidden" name="lines[{{ index }}][deducts]" value="{{ line.deducts|default('') }}" data-cell="deducts">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, textAttributes|default(''), false) }}</td>
+        <td class="col-span-2 {{ cell }}"><input type="hidden" name="lines[{{ index }}][deducts]" value="{{ line.deducts|default('') }}" data-cell="deducts"><input type="hidden" name="lines[{{ index }}][source]" value="{{ line.source|default('') }}" data-cell="source">{{ _self.input(index, 'text', 'invoice.line.text'|trans, line.text, errorFields, textAttributes|default(''), false) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'price', 'invoice.line.price'|trans, line.price, errorFields, 'data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'quantity', 'invoice.line.quantity'|trans, line.quantity, errorFields, 'data-controller="number-input" data-action="input->number-input#typed blur->number-input#finished"', true) }}</td>
         <td class="{{ cell }}">{{ _self.input(index, 'unit', 'invoice.line.unit'|trans, line.unit, errorFields, 'maxlength="32"', false) }}</td>

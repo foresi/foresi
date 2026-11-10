@@ -10,6 +10,7 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OpenToGuest;
+use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
@@ -84,6 +85,7 @@ final class ProjectController extends AbstractController
         private readonly TenantClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeQueries $time,
+        private readonly OwnerCheck $owner,
     ) {
     }
 
@@ -206,6 +208,8 @@ final class ProjectController extends AbstractController
             'columns' => $this->taskColumns(),
             'trashCount' => $this->queries->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
+            // Only an owner sees rates, so only an owner invoices time.
+            'timeInvoiceable' => $this->owner->isOwner(),
         ]);
     }
 
@@ -230,6 +234,8 @@ final class ProjectController extends AbstractController
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
+            // Only an owner sees rates, so only an owner invoices time.
+            'timeInvoiceable' => $this->owner->isOwner(),
             'columns' => array_map(fn (StatusTasks $column): array => [
                 'id' => $column->id,
                 'name' => $column->name,

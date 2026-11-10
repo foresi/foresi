@@ -34,7 +34,8 @@ use Psr\Clock\ClockInterface;
  *
  * An origin, such as an occurrence of a recurring template, finishes the texts once
  * the number is known and records itself in the same transaction; when it refuses,
- * nothing is stored. Each retry asks it again.
+ * nothing is stored. Each retry asks it again. A person's form that bills the work
+ * of another module, such as time, is issued by that module's origin (BilledWork).
  */
 final readonly class IssueInvoice
 {
@@ -56,6 +57,7 @@ final readonly class IssueInvoice
         private ContactSettingsForFirm $contacts,
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
+        private BilledWork $billedWork,
     ) {
     }
 
@@ -85,13 +87,17 @@ final readonly class IssueInvoice
             $issuer = DocumentParty::ofIssuer($firm, $settings);
             $content = $input->change($party, $customer, $series->kind());
             $rateDate = $this->corrections->rateDate($input) ?? $content->rateDate();
-            // A person's corrective tax document names what it corrects in the same transaction.
-            $origin ??= $input->correction instanceof CorrectionInput ? new CorrectionOrigin($input->correction) : null;
+            // A person's corrective tax document names what it corrects in the same transaction, a form of billed work what it bills.
+            $origin ??= match (true) {
+                $input->correction instanceof CorrectionInput => new CorrectionOrigin($input->correction),
+                null !== $input->billedWork => $this->billedWork->origin($input),
+                default => null,
+            };
 
             return $this->work->run(function () use ($input, $firm, $series, $regime, $settings, $issuer, $content, $party, $origin, $rateDate): Invoice {
-                $invoice = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin, $rateDate);
+                [$invoice, $lines] = $this->write($input, $firm, $series, $regime, $settings->rounding(), $issuer, $content, $origin, $rateDate);
                 $this->contacts->makeCustomer($party, $firm);
-                $origin?->recordIn($invoice);
+                $origin?->recordIn($invoice, $lines);
                 $this->corrections->claim($input, null, $regime, $this->countries->for($firm->address()->countryCode));
 
                 return $invoice;
@@ -99,7 +105,10 @@ final readonly class IssueInvoice
         });
     }
 
-    private function write(InvoiceInput $input, LegalEntity $firm, Series $series, VatRegime $regime, TotalRounding $rounding, DocumentParty $issuer, InvoiceChange $content, ?IssueOrigin $origin, \DateTimeImmutable $rateDate): Invoice
+    /**
+     * @return array{Invoice, list<InvoiceLine>} the invoice and its lines, in the order of the input's
+     */
+    private function write(InvoiceInput $input, LegalEntity $firm, Series $series, VatRegime $regime, TotalRounding $rounding, DocumentParty $issuer, InvoiceChange $content, ?IssueOrigin $origin, \DateTimeImmutable $rateDate): array
     {
         // A default series that is not stored yet goes first: the counter refers to it.
         if (null === $input->seriesId) {
@@ -121,12 +130,14 @@ final readonly class IssueInvoice
         $invoice = new Invoice($firm, $series, $number, $regime, $rounding, $home, $issuer, $content, $this->actor->userId(), $now);
         $this->store->add($invoice);
         $lines = $this->pricing->priced($input->lines, $regime, $country, $rateDate);
+        $written = [];
         foreach ($lines as $position => $line) {
-            $this->store->addLine(new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts));
+            $written[] = $stored = new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts);
+            $this->store->addLine($stored);
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $country));
         $this->deductions->claim($invoice, AdvanceDeductions::deducted($input->lines));
 
-        return $invoice;
+        return [$invoice, $written];
     }
 }
