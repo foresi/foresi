@@ -63,6 +63,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 final class TimeInvoiceIssueTest extends WorkTestCase
 {
     private const string IBAN = 'CZ6508000000192000145399';
+    private const string OTHER_IBAN = 'CZ5508000000001234567899';
 
     private TimeInvoicing $invoicing;
     private BilledWork $billed;
@@ -140,12 +141,46 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         self::assertSame([$planning], array_map(static fn (\App\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())));
     }
 
+    public function testTheFirstOfTwoCopiesOfARowBillsItsTime(): void
+    {
+        $design = $this->logged($this->homepage, 50, '2026-10-05');
+        $draft = $this->chosen(TimeRounding::None);
+        $row = static fn (string $text): LineInput => new LineInput($text, Quantity::fromString('1'), 'h', Money::of('1000', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $draft->lines[0]->source);
+
+        $invoice = $this->issue->issue($this->input($draft, [$row('First'), $row('Copy')]));
+
+        self::assertSame($this->lineAt($invoice, 0)->id(), $this->entry($design)->invoiceLineId());
+    }
+
+    public function testTimePricedForOneFirmIsNotInvoicedByAnother(): void
+    {
+        $this->logged($this->homepage, 50, '2026-10-05');
+        $draft = $this->chosen(TimeRounding::None);
+        $other = new LegalEntity('Other Firm s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), new Address('Other Street 3', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 2');
+        $this->em->persist($other);
+        FirmAccounts::add($this->em, $other, self::OTHER_IBAN);
+        $this->em->flush();
+
+        try {
+            $this->issue->issue($this->input($draft, firm: $other, iban: self::OTHER_IBAN));
+            self::fail('The invoice is refused.');
+        } catch (IssueRefused $refused) {
+            self::assertSame(['timesheet.problem.other_document'], array_map(static fn (IssueProblem $found): string => $found->key, $refused->problems));
+        }
+        self::assertSame(0, $this->invoiceCount());
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
     public static function changes(): iterable
     {
         yield 'edited' => ['edit', 'timesheet.problem.time_changed'];
+        // Changes the issue could bill all the same, so only what the entry says tells them.
+        yield 'edited to fewer minutes' => ['fewer', 'timesheet.problem.time_changed'];
+        yield 'its note edited' => ['note', 'timesheet.problem.time_changed'];
+        yield 'moved to another task' => ['task', 'timesheet.problem.time_changed'];
+        yield 'made not billable' => ['unbillable', 'timesheet.problem.time_changed'];
         yield 'deleted' => ['delete', 'timesheet.problem.time_changed'];
         yield 'invoiced by another invoice' => ['invoice', 'timesheet.problem.time_invoiced'];
     }
@@ -158,6 +193,10 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $draft = $this->chosen(TimeRounding::None);
         match ($change) {
             'edit' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 55, null, null, '', true),
+            'fewer' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 45, null, null, '', true),
+            'note' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, 'Changed', true),
+            'task' => $this->time->edit($design, $this->tasks->create($this->website->id(), 'Write the copy')->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, '', true),
+            'unbillable' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, '', false),
             'delete' => $this->time->delete($design),
             'invoice' => $this->issue->issue($this->input($this->chosen(TimeRounding::None))),
             default => throw new \LogicException('A change.'),
@@ -236,15 +275,15 @@ final class TimeInvoiceIssueTest extends WorkTestCase
     }
 
     /**
-     * The input of the invoice form opened from the draft, its lines as given or as drafted.
+     * The input of the invoice form opened from the draft, its lines as given or as drafted, for its firm or the one given.
      *
      * @param list<LineInput>|null $lines
      */
-    private function input(BilledWorkDraft $draft, ?array $lines = null): InvoiceInput
+    private function input(BilledWorkDraft $draft, ?array $lines = null, ?LegalEntity $firm = null, string $iban = self::IBAN): InvoiceInput
     {
         $lines ??= array_map(static fn (BilledLine $line): LineInput => new LineInput($line->text, $line->quantity, $line->unit, $line->price, PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $line->source), $draft->lines);
 
-        return new InvoiceInput($draft->firmId, null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, self::IBAN, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
+        return new InvoiceInput($firm?->id() ?? $draft->firmId, null, null, $draft->customerId, null, new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-10'), new \DateTimeImmutable('2026-11-24'), PaymentMethod::BankTransfer, $iban, '', '', '', 'Time', '', '', DocumentLanguage::Czech, $lines, true, billedWork: $draft->reference);
     }
 
     private function lineAt(Invoice $invoice, int $position): InvoiceLine

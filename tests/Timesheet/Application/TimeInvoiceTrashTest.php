@@ -142,6 +142,11 @@ final class TimeInvoiceTrashTest extends WorkTestCase
     public static function changes(): iterable
     {
         yield 'edited' => ['edit', 'timesheet.problem.restore_time_changed'];
+        // Changes the issue could bill all the same, so only what the entry says tells them.
+        yield 'edited to fewer minutes' => ['fewer', 'timesheet.problem.restore_time_changed'];
+        yield 'its note edited' => ['note', 'timesheet.problem.restore_time_changed'];
+        yield 'moved to another task' => ['task', 'timesheet.problem.restore_time_changed'];
+        yield 'made not billable' => ['unbillable', 'timesheet.problem.restore_time_changed'];
         yield 'deleted' => ['delete', 'timesheet.problem.restore_time_changed'];
         yield 'invoiced by another invoice' => ['invoice', 'timesheet.problem.restore_time_invoiced'];
     }
@@ -155,6 +160,10 @@ final class TimeInvoiceTrashTest extends WorkTestCase
         $this->trash->trash($invoice->id(), 'Issued by mistake');
         match ($change) {
             'edit' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 55, null, null, '', true),
+            'fewer' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 45, null, null, '', true),
+            'note' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, 'Changed', true),
+            'task' => $this->time->edit($design, $this->tasks->create($this->website->id(), 'Write the copy')->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, '', true),
+            'unbillable' => $this->time->edit($design, $this->homepage->id(), new \DateTimeImmutable('2026-10-05'), 50, null, null, '', false),
             'delete' => $this->time->delete($design),
             'invoice' => $this->issue->issue($this->input($this->chosen(TimeRounding::None))),
             default => throw new \LogicException('A change.'),

@@ -123,6 +123,22 @@ final class TimeInvoiceEditTest extends WorkTestCase
         self::assertSame($freed, $this->candidateIds(), 'offered for invoicing again');
     }
 
+    public function testTheTimeOfARowRemovedIsFreeWhenOtherTimeWasLoggedBeforeIt(): void
+    {
+        $kept = [$this->logged(null, 10, '2026-10-05'), $this->logged($this->contact, 30, '2026-10-06')];
+        $freed = $this->logged($this->homepage, 50, '2026-10-07');
+        $this->issue->issue($this->draftInput($this->chosen()));
+        $this->em->clear();
+        $invoice = $this->em->getRepository(Invoice::class)->findOneBy([]) ?? throw new \LogicException('Invoice.');
+        $lines = $this->lines($invoice);
+        self::assertSame($lines[2]->id(), $this->entry($freed)->invoiceLineId(), 'the last line bills the time logged last');
+
+        $this->edit->edit($invoice->id(), $this->input($invoice, [$this->row($lines[0]), $this->row($lines[1])]), $invoice->version());
+
+        self::assertFalse($this->entry($freed)->isInvoiced());
+        self::assertSame([$lines[0]->id(), $lines[1]->id()], array_map(fn (string $id): ?string => $this->entry($id)->invoiceLineId(), $kept));
+    }
+
     public function testTimeFollowsItsRowWhenRowsMoveAndOneInTheMiddleIsRemoved(): void
     {
         [$invoice, $entries] = $this->issued();

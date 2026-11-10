@@ -10,18 +10,23 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
+use App\Invoicing\Application\BilledWorkRelease;
+use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssuedDocumentFactory;
 use App\Invoicing\Application\IssueProblem;
 use App\Invoicing\Application\IssueRefused;
+use App\Invoicing\Application\LineInput;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\AbandonedNumber;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceLine;
+use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\PriceType;
+use App\Invoicing\Domain\Quantity;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Invoicing\Domain\TaxTreatment;
@@ -33,6 +38,8 @@ use App\Party\Domain\Address;
 use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
+use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
 use App\Tests\Party\Support\FirmAccounts;
@@ -675,6 +682,64 @@ final class EditInvoiceTest extends InvoiceTestCase
         $this->edited($invoice, $this->input(overrides: ['typedNumber' => 'A2026-9']));
 
         self::assertSame('20260001', $this->reloaded($invoice)->variableSymbol());
+    }
+
+    public function testTheBilledWorkHearsOfTheRowsThatMovedOrWentAlone(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('100.00', text: 'One'), $this->line('200.00', text: 'Two'), $this->line('300.00', text: 'Three')]));
+        [$one, $two, $three] = array_map(static fn (InvoiceLine $line): string => $line->id(), $this->store->lines($invoice));
+        $billed = new class implements BilledWorkRelease {
+            /** @var list<array<string, ?string>> */
+            public array $revised = [];
+
+            public function released(Invoice $invoice): void
+            {
+            }
+
+            public function reclaim(Invoice $invoice): void
+            {
+            }
+
+            public function revised(Invoice $invoice, array $lines): void
+            {
+                $this->revised[] = $lines;
+            }
+        };
+        $edit = $this->editTelling($billed);
+        $save = function (LineInput ...$rows) use ($edit, $invoice): void {
+            $this->em->clear();
+            $edit->edit($invoice->id(), $this->input($rows), $this->store->get($invoice->id())->version());
+        };
+
+        $save($this->sourced('One', $one), $this->sourced('Two', $two), $this->sourced('Three', $three));
+        self::assertSame([], $billed->revised, 'nothing moved');
+
+        // One stays, Three moves up to where Two was, and Two is removed.
+        $save($this->sourced('One', $one), $this->sourced('Three', $three));
+        self::assertSame([[$two => null, $three => $two]], $billed->revised);
+
+        // Rows that name no line of the invoice are by position: the first stays, the line past it goes.
+        $save($this->sourced('One', 'line-1'));
+        self::assertSame([[$two => null, $three => $two], [$two => null]], $billed->revised);
+    }
+
+    /**
+     * The edit as the container wires it, telling the billed work given.
+     */
+    private function editTelling(BilledWorkRelease $billed): EditInvoice
+    {
+        $class = new \ReflectionClass(EditInvoice::class);
+        $arguments = [];
+        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
+            $arguments[] = 'billed' === $parameter->getName() ? $billed : $class->getProperty($parameter->getName())->getValue($this->edit);
+        }
+
+        return $class->newInstanceArgs($arguments);
+    }
+
+    private function sourced(string $text, string $source): LineInput
+    {
+        return new LineInput($text, Quantity::fromString('1'), 'h', Money::of('100.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'), source: $source);
     }
 
     /**
