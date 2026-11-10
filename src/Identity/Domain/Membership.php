@@ -10,7 +10,9 @@ namespace App\Identity\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Party\Domain\Party;
+use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use App\Tenancy\Domain\TenantId;
 use App\Tenancy\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
@@ -20,6 +22,9 @@ use Doctrine\ORM\Mapping as ORM;
  * the contact (party) the person represents, of whatever kind; a member may
  * point at their own person record. A deactivated membership keeps its history
  * but no longer lets the person into the organisation.
+ *
+ * The person's hourly rate is what their time is billed at when neither the
+ * project nor its client has a rate; only owners see it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'membership')]
@@ -36,6 +41,12 @@ class Membership implements TenantOwned, Audited
 
     #[ORM\Column(name: 'disabled_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $disabledAt = null;
+
+    #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
+    private ?int $hourlyRateMinor = null;
+
+    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
+    private ?Currency $hourlyRateCurrency = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: User::class)]
@@ -75,6 +86,25 @@ class Membership implements TenantOwned, Audited
     public function reactivate(): void
     {
         $this->disabledAt = null;
+    }
+
+    /**
+     * Null for none. Zero is a rate, for work that is not charged.
+     *
+     * @throws \DomainException for a negative rate
+     */
+    public function changeHourlyRate(?Money $rate): void
+    {
+        if (true === $rate?->isNegative()) {
+            throw new \DomainException('An hourly rate is not negative.');
+        }
+        $this->hourlyRateMinor = $rate?->minor();
+        $this->hourlyRateCurrency = $rate?->currency();
+    }
+
+    public function hourlyRate(): ?Money
+    {
+        return null === $this->hourlyRateMinor || !$this->hourlyRateCurrency instanceof Currency ? null : Money::ofMinor($this->hourlyRateMinor, $this->hourlyRateCurrency);
     }
 
     public function isActive(): bool

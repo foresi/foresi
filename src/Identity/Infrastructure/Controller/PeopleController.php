@@ -26,6 +26,8 @@ use App\Identity\Domain\User;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
 use App\Party\Domain\Party;
+use App\Shared\Domain\Currency;
+use App\Shared\Infrastructure\Http\TypedAmount;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,8 +41,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The people of the organisation. The staff see who belongs to it; the owner
- * invites people, changes their role and contact, lets them in or not and resets
- * their two-factor sign-in, and keeps the pending invitations.
+ * invites people, changes their role, contact and hourly rate, lets them in or
+ * not and resets their two-factor sign-in, and keeps the pending invitations.
+ * Only the owner sees a rate.
  */
 final class PeopleController extends AbstractController
 {
@@ -152,7 +155,14 @@ final class PeopleController extends AbstractController
         $this->denyUnlessOwner();
         $membership = $this->people->membership($id) ?? throw new NotFoundHttpException();
         $party = $membership->party();
-        $values = ['role' => $membership->role()->value, 'contactId' => $party?->id() ?? '', 'contactQuery' => $party instanceof Party ? $party->displayName() : ''];
+        $rate = $membership->hourlyRate();
+        $values = [
+            'role' => $membership->role()->value,
+            'contactId' => $party?->id() ?? '',
+            'contactQuery' => $party instanceof Party ? $party->displayName() : '',
+            'rate' => TypedAmount::field($rate, $request->getLocale()),
+            'rateCurrency' => ($rate?->currency() ?? Currency::CZK)->value,
+        ];
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
@@ -160,11 +170,17 @@ final class PeopleController extends AbstractController
                 $values[$field] = trim($request->request->getString($field));
             }
             $role = Role::tryFrom($values['role']);
+            $currency = Currency::tryFrom($values['rateCurrency']);
+            $rate = $currency instanceof Currency ? TypedAmount::read($values['rate'], $currency, $request->getLocale()) : false;
+            if (false === $rate) {
+                $errors['rate'] = $this->translator->trans('people.refused.rate');
+            }
             if (!$role instanceof Role) {
                 $errors['role'] = $this->translator->trans('people.refused.role');
-            } else {
+            }
+            if ([] === $errors && $role instanceof Role) {
                 try {
-                    $this->managing->change($id, $role, '' === $values['contactId'] ? null : $values['contactId']);
+                    $this->managing->change($id, $role, '' === $values['contactId'] ? null : $values['contactId'], $rate);
                     $this->addFlash('success', $this->translator->trans('people.flash.changed', ['name' => $membership->user()->displayName()]));
 
                     return $this->redirectToRoute(self::ROUTE);
@@ -179,6 +195,7 @@ final class PeopleController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'roles' => array_combine(array_map(static fn (Role $role): string => $role->value, Role::cases()), array_map(fn (Role $role): string => $this->translator->trans('role.'.$role->value), Role::cases())),
+            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
             'action' => $this->generateUrl('app_people_edit', ['id' => $id]),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }

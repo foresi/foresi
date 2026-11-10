@@ -320,6 +320,36 @@ final class PeopleTest extends WebTestCase
         $this->context->reset();
     }
 
+    public function testTheOwnerSetsTheHourlyRateOfAPerson(): void
+    {
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $membership = $this->membershipOf(self::MEMBER);
+        $this->signIn(self::OWNER);
+        $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
+        self::assertSame('', $crawler->filter('#rate')->attr('value'));
+
+        $crawler = $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['rate' => '-5']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Enter a rate, such as 1500 or 1500.50.', trim($crawler->filter('#rate-error')->text()));
+
+        $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['rate' => '900', 'rateCurrency' => 'USD']));
+        self::assertResponseRedirects('/settings/people');
+        $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
+        self::assertSame('900.00', $crawler->filter('#rate')->attr('value'));
+        self::assertSame('USD', $crawler->filter('#rate-currency option[selected]')->attr('value'));
+        $this->context->switchTo($this->tenant);
+        $rate = $this->em->find(Membership::class, $membership)?->hourlyRate();
+        $this->context->reset();
+        self::assertSame([90000, 'USD'], [$rate?->minor(), $rate?->currency()->value]);
+
+        // The people screen shows no rate, not even to the owner, and a member never reaches the form.
+        $this->client->request('GET', '/settings/people');
+        self::assertStringNotContainsString('900.00', (string) $this->client->getResponse()->getContent());
+        $this->signIn(self::MEMBER);
+        $this->client->request('GET', '/settings/people/'.$membership.'/edit');
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testTheLastOwnerIsNeitherDemotedNorDeactivated(): void
     {
         // A member, whose row actions carry the token of the screen.

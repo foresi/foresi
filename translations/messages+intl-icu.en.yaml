@@ -414,6 +414,9 @@ party:
     language: Document language
     payment_method: Payment method
     reverse_charge: Reverse charge
+    hourly_rate: Hourly rate
+    hourly_rate_help: Applies to the client's projects without a rate of their own.
+    hourly_rate_currency: Rate currency
   payment_method:
     bank_transfer: Bank transfer
     cash: Cash
@@ -455,6 +458,7 @@ party:
     expired: The form has expired. Check the details and send it again.
     due_days: Enter a whole number of days from 0 to 365.
     choice: Choose one of the options.
+    hourly_rate: Enter a rate, such as 1500 or 1500.50.
 firm:
   title: My firms
   new: New firm
@@ -2970,6 +2974,9 @@ people:
     contact_edit_help: Required for a guest; empty unlinks it
     contact_placeholder: Start typing a name
     contact_empty: No contact found
+    rate: Hourly rate
+    rate_help: Applies when neither the project nor the client has a rate
+    rate_currency: Currency
   column:
     name: Name
     email: E-mail
@@ -3023,6 +3030,7 @@ people:
     reactivated: The person can sign in to this organisation again.
     two_factor_reset: The two-factor sign-in is reset.
   refused:
+    rate: Enter a rate, such as 1500 or 1500.50.
     email: Enter a valid e-mail address.
     name: Enter the name of the person.
     role: Choose a team member or a guest.
@@ -3592,9 +3600,13 @@ work:
       description: Description
       billable: Bill time
       billable_help: New time on this project starts as billable.
+      rate: Hourly rate
+      rate_help: Comes before the rate of the client and of the person. Leave it empty for no project rate.
+      rate_currency: Currency
     error:
       name_required: Enter the name of the project.
       workflow: Choose one of the workflows.
+      rate: Enter a rate, such as 1500 or 1500.50.
   workflow:
     simple: Simple
     simple_text: To do, In progress, Done

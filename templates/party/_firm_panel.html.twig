@@ -3,6 +3,7 @@
     A panel of the contact form whose data can apply to all firms or to one. The header has the scope
     dropdown. Every scope is in the page and posts with the form; a firm without its own values shows
     the shared ones in a disabled fieldset, which posts nothing. The firm-scope controller switches.
+    The hourly rate of the invoicing panel is for an owner only.
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
 {% set itemClass = 'group flex min-h-control w-full cursor-pointer items-center gap-2 rounded-control border-0 bg-transparent px-2.5 py-1 text-left text-text hover:bg-head focus-visible:bg-head' %}
@@ -57,6 +58,11 @@
                             <input type="hidden" name="{{ prefix }}[sendReminders]" value="0">
                             <twig:Ui:Checkbox :name="prefix ~ '[sendReminders]'" :id="idPrefix ~ 'sendReminders'" :label="'reminder.contact.send'|trans" :help="'reminder.contact.send_help'|trans" :checked="(scope.values.sendReminders ?? '1') == '1'" />
                         </div>
+                        {% if rates|default(false) %}
+                            {# Only an owner sees the rate; a panel posted without it keeps the stored one. #}
+                            <twig:Ui:TextInput :name="prefix ~ '[hourlyRate]'" :id="idPrefix ~ 'hourlyRate'" inputmode="decimal" maxlength="20" :label="'party.firm_settings.hourly_rate'|trans" :help="'party.firm_settings.hourly_rate_help'|trans" :value="scope.values.hourlyRate|default('')" :error="scope.errors.hourlyRate|default(null)" autocomplete="off" />
+                            <twig:Ui:Select :name="prefix ~ '[hourlyRateCurrency]'" :id="idPrefix ~ 'hourlyRateCurrency'" :label="'party.firm_settings.hourly_rate_currency'|trans" :options="currencies" :value="scope.values.hourlyRateCurrency|default(scope.values.currency)" />
+                        {% endif %}
                     </div>
                 {% elseif panel.key == 'emails' %}
                     <div class="grid gap-3 sm:grid-cols-2">

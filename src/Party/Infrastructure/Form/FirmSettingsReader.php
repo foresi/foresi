@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
+use App\Identity\Application\OwnerCheck;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\EmailPurpose;
@@ -19,6 +20,8 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Money;
+use App\Shared\Infrastructure\Http\TypedAmount;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -28,7 +31,8 @@ use Symfony\Component\HttpFoundation\Request;
  * confirmed back to shared. Anything else leaves the panel alone, so a form
  * that showed shared values cannot delete an override set after it was rendered.
  * A panel posted without the reminder flag, such as from a form older than the
- * flag, keeps the flag stored for its scope.
+ * flag, keeps the flag stored for its scope. The hourly rate is the owner's: a
+ * panel posted without it, or by anyone else, keeps the rate stored for its scope.
  *
  * @phpstan-import-type Values from FirmSettingsSubmission
  */
@@ -36,7 +40,7 @@ final readonly class FirmSettingsReader
 {
     private const int MAX_DUE_DAYS = 365;
 
-    public function __construct(private ContactSettingsForFirm $settings)
+    public function __construct(private ContactSettingsForFirm $settings, private OwnerCheck $owner)
     {
     }
 
@@ -48,15 +52,17 @@ final readonly class FirmSettingsReader
     {
         $posted = $request->request->all('firms');
         $parsed = new FirmSettingsParsed();
+        $rates = $this->owner->isOwner();
+        $locale = $request->getLocale();
 
         $shared = $posted[FirmSettingsSubmission::SHARED] ?? null;
         if (\is_array($shared)) {
-            $this->shared($shared, $parsed, static fn (): bool => $party?->invoicingDefaults()->sendReminders ?? true);
+            $this->shared($shared, $parsed, static fn (): InvoicingDefaults => $party?->invoicingDefaults() ?? InvoicingDefaults::standard(), $rates, $locale);
         }
         foreach ($firms as $firm) {
             $row = $posted[$firm->id()] ?? null;
             if (\is_array($row) && \is_array($row['own'] ?? null)) {
-                $this->firm($firm->id(), $row, $parsed, fn (): bool => $party instanceof Party ? $this->settings->defaultsFor($party, $firm)->sendReminders : true);
+                $this->firm($firm->id(), $row, $parsed, fn (): InvoicingDefaults => $party instanceof Party ? $this->settings->defaultsFor($party, $firm) : InvoicingDefaults::standard(), $rates, $locale);
             }
         }
 
@@ -71,14 +77,14 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed>     $row
-     * @param \Closure(): bool $stored the reminder flag stored for the scope
+     * @param array<mixed>                  $row
+     * @param \Closure(): InvoicingDefaults $stored the defaults stored for the scope
      */
-    private function shared(array $row, FirmSettingsParsed $parsed, \Closure $stored): void
+    private function shared(array $row, FirmSettingsParsed $parsed, \Closure $stored, bool $rates, string $locale): void
     {
         $scope = FirmSettingsSubmission::SHARED;
         if (\array_key_exists('dueDays', $row)) {
-            $defaults = $this->defaults($scope, $row, $parsed, $stored);
+            $defaults = $this->defaults($scope, $row, $parsed, $stored, $rates, $locale);
             if ($defaults instanceof InvoicingDefaults) {
                 $parsed->defaults[$scope] = $defaults;
             }
@@ -101,10 +107,10 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed>     $row
-     * @param \Closure(): bool $stored the reminder flag stored for the scope
+     * @param array<mixed>                  $row
+     * @param \Closure(): InvoicingDefaults $stored the defaults stored for the scope
      */
-    private function firm(string $id, array $row, FirmSettingsParsed $parsed, \Closure $stored): void
+    private function firm(string $id, array $row, FirmSettingsParsed $parsed, \Closure $stored, bool $rates, string $locale): void
     {
         /** @var array<mixed> $own */
         $own = $row['own'];
@@ -117,7 +123,7 @@ final readonly class FirmSettingsReader
             $parsed->own[$id][$panel] = $setting;
             match ($panel) {
                 'roles' => $parsed->roles[$id] = $setting ? $this->roles($id, $row, $parsed) : null,
-                'invoicing' => $this->firmDefaults($id, $row, $setting, $parsed, $stored),
+                'invoicing' => $this->firmDefaults($id, $row, $setting, $parsed, $stored, $rates, $locale),
                 'emails' => $this->firmEmails($id, $row, $setting, $parsed),
                 default => $parsed->archived[$id] = $setting && $this->archived($id, $row, $parsed),
             };
@@ -125,12 +131,12 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed>     $row
-     * @param \Closure(): bool $stored
+     * @param array<mixed>                  $row
+     * @param \Closure(): InvoicingDefaults $stored
      */
-    private function firmDefaults(string $id, array $row, bool $setting, FirmSettingsParsed $parsed, \Closure $stored): void
+    private function firmDefaults(string $id, array $row, bool $setting, FirmSettingsParsed $parsed, \Closure $stored, bool $rates, string $locale): void
     {
-        $defaults = $setting ? $this->defaults($id, $row, $parsed, $stored) : null;
+        $defaults = $setting ? $this->defaults($id, $row, $parsed, $stored, $rates, $locale) : null;
         if ($defaults instanceof InvoicingDefaults || !$setting) {
             $parsed->defaults[$id] = $defaults;
         }
@@ -168,10 +174,11 @@ final readonly class FirmSettingsReader
     }
 
     /**
-     * @param array<mixed>     $row
-     * @param \Closure(): bool $stored the reminder flag stored for the scope, read only when the field is missing
+     * @param array<mixed>                  $row
+     * @param \Closure(): InvoicingDefaults $stored the defaults stored for the scope, read only when a field is missing
+     * @param bool                          $rates  whether the hourly rate is read; otherwise the stored one stays
      */
-    private function defaults(string $scope, array $row, FirmSettingsParsed $parsed, \Closure $stored): ?InvoicingDefaults
+    private function defaults(string $scope, array $row, FirmSettingsParsed $parsed, \Closure $stored, bool $rates, string $locale): ?InvoicingDefaults
     {
         $value = [
             'dueDays' => $this->text($row['dueDays'] ?? ''),
@@ -182,10 +189,18 @@ final readonly class FirmSettingsReader
             // A hidden "0" goes before the checkbox; a form without the field keeps what is stored.
             'sendReminders' => match ($row['sendReminders'] ?? null) {
                 '0' => '',
-                null => $stored() ? '1' : '',
+                null => $stored()->sendReminders ? '1' : '',
                 default => '1',
             },
         ];
+        if ($rates && \array_key_exists('hourlyRate', $row)) {
+            $value['hourlyRate'] = $this->text($row['hourlyRate']);
+            $value['hourlyRateCurrency'] = $this->text($row['hourlyRateCurrency'] ?? '');
+            $rateCurrency = Currency::tryFrom($value['hourlyRateCurrency']);
+            $rate = $rateCurrency instanceof Currency ? TypedAmount::read($value['hourlyRate'], $rateCurrency, $locale) : false;
+        } else {
+            $rate = $stored()->hourlyRate();
+        }
         $parsed->values[$scope] = $value + ($parsed->values[$scope] ?? []);
 
         $currency = Currency::tryFrom($value['currency']);
@@ -204,14 +219,17 @@ final readonly class FirmSettingsReader
         if (!$method instanceof PaymentMethod) {
             $problems['paymentMethod'] = 'party.error.choice';
         }
+        if (false === $rate) {
+            $problems['hourlyRate'] = 'party.error.hourly_rate';
+        }
         if ([] !== $problems) {
             $parsed->errors[$scope] = $problems + ($parsed->errors[$scope] ?? []);
 
             return null;
         }
-        \assert($currency instanceof Currency && $language instanceof DocumentLanguage && $method instanceof PaymentMethod);
+        \assert($currency instanceof Currency && $language instanceof DocumentLanguage && $method instanceof PaymentMethod && ($rate instanceof Money || null === $rate));
 
-        return new InvoicingDefaults((int) $value['dueDays'], $currency, $language, $method, '' !== $value['reverseCharge'], '' !== $value['sendReminders']);
+        return new InvoicingDefaults((int) $value['dueDays'], $currency, $language, $method, '' !== $value['reverseCharge'], '' !== $value['sendReminders'], $rate);
     }
 
     /**

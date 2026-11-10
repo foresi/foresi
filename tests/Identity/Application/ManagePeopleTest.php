@@ -52,7 +52,7 @@ final class ManagePeopleTest extends TestCase
         $this->parties->method('find')->willReturn(null);
         $this->expectRefusal('contact');
 
-        $this->service()->change(Id::generate(), Role::Member, Id::generate());
+        $this->service()->change(Id::generate(), Role::Member, Id::generate(), null);
     }
 
     public function testAnUnknownPersonIsRefused(): void

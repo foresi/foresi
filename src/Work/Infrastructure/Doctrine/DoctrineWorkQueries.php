@@ -481,6 +481,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $open,
             $open || [] !== $this->sections($project),
             $project->billsTimeByDefault(),
+            $this->owner->isOwner() ? $project->hourlyRate() : null,
         );
     }
 

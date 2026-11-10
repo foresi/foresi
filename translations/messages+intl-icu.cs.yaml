@@ -414,6 +414,9 @@ party:
     language: Jazyk dokladů
     payment_method: Způsob úhrady
     reverse_charge: Přenesená daňová povinnost
+    hourly_rate: Hodinová sazba
+    hourly_rate_help: Platí pro projekty klienta bez vlastní sazby.
+    hourly_rate_currency: Měna sazby
   payment_method:
     bank_transfer: Převodem
     cash: Hotově
@@ -455,6 +458,7 @@ party:
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
     due_days: Zadejte celý počet dní od 0 do 365.
     choice: Vyberte jednu z možností.
+    hourly_rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
 firm:
   title: Moje firmy
   new: Nová firma
@@ -2970,6 +2974,9 @@ people:
     contact_edit_help: Povinný pro hosta; prázdný kontakt odpojí
     contact_placeholder: Začněte psát jméno
     contact_empty: Žádný kontakt nenalezen
+    rate: Hodinová sazba
+    rate_help: Platí, když sazbu nemá projekt ani klient
+    rate_currency: Měna
   column:
     name: Jméno
     email: E-mail
@@ -3023,6 +3030,7 @@ people:
     reactivated: Člověk se do této organizace může znovu přihlásit.
     two_factor_reset: Dvoufázové přihlášení je obnovené.
   refused:
+    rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
     email: Zadejte platnou e-mailovou adresu.
     name: Zadejte jméno člověka.
     role: Vyberte člena týmu nebo hosta.
@@ -3592,9 +3600,13 @@ work:
       description: Popis
       billable: Fakturovat čas
       billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.
+      rate: Hodinová sazba
+      rate_help: Má přednost před sazbou klienta i člověka. Nevyplněná znamená, že projekt vlastní sazbu nemá.
+      rate_currency: Měna
     error:
       name_required: Zadejte název projektu.
       workflow: Vyberte jeden z postupů.
+      rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
   workflow:
     simple: Jednoduchý
     simple_text: K udělání, Probíhá, Hotovo
