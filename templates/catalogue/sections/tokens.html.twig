@@ -29,7 +29,7 @@
     </dl>
 {% endblock %}{% endembed %}
 {% embed 'catalogue/_state.html.twig' with {state: 'border'} %}{% block sample %}
-    {% for name, use in {'border-divider': 'divider · a line inside a surface', 'border-container': 'container · the edge of a surface', 'border-control-line': 'control-line · the edge of every control'} %}
+    {% for name, use in {'border-divider': 'divider · a line inside a surface', 'border-container': 'container · the edge of a surface and of buttons', 'border-control-line': 'control-line · the edge of a field'} %}
         <figure class="m-0 grid w-48 gap-2">
             <span class="block h-16 rounded-panel border-2 bg-white {{ name }}"></span>
             <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>

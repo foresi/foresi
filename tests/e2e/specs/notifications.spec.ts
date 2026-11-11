@@ -89,7 +89,8 @@ test.describe('the inbox', () => {
 
   test('done moves the row to the done tab, and back again', async ({ page }) => {
     await page.goto('/notifications');
-    await row(page, 'Set up the domain').getByRole('button', { name: 'Hotovo' }).click();
+    await row(page, 'Set up the domain').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Set up the domain').getByRole('menuitem', { name: 'Hotovo' }).click();
     await expect(row(page, 'Book the launch venue')).toBeVisible();
     await expect(row(page, 'Set up the domain')).toHaveCount(0);
 
@@ -97,7 +98,8 @@ test.describe('the inbox', () => {
     await expect(page).toHaveURL(/tab=done/);
     await expect(page.locator('[data-notifications-kept]')).toHaveText('Hotová oznámení se uchovávají 3 měsíce, pak se smažou.');
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Set up the domain']);
-    await row(page, 'Set up the domain').getByRole('button', { name: 'Vrátit do nových' }).click();
+    await row(page, 'Set up the domain').getByRole('button', { name: /Další akce/ }).click();
+    await row(page, 'Set up the domain').getByRole('menuitem', { name: 'Vrátit do nových' }).click();
     await expect(page.locator('[data-notifications-empty]')).toContainText('Zatím nic hotového');
 
     await page.goto('/notifications');

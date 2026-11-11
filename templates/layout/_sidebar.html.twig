@@ -14,7 +14,7 @@
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
 {% set orgClass = 'flex items-center gap-2.5 rounded-panel border border-container bg-white p-2.5 text-left no-underline' %}
 {% set orgContent %}
-    <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-bold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
+    <span class="grid size-8 shrink-0 place-items-center rounded-control bg-green font-semibold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
     <span class="min-w-0">
         <b class="line-clamp-2 block text-body leading-tight text-ink [overflow-wrap:anywhere]" title="{{ orgName }}">{{ orgName }}</b>
         {% if shell.organisation %}<small class="block truncate text-caption text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}

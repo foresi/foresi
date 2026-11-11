@@ -4,7 +4,7 @@
 {% set widthClass = this.widthClass(width) %}
 {% if row %}
     {# Label column, then the field column; help and error stay under the field. #}
-    {% set labelClass = 'text-small font-medium text-ink md:flex md:min-h-control md:items-center md:justify-end md:text-right' %}
+    {% set labelClass = 'text-small text-ink md:flex md:min-h-control md:items-center md:justify-end md:text-right' %}
     <div {{ attributes.defaults({class: 'grid content-start gap-1.5 md:grid-cols-[var(--spacing-label)_minmax(0,1fr)] md:gap-x-4'}) }} data-field-row>
         {% if plain %}
             <span id="{{ id }}-label" class="{{ labelClass }}">{{ label }}</span>
@@ -18,12 +18,12 @@
 {% else %}
     <div {{ attributes.defaults({class: 'grid content-start gap-1.5'}) }}>
         {% if inline %}
-            <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-small font-medium text-ink">{{ control|raw }}<span>{{ label }}{{ star }}</span></label>
+            <label for="{{ id }}" class="inline-flex min-h-6 items-center gap-2 text-small text-ink">{{ control|raw }}<span>{{ label }}{{ star }}</span></label>
         {% elseif plain %}
-            <span id="{{ id }}-label" class="text-small font-medium text-ink">{{ label }}</span>
+            <span id="{{ id }}-label" class="text-small text-ink">{{ label }}</span>
             <div class="min-w-0 {{ widthClass }}">{{ control|raw }}</div>
         {% else %}
-            <label for="{{ id }}" class="text-small font-medium text-ink">{{ label }}{{ star }}</label>
+            <label for="{{ id }}" class="text-small text-ink">{{ label }}{{ star }}</label>
             {% if widthClass %}<div class="min-w-0 {{ widthClass }}">{{ control|raw }}</div>{% else %}{{ control|raw }}{% endif %}
         {% endif %}
         {% if help %}<p id="{{ id }}-help" class="text-caption text-muted">{{ help }}</p>{% endif %}

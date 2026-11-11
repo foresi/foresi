@@ -189,7 +189,7 @@ final class TaskTrashControllerTest extends WebTestCase
         ], $cells);
         $restore = $rows->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Brief'))->filter('[data-row-actions] form')->first();
         self::assertSame('/tasks/'.$this->taskId('Brief').'/restore', $restore->attr('action'));
-        self::assertSame('Restore', $restore->filter('button')->attr('aria-label'));
+        self::assertSame('Restore', $restore->filter('button[role="menuitem"]')->text());
 
         $this->client->submit($restore->form());
 

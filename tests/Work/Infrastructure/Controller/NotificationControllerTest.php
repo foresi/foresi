@@ -83,10 +83,10 @@ final class NotificationControllerTest extends WebTestCase
         ], $cells);
         self::assertSame('Website · Jana Example: Mentioned you in a comment · 2026-11-20 10:00', trim($crawler->filter('[data-row-secondary]')->first()->text()));
         self::assertSame('/tasks/'.$this->taskId('Fix the form'), $crawler->filter('[data-notifications] [data-row-link]')->first()->attr('href'));
-        // Done, in the row, for this row; no prefetch on hover, which would read the row.
+        // Done, in the row menu, for this row; no prefetch on hover, which would read the row.
         $done = $crawler->filter('[data-notifications] tbody tr')->first()->filter('[data-row-actions] form')->first();
         self::assertSame('/notifications/'.$this->notificationId('Fix the form', 'owner').'/done', $done->attr('action'));
-        self::assertSame('Done', $done->filter('button')->attr('aria-label'));
+        self::assertSame('Done', $done->filter('button[role="menuitem"]')->text());
         self::assertSame('false', $crawler->filter('[data-notifications]')->attr('data-turbo-prefetch'));
         // The header reads them all; there are two unread, and the sidebar says so in its main group.
         self::assertSame('/notifications/read', $crawler->filter('[data-notifications-read-all]')->attr('action'));
@@ -110,7 +110,7 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('Done notifications are kept for 3 months, then deleted.', trim($crawler->filter('[data-notifications-kept]')->text()));
         $back = $crawler->filter('[data-notifications] [data-row-actions] form')->first();
         self::assertSame('/notifications/'.$this->notificationId('Old news', 'owner').'/undone?tab=done', $back->attr('action'));
-        self::assertSame('Back to new', $back->filter('button')->attr('aria-label'));
+        self::assertSame('Back to new', $back->filter('button[role="menuitem"]')->text());
         self::assertSame('done', $crawler->filter('[data-notifications-filter] input[name="tab"]')->attr('value'));
         self::assertSame('/notifications/read?tab=done', $crawler->filter('[data-notifications-read-all]')->attr('action'));
     }

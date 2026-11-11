@@ -56,9 +56,9 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         self::assertSame('failed', $this->messageRow($id)['status']);
         file_put_contents($path, $raw);
         $crawler = $this->page('/bank?tab=messages');
-        // In the row on a wide screen, in its menu on a phone.
+        // In the row menu.
         $retry = $this->row($crawler, $id)->filter('form[action="/bank/messages/'.$id.'/retry"]');
-        self::assertCount(2, $retry);
+        self::assertCount(1, $retry);
 
         $this->client->submit($retry->first()->form());
 

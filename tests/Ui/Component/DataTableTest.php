@@ -53,18 +53,19 @@ final class DataTableTest extends KernelTestCase
         return [['id' => 'a1', 'href' => '/invoices/a1/edit', 'cells' => ['name' => '20260001', 'email' => '1 Nov', 'balance' => '1 200'], 'actions' => $actions]];
     }
 
-    public function testRowActionsShowInTheRowAndInTheMenu(): void
+    public function testRowActionsShowInTheRowMenu(): void
     {
         $html = $this->render(['rows' => $this->rowsWithActions(), 'actionToken' => 'tok']);
 
         self::assertStringContainsString('data-row-actions', $html);
-        self::assertMatchesRegularExpression('~<a[^>]*href="/invoices/a1/edit"[^>]*aria-label="Edit"|<a[^>]*aria-label="Edit"[^>]*href="/invoices/a1/edit"~', $html);
+        self::assertMatchesRegularExpression('~<a href="/invoices/a1/edit" role="menuitem"[^>]*>Edit</a>~', $html);
         self::assertStringContainsString('name="_token" value="tok"', $html);
         self::assertStringContainsString('name="return" value="tab=trash"', $html);
         self::assertStringContainsString('data-turbo-confirm="Sure?"', $html);
-        self::assertStringContainsString('role="menuitem" tabindex="-1" data-phone-only data-turbo="false"', $html);
+        self::assertStringContainsString('role="menuitem" tabindex="-1" data-turbo="false"', $html);
+        self::assertStringNotContainsString('data-phone-only', $html);
         self::assertStringContainsString('data-dropdown-float-value="true"', $html);
-        self::assertSame(4, substr_count($html, 'role="menuitem"'), 'Everything is in the menu of a phone.');
+        self::assertSame(4, substr_count($html, 'role="menuitem"'), 'Every action is in the row menu.');
     }
 
     public function testAConfirmationNamesItsOutcomeAndADialogActionOpensInPlace(): void
@@ -94,9 +95,10 @@ final class DataTableTest extends KernelTestCase
             ['label' => 'Send again', 'href' => '/invoices/a1/send', 'method' => 'GET', 'icon' => 'send', 'dialog' => true],
         ])]));
 
-        $icon = $crawler->filter('a[aria-label="Send again"]');
-        self::assertNotNull($icon->attr('data-dialog'));
-        self::assertSame('dialog', $icon->attr('aria-haspopup'));
+        $item = $crawler->filter('[data-row-actions] [role="menu"] a[role="menuitem"][href="/invoices/a1/send"]');
+        self::assertSame('Send again', $item->text());
+        self::assertNotNull($item->attr('data-dialog'));
+        self::assertSame('dialog', $item->attr('aria-haspopup'));
     }
 
     public function testAConfirmationWithoutTitleThrows(): void

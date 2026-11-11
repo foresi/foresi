@@ -118,10 +118,13 @@ test.describe.serial('recurring list', () => {
     const opener = row(page, 'Domain renewal').getByRole('button', { name: /Další akce/ });
     await opener.focus();
     await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('menuitem', { name: 'Upravit', exact: true }).locator('visible=true')).toBeFocused();
+    await page.keyboard.press('ArrowDown');
     await expect(page.getByRole('menuitem', { name: 'Vystavit nyní', exact: true }).locator('visible=true')).toBeFocused();
     await page.keyboard.press('ArrowDown');
-    await expect(page.getByRole('menuitem', { name: 'Pozastavit', exact: true }).locator('visible=true')).toBeFocused();
-    await page.keyboard.press('Enter');
+    const pause = page.getByRole('menuitem', { name: 'Pozastavit', exact: true }).locator('visible=true');
+    await expect(pause).toBeFocused();
+    await pause.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Pozastavit pravidelnou fakturu' });
     await settled(dialog);
     await expect(dialog.getByRole('button', { name: 'Pozastavit', exact: true })).toBeFocused();
@@ -133,6 +136,8 @@ test.describe.serial('recurring list', () => {
 
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await expect(pause).toBeFocused();
     await page.keyboard.press('Enter');
     await settled(dialog);
     await page.keyboard.press('Enter');

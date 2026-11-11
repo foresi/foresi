@@ -11,7 +11,7 @@
             {%- if not loop.first %}<span aria-hidden="true">·</span>{% endif -%}
             <span class="min-w-0 max-w-[14rem] truncate" title="{{ sample }}">{{ sample }}</span>
         {%- else -%}
-            <span class="text-control-line" aria-hidden="true">—</span>
+            <span class="text-muted" aria-hidden="true">—</span>
         {%- endfor -%}
     </p>
     <div class="relative col-span-2 row-start-3 mt-1 sm:col-span-1 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:mt-0">

@@ -178,7 +178,7 @@ final class RecurringListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=paused');
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertStringContainsString('Paused one', $crawler->filter('tbody tr')->text());
-        self::assertSame(['Resume', 'End', 'Delete'], $this->menu($crawler->filter('tbody tr')));
+        self::assertSame(['Edit', 'Resume', 'End', 'Delete'], $this->menu($crawler->filter('tbody tr')));
     }
 
     public function testTheMenuOffersWhatTheStateAllows(): void
@@ -188,7 +188,7 @@ final class RecurringListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices/recurring');
 
-        self::assertSame(['Issue now', 'Pause', 'End', 'Delete'], $this->menu($crawler->filter('tbody tr')));
+        self::assertSame(['Edit', 'Issue now', 'Pause', 'End', 'Delete'], $this->menu($crawler->filter('tbody tr')));
     }
 
     public function testPauseStoresPaused(): void
@@ -272,7 +272,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertSame('ended', $row['state']);
         self::assertNull($row['next_occurrence']);
         $crawler = $this->client->request('GET', '/invoices/recurring?tab=ended');
-        self::assertSame(['Delete'], $this->menu($crawler->filter('tbody tr')));
+        self::assertSame(['Edit', 'Delete'], $this->menu($crawler->filter('tbody tr')));
     }
 
     public function testDeleteRemovesANeverIssuedTemplate(): void
@@ -607,7 +607,7 @@ final class RecurringListControllerTest extends WebTestCase
      */
     private function menu(Crawler $row): array
     {
-        return $row->filter('[role="menu"] [role="menuitem"]:not([data-phone-only])')->each(static fn (Crawler $item): string => $item->text());
+        return $row->filter('[role="menu"] [role="menuitem"]')->each(static fn (Crawler $item): string => $item->text());
     }
 
     /**

@@ -46,7 +46,7 @@
             {% endif %}
         </div>
         {% if uploadUrl %}<p id="{{ id }}-upload-error" hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-markdown-editor-target="uploadError" data-markdown-editor-upload-error></p>{% endif %}
-        <div id="{{ id }}-preview" role="tabpanel" aria-labelledby="{{ id }}-preview-tab" tabindex="0" hidden class="rounded-control border border-control-line bg-white px-2.5 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green" data-markdown-editor-target="previewPanel" data-markdown-editor-preview>
+        <div id="{{ id }}-preview" role="tabpanel" aria-labelledby="{{ id }}-preview-tab" tabindex="0" hidden class="rounded-control border border-container bg-white px-2.5 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green" data-markdown-editor-target="previewPanel" data-markdown-editor-preview>
             <p hidden class="m-0 text-muted" data-markdown-editor-target="nothing">{{ 'ui.markdown_editor.nothing_to_preview'|trans }}</p>
             <p hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-markdown-editor-target="failed">{{ 'ui.dialog.failed'|trans }}</p>
             <div class="markdown [overflow-wrap:anywhere]" data-markdown-editor-target="rendered"></div>
