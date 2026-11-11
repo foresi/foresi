@@ -132,7 +132,11 @@
             "@php bin/console cache:warmup --env=dev --quiet",
             "phpstan analyse --memory-limit=1G --ansi"
         ],
-        "deptrac": "deptrac analyse --no-progress --ansi",
+        "modules:check": "@php bin/console app:modules:deptrac --check",
+        "deptrac": [
+            "deptrac analyse --no-progress --ansi",
+            "deptrac analyse --config-file=deptrac.modules.yaml --no-progress --ansi"
+        ],
         "phpunit": [
             "Composer\\Config::disableProcessTimeout",
             "@php -d max_execution_time=0 vendor/bin/phpunit"
@@ -151,6 +155,7 @@
             "@rector",
             "@lint",
             "@phpstan",
+            "@modules:check",
             "@deptrac"
         ],
         "qa": [
