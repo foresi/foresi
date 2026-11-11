@@ -1,0 +1,22 @@
+{
+    "name": "foresi/invoicing",
+    "description": "Issued invoices, credit notes and their delivery.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/ui": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "invoicing",
+            "kind": "module",
+            "namespace": "App\\Invoicing\\",
+            "optional": []
+        }
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "name": "foresi/attachment",
+    "description": "Files attached to records.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "attachment",
+            "kind": "core",
+            "namespace": "App\\Attachment\\",
+            "optional": []
+        }
+    }
+}

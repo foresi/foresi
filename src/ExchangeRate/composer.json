@@ -1,0 +1,17 @@
+{
+    "name": "foresi/exchange-rate",
+    "description": "Daily exchange rates.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/tenancy": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "exchange-rate",
+            "kind": "module",
+            "namespace": "App\\ExchangeRate\\",
+            "optional": []
+        }
+    }
+}

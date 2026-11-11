@@ -1,0 +1,24 @@
+{
+    "name": "foresi/purchasing",
+    "description": "Received documents from suppliers.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/attachment": "*",
+        "foresi/audit": "*",
+        "foresi/exchange-rate": "*",
+        "foresi/identity": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/ui": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "purchasing",
+            "kind": "module",
+            "namespace": "App\\Purchasing\\",
+            "optional": []
+        }
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "name": "foresi/tenancy",
+    "description": "Organisations and the tenant of each request.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/shared": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "tenancy",
+            "kind": "core",
+            "namespace": "App\\Tenancy\\",
+            "optional": []
+        }
+    }
+}

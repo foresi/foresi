@@ -1,0 +1,17 @@
+{
+    "name": "foresi/ui",
+    "description": "Screen components, layout and navigation.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/shared": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "ui",
+            "kind": "ui",
+            "namespace": "App\\Ui\\",
+            "optional": []
+        }
+    }
+}

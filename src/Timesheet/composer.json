@@ -1,0 +1,23 @@
+{
+    "name": "foresi/timesheet",
+    "description": "Time tracking against tasks.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/invoicing": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/work": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "timesheet",
+            "kind": "module",
+            "namespace": "App\\Timesheet\\",
+            "optional": []
+        }
+    }
+}

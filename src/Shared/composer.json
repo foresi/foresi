@@ -1,0 +1,14 @@
+{
+    "name": "foresi/shared",
+    "description": "Shared kernel: ids, money, mail and infrastructure.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "extra": {
+        "foresi": {
+            "module": "shared",
+            "kind": "core",
+            "namespace": "App\\Shared\\",
+            "optional": []
+        }
+    }
+}

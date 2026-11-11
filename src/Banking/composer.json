@@ -1,0 +1,23 @@
+{
+    "name": "foresi/banking",
+    "description": "Bank accounts, statements and payment matching.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/invoicing": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/ui": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "banking",
+            "kind": "module",
+            "namespace": "App\\Banking\\",
+            "optional": []
+        }
+    }
+}
