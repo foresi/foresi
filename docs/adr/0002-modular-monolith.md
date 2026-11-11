@@ -1,6 +1,6 @@
 # 2. Modular monolith
 
-* Status: accepted
+* Status: accepted, superseded in part by [ADR 0029](0029-module-registry.md) (module manifests and the module registry)
 * Date: 2026-10-29
 
 ## Context and problem statement

@@ -45,6 +45,7 @@ CI splits the run so that it takes minutes, with the same thresholds. The `Tests
 - Country-specific terms get international names in the core. Country-specific rules live in country modules.
 - Money is never a `float`.
 - Architecture rules are recorded in [docs/adr](docs/adr). A change that conflicts with an ADR needs a new ADR.
+- A module declares the modules it uses in its own `src/<Module>/composer.json` (ADR 0029). When you add a dependency between modules, add it to `require` (or to `extra.foresi.optional`), run `composer update "foresi/*"` and `bin/console app:modules:deptrac`, and commit the manifest, the lock and `deptrac.modules.yaml`.
 - Add or update tests with every behaviour change. Write the test first when you can.
 
 ## Commits and pull requests
