@@ -50,19 +50,17 @@ final readonly class VatRecap
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VAT_RECAP_TOO_LONG);
         }
         $rows = [];
-        $seen = [];
         foreach ($lines as $line) {
             self::refuseUnfit($line, $currency, $treatment);
             $percent = $line->rate->percent();
-            if (isset($seen[$percent])) {
+            if (isset($rows[$percent])) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VAT_RECAP_DUPLICATE_RATE);
             }
-            $seen[$percent] = true;
             $baseCzk = $rate?->toCzk($line->base);
-            $rows[] = new VatRecapRow($line->rate, $line->base, $line->vat, $line->statedVatCzk, $baseCzk, self::vatCzkOf($line, $baseCzk, $rate, $treatment));
+            $rows[$percent] = new VatRecapRow($line->rate, $line->base, $line->vat, $line->statedVatCzk, $baseCzk, self::vatCzkOf($line, $baseCzk, $rate, $treatment));
         }
 
-        return new self($currency, $rows);
+        return new self($currency, array_values($rows));
     }
 
     /**

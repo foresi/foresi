@@ -34,7 +34,7 @@ final readonly class VatRate
         $whole = ltrim($whole, '0');
         $fraction = rtrim($fraction, '0');
         $whole = '' === $whole ? '0' : $whole;
-        if ((int) $whole > 100 || ('100' === $whole && '' !== $fraction)) {
+        if ($whole > 100 || ('100' === $whole && '' !== $fraction)) {
             throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VAT_RATE);
         }
 

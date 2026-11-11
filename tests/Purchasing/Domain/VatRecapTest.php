@@ -14,6 +14,7 @@ use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Purchasing\Domain\VatRate;
 use App\Purchasing\Domain\VatRecap;
 use App\Purchasing\Domain\VatRecapLine;
+use App\Purchasing\Domain\VatRecapRow;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -86,6 +87,24 @@ final class VatRecapTest extends TestCase
         self::assertSame(0, $recap->vatCzk()?->minor());
     }
 
+    public function testANonVatDocumentHasNoVatInCzkWithoutARate(): void
+    {
+        $recap = VatRecap::of([$this->line('0', 10_000, 0, Currency::EUR)], Currency::EUR, null, PurchaseTaxTreatment::NotVatDocument);
+
+        self::assertNull($recap->baseCzk());
+        self::assertSame(0, $recap->vatCzk()?->minor());
+    }
+
+    public function testAsManyRowsAsTheLimitAreTaken(): void
+    {
+        $lines = array_map(fn (int $rate): VatRecapLine => $this->line((string) $rate, 100, 0, Currency::CZK), range(1, VatRecap::MAX_ROWS));
+
+        $recap = VatRecap::of($lines, Currency::CZK, ExchangeRate::one(), PurchaseTaxTreatment::Domestic);
+
+        self::assertCount(VatRecap::MAX_ROWS, $recap->rows());
+        self::assertSame(['1', '2', '3', '4', '5', '6', '7', '8'], array_map(static fn (VatRecapRow $row): string => $row->rate->percent(), $recap->rows()));
+    }
+
     public function testItRoundTripsThroughItsStoredForm(): void
     {
         $recap = VatRecap::of([$this->line('21', 2_000, 0, Currency::USD)], Currency::USD, ExchangeRate::of('23.456'), PurchaseTaxTreatment::EuService);
@@ -120,6 +139,10 @@ final class VatRecapTest extends TestCase
         yield 'a stated amount on a CZK document' => [[$line('21', 100, 21, Currency::CZK, Money::ofMinor(21, Currency::CZK))], Currency::CZK, PurchaseTaxTreatment::Domestic, ReceivedDocumentRefused::STATED_VAT_CZK];
         yield 'a stated amount on self-assessed VAT' => [[$line('21', 100, 0, Currency::EUR, Money::ofMinor(500, Currency::CZK))], Currency::EUR, PurchaseTaxTreatment::EuService, ReceivedDocumentRefused::STATED_VAT_CZK];
         yield 'a stated amount not in CZK' => [[$line('21', 100, 21, Currency::EUR, Money::ofMinor(500, Currency::USD))], Currency::EUR, PurchaseTaxTreatment::Domestic, ReceivedDocumentRefused::VAT_RECAP_CURRENCY];
+        yield 'a base in another currency' => [[new VatRecapLine(VatRate::of('21'), Money::ofMinor(100, Currency::EUR), Money::ofMinor(21, Currency::CZK))], Currency::CZK, PurchaseTaxTreatment::Domestic, ReceivedDocumentRefused::VAT_RECAP_CURRENCY];
+        yield 'a VAT in another currency' => [[new VatRecapLine(VatRate::of('21'), Money::ofMinor(100, Currency::CZK), Money::ofMinor(21, Currency::EUR))], Currency::CZK, PurchaseTaxTreatment::Domestic, ReceivedDocumentRefused::VAT_RECAP_CURRENCY];
+        yield 'a rate on no VAT document' => [[$line('21', 100, 0, Currency::CZK)], Currency::CZK, PurchaseTaxTreatment::NotVatDocument, ReceivedDocumentRefused::VAT_ON_NON_VAT_DOCUMENT];
+        yield 'VAT at no rate on no VAT document' => [[$line('0', 100, 21, Currency::CZK)], Currency::CZK, PurchaseTaxTreatment::NotVatDocument, ReceivedDocumentRefused::VAT_ON_NON_VAT_DOCUMENT];
         yield 'too many rows' => [array_map(static fn (int $rate): VatRecapLine => $line((string) $rate, 100, 0, Currency::CZK), range(1, VatRecap::MAX_ROWS + 1)), Currency::CZK, PurchaseTaxTreatment::Domestic, ReceivedDocumentRefused::VAT_RECAP_TOO_LONG];
     }
 
@@ -143,6 +166,7 @@ final class VatRecapTest extends TestCase
         yield 'zero' => ['0', '0', '0.0000'];
         yield 'a hundred' => ['100', '100', '1.0000'];
         yield 'leading zeros' => ['05', '5', '0.0500'];
+        yield 'spaces around' => [' 21 ', '21', '0.2100'];
     }
 
     #[DataProvider('badRates')]
@@ -158,6 +182,8 @@ final class VatRecapTest extends TestCase
     public static function badRates(): iterable
     {
         yield 'above a hundred' => ['100.5'];
+        yield 'a hundred and one' => ['101'];
+        yield 'a hundred and a bit' => ['100.01'];
         yield 'negative' => ['-21'];
         yield 'three decimals' => ['21.005'];
         yield 'text' => ['twenty'];
@@ -179,6 +205,16 @@ final class VatRecapTest extends TestCase
         yield 'trailing zeros' => ['24.3350', '24.335'];
         yield 'one' => ['1.000', '1'];
         yield 'below one' => ['0.0425', '0.0425'];
+        yield 'spaces around' => [' 24.335 ', '24.335'];
+        yield 'leading zeros' => ['007.50', '7.5'];
+        yield 'a whole number' => ['025', '25'];
+    }
+
+    public function testACzkAmountIsNotConverted(): void
+    {
+        self::assertSame(12_345, ExchangeRate::of('25')->toCzk(Money::ofMinor(12_345, Currency::CZK))->minor());
+        self::assertSame(Currency::CZK, ExchangeRate::of('25')->toCzk(Money::ofMinor(100, Currency::EUR))->currency());
+        self::assertSame(2_500, ExchangeRate::of('25')->toCzk(Money::ofMinor(100, Currency::EUR))->minor());
     }
 
     #[DataProvider('badExchangeRates')]

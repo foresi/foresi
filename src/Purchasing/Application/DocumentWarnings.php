@@ -90,7 +90,7 @@ final readonly class DocumentWarnings
         if ($latest->format('Y-m-d') < $today) {
             return new ReceivedDocumentWarning(ReceivedDocumentWarning::DEDUCTION_DEADLINE_PASSED, date: $latest);
         }
-        $near = $this->clock->today()->modify('+'.ReceivedDocumentWarning::DEADLINE_DAYS.' days')->format('Y-m-d');
+        $near = $this->clock->today()->add(new \DateInterval(\sprintf('P%dD', ReceivedDocumentWarning::DEADLINE_DAYS)))->format('Y-m-d');
 
         return $latest->format('Y-m-d') <= $near ? new ReceivedDocumentWarning(ReceivedDocumentWarning::DEDUCTION_DEADLINE_NEAR, date: $latest) : null;
     }

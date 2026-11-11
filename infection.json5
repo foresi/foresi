@@ -73,7 +73,9 @@
             "App\\Invoicing\\Application\\InvoiceHistory::minor::133",
             "App\\Invoicing\\Application\\InvoiceHistory::minor::135",
             // Equivalent mutant: the sums of a filter add up all its pages, whatever page it names.
-            "App\\Invoicing\\Application\\InvoicingOverview::month::96"
+            "App\\Invoicing\\Application\\InvoicingOverview::month::96",
+            // Equivalent mutant: the party search reads page 0 as its first page.
+            "App\\Purchasing\\Application\\Query\\SupplierChoices::search::43"
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [

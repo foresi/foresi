@@ -117,6 +117,26 @@ final class StoredExchangeRatesTest extends TestCase
         self::assertSame(['2026-11-10'], $world->source->asked);
     }
 
+    public function testAFutureDateIsCutToTheStartOfTodayInPrague(): void
+    {
+        $world = new RateWorld('2026-11-10 16:45:30');
+
+        $rate = $world->rates->rateOn('EUR', new \DateTimeImmutable('2026-12-24 18:00:00'));
+        $crown = $world->rates->rateOn('CZK', new \DateTimeImmutable('2026-12-24 18:00:00'));
+
+        self::assertSame('2026-11-10 00:00:00 Europe/Prague', $rate->validOn->format('Y-m-d H:i:s e'));
+        self::assertSame('2026-11-10 00:00:00 Europe/Prague', $crown->validOn->format('Y-m-d H:i:s e'));
+    }
+
+    public function testADateInThePastKeepsItsOwnStartOfDay(): void
+    {
+        $world = new RateWorld('2026-11-10 16:45:30');
+
+        $rate = $world->rates->rateOn('EUR', new \DateTimeImmutable('2026-11-06 18:00:00'));
+
+        self::assertSame('2026-11-06 00:00:00 Europe/Prague', $rate->validOn->format('Y-m-d H:i:s e'));
+    }
+
     public function testTheCzechCrownIsOneForOneAndNeverFetched(): void
     {
         $world = new RateWorld('2026-11-12 10:00:00');

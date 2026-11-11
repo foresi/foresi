@@ -77,18 +77,17 @@ final readonly class ReceivedDocumentHistory
     {
         $groups = [];
         $last = null;
-        $index = -1;
         foreach ($entries as $entry) {
             $key = $entry->correlationId() ?? $entry->occurredAt()->format('U.u');
             if ($key === $last) {
-                $groups[$index][] = $entry;
+                $groups[array_key_last($groups)][] = $entry;
                 continue;
             }
-            $groups[++$index] = [$entry];
+            $groups[] = [$entry];
             $last = $key;
         }
 
-        return array_values($groups);
+        return $groups;
     }
 
     /**

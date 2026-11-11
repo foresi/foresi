@@ -47,11 +47,8 @@ final readonly class ReceivedDocumentDetails
         $file = null === $fileId ? null : $this->attachments->get($fileId);
         $correctable = $this->queries->correctable($document->firm()->id(), $document->id(), self::CORRECTABLE);
         $originalId = $document->originalDocumentId();
-        $corrected = null === $originalId ? null : array_find($correctable, static fn (ReceivedDocumentRow $row): bool => $row->id === $originalId);
-        if (null !== $originalId && !$corrected instanceof ReceivedDocumentRow) {
-            // Older than the documents offered, or in the trash since.
-            $corrected = $this->row($originalId);
-        }
+        // The original may be older than the documents offered, or in the trash since, so it is read on its own.
+        $corrected = null === $originalId ? null : $this->row($originalId);
 
         return new ReceivedDocumentDetail(
             $document,

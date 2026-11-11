@@ -98,7 +98,7 @@ final readonly class ReceivedDocumentContents
         if (!$supplier instanceof Party) {
             return SupplierSnapshot::none();
         }
-        if ($current instanceof ReceivedDocument && $current->isRecorded() && $current->supplierParty()?->id() === $supplier->id()) {
+        if ($current instanceof ReceivedDocument && $current->isRecorded() && $current->supplierParty() === $supplier) {
             return $current->supplier();
         }
 

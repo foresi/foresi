@@ -39,9 +39,8 @@ final readonly class DeductionDates
         if (!$received instanceof \DateTimeImmutable) {
             return new self(null, null);
         }
-        $later = $received->format('Y-m-d') > $taxPoint->format('Y-m-d') ? $received : $taxPoint;
 
-        return new self(self::monthOf($later), new \DateTimeImmutable(((int) $taxPoint->format('Y') + 2).'-12-31'));
+        return new self(self::monthOf(max($received, $taxPoint)), new \DateTimeImmutable($taxPoint->modify('+2 years')->format('Y-12-31')));
     }
 
     private static function monthOf(\DateTimeImmutable $date): \DateTimeImmutable

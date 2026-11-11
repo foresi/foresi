@@ -35,6 +35,22 @@ final class CnbDailyFixTest extends TestCase
         self::assertSame('1.202', $quotes['IDR']->rate);
     }
 
+    public function testEveryQuoteKnowsItsCurrency(): void
+    {
+        foreach (CnbDailyFix::parse($this->fixture('cnb-2026-11-10.txt'))->quotes as $code => $quote) {
+            self::assertSame($code, $quote->currency);
+        }
+    }
+
+    public function testAFileWithOneRateIsRead(): void
+    {
+        $published = CnbDailyFix::parse("10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|EUR|24,335");
+
+        self::assertSame(['EUR'], array_keys($published->quotes));
+        self::assertSame('EUR', $published->quotes['EUR']->currency);
+        self::assertSame(1, $published->quotes['EUR']->amount);
+    }
+
     public function testAFileOfAPreviousDayKeepsItsOwnDate(): void
     {
         self::assertSame('2026-11-06', CnbDailyFix::parse($this->fixture('cnb-2026-11-06.txt'))->publishedOn->format('Y-m-d'));
@@ -67,6 +83,10 @@ final class CnbDailyFixTest extends TestCase
         yield 'a short line' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|EUR\n"];
         yield 'a zero amount' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|0|EUR|24,335\n"];
         yield 'a rate with text' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|EUR|n/a\n"];
+        yield 'a date with a prefix' => ["on 10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|EUR|24,335\n"];
+        yield 'an amount with a prefix' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|x1|EUR|24,335\n"];
+        yield 'a code with a prefix' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|xEUR|24,335\n"];
+        yield 'a rate with a prefix' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|EUR|x24,335\n"];
         yield 'a lower case code' => ["10.11.2026 #216\nzemě|měna|množství|kód|kurz\nEMU|euro|1|eur|24,335\n"];
     }
 

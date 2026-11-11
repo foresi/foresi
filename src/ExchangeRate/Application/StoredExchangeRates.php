@@ -40,9 +40,11 @@ final readonly class StoredExchangeRates implements ExchangeRates
         }
         if (!$this->store->has($date)) {
             $published = $this->fetching->fetch($date);
-            $quote = $published?->quotes[$currency] ?? null;
-            if ($published instanceof PublishedRates && $quote instanceof Quote) {
-                return new ExchangeRate($currency, $quote->amount, $quote->rate, $date, $published->publishedOn);
+            if ($published instanceof PublishedRates) {
+                $quote = $published->quotes[$currency] ?? null;
+                if ($quote instanceof Quote) {
+                    return new ExchangeRate($currency, $quote->amount, $quote->rate, $date, $published->publishedOn);
+                }
             }
         }
 
@@ -58,6 +60,6 @@ final readonly class StoredExchangeRates implements ExchangeRates
         $today = $this->clock->now()->setTimezone($zone)->setTime(0, 0);
         $day = new \DateTimeImmutable($date->format('Y-m-d'), $zone);
 
-        return $day > $today ? $today : $day;
+        return min($day, $today);
     }
 }

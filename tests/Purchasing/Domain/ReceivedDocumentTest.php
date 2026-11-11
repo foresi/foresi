@@ -27,6 +27,7 @@ use App\Purchasing\Domain\VatRecapLine;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
+use Doctrine\ORM\Mapping as ORM;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -258,6 +259,112 @@ final class ReceivedDocumentTest extends TestCase
     public function testOnlyADomesticReverseChargeTakesASupplyCode(): void
     {
         $this->assertRefused(ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED, fn (): ReceivedDocument => $this->recorded($this->content(supplyCode: '4')));
+    }
+
+    public function testEveryChangeRaisesTheVersionByOne(): void
+    {
+        $document = $this->draft();
+        self::assertSame(1, $document->version());
+
+        $document->saveDraft($this->content());
+        self::assertSame(2, $document->version());
+
+        $document->attachOriginal(Id::generate());
+        self::assertSame(3, $document->version());
+
+        $document->assignEvidenceNumber('R20260001');
+        $document->record($this->content(), null, new \DateTimeImmutable(self::AT));
+        self::assertSame(4, $document->version());
+
+        $document->trash(new \DateTimeImmutable(self::AT), null, 'Uploaded twice');
+        self::assertSame(5, $document->version());
+
+        $document->restore();
+        self::assertSame(6, $document->version());
+    }
+
+    public function testATrashedDraftTakesNoChange(): void
+    {
+        $document = $this->draft();
+        $document->trash(new \DateTimeImmutable(self::AT), null, 'Uploaded twice');
+
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $document->saveDraft($this->content()));
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, static fn () => $document->assignEvidenceNumber('R20260001'));
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, static fn () => $document->attachOriginal(Id::generate()));
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $document->checkRecordable($this->content()));
+    }
+
+    public function testCheckRecordableRefusesWhatNeverFits(): void
+    {
+        $this->assertRefused(ReceivedDocumentRefused::VARIABLE_SYMBOL, fn () => $this->draft()->checkRecordable($this->content(variableSymbol: 'INV-1')));
+        $this->assertRefused(ReceivedDocumentRefused::TOTAL_MISSING, fn () => $this->draft()->checkRecordable($this->content(total: null)));
+    }
+
+    public function testTheEvidenceNumberMayBeAsLongAsTheLimit(): void
+    {
+        $document = $this->draft();
+        $document->assignEvidenceNumber(str_repeat('1', ReceivedDocument::MAX_EVIDENCE_NUMBER_LENGTH));
+
+        self::assertSame(ReceivedDocument::MAX_EVIDENCE_NUMBER_LENGTH, \strlen((string) $document->evidenceNumber()));
+        $this->assertRefused(ReceivedDocumentRefused::EVIDENCE_NUMBER_INVALID, fn () => $this->draft()->assignEvidenceNumber(str_repeat('1', ReceivedDocument::MAX_EVIDENCE_NUMBER_LENGTH + 1)));
+    }
+
+    public function testTheReasonOfTheTrashCountsCharactersNotBytes(): void
+    {
+        $document = $this->draft();
+        $reason = str_repeat('é', ReceivedDocument::MAX_REASON_LENGTH);
+
+        $document->trash(new \DateTimeImmutable(self::AT), null, $reason);
+
+        self::assertSame($reason, $document->deletedReason());
+    }
+
+    public function testTheSupplierNumberAndTheVariableSymbolAreTrimmed(): void
+    {
+        $number = str_repeat('é', ReceivedDocument::MAX_SUPPLIER_NUMBER_LENGTH);
+        $document = $this->draft();
+        $document->saveDraft($this->content(variableSymbol: ' 2026123 ', supplierNumber: '  '.$number.' '));
+
+        self::assertSame($number, $document->supplierNumber());
+        self::assertSame('2026123', $document->variableSymbol());
+    }
+
+    public function testTheTaxPointTheDocumentNamesDecidesTheDeadline(): void
+    {
+        $document = $this->recorded($this->content(
+            issue: new \DateTimeImmutable('2026-01-05'),
+            taxPoint: new \DateTimeImmutable('2025-12-20'),
+            received: new \DateTimeImmutable('2026-01-10'),
+        ));
+
+        self::assertSame('2025-12-20', $document->taxPointDate()?->format('Y-m-d'));
+        self::assertSame('2026-01-01', $document->deductionPeriod()?->format('Y-m-d'));
+        self::assertSame('2027-12-31', $document->latestDeductionDate()?->format('Y-m-d'));
+    }
+
+    public function testADraftWithoutATaxPointUsesTheIssueDateForTheDeduction(): void
+    {
+        $document = $this->draft();
+        $document->saveDraft($this->content(taxPoint: null));
+
+        self::assertNull($document->taxPointDate());
+        self::assertSame('2026-11-01', $document->deductionPeriod()?->format('Y-m-d'));
+        self::assertSame('2028-12-31', $document->latestDeductionDate()?->format('Y-m-d'));
+    }
+
+    public function testTheCreatorMayBeUnknown(): void
+    {
+        $column = new \ReflectionProperty(ReceivedDocument::class, 'createdBy')->getAttributes(ORM\Column::class);
+
+        self::assertCount(1, $column);
+        self::assertTrue($column[0]->newInstance()->nullable);
+    }
+
+    public function testTheTenantIsKnownOnlyOncePersisted(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        $this->draft()->tenantId();
     }
 
     /**
