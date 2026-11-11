@@ -10,9 +10,11 @@
         <a href="{{ path('app_notification_settings') }}" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}" data-user-menu-notifications>
             {{ ux_icon('lucide:bell-ring', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.notifications'|trans }}</span>
         </a>
-        <span role="menuitem" tabindex="-1" aria-disabled="true" class="{{ itemClass }} cursor-default opacity-60 {{ focus }}">
-            {{ ux_icon('lucide:key-round', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.api_access'|trans }}</span><span class="ml-auto text-caption text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
-        </span>
+        {% if shell.organisation and shell.organisation.role.isStaff %}
+        <a href="{{ path('app_api_tokens') }}" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
+            {{ ux_icon('lucide:key-round', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.api_access'|trans }}</span>
+        </a>
+        {% endif %}
         <form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
             <input type="hidden" name="locale" value="{{ shell.otherLocale }}">

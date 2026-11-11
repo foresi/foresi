@@ -244,6 +244,18 @@ deptrac:
               value: ^Symfony\\Component\\Uid\\
             - type: classLike
               value: ^Symfony\\Component\\HtmlSanitizer\\
+            - type: classLike
+              value: ^Symfony\\AI\\McpBundle\\
+    # The MCP SDK and its bundle, pre-1.0: only the adapter in the shared infrastructure may use them (ADR 0027).
+    - name: VendorMcp
+      collectors:
+        - type: classLike
+          value: ^(Mcp|Symfony\\AI\\McpBundle)\\
+    # OpenAPI attributes of the REST endpoints; only infrastructure may use them.
+    - name: VendorOpenApi
+      collectors:
+        - type: classLike
+          value: ^(OpenApi|Nelmio\\ApiDocBundle)\\
     # symfony/uid is an internal detail of App\Shared\Domain\Id only.
     - name: VendorUid
       collectors:
@@ -319,6 +331,8 @@ deptrac:
       - SharedApplication
       - VendorSymfony
       - VendorMonolog
+      - VendorMcp
+      - VendorOpenApi
       - VendorCommonMark
       - VendorHtmlSanitizer
       - VendorUid
@@ -371,6 +385,7 @@ deptrac:
       - TenancyDomain
       - PartyApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -481,6 +496,7 @@ deptrac:
       - IdentityDomain
       - IdentityApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping
@@ -545,6 +561,7 @@ deptrac:
       - InvoicingDomain
       - InvoicingApplication
       - VendorSymfony
+      - VendorOpenApi
       - VendorUid
       - VendorDoctrine
       - VendorDoctrineOrmMapping

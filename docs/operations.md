@@ -40,7 +40,7 @@ files. Never put a production secret in a committed file.
 | `APP_SECRET` | **yes** | Signs the public links of sent documents and the links that stop notification e-mails, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
 | `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
-| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`. |
+| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
@@ -50,6 +50,7 @@ files. Never put a production secret in a committed file.
 | `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
 | `SYSTEM_MAILER_DSN` | **yes** (password) | The mailer of the installation's own mail, such as invitations, for example `smtp://user:pass@smtp.example.com:587`. Never a firm's server, which sends only that firm's documents. The mail is queued on the `mail` transport with its retries, so the existing worker sends it. Empty sends no such mail: the screens say the installation cannot send e-mail yet and `/health` reports `system_mail` as degraded. Check it with `bin/console app:ops:test-mail you@example.com`. |
 | `SYSTEM_MAIL_FROM` | no | The sender of that mail, an address with an optional name: `Foresi <noreply@example.com>`. Empty, or not an address, sends none. |
+| `MCP_ALLOWED_HOSTS` | no | The host names, without port, that the MCP endpoint at `/mcp` answers for, comma separated; a request for another host gets `403`. The default `localhost,127.0.0.1` does not match a public address, so in production set the host of `DEFAULT_URI`, such as `app.example.com`. See [docs/mcp.md](mcp.md#mcp_allowed_hosts). |
 
 Optionally compile the files into `.env.local.php` for speed with
 `composer dump-env prod` in each release; the deploy script does not do it, so
@@ -552,6 +553,7 @@ time too, if the schema has changed since ([rollback](#rollback)).
 - [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; HSTS is on.
 - [ ] Upload limits of 50M in PHP and the web server; timeouts of ten minutes for the accountant pack.
 - [ ] `SYMFONY_TRUSTED_PROXIES` set when a proxy is in front.
+- [ ] `MCP_ALLOWED_HOSTS` holds the public host (such as `app.example.com`) if assistants connect to `/mcp`.
 - [ ] The worker runs under a supervisor and restarts after a reboot; `/health` shows the worker and the schedule `ok`.
 - [ ] Cron or timers run `app:import:purge`, `app:import:health`, the backup and the restore check; failure mail reaches you.
 - [ ] One backup has run and the restore check passed; the restic password and the pgBackRest cipher pass are kept outside the server.

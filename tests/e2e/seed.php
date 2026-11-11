@@ -23,7 +23,8 @@ declare(strict_types=1);
  * this month for the accountant pack specs, and "Example Move" with idoklad@example.com and
  * "Example Move Screens" with idoklad-screens@example.com a stored iDoklad pull each for the
  * iDoklad import spec, and "Example People" with people@example.com the organisation the
- * people spec invites into, and "Example Projects" with projects@example.com, the team member
+ * people spec invites into, "Example API" with api@example.com the owner who issues a token in
+ * the API token spec, and "Example Projects" with projects@example.com, the team member
  * member@example.com and the guest guest@example.com of its client the project "Website" with
  * sections, tasks, a subtask and labels for the
  * projects spec; its task "Design the homepage" carries two comments (an internal one of the
@@ -217,6 +218,8 @@ $bank = $tenantWithOwner('Example Bank', 'bank@example.com', 'Bank Example');
 $reminders = $tenantWithOwner('Example Reminders', 'reminders@example.com', 'Reminders Example');
 // The people spec invites into its own organisation, which has no system mail.
 $tenantWithOwner('Example People', 'people@example.com', 'People Example');
+// The API token spec turns two-factor sign-in on for this owner and issues a token.
+$tenantWithOwner('Example API', 'api@example.com', 'Api Example');
 
 $address = static fn (int $n): Address => new Address(sprintf('Example Street %d', $n), 'Example City', '100 00', 'CZ');
 // The firm's one bank account, the primary one; the firm itself is persisted by the caller.

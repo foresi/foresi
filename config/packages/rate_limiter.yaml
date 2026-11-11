@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+framework:
+    rate_limiter:
+        # Requests of the REST API and of MCP over HTTP, per personal API token (ADR 0027); see App\Shared\Infrastructure\Api\ApiRateLimit.
+        api_token:
+            policy: sliding_window
+            limit: 600
+            interval: '10 minutes'
+
+services:
+    # Declared here (private) so PHPStan, which reads the dev container, knows the
+    # id used by the tests; it is made public in the test env below.
+    test.api_token_limiter:
+        alias: limiter.api_token
+
+when@test:
+    framework:
+        rate_limiter:
+            api_token:
+                storage_service: test.api_token_storage
+
+    services:
+        # In memory, so the budget of a token never leaks between test runs.
+        test.api_token_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        # Lets a test spend the budget of a token.
+        test.api_token_limiter:
+            alias: limiter.api_token
+            public: true

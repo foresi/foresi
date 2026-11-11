@@ -21,6 +21,8 @@ use App\Party\Application\PartyHistoryEntry;
 use App\Party\Application\PartyPage;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
+use App\Party\Application\Query\ContactDetails;
+use App\Party\Application\Query\ContactList;
 use App\Party\Application\RefreshRegistryChecks;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Party;
@@ -69,6 +71,8 @@ final class PartyController extends AbstractController
     public function __construct(
         private readonly PartyQuery $parties,
         private readonly PartyDetails $details,
+        private readonly ContactList $contacts,
+        private readonly ContactDetails $contactDetails,
         private readonly ArchiveParty $archiveParty,
         private readonly LinkContactPerson $linkContactPerson,
         private readonly RefreshRegistryChecks $refreshChecks,
@@ -98,8 +102,8 @@ final class PartyController extends AbstractController
         };
 
         [$importedBy, $import] = $this->importedBy($request->query);
-        $page = $this->parties->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
-        $counts = $this->parties->counts();
+        $page = $this->contacts->search($text, $role, 'archived' === $view, $sort, max(1, $request->query->getInt('page', 1)), $importedBy);
+        $counts = $this->contacts->counts();
         $query = ['view' => 'all' === $view ? null : $view, 'q' => '' === $text ? null : $text, 'sort' => 'name' === $sort ? null : $sort]
             + ($importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : []);
 
@@ -125,7 +129,7 @@ final class PartyController extends AbstractController
     {
         $tab = $request->query->getString('tab', 'overview');
 
-        return $this->detail($this->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
+        return $this->detail($this->contactDetails->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
     }
 
     /**

@@ -21,6 +21,23 @@ security:
         health:
             pattern: ^/health$
             stateless: true
+        # REST and MCP sign in with a personal API token on every request: no session, no cookie, no CSRF.
+        api:
+            pattern: ^/api/
+            stateless: true
+            provider: app_user_provider
+            entry_point: App\Identity\Infrastructure\Security\ApiTokenFailure
+            access_token:
+                token_handler: App\Identity\Infrastructure\Security\ApiTokenHandler
+                failure_handler: App\Identity\Infrastructure\Security\ApiTokenFailure
+        mcp:
+            pattern: ^/mcp(/|$)
+            stateless: true
+            provider: app_user_provider
+            entry_point: App\Identity\Infrastructure\Security\ApiTokenFailure
+            access_token:
+                token_handler: App\Identity\Infrastructure\Security\ApiTokenHandler
+                failure_handler: App\Identity\Infrastructure\Security\ApiTokenFailure
         main:
             lazy: true
             provider: app_user_provider
@@ -75,6 +92,11 @@ security:
         - { path: ^/invitation/, roles: PUBLIC_ACCESS }
         # The signed link in a notification e-mail that stops that kind of e-mail, and its one-click POST.
         - { path: ^/unsubscribe/, roles: PUBLIC_ACCESS }
+        # The OpenAPI document describes the API and holds no data.
+        - { path: ^/api/v1/openapi\.json$, roles: PUBLIC_ACCESS }
+        # Everything else of the API and MCP needs a personal API token.
+        - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/mcp(/|$), roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

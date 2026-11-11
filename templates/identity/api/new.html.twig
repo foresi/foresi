@@ -1,0 +1,52 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new personal API token: its name and how long it lasts. It can only read for now. A dialog over
+    the tokens; the same URL is a page of its own. The form answers with the page that shows the secret.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'api_tokens.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {% if not canIssue %}
+        <twig:Ui:Alert tone="warning">
+            <span>{{ 'api_tokens.two_factor.text'|trans }}</span>
+            <a href="{{ path(constant('App\\Identity\\Infrastructure\\Controller\\TwoFactorSetupController::SETUP_ROUTE')) }}" data-turbo="false" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.two_factor.link'|trans }}</a>
+        </twig:Ui:Alert>
+    {% else %}
+        {# The answer is the page with the secret, which Turbo would refuse as a form answer without a redirect. #}
+        <form method="post" id="api-token-form" action="{{ path('app_api_token_new') }}" class="grid gap-4" data-turbo="false" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\ApiTokenController::TOKEN')) }}">
+
+            {% if errors.form is defined %}
+                <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+            {% endif %}
+
+            <twig:Ui:TextInput name="name" id="name" :label="'api_tokens.field.name'|trans" :help="'api_tokens.field.name_help'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="80" required autocomplete="off" />
+            <twig:Ui:Select name="days" id="days" :label="'api_tokens.field.expiry'|trans" :options="expiries" :value="values.days" :error="errors.days|default(null)" />
+            <twig:Ui:TextInput id="access" :label="'api_tokens.field.access'|trans" :help="'api_tokens.field.access_help'|trans" :value="'api_tokens.scope.read'|trans" readonly />
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'api_tokens.cancel'|trans }}</twig:Ui:Button>
+    {% if canIssue %}<twig:Ui:Button type="submit" form="api-token-form" variant="primary">{{ 'api_tokens.create'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'api_tokens.new'|trans" icon="key-round" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_api_tokens')">{{ 'api_tokens.cancel'|trans }}</twig:Ui:Button>
+            {% if canIssue %}<twig:Ui:Button type="submit" form="api-token-form" variant="primary">{{ 'api_tokens.create'|trans }}</twig:Ui:Button>{% endif %}
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

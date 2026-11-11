@@ -61,6 +61,7 @@ nav:
     settings: Settings
   item:
     people: People
+    api: API access
     dashboard: Dashboard
     shared_with_me: Shared with me
     contacts: Address book
@@ -3052,6 +3053,65 @@ people:
     action: Accept the invitation
     validity: '{days, plural, one {The link works once, for # day.} other {The link works once, for # days.}}'
     ignore: If you did not expect this invitation, ignore this e-mail.
+api_tokens:
+  title: API access
+  new: New token
+  mine: My tokens
+  others: Tokens of other people
+  others_empty: The other people have no tokens.
+  create: Create token
+  cancel: Cancel
+  never: Never
+  column:
+    name: Name
+    person: Person
+    email: E-mail
+    access: Access
+    token: Token
+    created: Created
+    expires: Expires
+    last_used: Last used
+  scope:
+    read: Read
+  state:
+    expired: Expired
+    revoked: Revoked
+  field:
+    name: Name
+    name_help: Where you will use it, such as Reporting
+    expiry: Expires after
+    access: Access
+    access_help: Tokens can only read for now
+  expiry: '{days, plural, one {# day} other {# days}}'
+  action:
+    revoke: Revoke
+  confirm:
+    revoke:
+      title: 'Revoke the token {name}?'
+      text: Programs that use it stop working at once. This cannot be undone.
+  empty:
+    title: No API tokens
+    text: A token lets another program read your data without your password.
+  two_factor:
+    text: A token can only be created with two-factor sign-in.
+    link: Set up two-factor sign-in
+  created:
+    title: Your new token
+    once: Copy the token now. It is shown only this once and cannot be shown again.
+    text: 'The token {name} works until {date}.'
+    field: Token
+    copy: Copy token
+    copied: Copied
+    copy_failed: Copying failed; the token is selected, press Ctrl+C.
+    use: Use it as a bearer token with the REST API (docs/api.md) or the MCP server (docs/mcp.md). Treat it like a password.
+    done: Done
+  flash:
+    revoked: The token is revoked.
+  refused:
+    two_factor_required: A token can only be created with two-factor sign-in.
+    name: Enter a name of up to 80 characters.
+    expiry: Choose how long the token lasts.
+    scopes: Choose what the token may do.
 invitation:
   title: 'Join {organisation}'
   field:
