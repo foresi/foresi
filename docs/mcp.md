@@ -16,6 +16,7 @@ In this version the server **only reads**. No tool creates, changes, sends or de
 | `foresi_get_contact` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `foresi_search_payments` | Searches payments, newest first, with filters such as firm, invoice, direction and dates. |
 | `foresi_get_payment` | One payment with the invoices it pays. |
+| `foresi_list_modules` | The modules installed in the application, their dependencies and the known problems of the dependency graph. |
 
 The search tools take the filters of the matching REST list, with the same names (`firm_id`, `customer_id`, `state`, `issued_from`, `role`, `direction` and so on), except that the text search is called `query`, not `q`. They page the same way: a result has `items` and a `next_cursor`; when it is not `null`, call again with the same arguments and `next_cursor` as `cursor`. See [the REST API](api.md#endpoints) for what each filter means. Money, dates and ids have the same formats.
 

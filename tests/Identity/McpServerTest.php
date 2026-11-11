@@ -28,6 +28,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_get_invoice',
         'foresi_get_payment',
         'foresi_list_firms',
+        'foresi_list_modules',
         'foresi_search_contacts',
         'foresi_search_invoices',
         'foresi_search_payments',
