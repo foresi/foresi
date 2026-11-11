@@ -55,7 +55,7 @@ test.describe('navigation', () => {
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
     await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
     const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');
-    await expect(settings).toHaveText(['Lidé', 'Moje firmy', 'Štítky', 'Import a export']);
+    await expect(settings).toHaveText(['Lidé', 'Moje firmy', 'Štítky', 'Přístup k API', 'Import a export']);
     await shot(page, 'sidebar');
   });
 
