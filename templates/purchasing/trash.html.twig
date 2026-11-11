@@ -1,0 +1,33 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# A page of its own, and from the header of the document a danger dialog over it, as an invoice goes to the trash. #}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: document.id})}] %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'purchasing.trash.title'|trans({number: title}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="trash-form" action="{{ path('app_purchasing_trash', {id: document.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
+        <p class="m-0 text-muted">{{ 'purchasing.trash.keeps'|trans }}</p>
+        <twig:Ui:Textarea name="reason" id="trash-reason" :label="'purchasing.trash.reason'|trans" :help="'purchasing.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {# The safe answer has the focus (APG); a refusal puts it on the reason. #}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="error is null">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'purchasing.trash.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'purchasing.trash.card'|trans" icon="trash-2" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="path('app_purchasing_document', {id: document.id})">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'purchasing.trash.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

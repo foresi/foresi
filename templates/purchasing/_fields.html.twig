@@ -1,0 +1,83 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The fields of a received document, on its page and in the dialog of a new one. The kind, the
+    treatment and the currency send the form back once chosen (a button without JavaScript), so it
+    shows what they need: the exchange rate for another currency, the supply code for a domestic
+    reverse charge, the original for a credit note, the CZK VAT a document in another currency states.
+    The rows of the VAT recap are added and removed with buttons of the form, as the lines of an
+    invoice are without JavaScript. The first submit button refreshes, so Enter never records.
+    Needs values, errors, kinds, treatments, currencies, correctable and editable; contactDialog opens
+    a new contact in a dialog, else in a new tab.
+#}
+{% set offset = 'md:pl-[calc(var(--spacing-label)+1rem)]' %}
+{% set foreign = values.currency != 'CZK' %}
+{% set stated = foreign and values.treatment in ['domestic', 'non_deductible'] %}
+<button type="submit" name="_action" value="refresh" hidden tabindex="-1"></button>
+<fieldset class="m-0 grid min-w-0 gap-5 border-0 p-0"{% if not editable %} disabled{% endif %}>
+    <legend class="sr-only">{{ 'purchasing.form.legend'|trans }}</legend>
+    <twig:Ui:FieldGroup :title="'purchasing.form.group.document'|trans">
+        <twig:Ui:Select name="kind" id="kind" :row="true" width="medium" :label="'purchasing.field.kind'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" data-controller="autosubmit" data-action="change->autosubmit#submit" />
+        <twig:Ui:Select name="treatment" id="treatment" :row="true" width="medium" :label="'purchasing.field.treatment'|trans" :options="treatments" :value="values.treatment" :error="errors.treatment|default(null)" data-controller="autosubmit" data-action="change->autosubmit#submit" />
+        <noscript><div class="{{ offset }}"><twig:Ui:Button type="submit" name="_action" value="refresh" size="sm">{{ 'purchasing.form.apply'|trans }}</twig:Ui:Button></div></noscript>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start justify-start gap-2 md:grid-cols-[minmax(0,calc(var(--spacing-label)+1rem+var(--spacing-field-long)))_auto]" data-controller="supplier-contact" data-supplier-contact-url-value="{{ path('app_purchasing_suppliers') }}" data-action="contact:created@document->supplier-contact#created">
+        <twig:Ui:Combobox name="supplierId" id="supplier" textName="supplierQuery" :row="true" width="long" :label="'purchasing.field.supplier'|trans" :placeholder="'purchasing.form.supplier_placeholder'|trans" :value="values.supplierId" :text="values.supplierQuery" :url="path('app_purchasing_suppliers')" :emptyText="'purchasing.form.supplier_empty'|trans" :error="errors.supplier|default(null)" />
+            {% if contactDialog|default(false) %}
+                <twig:Ui:Button :href="path('app_contact_new')" id="supplier-add" icon="plus" class="mt-6 md:mt-0" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#supplier">{{ 'purchasing.form.supplier_add'|trans }}</twig:Ui:Button>
+            {% else %}
+                <twig:Ui:Button :href="path('app_contact_new')" id="supplier-add" icon="plus" class="mt-6 md:mt-0" target="_blank" rel="noopener">{{ 'purchasing.form.supplier_add'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </div>
+        <twig:Ui:TextInput name="supplierNumber" id="supplierNumber" :row="true" width="medium" :label="'purchasing.field.supplierNumber'|trans" :help="'purchasing.field.supplierNumber_help'|trans" :value="values.supplierNumber" :error="errors.supplierNumber|default(null)" maxlength="64" autocomplete="off" />
+        <twig:Ui:TextInput name="variableSymbol" id="variableSymbol" :row="true" width="short" :label="'purchasing.field.variableSymbol'|trans" :value="values.variableSymbol" :error="errors.variableSymbol|default(null)" maxlength="10" inputmode="numeric" autocomplete="off" />
+        {% if values.kind == 'credit_note' %}
+        <twig:Ui:Select name="originalDocumentId" id="originalDocumentId" :row="true" width="long" :label="'purchasing.field.originalDocument'|trans" :help="'purchasing.field.originalDocument_help'|trans" :options="correctable" :value="values.originalDocumentId" :error="errors.originalDocumentId|default(null)" />
+        {% else %}
+            <input type="hidden" name="originalDocumentId" value="">
+        {% endif %}
+    </twig:Ui:FieldGroup>
+
+    <twig:Ui:FieldGroup :title="'purchasing.form.group.dates'|trans">
+        <twig:Ui:TextInput type="date" name="issueDate" id="issueDate" :row="true" width="short" :label="'purchasing.field.issueDate'|trans" :value="values.issueDate" :error="errors.issueDate|default(null)" />
+        <twig:Ui:TextInput type="date" name="taxPointDate" id="taxPointDate" :row="true" width="short" :label="'purchasing.field.taxPointDate'|trans" :help="'purchasing.field.taxPointDate_help'|trans" :value="values.taxPointDate" :error="errors.taxPointDate|default(null)" />
+        <twig:Ui:TextInput type="date" name="dueDate" id="dueDate" :row="true" width="short" :label="'purchasing.field.dueDate'|trans" :value="values.dueDate" :error="errors.dueDate|default(null)" />
+        <twig:Ui:TextInput type="date" name="receivedDate" id="receivedDate" :row="true" width="short" :label="'purchasing.field.receivedDate'|trans" :value="values.receivedDate" :error="errors.receivedDate|default(null)" />
+    </twig:Ui:FieldGroup>
+
+    <twig:Ui:FieldGroup :title="'purchasing.form.group.amounts'|trans">
+        <twig:Ui:Select name="currency" id="currency" :row="true" width="short" :label="'purchasing.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" data-controller="autosubmit" data-action="change->autosubmit#submit" />
+        <twig:Ui:TextInput name="total" id="total" :row="true" width="medium" :label="'purchasing.field.total'|trans" :value="values.total" :error="errors.total|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" data-controller="number-input" data-number-input-decimals-value="2" data-action="input->number-input#typed blur->number-input#finished" />
+        <input type="hidden" name="rateShown" value="{{ values.rateShown }}">
+        <input type="hidden" name="rateFor" value="{{ values.rateFor }}">
+        <input type="hidden" name="rateDate" value="{{ values.rateDate }}">
+        {% if foreign %}
+            {% set rateHelp = rateDate|default(null) and values.exchangeRate == values.rateShown ? 'purchasing.field.exchangeRate_published'|trans({date: rateDate}) : 'purchasing.field.exchangeRate_help'|trans %}
+        <twig:Ui:TextInput name="exchangeRate" id="exchangeRate" :row="true" width="medium" :label="'purchasing.field.exchangeRate'|trans" :help="rateHelp" :value="values.exchangeRate" :error="errors.exchangeRate|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+        {% else %}
+            <input type="hidden" name="exchangeRate" value="">
+        {% endif %}
+        {% if values.treatment == 'domestic_reverse_charge' %}
+        <twig:Ui:TextInput name="supplyCode" id="supplyCode" :row="true" width="short" :label="'purchasing.field.supplyCode'|trans" :help="'purchasing.field.supplyCode_help'|trans" :value="values.supplyCode" :error="errors.supplyCode|default(null)" maxlength="8" autocomplete="off" />
+        {% else %}
+            <input type="hidden" name="supplyCode" value="">
+        {% endif %}
+    </twig:Ui:FieldGroup>
+
+    <section class="grid gap-3 border-t border-divider pt-4" aria-labelledby="recap-heading" data-recap>
+        <h2 id="recap-heading" class="m-0 text-heading font-semibold text-ink">{{ 'purchasing.recap.title'|trans }}</h2>
+        {% for row in values.recap %}
+            {% set i = loop.index0 %}
+            <div class="grid grid-cols-2 items-end gap-2 rounded-panel border border-container p-3 {{ stated ? 'sm:grid-cols-[6rem_repeat(3,minmax(0,1fr))_auto]' : 'sm:grid-cols-[6rem_repeat(2,minmax(0,1fr))_auto]' }} sm:border-0 sm:p-0" data-recap-row>
+                <twig:Ui:TextInput :name="'recap[' ~ i ~ '][rate]'" :id="'recap-' ~ i ~ '-rate'" :label="'purchasing.recap.rate'|trans" :value="row.rate" :error="errors['recap-' ~ i ~ '-rate']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+                <twig:Ui:TextInput :name="'recap[' ~ i ~ '][base]'" :id="'recap-' ~ i ~ '-base'" :label="'purchasing.recap.base'|trans" :value="row.base" :error="errors['recap-' ~ i ~ '-base']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+                <twig:Ui:TextInput :name="'recap[' ~ i ~ '][vat]'" :id="'recap-' ~ i ~ '-vat'" :label="'purchasing.recap.vat'|trans" :value="row.vat" :error="errors['recap-' ~ i ~ '-vat']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+                {% if stated %}
+                    <twig:Ui:TextInput :name="'recap[' ~ i ~ '][statedVatCzk]'" :id="'recap-' ~ i ~ '-statedVatCzk'" :label="'purchasing.recap.statedVatCzk'|trans" :value="row.statedVatCzk" :error="errors['recap-' ~ i ~ '-statedVatCzk']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+                {% else %}
+                    <input type="hidden" name="recap[{{ i }}][statedVatCzk]" value="">
+                {% endif %}
+                <twig:Ui:IconButton type="submit" name="_action" :value="'remove_row:' ~ i" icon="x" variant="ghost" :label="'purchasing.recap.remove'|trans({number: i + 1})" data-recap-remove />
+            </div>
+        {% endfor %}
+        <div><twig:Ui:Button type="submit" name="_action" value="add_row" icon="plus" size="sm" :disabled="values.recap|length >= constant('App\\Purchasing\\Domain\\VatRecap::MAX_ROWS')" data-recap-add>{{ 'purchasing.recap.add'|trans }}</twig:Ui:Button></div>
+    </section>
+</fieldset>

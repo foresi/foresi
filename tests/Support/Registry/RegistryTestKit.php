@@ -60,7 +60,12 @@ final class RegistryTestKit
 
     public static function fixture(string $name): string
     {
-        $content = file_get_contents(__DIR__.'/../../Fixtures/Registry/'.$name);
+        return self::fixtureIn('Registry', $name);
+    }
+
+    public static function fixtureIn(string $folder, string $name): string
+    {
+        $content = file_get_contents(__DIR__.'/../../Fixtures/'.$folder.'/'.$name);
         \assert(\is_string($content));
 
         return $content;

@@ -107,6 +107,8 @@ export default class extends Controller {
         this.queueTarget.append(item);
 
         const data = new FormData(this.formTarget);
+        // Each request carries its own file only, whatever the input of the plain form is named.
+        data.delete(this.inputTarget.name);
         data.delete('file');
         data.delete('return');
         data.set('file', file);
@@ -153,6 +155,11 @@ export default class extends Controller {
 
     /** Loads the list again and takes away the bars of the files now in it. */
     reload() {
+        // An upload without a list of its own (the dialog of received documents) leaves the bars;
+        // the page under it loads again once the dialog closes.
+        if (!this.hasFrameTarget) {
+            return;
+        }
         const frame = this.frameTarget;
         frame.addEventListener('turbo:frame-load', () => {
             this.queueTarget.querySelectorAll('[data-uploaded]').forEach((item) => item.remove());

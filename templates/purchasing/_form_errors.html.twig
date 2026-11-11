@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    What to fix in the form of a received document, as the invoice form lists it: each field links to
+    its input; what no field fixes stands alone. A problem of no field takes the focus itself.
+#}
+{% if summary is not empty %}
+    {% set fieldErrors = summary|filter(item => item.field is not null) %}
+    <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="fieldErrors is empty">
+        <p class="m-0 mb-1 font-semibold">{{ 'purchasing.form.errors_title'|trans }}</p>
+        <ul class="m-0 grid list-none gap-0.5 p-0">
+            {% for item in summary %}
+                <li>
+                    {%- if item.field is null %}{{ item.message }}
+                    {%- else %}<a href="{{ item.href }}" class="text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ item.field }}</a>: {{ item.message }}
+                    {%- endif -%}
+                </li>
+            {% endfor %}
+        </ul>
+    </twig:Ui:Alert>
+{% endif %}

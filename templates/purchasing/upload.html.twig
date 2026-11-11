@@ -1,0 +1,54 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Uploading received documents, a dialog over the list and a page of its own. Files are dropped or
+    chosen as the files of a task are (the improved file upload of GOV.UK): each goes on its own with
+    its progress and, if refused, the server's message, and becomes a draft. The list under the dialog
+    loads again once it closes. Without JavaScript one form sends every file chosen.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: 'purchasing.upload.title'|trans}] %}
+{% set dialog_size = 'md' %}
+{% set dialog_reload = true %}
+{% set dialog_description = 'purchasing.upload.description'|trans %}
+
+{% block title %}{{ 'purchasing.upload.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-3" data-controller="attachments">
+        <form method="post" action="{{ path('app_purchasing_upload') }}" enctype="multipart/form-data" class="grid gap-3" data-attachments-target="form" data-action="submit->attachments#submit" data-failed="{{ 'attachment.error.failed'|trans }}" data-purchasing-upload-form>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
+            {% if firms|length > 1 %}
+                <twig:Ui:Select name="firm" id="upload-firm" :label="'purchasing.field.firm'|trans" :options="firms" :value="firm" />
+            {% else %}
+                <input type="hidden" name="firm" value="{{ firm }}">
+            {% endif %}
+            <div class="flex flex-wrap items-center gap-3 rounded-panel border border-dashed border-control-line bg-white px-4 py-6 data-dragging:border-green data-dragging:bg-green-tint" data-attachments-target="drop" data-action="dragenter->attachments#dragEnter dragover->attachments#dragOver dragleave->attachments#dragLeave drop->attachments#drop" data-attachment-drop>
+                <label for="upload-files" class="sr-only">{{ 'purchasing.upload.files'|trans }}</label>
+                <input type="file" id="upload-files" data-dialog-untracked name="files[]" multiple accept="application/pdf,image/png,image/jpeg,image/gif,image/webp" class="text-small text-text" data-attachments-target="input" data-action="change->attachments#chosen">
+                <span hidden class="text-small text-muted" data-attachments-target="hint">{{ 'purchasing.upload.drop'|trans }}</span>
+                <twig:Ui:Button hidden icon="paperclip" size="sm" data-attachments-target="choose" data-action="attachments#choose">{{ 'purchasing.upload.choose'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" size="sm" variant="primary" data-attachments-target="submit">{{ 'purchasing.upload.submit'|trans }}</twig:Ui:Button>
+            </div>
+            <ul class="m-0 grid list-none gap-2 p-0 empty:hidden" aria-live="polite" data-attachments-target="queue" data-upload-queue></ul>
+            <template data-attachments-target="item">
+                <li class="grid gap-1" data-attachment-upload-item>
+                    <twig:Ui:ProgressBar label="__NAME__" :value="0" :max="100" />
+                    <p hidden role="alert" class="m-0 text-caption font-medium text-badge-red-text" data-upload-error></p>
+                </li>
+            </template>
+        </form>
+        <p class="m-0 text-small text-muted">{{ 'purchasing.upload.drafts_note'|trans }}</p>
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'purchasing.upload.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'purchasing.upload.title'|trans" icon="upload" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+{% endblock %}

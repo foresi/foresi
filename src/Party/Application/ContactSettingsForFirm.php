@@ -74,20 +74,31 @@ final readonly class ContactSettingsForFirm
     }
 
     /**
-     * Adds the customer role for this firm and leaves the other roles alone. A firm with
-     * roles of its own keeps them; so does a firm among several, where the shared value
-     * would change what the contact is to the others. The only active firm has nobody
-     * else to differ from, so the shared roles change, and the address book shows them.
+     * Adds the customer role for this firm and leaves the other roles alone, as addRole() does.
      *
      * @throws \DomainException for an archived firm, like every change here
      */
     public function makeCustomer(Party $party, LegalEntity $firm): void
     {
-        if ($this->isCustomer($party, $firm)) {
+        $this->addRole($party, $firm, PartyRole::Customer);
+    }
+
+    /**
+     * Adds a role for this firm and leaves the other roles alone. A firm with roles
+     * of its own keeps them; so does a firm among several, where the shared value
+     * would change what the contact is to the others. The only active firm has nobody
+     * else to differ from, so the shared roles change, and the address book shows them.
+     *
+     * @throws \DomainException for an archived firm, like every change here
+     */
+    public function addRole(Party $party, LegalEntity $firm, PartyRole $role): void
+    {
+        $roles = $this->rolesFor($party, $firm);
+        if (\in_array($role, $roles, true)) {
             return;
         }
 
-        $roles = [...$this->rolesFor($party, $firm), PartyRole::Customer];
+        $roles[] = $role;
         if ($this->hasOwnRoles($party, $firm) || \count($this->firms->active()) > 1) {
             $this->changeRoles($party, $firm, $roles);
 

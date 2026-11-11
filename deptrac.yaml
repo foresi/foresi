@@ -188,6 +188,42 @@ deptrac:
       collectors:
         - type: directory
           value: src/Attachment/Infrastructure/.*
+    # Received documents: the cost side of a firm (ADR 0028).
+    - name: PurchasingDomain
+      collectors:
+        - type: directory
+          value: src/Purchasing/Domain/.*
+    - name: PurchasingApplication
+      collectors:
+        - type: directory
+          value: src/Purchasing/Application/.*
+    - name: PurchasingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Purchasing/Infrastructure/.*
+    # Exchange rates to CZK: the port, the store and the schedule. A source plugs in from a country module.
+    - name: ExchangeRateDomain
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Domain/.*
+    - name: ExchangeRateApplication
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Application/.*
+    - name: ExchangeRateInfrastructure
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: src/ExchangeRate/Infrastructure/.*
+          must_not:
+            - type: directory
+              value: src/ExchangeRate/Infrastructure/Schedule/.*
+    # The one class that joins the rates to the schedule of the installation.
+    - name: ExchangeRateSchedule
+      collectors:
+        - type: directory
+          value: src/ExchangeRate/Infrastructure/Schedule/.*
     - name: CountryCzechRepublic
       collectors:
         - type: directory
@@ -730,6 +766,55 @@ deptrac:
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
+    # Purchasing builds on Party (firms and suppliers), Identity (people), the
+    # attachment store, which keeps the original files, and the exchange rates;
+    # no module uses Purchasing but the navigation of Ui, and it never uses
+    # Invoicing.
+    PurchasingDomain:
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - PartyDomain
+    PurchasingApplication:
+      - PurchasingDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - AttachmentDomain
+      - AttachmentApplication
+      - ExchangeRateDomain
+      - ExchangeRateApplication
+      - VendorBrick
+    PurchasingInfrastructure:
+      - SharedInfrastructure
+      - PurchasingDomain
+      - PurchasingApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - IdentityDomain
+      - IdentityApplication
+      - AttachmentDomain
+      - AttachmentApplication
+      - Ui
     # A country module may implement the ports of Party Application (company and
     # tax registers). It reaches registers only through the shared registry client,
     # the one place that talks HTTP to public registers. It plugs its banks' mail
@@ -737,12 +822,33 @@ deptrac:
     CountryCzechRepublic:
       - SharedDomain
       - SharedInfrastructure
+      - ExchangeRateApplication
       - PartyDomain
       - PartyApplication
       - InvoicingDomain
       - InvoicingApplication
       - BankingDomain
       - BankingApplication
+    ExchangeRateDomain:
+      - VendorDoctrineOrmMapping
+    ExchangeRateApplication:
+      - ExchangeRateDomain
+      - SharedDomain
+      - SharedApplication
+    ExchangeRateInfrastructure:
+      - ExchangeRateDomain
+      - ExchangeRateApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+    # The operator task contract lives in Tenancy's application layer.
+    ExchangeRateSchedule:
+      - ExchangeRateApplication
+      - TenancyApplication
     # Symfony and Twig only: Ui never reaches into a module's Domain.
     Ui:
       - VendorSymfony
