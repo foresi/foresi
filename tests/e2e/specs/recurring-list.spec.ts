@@ -136,6 +136,8 @@ test.describe.serial('recurring list', () => {
 
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await expect(pause).toBeFocused();
     await page.keyboard.press('Enter');
     await settled(dialog);
     await page.keyboard.press('Enter');
