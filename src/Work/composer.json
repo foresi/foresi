@@ -1,0 +1,23 @@
+{
+    "name": "foresi/work",
+    "description": "Projects and tasks.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/attachment": "*",
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/ui": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "work",
+            "kind": "module",
+            "namespace": "App\\Work\\",
+            "optional": []
+        }
+    }
+}

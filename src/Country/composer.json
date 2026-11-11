@@ -1,0 +1,21 @@
+{
+    "name": "foresi/country",
+    "description": "Country-specific rules, registers and formats.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/banking": "*",
+        "foresi/exchange-rate": "*",
+        "foresi/invoicing": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "country",
+            "kind": "module",
+            "namespace": "App\\Country\\",
+            "optional": []
+        }
+    }
+}

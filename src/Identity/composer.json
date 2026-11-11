@@ -1,0 +1,21 @@
+{
+    "name": "foresi/identity",
+    "description": "People, sign-in, memberships and roles.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/ui": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "identity",
+            "kind": "core",
+            "namespace": "App\\Identity\\",
+            "optional": []
+        }
+    }
+}

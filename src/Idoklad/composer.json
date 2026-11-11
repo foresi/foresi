@@ -1,0 +1,23 @@
+{
+    "name": "foresi/idoklad",
+    "description": "Import from iDoklad.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/audit": "*",
+        "foresi/identity": "*",
+        "foresi/import": "*",
+        "foresi/invoicing": "*",
+        "foresi/party": "*",
+        "foresi/shared": "*",
+        "foresi/tenancy": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "idoklad",
+            "kind": "module",
+            "namespace": "App\\Idoklad\\",
+            "optional": []
+        }
+    }
+}

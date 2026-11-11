@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9557a2b8911829df850e5ece65051f53",
+    "content-hash": "786240a0723a4368289de46d0b9d32e4",
     "packages": [
         {
             "name": "brick/math",
@@ -1595,6 +1595,524 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "foresi/attachment",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Attachment",
+                "reference": "ce1fe9940989d29a7fc93d3f6278d075eaedfb5d"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "attachment",
+                    "kind": "core",
+                    "namespace": "App\\Attachment\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Files attached to records.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/audit",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Audit",
+                "reference": "87c4e45e5d8942cbe61e63996413fdde6e7b22b3"
+            },
+            "require": {
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "audit",
+                    "kind": "core",
+                    "namespace": "App\\Audit\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Audit log of changes to records.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/banking",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Banking",
+                "reference": "c0ce6589ece1cb9e8ed84d5222e38f47b56dddcc"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/invoicing": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "banking",
+                    "kind": "module",
+                    "namespace": "App\\Banking\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Bank accounts, statements and payment matching.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/country",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Country",
+                "reference": "a50e14d5747910bd037fe3461a967cbe3c832700"
+            },
+            "require": {
+                "foresi/banking": "*",
+                "foresi/exchange-rate": "*",
+                "foresi/invoicing": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "country",
+                    "kind": "module",
+                    "namespace": "App\\Country\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Country-specific rules, registers and formats.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/exchange-rate",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/ExchangeRate",
+                "reference": "62ba55be5fc8d68039ea3cd08526b2735826b787"
+            },
+            "require": {
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "exchange-rate",
+                    "kind": "module",
+                    "namespace": "App\\ExchangeRate\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Daily exchange rates.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/identity",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Identity",
+                "reference": "dc42d0411c4e168b122ff222531781323e812ff3"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "identity",
+                    "kind": "core",
+                    "namespace": "App\\Identity\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "People, sign-in, memberships and roles.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/idoklad",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Idoklad",
+                "reference": "62dd31446c5a6b280a4bfc00a13af8a712a3d058"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/import": "*",
+                "foresi/invoicing": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "idoklad",
+                    "kind": "module",
+                    "namespace": "App\\Idoklad\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Import from iDoklad.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/import",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Import",
+                "reference": "11abad27296219e87e4f9bdff251e80b17a68f4b"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "import",
+                    "kind": "module",
+                    "namespace": "App\\Import\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Import runs and their records.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/invoicing",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Invoicing",
+                "reference": "2d9d8304726d195571b57f829f4c452d4e4e2158"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "invoicing",
+                    "kind": "module",
+                    "namespace": "App\\Invoicing\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Issued invoices, credit notes and their delivery.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/party",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Party",
+                "reference": "809a4365c6109eff573b79b4ff470ffc87c559d9"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/import": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "party",
+                    "kind": "module",
+                    "namespace": "App\\Party\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Address book of people and organisations.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/purchasing",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Purchasing",
+                "reference": "797e39e34d869d700fdf3a92d4e90630f7c96d76"
+            },
+            "require": {
+                "foresi/attachment": "*",
+                "foresi/audit": "*",
+                "foresi/exchange-rate": "*",
+                "foresi/identity": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "purchasing",
+                    "kind": "module",
+                    "namespace": "App\\Purchasing\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Received documents from suppliers.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/shared",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Shared",
+                "reference": "d4073212fa495d3da161df90159dccf1b2834390"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "shared",
+                    "kind": "core",
+                    "namespace": "App\\Shared\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Shared kernel: ids, money, mail and infrastructure.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/tenancy",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Tenancy",
+                "reference": "489ac0f62e0b06934e09e82556eddb8659dbd45f"
+            },
+            "require": {
+                "foresi/shared": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "tenancy",
+                    "kind": "core",
+                    "namespace": "App\\Tenancy\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Organisations and the tenant of each request.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/timesheet",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Timesheet",
+                "reference": "0f3784ea05349fe203bb0ac6db0aadb84363364c"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/invoicing": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/work": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "timesheet",
+                    "kind": "module",
+                    "namespace": "App\\Timesheet\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Time tracking against tasks.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/ui",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Ui",
+                "reference": "ff24be9e482d89bfcc7227f101f197dc111ae94e"
+            },
+            "require": {
+                "foresi/shared": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "ui",
+                    "kind": "ui",
+                    "namespace": "App\\Ui\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Screen components, layout and navigation.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "foresi/work",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Work",
+                "reference": "8d5015edecbeb77f3614f8de3dd3d38b145e8d3b"
+            },
+            "require": {
+                "foresi/attachment": "*",
+                "foresi/audit": "*",
+                "foresi/identity": "*",
+                "foresi/party": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*",
+                "foresi/ui": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "work",
+                    "kind": "module",
+                    "namespace": "App\\Work\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Projects and tasks.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "guzzlehttp/psr7",
@@ -17781,7 +18299,24 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "foresi/attachment": 20,
+        "foresi/audit": 20,
+        "foresi/banking": 20,
+        "foresi/country": 20,
+        "foresi/exchange-rate": 20,
+        "foresi/identity": 20,
+        "foresi/idoklad": 20,
+        "foresi/import": 20,
+        "foresi/invoicing": 20,
+        "foresi/party": 20,
+        "foresi/purchasing": 20,
+        "foresi/shared": 20,
+        "foresi/tenancy": 20,
+        "foresi/timesheet": 20,
+        "foresi/ui": 20,
+        "foresi/work": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
