@@ -82,6 +82,32 @@ final class ModuleGraphTest extends TestCase
         self::assertSame(['cycle:identity>party>import>identity'], $this->codes($graph->problems()));
     }
 
+    public function testCycleIsTheShortestOneThroughTheSmallestId(): void
+    {
+        $graph = new ModuleGraph([
+            self::module('alpha', requires: ['beta', 'gamma']),
+            self::module('beta', requires: ['alpha']),
+            self::module('gamma', requires: ['alpha']),
+        ]);
+
+        self::assertSame(['cycle:alpha>beta>alpha'], self::codes($graph->problems()));
+    }
+
+    public function testDenseCycleIsReportedQuickly(): void
+    {
+        $ids = array_map(static fn (int $n): string => 'm'.str_pad((string) $n, 2, '0', \STR_PAD_LEFT), range(1, 16));
+        $modules = array_map(
+            fn (string $id): ModuleManifest => $this->module($id, requires: array_values(array_diff($ids, [$id]))),
+            $ids,
+        );
+
+        $started = hrtime(true);
+        $codes = self::codes(new ModuleGraph($modules)->problems());
+
+        self::assertSame(['cycle:m01>m02>m01'], $codes);
+        self::assertLessThan(1_000_000_000, hrtime(true) - $started);
+    }
+
     public function testReportsCoreRequiringModule(): void
     {
         $graph = new ModuleGraph([

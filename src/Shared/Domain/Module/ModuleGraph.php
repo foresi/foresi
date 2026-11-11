@@ -183,9 +183,9 @@ final readonly class ModuleGraph
     }
 
     /**
-     * The members of a cycle from the smallest id along the edges back to it,
-     * taking the smallest next id first; the members in id order when no
-     * single path visits them all.
+     * The shortest cycle from the smallest id of a component along the edges
+     * back to it, found breadth first with the smaller next id first, so the
+     * code is stable and names only real edges.
      *
      * @param non-empty-list<string> $component sorted by id
      *
@@ -193,31 +193,28 @@ final readonly class ModuleGraph
      */
     private function cyclePath(array $component): array
     {
-        return $this->walk($component, [$component[0]]) ?? $component;
-    }
+        $start = $component[0];
+        $previous = [$start => null];
+        $queue = [$start];
+        while ([] !== $queue) {
+            $current = array_shift($queue);
+            foreach ($this->requiresOf($current) as $next) {
+                if ($next === $start) {
+                    $tail = [];
+                    for ($step = $current; $step !== $start && null !== $step; $step = $previous[$step]) {
+                        array_unshift($tail, $step);
+                    }
 
-    /**
-     * @param non-empty-list<string> $component
-     * @param non-empty-list<string> $path
-     *
-     * @return non-empty-list<string>|null
-     */
-    private function walk(array $component, array $path): ?array
-    {
-        $last = $path[\count($path) - 1];
-        if (\count($path) === \count($component)) {
-            return \in_array($path[0], $this->requiresOf($last), true) ? $path : null;
-        }
-        foreach ($this->requiresOf($last) as $next) {
-            if (\in_array($next, $component, true) && !\in_array($next, $path, true)) {
-                $found = $this->walk($component, [...$path, $next]);
-                if (null !== $found) {
-                    return $found;
+                    return [$start, ...$tail];
+                }
+                if (\in_array($next, $component, true) && !\array_key_exists($next, $previous)) {
+                    $previous[$next] = $current;
+                    $queue[] = $next;
                 }
             }
         }
 
-        return null;
+        return $component;
     }
 
     /**
