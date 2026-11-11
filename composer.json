@@ -172,7 +172,11 @@
             "require": "7.4.*"
         },
         "foresi": {
-            "accepted-problems": []
+            "accepted-problems": [
+                "core-requires-module:identity>party",
+                "core-requires-module:identity>ui",
+                "cycle:identity>party>import>identity"
+            ]
         }
     },
     "require-dev": {
