@@ -21,6 +21,10 @@ use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\ListedDocument;
 use App\Invoicing\Application\ListedDocuments;
 use App\Invoicing\Application\PaymentState;
+use App\Invoicing\Application\Query\InvoiceListItem;
+use App\Invoicing\Application\Query\InvoiceQueries;
+use App\Invoicing\Application\Query\InvoiceSlice;
+use App\Invoicing\Application\Query\InvoiceSliceFilter;
 use App\Invoicing\Application\SendMark;
 use App\Invoicing\Application\StoredInvoice;
 use App\Invoicing\Application\UnknownInvoice;
@@ -41,6 +45,7 @@ use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Domain\TaxTreatment;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
+use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
@@ -63,7 +68,7 @@ use Psr\Clock\ClockInterface;
  * rate, under the same conditions as its page; only those groups come back, and each
  * is converted to the home currency exactly, rounded once at the end.
  */
-final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocuments, DocumentMonths
+final readonly class DoctrineInvoiceStore implements InvoiceStore, InvoiceQueries, ListedDocuments, DocumentMonths
 {
     private const string LOCK = 'UPDATE invoice SET version = version WHERE id = :id AND tenant_id = :tenant';
     private const string COUNTRY = 'i.issuer.address.countryCode';
@@ -218,18 +223,85 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
 
         /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
         $results = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
-        $invoices = array_map(static fn (array $result): Invoice => $result[0], $results);
-        $corrections = [];
-        foreach ($results as $result) {
-            $corrections[$result[0]->id()] = (int) $result['corrections'];
+
+        return new InvoicePage($this->rowsOf($results, $todays), $total, $tabCounts, $page, $pages, $firms);
+    }
+
+    public function slice(InvoiceSliceFilter $filter, ?string $afterId, int $limit): InvoiceSlice
+    {
+        if ($limit < 1) {
+            throw new \InvalidArgumentException('A slice holds at least one document.');
+        }
+        if (null !== $afterId && !Id::isValid($afterId)) {
+            throw new \InvalidArgumentException('An id is not valid.');
+        }
+        [, $todays] = $this->issuers();
+        [$overdue, $overdueParameters] = $this->overdue($todays);
+        $tab = $filter->tab();
+        $conditions = [$this->inTab($tab, DocumentKind::Invoice, 's', $overdue)];
+        $parameters = InvoiceFilter::OVERDUE === $tab ? $overdueParameters : [];
+        if ($filter->kind instanceof DocumentKind) {
+            $conditions[] = 'i.kind = :kind';
+            $parameters['kind'] = [$filter->kind->value, null];
+        }
+        if (null !== $filter->firmId) {
+            $conditions[] = 'i.firm = :firm';
+            $parameters['firm'] = [$filter->firmId, null];
+        }
+        if (null !== $filter->customerId) {
+            $conditions[] = 'i.customerParty = :customer';
+            $parameters['customer'] = [$filter->customerId, null];
+        }
+        if ($filter->issuedFrom instanceof \DateTimeImmutable) {
+            $conditions[] = 'i.issueDate >= :issuedFrom';
+            $parameters['issuedFrom'] = [$filter->issuedFrom, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->issuedTo instanceof \DateTimeImmutable) {
+            $conditions[] = 'i.issueDate <= :issuedTo';
+            $parameters['issuedTo'] = [$filter->issuedTo, Types::DATE_IMMUTABLE];
+        }
+        if (null !== $afterId) {
+            $conditions[] = 'i.id < :after';
+            $parameters['after'] = [$afterId, null];
+        }
+        [$text, $textParameters] = $this->textCondition($filter->text);
+        if (null !== $text) {
+            $conditions[] = $text;
+            $parameters += $textParameters;
         }
 
-        // One query for the marks of the whole page, and one for what it has been paid.
-        $ids = array_map(static fn (Invoice $invoice): string => $invoice->id(), $invoices);
+        $query = $this->em->createQuery('SELECT i, (SELECT COALESCE(SUM(lc.payableMinor), 0) FROM '.Invoice::class.' lc WHERE lc.correctedInvoiceId = i.id AND lc.deletedAt IS NULL) AS corrections'
+            .' FROM '.Invoice::class.' i WHERE '.implode(' AND ', $conditions).' ORDER BY i.id DESC');
+        $this->bind($query, $parameters);
+        // One more than asked tells whether another slice follows.
+        /** @var list<array{0: Invoice, corrections: int|numeric-string}> $results */
+        $results = $query->setMaxResults($limit + 1)->getResult();
+        $kept = \array_slice($results, 0, $limit);
+        $items = [];
+        foreach ($this->rowsOf($kept, $todays) as $index => $row) {
+            $invoice = $kept[$index][0];
+            $items[] = new InvoiceListItem($row, $invoice->firm()->id(), $invoice->customerParty()->id(), $invoice->taxPointDate(), $invoice->createdAt());
+        }
+
+        return new InvoiceSlice($items, \count($results) > $limit);
+    }
+
+    /**
+     * The rows of the documents a query read with what their corrections add: one query for
+     * the marks of all of them, and one for what they have been paid.
+     *
+     * @param list<array{0: Invoice, corrections: int|numeric-string}> $results
+     * @param array<string, \DateTimeImmutable>                        $todays  by country
+     *
+     * @return list<InvoiceRow> in the order of the results
+     */
+    private function rowsOf(array $results, array $todays): array
+    {
+        $ids = array_map(static fn (array $result): string => $result[0]->id(), $results);
         $marks = $this->sends->marksFor($ids);
         $paid = $this->payments->paidFor($ids);
 
-        return new InvoicePage(array_map(fn (Invoice $invoice): InvoiceRow => $this->row($invoice, $todays, $marks[$invoice->id()] ?? SendMark::None, $paid[$invoice->id()] ?? 0, $corrections[$invoice->id()] ?? 0), $invoices), $total, $tabCounts, $page, $pages, $firms);
+        return array_map(fn (array $result): InvoiceRow => $this->row($result[0], $todays, $marks[$result[0]->id()] ?? SendMark::None, $paid[$result[0]->id()] ?? 0, (int) $result['corrections']), $results);
     }
 
     public function months(?DocumentKind $kind, ?string $firmId): array
@@ -643,19 +715,31 @@ final readonly class DoctrineInvoiceStore implements InvoiceStore, ListedDocumen
             $parameters['monthStart'] = [$start, Types::DATE_IMMUTABLE];
             $parameters['monthEnd'] = [$start->modify('first day of next month'), Types::DATE_IMMUTABLE];
         }
-        $text = trim($filter->text);
+        [$text, $textParameters] = $this->textCondition($filter->text);
+
+        return null === $text ? [$where, $parameters] : [$where.' AND '.$text, $parameters + $textParameters];
+    }
+
+    /**
+     * What a search text matches: the number, the customer, the variable symbol or the description.
+     *
+     * @return array{string|null, array<string, array{mixed, string|null}>} null for no text
+     */
+    private function textCondition(string $text): array
+    {
+        $text = trim($text);
         if ('' === $text) {
-            return [$where, $parameters];
+            return [null, []];
         }
         $conditions = ['LOWER(i.number) LIKE :text ESCAPE \'!\'', 'LOWER(i.customer.name) LIKE :text ESCAPE \'!\'', 'i.variableSymbol LIKE :text ESCAPE \'!\'', 'LOWER(i.description) LIKE :text ESCAPE \'!\''];
-        $parameters['text'] = ['%'.$this->like(mb_strtolower($text)).'%', null];
+        $parameters = ['text' => ['%'.$this->like(mb_strtolower($text)).'%', null]];
         $key = NumberKey::of($text);
         if ('' !== $key) {
             $conditions[] = 'i.numberKey LIKE :key ESCAPE \'!\'';
             $parameters['key'] = ['%'.$this->like($key).'%', null];
         }
 
-        return [$where.' AND ('.implode(' OR ', $conditions).')', $parameters];
+        return ['('.implode(' OR ', $conditions).')', $parameters];
     }
 
     private function order(string $sort): string

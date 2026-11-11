@@ -28,6 +28,14 @@ final class AuditEntryTest extends TestCase
         self::assertSame(['name' => ['a', 'b']], $entry->changes());
         self::assertSame('019a0000-0000-7000-8000-000000000003', $entry->userId());
         self::assertSame($at, $entry->occurredAt());
+        self::assertNull($entry->apiTokenId());
+    }
+
+    public function testKeepsThePersonalApiTokenOfTheChange(): void
+    {
+        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, [], '019a0000-0000-7000-8000-000000000003', new \DateTimeImmutable(), null, null, null, '019a0000-0000-7000-8000-0000000000aa');
+
+        self::assertSame('019a0000-0000-7000-8000-0000000000aa', $entry->apiTokenId());
     }
 
     public function testTenantIsStampedOnPersist(): void

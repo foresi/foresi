@@ -1,0 +1,270 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# The OpenAPI document of the REST API, served at /api/v1/openapi.json (ADR 0027).
+# The controllers describe their answers; the shapes of the presenters
+# (App\*\Infrastructure\Api\*Json) are written by hand here.
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Foresi API
+            description: The REST API of Foresi. Every request signs in with a personal API token.
+            version: '1'
+        security:
+            - bearer: []
+        components:
+            securitySchemes:
+                bearer:
+                    type: http
+                    scheme: bearer
+                    description: A personal API token, issued in Settings, API.
+            schemas:
+                Money:
+                    type: object
+                    required: [amount_minor, currency]
+                    properties:
+                        amount_minor: { type: integer, description: The amount in minor units of the currency. }
+                        currency: { type: string, example: CZK }
+                Address:
+                    type: object
+                    required: [street, city, postal_code, country_code]
+                    properties:
+                        street: { type: string }
+                        city: { type: string }
+                        postal_code: { type: string }
+                        country_code: { type: string, description: ISO 3166-1 alpha-2. }
+                Reference:
+                    type: object
+                    required: [id, name]
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                Problem:
+                    type: object
+                    description: An RFC 9457 problem document.
+                    required: [type, title, status, detail, code]
+                    properties:
+                        type: { type: string, example: about:blank }
+                        title: { type: string }
+                        status: { type: integer }
+                        detail: { type: string }
+                        code: { type: string, description: 'A stable code, such as not_found, forbidden, invalid_parameter or rate_limited.' }
+                        parameter: { type: string, description: 'The parameter that cannot be used, with invalid_parameter.' }
+                Me:
+                    type: object
+                    required: [user, tenant, token]
+                    properties:
+                        user:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                email: { type: string }
+                        tenant: { $ref: '#/components/schemas/Reference' }
+                        token:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                name: { type: string }
+                                scopes: { type: array, items: { type: string, enum: [read, write] } }
+                                expires_at: { type: string, format: date-time }
+                InvoiceListItem:
+                    type: object
+                    required: [id, number, kind, firm, customer, issue_date, due_date, tax_point_date, total, paid, remaining, payment_state, overdue, delivered, trashed, created_at]
+                    properties:
+                        id: { type: string, format: uuid }
+                        number: { type: string }
+                        kind: { type: string, enum: [invoice, advance, payment_tax_document, correction_document] }
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        customer: { $ref: '#/components/schemas/Reference' }
+                        issue_date: { type: string, format: date }
+                        due_date: { type: string, format: date }
+                        tax_point_date: { type: string, format: date, nullable: true }
+                        total: { $ref: '#/components/schemas/Money' }
+                        paid: { $ref: '#/components/schemas/Money' }
+                        remaining: { $ref: '#/components/schemas/Money' }
+                        payment_state: { type: string, enum: [unpaid, partly_paid, paid, overpaid, to_refund] }
+                        overdue: { type: boolean }
+                        delivered: { type: boolean }
+                        trashed: { type: boolean }
+                        created_at: { type: string, format: date-time }
+                InvoiceLine:
+                    type: object
+                    properties:
+                        description: { type: string }
+                        quantity: { type: string, example: '1.0000' }
+                        unit: { type: string }
+                        unit_price: { $ref: '#/components/schemas/Money' }
+                        price_type: { type: string, enum: [with_vat, without_vat, base_only] }
+                        discount_percent: { type: string, example: '0.00' }
+                        vat_treatment: { type: string, enum: [standard, reverse_charge, exempt, not_applicable] }
+                        vat_rate_kind: { type: string, nullable: true, enum: [base, reduced, second_reduced] }
+                        vat_rate_percent: { type: string, nullable: true, example: '21.00' }
+                        net: { $ref: '#/components/schemas/Money' }
+                        vat: { $ref: '#/components/schemas/Money' }
+                        gross: { $ref: '#/components/schemas/Money' }
+                InvoiceDetail:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        number: { type: string }
+                        kind: { type: string, enum: [invoice, advance, payment_tax_document, correction_document] }
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        customer:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                name: { type: string }
+                                registration_number: { type: string, nullable: true }
+                                vat_id: { type: string, nullable: true }
+                                address: { $ref: '#/components/schemas/Address' }
+                        issue_date: { type: string, format: date }
+                        due_date: { type: string, format: date }
+                        tax_point_date: { type: string, format: date, nullable: true }
+                        currency: { type: string }
+                        variable_symbol: { type: string }
+                        order_number: { type: string }
+                        description: { type: string }
+                        payment_method: { type: string, enum: [bank_transfer, cash, card] }
+                        net: { $ref: '#/components/schemas/Money' }
+                        vat: { $ref: '#/components/schemas/Money' }
+                        total: { $ref: '#/components/schemas/Money' }
+                        payment_state: { type: string, enum: [unpaid, partly_paid, paid, overpaid, to_refund] }
+                        delivered: { type: boolean }
+                        trashed: { type: boolean }
+                        created_at: { type: string, format: date-time }
+                        corrected_invoice_id: { type: string, format: uuid, nullable: true }
+                        lines: { type: array, items: { $ref: '#/components/schemas/InvoiceLine' } }
+                        payments:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    payment_id: { type: string, format: uuid }
+                                    received_on: { type: string, format: date }
+                                    allocated: { $ref: '#/components/schemas/Money' }
+                                    settlement: { $ref: '#/components/schemas/Money' }
+                                    method: { type: string, enum: [bank_transfer, cash, card] }
+                                    source: { type: string, enum: [manual, bank_movement] }
+                        corrections:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    number: { type: string }
+                                    issue_date: { type: string, format: date }
+                                    total: { $ref: '#/components/schemas/Money' }
+                        balances:
+                            type: object
+                            properties:
+                                paid: { $ref: '#/components/schemas/Money' }
+                                corrections: { $ref: '#/components/schemas/Money' }
+                                remaining: { $ref: '#/components/schemas/Money' }
+                                to_refund: { $ref: '#/components/schemas/Money' }
+                InvoicePage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/InvoiceListItem' } }
+                        next_cursor: { type: string, nullable: true }
+                Contact:
+                    type: object
+                    required: [id, kind, name, roles, registration_country, registration_number, vat_id, email, billing_address, archived]
+                    properties:
+                        id: { type: string, format: uuid }
+                        kind: { type: string, enum: [person, sole_trader, company] }
+                        name: { type: string }
+                        roles: { type: array, items: { type: string, enum: [customer, supplier, partner, authority] } }
+                        registration_country: { type: string, nullable: true }
+                        registration_number: { type: string, nullable: true }
+                        vat_id: { type: string, nullable: true }
+                        email: { type: string, nullable: true }
+                        billing_address: { allOf: [{ $ref: '#/components/schemas/Address' }], nullable: true }
+                        archived: { type: boolean }
+                ContactDetail:
+                    allOf:
+                        - $ref: '#/components/schemas/Contact'
+                        - type: object
+                          properties:
+                              phone: { type: string }
+                              mobile: { type: string }
+                              website: { type: string }
+                              unreliable_payer: { type: boolean }
+                              addresses:
+                                  type: array
+                                  items:
+                                      allOf:
+                                          - $ref: '#/components/schemas/Address'
+                                          - type: object
+                                            properties:
+                                                id: { type: string, format: uuid }
+                                                type: { type: string, enum: [billing, delivery, postal, other] }
+                                                label: { type: string }
+                              emails:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          id: { type: string, format: uuid }
+                                          address: { type: string }
+                                          purpose: { type: string, enum: [general, invoices, copy] }
+                              bank_accounts:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          id: { type: string, format: uuid }
+                                          iban: { type: string }
+                                          bic: { type: string, nullable: true }
+                                          label: { type: string }
+                                          primary: { type: boolean }
+                              contact_persons:
+                                  type: array
+                                  items:
+                                      type: object
+                                      properties:
+                                          id: { type: string, format: uuid }
+                                          company: { $ref: '#/components/schemas/Reference' }
+                                          person: { $ref: '#/components/schemas/Reference' }
+                                          position: { type: string }
+                                          primary: { type: boolean }
+                ContactPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/Contact' } }
+                        next_cursor: { type: string, nullable: true }
+                Payment:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        firm: { $ref: '#/components/schemas/Reference' }
+                        received_on: { type: string, format: date }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        direction: { type: string, enum: [incoming, refund] }
+                        method: { type: string, enum: [bank_transfer, cash, card] }
+                        source: { type: string, enum: [manual, bank_movement] }
+                        note: { type: string }
+                        bank_movement_id: { type: string, format: uuid, nullable: true }
+                        cancelled_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                        allocations:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    invoice:
+                                        type: object
+                                        properties:
+                                            id: { type: string, format: uuid }
+                                            number: { type: string }
+                                    amount: { $ref: '#/components/schemas/Money' }
+                                    settlement: { $ref: '#/components/schemas/Money' }
+                PaymentPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+                        next_cursor: { type: string, nullable: true }
+    areas:
+        default:
+            # The API itself; the document is not one of its operations.
+            path_patterns: ['^/api/v1/(?!openapi\.json$)']

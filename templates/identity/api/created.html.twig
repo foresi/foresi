@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The secret of a token just issued, shown this once with a button to copy it. It is the answer to
+    the form, never a redirect, and the answer is not cached. In the dialog the list under it is
+    loaded again when the dialog closes; the page leaves a Turbo visit nothing to keep.
+    Variables: name, secret, expires.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'api_tokens.title'|trans, href: path('app_api_tokens')}, {label: 'api_tokens.created.title'|trans}] %}
+{% set dialog_size = 'md' %}
+{% set dialog_reload = true %}
+
+{% block head %}
+    <meta name="turbo-cache-control" content="no-cache">
+{% endblock %}
+
+{% block title %}{{ 'api_tokens.created.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-4">
+        <twig:Ui:Alert tone="warning" data-api-token-once>{{ 'api_tokens.created.once'|trans }}</twig:Ui:Alert>
+        <p class="m-0 text-text">{{ 'api_tokens.created.text'|trans({name: name, date: expires}) }}</p>
+        <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'api_tokens.created.copied'|trans }}" data-copy-failed-value="{{ 'api_tokens.created.copy_failed'|trans }}">
+            <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="api-token-secret" :label="'api_tokens.created.field'|trans" :value="secret" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+            <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'api_tokens.created.copy'|trans }}</span></twig:Ui:Button>
+            <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+        </div>
+        <p class="m-0 text-caption text-muted">{{ 'api_tokens.created.use'|trans }}</p>
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button variant="primary" data-action="dialog#dismiss">{{ 'api_tokens.created.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'api_tokens.created.title'|trans" icon="key-round" class="max-w-2xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button variant="primary" :href="path('app_api_tokens')">{{ 'api_tokens.created.done'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

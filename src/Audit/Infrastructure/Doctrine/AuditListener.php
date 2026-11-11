@@ -10,6 +10,7 @@ namespace App\Audit\Infrastructure\Doctrine;
 
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
+use App\Audit\Application\TokenAuditActor;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditEntry;
@@ -131,6 +132,7 @@ final class AuditListener
             $this->correlation->current(),
             $em->getClassMetadata($root::class)->getName(),
             $this->identifier($em, $root),
+            $this->actor instanceof TokenAuditActor ? $this->actor->apiTokenId() : null,
         );
     }
 

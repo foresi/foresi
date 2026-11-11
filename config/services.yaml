@@ -88,6 +88,10 @@ services:
         App\Idoklad\Application\Import\ImportStage:
             tags: ['app.idoklad_import_stage']
 
+    # The tenant of a request signed in with a personal API token is the token's; otherwise the session's choice.
+    App\Identity\Application\ActiveTenantStore:
+        alias: App\Identity\Infrastructure\Security\RequestActiveTenantStore
+
     App\Party\Application\RegistrationNumberFactory:
         arguments:
             $validators: !tagged_iterator app.registration_number_validator
@@ -665,6 +669,8 @@ when@test:
             public: true
         # Nothing uses the tenant's clock yet; the jobs that will are on their way.
         App\Tenancy\Application\TenantClock: { public: true }
+        # The MCP server on stdio will sign in with it; until then only the tests do.
+        App\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }
 
         # Tests never send mail: the gateway records instead.
         App\Invoicing\Application\MailGateway:
