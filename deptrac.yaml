@@ -299,6 +299,11 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Symfony\\Component\\HtmlSanitizer\\
+    # Which packages Composer installed; only the module registry in the shared infrastructure may ask.
+    - name: VendorComposer
+      collectors:
+        - type: classLike
+          value: ^Composer\\InstalledVersions$
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
@@ -339,6 +344,7 @@ deptrac:
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
+      - VendorComposer
     TenancyDomain:
       - VendorDoctrineOrmMapping
       - SharedDomain
