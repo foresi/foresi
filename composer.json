@@ -175,7 +175,7 @@
             "accepted-problems": [
                 "core-requires-module:identity>party",
                 "core-requires-module:identity>ui",
-                "cycle:identity>party>import>identity"
+                "cycle:identity>party>identity"
             ]
         }
     },

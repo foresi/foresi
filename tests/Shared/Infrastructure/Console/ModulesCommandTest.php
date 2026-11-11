@@ -45,7 +45,7 @@ final class ModulesCommandTest extends TestCase
         self::assertContains('work', $timesheet['requires']);
         self::assertSame([], $timesheet['optional']);
         self::assertIsArray($json['problems']);
-        self::assertContains('cycle:identity>party>import>identity', $json['problems']);
+        self::assertContains('cycle:identity>party>identity', $json['problems']);
     }
 
     public function testTableShowsModulesAndProblems(): void
@@ -57,7 +57,7 @@ final class ModulesCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $status);
         $text = $output->fetch();
         self::assertStringContainsString('foresi/timesheet', $text);
-        self::assertStringContainsString('cycle:identity>party>import>identity (accepted)', $text);
+        self::assertStringContainsString('cycle:identity>party>identity (accepted)', $text);
     }
 
     public function testOptionalDependenciesShowWhetherInstalled(): void

@@ -41,13 +41,13 @@ The root `composer.json` adds a path repository over `src/*` and requires every 
 
 ### The registry
 
-`Shared\Domain\Module` holds the graph: `ModuleId`, `ModuleKind`, `ModuleManifest`, `ModuleGraph` and `GraphProblem`, with no vendor code. `ModuleGraph` refuses a duplicate id and a hard dependency that is not installed; an absent optional dependency is fine. It orders modules dependencies first and reports two kinds of problem with stable codes: a cycle of hard dependencies (`cycle:identity>party>import>identity`, from the smallest id along the edges) and a core module requiring a non-core one (`core-requires-module:identity>party`).
+`Shared\Domain\Module` holds the graph: `ModuleId`, `ModuleKind`, `ModuleManifest`, `ModuleGraph` and `GraphProblem`, with no vendor code. `ModuleGraph` refuses a duplicate id and a hard dependency that is not installed; an absent optional dependency is fine. It orders modules dependencies first and reports two kinds of problem with stable codes: a group of modules that depend on each other in a cycle, one problem per group, named by the shortest cycle from its smallest id along the edges (`cycle:identity>party>identity`) and a core module requiring a non-core one (`core-requires-module:identity>party`).
 
 `Shared\Infrastructure\Module\InstalledModules` reads the packages of type `foresi-module` from `Composer\InstalledVersions` and each one's `composer.json`. `bin/console app:modules` lists them (`--format=json` for scripts), and the MCP tool `foresi_list_modules` returns the same data.
 
 ### Known problems
 
-`extra.foresi.accepted-problems` in the root `composer.json` lists the problem codes the application lives with for now. `app:modules` fails on any other problem, and a test fails when the list and the graph differ either way, so a fixed problem must leave the list too. Today it holds the cycle of Identity, Party and Import, and Identity requiring Party and Ui. Editing the list changes the lock's content hash; refresh it with `composer update "foresi/*"`.
+`extra.foresi.accepted-problems` in the root `composer.json` lists the problem codes the application lives with for now. `app:modules` fails on any other problem, and a test fails when the list and the graph differ either way, so a fixed problem must leave the list too. Today it holds the group of Identity, Party and Import (named by its shortest cycle, Identity and Party), and Identity requiring Party and Ui. Editing the list changes the lock's content hash; refresh it with `composer update "foresi/*"`.
 
 ### Generated Deptrac
 
