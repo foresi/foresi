@@ -908,7 +908,7 @@ deptrac:
     # The catalogue reads the installed modules and reflects their event classes;
     # the recorder writes the log on the connection of the use case, with the
     # tenant, the correlation and the actor of the audit; the relay stamps each
-    # delivery with the tenant of its event.
+    # delivery with the tenant of its event; the feed is read over REST and MCP.
     EventsInfrastructure:
       - Contract
       - EventsDomain
@@ -922,6 +922,7 @@ deptrac:
       - VendorSymfony
       - VendorDoctrine
       - VendorDbalConnection
+      - VendorOpenApi
     ExchangeRateDomain:
       - Contract
       - VendorDoctrineOrmMapping

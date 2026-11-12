@@ -106,6 +106,7 @@ All endpoints are `GET` and need the `read` scope.
 | `/api/v1/contacts/{id}` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `/api/v1/payments` | Payments, newest first. |
 | `/api/v1/payments/{id}` | One payment with the invoices it pays. |
+| `/api/v1/events` | Domain events of the last 30 days, oldest first. |
 
 ### Invoices
 
@@ -149,6 +150,17 @@ Query parameters of `GET /api/v1/payments`:
 | `received_from`, `received_to` | Date received range, `YYYY-MM-DD`, both ends included. |
 | `include_cancelled` | `true` also lists cancelled payments. Default `false`. |
 | `limit`, `cursor` | Paging, as above. |
+
+### Events
+
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded. Query parameters:
+
+| Parameter | Value |
+| --- | --- |
+| `types` | Event names or `module.*`, separated by commas, such as `invoicing.invoice.paid,invoicing.payment.recorded`. Without it, every event the token's person may read. An unknown type is `400 invalid_parameter`; a type of a module the person may not read is `403 forbidden`. |
+| `limit`, `cursor` | Paging, as above. |
+
+An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type`, `id` and the API path `url` to read it), `data`, `correlation_id` and `actor` (`kind`). The `data` holds ids, codes and amounts as text, and no personal data. The feed is in ascending order of `position`, and the events of the last 30 days are kept. To follow it, store the `next_cursor` of the last answer and call again with it as `cursor`: it continues after the last event you got. A page with fewer items than `limit` means you are caught up; call again later with the same `cursor`, and `next_cursor` stays where it was until something new happens. `next_cursor` is `null` only while you have seen no event at all. Delivery to you is at least once, so handle an `id` you have seen before. A type only gains facts within a `version`.
 
 A value an endpoint cannot use, such as a date that is not a date or a `limit` above 100, is answered `400 invalid_parameter`, with the name of the parameter.
 

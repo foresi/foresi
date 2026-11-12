@@ -258,6 +258,36 @@ nelmio_api_doc:
                                             number: { type: string }
                                     amount: { $ref: '#/components/schemas/Money' }
                                     settlement: { $ref: '#/components/schemas/Money' }
+                Event:
+                    type: object
+                    description: A domain event. Its facts are ids, codes and amounts as text, never personal data.
+                    required: [id, type, version, position, occurred_at, subject, data, correlation_id, actor]
+                    properties:
+                        id: { type: string, format: uuid }
+                        type: { type: string, example: invoicing.invoice.paid }
+                        version: { type: integer, description: 'The version of the type; a type only gains facts within a version.' }
+                        position: { type: integer, description: 'The place in the feed. Read on after the highest position you have seen.' }
+                        occurred_at: { type: string, format: date-time }
+                        subject:
+                            type: object
+                            required: [type, id, url]
+                            properties:
+                                type: { type: string, example: invoice }
+                                id: { type: string }
+                                url: { type: string, nullable: true, description: 'The API path of the subject.' }
+                        data: { type: object, additionalProperties: true }
+                        correlation_id: { type: string, nullable: true, description: 'Ties the events of one piece of work together.' }
+                        actor:
+                            type: object
+                            required: [kind]
+                            properties:
+                                kind: { type: string }
+                EventPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                        next_cursor: { type: string, nullable: true }
                 PaymentPage:
                     type: object
                     required: [data, next_cursor]

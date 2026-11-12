@@ -96,6 +96,7 @@ final class ApiPlumbingTest extends ApiTestCase
         $paths = $this->at('paths');
         self::assertIsArray($paths);
         self::assertSame([
+            '/api/v1/events',
             '/api/v1/me',
             '/api/v1/invoices',
             '/api/v1/invoices/{id}',
