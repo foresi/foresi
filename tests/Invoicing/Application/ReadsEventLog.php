@@ -23,7 +23,7 @@ trait ReadsEventLog
     {
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $rows = $em->getConnection()->fetchAllAssociative(
-            'SELECT '.EventLogTable::SUBJECT_ID.', '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ? ORDER BY '.EventLogTable::OCCURRED_AT,
+            'SELECT '.EventLogTable::SUBJECT_ID.', '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ? ORDER BY '.EventLogTable::ID,
             [$name],
         );
 

@@ -34,9 +34,9 @@ An event is a `final readonly` class in `App\<Module>\Contract\Event\`, implemen
 
 `Contract/` depends on `Shared/Domain` only. The attribute, `DomainEventPayload` and `EventSubject` are in `Shared/Domain/Event`; the ports `EventRecorder`, `EventOutbox`, `DomainEventListener`, `RecordedEvent`, `EventReadAccess` and `EventSubjectUrl` are in `Shared/Application/Event`. `Shared` requires no module, so the types cannot live with the engine.
 
-The engine is the core module `Events` (`src/Events`, id `events`, requiring shared, tenancy and audit). Its `EventCatalogue` reads the `Contract/Event` folder of every installed module (ADR 0029), and `bin/console app:events` lists it; with `--check` it fails on a bad name or prefix, a duplicate, a missing or wrong version, or a fact of a type that is not allowed. CI runs the check.
+The engine is the core module `Events` (`src/Events`, id `events`, requiring shared, tenancy and audit). Its `EventCatalogue` reads the `Contract/Event` folder of every installed module (ADR 0029), and `bin/console app:events` lists it; with `--check` it fails on a bad name or prefix, a duplicate, a version below 1, a class that is not `final readonly` or lacks the attribute, or a fact of a type that is not allowed (codes `class`, `shape`, `name`, `version`, `prefix`, `duplicate` and `fact`). CI runs the check.
 
-Invoicing publishes the first events, all version 1: `invoicing.invoice.issued`, `invoicing.invoice.delivered`, `invoicing.payment.recorded`, `invoicing.invoice.paid`, `invoicing.invoice.trashed` and `invoicing.invoice.restored`. `paid` is recomputed after a payment is recorded or cancelled and is recorded when the payment state changes.
+Invoicing publishes the first events, all version 1: `invoicing.invoice.issued`, `invoicing.invoice.delivered`, `invoicing.payment.recorded`, `invoicing.invoice.paid`, `invoicing.invoice.trashed` and `invoicing.invoice.restored`. `paid` is recorded when a recorded or cancelled payment makes the invoice paid or overpaid; settlement by a credit note or an advance deduction does not record it yet. `trashed` covers `TrashInvoice` only; tax documents trashed by `CancelPayment` and `CorrectPaymentTaxDocument` record nothing yet.
 
 ### The envelope
 
@@ -48,12 +48,12 @@ The public properties of the class are the facts, and they are thin: `string`, `
 
 ### Listeners
 
-A listener implements `DomainEventListener` (`listensTo()` returns an event name, `__invoke(RecordedEvent)`).
+There are two kinds.
 
-* A synchronous listener runs in the publisher's transaction, right after the row is inserted, and may listen to events of its own module only. A test fails otherwise. Whatever it does is committed or rolled back with the change.
-* An asynchronous listener runs after commit, in its own `TransactionalWork`, and is the only way to react to another module's events. Releasing billed time on a trashed invoice stays on the synchronous `BilledWorkRelease` port, because restore can refuse when the time was billed elsewhere meanwhile and an asynchronous release could still be queued. `invoice.trashed` and `invoice.restored` are facts, not commands.
+* A synchronous listener is a Symfony event-dispatcher listener on the payload class and receives the payload. It runs in the publisher's transaction, right after the row is inserted, and may listen to events of its own module only. A test fails otherwise. Whatever it does is committed or rolled back with the change.
+* An asynchronous listener implements `DomainEventListener` (`listensTo()` returns an event name, `__invoke(RecordedEvent)`); every tagged one is asynchronous. It runs after commit, in `DeliveryWork` (the semantics of `TransactionalWork`, which the Events module may not require from Party), and is the only way to react to another module's events. Releasing billed time on a trashed invoice stays on the synchronous `BilledWorkRelease` port, because restore can refuse when the time was billed elsewhere meanwhile and an asynchronous release could still be queued. `invoice.trashed` and `invoice.restored` are facts, not commands.
 
-Pull Request 1 ships the engine and no production asynchronous listener; the tests build their own.
+No production asynchronous listener exists yet; the tests build their own.
 
 ### Recording and the log
 
@@ -71,11 +71,11 @@ The relay runs under one lock (Symfony Lock, `LOCK_DSN`). In one DBAL transactio
 
 Delivery is at least once and ordering is not promised to listeners. `DeliverEventHandler` runs the listener in its own transaction and writes a consumption row keyed by `(listener, event_id)` in the same transaction; an event whose row exists is skipped, so a listener acts once per event even when the message arrives twice. A failure is retried after 5 s, 30 s, 3 min, 18 min and 1.8 h, then lands in the `failed` transport.
 
-The listener key is its service id. Renaming or moving a listener changes the key, so it is treated as a new listener and receives again every event still in the log, which is 30 days of them. A listener that is renamed must tolerate that.
+The listener key is its service id. The relay enqueues deliveries only when it numbers a row, so a listener added or renamed receives only the events numbered after the deploy, not the ones already in the log. Messages still queued or retrying under an old id are acknowledged and dropped with a warning. A backfill of the log, or stable listener ids, comes with the first production listener.
 
 ### The feed
 
-`GET /api/v1/events` and the MCP tools `foresi_list_events` and `foresi_list_event_types` read the log in ascending order of `position`. Parameters are `types` (names or `module.*`), `cursor` and `limit`, the cursor being a position and not a UUIDv7 id. The read needs the `read` scope, and a type is shown only to a person who may read its subject. Unlike other lists, `next_cursor` is not null once an event has been seen, because a poller has to move past the last slice. The cursor then stays at the last position until a newer event exists.
+`GET /api/v1/events` and the MCP tools `foresi_list_events` and `foresi_list_event_types` read the log in ascending order of `position`. Parameters are `types` (names or `module.*`), `cursor` and `limit`, the cursor being a position and not a UUIDv7 id. The read needs the `read` scope, and a type is shown only to a person who may read the module's data (staff, for invoices and payments). Unlike other lists, `next_cursor` is not null once an event has been seen, because a poller has to move past the last slice. The cursor then stays at the last position until a newer event exists.
 
 A task on the schedule prunes events older than 30 days once a day. It never prunes the row with the highest position, so a position is never reused after the log has emptied.
 
@@ -88,5 +88,5 @@ A task on the schedule prunes events older than 30 days once a day. It never pru
 * Good, because webhooks come next, on the same log: endpoints, signing and their own delivery rows, without a new source of events.
 * Bad, because gapless positions need a lock store shared by all workers, which is an operational requirement.
 * Bad, because a feed reader sees an event a moment after the commit, not in it.
-* Bad, because renaming a listener's service id re-delivers 30 days of events.
+* Bad, because a listener key is its service id: a rename drops its pending deliveries and does not replay the log.
 * Bad, because a listener must be idempotent, and ordering across events is the reader's problem.

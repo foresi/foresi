@@ -81,7 +81,7 @@ A list answers with an envelope:
 }
 ```
 
-Lists are sorted newest first. `limit` is the size of a slice, 25 by default and at most 100. When `next_cursor` is not `null`, send it back as `cursor` to get the next slice, with the same filters. When it is `null`, you have everything. The cursor is opaque: do not build or change it. A cursor this API did not give is refused with `invalid_parameter`.
+Lists are sorted newest first. `limit` is the size of a slice, 25 by default and at most 100. When `next_cursor` is not `null`, send it back as `cursor` to get the next slice, with the same filters. When it is `null`, you have everything (except in the events feed, see below). The cursor is opaque: do not build or change it. A cursor this API did not give is refused with `invalid_parameter`.
 
 ```bash
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" \
@@ -158,7 +158,7 @@ Query parameters of `GET /api/v1/payments`:
 | Parameter | Value |
 | --- | --- |
 | `types` | Event names or `module.*`, separated by commas, such as `invoicing.invoice.paid,invoicing.payment.recorded`. Without it, every event the token's person may read. An unknown type is `400 invalid_parameter`; a type of a module the person may not read is `403 forbidden`. |
-| `limit`, `cursor` | Paging, as above. |
+| `limit`, `cursor` | Paging, but the cursor is a position in the feed, and `next_cursor` is not `null` once you have seen an event; see below. |
 
 An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type`, `id` and the API path `url` to read it), `data`, `correlation_id` and `actor` (`kind`). The `data` holds ids, codes and amounts as text, and no personal data. The feed is in ascending order of `position`, and the events of the last 30 days are kept. To follow it, store the `next_cursor` of the last answer and call again with it as `cursor`: it continues after the last event you got. A page with fewer items than `limit` means you are caught up; call again later with the same `cursor`, and `next_cursor` stays where it was until something new happens. `next_cursor` is `null` only while you have seen no event at all. Delivery to you is at least once, so handle an `id` you have seen before. A type only gains facts within a `version`.
 

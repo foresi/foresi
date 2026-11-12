@@ -12,9 +12,9 @@ use App\Tenancy\Application\TenantScopedMessage;
 
 /**
  * Hands one stored event to one async listener, in the tenant of the event. The
- * relay sends one per listener of the event's name; the listener is named by
- * its service id, so renaming its class delivers the events still in the log
- * to it again.
+ * relay sends one per listener of the event's name when it numbers the row; the
+ * listener is named by its service id. A renamed listener gets only the events
+ * numbered after the rename; messages still queued under the old id are dropped.
  */
 final readonly class DeliverEvent implements TenantScopedMessage
 {

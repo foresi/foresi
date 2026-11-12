@@ -13,7 +13,7 @@ use App\Shared\Domain\Event\DomainEventPayload;
 use App\Shared\Domain\Event\EventSubject;
 
 /**
- * A payable document became paid or overpaid. The payment is the one, recorded or cancelled, that caused it.
+ * A recorded or cancelled payment made a payable document paid or overpaid. The payment is the one that caused it. Settlement by a credit note or an advance deduction does not record it yet.
  */
 #[DomainEvent('invoicing.invoice.paid', version: 1)]
 final readonly class InvoicePaid implements DomainEventPayload
