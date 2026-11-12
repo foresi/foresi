@@ -108,7 +108,7 @@ final class DbalEventRecorderTest extends KernelTestCase
     public function testRolledBackRecordLeavesNoRow(): void
     {
         try {
-            $this->work->run(function (): void {
+            $this->work->run(function (): never {
                 $this->recorder->record($this->event('a'));
 
                 throw new \RuntimeException('Refused.');
@@ -132,7 +132,7 @@ final class DbalEventRecorderTest extends KernelTestCase
 
     public function testACommitThatRecordedNothingDoesNotNudge(): void
     {
-        $this->work->run(static fn () => null);
+        $this->work->run(static fn (): null => null);
 
         self::assertCount(0, $this->relay->getSent());
     }
@@ -140,7 +140,7 @@ final class DbalEventRecorderTest extends KernelTestCase
     public function testRollbackDoesNotNudge(): void
     {
         try {
-            $this->work->run(function (): void {
+            $this->work->run(function (): never {
                 $this->recorder->record($this->event('a'));
 
                 throw new \RuntimeException('Refused.');
@@ -148,7 +148,7 @@ final class DbalEventRecorderTest extends KernelTestCase
         } catch (\RuntimeException) {
         }
         // The dropped count must not leak into the next unit either.
-        $this->work->run(static fn () => null);
+        $this->work->run(static fn (): null => null);
 
         self::assertCount(0, $this->relay->getSent());
     }
@@ -193,7 +193,7 @@ final class DbalEventRecorderTest extends KernelTestCase
     public function testSyncListenerRunsInsideTheTransaction(): void
     {
         $seen = [];
-        $this->listeners->addListener(InvoiceIssued::class, function () use (&$seen): void {
+        $this->listeners->addListener(InvoiceIssued::class, function () use (&$seen): never {
             $seen[] = $this->db->isTransactionActive();
 
             throw new \DomainException('The listener refuses.');

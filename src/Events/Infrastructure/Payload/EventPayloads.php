@@ -25,8 +25,8 @@ final class EventPayloads
     {
         $facts = [];
         foreach ($this->parameters($event::class) as $parameter) {
-            $value = (new \ReflectionProperty($event, $parameter->getName()))->getValue($event);
-            $facts[self::snake($parameter->getName())] = match (true) {
+            $value = new \ReflectionProperty($event, $parameter->getName())->getValue($event);
+            $facts[$this->snake($parameter->getName())] = match (true) {
                 $value instanceof \BackedEnum => $value->value,
                 \is_array($value) => array_values(array_map(static fn (mixed $item): string => \is_string($item) ? $item : throw new \LogicException('A list fact holds strings.'), $value)),
                 \is_string($value), \is_int($value), \is_bool($value), null === $value => $value,
@@ -44,7 +44,7 @@ final class EventPayloads
     {
         $arguments = [];
         foreach ($this->parameters($type->class) as $parameter) {
-            $key = self::snake($parameter->getName());
+            $key = $this->snake($parameter->getName());
             if (!\array_key_exists($key, $data)) {
                 // A fact added in a later release is missing from older rows: its default, or null.
                 $arguments[$parameter->getName()] = $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null;
@@ -66,9 +66,9 @@ final class EventPayloads
      */
     private function parameters(string $class): array
     {
-        $constructor = (new \ReflectionClass($class))->getConstructor();
+        $constructor = new \ReflectionClass($class)->getConstructor();
 
-        return null === $constructor ? [] : array_values(array_filter($constructor->getParameters(), static fn (\ReflectionParameter $p): bool => $p->isPromoted()));
+        return $constructor instanceof \ReflectionMethod ? array_values(array_filter($constructor->getParameters(), static fn (\ReflectionParameter $p): bool => $p->isPromoted())) : [];
     }
 
     /**
@@ -84,7 +84,7 @@ final class EventPayloads
         return null;
     }
 
-    private static function snake(string $name): string
+    private function snake(string $name): string
     {
         return strtolower((string) preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
     }

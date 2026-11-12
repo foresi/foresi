@@ -28,7 +28,7 @@ final class WorkUnitTest extends WorkTestCase
         $before = $this->parties();
 
         try {
-            $this->unit->run(function (): void {
+            $this->unit->run(function (): never {
                 $this->em->persist(new Party(PartyKind::Person, 'Stored too early', null, null, ''));
                 $this->em->flush();
 
@@ -61,7 +61,7 @@ final class WorkUnitTest extends WorkTestCase
         $queue->reset();
 
         try {
-            $this->unit->run(function (): void {
+            $this->unit->run(function (): never {
                 $this->em->persist(new Party(PartyKind::Person, 'Never stored', null, null, ''));
 
                 throw new \RuntimeException('Refused.');

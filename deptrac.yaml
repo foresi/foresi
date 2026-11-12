@@ -907,7 +907,8 @@ deptrac:
       - TenancyApplication
     # The catalogue reads the installed modules and reflects their event classes;
     # the recorder writes the log on the connection of the use case, with the
-    # tenant, the correlation and the actor of the audit.
+    # tenant, the correlation and the actor of the audit; the relay stamps each
+    # delivery with the tenant of its event.
     EventsInfrastructure:
       - Contract
       - EventsDomain
@@ -916,6 +917,7 @@ deptrac:
       - SharedApplication
       - SharedInfrastructure
       - TenancyApplication
+      - TenantStamp
       - AuditApplication
       - VendorSymfony
       - VendorDoctrine

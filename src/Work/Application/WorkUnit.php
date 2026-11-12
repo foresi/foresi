@@ -31,8 +31,6 @@ final readonly class WorkUnit
      */
     public function run(callable $change): mixed
     {
-        return $this->correlation->within($this->correlation->current() ?? 'work:'.Id::generate(), function () use ($change): mixed {
-            return $this->transaction->run($change);
-        });
+        return $this->correlation->within($this->correlation->current() ?? 'work:'.Id::generate(), fn (): mixed => $this->transaction->run($change));
     }
 }

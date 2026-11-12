@@ -11,6 +11,7 @@ namespace App\Identity\Infrastructure\Security;
 use App\Audit\Application\TokenAuditActor;
 use App\Audit\Domain\ActorKind;
 use App\Identity\Application\ApiTokenContext;
+use App\Identity\Application\ApiTokenGrant;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 
@@ -37,7 +38,7 @@ final readonly class SecurityAuditActor implements TokenAuditActor
         if (null === $this->userId()) {
             return ActorKind::System;
         }
-        if (null === $this->apiTokens->grant()) {
+        if (!$this->apiTokens->grant() instanceof ApiTokenGrant) {
             return ActorKind::User;
         }
         $token = $this->tokens->getToken();

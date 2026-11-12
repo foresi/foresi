@@ -41,12 +41,19 @@ framework:
                     max_retries: 5
                     delay: 60000
                     multiplier: 4
-            # The relay of domain events and, later, their delivery to listeners.
+            # The relay of domain events and their delivery to async listeners. On the
+            # database connection, so the relay stores its deliveries in its own
+            # transaction. A listener that fails is retried after 5 s, 30 s, 3 min,
+            # 18 min and 1.8 h, about 2.1 hours in all.
             events:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
                     queue_name: events
                     redeliver_timeout: 600
+                retry_strategy:
+                    max_retries: 5
+                    delay: 5000
+                    multiplier: 6
             failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -86,6 +93,8 @@ framework:
             App\Shared\Application\SystemMail: mail
             # A commit that recorded events asks the relay to number and enqueue them.
             App\Events\Application\RelayEvents: events
+            # Each event once to each async listener, in the event's tenant.
+            App\Events\Application\DeliverEvent: events
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
