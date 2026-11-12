@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Banking\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Audit\Domain\ActorKind;
 use App\Banking\Application\AcceptRefused;
 use App\Banking\Application\AcceptRejectedMessage;
 use App\Banking\Application\BankMessageParsers;
@@ -433,6 +434,11 @@ final class ProcessMessageTest extends InboundTestCase
             public function userId(): string
             {
                 return '01963c5e-0000-7000-8000-0000000000aa';
+            }
+
+            public function kind(): ActorKind
+            {
+                return ActorKind::User;
             }
         };
         $translator = $container->get(TranslatorInterface::class);

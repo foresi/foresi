@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Purchasing\Application\Query;
 
 use App\Audit\Application\AuditTrail;
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Application\UserRepository;
@@ -249,6 +250,6 @@ final class ReceivedDocumentHistoryTest extends PurchasingTestCase
      */
     private function entry(array $changes, ?string $userId, string $at, ?string $correlation = null, string $entity = ReceivedDocument::class, AuditAction $action = AuditAction::Updated): AuditEntry
     {
-        return new AuditEntry($entity, 'entity-id', $action, $changes, $userId, new \DateTimeImmutable('2026-11-10 '.$at, new \DateTimeZone('UTC')), $correlation, ReceivedDocument::class, 'document-id');
+        return new AuditEntry($entity, 'entity-id', $action, $changes, $userId, ActorKind::User, new \DateTimeImmutable('2026-11-10 '.$at, new \DateTimeZone('UTC')), $correlation, ReceivedDocument::class, 'document-id');
     }
 }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Audit\Domain\ActorKind;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\TrashInvoice;
 use App\Invoicing\Domain\DocumentKind;
@@ -130,6 +131,11 @@ final class TrashInvoiceTest extends InvoiceTestCase
             public function userId(): string
             {
                 return '01963c5e-0000-7000-8000-00000000000a';
+            }
+
+            public function kind(): ActorKind
+            {
+                return ActorKind::User;
             }
         };
         $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\App\Invoicing\Application\BilledWorkRelease::class));
