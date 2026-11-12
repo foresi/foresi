@@ -11,7 +11,10 @@ namespace App\Tests\Events\Infrastructure\Catalogue;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Catalogue\EventType;
 use App\Events\Infrastructure\Catalogue\UnknownEventType;
+use App\Shared\Domain\Module\ModuleGraph;
 use App\Shared\Domain\Module\ModuleId;
+use App\Shared\Domain\Module\ModuleKind;
+use App\Shared\Domain\Module\ModuleManifest;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,14 +33,19 @@ final class EventCatalogueTest extends TestCase
             ['invoicing.invoice.issued@1', 'invoicing.invoice.issued@2', 'invoicing.invoice.paid@1'],
             array_map(static fn (EventType $type): string => $type->name.'@'.$type->version, $catalogue->all()),
         );
-        self::assertFalse($catalogue->has('stranger.thing.happened'));
     }
 
     public function testEventsOutsideInstalledModulesAreNeverRead(): void
     {
-        $catalogue = EventCatalogue::scan([]);
+        $namespace = 'App\Tests\Events\Fixtures\Project\src\\';
+        $directory = \dirname(__DIR__, 2).'/Fixtures/Project';
+        self::assertFileExists($directory.'/src/Stranger/Contract/Event/Stray.php');
+        $graph = new ModuleGraph([new ModuleManifest(ModuleId::of('invoicing'), ModuleKind::Module, 'foresi/invoicing', $namespace.'Invoicing\\', [], [])]);
 
-        self::assertSame([], $catalogue->all());
+        $catalogue = EventCatalogue::forGraph($graph, $directory);
+
+        self::assertSame(['invoicing.invoice.paid'], array_map(static fn (EventType $type): string => $type->name, $catalogue->all()));
+        self::assertFalse($catalogue->has('stranger.thing.happened'));
         self::assertSame([], $catalogue->problems());
     }
 

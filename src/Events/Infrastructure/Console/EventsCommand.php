@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Events\Infrastructure\Console;
 
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
+use App\Events\Infrastructure\Catalogue\EventType;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
@@ -51,7 +52,7 @@ final readonly class EventsCommand
             return Command::FAILURE;
         }
 
-        $rows = array_map(static fn (\App\Events\Infrastructure\Catalogue\EventType $type): array => [
+        $rows = array_map(static fn (EventType $type): array => [
             'name' => $type->name,
             'version' => $type->version,
             'module' => $type->module->value,

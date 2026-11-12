@@ -10,6 +10,7 @@ namespace App\Events\Infrastructure\Catalogue;
 
 use App\Shared\Domain\Event\DomainEvent;
 use App\Shared\Domain\Event\DomainEventPayload;
+use App\Shared\Domain\Module\ModuleGraph;
 use App\Shared\Domain\Module\ModuleId;
 use App\Shared\Infrastructure\Module\InstalledModules;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -55,6 +56,17 @@ final class EventCatalogue
     {
         $catalogue = new self(new InstalledModules(''), '');
         $catalogue->sources = $sources;
+
+        return $catalogue;
+    }
+
+    /**
+     * A catalogue of the modules of a graph, read from the src/ directory of a project.
+     */
+    public static function forGraph(ModuleGraph $graph, string $projectDir): self
+    {
+        $catalogue = new self(new InstalledModules($projectDir), $projectDir);
+        $catalogue->sources = $catalogue->sourcesOf($graph);
 
         return $catalogue;
     }
@@ -268,13 +280,22 @@ final class EventCatalogue
         if (null !== $this->sources) {
             return $this->sources;
         }
+
+        return $this->sources = $this->sourcesOf($this->modules->graph());
+    }
+
+    /**
+     * @return list<array{ModuleId, string, string}> each module of the graph with its directory below src/
+     */
+    private function sourcesOf(ModuleGraph $graph): array
+    {
         $sources = [];
-        foreach ($this->modules->graph()->all() as $manifest) {
+        foreach ($graph->all() as $manifest) {
             $segments = explode('\\', trim($manifest->namespace, '\\'));
             $sources[] = [$manifest->id, $manifest->namespace, $this->projectDir.'/src/'.end($segments)];
         }
 
-        return $this->sources = $sources;
+        return $sources;
     }
 
     private function key(string $name, int $version): string
