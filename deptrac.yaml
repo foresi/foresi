@@ -18,6 +18,11 @@ deptrac:
       collectors:
         - type: directory
           value: src/Shared/Application/.*
+    # The contract of a module: its published events and their kind. Depends on the shared domain only.
+    - name: Contract
+      collectors:
+        - type: classLike
+          value: ^App\\[A-Za-z]+\\Contract\\.*
     - name: SharedInfrastructure
       collectors:
         - type: directory
@@ -112,6 +117,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Audit/Infrastructure/.*
+    # Domain events: the catalogue of contract events, and later their recording, relay and feed.
+    - name: EventsDomain
+      collectors:
+        - type: directory
+          value: src/Events/Domain/.*
+    - name: EventsApplication
+      collectors:
+        - type: directory
+          value: src/Events/Application/.*
+    - name: EventsInfrastructure
+      collectors:
+        - type: directory
+          value: src/Events/Infrastructure/.*
     - name: InvoicingDomain
       collectors:
         - type: directory
@@ -325,13 +343,18 @@ deptrac:
               value: ^Doctrine\\DBAL\\Connection$
   ruleset:
     SharedDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       # brick/money is an internal detail of App\Shared\Domain\Money only.
       - VendorBrick
       - VendorUid
     SharedApplication:
+      - Contract
       - SharedDomain
+      # The autoconfigure tag attribute of the listener ports.
+      - VendorSymfony
     SharedInfrastructure:
+      - Contract
       - SharedDomain
       - SharedApplication
       - VendorSymfony
@@ -346,13 +369,16 @@ deptrac:
       - VendorDbalConnection
       - VendorComposer
     TenancyDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
     TenancyApplication:
+      - Contract
       - TenancyDomain
       - SharedDomain
       - SharedApplication
     TenancyInfrastructure:
+      - Contract
       - SharedInfrastructure
       - TenancyDomain
       - TenancyApplication
@@ -370,6 +396,7 @@ deptrac:
     TenantStamp:
       - VendorSymfony
     PartyDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       # TenantOwned / TenantId are the tenant-scoping contract of owned entities.
@@ -377,6 +404,7 @@ deptrac:
       # Party is audited: it implements the Audited marker.
       - AuditDomain
     PartyApplication:
+      - Contract
       - PartyDomain
       # The image store is keyed by tenant.
       - TenancyDomain
@@ -386,6 +414,7 @@ deptrac:
       - IdentityApplication
       - AuditApplication
     PartyInfrastructure:
+      - Contract
       - SharedInfrastructure
       - PartyDomain
       - TenancyDomain
@@ -411,11 +440,13 @@ deptrac:
       - ImportApplication
       - ImportInfrastructure
     ImportDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
       - AuditDomain
     ImportApplication:
+      - Contract
       - ImportDomain
       # The file store is keyed by tenant.
       - TenancyDomain
@@ -425,6 +456,7 @@ deptrac:
       - IdentityApplication
       - AuditApplication
     ImportInfrastructure:
+      - Contract
       - SharedInfrastructure
       - ImportDomain
       - TenancyDomain
@@ -444,6 +476,7 @@ deptrac:
       # The import screens and the finish notice in the app shell.
       - Ui
     IdokladDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
@@ -451,6 +484,7 @@ deptrac:
       # The credentials and the snapshot belong to a firm.
       - PartyDomain
     IdokladApplication:
+      - Contract
       - IdokladDomain
       - SharedDomain
       - TenancyDomain
@@ -466,6 +500,7 @@ deptrac:
       # The jobs of the move run in the tenant that asked for them.
       - TenancyApplication
     IdokladInfrastructure:
+      - Contract
       - IdokladDomain
       - IdokladApplication
       # The import transaction binds the tenant again after a failure.
@@ -479,6 +514,7 @@ deptrac:
       - IdentityApplication
       - InvoicingApplication
     IdentityDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       # Membership is tenant-owned and may link the party a user represents.
@@ -486,6 +522,7 @@ deptrac:
       - PartyDomain
       - AuditDomain
     IdentityApplication:
+      - Contract
       - IdentityDomain
       - TenancyDomain
       - SharedDomain
@@ -496,6 +533,7 @@ deptrac:
       # An invitation and a membership link the contact a guest represents.
       - PartyDomain
     IdentityInfrastructure:
+      - Contract
       - SharedInfrastructure
       # The QR code of the two-factor enrolment.
       - VendorTecnick
@@ -514,16 +552,20 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # The audit actor names its kind.
+      - AuditDomain
       # The start page in the sidebar, for the staff or for a guest.
       - Ui
       # The user command links a guest user to a contact of the tenant.
       - PartyDomain
     AuditDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       # AuditEntry is tenant-owned.
       - TenancyDomain
     AuditApplication:
+      - Contract
       - AuditDomain
       - SharedDomain
       - SharedApplication
@@ -531,6 +573,7 @@ deptrac:
       - PartyApplication
       - IdentityApplication
     AuditInfrastructure:
+      - Contract
       - SharedInfrastructure
       - AuditDomain
       # The created-entry path honours the tenant of TenantOwned entities.
@@ -547,12 +590,14 @@ deptrac:
       - PartyApplication
       - IdentityApplication
     InvoicingDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
       - AuditDomain
       - PartyDomain
     InvoicingApplication:
+      - Contract
       - InvoicingDomain
       - SharedDomain
       - SharedApplication
@@ -563,6 +608,7 @@ deptrac:
       - PartyApplication
       - PartyDomain
     InvoicingInfrastructure:
+      - Contract
       - SharedInfrastructure
       - InvoicingDomain
       - InvoicingApplication
@@ -593,6 +639,7 @@ deptrac:
     # Banking builds on Party and Invoicing; they never use Banking, which plugs
     # into them through the ports they declare.
     BankingDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
@@ -600,6 +647,7 @@ deptrac:
       - PartyDomain
       - InvoicingDomain
     BankingApplication:
+      - Contract
       - BankingDomain
       - SharedDomain
       - SharedApplication
@@ -612,6 +660,7 @@ deptrac:
       - InvoicingDomain
       - InvoicingApplication
     BankingInfrastructure:
+      - Contract
       - SharedInfrastructure
       - BankingDomain
       - BankingApplication
@@ -647,6 +696,7 @@ deptrac:
     # Work builds on Party (the client of a project) and Identity (the people
     # responsible for and watching a task); neither of them uses Work.
     WorkDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
@@ -654,6 +704,7 @@ deptrac:
       - PartyDomain
       - IdentityDomain
     WorkApplication:
+      - Contract
       - WorkDomain
       - SharedDomain
       - SharedApplication
@@ -666,6 +717,7 @@ deptrac:
       - IdentityDomain
       - IdentityApplication
     WorkInfrastructure:
+      - Contract
       - SharedInfrastructure
       - WorkDomain
       - WorkApplication
@@ -695,6 +747,7 @@ deptrac:
     # Identity (people) and Invoicing; none of them uses Timesheet, which reads
     # them through their application ports, as Banking reads Party.
     TimesheetDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
@@ -704,6 +757,7 @@ deptrac:
       - IdentityDomain
       - InvoicingDomain
     TimesheetApplication:
+      - Contract
       - TimesheetDomain
       - SharedDomain
       - SharedApplication
@@ -720,6 +774,7 @@ deptrac:
       - InvoicingDomain
       - InvoicingApplication
     TimesheetInfrastructure:
+      - Contract
       - SharedInfrastructure
       - TimesheetDomain
       - TimesheetApplication
@@ -746,11 +801,13 @@ deptrac:
     # Attachments build on Tenancy and Audit only; modules plug into them with
     # AttachmentAccess (Work -> Attachment), never the other way round.
     AttachmentDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
       - AuditDomain
     AttachmentApplication:
+      - Contract
       - AttachmentDomain
       - SharedDomain
       - SharedApplication
@@ -761,6 +818,7 @@ deptrac:
     # Its controller is open to guests (Identity's OpenToGuest marker): what a
     # guest may see of a record is the module's AttachmentAccess to decide.
     AttachmentInfrastructure:
+      - Contract
       - AttachmentDomain
       - AttachmentApplication
       - IdentityApplication
@@ -777,12 +835,14 @@ deptrac:
     # no module uses Purchasing but the navigation of Ui, and it never uses
     # Invoicing.
     PurchasingDomain:
+      - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - TenancyDomain
       - AuditDomain
       - PartyDomain
     PurchasingApplication:
+      - Contract
       - PurchasingDomain
       - SharedDomain
       - SharedApplication
@@ -800,6 +860,7 @@ deptrac:
       - ExchangeRateApplication
       - VendorBrick
     PurchasingInfrastructure:
+      - Contract
       - SharedInfrastructure
       - PurchasingDomain
       - PurchasingApplication
@@ -835,13 +896,43 @@ deptrac:
       - InvoicingApplication
       - BankingDomain
       - BankingApplication
+    EventsDomain:
+      - Contract
+      - SharedDomain
+    EventsApplication:
+      - Contract
+      - EventsDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+    # The catalogue reads the installed modules and reflects their event classes;
+    # the recorder writes the log on the connection of the use case, with the
+    # tenant, the correlation and the actor of the audit; the relay stamps each
+    # delivery with the tenant of its event; the feed is read over REST and MCP.
+    EventsInfrastructure:
+      - Contract
+      - EventsDomain
+      - EventsApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - TenancyApplication
+      - TenantStamp
+      - AuditApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDbalConnection
+      - VendorOpenApi
     ExchangeRateDomain:
+      - Contract
       - VendorDoctrineOrmMapping
     ExchangeRateApplication:
+      - Contract
       - ExchangeRateDomain
       - SharedDomain
       - SharedApplication
     ExchangeRateInfrastructure:
+      - Contract
       - ExchangeRateDomain
       - ExchangeRateApplication
       - SharedDomain
@@ -861,3 +952,5 @@ deptrac:
       - VendorUid
       - SharedDomain
       - SharedApplication
+    Contract:
+      - SharedDomain

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Contract\Event\PaymentRecorded;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
@@ -17,6 +18,7 @@ use App\Invoicing\Domain\PaymentDirection;
 use App\Invoicing\Domain\PaymentSource;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
@@ -43,6 +45,9 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * that, checked under their locks; it writes nothing off. A refund of an advance
  * issues no tax document: correcting the one on the payment is a step of its own,
  * which listens for AdvanceRefunded, dispatched in the same transaction.
+ *
+ * The same transaction records that the payment was recorded and, for each invoice
+ * it makes paid, that it is paid.
  */
 final readonly class RecordPayment
 {
@@ -56,6 +61,8 @@ final readonly class RecordPayment
         private ClockInterface $clock,
         private IssuePaymentTaxDocument $taxDocuments,
         private EventDispatcherInterface $events,
+        private EventRecorder $recorder,
+        private PaymentTransitions $transitions,
     ) {
     }
 
@@ -81,6 +88,7 @@ final readonly class RecordPayment
                 $invoices[$id] = $this->store->get($id);
             }
             $firm = $this->firmOf($request, $invoices);
+            $before = $this->transitions->before(array_values($invoices));
             if ($request->receivedOn->format('Y-m-d') > $this->todayOf($firm)->format('Y-m-d')) {
                 throw new PaymentRefused(PaymentRefused::FUTURE_DATE);
             }
@@ -95,6 +103,16 @@ final readonly class RecordPayment
             foreach ($request->allocations as $allocation) {
                 $this->payments->addAllocation(new PaymentAllocation($payment, $invoices[$allocation->invoiceId], $allocation->amount, $allocation->settlement));
             }
+            $this->recorder->record(new PaymentRecorded(
+                $payment->id(),
+                $firm->id(),
+                EventFacts::amount($payment->amount()),
+                $payment->amount()->currency()->value,
+                EventFacts::day($payment->receivedOn()),
+                EventFacts::direction($payment->direction()),
+                $payment->source()->value,
+                $ids,
+            ));
             // The one path every payment takes, by hand or from the bank: an advance gets its tax document here.
             foreach ($request->allocations as $allocation) {
                 if (DocumentKind::Advance !== $invoices[$allocation->invoiceId]->kind()) {
@@ -106,6 +124,7 @@ final readonly class RecordPayment
                     $this->taxDocuments->forPayment($payment, $allocation->invoiceId, $allocation->amount);
                 }
             }
+            $this->transitions->recordPaid(array_values($invoices), $before, $payment->id());
 
             return $payment;
         }));

@@ -57,6 +57,8 @@ use Symfony\Component\Clock\MockClock;
 
 final class ImportIssuedDocumentTest extends AdvanceTestCase
 {
+    use ReadsEventLog;
+
     private const string RUN = '0192f0a0-0000-7000-8000-000000000001';
     private const string PDF = "%PDF-1.4\n% the original from the source\n%%EOF\n";
 
@@ -96,6 +98,14 @@ final class ImportIssuedDocumentTest extends AdvanceTestCase
         self::assertNull($invoice->originalPdfKey());
         self::assertSame(['20240008'], [$this->counter->next($this->series, new \DateTimeImmutable('2024-05-01'))]);
         self::assertTrue(self::getContainer()->get(ContactSettingsForFirm::class)->isCustomer($this->customer, $this->firm));
+    }
+
+    public function testImportRecordsNothing(): void
+    {
+        $this->import->import($this->imported());
+
+        self::assertSame(1, $this->invoiceCount());
+        self::assertSame(0, $this->eventCount());
     }
 
     public function testADocumentIsImportedOnce(): void

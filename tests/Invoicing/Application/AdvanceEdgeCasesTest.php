@@ -24,6 +24,7 @@ use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\PaymentSourceRelease;
 use App\Invoicing\Application\PaymentTaxDocumentTexts;
+use App\Invoicing\Application\PaymentTransitions;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\TaxOnReceipt;
 use App\Invoicing\Domain\DocumentKind;
@@ -288,7 +289,9 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
         $corrections = new \ReflectionProperty(CancelPayment::class, 'corrections')->getValue($wired);
         self::assertInstanceOf(AdvanceDocuments::class, $documents);
         self::assertInstanceOf(PaymentTaxDocumentTexts::class, $texts);
+        $transitions = new \ReflectionProperty(CancelPayment::class, 'transitions')->getValue($wired);
         self::assertInstanceOf(CorrectPaymentTaxDocument::class, $corrections);
+        self::assertInstanceOf(PaymentTransitions::class, $transitions);
         $cancel = new CancelPayment(
             $this->payments,
             new LoggingInvoiceStore($this->store, $log),
@@ -300,6 +303,7 @@ final class AdvanceEdgeCasesTest extends AdvanceTestCase
             $documents,
             $texts,
             $corrections,
+            $transitions,
         );
 
         $cancel->cancel($payment->id());

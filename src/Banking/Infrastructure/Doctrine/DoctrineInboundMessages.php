@@ -181,6 +181,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             // The claim marked it processing; it was rejected for its sender until now.
             ['status' => [InboundStatus::Rejected->value, $status->value], 'trust_basis' => [$this->optional($row['trust_basis']), TrustVerdict::ACCEPTED_BY_USER]],
             $this->actor->userId(),
+            $this->actor->kind(),
             \DateTimeImmutable::createFromInterface($this->clock->now()),
             $this->correlation->current(),
         ));
@@ -320,6 +321,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             AuditAction::Updated,
             ['status' => [$was->value, InboundStatus::Dismissed->value]],
             $this->actor->userId(),
+            $this->actor->kind(),
             \DateTimeImmutable::createFromInterface($this->clock->now()),
             $this->correlation->current(),
         ));

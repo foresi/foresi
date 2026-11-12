@@ -9,15 +9,16 @@ declare(strict_types=1);
 namespace App\Work\Application;
 
 use App\Audit\Application\AuditCorrelation;
+use App\Party\Application\TransactionalWork;
 use App\Shared\Domain\Id;
 
 /**
- * One action of a person, saved at once under one correlation id, so its
- * history shows it as one step whatever it touched.
+ * One action of a person, saved at once in one transaction under one
+ * correlation id, so its history shows it as one step whatever it touched.
  */
 final readonly class WorkUnit
 {
-    public function __construct(private AuditCorrelation $correlation, private Projects $projects)
+    public function __construct(private AuditCorrelation $correlation, private TransactionalWork $transaction)
     {
     }
 
@@ -30,11 +31,6 @@ final readonly class WorkUnit
      */
     public function run(callable $change): mixed
     {
-        return $this->correlation->within($this->correlation->current() ?? 'work:'.Id::generate(), function () use ($change): mixed {
-            $result = $change();
-            $this->projects->flush();
-
-            return $result;
-        });
+        return $this->correlation->within($this->correlation->current() ?? 'work:'.Id::generate(), fn (): mixed => $this->transaction->run($change));
     }
 }

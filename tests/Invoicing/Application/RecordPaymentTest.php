@@ -26,6 +26,7 @@ use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\PaymentSourceRelease;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PaymentTaxDocumentTexts;
+use App\Invoicing\Application\PaymentTransitions;
 use App\Invoicing\Application\RecordPayment;
 use App\Invoicing\Application\UnknownPayment;
 use App\Invoicing\Domain\Invoice;
@@ -34,6 +35,7 @@ use App\Invoicing\Domain\PaymentSource;
 use App\Invoicing\Domain\PriceType;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 use App\Tenancy\Application\TenantContext;
@@ -611,6 +613,8 @@ final class RecordPaymentTest extends InvoiceTestCase
             Clock::get(),
             $taxDocuments,
             $container->get(EventDispatcherInterface::class),
+            $container->get(EventRecorder::class),
+            new PaymentTransitions($this->payments, $container->get(EventRecorder::class)),
         );
     }
 
@@ -673,7 +677,7 @@ final class RecordPaymentTest extends InvoiceTestCase
     /**
      * What CancelPayment needs for the tax documents of a payment, as the container wires it.
      *
-     * @return array{AdvanceDocuments, PaymentTaxDocumentTexts, CorrectPaymentTaxDocument}
+     * @return array{AdvanceDocuments, PaymentTaxDocumentTexts, CorrectPaymentTaxDocument, PaymentTransitions}
      */
     private function taxDocumentParts(): array
     {
@@ -683,8 +687,10 @@ final class RecordPaymentTest extends InvoiceTestCase
         $corrections = new \ReflectionProperty(CancelPayment::class, 'corrections')->getValue($wired);
         self::assertInstanceOf(AdvanceDocuments::class, $documents);
         self::assertInstanceOf(PaymentTaxDocumentTexts::class, $texts);
+        $transitions = new \ReflectionProperty(CancelPayment::class, 'transitions')->getValue($wired);
         self::assertInstanceOf(CorrectPaymentTaxDocument::class, $corrections);
+        self::assertInstanceOf(PaymentTransitions::class, $transitions);
 
-        return [$documents, $texts, $corrections];
+        return [$documents, $texts, $corrections, $transitions];
     }
 }

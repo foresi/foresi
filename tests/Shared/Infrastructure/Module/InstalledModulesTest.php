@@ -24,7 +24,7 @@ final class InstalledModulesTest extends TestCase
     public function testFindsEveryModuleDirectory(): void
     {
         self::assertSame(
-            ['attachment', 'audit', 'banking', 'country', 'exchange-rate', 'identity', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'shared', 'tenancy', 'timesheet', 'ui', 'work'],
+            ['attachment', 'audit', 'banking', 'country', 'events', 'exchange-rate', 'identity', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'shared', 'tenancy', 'timesheet', 'ui', 'work'],
             array_map(static fn (ModuleManifest $module): string => $module->id->value, $this->modules()->graph()->all()),
         );
     }
@@ -36,7 +36,7 @@ final class InstalledModulesTest extends TestCase
             $kinds[$module->kind->value][] = $module->id->value;
         }
 
-        self::assertSame(['attachment', 'audit', 'identity', 'shared', 'tenancy'], $kinds[ModuleKind::Core->value] ?? []);
+        self::assertSame(['attachment', 'audit', 'events', 'identity', 'shared', 'tenancy'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
             ['banking', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'party', 'purchasing', 'timesheet', 'work'],

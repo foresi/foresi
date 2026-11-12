@@ -31,6 +31,7 @@ use App\Party\Infrastructure\Doctrine\DoctrineParties;
 use App\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
 use App\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
 use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
+use App\Shared\Application\Event\EventOutbox;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
 use App\Tenancy\Domain\TenantId;
@@ -598,6 +599,16 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
     private function transaction(): DoctrineTransactionalWork
     {
-        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $this->context);
+        $outbox = new class implements EventOutbox {
+            public function committed(): void
+            {
+            }
+
+            public function rolledBack(): void
+            {
+            }
+        };
+
+        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $this->context, $outbox);
     }
 }

@@ -36,7 +36,7 @@ final class ModulesCommandTest extends TestCase
         $json = json_decode($output->fetch(), true, flags: \JSON_THROW_ON_ERROR);
         self::assertIsArray($json);
         self::assertIsArray($json['modules']);
-        self::assertCount(16, $json['modules']);
+        self::assertCount(17, $json['modules']);
         $timesheet = array_values(array_filter($json['modules'], static fn (mixed $module): bool => \is_array($module) && 'timesheet' === $module['id']))[0] ?? null;
         self::assertIsArray($timesheet);
         self::assertSame('module', $timesheet['kind']);

@@ -195,6 +195,11 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
         return array_column($rows, 'number', 'id');
     }
 
+    public function flush(): void
+    {
+        $this->em->flush();
+    }
+
     public function add(Payment $payment): void
     {
         $this->em->persist($payment);

@@ -221,6 +221,11 @@ services:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailServers
     App\Invoicing\Application\MailSecrets:
         alias: App\Invoicing\Infrastructure\Mail\SodiumMailSecrets
+    # Events are recorded on the connection of the use case; the transaction hooks tell the same object how the unit ended.
+    App\Shared\Application\Event\EventRecorder:
+        alias: App\Events\Infrastructure\Dbal\DbalEventRecorder
+    App\Shared\Application\Event\EventOutbox:
+        alias: App\Events\Infrastructure\Dbal\DbalEventRecorder
     App\Shared\Application\Sealer:
         alias: App\Shared\Infrastructure\Crypto\SodiumSealer
     App\Invoicing\Application\MailHostPolicy:
