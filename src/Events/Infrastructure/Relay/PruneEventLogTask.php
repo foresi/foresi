@@ -17,7 +17,8 @@ use Psr\Clock\ClockInterface;
 /**
  * Deletes relayed events older than thirty days, with the record of their
  * consumptions, once a day. A row with no position yet is never deleted: its
- * listeners have not been handed it.
+ * listeners have not been handed it. Nor is the row of the highest position,
+ * which keeps the positions rising across a quiet month.
  */
 final readonly class PruneEventLogTask implements OperatorTask
 {
@@ -43,24 +44,22 @@ final readonly class PruneEventLogTask implements OperatorTask
     public function run(): void
     {
         $before = $this->clock->now()->modify(\sprintf('-%d days', self::KEEP_DAYS));
-        $expired = \sprintf(
-            'SELECT %s FROM %s WHERE %s IS NOT NULL AND %s < :before',
-            EventLogTable::ID,
-            EventLogTable::LOG,
-            EventLogTable::POSITION,
-            EventLogTable::OCCURRED_AT,
-        );
-        $this->connection->transactional(function (Connection $connection) use ($expired, $before): void {
+        $this->connection->transactional(function (Connection $connection) use ($before): void {
+            // The row of the highest position stays, however old: the relay numbers on from it,
+            // so an empty log would start the positions at 1 again.
+            $highest = $connection->fetchOne(\sprintf('SELECT MAX(%s) FROM %s', EventLogTable::POSITION, EventLogTable::LOG));
+            if (!is_numeric($highest)) {
+                return;
+            }
+            $expired = \sprintf('%s < :highest AND %s < :before', EventLogTable::POSITION, EventLogTable::OCCURRED_AT);
+            $parameters = ['highest' => (int) $highest, 'before' => $before];
+            $types = ['before' => Types::DATETIME_IMMUTABLE];
             $connection->executeStatement(
-                \sprintf('DELETE FROM %s WHERE %s IN (%s)', EventLogTable::CONSUMPTION, EventLogTable::EVENT_ID, $expired),
-                ['before' => $before],
-                ['before' => Types::DATETIME_IMMUTABLE],
+                \sprintf('DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s)', EventLogTable::CONSUMPTION, EventLogTable::EVENT_ID, EventLogTable::ID, EventLogTable::LOG, $expired),
+                $parameters,
+                $types,
             );
-            $connection->executeStatement(
-                \sprintf('DELETE FROM %s WHERE %s IS NOT NULL AND %s < :before', EventLogTable::LOG, EventLogTable::POSITION, EventLogTable::OCCURRED_AT),
-                ['before' => $before],
-                ['before' => Types::DATETIME_IMMUTABLE],
-            );
+            $connection->executeStatement(\sprintf('DELETE FROM %s WHERE %s', EventLogTable::LOG, $expired), $parameters, $types);
         });
     }
 }

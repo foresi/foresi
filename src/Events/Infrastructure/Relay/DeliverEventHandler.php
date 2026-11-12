@@ -16,12 +16,9 @@ use App\Shared\Application\Event\DomainEventListener;
 use App\Shared\Application\Event\RecordedEvent;
 use App\Tenancy\Application\TenantContext;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
-use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
@@ -43,8 +40,8 @@ final readonly class DeliverEventHandler
         private EventCatalogue $catalogue,
         private EventPayloads $payloads,
         private DeliveryWork $work,
+        private EventConsumptions $consumptions,
         private TenantContext $tenant,
-        private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
     }
@@ -58,19 +55,12 @@ final readonly class DeliverEventHandler
             return;
         }
 
-        try {
-            $this->work->run(fn () => $this->deliver($message, $listener));
-        } catch (UniqueConstraintViolationException $duplicate) {
-            throw new RecoverableMessageHandlingException(\sprintf('The event %s is being delivered to %s by another worker.', $message->eventId, $message->listener), $duplicate->getCode(), previous: $duplicate);
-        }
+        $this->work->run(fn () => $this->deliver($message, $listener));
     }
 
     private function deliver(DeliverEvent $message, DomainEventListener $listener): void
     {
-        if (false !== $this->connection->fetchOne(
-            \sprintf('SELECT 1 FROM %s WHERE %s = ? AND %s = ?', EventLogTable::CONSUMPTION, EventLogTable::LISTENER, EventLogTable::EVENT_ID),
-            [$message->listener, $message->eventId],
-        )) {
+        if ($this->consumptions->has($message->listener, $message->eventId)) {
             return;
         }
 
@@ -84,11 +74,8 @@ final readonly class DeliverEventHandler
             throw new UnrecoverableMessageHandlingException(\sprintf('The event %s belongs to another tenant than its delivery.', $message->eventId));
         }
 
-        $this->connection->insert(EventLogTable::CONSUMPTION, [
-            EventLogTable::LISTENER => $message->listener,
-            EventLogTable::EVENT_ID => $message->eventId,
-            EventLogTable::CONSUMED_AT => $this->clock->now(),
-        ], [EventLogTable::CONSUMED_AT => Types::DATETIME_IMMUTABLE]);
+        // Only a collision on this record means another worker; one from inside the listener is its own failure.
+        $this->consumptions->record($message->listener, $message->eventId);
 
         $listener($this->recorded($row));
     }

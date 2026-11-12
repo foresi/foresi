@@ -13,6 +13,7 @@ use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Payload\EventPayloads;
 use App\Events\Infrastructure\Relay\DeliverEventHandler;
 use App\Events\Infrastructure\Relay\DeliveryWork;
+use App\Events\Infrastructure\Relay\EventConsumptions;
 use App\Events\Infrastructure\Relay\EventListeners;
 use App\Shared\Application\Event\EventOutbox;
 use App\Shared\Domain\Id;
@@ -24,6 +25,7 @@ use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use App\Tests\Events\Fixtures\Valid\Contract\Kind;
 use App\Tests\Events\Support\EventRows;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
@@ -31,6 +33,7 @@ use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\ServiceLocator;
+use Symfony\Component\Messenger\Exception\RecoverableExceptionInterface;
 use Symfony\Component\Messenger\Exception\UnrecoverableExceptionInterface;
 
 /**
@@ -112,6 +115,36 @@ final class DeliverEventHandlerTest extends KernelTestCase
         self::assertSame(1, $this->consumptions());
     }
 
+    public function testAUniqueViolationOfTheListenerIsItsOwnFailure(): void
+    {
+        $id = Id::generate();
+        EventRows::insert($this->db, $id, $this->tenant->toString(), position: 1);
+        // The listener's own insert collides with a row it wrote itself.
+        $this->listener = new RecordingListener('invoicing.invoice.issued', during: function (): void {
+            $this->db->insert('event_consumption', ['listener' => 'test.own', 'event_id' => Id::generate(), 'consumed_at' => '2026-11-12 10:00:00']);
+            $this->db->insert('event_consumption', ['listener' => 'test.own', 'event_id' => $this->db->fetchOne("SELECT event_id FROM event_consumption WHERE listener = 'test.own'"), 'consumed_at' => '2026-11-12 10:00:00']);
+        });
+
+        try {
+            $this->handler()(new DeliverEvent($id, 'test.listener'));
+            self::fail('The violation of the listener must surface.');
+        } catch (UniqueConstraintViolationException $failure) {
+            self::assertNotInstanceOf(RecoverableExceptionInterface::class, $failure);
+        }
+        self::assertSame(0, $this->consumptions());
+    }
+
+    public function testACollisionOnTheConsumptionIsRetried(): void
+    {
+        $id = Id::generate();
+        // Another worker recorded the consumption after this one looked.
+        $this->db->insert('event_consumption', ['listener' => 'test.listener', 'event_id' => $id, 'consumed_at' => '2026-11-12 10:00:00']);
+
+        $this->expectException(RecoverableExceptionInterface::class);
+
+        $this->consumptionRecord()->record('test.listener', $id);
+    }
+
     public function testPrunedEventIsAcked(): void
     {
         $handler = $this->handler();
@@ -164,10 +197,15 @@ final class DeliverEventHandlerTest extends KernelTestCase
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
             new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $this->context, $outbox),
+            $this->consumptionRecord(),
             $this->context,
-            new MockClock('2026-11-12 11:00:00', 'UTC'),
             $this->logger,
         );
+    }
+
+    private function consumptionRecord(): EventConsumptions
+    {
+        return new EventConsumptions($this->db, new MockClock('2026-11-12 11:00:00', 'UTC'));
     }
 
     private function consumptions(): int
