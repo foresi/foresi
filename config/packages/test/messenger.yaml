@@ -5,6 +5,7 @@ framework:
             async: 'in-memory://'
             registry: 'in-memory://'
             mail: 'in-memory://'
+            events: 'in-memory://'
             failed: 'in-memory://'
         routing:
             App\Tests\Tenancy\Infrastructure\ScopedProbe: async

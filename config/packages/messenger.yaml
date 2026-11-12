@@ -41,6 +41,12 @@ framework:
                     max_retries: 5
                     delay: 60000
                     multiplier: 4
+            # The relay of domain events and, later, their delivery to listeners.
+            events:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: events
+                    redeliver_timeout: 600
             failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -78,6 +84,8 @@ framework:
             App\Work\Application\SendNotificationMail: async
             # Mail of the installation itself, such as invitations, with the same retries.
             App\Shared\Application\SystemMail: mail
+            # A commit that recorded events asks the relay to number and enqueue them.
+            App\Events\Application\RelayEvents: events
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
@@ -87,4 +95,5 @@ when@e2e:
                 async: 'sync://'
                 registry: 'sync://'
                 mail: 'sync://'
+                events: 'sync://'
                 failed: 'in-memory://'

@@ -552,6 +552,8 @@ deptrac:
       - TenancyApplication
       - PartyApplication
       - AuditApplication
+      # The audit actor names its kind.
+      - AuditDomain
       # The start page in the sidebar, for the staff or for a guest.
       - Ui
       # The user command links a guest user to a contact of the tenant.
@@ -903,7 +905,9 @@ deptrac:
       - SharedDomain
       - SharedApplication
       - TenancyApplication
-    # The catalogue reads the installed modules and reflects their event classes.
+    # The catalogue reads the installed modules and reflects their event classes;
+    # the recorder writes the log on the connection of the use case, with the
+    # tenant, the correlation and the actor of the audit.
     EventsInfrastructure:
       - Contract
       - EventsDomain
@@ -912,7 +916,10 @@ deptrac:
       - SharedApplication
       - SharedInfrastructure
       - TenancyApplication
+      - AuditApplication
       - VendorSymfony
+      - VendorDoctrine
+      - VendorDbalConnection
     ExchangeRateDomain:
       - Contract
       - VendorDoctrineOrmMapping
