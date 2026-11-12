@@ -24,6 +24,7 @@
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
         "foresi/country": "dev-main",
+        "foresi/events": "dev-main",
         "foresi/exchange-rate": "dev-main",
         "foresi/identity": "dev-main",
         "foresi/idoklad": "dev-main",
@@ -133,6 +134,7 @@
             "phpstan analyse --memory-limit=1G --ansi"
         ],
         "modules:check": "@php bin/console app:modules:deptrac --check",
+        "events:check": "@php bin/console app:events --check",
         "deptrac": [
             "deptrac analyse --no-progress --ansi",
             "deptrac analyse --config-file=deptrac.modules.yaml --no-progress --ansi"
@@ -156,6 +158,7 @@
             "@lint",
             "@phpstan",
             "@modules:check",
+            "@events:check",
             "@deptrac"
         ],
         "qa": [
@@ -207,6 +210,7 @@
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",
                     "foresi/country": "dev-main",
+                    "foresi/events": "dev-main",
                     "foresi/exchange-rate": "dev-main",
                     "foresi/identity": "dev-main",
                     "foresi/idoklad": "dev-main",

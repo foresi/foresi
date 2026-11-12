@@ -117,6 +117,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Audit/Infrastructure/.*
+    # Domain events: the catalogue of contract events, and later their recording, relay and feed.
+    - name: EventsDomain
+      collectors:
+        - type: directory
+          value: src/Events/Domain/.*
+    - name: EventsApplication
+      collectors:
+        - type: directory
+          value: src/Events/Application/.*
+    - name: EventsInfrastructure
+      collectors:
+        - type: directory
+          value: src/Events/Infrastructure/.*
     - name: InvoicingDomain
       collectors:
         - type: directory
@@ -881,6 +894,25 @@ deptrac:
       - InvoicingApplication
       - BankingDomain
       - BankingApplication
+    EventsDomain:
+      - Contract
+      - SharedDomain
+    EventsApplication:
+      - Contract
+      - EventsDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyApplication
+    # The catalogue reads the installed modules and reflects their event classes.
+    EventsInfrastructure:
+      - Contract
+      - EventsDomain
+      - EventsApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - TenancyApplication
+      - VendorSymfony
     ExchangeRateDomain:
       - Contract
       - VendorDoctrineOrmMapping
