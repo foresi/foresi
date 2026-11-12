@@ -138,7 +138,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
                 return ActorKind::User;
             }
         };
-        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\App\Invoicing\Application\BilledWorkRelease::class));
+        $trash = new TrashInvoice($this->store, $container->get(\App\Invoicing\Application\InvoiceSends::class), $container->get(\App\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\App\Invoicing\Application\BilledWorkRelease::class), $container->get(\App\Shared\Application\Event\EventRecorder::class));
 
         $trash->trash($invoice->id(), 'Wrong customer');
 

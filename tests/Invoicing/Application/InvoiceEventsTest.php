@@ -9,12 +9,23 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Invoicing\Application\AllocationRequest;
+use App\Invoicing\Application\BilledWorkRelease;
+use App\Invoicing\Application\ConflictRetry;
+use App\Invoicing\Application\InvoicePayments;
+use App\Invoicing\Application\InvoiceSends;
+use App\Invoicing\Application\IssueProblem;
+use App\Invoicing\Application\IssueRefused;
 use App\Invoicing\Application\PaymentRequest;
 use App\Invoicing\Application\RecordPayment;
+use App\Invoicing\Application\TrashInvoice;
+use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\PaymentSource;
+use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PaymentMethod;
+use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * What issuing, delivering and paying leave in the event log, read from the rows
@@ -118,5 +129,63 @@ final class InvoiceEventsTest extends SendingTestCase
             'invoice_ids' => $ids,
         ], $events[0]['data']);
         self::assertSame([], $this->events('invoicing.invoice.paid'));
+    }
+
+    public function testTrashRecordsTrashed(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+
+        $this->trash->trash($invoice->id(), 'Wrong customer, Jane Doe');
+
+        $events = $this->events('invoicing.invoice.trashed');
+        self::assertCount(1, $events);
+        self::assertSame($invoice->id(), $events[0]['subject']);
+        self::assertSame(['invoice_id' => $invoice->id(), 'kind' => 'invoice'], $events[0]['data']);
+    }
+
+    public function testRestoreRecordsRestored(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->trash->trash($invoice->id(), 'Wrong customer');
+
+        $this->trash->restore($invoice->id());
+        $this->trash->restore($invoice->id());
+
+        $events = $this->events('invoicing.invoice.restored');
+        self::assertCount(1, $events);
+        self::assertSame($invoice->id(), $events[0]['subject']);
+        self::assertSame(['invoice_id' => $invoice->id(), 'kind' => 'invoice'], $events[0]['data']);
+    }
+
+    public function testRefusedRestoreRecordsNothing(): void
+    {
+        $invoice = $this->issue->issue($this->input());
+        $this->trash->trash($invoice->id(), 'Wrong customer');
+        $container = self::getContainer();
+        $billed = new class implements BilledWorkRelease {
+            public function released(Invoice $invoice): void
+            {
+            }
+
+            public function reclaim(Invoice $invoice): void
+            {
+                throw new IssueRefused([new IssueProblem('lines', 'invoice.problem.already_deducted')]);
+            }
+
+            public function revised(Invoice $invoice, array $lines): void
+            {
+            }
+        };
+        $refusing = new TrashInvoice($this->store, $container->get(InvoiceSends::class), $container->get(InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $container->get(\App\Audit\Application\AuditActor::class), new MockClock('2026-11-03'), $this->deductions(), $billed, $container->get(EventRecorder::class));
+
+        try {
+            $refusing->restore($invoice->id());
+            self::fail('Expected the restore to be refused.');
+        } catch (IssueRefused) {
+        }
+
+        self::assertSame([], $this->events('invoicing.invoice.restored'));
+        self::assertCount(1, $this->events('invoicing.invoice.trashed'));
+        self::assertTrue($this->reloaded($invoice)->isTrashed());
     }
 }
