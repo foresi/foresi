@@ -29,6 +29,9 @@ use Psr\Clock\ClockInterface;
  *
  * Its tax documents are locked last: those the customer never got go to the trash
  * with the payment, and those they got are corrected.
+ *
+ * An invoice the cancelling makes paid, such as one that was to be refunded, is
+ * recorded as paid in the same transaction.
  */
 final readonly class CancelPayment
 {
@@ -43,6 +46,7 @@ final readonly class CancelPayment
         private AdvanceDocuments $documents,
         private PaymentTaxDocumentTexts $texts,
         private CorrectPaymentTaxDocument $corrections,
+        private PaymentTransitions $transitions,
     ) {
     }
 
@@ -67,12 +71,16 @@ final readonly class CancelPayment
                 if ($payment->isCancelled()) {
                     return;
                 }
+                // Each lock starts the session over: read them all once every row is held.
+                $invoices = array_map($this->store->get(...), $ids);
+                $before = $this->transitions->before($invoices);
                 $this->payments->removeAllocationsOf($payment);
                 $payment->cancel(\DateTimeImmutable::createFromInterface($this->clock->now()), $this->actor->userId());
                 if (PaymentSource::BankMovement === $payment->source()) {
                     $this->release->released($payment);
                 }
                 $this->dropTaxDocuments($taxDocuments);
+                $this->transitions->recordPaid($invoices, $before, $paymentId);
             });
         });
     }

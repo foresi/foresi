@@ -90,6 +90,11 @@ interface InvoicePayments
      */
     public function invoiceNumbersOf(string $paymentId): array;
 
+    /**
+     * Writes what was added or removed, so the queries after it see it.
+     */
+    public function flush(): void;
+
     public function add(Payment $payment): void;
 
     public function addAllocation(PaymentAllocation $allocation): void;
