@@ -24,9 +24,11 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -75,6 +77,7 @@ final class DbalEventRecorderTest extends KernelTestCase
             new MockClock('2026-11-12 10:00:00', 'UTC'),
             $this->listeners,
             $container->get(MessageBusInterface::class),
+            new NullLogger(),
         );
         $this->work = new DoctrineTransactionalWork($em, $container->get(ManagerRegistry::class), $context, $this->recorder);
     }
@@ -158,6 +161,33 @@ final class DbalEventRecorderTest extends KernelTestCase
         });
 
         self::assertCount(1, $this->relay->getSent());
+    }
+
+    public function testAFailedNudgeNeverFailsACommittedUnit(): void
+    {
+        $bus = new class implements MessageBusInterface {
+            public function dispatch(object $message, array $stamps = []): Envelope
+            {
+                throw new \RuntimeException('The queue is down.');
+            }
+        };
+        $recorder = new DbalEventRecorder(
+            $this->db,
+            EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
+            new EventPayloads(),
+            self::getContainer()->get(TenantContext::class),
+            $this->correlation,
+            self::getContainer()->get(AuditActor::class),
+            new MockClock('2026-11-12 10:00:00', 'UTC'),
+            $this->listeners,
+            $bus,
+            new NullLogger(),
+        );
+        $work = new DoctrineTransactionalWork(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(ManagerRegistry::class), self::getContainer()->get(TenantContext::class), $recorder);
+
+        $work->run(fn () => $recorder->record($this->event('a')));
+
+        self::assertCount(1, $this->rows());
     }
 
     public function testSyncListenerRunsInsideTheTransaction(): void

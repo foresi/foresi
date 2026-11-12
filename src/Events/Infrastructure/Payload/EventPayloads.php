@@ -29,7 +29,7 @@ final class EventPayloads
             $facts[self::snake($parameter->getName())] = match (true) {
                 $value instanceof \BackedEnum => $value->value,
                 \is_array($value) => array_values(array_map(static fn (mixed $item): string => \is_string($item) ? $item : throw new \LogicException('A list fact holds strings.'), $value)),
-                \is_scalar($value), null === $value => $value,
+                \is_string($value), \is_int($value), \is_bool($value), null === $value => $value,
                 default => throw new \LogicException(\sprintf('The fact "%s" of %s is not a scalar, a list of strings or an enum.', $parameter->getName(), $event::class)),
             };
         }

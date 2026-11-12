@@ -23,6 +23,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -49,6 +50,7 @@ final class DbalEventRecorder implements EventRecorder, EventOutbox
         private readonly ClockInterface $clock,
         private readonly EventDispatcherInterface $listeners,
         private readonly MessageBusInterface $bus,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -61,21 +63,21 @@ final class DbalEventRecorder implements EventRecorder, EventOutbox
         $type = $this->catalogue->byClass($event::class);
         $subject = $event->subject();
         $this->connection->insert(EventLogTable::LOG, [
-            'id' => Id::generate(),
-            'tenant_id' => $this->tenant->current()->toString(),
-            'name' => $type->name,
-            'version' => $type->version,
-            'occurred_at' => $this->clock->now(),
-            'subject_type' => $subject->type,
-            'subject_id' => $subject->id,
-            'data' => $this->payloads->normalise($event),
-            'correlation_id' => $this->correlation->current(),
-            'actor_kind' => $this->actor->kind()->value,
-            'user_id' => $this->actor->userId(),
-            'api_token_id' => $this->actor instanceof TokenAuditActor ? $this->actor->apiTokenId() : null,
+            EventLogTable::ID => Id::generate(),
+            EventLogTable::TENANT_ID => $this->tenant->current()->toString(),
+            EventLogTable::NAME => $type->name,
+            EventLogTable::VERSION => $type->version,
+            EventLogTable::OCCURRED_AT => $this->clock->now(),
+            EventLogTable::SUBJECT_TYPE => $subject->type,
+            EventLogTable::SUBJECT_ID => $subject->id,
+            EventLogTable::DATA => $this->payloads->normalise($event),
+            EventLogTable::CORRELATION_ID => $this->correlation->current(),
+            EventLogTable::ACTOR_KIND => $this->actor->kind()->value,
+            EventLogTable::USER_ID => $this->actor->userId(),
+            EventLogTable::API_TOKEN_ID => $this->actor instanceof TokenAuditActor ? $this->actor->apiTokenId() : null,
         ], [
-            'occurred_at' => Types::DATETIME_IMMUTABLE,
-            'data' => Types::JSON,
+            EventLogTable::OCCURRED_AT => Types::DATETIME_IMMUTABLE,
+            EventLogTable::DATA => Types::JSON,
         ]);
         ++$this->pending;
 
@@ -86,8 +88,15 @@ final class DbalEventRecorder implements EventRecorder, EventOutbox
     {
         $recorded = $this->pending > 0;
         $this->pending = 0;
-        if ($recorded) {
+        if (!$recorded) {
+            return;
+        }
+        // The change is stored: a failed nudge must not fail the caller, who would retry and duplicate it.
+        // The rows keep a null position and the periodic sweep of the relay picks them up.
+        try {
             $this->bus->dispatch(new RelayEvents());
+        } catch (\Throwable $failure) {
+            $this->logger->error('The relay of domain events was not nudged after a commit: {reason}', ['reason' => $failure->getMessage(), 'exception' => $failure]);
         }
     }
 
