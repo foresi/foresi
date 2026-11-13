@@ -183,6 +183,11 @@ final class WebhookEndpointTest extends TestCase
         self::assertSame(['invoicing.*', 'exchange-rate.rate.published'], EventTypes::of(['invoicing.*', 'exchange-rate.rate.published', 'invoicing.*'])->patterns());
     }
 
+    public function testAnEndpointUrlNamesItsHost(): void
+    {
+        self::assertSame('hooks.example.com', new EndpointUrl('https://hooks.example.com:8443/in?token=x')->host());
+    }
+
     #[DataProvider('urls')]
     public function testAnEndpointUrlIsHttpsWithAHostAndNoUserInfo(string $url): void
     {

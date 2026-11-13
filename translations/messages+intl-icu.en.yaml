@@ -4008,3 +4008,13 @@ purchasing:
     deduction_deadline_passed: "The time to deduct the VAT ended on {date}."
     deduction_deadline_near: "The time to deduct the VAT ends on {date}."
     simplified_receipt_over_limit: "The simplified receipt is above 10,000 CZK with VAT."
+webhooks:
+  disabled_mail:
+    subject: 'Webhook endpoint disabled: {host}'
+    reason:
+      gone: 'The endpoint at {host} answered 410 Gone, so it receives no more events.'
+      failing: 'Every attempt to deliver to the endpoint at {host} has failed for five days, so it receives no more events.'
+      owner_lost_access: 'You may no longer read the events the endpoint at {host} subscribes to, so it receives no more events.'
+      manual: 'The endpoint at {host} was turned off and receives no more events.'
+    pending: 'Deliveries still waiting end as failed. Once the receiver works again, enable the endpoint and redeliver what it missed.'
+    open: Open the endpoint

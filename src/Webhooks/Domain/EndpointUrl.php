@@ -30,4 +30,13 @@ final readonly class EndpointUrl
             throw new \InvalidArgumentException(\sprintf('A webhook endpoint URL is https, with a host, without user info and at most %d characters.', self::MAX_LENGTH));
         }
     }
+
+    /**
+     * The host alone, which may be shown where the whole address, with its path
+     * and query, should not be.
+     */
+    public function host(): string
+    {
+        return (string) parse_url($this->value, \PHP_URL_HOST);
+    }
 }

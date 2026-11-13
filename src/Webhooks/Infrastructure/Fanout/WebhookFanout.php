@@ -20,11 +20,15 @@ use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Domain\DisabledReason;
+use App\Webhooks\Domain\EndpointUrl;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable;
+use App\Webhooks\Infrastructure\Mail\EndpointDisabledMailer;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -39,13 +43,15 @@ use Symfony\Contracts\Service\ResetInterface;
  * are stored in that transaction too.
  *
  * The owner of an endpoint is asked again each time: one who may no longer read
- * the event's module gets nothing more, and the endpoint is disabled. The
- * disabling is a plain update in the relay's transaction, so it leaves no entry
- * in the audit log. The endpoints of an organisation are read once per batch.
+ * the event's module gets nothing more, the endpoint is disabled and the owner
+ * is told by a mail queued in the same transaction. The disabling is a plain
+ * update in the relay's transaction, so it leaves no entry in the audit log.
+ * The endpoints of an organisation are read once per batch; a row that cannot
+ * be read is skipped with a log line, so it holds up no one else's events.
  */
 final class WebhookFanout implements EventSink, ResetInterface
 {
-    /** @var array<string, array<string, array{owner: string, names: list<string>, version: int}>> by tenant, then by id */
+    /** @var array<string, array<string, array{owner: string, host: string, names: list<string>, version: int}>> by tenant, then by id */
     private array $endpoints = [];
 
     /** @var array<string, bool> by tenant, owner and module */
@@ -63,6 +69,8 @@ final class WebhookFanout implements EventSink, ResetInterface
         private readonly ClockInterface $clock,
         #[AutowireIterator('app.event_read_access')]
         private readonly iterable $access,
+        private readonly EndpointDisabledMailer $mailer,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -76,6 +84,7 @@ final class WebhookFanout implements EventSink, ResetInterface
             }
             if (!$this->ownerMayRead($tenantId, $endpoint['owner'], $module)) {
                 $this->disable($id);
+                $this->mailer->notify($tenantId, $endpoint['owner'], $id, $endpoint['host'], DisabledReason::OwnerLostAccess);
                 unset($this->endpoints[$tenantId][$id]);
 
                 continue;
@@ -92,7 +101,7 @@ final class WebhookFanout implements EventSink, ResetInterface
     }
 
     /**
-     * @return array<string, array{owner: string, names: list<string>, version: int}> by id
+     * @return array<string, array{owner: string, host: string, names: list<string>, version: int}> by id
      */
     private function endpointsOf(string $tenantId): array
     {
@@ -101,7 +110,7 @@ final class WebhookFanout implements EventSink, ResetInterface
         }
 
         $rows = $this->connection->createQueryBuilder()
-            ->select('id', 'owner_id', 'event_types', 'version')
+            ->select('id', 'owner_id', 'url', 'event_types', 'version')
             ->from('webhook_endpoint')
             ->where('tenant_id = :tenant')
             ->andWhere('active = :active')
@@ -113,15 +122,20 @@ final class WebhookFanout implements EventSink, ResetInterface
         $platform = $this->connection->getDatabasePlatform();
         $endpoints = [];
         foreach ($rows as $row) {
-            $patterns = Type::getType(Types::JSON)->convertToPHPValue($row['event_types'], $platform);
-            if (!\is_array($patterns) || !is_numeric($row['version'])) {
-                throw new \UnexpectedValueException('A webhook endpoint holds a column of an unexpected type.');
+            try {
+                $patterns = Type::getType(Types::JSON)->convertToPHPValue($row['event_types'], $platform);
+                if (!\is_array($patterns) || !is_numeric($row['version'])) {
+                    throw new \UnexpectedValueException('A webhook endpoint holds a column of an unexpected type.');
+                }
+                $endpoints[$this->text($row['id'])] = [
+                    'owner' => $this->text($row['owner_id']),
+                    'host' => new EndpointUrl($this->text($row['url']))->host(),
+                    'names' => $this->catalogue->matching(array_values(array_filter($patterns, \is_string(...)))),
+                    'version' => (int) $row['version'],
+                ];
+            } catch (\UnexpectedValueException|\InvalidArgumentException|ConversionException $e) {
+                $this->logger->error('The webhook endpoint {endpoint} was skipped: it cannot be read ({reason}).', ['endpoint' => \is_string($row['id']) ? $row['id'] : null, 'reason' => $e->getMessage()]);
             }
-            $endpoints[$this->text($row['id'])] = [
-                'owner' => $this->text($row['owner_id']),
-                'names' => $this->catalogue->matching(array_values(array_filter($patterns, \is_string(...)))),
-                'version' => (int) $row['version'],
-            ];
         }
 
         return $this->endpoints[$tenantId] = $endpoints;

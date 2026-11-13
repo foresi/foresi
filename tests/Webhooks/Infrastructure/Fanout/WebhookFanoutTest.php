@@ -16,6 +16,7 @@ use App\Events\Infrastructure\Relay\EventRelay;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Shared\Application\Event\EventRecorder;
+use App\Shared\Application\SystemMail;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
@@ -45,6 +46,7 @@ final class WebhookFanoutTest extends KernelTestCase
     private EntityManagerInterface $em;
     private TenantContext $context;
     private InMemoryTransport $webhooks;
+    private InMemoryTransport $mail;
     private RecordedEvents $events;
     private IdentityFixtures $fixtures;
     private User $owner;
@@ -63,6 +65,10 @@ final class WebhookFanoutTest extends KernelTestCase
         self::assertInstanceOf(InMemoryTransport::class, $webhooks);
         $this->webhooks = $webhooks;
         $this->webhooks->reset();
+        $mail = $container->get('messenger.transport.mail');
+        self::assertInstanceOf(InMemoryTransport::class, $mail);
+        $this->mail = $mail;
+        $this->mail->reset();
         $this->events = new RecordedEvents($this->context, $this->db, $container->get(EventRecorder::class), $container->get(EventRelay::class));
 
         $this->owner = $this->fixtures->user();
@@ -168,6 +174,31 @@ final class WebhookFanoutTest extends KernelTestCase
         self::assertIsArray($stored);
         self::assertFalse((bool) $stored['active']);
         self::assertSame('owner_lost_access', $stored['disabled_reason']);
+
+        $mails = $this->mail->getSent();
+        self::assertCount(1, $mails, 'The owner hears of it once.');
+        $mail = $mails[0]->getMessage();
+        self::assertInstanceOf(SystemMail::class, $mail);
+        self::assertSame($this->owner->email(), $mail->to);
+        self::assertStringContainsString('hooks.example.com', $mail->subject);
+        self::assertStringContainsString('/settings/webhooks/'.$endpoint, $mail->text);
+    }
+
+    public function testMalformedEndpointIsSkippedAndTheOthersStillReceive(): void
+    {
+        $broken = $this->endpoint(['invoicing.*']);
+        $number = $this->endpoint(['invoicing.*']);
+        $endpoint = $this->endpoint(['invoicing.invoice.issued']);
+        // Valid JSON that is no list, so PostgreSQL's json column takes it as well.
+        $this->db->executeStatement('UPDATE webhook_endpoint SET event_types = ? WHERE id = ?', ['"invoicing.*"', $broken]);
+        $this->db->executeStatement('UPDATE webhook_endpoint SET event_types = ? WHERE id = ?', ['42', $number]);
+
+        $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
+        $this->events->number();
+
+        self::assertSame([$endpoint], array_column($this->deliveries(), WebhookDeliveryTable::ENDPOINT_ID));
+        self::assertCount(1, $this->webhooks->getSent());
+        self::assertEquals(0, $this->db->fetchOne('SELECT COUNT(*) FROM event_log WHERE position IS NULL'), 'The relay went on.');
     }
 
     public function testRelayTwiceMakesNoSecondDelivery(): void

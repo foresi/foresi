@@ -18,7 +18,7 @@ final class StandardWebhookSignerTest extends TestCase
 {
     public function testMatchesTheStandardWebhooksTestVector(): void
     {
-        $headers = (new StandardWebhookSigner())->headers(
+        $headers = new StandardWebhookSigner()->headers(
             'msg_p5jXN8AQM9LWM0D4loKWxJek',
             1614265330,
             '{"test": 2432232314}',

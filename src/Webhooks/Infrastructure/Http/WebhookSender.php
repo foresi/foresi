@@ -46,20 +46,20 @@ final readonly class WebhookSender
             $response = $this->client->request('POST', $url, ['body' => $body, 'headers' => $headers]);
             $status = $response->getStatusCode();
         } catch (TransportExceptionInterface $e) {
-            return new AttemptResult(null, self::elapsed($started), self::errorOf($e));
+            return new AttemptResult(null, $this->elapsed($started), $this->errorOf($e));
         } finally {
             $response?->cancel();
         }
 
-        return new AttemptResult($status, self::elapsed($started), $status >= 300 && $status < 400 ? AttemptResult::REDIRECT : null);
+        return new AttemptResult($status, $this->elapsed($started), $status >= 300 && $status < 400 ? AttemptResult::REDIRECT : null);
     }
 
-    private static function elapsed(int $started): int
+    private function elapsed(int $started): int
     {
         return (int) round((hrtime(true) - $started) / 1_000_000);
     }
 
-    private static function errorOf(TransportExceptionInterface $e): string
+    private function errorOf(TransportExceptionInterface $e): string
     {
         if ($e instanceof TimeoutExceptionInterface) {
             return AttemptResult::TIMEOUT;

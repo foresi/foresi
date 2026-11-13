@@ -4008,3 +4008,13 @@ purchasing:
     deduction_deadline_passed: "Lhůta pro odpočet DPH uplynula {date}."
     deduction_deadline_near: "Lhůta pro odpočet DPH končí {date}."
     simplified_receipt_over_limit: "Zjednodušený daňový doklad je nad 10 000 Kč s DPH."
+webhooks:
+  disabled_mail:
+    subject: 'Webhookový endpoint je vypnutý: {host}'
+    reason:
+      gone: 'Endpoint na {host} odpověděl 410 Gone, proto už nedostává žádné události.'
+      failing: 'Všechna doručení na endpoint na {host} selhávají už pět dní, proto už nedostává žádné události.'
+      owner_lost_access: 'Události, které endpoint na {host} odebírá, už nemáte oprávnění číst, proto už žádné nedostává.'
+      manual: 'Endpoint na {host} byl vypnut a už nedostává žádné události.'
+    pending: 'Doručení, která ještě čekají, skončí jako neúspěšná. Až bude příjemce zase fungovat, endpoint zapněte a zmeškané události doručte znovu.'
+    open: Otevřít endpoint

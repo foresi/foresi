@@ -134,8 +134,8 @@ start fresh after a deploy.
 ## The worker
 
 One long-running process handles mail, timed jobs (recurring invoices,
-reminders, bank polling, exchange rates), domain events, imports and register
-checks; see the [background worker](../README.md#background-worker). It must
+reminders, bank polling, exchange rates), domain events, outbound webhooks,
+imports and register checks; see the [background worker](../README.md#background-worker). It must
 run all the time.
 
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):
@@ -152,7 +152,7 @@ supervisor:
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events async registry --memory-limit=256M --time-limit=3600
+command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events webhooks async registry --memory-limit=256M --time-limit=3600
 directory=/srv/foresi/current
 user=www-data
 environment=APP_ENV="prod"

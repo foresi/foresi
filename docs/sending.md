@@ -67,7 +67,7 @@ Links in sent mail are built from `DEFAULT_URI`, the public address of the insta
 Sending needs the background worker, which must consume the scheduler and mail transports beside the others:
 
 ```bash
-php bin/console messenger:consume scheduler_foresi mail events async registry --memory-limit=256M --time-limit=3600
+php bin/console messenger:consume scheduler_foresi mail events webhooks async registry --memory-limit=256M --time-limit=3600
 ```
 
 - `scheduler_foresi` ticks every five minutes and runs the timed jobs of each organisation, such as handing back sends whose queue message was lost. Without it, a send whose web request died after storing it is never retried.
