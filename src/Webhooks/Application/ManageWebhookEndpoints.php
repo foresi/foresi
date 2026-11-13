@@ -50,7 +50,7 @@ final readonly class ManageWebhookEndpoints
 
     /**
      * Registers an endpoint owned by the signed-in person and queues a ping of
-     * it once it is stored.
+     * it in the same unit, so a failure leaves neither and a retry is safe.
      *
      * @param list<string> $eventTypes event names and "module.*"
      *
@@ -72,8 +72,11 @@ final readonly class ManageWebhookEndpoints
         $now = $this->now();
 
         $endpoint = WebhookEndpoint::create(Id::generate(), $vetted, $description, $types, $version, $sealed, $owner, $now);
-        $this->work->run(fn () => $this->endpoints->add($endpoint));
-        $this->work->run(fn (): QueuedAttempt => $this->queue->ping($endpoint, $now));
+        $this->work->run(function () use ($endpoint, $now): QueuedAttempt {
+            $this->endpoints->add($endpoint);
+
+            return $this->queue->ping($endpoint, $now);
+        });
 
         return new CreatedEndpoint($endpoint, $secret);
     }

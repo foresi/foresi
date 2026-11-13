@@ -30,7 +30,9 @@ use Twig\Environment;
  *
  * The mail is queued, so it is sent with the transaction that disabled the
  * endpoint. A mail that cannot be queued, because the installation has no
- * system mailer or the owner is gone, is logged and the disabling stands.
+ * system mailer or the owner is gone, is logged and the disabling stands. Any
+ * other failure of the mail is logged too and never thrown: it would roll back
+ * the recorded attempt or the whole relay batch.
  */
 final readonly class EndpointDisabledMailer
 {
@@ -47,6 +49,17 @@ final readonly class EndpointDisabledMailer
 
     public function notify(string $tenantId, string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
     {
+        try {
+            $this->send($tenantId, $ownerId, $endpointId, $host, $reason);
+        } catch (SystemMailUnavailable|\InvalidArgumentException $e) {
+            $this->logger->warning('The owner of the disabled webhook endpoint {endpoint} was not told: {reason}', ['endpoint' => $endpointId, 'reason' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            $this->logger->error('The owner of the disabled webhook endpoint {endpoint} was not told: the mail failed with {class}.', ['endpoint' => $endpointId, 'class' => $e::class]);
+        }
+    }
+
+    private function send(string $tenantId, string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
+    {
         $owner = $this->users->findById($ownerId);
         if (!$owner instanceof User) {
             $this->logger->warning('The owner of the disabled webhook endpoint {endpoint} was not told: no such person.', ['endpoint' => $endpointId]);
@@ -62,18 +75,14 @@ final readonly class EndpointDisabledMailer
             'endpointUrl' => $this->urls->generate(WebhookEndpointController::SHOW_ROUTE, ['id' => $endpointId], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
 
-        try {
-            $this->mailer->send(new SystemMail(
-                $owner->email(),
-                $this->translator->trans('webhooks.disabled_mail.subject', ['host' => $host], null, $locale),
-                trim($this->twig->render('email/webhooks/endpoint_disabled.txt.twig', $context)),
-                $this->twig->render('email/webhooks/endpoint_disabled.html.twig', $context),
-                $locale,
-                $this->organisation($tenantId, $ownerId),
-            ));
-        } catch (SystemMailUnavailable|\InvalidArgumentException $e) {
-            $this->logger->warning('The owner of the disabled webhook endpoint {endpoint} was not told: {reason}', ['endpoint' => $endpointId, 'reason' => $e->getMessage()]);
-        }
+        $this->mailer->send(new SystemMail(
+            $owner->email(),
+            $this->translator->trans('webhooks.disabled_mail.subject', ['host' => $host], null, $locale),
+            trim($this->twig->render('email/webhooks/endpoint_disabled.txt.twig', $context)),
+            $this->twig->render('email/webhooks/endpoint_disabled.html.twig', $context),
+            $locale,
+            $this->organisation($tenantId, $ownerId),
+        ));
     }
 
     private function organisation(string $tenantId, string $ownerId): ?string

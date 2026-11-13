@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Delivery;
 
+use App\Shared\Application\SealerUnavailable;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptResult;
@@ -43,6 +44,10 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
  * - a failed scheduled attempt counts towards the five days that disable the
  *   endpoint, and is otherwise followed by the next attempt of the schedule,
  *   queued with its delay, or ends the delivery as failed after the tenth.
+ *
+ * A secret that cannot be opened, because the operator's keys are missing or
+ * were rotated without the old one, fails the attempt as `internal` without a
+ * request, and the delivery goes on along its schedule like any other failure.
  *
  * A ping and a manual redelivery are one attempt each: they are never retried
  * and their failures do not count. A delivery of a disabled endpoint ends as
@@ -85,8 +90,15 @@ final readonly class SendWebhookHandler
             return;
         }
 
-        $secrets = array_map($this->secrets->open(...), $endpoint->signingSecrets($now));
-        $result = $this->sender->send($endpoint->url()->value, $delivery->eventId, $delivery->body, $secrets);
+        try {
+            $secrets = array_map($this->secrets->open(...), $endpoint->signingSecrets($now));
+        } catch (SealerUnavailable $e) {
+            $this->logger->error('The secret of the webhook endpoint {endpoint} cannot be opened, so the attempt of the delivery {delivery} failed: {reason}', ['endpoint' => $endpoint->id(), 'delivery' => $delivery->id, 'reason' => $e->getMessage()]);
+            $secrets = null;
+        }
+        $result = null === $secrets
+            ? new AttemptResult(null, 0, AttemptResult::INTERNAL)
+            : $this->sender->send($endpoint->url()->value, $delivery->eventId, $delivery->body, $secrets);
 
         $this->em->wrapInTransaction(function () use ($delivery, $endpoint, $message, $result, $now): void {
             $this->deliveries->record($delivery, $message->trigger, $message->attemptId, $result, $now);

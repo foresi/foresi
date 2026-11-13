@@ -8,9 +8,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Webhooks\Infrastructure\Delivery;
 
+use App\Identity\Application\MembershipDirectory;
+use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Shared\Application\SealerUnavailable;
 use App\Shared\Application\SystemMail;
+use App\Shared\Application\SystemMailer;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Domain\TenantId;
@@ -42,6 +46,9 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Twig\Environment;
 
 /**
  * One attempt of a delivery: claimed so that only one worker makes it, sent
@@ -307,6 +314,90 @@ final class SendWebhookHandlerTest extends KernelTestCase
         self::assertSame([T::ID, T::TENANT_ID, T::DELIVERY_ID, T::ATTEMPTED_AT, T::DURATION_MS, T::STATUS_CODE, T::ERROR, T::TRIGGER], array_keys($attempts[0]));
     }
 
+    public function testSecretThatCannotBeOpenedFailsTheAttemptAndKeepsTheSchedule(): void
+    {
+        $endpoint = $this->endpoint();
+        $delivery = $this->delivery($endpoint);
+        $message = new SendWebhook($delivery, AttemptTrigger::Schedule);
+
+        $this->handle($message, 200, secrets: $this->unopenableSecrets());
+
+        self::assertSame(0, $this->requests, 'Nothing is sent unsigned.');
+        $row = $this->rows->delivery($delivery);
+        self::assertSame(T::STATUS_PENDING, $row[T::STATUS]);
+        self::assertEquals(1, $row[T::ATTEMPTS]);
+        self::assertSame('2026-11-13 10:00:05', $this->datetime($row[T::NEXT_ATTEMPT_AT]), 'The schedule goes on.');
+        $attempts = $this->rows->attempts($delivery);
+        self::assertCount(1, $attempts);
+        self::assertSame('internal', $attempts[0][T::ERROR]);
+        self::assertNull($attempts[0][T::STATUS_CODE]);
+        self::assertEquals(0, $attempts[0][T::DURATION_MS]);
+        self::assertCount(1, $this->webhooks->getSent());
+
+        $this->db->update(T::DELIVERY, [T::ATTEMPTS => 9, T::NEXT_ATTEMPT_AT => self::NOW], [T::ID => $delivery]);
+        $this->handle($message, 200, secrets: $this->unopenableSecrets());
+
+        $row = $this->rows->delivery($delivery);
+        self::assertSame(T::STATUS_FAILED, $row[T::STATUS], 'After the tenth attempt the delivery ends.');
+        self::assertNull($row[T::NEXT_ATTEMPT_AT]);
+        self::assertSame(0, $this->requests);
+    }
+
+    public function testFailingOwnerMailKeepsTheAttemptAndTheDisabling(): void
+    {
+        $endpoint = $this->endpoint();
+        $delivery = $this->delivery($endpoint);
+        $container = self::getContainer();
+        $mailer = new EndpointDisabledMailer(
+            new class implements SystemMailer {
+                public function send(SystemMail $mail): void
+                {
+                    throw new \RuntimeException('The template broke.');
+                }
+
+                public function isConfigured(): bool
+                {
+                    return true;
+                }
+            },
+            $container->get(UserRepository::class),
+            $container->get(MembershipDirectory::class),
+            $container->get(TranslatorInterface::class),
+            $container->get(Environment::class),
+            $container->get(UrlGeneratorInterface::class),
+            new NullLogger(),
+        );
+
+        $this->handle(new SendWebhook($delivery, AttemptTrigger::Schedule), 410, mailer: $mailer);
+
+        self::assertSame(1, $this->requests);
+        $stored = $this->endpointRow($endpoint);
+        self::assertFalse((bool) $stored['active'], 'The disabling stands.');
+        self::assertSame('gone', $stored['disabled_reason']);
+        self::assertSame(T::STATUS_FAILED, $this->rows->delivery($delivery)[T::STATUS]);
+        self::assertCount(1, $this->rows->attempts($delivery), 'The attempt is recorded.');
+    }
+
+    private function unopenableSecrets(): WebhookSecrets
+    {
+        return new class implements WebhookSecrets {
+            public function seal(WebhookSecret $secret): string
+            {
+                throw new SealerUnavailable('No key is configured.');
+            }
+
+            public function open(string $sealed): WebhookSecret
+            {
+                throw new SealerUnavailable('The key that sealed one of the webhook secrets is not configured.');
+            }
+
+            public function isConfigured(): bool
+            {
+                return false;
+            }
+        };
+    }
+
     private function transport(string $name): InMemoryTransport
     {
         $transport = self::getContainer()->get('messenger.transport.'.$name);
@@ -316,7 +407,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
         return $transport;
     }
 
-    private function handle(SendWebhook $message, int $status, string $body = ''): void
+    private function handle(SendWebhook $message, int $status, string $body = '', ?WebhookSecrets $secrets = null, ?EndpointDisabledMailer $mailer = null): void
     {
         $client = new MockHttpClient(function () use ($status, $body): MockResponse {
             ++$this->requests;
@@ -327,9 +418,9 @@ final class SendWebhookHandlerTest extends KernelTestCase
         $handler = new SendWebhookHandler(
             $container->get(WebhookDeliveries::class),
             $this->em,
-            $container->get(WebhookSecrets::class),
+            $secrets ?? $container->get(WebhookSecrets::class),
             new WebhookSender($client, new StandardWebhookSigner(), $this->clock),
-            $container->get(EndpointDisabledMailer::class),
+            $mailer ?? $container->get(EndpointDisabledMailer::class),
             $container->get(MessageBusInterface::class),
             $this->clock,
             new NullLogger(),
