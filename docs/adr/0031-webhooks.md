@@ -27,7 +27,7 @@ ADR 0030 records domain events in `event_log`, numbers them in a relay and serve
 
 ### The module
 
-`Webhooks` (`src/Webhooks`, id `webhooks`) requires shared, tenancy, audit, events, identity and ui. It stores `webhook_endpoint` (Doctrine entity, audited, apart from `failing_since`) and, in raw DBAL, `webhook_delivery` and `webhook_delivery_attempt`. An endpoint has a URL, an optional description, event patterns (`module.resource.action` or `module.*`), a pinned event version (a whole number, default 1), the sealed secret, an owner and whether it is active. The creator is the owner. Endpoints are managed by people who may read the data of every module they subscribe to, with the `write` scope for REST and MCP.
+`Webhooks` (`src/Webhooks`, id `webhooks`) requires shared, tenancy, audit, events, identity and ui. It stores `webhook_endpoint` (Doctrine entity, audited, apart from `failing_since`) and, in raw DBAL, `webhook_delivery` and `webhook_delivery_attempt`. An endpoint has a URL, an optional description, event patterns (`module.resource.action` or `module.*`), a pinned event version (a whole number, default 1), the sealed secret, an owner and whether it is active. The creator is the owner. Endpoints are managed by people who may read the data of every module they subscribe to, with the `write` scope for REST and MCP. It requires `ui` for its settings screens and their sidebar entry, as Identity does; the registry reports that a core module requires a UI module (`core-requires-module:webhooks>ui`), and this is accepted like `identity>ui` until the screens of core modules move apart.
 
 ### Request
 
@@ -37,11 +37,11 @@ A delivery is a `POST` of the envelope of ADR 0030 without `position`. The JSON 
 * `webhook-timestamp`: Unix seconds at the time of the attempt;
 * `webhook-signature`: `v1,<base64 HMAC-SHA256>` over `<id>.<timestamp>.<body>`; with a rotation in progress, two signatures separated by a space, the current secret first.
 
-The secret is `whsec_` plus base64 of 32 random bytes; a secret given by the caller must decode to 24 to 64 bytes. The client sends `Content-Type: application/json` and `User-Agent: Foresi-Webhooks/1`.
+The secret is `whsec_` plus base64 of 32 random bytes; a stored secret is read back only if it decodes to 24 to 64 bytes. The client sends `Content-Type: application/json` and `User-Agent: Foresi-Webhooks/1`.
 
 ### Fan-out
 
-`WebhookFanout` is an event sink, tagged `app.event_sink`; the relay calls every sink for each event it numbers, inside its transaction (ADR 0030). For each active endpoint of the event's organisation that subscribes to the name at the event's version, the sink inserts a pending delivery and dispatches `SendWebhook` on the `webhooks` transport. The Doctrine transport shares the connection, so positions, deliveries and messages are stored together or not at all. The sink makes no request. The relay resets sinks that implement `ResetInterface` after each batch, which clears the sink's per-batch memo of endpoints and owners.
+`WebhookFanout` is an event sink, tagged `app.event_sink`; the relay calls every sink for each event it numbers, inside its transaction (ADR 0030). For each active endpoint of the event's organisation that subscribes to the name at the event's version, the sink inserts a pending delivery and dispatches `SendWebhook` on the `webhooks` transport. The Doctrine transport shares the connection, so positions, deliveries and messages are stored together or not at all. The sink makes no request. The relay resets sinks that implement `ResetInterface` at the start of each batch, which clears the sink's per-batch memo of endpoints and owners.
 
 Endpoints of an organisation are read once per batch. A row that cannot be read (a column of an unexpected type) is skipped and logged, so one bad row holds up nobody's events.
 
@@ -61,7 +61,8 @@ The request is made outside any transaction. The result is recorded in a second 
 * Only a 2xx response succeeds. Any 2xx ends the delivery as succeeded and clears the endpoint's `failing_since`, whichever attempt made it.
 * A 3xx response is not followed: the attempt fails with error `redirect`.
 * `410 Gone` deactivates the endpoint at once (reason `gone`) and tells the owner.
-* Other failures record an error code (`timeout`, `tls`, `blocked_address`, `connection`, `redirect`) or the status. The codes `timeout`, `tls` and `blocked_address` are told apart from the client's exception messages, because Symfony has no typed exceptions for them.
+* Other failures record an error code (`timeout`, `tls`, `blocked_address`, `connection`) or the status.
+* An attempt of a disabled endpoint makes no request and records `endpoint_disabled`. A secret that cannot be opened (the keys of `WEBHOOK_SECRET_KEYS` are missing or were rotated without the old one) makes no request either: the attempt records `internal`, is logged as an error and counts as an ordinary failure, so the delivery goes on along its schedule and ends `failed`. The codes `timeout`, `tls` and `blocked_address` are told apart from the client's exception messages, because Symfony has no typed exceptions for them.
 
 The schedule has ten attempts, at 0 s, 5 s, 5 min, 30 min, 2 h, 5 h, 10 h, 14 h, 20 h and 24 h after the previous one (`RetrySchedule`, as in the Standard Webhooks recommendation). Delays of 5 minutes and more get a jitter of up to 10 % in either direction. The next attempt is dispatched with a `DelayStamp` and stored in `next_attempt_at`; Messenger itself never retries on this transport. After the tenth failure the delivery is `failed`.
 
@@ -77,7 +78,7 @@ Creating an endpoint queues a ping, a delivery of kind `ping` with the type `web
 
 ### The transport
 
-Attempts run on the `webhooks` Messenger transport (Doctrine, own queue, `redeliver_timeout: 600`), routed by `SendWebhook`, so a slow receiver holds up this queue only. Every message carries a tenant stamp. In tests the transport is synchronous.
+Attempts run on the `webhooks` Messenger transport (Doctrine, own queue, `redeliver_timeout: 600`), routed by `SendWebhook`, so a slow receiver holds up this queue only. Every message carries a tenant stamp. In tests the transport is `in-memory://`, and under the `e2e` environment `sync://`.
 
 ### Secrets
 
@@ -106,6 +107,6 @@ A task on the schedule deletes deliveries and their attempts older than 30 days 
 * Bad, because there is no ordering between events: positions are the feed's, attempts are concurrent and a retry arrives after later events. A receiver orders by `occurred_at` and the subject, and deduplicates on `webhook-id`.
 * Bad, because `Retry-After` of a response is not honoured yet; the schedule is fixed.
 * Bad, because there is no bulk "recover since" for an endpoint that was down longer than the retention or the schedule; the feed can be read from a cursor meanwhile.
-* Bad, because the `Idempotency-Key` header, which some receivers expect, is not sent; `webhook-id` serves the purpose, and the question stays open.
+* Bad, because the REST writes do not take the `Idempotency-Key` of ADR 0027 yet: a retried `POST` may register a second endpoint (docs/api.md says so).
 * Bad, because the checks on the owner at fan-out run in the relay and switch the active tenant for a moment, and a disabling by `owner_lost_access` is not in the audit log.
 * Bad, because the secrets of endpoints are lost with `WEBHOOK_SECRET_KEYS`: every endpoint then needs a new secret.

@@ -222,7 +222,7 @@ The answer is `201 Created` with a `Location` header and the endpoint:
 }
 ```
 
-Store the `secret` in your receiver's secret store. The endpoint is shown everywhere else without it; you can read it again with `GET .../secret`, which needs the `write` scope. Foresi keeps it sealed with a key of the installation (`WEBHOOK_SECRET_KEYS`); while the operator has not set one, managing endpoints answers `503 service_unavailable`.
+Store the `secret` in your receiver's secret store. The endpoint is shown everywhere else without it; you can read it again with `GET .../secret`, which needs the `write` scope. Foresi keeps it sealed with a key of the installation (`WEBHOOK_SECRET_KEYS`); while the operator has not set one, creating an endpoint, rotating and reading its secret, `POST .../ping` and `POST .../redeliver` answer `503 service_unavailable`. Listing, showing, changing (`PATCH`) and deleting endpoints work without it.
 
 Right after registering, Foresi sends a **ping** to the endpoint, so you can see at once whether your receiver verifies it. `POST .../ping` sends another. A ping is one attempt with no retries, and it shows in the deliveries with `kind` `ping`. Its body has the shape of an event:
 
@@ -265,7 +265,7 @@ The answer is `{"data": {"secret": "whsec_...", "previous_secret_expires_at": ".
 
 ### Deliveries
 
-A delivery is one event (or one ping) for one endpoint. `GET .../deliveries` lists them newest first, paged like the other lists, with `id`, `endpoint_id`, `event_id`, `event_type`, `kind` (`event` or `ping`), `status` (`pending`, `succeeded` or `failed`), `attempt_count`, `last_status_code`, `next_attempt_at`, `created_at` and `finished_at`. `GET .../deliveries/{deliveryId}` adds `attempts`, oldest first, each with `id`, `attempted_at`, `duration_ms`, `status_code`, `error` (`timeout`, `tls`, `blocked_address`, `connection`, `redirect` or `endpoint_disabled`, when there was no answer to record) and `trigger` (`schedule`, `manual` or `ping`). The body sent and anything your receiver answered are never stored. Deliveries are kept 30 days.
+A delivery is one event (or one ping) for one endpoint. `GET .../deliveries` lists them newest first, paged like the other lists, with `id`, `endpoint_id`, `event_id`, `event_type`, `kind` (`event` or `ping`), `status` (`pending`, `succeeded` or `failed`), `attempt_count`, `last_status_code`, `next_attempt_at`, `created_at` and `finished_at`. `GET .../deliveries/{deliveryId}` adds `attempts`, oldest first, each with `id`, `attempted_at`, `duration_ms`, `status_code`, `error` (`timeout`, `tls`, `blocked_address`, `connection`, `redirect`, `endpoint_disabled` or `internal`, when there was no answer to record; `internal` means the endpoint's secret could not be opened, and the attempt counts as a failure) and `trigger` (`schedule`, `manual` or `ping`). The body sent and anything your receiver answered are never stored. Deliveries are kept 30 days.
 
 An attempt succeeds only with a `2xx` answer within 15 seconds. Redirects are not followed and count as failures. A failed event is attempted again after 5 seconds, 5 minutes, 30 minutes, 2, 5, 10, 14, 20 and 24 hours, 10 attempts over about three days, and is then `failed`.
 
