@@ -42,6 +42,7 @@ files. Never put a production secret in a committed file.
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
 | `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
+| `WEBHOOK_SECRET_KEYS` | **yes** | Keys that seal the signing secrets of webhook endpoints, in the format of `MAIL_SECRET_KEYS` and rotated apart from it: the first key seals, older ones only open. Empty means no endpoint can be saved. Losing the keys means every endpoint needs a new secret. See [ADR 0031](adr/0031-webhooks.md). |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
 | `LOCK_DSN` | maybe | `flock` (default) works on one host. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
@@ -104,7 +105,8 @@ start fresh after a deploy.
    ```
 
    Fill `shared/.env.local` with at least `APP_ENV=prod`, `APP_SECRET`,
-   `DATABASE_URL`, `DEFAULT_URI` and `MAIL_SECRET_KEYS` (see the table).
+   `DATABASE_URL`, `DEFAULT_URI`, `MAIL_SECRET_KEYS` and `WEBHOOK_SECRET_KEYS`
+   (see the table).
 4. Deploy as the application user. The first deploy runs every migration:
 
    ```bash
@@ -134,8 +136,8 @@ start fresh after a deploy.
 ## The worker
 
 One long-running process handles mail, timed jobs (recurring invoices,
-reminders, bank polling, exchange rates), domain events, imports and register
-checks; see the [background worker](../README.md#background-worker). It must
+reminders, bank polling, exchange rates), domain events, outbound webhooks,
+imports and register checks; see the [background worker](../README.md#background-worker). It must
 run all the time.
 
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):
@@ -152,7 +154,7 @@ supervisor:
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events async registry --memory-limit=256M --time-limit=3600
+command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
 directory=/srv/foresi/current
 user=www-data
 environment=APP_ENV="prod"
@@ -162,6 +164,8 @@ autostart=true
 autorestart=true
 stopwaitsecs=3600
 ```
+
+The `webhooks` transport carries one message per delivery attempt, and an attempt may take up to 15 s. The worker takes a transport only while the ones before it are empty, so `webhooks` comes after `async`: a slow receiver never holds up imports or the timed jobs. An installation with many endpoints runs a second worker with `messenger:consume webhooks --memory-limit=256M --time-limit=3600` (another `foresi-worker@` unit or supervisor program with that command) beside the first one; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
 
 On PostgreSQL more workers may run (`foresi-worker@2`, `numprocs=2`); on SQLite
 exactly one. Under **Ploi**, add a daemon (Server › Daemons) with the same
@@ -448,8 +452,8 @@ Run the backup as the application user, which can read the data directories.
 `ops/backup.sh` takes `--tag NAME` (default `daily`) and `--prune` (or
 `PRUNE=1`), which also frees the space of forgotten snapshots; prune weekly. The
 dump exists on the server's disk only while it is being uploaded. Also keep a
-copy of `shared/.env.local` (above all `APP_SECRET` and `MAIL_SECRET_KEYS`) in a
-password manager; it is deliberately not part of the snapshot.
+copy of `shared/.env.local` (above all `APP_SECRET`, `MAIL_SECRET_KEYS` and
+`WEBHOOK_SECRET_KEYS`) in a password manager; it is deliberately not part of the snapshot.
 
 ### WAL archiving with pgBackRest
 
@@ -550,7 +554,7 @@ time too, if the schema has changed since ([rollback](#rollback)).
 
 - [ ] PHP 8.4 with every extension of the [requirements](#requirements); `composer check-platform-reqs --no-dev` passes in the release.
 - [ ] PostgreSQL 17; `DATABASE_URL` uses a role that owns only the Foresi database.
-- [ ] `APP_SECRET`, `MAIL_SECRET_KEYS` and `.env.local` stored in a password manager, outside the server.
+- [ ] `APP_SECRET`, `MAIL_SECRET_KEYS`, `WEBHOOK_SECRET_KEYS` and `.env.local` stored in a password manager, outside the server.
 - [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; HSTS is on.
 - [ ] Upload limits of 50M in PHP and the web server; timeouts of ten minutes for the accountant pack.
 - [ ] `SYMFONY_TRUSTED_PROXIES` set when a proxy is in front.

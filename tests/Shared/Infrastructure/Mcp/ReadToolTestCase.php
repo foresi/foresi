@@ -14,12 +14,13 @@ use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Shared\Infrastructure\Mcp\ReadTool;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
+use App\Shared\Infrastructure\Mcp\WriteTool;
 use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
- * A read tool of a module, called as the MCP server calls it once the token is
+ * A read or write tool of a module, called as the MCP server calls it once the token is
  * signed in: as the member, in the organisation. What it answers is compared
  * with what the REST API answers for the same data.
  */
@@ -28,13 +29,13 @@ abstract class ReadToolTestCase extends ApiTestCase
     /**
      * The tool as the MCP server has it.
      *
-     * @template T of ReadTool
+     * @template T of ReadTool|WriteTool
      *
      * @param class-string<T> $class
      *
      * @return T
      */
-    protected function tool(string $class): ReadTool
+    protected function tool(string $class): ReadTool|WriteTool
     {
         $tool = self::getContainer()->get($class);
         self::assertInstanceOf($class, $tool);
@@ -47,7 +48,7 @@ abstract class ReadToolTestCase extends ApiTestCase
      *
      * @return array<mixed>
      */
-    protected static function argument(ReadTool $tool, string $name): array
+    protected static function argument(ReadTool|WriteTool $tool, string $name): array
     {
         $properties = $tool->inputSchema()['properties'] ?? null;
         self::assertIsArray($properties);
@@ -60,7 +61,7 @@ abstract class ReadToolTestCase extends ApiTestCase
     /**
      * @return list<string> the names of the arguments of the tool, in the order of its schema
      */
-    protected static function argumentNames(ReadTool $tool): array
+    protected static function argumentNames(ReadTool|WriteTool $tool): array
     {
         $properties = $tool->inputSchema()['properties'] ?? null;
         self::assertIsArray($properties);
@@ -69,8 +70,8 @@ abstract class ReadToolTestCase extends ApiTestCase
     }
 
     /**
-     * @param class-string<ReadTool> $tool
-     * @param array<string, mixed>   $arguments
+     * @param class-string<ReadTool|WriteTool> $tool
+     * @param array<string, mixed>             $arguments
      */
     protected function call(string $tool, array $arguments = [], ?User $as = null): ToolOutput
     {
@@ -87,8 +88,8 @@ abstract class ReadToolTestCase extends ApiTestCase
     }
 
     /**
-     * @param class-string<ReadTool> $tool
-     * @param array<string, mixed>   $arguments
+     * @param class-string<ReadTool|WriteTool> $tool
+     * @param array<string, mixed>             $arguments
      */
     protected function refusal(string $tool, array $arguments = [], ?User $as = null): ToolRefusal
     {
@@ -101,8 +102,8 @@ abstract class ReadToolTestCase extends ApiTestCase
     }
 
     /**
-     * @param class-string<ReadTool> $tool
-     * @param array<string, mixed>   $arguments
+     * @param class-string<ReadTool|WriteTool> $tool
+     * @param array<string, mixed>             $arguments
      */
     protected function assertRefused(string $code, string $message, string $tool, array $arguments = [], ?User $as = null): void
     {
@@ -149,8 +150,8 @@ abstract class ReadToolTestCase extends ApiTestCase
     /**
      * Pages through a search with the given limit, and answers the ids of each page.
      *
-     * @param class-string<ReadTool> $tool
-     * @param array<string, mixed>   $arguments
+     * @param class-string<ReadTool|WriteTool> $tool
+     * @param array<string, mixed>             $arguments
      *
      * @return list<list<string>>
      */

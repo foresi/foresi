@@ -25,7 +25,7 @@
 #   mkdir -p ~/example.com-deploy/shared/var/share ~/example.com-deploy/shared/var/imports
 #   install -m 600 /dev/null ~/example.com-deploy/shared/.env.local   # then fill it in
 # Web directory of the site: /public. Daemon (Ploi > Server > Daemons), user ploi:
-#   php /home/ploi/example.com/bin/console messenger:consume scheduler_foresi mail events async registry --memory-limit=256M --time-limit=3600
+#   php /home/ploi/example.com/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
 # The daemon's directory is the site symlink, resolved when the worker starts.
 
 set -euo pipefail

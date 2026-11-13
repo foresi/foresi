@@ -54,6 +54,17 @@ framework:
                     max_retries: 5
                     delay: 5000
                     multiplier: 6
+            # Outbound webhooks, one message per attempt, apart so a slow receiver holds
+            # up only this worker. The delivery row keeps the schedule and the next
+            # attempt is dispatched with a delay, so Messenger never retries. An attempt
+            # ends within 15 s, well inside the redeliver timeout.
+            webhooks:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    queue_name: webhooks
+                    redeliver_timeout: 600
+                retry_strategy:
+                    max_retries: 0
             failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -95,6 +106,8 @@ framework:
             App\Events\Application\RelayEvents: events
             # Each event once to each async listener, in the event's tenant.
             App\Events\Application\DeliverEvent: events
+            # Each attempt of a webhook delivery, in the tenant of the delivery.
+            App\Webhooks\Application\SendWebhook: webhooks
 
 # The end-to-end environment has no worker: messages are handled inline.
 when@e2e:
@@ -105,4 +118,5 @@ when@e2e:
                 registry: 'sync://'
                 mail: 'sync://'
                 events: 'sync://'
+                webhooks: 'sync://'
                 failed: 'in-memory://'

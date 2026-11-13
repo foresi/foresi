@@ -9,12 +9,16 @@ declare(strict_types=1);
 namespace App\Events\Infrastructure\Relay;
 
 use App\Events\Application\DeliverEvent;
+use App\Events\Application\EventSink;
 use App\Events\Infrastructure\Dbal\EventLogTable;
+use App\Events\Infrastructure\Dbal\EventRowReader;
 use App\Tenancy\Infrastructure\Messenger\TenantStamp;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Gives committed events their positions and enqueues their deliveries. Only one
@@ -28,6 +32,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * the messages to its listeners or, when enqueueing fails, stays unnumbered and
  * is picked up by the next run. Works with no tenant: each message carries the
  * tenant of its event.
+ *
+ * Each numbered row is also handed to the sinks, such as the webhooks, in the
+ * same transaction: a sink that fails leaves the batch unnumbered too.
  */
 final readonly class EventRelay
 {
@@ -36,11 +43,16 @@ final readonly class EventRelay
     public const float LOCK_TTL = 300.0;
     public const int BATCH = 500;
 
+    /**
+     * @param iterable<EventSink> $sinks
+     */
     public function __construct(
         private Connection $connection,
         private LockFactory $locks,
         private EventListeners $listeners,
         private MessageBusInterface $bus,
+        #[AutowireIterator('app.event_sink')]
+        private iterable $sinks = [],
     ) {
     }
 
@@ -79,7 +91,7 @@ final readonly class EventRelay
     private function number(int $batch): int
     {
         $rows = $this->connection->createQueryBuilder()
-            ->select(EventLogTable::ID, EventLogTable::TENANT_ID, EventLogTable::NAME)
+            ->select(EventLogTable::TENANT_ID, ...EventRowReader::COLUMNS)
             ->from(EventLogTable::LOG)
             ->where(EventLogTable::POSITION.' IS NULL')
             ->orderBy(EventLogTable::ID)
@@ -89,13 +101,25 @@ final readonly class EventRelay
             return 0;
         }
 
+        foreach ($this->sinks as $sink) {
+            if ($sink instanceof ResetInterface) {
+                $sink->reset();
+            }
+        }
+        $platform = $this->connection->getDatabasePlatform();
         $highest = $this->connection->fetchOne(\sprintf('SELECT MAX(%s) FROM %s', EventLogTable::POSITION, EventLogTable::LOG));
         $position = is_numeric($highest) ? (int) $highest : 0;
         foreach ($rows as $row) {
             $id = $this->text($row[EventLogTable::ID]);
+            $tenant = $this->text($row[EventLogTable::TENANT_ID]);
             $this->connection->update(EventLogTable::LOG, [EventLogTable::POSITION => ++$position], [EventLogTable::ID => $id]);
+            $row[EventLogTable::POSITION] = $position;
+            $event = EventRowReader::read($row, $platform);
+            foreach ($this->sinks as $sink) {
+                $sink->accept($tenant, $event);
+            }
             foreach ($this->listeners->idsFor($this->text($row[EventLogTable::NAME])) as $listener) {
-                $this->bus->dispatch(new Envelope(new DeliverEvent($id, $listener), [new TenantStamp($this->text($row[EventLogTable::TENANT_ID]))]));
+                $this->bus->dispatch(new Envelope(new DeliverEvent($id, $listener), [new TenantStamp($tenant)]));
             }
         }
 

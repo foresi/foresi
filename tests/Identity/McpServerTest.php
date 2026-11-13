@@ -16,14 +16,16 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * The MCP server over Streamable HTTP at /mcp: a client signs in with its
- * personal API token on every request, finds the Foresi tools, all of them
- * read-only, and calls them. No request sets a cookie, and every request spends
+ * personal API token on every request, finds the Foresi tools, each with its
+ * hints (read-only or not, destructive or not), and calls them. No request sets a cookie, and every request spends
  * the budget of the token the REST API spends.
  */
 final class McpServerTest extends ApiTestCase
 {
     /** Every tool the server offers, by name. */
     private const array TOOLS = [
+        'foresi_create_webhook_endpoint',
+        'foresi_delete_webhook_endpoint',
         'foresi_get_contact',
         'foresi_get_invoice',
         'foresi_get_payment',
@@ -31,10 +33,24 @@ final class McpServerTest extends ApiTestCase
         'foresi_list_events',
         'foresi_list_firms',
         'foresi_list_modules',
+        'foresi_list_webhook_deliveries',
+        'foresi_list_webhook_endpoints',
+        'foresi_redeliver_webhook',
+        'foresi_rotate_webhook_secret',
         'foresi_search_contacts',
         'foresi_search_invoices',
         'foresi_search_payments',
+        'foresi_update_webhook_endpoint',
         'foresi_whoami',
+    ];
+
+    /** The tools that change data, with whether they destroy: every other tool only reads. */
+    private const array WRITE_TOOLS = [
+        'foresi_create_webhook_endpoint' => false,
+        'foresi_delete_webhook_endpoint' => true,
+        'foresi_redeliver_webhook' => false,
+        'foresi_rotate_webhook_secret' => true,
+        'foresi_update_webhook_endpoint' => false,
     ];
 
     private ?string $session = null;
@@ -52,7 +68,7 @@ final class McpServerTest extends ApiTestCase
      * Claude Desktop and Claude Code speak one of these.
      */
     #[DataProvider('protocols')]
-    public function testAClientFindsTheReadOnlyToolsAndCallsOne(string $protocol): void
+    public function testAClientFindsTheToolsWithTheirHintsAndCallsOne(string $protocol): void
     {
         $this->protocol = $protocol;
 
@@ -60,7 +76,7 @@ final class McpServerTest extends ApiTestCase
         self::assertSame('foresi', $this->in($initialized, 'result', 'serverInfo', 'name'));
         self::assertSame(self::getContainer()->getParameter('app.version'), $this->in($initialized, 'result', 'serverInfo', 'version'));
         self::assertSame($this->protocol, $this->in($initialized, 'result', 'protocolVersion'));
-        self::assertStringContainsString('These tools only read', $this->text($initialized, 'result', 'instructions'));
+        self::assertStringContainsString('The read tools only read', $this->text($initialized, 'result', 'instructions'));
         self::assertNotNull($this->session);
         $this->notify('notifications/initialized');
 
@@ -71,7 +87,11 @@ final class McpServerTest extends ApiTestCase
         self::assertSame(self::TOOLS, $names);
         foreach ($tools as $tool) {
             self::assertStringStartsWith('foresi_', $this->text($tool, 'name'));
-            self::assertSame(['title' => $this->in($tool, 'title'), 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false], $this->in($tool, 'annotations'));
+            $name = $this->text($tool, 'name');
+            $expected = \array_key_exists($name, self::WRITE_TOOLS)
+                ? ['title' => $this->in($tool, 'title'), 'readOnlyHint' => false, 'destructiveHint' => self::WRITE_TOOLS[$name], 'idempotentHint' => false, 'openWorldHint' => false]
+                : ['title' => $this->in($tool, 'title'), 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false];
+            self::assertSame($expected, $this->in($tool, 'annotations'));
         }
 
         $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
@@ -145,6 +165,18 @@ final class McpServerTest extends ApiTestCase
 
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
+    }
+
+    public function testAWriteToolNeedsTheWriteScope(): void
+    {
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_delete_webhook_endpoint', 'arguments' => ['endpoint_id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
+
+        self::assertTrue($this->in($call, 'isError'));
+        self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
+        self::assertSame('The token does not have the "write" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
     }
 
     /**

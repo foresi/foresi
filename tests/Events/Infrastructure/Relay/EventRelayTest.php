@@ -11,6 +11,8 @@ namespace App\Tests\Events\Infrastructure\Relay;
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
 use App\Events\Application\DeliverEvent;
+use App\Events\Application\EventSink;
+use App\Events\Application\Query\EventRow;
 use App\Events\Application\RelayEvents;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Dbal\DbalEventRecorder;
@@ -136,6 +138,34 @@ final class EventRelayTest extends KernelTestCase
         self::assertFalse($this->db->isTransactionActive());
     }
 
+    public function testSinkFailureLeavesRowsUnpositioned(): void
+    {
+        EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
+        $sink = new class implements EventSink {
+            /** @var list<array{string, string, int}> */
+            public array $seen = [];
+
+            public function accept(string $tenantId, EventRow $row): void
+            {
+                $this->seen[] = [$tenantId, $row->name, $row->position];
+
+                throw new \RuntimeException('The sink is down.');
+            }
+        };
+
+        try {
+            $this->relay(sinks: [$sink])->relay();
+            self::fail('The failed sink must surface.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('The sink is down.', $failure->getMessage());
+        }
+
+        self::assertSame([[$this->tenant->toString(), 'invoicing.invoice.issued', 1]], $sink->seen);
+        self::assertSame([null], array_values(EventRows::positions($this->db)));
+        self::assertCount(0, $this->events->getSent());
+        self::assertFalse($this->db->isTransactionActive());
+    }
+
     public function testOneDeliveryPerListener(): void
     {
         $id = Id::generate();
@@ -213,10 +243,13 @@ final class EventRelayTest extends KernelTestCase
         self::assertSame('5 minutes', $task->every());
     }
 
-    private function relay(?MessageBusInterface $bus = null): EventRelay
+    /**
+     * @param list<EventSink> $sinks
+     */
+    private function relay(?MessageBusInterface $bus = null, array $sinks = []): EventRelay
     {
         $container = self::getContainer();
 
-        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class));
+        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class), $sinks);
     }
 }

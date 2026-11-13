@@ -69,7 +69,7 @@ OAuth 2.1 for remote MCP clients comes later, once the SDK and the bundle reach 
 * Requests are limited per token. Responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`. Over the limit the answer is 429 with `Retry-After`.
 * Every write takes an `Idempotency-Key`. The key and the response are kept for 24 hours. A repeat with the same key returns the saved response. The same key with different input is an error.
 * A legally significant transition is an action endpoint, such as `POST /invoices/{id}/cancel`. It is never a change of a status field.
-* Webhooks may come later. They will be thin and signed with HMAC. The events feed (`GET /api/v1/events`, ADR 0030) is added; webhooks follow on the same log.
+* Webhooks may come later. They will be thin and signed with HMAC. The events feed (`GET /api/v1/events`, ADR 0030) is added; webhooks follow on the same log. Outbound webhooks are added in ADR 0031; their endpoint writes, the first writes of the API, do not take an `Idempotency-Key` yet.
 
 ### Safety model
 
@@ -94,3 +94,5 @@ OAuth 2.1 for remote MCP clients comes later, once the SDK and the bundle reach 
 * Bad, because OpenAPI response schemas are written by hand. Nelmio reads request objects, not our result types.
 * Bad, because tokens are a new secret to protect: a leaked token acts as its owner until it expires or is revoked.
 * Bad, because existing controllers still hold their authorization and read logic until they are moved, one module at a time.
+
+Update (ADR 0031): the first writes are the webhook endpoints (`write` scope) and the first MCP write tools, loaded by the same loader as the read tools; the delete and rotate tools carry `destructiveHint`.

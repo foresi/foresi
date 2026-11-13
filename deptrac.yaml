@@ -130,6 +130,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Events/Infrastructure/.*
+    # Outbound webhooks: endpoints that receive the domain events as signed requests.
+    - name: WebhooksDomain
+      collectors:
+        - type: directory
+          value: src/Webhooks/Domain/.*
+    - name: WebhooksApplication
+      collectors:
+        - type: directory
+          value: src/Webhooks/Application/.*
+    - name: WebhooksInfrastructure
+      collectors:
+        - type: directory
+          value: src/Webhooks/Infrastructure/.*
     - name: InvoicingDomain
       collectors:
         - type: directory
@@ -921,6 +934,45 @@ deptrac:
       - AuditApplication
       - VendorSymfony
       - VendorDoctrine
+      - VendorDbalConnection
+      - VendorOpenApi
+    # Webhooks keep their signing secrets with the shared sealer; nothing builds
+    # on them. The fan-out is a sink of the event relay: it renders the events as
+    # the feed does and stamps each attempt with the tenant of its event. The
+    # owner of a disabled endpoint is found in Identity and told by system mail.
+    # The use cases take the signed-in person from the audit actor, the API
+    # describes itself with OpenAPI attributes, and the settings page puts its
+    # entry in the sidebar.
+    WebhooksDomain:
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - VendorDoctrineOrmMapping
+    WebhooksApplication:
+      - WebhooksDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+      - AuditApplication
+    WebhooksInfrastructure:
+      - WebhooksDomain
+      - WebhooksApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - TenancyDomain
+      - TenancyApplication
+      - TenantStamp
+      - EventsApplication
+      - EventsInfrastructure
+      - IdentityDomain
+      - IdentityApplication
+      - AuditApplication
+      - Ui
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - VendorOpenApi
     ExchangeRateDomain:

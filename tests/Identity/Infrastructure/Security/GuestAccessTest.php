@@ -37,7 +37,10 @@ final class GuestAccessTest extends WebTestCase
         // Machines: the uptime monitor and the bank mail relay, on firewalls without a session.
         'app_health', 'app_inbound_mail',
         // The API and MCP, whose firewalls only a personal API token signs in to; a guest gets none.
-        'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_payments', 'api_v1_payment', 'api_v1_events', '_mcp_endpoint_default',
+        'api_v1_me', 'api_v1_invoices', 'api_v1_invoice', 'api_v1_contacts', 'api_v1_contact', 'api_v1_payments', 'api_v1_payment', 'api_v1_events',
+        'api_v1_webhook_endpoints', 'api_v1_webhook_endpoint_create', 'api_v1_webhook_endpoint', 'api_v1_webhook_endpoint_update', 'api_v1_webhook_endpoint_delete',
+        'api_v1_webhook_endpoint_rotate', 'api_v1_webhook_endpoint_secret', 'api_v1_webhook_endpoint_ping',
+        'api_v1_webhook_deliveries', 'api_v1_webhook_delivery', 'api_v1_webhook_delivery_redeliver', '_mcp_endpoint_default',
         // The OpenAPI document, which describes the API and holds no data.
         'api_v1_openapi',
         // The public links to sent documents.

@@ -62,6 +62,7 @@ nav:
   item:
     people: People
     api: API access
+    webhooks: Webhooks
     dashboard: Dashboard
     shared_with_me: Shared with me
     contacts: Address book
@@ -4008,3 +4009,142 @@ purchasing:
     deduction_deadline_passed: "The time to deduct the VAT ended on {date}."
     deduction_deadline_near: "The time to deduct the VAT ends on {date}."
     simplified_receipt_over_limit: "The simplified receipt is above 10,000 CZK with VAT."
+webhooks:
+  title: Webhooks
+  new: New endpoint
+  edit: Edit endpoint
+  create: Create endpoint
+  save: Save
+  cancel: Cancel
+  done: Done
+  column:
+    url: URL
+    description: Description
+    events: Events
+    status: Status
+    created: Created
+  state:
+    active: Active
+    disabled: Disabled
+  field:
+    url: URL
+    url_help: The HTTPS address that receives the events
+    description: Description
+    description_help: What receives the events, such as Accounting
+    events: 'Events of {module}'
+    events_help: All events of a module, or only some of them
+    all_events: 'All events of {module}'
+    version: Event version
+    version_help: The version of the events this endpoint receives
+  action:
+    edit: Edit
+    ping: Send ping
+    rotate: Rotate secret
+    reveal: Reveal secret
+    disable: Disable
+    enable: Enable
+    delete: Delete
+    attempts: Attempts
+    redeliver: Redeliver
+  confirm:
+    delete:
+      title: 'Delete the endpoint at {host}?'
+      text: It receives no more events, and its deliveries are deleted with it. This cannot be undone.
+  empty:
+    title: No webhook endpoints
+    text: An endpoint receives the events of the modules you choose as signed HTTPS requests.
+  detail:
+    title: Endpoint
+    previous_secret: Previous secret signs until
+  disabled:
+    title: This endpoint is disabled
+    reason:
+      gone: It answered 410 Gone.
+      failing: Every attempt to deliver to it failed for five days.
+      owner_lost_access: Its owner may no longer read the events it subscribes to.
+      manual: It was turned off by hand.
+    enable: Enable it once the receiver works again, and redeliver what it missed.
+  delivery:
+    title: Deliveries
+    ping: Ping
+    more: Only the newest 100 deliveries are shown.
+    empty:
+      title: No deliveries yet
+      text: Each event sent to this endpoint shows here for 30 days.
+    column:
+      event: Event
+      attempts: Attempts
+      code: Last status
+      next: Next attempt or finished
+    status:
+      pending: Pending
+      succeeded: Succeeded
+      failed: Failed
+  attempt:
+    title: Attempts
+    empty: No attempts yet.
+    column:
+      at: Time
+      trigger: Started by
+      duration: Duration
+      error: Error
+    trigger:
+      schedule: Schedule
+      manual: By hand
+      ping: Ping
+    duration: '{ms} ms'
+  rotate:
+    title: Rotate secret
+    text: 'A new secret signs the requests to {host} from now on. The current one can keep signing beside it while the receiver switches over.'
+    field: Keep the current secret
+    help: Until then, both secrets sign every request.
+    keep: '{hours, plural, =0 {Stop it at once} one {For # hour} other {For # hours}}'
+  secret:
+    title:
+      created: Your new endpoint
+      rotated: Your new secret
+      revealed: Signing secret
+      reveal: Reveal secret
+    once: Copy the secret now. It is shown only this once; later only Reveal secret shows it.
+    text:
+      created: 'Requests to {host} are signed with this secret. A ping is on its way.'
+      rotated: 'Requests to {host} are signed with this new secret from now on.'
+      revealed: 'Requests to {host} are signed with this secret.'
+    previous: 'The previous secret also signs until {date}.'
+    reveal_text: 'The secret that signs the requests to {host} will show in this dialog. Anyone who has it can forge requests.'
+    field: Signing secret
+    copy: Copy secret
+    copied: Copied
+    copy_failed: Copying failed; the secret is selected, press Ctrl+C.
+    use: The receiver verifies the webhook-signature header with it, as Standard Webhooks describes (docs/api.md). Treat it like a password.
+  flash:
+    saved: The endpoint is saved.
+    disabled: The endpoint is disabled.
+    enabled: The endpoint is enabled.
+    pinged: A ping is on its way.
+    deleted: The webhook endpoint is deleted.
+    redelivered: The delivery is queued again.
+  refused:
+    url:
+      scheme: Enter an address that starts with https://.
+      host: Enter an address with a valid host.
+      userinfo: Leave the user name and password out of the address.
+      length: Enter an address of up to 2048 characters.
+      private_address: The address points to a private network, which may not receive webhooks.
+      unresolvable: The host of the address could not be found.
+    event_types: Choose at least one of the events offered.
+    version: Enter a version from 1 to 32767.
+    description: Enter a description of up to 255 characters.
+    keep_previous_hours: Choose how long the current secret keeps signing.
+    secrets_unavailable: Webhook secrets are not set up on this installation, so this cannot be done now.
+    disabled: The endpoint is disabled. Enable it first.
+    not_redeliverable: Only a finished delivery of an event can be delivered again.
+  disabled_mail:
+    subject: 'Webhook endpoint disabled: {host}'
+    reason:
+      gone: 'The endpoint at {host} answered 410 Gone, so it receives no more events.'
+      failing: 'Every attempt to deliver to the endpoint at {host} has failed for five days, so it receives no more events.'
+      owner_lost_access: 'You may no longer read the events the endpoint at {host} subscribes to, so it receives no more events.'
+      manual: 'The endpoint at {host} was turned off and receives no more events.'
+    pending: 'Deliveries still waiting end as failed. Once the receiver works again, enable the endpoint and redeliver what it missed.'
+    open: Open the endpoint
