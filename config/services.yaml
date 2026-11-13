@@ -237,6 +237,11 @@ services:
         alias: App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
     App\Webhooks\Application\WebhookUrlPolicy:
         alias: App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
+    # Redirects are never followed and, unless this installation posts to its own network, private addresses are refused.
+    webhooks.http_client:
+        class: Symfony\Contracts\HttpClient\HttpClientInterface
+        factory: ['App\Webhooks\Infrastructure\Http\WebhookHttpClientFactory', 'create']
+        arguments: ['%app.webhooks.allow_private_hosts%']
     App\Invoicing\Application\MailTemplates:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
     App\Invoicing\Application\DocumentTitles:
