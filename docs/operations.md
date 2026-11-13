@@ -42,6 +42,7 @@ files. Never put a production secret in a committed file.
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
 | `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
+| `WEBHOOK_SECRET_KEYS` | **yes** | Keys that seal the signing secrets of webhook endpoints, in the format of `MAIL_SECRET_KEYS` and rotated apart from it: the first key seals, older ones only open. Empty means no endpoint can be saved. Losing the keys means every endpoint needs a new secret. See [ADR 0031](adr/0031-webhooks.md). |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
 | `LOCK_DSN` | maybe | `flock` (default) works on one host. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
@@ -162,6 +163,8 @@ autostart=true
 autorestart=true
 stopwaitsecs=3600
 ```
+
+The `webhooks` transport carries one message per delivery attempt, so a slow receiver holds up nothing else; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
 
 On PostgreSQL more workers may run (`foresi-worker@2`, `numprocs=2`); on SQLite
 exactly one. Under **Ploi**, add a daemon (Server › Daemons) with the same

@@ -39,7 +39,7 @@ final class ListModulesToolTest extends TestCase
         self::assertCount(18, $json['modules']);
         self::assertSame($this->modules()->acceptedProblems(), $json['problems']);
         self::assertSame(ModulesView::toArray($this->modules()->graph()), $output->data);
-        self::assertSame('18 installed modules, 3 problems in their dependencies.', $output->summary);
+        self::assertSame('18 installed modules, 4 problems in their dependencies.', $output->summary);
     }
 
     private function tool(): ListModulesTool

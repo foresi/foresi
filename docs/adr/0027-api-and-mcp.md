@@ -94,3 +94,5 @@ OAuth 2.1 for remote MCP clients comes later, once the SDK and the bundle reach 
 * Bad, because OpenAPI response schemas are written by hand. Nelmio reads request objects, not our result types.
 * Bad, because tokens are a new secret to protect: a leaked token acts as its owner until it expires or is revoked.
 * Bad, because existing controllers still hold their authorization and read logic until they are moved, one module at a time.
+
+Update (ADR 0031): the first writes are the webhook endpoints (`write` scope) and the first MCP write tools, loaded by the same loader as the read tools; the delete and rotate tools carry `destructiveHint`.

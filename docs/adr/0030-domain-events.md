@@ -65,7 +65,7 @@ The row has no `position` yet. A database sequence cannot give an order that rea
 
 After the outermost commit, `DoctrineTransactionalWork` tells the outbox, which dispatches a `RelayEvents` nudge on the `events` transport. A task on the schedule relays every 5 minutes the rows no nudge announced, for example after a crash.
 
-The relay runs under one lock (Symfony Lock, `LOCK_DSN`). In one DBAL transaction it gives the committed rows without a position the next numbers, in order of id, continuing from the highest position, and enqueues one `DeliverEvent` message per asynchronous listener of each event. The Doctrine transport joins that transaction, so positions and deliveries are stored together or not at all. Positions are unique and gapless only if all workers share one lock store: the default file lock serves one host, so several hosts need a shared `LOCK_DSN`.
+The relay runs under one lock (Symfony Lock, `LOCK_DSN`). In one DBAL transaction it gives the committed rows without a position the next numbers, in order of id, continuing from the highest position, and enqueues one `DeliverEvent` message per asynchronous listener of each event. It also hands each numbered event to every event sink (tag `app.event_sink`) in that transaction; outbound webhooks (ADR 0031) are the first. The Doctrine transport joins that transaction, so positions and deliveries are stored together or not at all. Positions are unique and gapless only if all workers share one lock store: the default file lock serves one host, so several hosts need a shared `LOCK_DSN`.
 
 ### Delivery
 
