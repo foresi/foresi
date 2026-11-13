@@ -91,6 +91,11 @@ final class ReadableEventsTest extends TestCase
             {
                 return $this->may;
             }
+
+            public function mayUserRead(string $userId): bool
+            {
+                return $this->may;
+            }
         };
     }
 

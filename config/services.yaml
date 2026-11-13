@@ -90,6 +90,9 @@ services:
         # The stages of an iDoklad import; each one orders itself.
         App\Idoklad\Application\Import\ImportStage:
             tags: ['app.idoklad_import_stage']
+        # Takes each event the relay numbers, in its transaction, such as the webhooks.
+        App\Events\Application\EventSink:
+            tags: ['app.event_sink']
 
     # The tenant of a request signed in with a personal API token is the token's; otherwise the session's choice.
     App\Identity\Application\ActiveTenantStore:

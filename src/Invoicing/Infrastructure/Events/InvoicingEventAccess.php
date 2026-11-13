@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Events;
 
+use App\Identity\Application\StaffCheck;
 use App\Invoicing\Application\InvoicingAccess;
 use App\Invoicing\Application\InvoicingNotAllowed;
 use App\Invoicing\Application\Query\PaymentAccess;
@@ -20,7 +21,7 @@ use App\Shared\Application\Event\EventReadAccess;
  */
 final readonly class InvoicingEventAccess implements EventReadAccess
 {
-    public function __construct(private InvoicingAccess $invoices, private PaymentAccess $payments)
+    public function __construct(private InvoicingAccess $invoices, private PaymentAccess $payments, private StaffCheck $staff)
     {
     }
 
@@ -39,5 +40,13 @@ final readonly class InvoicingEventAccess implements EventReadAccess
         }
 
         return true;
+    }
+
+    /**
+     * The rule both access services apply to the signed-in person, for anyone.
+     */
+    public function mayUserRead(string $userId): bool
+    {
+        return $this->staff->isStaffMember($userId);
     }
 }

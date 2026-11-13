@@ -937,7 +937,8 @@ deptrac:
       - VendorDbalConnection
       - VendorOpenApi
     # Webhooks keep their signing secrets with the shared sealer; nothing builds
-    # on them. Events (what is sent) and Identity (the owner) join with the fan-out.
+    # on them. The fan-out is a sink of the event relay: it renders the events as
+    # the feed does and stamps each attempt with the tenant of its event.
     WebhooksDomain:
       - SharedDomain
       - TenancyDomain
@@ -957,6 +958,9 @@ deptrac:
       - SharedInfrastructure
       - TenancyDomain
       - TenancyApplication
+      - TenantStamp
+      - EventsApplication
+      - EventsInfrastructure
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping
