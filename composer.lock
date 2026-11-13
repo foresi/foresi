@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1c2c85f2283b78899b61485f3645cac1",
+    "content-hash": "83fdbd40ff2a06aa1760c9e607facfc2",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "b0c31100f58b9cd2bab7105198dbfd5e9b1a1e28"
+                "reference": "cac38114ee855901baa258a3658daeaf3fe0fd93"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1634,7 +1634,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "6f919d9321ce4c7726ddda43bb49770da402a914"
+                "reference": "8c7d090d82f9af9ddfe5ea41fce8d9aea2231a39"
             },
             "require": {
                 "foresi/shared": "*",
@@ -1664,7 +1664,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "a7035e0b732e030c037e03176b51ce77a10d171f"
+                "reference": "8ee703faf1b3561dec56e8a4ad57e57ff7ec2aec"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1699,7 +1699,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "37065a515f3f8094fe6ddb1814b069c9013bc35f"
+                "reference": "89586661263e3b5c9f7e0891963e3d7e4a3488c7"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1732,7 +1732,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "fb26205b642a5ce4f64138bba6ad47cf611601ad"
+                "reference": "16f4e11019ef00b16f7785d3b6bf1485cc0ef180"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1763,7 +1763,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "4383e45094b2e97f078ae0b7d65a15c3705b8859"
+                "reference": "c3926e0f0bdfe862554e1a82896c2b33e02d4cc1"
             },
             "require": {
                 "foresi/tenancy": "*"
@@ -1792,7 +1792,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "99b06dd7442b4b6432c32454c98623cb3d833ac3"
+                "reference": "48e3db56c381e1e5bf3b48dafbf5563c66e50694"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1825,7 +1825,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "fa11fe71f49cfbde9f7df3dead6375cd2206822d"
+                "reference": "f338a69e0ba8437d928dae00a922159f970f6e2b"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1860,7 +1860,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "9270902024bebc89056cdd88e0f479aa6e12ed59"
+                "reference": "12d1bb543a060c8367ad5208734aa67e494ff347"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1893,7 +1893,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "54c120596f9371dd63e445ded1646cceadad5905"
+                "reference": "a0667d6151f1cd746a5ae602be5c33f9ee74e5c4"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1927,7 +1927,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "42bb2e38d6ff0329a53a5f7eaad3993432bf1575"
+                "reference": "e4d359fc150fc0ee25375f2b3351c8e562e4a5bc"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1961,7 +1961,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "3613d541a731d61bcf9d9acafe58aed798da538e"
+                "reference": "2d71f459d28b591b8f148a8a9b853088115eb200"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -1997,7 +1997,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "d2be0342df68eacfbf49accdbf9c6b98b65237c2"
+                "reference": "e0805a04f992f6d61a9b4643169c032003ba1802"
             },
             "type": "foresi-module",
             "extra": {
@@ -2023,7 +2023,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Tenancy",
-                "reference": "3e85a6a5e9a29c36e6ee978366e6c4fd050b9d3c"
+                "reference": "118c4e6d9e374cf9116f61008ad94848a50b197f"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2052,7 +2052,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "5bad7f6208afa2c30a689698a4e0cc401c617eee"
+                "reference": "707325a4ea836e0935ff0ca64460d4f473225983"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2087,7 +2087,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "d9fe79eb9531c178b51ef7c2e6f5c61104368fee"
+                "reference": "0c5b3b74ec0c263b774bd3f90977f52f9957f817"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2111,12 +2111,45 @@
             }
         },
         {
+            "name": "foresi/webhooks",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Webhooks",
+                "reference": "253a45a52f6d535a0fdb59ff1dc8f42e501c1fa6"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/events": "*",
+                "foresi/identity": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "webhooks",
+                    "kind": "core",
+                    "namespace": "App\\Webhooks\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Outbound webhooks: endpoints that receive the domain events as signed Standard Webhooks requests.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/work",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "540de65362ada49dca42c61c51ccafe34fb53abc"
+                "reference": "b6deb10775d6d9347637197b27c6a091b4d01e18"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -18347,6 +18380,7 @@
         "foresi/tenancy": 20,
         "foresi/timesheet": 20,
         "foresi/ui": 20,
+        "foresi/webhooks": 20,
         "foresi/work": 20
     },
     "prefer-stable": true,

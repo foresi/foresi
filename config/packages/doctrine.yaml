@@ -95,6 +95,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/ExchangeRate/Domain'
                 prefix: 'App\ExchangeRate\Domain'
                 alias: ExchangeRate
+            Webhooks:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Webhooks/Domain'
+                prefix: 'App\Webhooks\Domain'
+                alias: Webhooks
         dql:
             string_functions:
                 CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction

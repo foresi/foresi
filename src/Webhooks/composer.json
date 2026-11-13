@@ -1,0 +1,21 @@
+{
+    "name": "foresi/webhooks",
+    "description": "Outbound webhooks: endpoints that receive the domain events as signed Standard Webhooks requests.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/audit": "*",
+        "foresi/events": "*",
+        "foresi/identity": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "webhooks",
+            "kind": "core",
+            "namespace": "App\\Webhooks\\",
+            "optional": []
+        }
+    }
+}

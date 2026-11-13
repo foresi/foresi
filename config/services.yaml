@@ -19,6 +19,9 @@ parameters:
     # A firm's mail server may not be in a private, loopback or link-local network,
     # as tenants type the host. An installation whose server is inside sets this.
     app.mail.allow_private_hosts: false
+    # A webhook endpoint may not be in a private, loopback or link-local network either,
+    # as people type the URL. Local development against a receiver on this machine sets this.
+    app.webhooks.allow_private_hosts: false
     # Links in sent mail are built on DEFAULT_URI; a loopback base would make them dead,
     # so sending refuses one. Development and the tests allow it.
     app.mail.allow_local_links: false
@@ -230,6 +233,10 @@ services:
         alias: App\Shared\Infrastructure\Crypto\SodiumSealer
     App\Invoicing\Application\MailHostPolicy:
         alias: App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy
+    App\Webhooks\Application\WebhookSecrets:
+        alias: App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
+    App\Webhooks\Application\WebhookUrlPolicy:
+        alias: App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
     App\Invoicing\Application\MailTemplates:
         alias: App\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates
     App\Invoicing\Application\DocumentTitles:

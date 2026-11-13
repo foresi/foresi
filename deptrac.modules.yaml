@@ -67,6 +67,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Ui\\.*
+    - name: webhooks
+      collectors:
+        - type: classLike
+          value: ^App\\Webhooks\\.*
     - name: work
       collectors:
         - type: classLike
@@ -156,6 +160,12 @@ deptrac:
       - work
     ui:
       - shared
+    webhooks:
+      - audit
+      - events
+      - identity
+      - shared
+      - tenancy
     work:
       - attachment
       - audit

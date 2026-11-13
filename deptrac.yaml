@@ -130,6 +130,19 @@ deptrac:
       collectors:
         - type: directory
           value: src/Events/Infrastructure/.*
+    # Outbound webhooks: endpoints that receive the domain events as signed requests.
+    - name: WebhooksDomain
+      collectors:
+        - type: directory
+          value: src/Webhooks/Domain/.*
+    - name: WebhooksApplication
+      collectors:
+        - type: directory
+          value: src/Webhooks/Application/.*
+    - name: WebhooksInfrastructure
+      collectors:
+        - type: directory
+          value: src/Webhooks/Infrastructure/.*
     - name: InvoicingDomain
       collectors:
         - type: directory
@@ -923,6 +936,31 @@ deptrac:
       - VendorDoctrine
       - VendorDbalConnection
       - VendorOpenApi
+    # Webhooks keep their signing secrets with the shared sealer; nothing builds
+    # on them. Events (what is sent) and Identity (the owner) join with the fan-out.
+    WebhooksDomain:
+      - SharedDomain
+      - TenancyDomain
+      - AuditDomain
+      - VendorDoctrineOrmMapping
+    WebhooksApplication:
+      - WebhooksDomain
+      - SharedDomain
+      - SharedApplication
+      - TenancyDomain
+      - TenancyApplication
+    WebhooksInfrastructure:
+      - WebhooksDomain
+      - WebhooksApplication
+      - SharedDomain
+      - SharedApplication
+      - SharedInfrastructure
+      - TenancyDomain
+      - TenancyApplication
+      - VendorSymfony
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
     ExchangeRateDomain:
       - Contract
       - VendorDoctrineOrmMapping
