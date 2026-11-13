@@ -58,6 +58,22 @@ final class WebhookEndpointTest extends TestCase
         yield 'beyond a small integer' => [32768];
     }
 
+    public function testTheLongestDescriptionAndHighestVersionAreAccepted(): void
+    {
+        $description = str_repeat('č', WebhookEndpoint::DESCRIPTION_MAX_LENGTH);
+        $endpoint = WebhookEndpoint::create(self::ID, new EndpointUrl('https://hooks.example.com/x'), $description, EventTypes::of(['invoicing.*']), WebhookEndpoint::MAX_VERSION, 'sealed-1', self::OWNER, new \DateTimeImmutable());
+
+        self::assertSame($description, $endpoint->description());
+        self::assertSame(WebhookEndpoint::MAX_VERSION, $endpoint->version());
+    }
+
+    public function testTheTenantIsKnownOnlyOncePersisted(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        $this->endpoint(new \DateTimeImmutable())->tenantId();
+    }
+
     public function testChangeReplacesOnlyWhatIsGiven(): void
     {
         $endpoint = $this->endpoint(new \DateTimeImmutable('2026-11-13 10:00:00'));
@@ -181,6 +197,7 @@ final class WebhookEndpointTest extends TestCase
     public function testEventTypesKeepEachPatternOnce(): void
     {
         self::assertSame(['invoicing.*', 'exchange-rate.rate.published'], EventTypes::of(['invoicing.*', 'exchange-rate.rate.published', 'invoicing.*'])->patterns());
+        self::assertSame(['invoicing.*', 'exchange-rate.rate.published'], EventTypes::of(['invoicing.*', 'invoicing.*', 'exchange-rate.rate.published'])->patterns(), 'The patterns stay a list.');
     }
 
     public function testAnEndpointUrlNamesItsHost(): void
@@ -204,6 +221,7 @@ final class WebhookEndpointTest extends TestCase
         yield 'http' => ['http://hooks.example.com/x'];
         yield 'no host' => ['https:///x'];
         yield 'user info' => ['https://user:pw@hooks.example.com/x'];
+        yield 'a user without a password' => ['https://user@hooks.example.com/x'];
         yield 'too long' => ['https://hooks.example.com/'.str_repeat('a', 2048)];
     }
 

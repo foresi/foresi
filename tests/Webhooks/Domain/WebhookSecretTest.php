@@ -61,5 +61,6 @@ final class WebhookSecretTest extends TestCase
 
         self::assertStringNotContainsString(substr($secret->reveal(), 6), print_r($secret, true));
         self::assertStringNotContainsString($secret->key(), print_r($secret, true));
+        self::assertSame(['key' => '[hidden]'], $secret->__debugInfo());
     }
 }

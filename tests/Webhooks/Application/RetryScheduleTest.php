@@ -27,6 +27,20 @@ final class RetryScheduleTest extends TestCase
         self::assertSame([0, 5, 300, 1800, 7200, 18000, 36000, 50400, 72000, 86400], $delays);
     }
 
+    public function testANegativeCountIsTheFirstAttempt(): void
+    {
+        self::assertSame(0, RetrySchedule::delayAfter(-1));
+    }
+
+    public function testTheJitterIsAddedWithinATenthEitherWay(): void
+    {
+        foreach ([1, 2, 3, 4, 5] as $seed) {
+            $expected = 1800 + new Randomizer(new Mt19937($seed))->getInt(-180, 180);
+
+            self::assertSame($expected, RetrySchedule::withJitter(1800, new Randomizer(new Mt19937($seed))));
+        }
+    }
+
     public function testNoAttemptAfterTheTenth(): void
     {
         self::assertNull(RetrySchedule::delayAfter(10));

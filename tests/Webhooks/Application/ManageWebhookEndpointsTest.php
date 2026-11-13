@@ -138,6 +138,42 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
         self::assertNull($this->list->show($id)->disabledReason());
     }
 
+    public function testUpdateWithoutActiveKeepsTheState(): void
+    {
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+
+        self::assertTrue($this->manage->update($id, version: 2)->isActive());
+        $this->manage->disable($id);
+        self::assertFalse($this->manage->update($id, version: 3)->isActive());
+    }
+
+    public function testTheLimitsThemselvesAreAccepted(): void
+    {
+        $description = str_repeat('č', WebhookEndpoint::DESCRIPTION_MAX_LENGTH);
+        $created = $this->manage->create('https://hooks.example.com/foresi', '  '.$description.'  ', ['invoicing.*'], WebhookEndpoint::MAX_VERSION);
+
+        self::assertSame($description, $created->endpoint->description());
+        self::assertSame(WebhookEndpoint::MAX_VERSION, $created->endpoint->version());
+        self::assertNotSame($created->secret->reveal(), $this->manage->rotate($created->endpoint->id(), ManageWebhookEndpoints::MAX_KEEP_PREVIOUS_HOURS)->reveal());
+    }
+
+    public function testCreatePinsVersionOneByDefault(): void
+    {
+        self::assertSame(1, $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'])->endpoint->version());
+    }
+
+    public function testUpdateNamesATooLongDescription(): void
+    {
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
+
+        try {
+            $this->manage->update($id, description: str_repeat('x', WebhookEndpoint::DESCRIPTION_MAX_LENGTH + 1));
+            self::fail('A too long description is refused.');
+        } catch (InvalidWebhookEndpoint $e) {
+            self::assertSame('description', $e->parameter);
+        }
+    }
+
     public function testRotateRefusesHoursOutsideTheRange(): void
     {
         $id = $this->manage->create('https://hooks.example.com/foresi', null, ['invoicing.*'], 1)->endpoint->id();
