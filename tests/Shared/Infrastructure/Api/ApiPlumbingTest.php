@@ -95,25 +95,37 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertSame('1', $this->at('info', 'version'));
         $paths = $this->at('paths');
         self::assertIsArray($paths);
-        self::assertSame([
-            '/api/v1/events',
-            '/api/v1/me',
-            '/api/v1/invoices',
-            '/api/v1/invoices/{id}',
-            '/api/v1/payments',
-            '/api/v1/payments/{id}',
-            '/api/v1/contacts',
-            '/api/v1/contacts/{id}',
-        ], array_keys($paths));
+        // Each path with its operations and the status each answers when it succeeds.
+        $operations = [
+            '/api/v1/events' => ['get' => '200'],
+            '/api/v1/me' => ['get' => '200'],
+            '/api/v1/invoices' => ['get' => '200'],
+            '/api/v1/invoices/{id}' => ['get' => '200'],
+            '/api/v1/payments' => ['get' => '200'],
+            '/api/v1/payments/{id}' => ['get' => '200'],
+            '/api/v1/contacts' => ['get' => '200'],
+            '/api/v1/contacts/{id}' => ['get' => '200'],
+            '/api/v1/webhook-endpoints/{id}/deliveries' => ['get' => '200'],
+            '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}' => ['get' => '200'],
+            '/api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver' => ['post' => '202'],
+            '/api/v1/webhook-endpoints' => ['get' => '200', 'post' => '201'],
+            '/api/v1/webhook-endpoints/{id}' => ['get' => '200', 'delete' => '204', 'patch' => '200'],
+            '/api/v1/webhook-endpoints/{id}/secret/rotate' => ['post' => '200'],
+            '/api/v1/webhook-endpoints/{id}/secret' => ['get' => '200'],
+            '/api/v1/webhook-endpoints/{id}/ping' => ['post' => '202'],
+        ];
+        self::assertSame(array_keys($operations), array_keys($paths));
         self::assertSame([['bearer' => []]], $this->at('security'));
         self::assertSame('http', $this->at('components', 'securitySchemes', 'bearer', 'type'));
         self::assertSame('bearer', $this->at('components', 'securitySchemes', 'bearer', 'scheme'));
-        foreach (array_keys($paths) as $path) {
+        foreach ($operations as $path => $methods) {
             $item = $this->at('paths', $path);
             self::assertIsArray($item);
-            self::assertSame(['get'], array_keys($item), $path);
-            $this->at('paths', $path, 'get', 'responses', '200');
-            $this->at('paths', $path, 'get', 'responses', '401');
+            self::assertSame(array_keys($methods), array_keys($item), $path);
+            foreach ($methods as $method => $success) {
+                $this->at('paths', $path, $method, 'responses', $success);
+                $this->at('paths', $path, $method, 'responses', '401');
+            }
         }
         $parameters = $this->at('paths', '/api/v1/invoices', 'get', 'parameters');
         self::assertIsArray($parameters);

@@ -240,6 +240,16 @@ services:
         alias: App\Webhooks\Infrastructure\Crypto\SodiumWebhookSecrets
     App\Webhooks\Application\WebhookUrlPolicy:
         alias: App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy
+    App\Webhooks\Application\WebhookEndpoints:
+        alias: App\Webhooks\Infrastructure\Doctrine\DoctrineWebhookEndpoints
+    App\Webhooks\Application\WebhookWork:
+        alias: App\Webhooks\Infrastructure\Doctrine\DoctrineWebhookWork
+    App\Webhooks\Application\WebhookQueue:
+        alias: App\Webhooks\Infrastructure\Delivery\MessengerWebhookQueue
+    App\Webhooks\Application\SubscribableEvents:
+        alias: App\Webhooks\Infrastructure\Events\CatalogueSubscribableEvents
+    App\Webhooks\Application\Query\DeliveryRecords:
+        alias: App\Webhooks\Infrastructure\Dbal\DbalDeliveryRecords
     # Redirects are never followed and, unless this installation posts to its own network, private addresses are refused.
     webhooks.http_client:
         class: Symfony\Contracts\HttpClient\HttpClientInterface
@@ -423,6 +433,10 @@ when@e2e:
         App\Tests\Support\Mail\RecordingMailGateway: ~
         # ...and no browser test asks a real DNS server for a mail host.
         App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        # ...nor for a webhook host.
+        App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
                 $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
         App\Tests\Support\Mail\ExampleHostResolver: ~
@@ -714,6 +728,10 @@ when@test:
             public: true
         # No test asks a real DNS server for a mail host.
         App\Invoicing\Infrastructure\Mail\DnsMailHostPolicy:
+            arguments:
+                $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
+        # ...nor for a webhook host.
+        App\Webhooks\Infrastructure\Http\DnsWebhookUrlPolicy:
             arguments:
                 $resolver: !closure '@App\Tests\Support\Mail\ExampleHostResolver'
         App\Tests\Support\Mail\ExampleHostResolver: ~

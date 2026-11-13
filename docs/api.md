@@ -2,7 +2,7 @@
 
 Foresi has a REST API. Scripts and other systems use it to read the data of an organisation. The decision behind it is in [ADR 0027](adr/0027-api-and-mcp.md). Assistants use the [MCP server](mcp.md), which is built on the same code.
 
-In this version the API **only reads**. It lists and shows invoices, contacts and payments. Nothing can be created, changed or deleted through it.
+The API lists and shows invoices, contacts and payments, and follows the feed of domain events. The only records it writes are [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
 
 ## Personal API tokens
 
@@ -20,7 +20,7 @@ The token is shown **once**. Foresi keeps only a hash, so it cannot show the tok
 Rules:
 
 - Only a person who has set up two-factor sign-in can issue a token. Without it the page shows a notice with a link to set it up.
-- A token can only read for now (the `read` scope).
+- A token issued in Settings can only read (the `read` scope). A token that also writes (the `write` scope), which managing webhooks needs, is issued by the operator from the console for now.
 - A token always expires. There is no token without an end date.
 - You see your own tokens. An owner also sees the tokens of the other people in the organisation and can revoke them.
 - Issuing and revoking a token are recorded in the audit log. What a token does is recorded under the token, next to the person.
@@ -45,7 +45,7 @@ bin/console app:api-token:list --tenant=<tenant-id>
 bin/console app:api-token:revoke <token-id>
 ```
 
-`issue` takes `--days` of 30, 90 or 365 (90 by default) and `--scope=read` (the default; `write` exists but no endpoint uses it yet). The person must be the owner or a team member of the organisation. The command prints the token once.
+`issue` takes `--days` of 30, 90 or 365 (90 by default) and `--scope=read` (the default) or `--scope=write`, which also reads and is needed to manage [webhooks](#webhooks). The person must be the owner or a team member of the organisation. The command prints the token once.
 
 ## Using the API
 
@@ -95,7 +95,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-All endpoints are `GET` and need the `read` scope.
+The endpoints below are `GET` and need the `read` scope. Those of webhooks are listed under [Webhooks](#webhooks).
 
 | Endpoint | What it returns |
 | --- | --- |
@@ -164,6 +164,167 @@ An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type
 
 A value an endpoint cannot use, such as a date that is not a date or a `limit` above 100, is answered `400 invalid_parameter`, with the name of the parameter.
 
+## Webhooks
+
+A webhook endpoint is an HTTPS address of yours that receives the domain events it subscribes to, as soon as they happen, instead of you polling `/api/v1/events`. Foresi sends each event as a signed [Standard Webhooks](https://www.standardwebhooks.com/) request, retries a failing endpoint on a schedule, and records every delivery and every attempt.
+
+An endpoint belongs to the organisation. The person who registers it is its owner. It can be seen and changed only by people who may read every module it subscribes to (today the owners and team members, for `invoicing`); anyone else neither lists it nor gets it, and is answered `403 forbidden`. If the owner later may no longer read a module, the endpoint is disabled before the next event of it is sent, and the owner is told by e-mail.
+
+Reading endpoints and deliveries needs the `read` scope. Everything else needs the `write` scope, including reading the secret. Bodies are JSON (`Content-Type: application/json`) with snake case fields. Requests are not idempotent: retrying a `POST` that timed out may register a second endpoint, so list the endpoints before you retry.
+
+| Method and path | Scope | Answer |
+| --- | --- | --- |
+| `GET /api/v1/webhook-endpoints` | read | The endpoints, newest first, paged. |
+| `POST /api/v1/webhook-endpoints` | write | `201` with the endpoint and its secret. A ping is queued. |
+| `GET /api/v1/webhook-endpoints/{id}` | read | The endpoint, without its secret. |
+| `PATCH /api/v1/webhook-endpoints/{id}` | write | The endpoint as it is now. |
+| `DELETE /api/v1/webhook-endpoints/{id}` | write | `204`. Its deliveries and their attempts are deleted with it. |
+| `POST /api/v1/webhook-endpoints/{id}/secret/rotate` | write | `200` with the new secret. |
+| `GET /api/v1/webhook-endpoints/{id}/secret` | write | The secret it is signed with now. |
+| `POST /api/v1/webhook-endpoints/{id}/ping` | write | `202`. A ping is queued. |
+| `GET /api/v1/webhook-endpoints/{id}/deliveries` | read | Its deliveries of the last 30 days, newest first, paged. |
+| `GET /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}` | read | One delivery with its attempts. |
+| `POST /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver` | write | `202`. One more attempt is queued. |
+
+### Register an endpoint
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"url": "https://hooks.example.com/foresi", "description": "Accounting sync", "event_types": ["invoicing.invoice.paid", "invoicing.payment.*"]}' \
+  "https://app.example.com/api/v1/webhook-endpoints"
+```
+
+| Field | Value |
+| --- | --- |
+| `url` | Required. `https`, with a host, without a user name or password, at most 2048 characters. The host must resolve, and only to public addresses: private, loopback and link-local networks are refused. |
+| `event_types` | Required. Event names or `module.*`, such as `invoicing.*`. A bare `*` is refused, so an endpoint never receives the events of modules added later by surprise. An unknown type is `400 invalid_parameter`; a type of a module you may not read is `403 forbidden`. |
+| `description` | Optional text of up to 255 characters. |
+| `version` | Optional, 1 by default. The event version the endpoint receives: an event of another version is not sent to it. |
+
+The answer is `201 Created` with a `Location` header and the endpoint:
+
+```json
+{
+  "data": {
+    "id": "0192f0c4-...",
+    "url": "https://hooks.example.com/foresi",
+    "description": "Accounting sync",
+    "event_types": ["invoicing.invoice.paid", "invoicing.payment.*"],
+    "version": 1,
+    "active": true,
+    "disabled_reason": null,
+    "owner_id": "0192e9a1-...",
+    "previous_secret_expires_at": null,
+    "created_at": "2026-11-13T10:00:00+00:00",
+    "updated_at": "2026-11-13T10:00:00+00:00",
+    "secret": "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+  }
+}
+```
+
+Store the `secret` in your receiver's secret store. The endpoint is shown everywhere else without it; you can read it again with `GET .../secret`, which needs the `write` scope. Foresi keeps it sealed with a key of the installation (`WEBHOOK_SECRET_KEYS`); while the operator has not set one, managing endpoints answers `503 service_unavailable`.
+
+Right after registering, Foresi sends a **ping** to the endpoint, so you can see at once whether your receiver verifies it. `POST .../ping` sends another. A ping is one attempt with no retries, and it shows in the deliveries with `kind` `ping`. Its body has the shape of an event:
+
+```json
+{"id": "0192f0c4-...", "type": "webhooks.endpoint.ping", "version": 1, "occurred_at": "2026-11-13T10:00:00+00:00", "subject": {"type": "webhook_endpoint", "id": "<endpoint id>", "url": "/api/v1/webhook-endpoints/<endpoint id>"}, "data": {"endpoint_id": "<endpoint id>"}, "correlation_id": null, "actor": {"kind": "api_token"}}
+```
+
+`ping` and `redeliver` answer `202` with `{"data": {"delivery_id": "...", "attempt_id": "..."}}`. The attempt is made by a worker shortly after; read its outcome in the delivery. A disabled endpoint is not pinged: `409 conflict`.
+
+### Change, disable and delete
+
+`PATCH /api/v1/webhook-endpoints/{id}` changes only the fields you send: `url`, `event_types`, `description` (`null` clears it), `version` and `active`. The same rules apply as when registering.
+
+```bash
+curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"active": false}' "https://app.example.com/api/v1/webhook-endpoints/0192f0c4-..."
+```
+
+`"active": false` disables the endpoint (`disabled_reason` `manual`); `"active": true` enables it again and clears the reason. Foresi disables an endpoint on its own too, and e-mails the owner:
+
+| `disabled_reason` | When |
+| --- | --- |
+| `gone` | The endpoint answered `410 Gone`. |
+| `failing` | Every scheduled attempt has failed for 5 days. |
+| `owner_lost_access` | The owner may no longer read a module the endpoint subscribes to. |
+| `manual` | A person disabled it. |
+
+The pending deliveries of a disabled endpoint end as `failed`. Enabling it starts afresh; events that happened while it was disabled are not sent, but you can read them in the [events feed](#events).
+
+`DELETE /api/v1/webhook-endpoints/{id}` answers `204 No Content` and deletes the endpoint with all its deliveries and their attempts.
+
+### Rotate the secret
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"keep_previous_hours": 24}' "https://app.example.com/api/v1/webhook-endpoints/0192f0c4-.../secret/rotate"
+```
+
+The answer is `{"data": {"secret": "whsec_...", "previous_secret_expires_at": "..."}}`. From now on every request is signed with the new secret **and** the previous one, until `previous_secret_expires_at`, so you can deploy the new secret to your receiver without losing a request. `keep_previous_hours` is 0 to 168 (seven days), 24 without a body; 0 drops the previous secret at once, for a secret that leaked.
+
+### Deliveries
+
+A delivery is one event (or one ping) for one endpoint. `GET .../deliveries` lists them newest first, paged like the other lists, with `id`, `endpoint_id`, `event_id`, `event_type`, `kind` (`event` or `ping`), `status` (`pending`, `succeeded` or `failed`), `attempt_count`, `last_status_code`, `next_attempt_at`, `created_at` and `finished_at`. `GET .../deliveries/{deliveryId}` adds `attempts`, oldest first, each with `id`, `attempted_at`, `duration_ms`, `status_code`, `error` (`timeout`, `tls`, `blocked_address`, `connection`, `redirect` or `endpoint_disabled`, when there was no answer to record) and `trigger` (`schedule`, `manual` or `ping`). The body sent and anything your receiver answered are never stored. Deliveries are kept 30 days.
+
+An attempt succeeds only with a `2xx` answer within 15 seconds. Redirects are not followed and count as failures. A failed event is attempted again after 5 seconds, 5 minutes, 30 minutes, 2, 5, 10, 14, 20 and 24 hours, 10 attempts over about three days, and is then `failed`.
+
+`POST .../deliveries/{deliveryId}/redeliver` sends a `succeeded` or `failed` delivery once more, with the same `webhook-id` and a new timestamp and signature. A delivery that is still `pending`, a ping, or a delivery of a disabled endpoint is answered `409 conflict`.
+
+### What your receiver gets
+
+Each request is a `POST` with `Content-Type: application/json`, the event as body, and three headers:
+
+| Header | Value |
+| --- | --- |
+| `webhook-id` | The event's `id`, the same on every attempt and redelivery. Use it to drop an event you have handled already: delivery is at least once. |
+| `webhook-timestamp` | The time of this attempt, in Unix seconds. |
+| `webhook-signature` | `v1,<base64 signature>`; during a rotation two of them, separated by a space. |
+
+The body is the event as the [events feed](#events) shows it, without `position`: `id`, `type`, `version`, `occurred_at`, `subject`, `data`, `correlation_id` and `actor`. Answer `2xx` quickly and do the work afterwards; answering `410 Gone` disables the endpoint at once.
+
+### Verify the signature
+
+Verify every request before you trust it, over the **raw body** as received: parsing and re-encoding the JSON changes the bytes. The [Standard Webhooks libraries](https://github.com/standard-webhooks/standard-webhooks/tree/main/libraries) do it in one call, also checking that the timestamp is recent (5 minutes either way), which stops a recorded request from being replayed. They take the secret with its `whsec_` prefix.
+
+Python (`pip install standardwebhooks`):
+
+```python
+import os
+from standardwebhooks.webhooks import Webhook
+
+wh = Webhook(os.environ["FORESI_WEBHOOK_SECRET"])
+event = wh.verify(request.get_data(), dict(request.headers))  # raises when the signature or timestamp is wrong
+```
+
+JavaScript (`npm install standardwebhooks`):
+
+```js
+import { Webhook } from "standardwebhooks";
+
+const wh = new Webhook(process.env.FORESI_WEBHOOK_SECRET);
+const event = wh.verify(rawBody, req.headers); // throws when the signature or timestamp is wrong
+```
+
+Without a library, the signature is HMAC-SHA256 over `{webhook-id}.{webhook-timestamp}.{body}`, keyed with the base64-decoded part of the secret after `whsec_`, base64-encoded. In PHP:
+
+```php
+$key = base64_decode(substr(getenv('FORESI_WEBHOOK_SECRET'), strlen('whsec_')), true);
+$id = $_SERVER['HTTP_WEBHOOK_ID'];
+$timestamp = (int) $_SERVER['HTTP_WEBHOOK_TIMESTAMP'];
+$body = file_get_contents('php://input');
+
+$expected = base64_encode(hash_hmac('sha256', "{$id}.{$timestamp}.{$body}", $key, true));
+$valid = false;
+if (abs(time() - $timestamp) <= 300) {
+    foreach (explode(' ', $_SERVER['HTTP_WEBHOOK_SIGNATURE']) as $signature) {
+        $valid = $valid || (str_starts_with($signature, 'v1,') && hash_equals($expected, substr($signature, 3)));
+    }
+}
+```
+
+Accept the request when any one of the signatures matches, and compare in constant time (`hash_equals`).
+
 ## Errors
 
 An error is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem document, `application/problem+json`:
@@ -183,20 +344,22 @@ Program on `code`, which is stable. `detail` is a sentence for people and may ch
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A query parameter cannot be used. `parameter` names it. |
+| 400 | `invalid_parameter` | A query parameter or a field of the body cannot be used. `parameter` names it. |
 | 400 | `bad_request` | The request is malformed in another way. |
 | 401 | `missing_token` | No bearer token was sent. |
 | 401 | `invalid_token` | The token is unknown, or its person no longer works for the organisation. |
 | 401 | `token_expired` | The token has expired. Issue a new one. |
 | 401 | `token_revoked` | The token has been revoked. |
 | 403 | `insufficient_scope` | The token lacks the scope the request needs. `WWW-Authenticate` names it. |
-| 403 | `forbidden` | The person is not allowed to read this. |
+| 403 | `forbidden` | The person is not allowed to read or change this. |
 | 404 | `not_found` | The organisation has no such record, or the path does not exist. |
 | 405 | `method_not_allowed` | The endpoint does not take this method. `Allow` lists the ones it does. |
 | 406 | `not_acceptable` | The `Accept` header asks for something the API does not send. |
+| 409 | `conflict` | The request does not fit the record's state now, such as redelivering to a disabled webhook endpoint. |
 | 415 | `unsupported_media_type` | The request body has a type the API does not read. |
 | 429 | `rate_limited` | Too many requests. See `Retry-After`. |
 | 500 | `internal_error` | The request failed on the server. The answer says nothing more; the operator finds the cause in the log. |
+| 503 | `service_unavailable` | The installation cannot do this yet, such as managing webhooks before the operator has set `WEBHOOK_SECRET_KEYS`. |
 
 A 401 carries a `WWW-Authenticate: Bearer` header. A record of another organisation is `not_found`, the same as a record that does not exist.
 

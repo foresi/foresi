@@ -30,7 +30,7 @@ class WebhookEndpoint implements TenantOwned, Audited
     public const int DESCRIPTION_MAX_LENGTH = 255;
     /** Failing for this long disables an endpoint. */
     public const string FAILING_LIMIT = '+5 days';
-    private const int MAX_VERSION = 32767;
+    public const int MAX_VERSION = 32767;
 
     #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
     private ?TenantId $tenantId = null;
