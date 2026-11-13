@@ -65,8 +65,13 @@ final readonly class WebhookSender
             return AttemptResult::TIMEOUT;
         }
 
-        // NoPrivateNetworkHttpClient refuses with a TransportException saying "... is blocked for ...".
+        // Symfony has no typed exceptions for these, so they are told apart by message: the
+        // client's max_duration abort ("Max duration was reached for ..."), the refusal of
+        // NoPrivateNetworkHttpClient ("... is blocked for ...") and TLS failures.
         $message = $e->getMessage();
+        if (str_starts_with($message, 'Max duration was reached')) {
+            return AttemptResult::TIMEOUT;
+        }
         if (str_contains($message, ' is blocked for ')) {
             return AttemptResult::BLOCKED_ADDRESS;
         }

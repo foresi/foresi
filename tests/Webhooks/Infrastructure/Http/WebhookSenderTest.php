@@ -139,6 +139,16 @@ final class WebhookSenderTest extends TestCase
         self::assertSame('timeout', $result->error);
     }
 
+    public function testMaxDurationAbortIsReportedAsTimeout(): void
+    {
+        $client = new MockHttpClient(static fn () => throw new TransportException('Max duration was reached for "https://example.com/hook".'));
+
+        $result = $this->sender($client)->send('https://example.com/hook', 'evt_1', self::BODY, [WebhookSecret::generate()]);
+
+        self::assertSame('timeout', $result->error);
+        self::assertNull($result->statusCode);
+    }
+
     public function testTlsFailureIsReportedAsTls(): void
     {
         $client = new MockHttpClient(static fn () => throw new TransportException('SSL certificate problem: certificate has expired'));
