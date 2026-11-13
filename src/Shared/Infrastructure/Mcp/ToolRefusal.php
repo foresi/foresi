@@ -24,6 +24,10 @@ final class ToolRefusal extends \RuntimeException
     public const string INSUFFICIENT_SCOPE = 'insufficient_scope';
     /** The token's person may not read this, such as a guest of the organisation. */
     public const string FORBIDDEN = 'forbidden';
+    /** The record is in a state that does not allow this, such as a disabled endpoint. */
+    public const string CONFLICT = 'conflict';
+    /** The installation cannot do this yet, and only its operator can change that. */
+    public const string UNAVAILABLE = 'unavailable';
 
     public function __construct(public readonly string $errorCode, string $message)
     {
@@ -43,5 +47,15 @@ final class ToolRefusal extends \RuntimeException
     public static function forbidden(string $message): self
     {
         return new self(self::FORBIDDEN, $message);
+    }
+
+    public static function conflict(string $message): self
+    {
+        return new self(self::CONFLICT, $message);
+    }
+
+    public static function unavailable(string $message): self
+    {
+        return new self(self::UNAVAILABLE, $message);
     }
 }
