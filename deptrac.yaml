@@ -940,8 +940,9 @@ deptrac:
     # on them. The fan-out is a sink of the event relay: it renders the events as
     # the feed does and stamps each attempt with the tenant of its event. The
     # owner of a disabled endpoint is found in Identity and told by system mail.
-    # The use cases take the signed-in person from the audit actor, and the API
-    # describes itself with OpenAPI attributes.
+    # The use cases take the signed-in person from the audit actor, the API
+    # describes itself with OpenAPI attributes, and the settings page puts its
+    # entry in the sidebar.
     WebhooksDomain:
       - SharedDomain
       - TenancyDomain
@@ -968,6 +969,7 @@ deptrac:
       - IdentityDomain
       - IdentityApplication
       - AuditApplication
+      - Ui
       - VendorSymfony
       - VendorDoctrine
       - VendorDoctrineOrmMapping

@@ -166,6 +166,7 @@ deptrac:
       - identity
       - shared
       - tenancy
+      - ui
     work:
       - attachment
       - audit

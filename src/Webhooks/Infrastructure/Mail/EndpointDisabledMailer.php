@@ -15,8 +15,9 @@ use App\Shared\Application\SystemMail;
 use App\Shared\Application\SystemMailer;
 use App\Shared\Application\SystemMailUnavailable;
 use App\Webhooks\Domain\DisabledReason;
+use App\Webhooks\Infrastructure\Controller\WebhookEndpointController;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\UrlHelper;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
@@ -39,7 +40,7 @@ final readonly class EndpointDisabledMailer
         private MembershipDirectory $directory,
         private TranslatorInterface $translator,
         private Environment $twig,
-        private UrlHelper $urls,
+        private UrlGeneratorInterface $urls,
         private LoggerInterface $logger,
     ) {
     }
@@ -58,7 +59,7 @@ final readonly class EndpointDisabledMailer
             'locale' => $locale,
             'reason' => $this->translator->trans('webhooks.disabled_mail.reason.'.$reason->value, ['host' => $host], null, $locale),
             'host' => $host,
-            'endpointUrl' => $this->urls->getAbsoluteUrl('/settings/webhooks/'.rawurlencode($endpointId)),
+            'endpointUrl' => $this->urls->generate(WebhookEndpointController::SHOW_ROUTE, ['id' => $endpointId], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
 
         try {

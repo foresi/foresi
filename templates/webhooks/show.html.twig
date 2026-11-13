@@ -1,0 +1,72 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One webhook endpoint: why it is disabled, if it is, its details and its deliveries, newest first.
+    The page header edits it (a dialog), sends a ping, rotates or reveals the secret (dialogs),
+    disables or enables it and deletes it after asking. A delivery's row menu shows its attempts and
+    redelivers a finished delivery of an event.
+    Variables: endpoint, title, disabledReason, details, deliveryColumns, deliveryRows, moreDeliveries.
+#}
+{% extends 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title}] %}
+{% set token = csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_webhook_edit', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.edit'|trans }}</twig:Ui:Button>
+    {% if endpoint.active %}
+        <form method="post" action="{{ path('app_webhook_ping', {id: endpoint.id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="send">{{ 'webhooks.action.ping'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+    <twig:Ui:Button icon="refresh-cw" :href="path('app_webhook_rotate', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.rotate'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button icon="key-round" :href="path('app_webhook_secret', {id: endpoint.id})" data-dialog aria-haspopup="dialog">{{ 'webhooks.action.reveal'|trans }}</twig:Ui:Button>
+    {% if endpoint.active %}
+        <form method="post" action="{{ path('app_webhook_disable', {id: endpoint.id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit">{{ 'webhooks.action.disable'|trans }}</twig:Ui:Button>
+        </form>
+    {% else %}
+        <form method="post" action="{{ path('app_webhook_enable', {id: endpoint.id}) }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <twig:Ui:Button type="submit" icon="play">{{ 'webhooks.action.enable'|trans }}</twig:Ui:Button>
+        </form>
+    {% endif %}
+    <form method="post" action="{{ path('app_webhook_delete', {id: endpoint.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+        data-confirm-title="{{ 'webhooks.confirm.delete.title'|trans({host: endpoint.url.host}) }}" data-confirm-text="{{ 'webhooks.confirm.delete.text'|trans }}"
+        data-confirm-accept="{{ 'webhooks.action.delete'|trans }}" data-confirm-cancel="{{ 'webhooks.cancel'|trans }}" data-confirm-tone="danger">
+        <input type="hidden" name="_token" value="{{ token }}">
+        <twig:Ui:Button type="submit" variant="danger" icon="trash-2">{{ 'webhooks.action.delete'|trans }}</twig:Ui:Button>
+    </form>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {% for tone in ['success', 'error'] %}
+            {% for message in app.flashes(tone) %}
+                <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
+            {% endfor %}
+        {% endfor %}
+        {% if disabledReason %}
+            <twig:Ui:Alert tone="warning" :title="'webhooks.disabled.title'|trans" data-webhook-disabled>
+                {{ ('webhooks.disabled.reason.' ~ disabledReason)|trans }} {{ 'webhooks.disabled.enable'|trans }}
+            </twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'webhooks.detail.title'|trans" icon="send">
+            <twig:Ui:DescriptionList :items="details" />
+        </twig:Ui:Card>
+
+        <section class="grid gap-2" aria-labelledby="webhook-deliveries-title" data-webhook-deliveries>
+            <h2 id="webhook-deliveries-title" class="m-0 text-heading font-semibold text-ink">{{ 'webhooks.delivery.title'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'webhooks.delivery.title'|trans" :columns="deliveryColumns" :rows="deliveryRows" :actionToken="token">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="inbox" :title="'webhooks.delivery.empty.title'|trans" :text="'webhooks.delivery.empty.text'|trans" />
+                </twig:block>
+            </twig:Ui:DataTable>
+            {% if moreDeliveries %}<p class="m-0 text-caption text-muted">{{ 'webhooks.delivery.more'|trans }}</p>{% endif %}
+        </section>
+    </div>
+{% endblock %}

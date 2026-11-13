@@ -62,6 +62,7 @@ nav:
   item:
     people: Lidé
     api: Přístup k API
+    webhooks: Webhooky
     dashboard: Přehled
     shared_with_me: Sdíleno se mnou
     contacts: Adresář
@@ -4009,6 +4010,135 @@ purchasing:
     deduction_deadline_near: "Lhůta pro odpočet DPH končí {date}."
     simplified_receipt_over_limit: "Zjednodušený daňový doklad je nad 10 000 Kč s DPH."
 webhooks:
+  title: Webhooky
+  new: Nový endpoint
+  edit: Upravit endpoint
+  create: Vytvořit endpoint
+  save: Uložit
+  cancel: Zrušit
+  done: Hotovo
+  column:
+    url: URL
+    description: Popis
+    events: Události
+    status: Stav
+    created: Vytvořeno
+  state:
+    active: Aktivní
+    disabled: Vypnutý
+  field:
+    url: URL
+    url_help: Adresa HTTPS, na kterou přicházejí události
+    description: Popis
+    description_help: Co události přijímá, například Účetnictví
+    events: 'Události modulu {module}'
+    events_help: Všechny události modulu, nebo jen některé
+    all_events: 'Všechny události modulu {module}'
+    version: Verze událostí
+    version_help: Verze událostí, které tento endpoint dostává
+  action:
+    edit: Upravit
+    ping: Poslat ping
+    rotate: Vyměnit tajný klíč
+    reveal: Zobrazit tajný klíč
+    disable: Vypnout
+    enable: Zapnout
+    delete: Smazat
+    attempts: Pokusy
+    redeliver: Doručit znovu
+  confirm:
+    delete:
+      title: 'Smazat endpoint na {host}?'
+      text: Už nedostane žádné události a jeho doručení se smažou s ním. Nelze to vrátit.
+  empty:
+    title: Žádné webhookové endpointy
+    text: Endpoint dostává události vybraných modulů jako podepsané požadavky HTTPS.
+  detail:
+    title: Endpoint
+    previous_secret: Předchozí klíč podepisuje do
+  disabled:
+    title: Tento endpoint je vypnutý
+    reason:
+      gone: Odpověděl 410 Gone.
+      failing: Všechna doručení na něj selhávala pět dní.
+      owner_lost_access: Jeho vlastník už nesmí číst události, které odebírá.
+      manual: Byl vypnut ručně.
+    enable: Až bude příjemce zase fungovat, zapněte ho a zmeškané události doručte znovu.
+  delivery:
+    title: Doručení
+    ping: Ping
+    more: Zobrazuje se jen 100 nejnovějších doručení.
+    empty:
+      title: Zatím žádná doručení
+      text: Každá událost poslaná na tento endpoint se tu ukazuje 30 dní.
+    column:
+      event: Událost
+      attempts: Pokusy
+      code: Poslední stav
+      next: Další pokus nebo dokončeno
+    status:
+      pending: Čeká
+      succeeded: Doručeno
+      failed: Selhalo
+  attempt:
+    title: Pokusy
+    empty: Zatím žádné pokusy.
+    column:
+      at: Čas
+      trigger: Spustil
+      duration: Trvání
+      error: Chyba
+    trigger:
+      schedule: Plán
+      manual: Ručně
+      ping: Ping
+    duration: '{ms} ms'
+  rotate:
+    title: Vyměnit tajný klíč
+    text: 'Požadavky na {host} bude od teď podepisovat nový klíč. Dosavadní může podepisovat vedle něj, než příjemce přejde na nový.'
+    field: Ponechat dosavadní klíč
+    help: Do té doby podepisují každý požadavek oba klíče.
+    keep: '{hours, plural, =0 {Zrušit hned} one {Na # hodinu} few {Na # hodiny} other {Na # hodin}}'
+  secret:
+    title:
+      created: Váš nový endpoint
+      rotated: Váš nový tajný klíč
+      revealed: Podpisový klíč
+      reveal: Zobrazit tajný klíč
+    once: Zkopírujte si klíč hned. Zobrazí se jen teď; později jen přes Zobrazit tajný klíč.
+    text:
+      created: 'Požadavky na {host} se podepisují tímto klíčem. Ping je na cestě.'
+      rotated: 'Požadavky na {host} se od teď podepisují tímto novým klíčem.'
+      revealed: 'Požadavky na {host} se podepisují tímto klíčem.'
+    previous: 'Předchozí klíč podepisuje také do {date}.'
+    reveal_text: 'Klíč, kterým se podepisují požadavky na {host}, se zobrazí v tomto okně. Kdo ho má, může požadavky podvrhnout.'
+    field: Podpisový klíč
+    copy: Kopírovat klíč
+    copied: Zkopírováno
+    copy_failed: Kopírování selhalo; klíč je označený, stiskněte Ctrl+C.
+    use: Příjemce jím ověřuje hlavičku webhook-signature podle Standard Webhooks (docs/api.md). Chraňte ho jako heslo.
+  flash:
+    saved: Endpoint je uložený.
+    disabled: Endpoint je vypnutý.
+    enabled: Endpoint je zapnutý.
+    pinged: Ping je na cestě.
+    deleted: Webhookový endpoint je smazaný.
+    redelivered: Doručení je znovu ve frontě.
+  refused:
+    url:
+      scheme: Zadejte adresu, která začíná https://.
+      host: Zadejte adresu s platným hostitelem.
+      userinfo: Uživatelské jméno a heslo do adresy nepatří.
+      length: Zadejte adresu o nejvýše 2048 znacích.
+      private_address: Adresa vede do soukromé sítě, která webhooky dostávat nesmí.
+      unresolvable: Hostitele adresy se nepodařilo najít.
+    event_types: Vyberte alespoň jednu z nabízených událostí.
+    version: Zadejte verzi od 1 do 32767.
+    description: Zadejte popis o nejvýše 255 znacích.
+    keep_previous_hours: Vyberte, jak dlouho bude dosavadní klíč podepisovat.
+    secrets_unavailable: Tajné klíče webhooků nejsou v této instalaci nastavené, proto to teď nejde.
+    disabled: Endpoint je vypnutý. Nejdřív ho zapněte.
+    not_redeliverable: Znovu doručit jde jen dokončené doručení události.
   disabled_mail:
     subject: 'Webhookový endpoint je vypnutý: {host}'
     reason:

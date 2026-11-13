@@ -8,7 +8,8 @@
         "foresi/tenancy": "*",
         "foresi/audit": "*",
         "foresi/events": "*",
-        "foresi/identity": "*"
+        "foresi/identity": "*",
+        "foresi/ui": "*"
     },
     "extra": {
         "foresi": {
