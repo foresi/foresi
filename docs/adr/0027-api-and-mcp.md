@@ -50,7 +50,7 @@ Tools have two shapes. Reads are generic: a search tool and a get tool per resou
 
 Step 1 uses personal API tokens, one per user and tenant.
 
-* A token has scopes, `read` and `write`, and an expiry.
+* A token has scopes and an expiry: `read` and `write`, and per resource such as `contacts:write` (ADR 0032).
 * Only a hash is stored. The value is shown once, when it is issued.
 * Issuing and revoking are audited.
 * Only a user who has two-factor sign-in set up can issue a token.
@@ -67,14 +67,14 @@ OAuth 2.1 for remote MCP clients comes later, once the SDK and the bundle reach 
 * Lists use cursor pagination: `?limit=` (default 25, at most 100) and `?cursor=` (opaque). The response is `{"data": [...], "next_cursor": "..."|null}`. The cursor is a keyset on the UUIDv7 id (ADR 0009), newest first: `id < :after ORDER BY id DESC`.
 * Errors are RFC 9457 `application/problem+json` with `type`, `title`, `status`, `detail` and a stable `code`, for example `not_found`, `forbidden`, `invalid_parameter`, `rate_limited` and `token_expired`.
 * Requests are limited per token. Responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`. Over the limit the answer is 429 with `Retry-After`.
-* Every write takes an `Idempotency-Key`. The key and the response are kept for 24 hours. A repeat with the same key returns the saved response. The same key with different input is an error.
+* Every write takes an optional `Idempotency-Key` (ADR 0032). The key and the response are kept for 24 hours. A repeat with the same key returns the saved response. The same key with different input is an error.
 * A legally significant transition is an action endpoint, such as `POST /invoices/{id}/cancel`. It is never a change of a status field.
-* Webhooks may come later. They will be thin and signed with HMAC. The events feed (`GET /api/v1/events`, ADR 0030) is added; webhooks follow on the same log. Outbound webhooks are added in ADR 0031; their endpoint writes, the first writes of the API, do not take an `Idempotency-Key` yet.
+* Webhooks may come later. They will be thin and signed with HMAC. The events feed (`GET /api/v1/events`, ADR 0030) is added; webhooks follow on the same log. Outbound webhooks are added in ADR 0031; their endpoint writes, the first writes of the API, take the `Idempotency-Key` since ADR 0032.
 
 ### Safety model
 
 * Each token is its own actor in the audit log. Audit entries carry `api_token_id` next to the user.
-* The `read` and `write` scopes are separate. Writes are off unless a token is given the `write` scope.
+* Writes are off unless a token is given a write scope. A write scope implies the matching read scope (ADR 0032).
 * Issuing, sending, cancelling and correcting need a confirmation in Foresi, on the server, by a person. The prompt of the client is never enough.
 * Tool annotations such as `readOnlyHint` are hints for the client. They are not access control. The scope and the use case decide.
 * Text written by third parties (invoice texts, contact names, notes, bank texts) is returned as data, marked as such, and is never an instruction.
@@ -96,3 +96,5 @@ OAuth 2.1 for remote MCP clients comes later, once the SDK and the bundle reach 
 * Bad, because existing controllers still hold their authorization and read logic until they are moved, one module at a time.
 
 Update (ADR 0031): the first writes are the webhook endpoints (`write` scope) and the first MCP write tools, loaded by the same loader as the read tools; the delete and rotate tools carry `destructiveHint`.
+
+Update (ADR 0032): scopes are per resource and declared in module manifests, `write` implies `read`, every write takes an optional `Idempotency-Key`, writes are declared once with `#[Operation]`, and an operation that needs a confirmation is refused until the confirmation mechanism exists.
