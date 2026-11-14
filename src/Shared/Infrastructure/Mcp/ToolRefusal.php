@@ -28,8 +28,13 @@ final class ToolRefusal extends \RuntimeException
     public const string CONFLICT = 'conflict';
     /** The installation cannot do this yet, and only its operator can change that. */
     public const string UNAVAILABLE = 'unavailable';
+    /** The token spent its budget of writes; try again later. */
+    public const string RATE_LIMITED = 'rate_limited';
 
-    public function __construct(public readonly string $errorCode, string $message)
+    /**
+     * @param array<string, scalar|list<scalar>|null> $details what a program can act on, such as the ids of duplicates
+     */
+    public function __construct(public readonly string $errorCode, string $message, public readonly array $details = [])
     {
         parent::__construct($message);
     }

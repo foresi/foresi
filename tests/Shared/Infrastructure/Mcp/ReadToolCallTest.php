@@ -24,12 +24,16 @@ final class ReadToolCallTest extends TestCase
     private FakeCaller $caller;
     private FakeScopes $scopes;
     private RecordingLogger $logger;
+    private FakeIdempotencyKeys $keys;
+    private int $writes = 120;
+    private ?ReadToolCall $toolCall = null;
 
     protected function setUp(): void
     {
         $this->caller = new FakeCaller();
         $this->scopes = new FakeScopes();
         $this->logger = new RecordingLogger();
+        $this->keys = new FakeIdempotencyKeys();
     }
 
     public function testTheOutputIsMarkedAsDataInBothForms(): void
@@ -156,12 +160,87 @@ final class ReadToolCallTest extends TestCase
         self::assertSame([], $this->scopes->asked);
     }
 
+    public function testAWriteWithAKeyRunsOnceAndRepeatsItsAnswer(): void
+    {
+        $tool = new FakeWriteTool(output: new ToolOutput(['id' => 'new'], 'Created.'));
+
+        $first = $this->call($tool, ['id' => 'x', 'idempotency_key' => 'key-1']);
+        $again = $this->call($tool, ['idempotency_key' => 'key-1', 'id' => 'x']);
+
+        self::assertSame(1, $tool->calls);
+        self::assertSame(['id' => 'x'], $tool->arguments, 'The key is no argument of the tool.');
+        self::assertFalse($again->isError);
+        self::assertSame(['id' => 'new'], $this->structured($again)['data'] ?? null);
+        self::assertTrue($this->structured($again)['idempotent_replayed'] ?? null);
+        self::assertArrayNotHasKey('idempotent_replayed', $this->structured($first));
+        self::assertSame($this->text($first), $this->text($again));
+    }
+
+    public function testAKeyIsNotReusedForAnotherCall(): void
+    {
+        $tool = new FakeWriteTool();
+        $this->call($tool, ['id' => 'x', 'idempotency_key' => 'key-1']);
+
+        $result = $this->call($tool, ['id' => 'y', 'idempotency_key' => 'key-1']);
+
+        $this->assertRefused($result, 'idempotency_key_reused', 'This Idempotency-Key was used with another request. Send a new key for a new request.');
+        self::assertSame(1, $tool->calls);
+    }
+
+    public function testAKeyMustBeVisibleAscii(): void
+    {
+        $tool = new FakeWriteTool();
+
+        $this->assertRefused($this->call($tool, ['idempotency_key' => 'two words']), 'invalid_argument', 'The idempotency key must be 1 to 255 visible ASCII characters, such as a UUID.');
+        self::assertSame(0, $tool->calls);
+    }
+
+    public function testARefusalOfTheUseCaseIsKeptAndOneOfTheArgumentsIsNot(): void
+    {
+        $conflict = new FakeWriteTool(failure: ToolRefusal::conflict('It is archived.'));
+        $this->call($conflict, ['idempotency_key' => 'key-1']);
+        $again = $this->call($conflict, ['idempotency_key' => 'key-1']);
+        self::assertTrue($again->isError);
+        self::assertSame(['code' => 'conflict', 'message' => 'It is archived.'], $this->structured($again)['error'] ?? null);
+        self::assertTrue($this->structured($again)['idempotent_replayed'] ?? null);
+        self::assertSame(1, $conflict->calls);
+
+        $invalid = new FakeWriteTool(name: 'foresi_other', failure: ToolRefusal::invalidArgument('Bad.'));
+        $this->call($invalid, ['idempotency_key' => 'key-2']);
+        $this->call($invalid, ['idempotency_key' => 'key-2']);
+        self::assertSame(2, $invalid->calls, 'A key whose call was refused for its arguments is let go.');
+    }
+
+    public function testAWriteSpendsTheWriteBudgetOfTheToken(): void
+    {
+        $this->writes = 1;
+        $tool = new FakeWriteTool();
+        $this->call($tool, []);
+
+        $result = $this->call($tool, []);
+
+        self::assertTrue($result->isError);
+        self::assertSame(['code' => 'rate_limited'], array_intersect_key((array) ($this->structured($result)['error'] ?? []), ['code' => true]));
+        self::assertSame(1, $tool->calls);
+        self::assertFalse($this->call(new FakeReadTool(), [])->isError, 'Reads spend no write.');
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function structured(CallToolResult $result): array
+    {
+        self::assertIsArray($result->structuredContent);
+
+        return $result->structuredContent;
+    }
+
     /**
      * @param array<string, mixed> $arguments
      */
     private function call(FakeReadTool|FakeWriteTool $tool, array $arguments): CallToolResult
     {
-        return new ReadToolCall($this->caller, $this->scopes, $this->logger)($tool, $arguments);
+        return ($this->toolCall ??= ToolCalls::create($this->caller, $this->scopes, $this->logger, $this->keys, $this->writes))($tool, $arguments);
     }
 
     private function assertRefused(CallToolResult $result, string $code, string $message): void

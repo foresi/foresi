@@ -42,13 +42,13 @@ trait WebhookApi
     /**
      * @param array<mixed>|null $body
      */
-    protected function send(string $method, string $path, ?array $body = null, ?string $secret = null): void
+    protected function send(string $method, string $path, ?array $body = null, ?string $secret = null, ?string $idempotencyKey = null): void
     {
         $this->client->request($method, $path, server: [
             'HTTP_AUTHORIZATION' => 'Bearer '.($secret ?? $this->writer),
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
-        ], content: null === $body ? null : json_encode($body, \JSON_THROW_ON_ERROR));
+        ] + (null === $idempotencyKey ? [] : ['HTTP_IDEMPOTENCY_KEY' => $idempotencyKey]), content: null === $body ? null : json_encode($body, \JSON_THROW_ON_ERROR));
     }
 
     /**

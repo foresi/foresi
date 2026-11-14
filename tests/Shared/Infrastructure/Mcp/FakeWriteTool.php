@@ -20,6 +20,7 @@ final class FakeWriteTool implements WriteTool
 
     /** @var array<string, mixed>|null */
     public ?array $arguments = null;
+    public int $calls = 0;
 
     /**
      * @param array<string, mixed> $schema
@@ -66,6 +67,7 @@ final class FakeWriteTool implements WriteTool
     public function call(array $arguments): ToolOutput
     {
         $this->arguments = $arguments;
+        ++$this->calls;
         if ($this->failure instanceof \Throwable) {
             throw $this->failure;
         }
