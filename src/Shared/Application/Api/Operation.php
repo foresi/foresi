@@ -19,16 +19,17 @@ namespace App\Shared\Application\Api;
 final readonly class Operation
 {
     /**
-     * @param string $name              unique, such as "contacts.create"
-     * @param string $method            the HTTP method: POST, PATCH or DELETE
-     * @param string $path              below /api/v1, such as "/api/v1/contacts/{contactId}"
-     * @param string $tool              the MCP tool, such as "foresi_create_contact"
-     * @param string $scope             the scope a token needs, such as "contacts:write"
-     * @param string $title             a short name for people, such as "Create a contact"
-     * @param string $description       what it changes and when to use it, written for agents
-     * @param int    $status            the status of a success over REST
-     * @param bool   $destructive       it destroys something or cannot be taken back (destructiveHint)
-     * @param bool   $needsConfirmation a person must confirm it in Foresi; until that exists it is refused over the API
+     * @param string      $name              unique, such as "contacts.create"
+     * @param string      $method            the HTTP method: POST, PATCH or DELETE
+     * @param string      $path              below /api/v1, such as "/api/v1/contacts/{contactId}"
+     * @param string      $tool              the MCP tool, such as "foresi_create_contact"
+     * @param string      $scope             the scope a token needs, such as "contacts:write"
+     * @param string      $title             a short name for people, such as "Create a contact"
+     * @param string      $description       what it changes and when to use it, written for agents
+     * @param int         $status            the status of a success over REST
+     * @param bool        $destructive       it destroys something or cannot be taken back (destructiveHint)
+     * @param bool        $needsConfirmation a person must confirm it in Foresi; until that exists it is refused over the API
+     * @param string|null $response          the schema of the answer's data in the OpenAPI document, such as "ContactDetail"
      */
     public function __construct(
         public string $name,
@@ -41,6 +42,7 @@ final readonly class Operation
         public int $status = 200,
         public bool $destructive = false,
         public bool $needsConfirmation = false,
+        public ?string $response = null,
     ) {
     }
 }

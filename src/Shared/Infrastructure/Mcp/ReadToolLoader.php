@@ -9,6 +9,9 @@ declare(strict_types=1);
 namespace App\Shared\Infrastructure\Mcp;
 
 use App\Shared\Infrastructure\Api\Idempotency;
+use App\Shared\Infrastructure\Operation\OperationRunner;
+use App\Shared\Infrastructure\Operation\Operations;
+use App\Shared\Infrastructure\Operation\OperationTool;
 use Mcp\Capability\Registry\Loader\LoaderInterface;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Request\CallToolRequest;
@@ -38,6 +41,8 @@ final readonly class ReadToolLoader implements LoaderInterface
         private ReadToolCall $call,
         #[AutowireIterator(WriteTool::TAG)]
         private iterable $writeTools = [],
+        private ?Operations $operations = null,
+        private ?OperationRunner $runner = null,
     ) {
     }
 
@@ -46,7 +51,7 @@ final readonly class ReadToolLoader implements LoaderInterface
         foreach ($this->tools as $tool) {
             $this->register($registry, $tool, new ToolAnnotations($tool->title(), readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false));
         }
-        foreach ($this->writeTools as $tool) {
+        foreach ($this->writeTools() as $tool) {
             $this->register($registry, $tool, new ToolAnnotations($tool->title(), readOnlyHint: false, destructiveHint: $tool->isDestructive(), idempotentHint: false, openWorldHint: false));
         }
     }
@@ -59,11 +64,28 @@ final readonly class ReadToolLoader implements LoaderInterface
     public function scopes(): array
     {
         $scopes = [];
-        foreach ([...$this->tools, ...$this->writeTools] as $tool) {
+        foreach ([...$this->tools, ...$this->writeTools()] as $tool) {
             $scopes[$tool->name()] = $tool->scope();
         }
 
         return $scopes;
+    }
+
+    /**
+     * The write tools of the modules and one for each declared operation (ADR 0032).
+     *
+     * @return list<WriteTool>
+     */
+    private function writeTools(): array
+    {
+        $tools = [...$this->writeTools];
+        if ($this->operations instanceof Operations && $this->runner instanceof OperationRunner) {
+            foreach ($this->operations->all() as $definition) {
+                $tools[] = new OperationTool($definition, $this->runner);
+            }
+        }
+
+        return array_values($tools);
     }
 
     /**
