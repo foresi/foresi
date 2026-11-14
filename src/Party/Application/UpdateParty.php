@@ -8,25 +8,39 @@ declare(strict_types=1);
 
 namespace App\Party\Application;
 
+use App\Party\Contract\Event\ContactKind;
+use App\Party\Contract\Event\ContactUpdated;
 use App\Party\Domain\EmailPurpose;
 use App\Party\Domain\InvoicingDefaults;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyEmail;
+use App\Shared\Application\Event\EventRecorder;
 
 /**
  * Changes what the address book form edits: the name, identifiers, phones,
  * website, roles, note, billing address and general e-mail, and the document
  * defaults when given. The kind of a party does
- * not change. One unit of work: everything is stored or nothing is.
+ * not change. One unit of work: everything is stored or nothing is, with
+ * party.contact.updated. Only the owners and members of the organisation
+ * change a contact, or the application's own work.
  */
 final readonly class UpdateParty
 {
-    public function __construct(private Parties $parties, private PartyDetails $details, private TransactionalWork $transaction)
-    {
+    public function __construct(
+        private Parties $parties,
+        private PartyDetails $details,
+        private TransactionalWork $transaction,
+        private PartyAccess $access,
+        private EventRecorder $events,
+    ) {
     }
 
+    /**
+     * @throws PartyNotAllowed for a guest
+     */
     public function update(Party $party, PartyInput $input): void
     {
+        $this->access->denyUnlessMayChange();
         $this->transaction->run(function () use ($party, $input): void {
             $party->rename($input->displayName);
             $party->changePhone($input->phone);
@@ -40,6 +54,7 @@ final readonly class UpdateParty
             }
             ($this->details->billingAddress($party) ?? throw new \DomainException('The party has no billing address to change.'))->relocate($input->billingAddress);
             $this->changeEmail($party, trim($input->email));
+            $this->events->record(new ContactUpdated($party->id(), ContactKind::from($party->kind()->value)));
         });
     }
 

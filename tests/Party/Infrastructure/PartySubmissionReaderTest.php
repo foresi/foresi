@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
+use App\Party\Application\PartyRules;
 use App\Party\Application\RegistrationNumberFactory;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
@@ -16,7 +17,6 @@ use App\Party\Infrastructure\Form\CountryOptions;
 use App\Party\Infrastructure\Form\PartySubmissionReader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Validator\Validation;
 
 final class PartySubmissionReaderTest extends TestCase
 {
@@ -100,7 +100,7 @@ final class PartySubmissionReaderTest extends TestCase
      */
     private function read(array $post, ?PartyKind $fixed = null): \App\Party\Infrastructure\Form\PartySubmission
     {
-        $reader = new PartySubmissionReader(new RegistrationNumberFactory([new CzechRegistrationNumberValidator()]), Validation::createValidator());
+        $reader = new PartySubmissionReader(new PartyRules(new RegistrationNumberFactory([new CzechRegistrationNumberValidator()])));
 
         return $reader->read(new Request(request: $post), $fixed);
     }

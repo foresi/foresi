@@ -8,36 +8,37 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Form;
 
-use App\Party\Application\PartyInput;
-use App\Party\Application\RegistrationNumberFactory;
-use App\Party\Domain\Address;
-use App\Party\Domain\InvalidRegistrationNumber;
-use App\Party\Domain\InvalidVatId;
+use App\Party\Application\PartyDraft;
+use App\Party\Application\PartyRefused;
+use App\Party\Application\PartyRules;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Validator\Constraints\Email;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Reads and checks the party form before anything is written, so the expected
- * mistakes (a missing name, a bad registration number) are form errors and
- * never exceptions out of a write.
+ * Reads the party form and checks it with the rules of the address book before
+ * anything is written, so the expected mistakes (a missing name, a bad
+ * registration number) are form errors and never exceptions out of a write.
+ * The rules answer reasons; the form shows each as its message at its field.
  */
 final readonly class PartySubmissionReader
 {
-    private const int MAX_NAME = 255;
-    private const int MAX_PHONE = 64;
-    private const int MAX_WEBSITE = 255;
-    private const int MAX_STREET = 255;
-    private const int MAX_CITY = 128;
-    private const int MAX_POSTAL_CODE = 32;
-    private const int MAX_EMAIL = 254;
+    /** The message of each reason of PartyRules, as the form shows it. */
+    public const array MESSAGES = [
+        PartyRefused::REQUIRED => 'party.error.required',
+        PartyRefused::TOO_LONG => 'party.error.too_long',
+        PartyRefused::KIND => 'party.error.kind',
+        PartyRefused::COUNTRY => 'party.error.country',
+        PartyRefused::EMAIL => 'party.error.email',
+        PartyRefused::REGISTRATION_NUMBER => 'party.error.registration_number',
+        PartyRefused::VAT_ID => 'party.error.vat_id',
+        PartyRefused::COMPANY_IDENTIFIER => 'party.error.company_identifier',
+        PartyRefused::PERSON => 'party.contacts.person_invalid',
+        PartyRefused::LINKED => 'party.contacts.person_invalid',
+    ];
 
-    public function __construct(private RegistrationNumberFactory $registrationNumbers, private ValidatorInterface $validator)
+    public function __construct(private PartyRules $rules)
     {
     }
 
@@ -66,55 +67,31 @@ final readonly class PartySubmissionReader
             'privateNote' => trim($post->getString('privateNote')),
         ];
 
-        $errors = [];
-        if (!$kind instanceof PartyKind) {
-            $errors['kind'] = 'party.error.kind';
-        }
-        $this->require($errors, 'displayName', $values['displayName'], self::MAX_NAME);
-        $this->require($errors, 'street', $values['street'], self::MAX_STREET);
-        $this->require($errors, 'city', $values['city'], self::MAX_CITY);
-        $this->require($errors, 'postalCode', $values['postalCode'], self::MAX_POSTAL_CODE);
-        if (mb_strlen($values['phone']) > self::MAX_PHONE) {
-            $errors['phone'] = 'party.error.too_long';
-        }
-        if (mb_strlen($values['mobile']) > self::MAX_PHONE) {
-            $errors['mobile'] = 'party.error.too_long';
-        }
-        if (mb_strlen($values['website']) > self::MAX_WEBSITE) {
-            $errors['website'] = 'party.error.too_long';
-        }
-        if (!CountryOptions::supports($values['countryCode'])) {
-            $errors['countryCode'] = 'party.error.country';
-        }
-        if ('' !== $values['email'] && (mb_strlen($values['email']) > self::MAX_EMAIL || \count($this->validator->validate($values['email'], new Email())) > 0)) {
-            $errors['email'] = 'party.error.email';
-        }
-
-        $registrationNumber = $this->registrationNumber($values, $errors);
-        $vatId = $this->vatId($values, $errors);
-        if (PartyKind::Company === $kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId && !isset($errors['registrationNumber'], $errors['vatId'])) {
-            $errors['registrationNumber'] = 'party.error.company_identifier';
-        }
-
-        if ([] !== $errors || !$kind instanceof PartyKind) {
-            return new PartySubmission($values, $errors, null);
-        }
-
-        $roles = array_values(array_filter(array_map(PartyRole::tryFrom(...), $values['roles'])));
-
-        return new PartySubmission($values, [], new PartyInput(
-            $kind,
+        $parsed = $this->rules->parse(new PartyDraft(
+            $values['kind'],
             $values['displayName'],
-            $registrationNumber,
-            $vatId,
+            $values['registrationCountry'],
+            $values['registrationNumber'],
+            $values['vatId'],
             $values['email'],
             $values['phone'],
-            $roles,
-            new Address($values['street'], $values['city'], $values['postalCode'], $values['countryCode']),
-            $values['privateNote'],
             $values['mobile'],
             $values['website'],
+            $values['roles'],
+            $values['street'],
+            $values['city'],
+            $values['postalCode'],
+            $values['countryCode'],
+            $values['privateNote'],
         ));
+        $errors = [];
+        foreach ($parsed->refusals as $refused) {
+            // The country of a registration number is chosen next to the number, which shows its problem.
+            $field = 'registrationCountry' === $refused->field ? 'registrationNumber' : (string) $refused->field;
+            $errors[$field] = self::MESSAGES[$refused->reason] ?? 'party.error.save_failed';
+        }
+
+        return new PartySubmission($values, $errors, $parsed->input);
     }
 
     private function country(string $code): string
@@ -139,64 +116,5 @@ final readonly class PartySubmissionReader
         }
 
         return array_values(array_unique($roles));
-    }
-
-    /**
-     * @param array<string, string> $errors
-     */
-    private function require(array &$errors, string $field, string $value, int $max): void
-    {
-        if ('' === $value) {
-            $errors[$field] = 'party.error.required';
-        } elseif (mb_strlen($value) > $max) {
-            $errors[$field] = 'party.error.too_long';
-        }
-    }
-
-    /**
-     * @param array<string, mixed>  $values
-     * @param array<string, string> $errors
-     */
-    private function registrationNumber(array $values, array &$errors): ?RegistrationNumber
-    {
-        $raw = $values['registrationNumber'];
-        \assert(\is_string($raw) && \is_string($values['registrationCountry']));
-        if ('' === $raw) {
-            return null;
-        }
-        if (!CountryOptions::supports($values['registrationCountry'])) {
-            $errors['registrationNumber'] = 'party.error.country';
-
-            return null;
-        }
-
-        try {
-            return $this->registrationNumbers->create($values['registrationCountry'], $raw);
-        } catch (InvalidRegistrationNumber) {
-            $errors['registrationNumber'] = 'party.error.registration_number';
-
-            return null;
-        }
-    }
-
-    /**
-     * @param array<string, mixed>  $values
-     * @param array<string, string> $errors
-     */
-    private function vatId(array $values, array &$errors): ?VatId
-    {
-        $raw = $values['vatId'];
-        \assert(\is_string($raw));
-        if ('' === $raw) {
-            return null;
-        }
-
-        try {
-            return VatId::fromString($raw);
-        } catch (InvalidVatId) {
-            $errors['vatId'] = 'party.error.vat_id';
-
-            return null;
-        }
     }
 }
