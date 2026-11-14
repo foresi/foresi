@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Security;
 
 use App\Identity\Application\ApiTokenContext;
+use App\Identity\Application\ApiTokenGrant;
+use App\Identity\Application\InsufficientScope;
 use App\Identity\Domain\ApiScope;
 use App\Shared\Application\Api\ScopeGuard;
 
@@ -23,6 +25,23 @@ final readonly class TokenScopeGuard implements ScopeGuard
 
     public function require(string $scope): void
     {
+        if (self::ANY === $scope) {
+            if (!$this->context->grant() instanceof ApiTokenGrant) {
+                throw new InsufficientScope(ApiScope::read());
+            }
+
+            return;
+        }
         $this->context->requireScope(ApiScope::from($scope));
+    }
+
+    public function allows(string $scope): bool
+    {
+        $grant = $this->context->grant();
+        if (!$grant instanceof ApiTokenGrant) {
+            return false;
+        }
+
+        return self::ANY === $scope || $grant->allows(ApiScope::from($scope));
     }
 }

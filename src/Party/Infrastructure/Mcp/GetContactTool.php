@@ -36,6 +36,11 @@ final readonly class GetContactTool implements ReadTool
         return 'Get a contact';
     }
 
+    public function scope(): string
+    {
+        return 'contacts:read';
+    }
+
     public function description(): string
     {
         return 'Returns one contact of the address book by its id, an archived one too: what foresi_search_contacts returns for it, '

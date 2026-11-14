@@ -50,6 +50,21 @@ final readonly class ReadToolLoader implements LoaderInterface
         }
     }
 
+    /**
+     * The scope each tool needs, by tool name, for listing only what a token may call.
+     *
+     * @return array<string, string>
+     */
+    public function scopes(): array
+    {
+        $scopes = [];
+        foreach ([...$this->tools, ...$this->writeTools] as $tool) {
+            $scopes[$tool->name()] = $tool->scope();
+        }
+
+        return $scopes;
+    }
+
     private function register(RegistryInterface $registry, ReadTool|WriteTool $tool, ToolAnnotations $annotations): void
     {
         $name = $tool->name();

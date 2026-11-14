@@ -58,7 +58,7 @@ final readonly class ModulesCommand
 
         $view = ModulesView::toArray($graph);
         $io->table(
-            ['Module', 'Kind', 'Package', 'Requires', 'Optional'],
+            ['Module', 'Kind', 'Package', 'Requires', 'Optional', 'Scopes'],
             array_map(static fn (array $module): array => [
                 $module['id'],
                 $module['kind'],
@@ -68,6 +68,7 @@ final readonly class ModulesCommand
                     static fn (string $id): string => $id.($graph->has(ModuleId::of($id)) ? ' (installed)' : ' (absent)'),
                     $module['optional'],
                 )),
+                self::listed($module['scopes']),
             ], $view['modules']),
         );
         if ([] === $view['problems']) {

@@ -37,6 +37,11 @@ final readonly class ListEventsTool implements ReadTool
         return 'List events';
     }
 
+    public function scope(): string
+    {
+        return 'events:read';
+    }
+
     public function description(): string
     {
         return 'Lists the domain events of the organisation from the last 30 days, such as an invoice being issued, delivered or paid, oldest first. '

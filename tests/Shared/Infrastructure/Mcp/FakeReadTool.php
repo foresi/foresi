@@ -16,6 +16,8 @@ use App\Shared\Infrastructure\Mcp\ToolOutput;
  */
 final class FakeReadTool implements ReadTool
 {
+    public const string SCOPE = 'things:read';
+
     /** @var array<string, mixed>|null */
     public ?array $arguments = null;
 
@@ -38,6 +40,11 @@ final class FakeReadTool implements ReadTool
     public function title(): string
     {
         return 'Fake tool';
+    }
+
+    public function scope(): string
+    {
+        return self::SCOPE;
     }
 
     public function description(): string

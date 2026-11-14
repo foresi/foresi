@@ -38,6 +38,11 @@ final readonly class SearchContactsTool implements ReadTool
         return 'Search contacts';
     }
 
+    public function scope(): string
+    {
+        return 'contacts:read';
+    }
+
     public function description(): string
     {
         return 'Searches the address book of the organisation (customers, suppliers, partners and authorities, companies and persons), newest first. Archived contacts are left out unless archived is true. '

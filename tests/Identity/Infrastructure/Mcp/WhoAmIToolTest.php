@@ -10,7 +10,6 @@ namespace App\Tests\Identity\Infrastructure\Mcp;
 
 use App\Identity\Application\ApiTokenContext;
 use App\Identity\Application\ApiTokenGrant;
-use App\Identity\Application\InsufficientScope;
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\Organisation;
 use App\Identity\Application\Query\CurrentApiIdentity;
@@ -42,7 +41,7 @@ final class WhoAmIToolTest extends TestCase
     {
         $user = new User('testing@example.com', 'hash', 'Testing');
         $tenant = TenantId::generate();
-        $grant = new ApiTokenGrant($user->id(), $tenant, '019a0000-0000-7000-8000-0000000000aa', 'Claude', [ApiScope::Read, ApiScope::Write], new \DateTimeImmutable('2026-12-01T10:00:00+01:00'));
+        $grant = new ApiTokenGrant($user->id(), $tenant, '019a0000-0000-7000-8000-0000000000aa', 'Claude', [ApiScope::read(), ApiScope::write()], new \DateTimeImmutable('2026-12-01T10:00:00+01:00'));
 
         $output = $this->tool($grant, $user, new Organisation($tenant, 'Tenant A', Role::Member))->call([]);
 
@@ -61,7 +60,7 @@ final class WhoAmIToolTest extends TestCase
             self::fail('The tool answered without a token.');
         } catch (ToolRefusal $refused) {
             self::assertSame('insufficient_scope', $refused->errorCode);
-            self::assertSame('The token does not have the "read" scope.', $refused->getMessage());
+            self::assertSame('The connection has no valid token.', $refused->getMessage());
         }
     }
 
@@ -69,9 +68,9 @@ final class WhoAmIToolTest extends TestCase
     {
         $tokens = self::createStub(ApiTokenContext::class);
         if ($grant instanceof ApiTokenGrant) {
-            $tokens->method('requireScope')->willReturn($grant);
+            $tokens->method('grant')->willReturn($grant);
         } else {
-            $tokens->method('requireScope')->willThrowException(new InsufficientScope(ApiScope::Read));
+            $tokens->method('grant')->willReturn(null);
         }
         $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturn($user);

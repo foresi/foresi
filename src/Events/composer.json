@@ -13,7 +13,10 @@
             "module": "events",
             "kind": "core",
             "namespace": "App\\Events\\",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "events"
+            ]
         }
     }
 }

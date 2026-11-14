@@ -162,11 +162,22 @@ final class ModuleGraphTest extends TestCase
         $this->module('work', requires: ['work']);
     }
 
+    public function testAScopeIsDeclaredByOneModuleOnly(): void
+    {
+        self::assertSame(['contacts', 'hours'], new ModuleGraph([$this->module('timesheet', scopes: ['hours']), $this->module('party', scopes: ['contacts'])])->resources());
+
+        $this->expectException(InvalidManifest::class);
+        $this->expectExceptionMessageIsOrContains('both declare the scope "contacts"');
+
+        new ModuleGraph([$this->module('party', scopes: ['contacts']), $this->module('crm', scopes: ['contacts'])]);
+    }
+
     /**
      * @param list<string> $requires
      * @param list<string> $optional
+     * @param list<string> $scopes
      */
-    private function module(string $id, ModuleKind $kind = ModuleKind::Module, array $requires = [], array $optional = []): ModuleManifest
+    private function module(string $id, ModuleKind $kind = ModuleKind::Module, array $requires = [], array $optional = [], array $scopes = []): ModuleManifest
     {
         $namespace = 'App\\'.str_replace('-', '', ucwords($id, '-')).'\\';
 
@@ -177,6 +188,7 @@ final class ModuleGraphTest extends TestCase
             $namespace,
             array_map(ModuleId::of(...), $requires),
             array_map(ModuleId::of(...), $optional),
+            $scopes,
         );
     }
 

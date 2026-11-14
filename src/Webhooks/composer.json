@@ -16,7 +16,10 @@
             "module": "webhooks",
             "kind": "core",
             "namespace": "App\\Webhooks\\",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "webhooks"
+            ]
         }
     }
 }

@@ -29,14 +29,16 @@ final readonly class CurrentApiIdentity
     }
 
     /**
-     * @throws InsufficientScope without a token that reads
+     * Any scope will do: every token may tell what it is.
+     *
+     * @throws InsufficientScope without a token
      */
     public function get(): ApiIdentity
     {
-        $grant = $this->tokens->requireScope(ApiScope::Read);
+        $grant = $this->tokens->grant() ?? throw new InsufficientScope(ApiScope::read());
         $user = $this->users->findById($grant->userId);
         if (!$user instanceof User) {
-            throw new InsufficientScope(ApiScope::Read);
+            throw new InsufficientScope(ApiScope::read());
         }
         foreach ($this->memberships->organisationsOf($grant->userId) as $organisation) {
             if ($organisation->id->equals($grant->tenantId)) {
@@ -44,6 +46,6 @@ final readonly class CurrentApiIdentity
             }
         }
 
-        throw new InsufficientScope(ApiScope::Read);
+        throw new InsufficientScope(ApiScope::read());
     }
 }

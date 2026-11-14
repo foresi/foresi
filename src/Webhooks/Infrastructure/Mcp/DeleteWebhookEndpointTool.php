@@ -33,6 +33,11 @@ final readonly class DeleteWebhookEndpointTool implements WriteTool
         return 'Delete a webhook endpoint';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:write';
+    }
+
     public function description(): string
     {
         return 'Deletes a webhook endpoint for good, with its deliveries and their attempts. It stops receiving events at once and this cannot be undone; to stop it only for a while, disable it with foresi_update_webhook_endpoint instead.';

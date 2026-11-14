@@ -16,6 +16,8 @@ use App\Shared\Infrastructure\Mcp\WriteTool;
  */
 final class FakeWriteTool implements WriteTool
 {
+    public const string SCOPE = 'things:write';
+
     /** @var array<string, mixed>|null */
     public ?array $arguments = null;
 
@@ -39,6 +41,11 @@ final class FakeWriteTool implements WriteTool
     public function title(): string
     {
         return 'Fake tool';
+    }
+
+    public function scope(): string
+    {
+        return self::SCOPE;
     }
 
     public function description(): string

@@ -71,6 +71,7 @@ final class McpServerTest extends ApiTestCase
     public function testAClientFindsTheToolsWithTheirHintsAndCallsOne(string $protocol): void
     {
         $this->protocol = $protocol;
+        $this->secret = $this->issued([ApiScope::read(), ApiScope::write()]);
 
         $initialized = $this->rpc('initialize', $this->initialize());
         self::assertSame('foresi', $this->in($initialized, 'result', 'serverInfo', 'name'));
@@ -100,7 +101,7 @@ final class McpServerTest extends ApiTestCase
         self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->in($call, 'structuredContent', 'data', 'user'));
         self::assertSame(['id' => $this->tenant->toString(), 'name' => 'Example Organisation'], $this->in($call, 'structuredContent', 'data', 'tenant'));
         self::assertSame('Reporting', $this->in($call, 'structuredContent', 'data', 'token', 'name'));
-        self::assertSame(['read'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
+        self::assertSame(['read', 'write'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
         $text = $this->text($call, 'content', '0', 'text');
         self::assertStringStartsWith(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $text);
         self::assertStringContainsString('"email":"testing@example.com"', $text);
@@ -155,16 +156,31 @@ final class McpServerTest extends ApiTestCase
         self::assertGreaterThanOrEqual(1, (int) $this->client->getResponse()->headers->get('Retry-After'));
     }
 
-    public function testATokenWithoutTheReadScopeGetsAnErrorResult(): void
+    public function testATokenListsOnlyTheToolsItsScopesAllow(): void
     {
-        $this->secret = $this->issued([ApiScope::Write]);
+        $this->secret = $this->issued([ApiScope::from('contacts:read')]);
 
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
-        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
+        $tools = $this->in($this->rpc('tools/list'), 'result', 'tools');
+        self::assertIsArray($tools);
+        $names = array_column($tools, 'name');
+        sort($names);
+
+        self::assertSame(['foresi_get_contact', 'foresi_list_firms', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+    }
+
+    public function testAToolOutsideTheScopesOfTheTokenGetsAnErrorResult(): void
+    {
+        $this->secret = $this->issued([ApiScope::from('contacts:read')]);
+
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_search_invoices', 'arguments' => ['firm_id' => $this->firmId]]), 'result');
 
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
+        self::assertSame('The token does not have the "invoices:read" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
     }
 
     public function testAWriteToolNeedsTheWriteScope(): void
@@ -176,7 +192,7 @@ final class McpServerTest extends ApiTestCase
 
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
-        self::assertSame('The token does not have the "write" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
+        self::assertSame('The token does not have the "webhooks:write" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
     }
 
     /**

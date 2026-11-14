@@ -33,6 +33,11 @@ final readonly class ListEventTypesTool implements ReadTool
         return 'List event types';
     }
 
+    public function scope(): string
+    {
+        return 'events:read';
+    }
+
     public function description(): string
     {
         return 'Lists the kinds of domain event you can read with foresi_list_events: name, version, module, the type of subject the event is about and the names of the facts in its data. '

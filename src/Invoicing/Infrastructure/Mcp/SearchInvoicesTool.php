@@ -39,6 +39,11 @@ final readonly class SearchInvoicesTool implements ReadTool
         return 'Search invoices';
     }
 
+    public function scope(): string
+    {
+        return 'invoices:read';
+    }
+
     public function description(): string
     {
         return 'Searches the sales documents of the organisation (invoices, advance invoices, payment tax documents and correction documents), newest first. '

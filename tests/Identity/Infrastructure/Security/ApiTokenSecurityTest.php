@@ -53,7 +53,7 @@ final class ApiTokenSecurityTest extends TestCase
         self::assertNull($context->grant());
         $this->expectException(InsufficientScope::class);
         $this->expectExceptionMessageIsOrContains('The token does not have the "read" scope.');
-        $context->requireScope(ApiScope::Read);
+        $context->requireScope(ApiScope::read());
     }
 
     public function testASignInWithoutATokenHasNoGrant(): void
@@ -74,22 +74,23 @@ final class ApiTokenSecurityTest extends TestCase
 
     public function testTheGrantOfTheTokenIsReadAndItsScopesChecked(): void
     {
-        $grant = $this->signIn([ApiScope::Write]);
+        $grant = $this->signIn([ApiScope::from('contacts:write')]);
         $context = new SecurityApiTokenContext($this->storage);
 
         self::assertSame($grant, $context->grant());
-        self::assertSame($grant, $context->requireScope(ApiScope::Write));
+        self::assertSame($grant, $context->requireScope(ApiScope::from('contacts:write')));
+        self::assertSame($grant, $context->requireScope(ApiScope::from('contacts:read')));
         try {
-            $context->requireScope(ApiScope::Read);
+            $context->requireScope(ApiScope::from('invoices:read'));
             self::fail('A missing scope was allowed.');
         } catch (InsufficientScope $refused) {
-            self::assertSame(ApiScope::Read, $refused->scope);
+            self::assertEquals(ApiScope::from('invoices:read'), $refused->scope);
         }
     }
 
     public function testATokenRequestUsesTheTokensTenantAndNeverTheSession(): void
     {
-        $this->signIn([ApiScope::Read]);
+        $this->signIn([ApiScope::read()]);
         $other = TenantId::generate();
         $this->session->set('active_tenant', $other->toString());
         $store = $this->store();

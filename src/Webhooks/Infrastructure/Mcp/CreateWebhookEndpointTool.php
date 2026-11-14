@@ -35,6 +35,11 @@ final readonly class CreateWebhookEndpointTool implements WriteTool
         return 'Create a webhook endpoint';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:write';
+    }
+
     public function description(): string
     {
         return 'Registers a URL that receives the domain events you choose as signed Standard Webhooks requests, and sends it a ping. '

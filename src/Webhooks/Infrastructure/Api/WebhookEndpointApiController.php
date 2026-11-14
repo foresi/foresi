@@ -24,15 +24,17 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The webhook endpoints of the organisation: listed and shown with the read
- * scope, registered, changed, deleted, rotated, revealed and pinged with the
- * write scope. The use cases decide who may manage which endpoint; what they
+ * The webhook endpoints of the organisation: listed and shown with the
+ * webhooks:read scope, registered, changed, deleted, rotated, revealed and pinged with the
+ * webhooks:write scope. The use cases decide who may manage which endpoint; what they
  * refuse is answered by WebhookErrors. Only create, rotate and reveal answer
  * with a secret.
  */
 #[AsController]
 final readonly class WebhookEndpointApiController
 {
+    public const string READ_SCOPE = 'webhooks:read';
+    public const string WRITE_SCOPE = 'webhooks:write';
     public const string LIST = 'api_v1_webhook_endpoints';
     public const string CREATE = 'api_v1_webhook_endpoint_create';
     public const string SHOW = 'api_v1_webhook_endpoint';
@@ -55,11 +57,11 @@ final readonly class WebhookEndpointApiController
     #[OA\Response(response: 200, description: 'The endpoints the token\'s person may manage, newest first, and the cursor of the next slice.', content: new OA\JsonContent(ref: '#/components/schemas/WebhookEndpointPage'))]
     #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function list(#[MapQueryString(validationFailedStatusCode: 400)] WebhookListQuery $query = new WebhookListQuery()): JsonResponse
     {
-        $this->scope->require(ScopeGuard::READ);
+        $this->scope->require(self::READ_SCOPE);
         $slice = $this->list->slice(Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse(['data' => array_map(EndpointView::of(...), $slice->endpoints), 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
@@ -71,12 +73,12 @@ final readonly class WebhookEndpointApiController
     #[OA\Response(response: 201, description: 'The endpoint with its signing secret, shown here and by the secret endpoint only. A ping is queued.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookEndpointWithSecret')], type: 'object'))]
     #[OA\Response(response: 400, description: 'A field cannot be used: a URL that is not https or points to a private network, an unknown event type, or "*".', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events of a type asked for.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events of a type asked for.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 503, description: 'The installation has no key to seal webhook secrets yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function create(#[MapRequestPayload(acceptFormat: 'json', validationFailedStatusCode: 400)] CreateEndpointRequest $body): JsonResponse
     {
-        $this->scope->require(ScopeGuard::WRITE);
+        $this->scope->require(self::WRITE_SCOPE);
         $created = $this->manage->create((string) $body->url, $body->description, $body->eventTypes ?? [], $body->version);
         $id = $created->endpoint->id();
 
@@ -91,12 +93,12 @@ final readonly class WebhookEndpointApiController
     #[OA\Tag(name: 'Webhooks')]
     #[OA\Response(response: 200, description: 'The endpoint, without its secret.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookEndpoint')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the read scope, or the endpoint subscribes to events its person may not read.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:read scope, or the endpoint subscribes to events its person may not read.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function show(string $id): JsonResponse
     {
-        $this->scope->require(ScopeGuard::READ);
+        $this->scope->require(self::READ_SCOPE);
 
         return new JsonResponse(['data' => EndpointView::of($this->list->show($id))]);
     }
@@ -107,12 +109,12 @@ final readonly class WebhookEndpointApiController
     #[OA\Response(response: 200, description: 'The endpoint as it is now.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookEndpoint')], type: 'object'))]
     #[OA\Response(response: 400, description: 'A field cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function update(string $id, #[MapRequestPayload(acceptFormat: 'json', validationFailedStatusCode: 400)] UpdateEndpointRequest $body, Request $request): JsonResponse
     {
-        $this->scope->require(ScopeGuard::WRITE);
+        $this->scope->require(self::WRITE_SCOPE);
         $endpoint = $this->manage->update(
             $id,
             $body->url,
@@ -129,12 +131,12 @@ final readonly class WebhookEndpointApiController
     #[OA\Tag(name: 'Webhooks')]
     #[OA\Response(response: 204, description: 'The endpoint is deleted, with its deliveries and their attempts.')]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function delete(string $id): Response
     {
-        $this->scope->require(ScopeGuard::WRITE);
+        $this->scope->require(self::WRITE_SCOPE);
         $this->manage->delete($id);
 
         return new Response(null, Response::HTTP_NO_CONTENT);
@@ -146,13 +148,13 @@ final readonly class WebhookEndpointApiController
     #[OA\Response(response: 200, description: 'The new secret, and until when the previous one still signs.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookSecret')], type: 'object'))]
     #[OA\Response(response: 400, description: 'The hours are out of range.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 503, description: 'The installation has no key to seal webhook secrets yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function rotate(string $id, #[MapRequestPayload(acceptFormat: 'json', validationFailedStatusCode: 400)] RotateSecretRequest $body = new RotateSecretRequest()): JsonResponse
     {
-        $this->scope->require(ScopeGuard::WRITE);
+        $this->scope->require(self::WRITE_SCOPE);
         $secret = $this->manage->rotate($id, $body->keepPreviousHours);
 
         return new JsonResponse(['data' => $this->secret($id, $secret->reveal())]);
@@ -162,14 +164,14 @@ final readonly class WebhookEndpointApiController
     #[OA\Tag(name: 'Webhooks')]
     #[OA\Response(response: 200, description: 'The secret the endpoint is signed with now.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookSecret')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 503, description: 'The installation cannot open webhook secrets.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function reveal(string $id): JsonResponse
     {
-        // Reading the secret is as good as signing with it, so it takes the write scope.
-        $this->scope->require(ScopeGuard::WRITE);
+        // Reading the secret is as good as signing with it, so it takes the webhooks:write scope.
+        $this->scope->require(self::WRITE_SCOPE);
 
         return new JsonResponse(['data' => $this->secret($id, $this->manage->reveal($id)->reveal())]);
     }
@@ -178,14 +180,14 @@ final readonly class WebhookEndpointApiController
     #[OA\Tag(name: 'Webhooks')]
     #[OA\Response(response: 202, description: 'A ping is queued: one attempt, no retries. Its outcome shows in the deliveries.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/WebhookQueuedAttempt')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the webhooks:write scope, or its person may not read the events the endpoint subscribes to.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such endpoint.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 409, description: 'The endpoint is disabled.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 503, description: 'The installation cannot sign webhooks yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function ping(string $id): JsonResponse
     {
-        $this->scope->require(ScopeGuard::WRITE);
+        $this->scope->require(self::WRITE_SCOPE);
         $queued = $this->manage->ping($id);
 
         return new JsonResponse(['data' => ['delivery_id' => $queued->deliveryId, 'attempt_id' => $queued->attemptId]], Response::HTTP_ACCEPTED);

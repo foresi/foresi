@@ -36,6 +36,11 @@ final readonly class ListWebhookDeliveriesTool implements ReadTool
         return 'List webhook deliveries';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:read';
+    }
+
     public function description(): string
     {
         return 'Lists the deliveries to one webhook endpoint from the last 30 days, newest first: each has its id, the event it carries, its status (pending, succeeded or failed), how many attempts were made, the last status code and when the next attempt is due. '

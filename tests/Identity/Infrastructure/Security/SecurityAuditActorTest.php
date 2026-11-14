@@ -53,7 +53,7 @@ final class SecurityAuditActorTest extends TestCase
     public function testATokenGrantTakesItsKindFromTheFirewall(string $firewall, ActorKind $kind): void
     {
         $token = new PostAuthenticationToken($this->user(), $firewall, ['ROLE_USER']);
-        $token->setAttribute(SecurityApiTokenContext::ATTRIBUTE, new ApiTokenGrant(self::USER, TenantId::generate(), '019a0000-0000-7000-8000-000000000001', 'Reporting', [ApiScope::Read], new \DateTimeImmutable('2026-12-01')));
+        $token->setAttribute(SecurityApiTokenContext::ATTRIBUTE, new ApiTokenGrant(self::USER, TenantId::generate(), '019a0000-0000-7000-8000-000000000001', 'Reporting', [ApiScope::read()], new \DateTimeImmutable('2026-12-01')));
         $this->storage->setToken($token);
 
         self::assertSame($kind, $this->actor->kind());

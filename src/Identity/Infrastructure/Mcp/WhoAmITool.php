@@ -11,6 +11,7 @@ namespace App\Identity\Infrastructure\Mcp;
 use App\Identity\Application\InsufficientScope;
 use App\Identity\Application\Query\CurrentApiIdentity;
 use App\Identity\Domain\ApiScope;
+use App\Shared\Application\Api\ScopeGuard;
 use App\Shared\Infrastructure\Mcp\ReadTool;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
@@ -35,6 +36,11 @@ final readonly class WhoAmITool implements ReadTool
         return 'Who am I';
     }
 
+    public function scope(): string
+    {
+        return ScopeGuard::ANY;
+    }
+
     public function description(): string
     {
         return 'Returns the person and the organisation this connection acts as, and the name, scopes and expiry of its API token. Every other tool reads the data of this organisation only.';
@@ -50,7 +56,7 @@ final readonly class WhoAmITool implements ReadTool
         try {
             $identity = $this->identity->get();
         } catch (InsufficientScope) {
-            throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, 'The token does not have the "read" scope.');
+            throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, 'The connection has no valid token.');
         }
         $token = $identity->token;
 

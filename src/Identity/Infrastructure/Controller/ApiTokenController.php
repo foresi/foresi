@@ -18,6 +18,7 @@ use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenState;
 use App\Identity\Domain\User;
+use App\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -50,6 +51,7 @@ final class ApiTokenController extends AbstractController
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly ApiResources $resources,
     ) {
     }
 
@@ -85,14 +87,17 @@ final class ApiTokenController extends AbstractController
     #[Route('/settings/api/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
-        $values = ['name' => '', 'days' => (string) ManageApiTokens::DEFAULT_EXPIRY_DAYS];
+        $values = ['name' => '', 'days' => (string) ManageApiTokens::DEFAULT_EXPIRY_DAYS, 'scopes' => [ApiScope::READ]];
         $errors = [];
+        $offered = $this->offeredScopes();
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             $values['name'] = trim($request->request->getString('name'));
             $values['days'] = $request->request->getString('days');
+            // Only what the form offers counts; anything else is dropped, and none at all is refused.
+            $values['scopes'] = array_values(array_intersect(array_keys($offered), array_filter($request->request->all('scopes'), \is_string(...))));
             try {
-                $issued = $this->tokens->issue($values['name'], [ApiScope::Read], ctype_digit($values['days']) ? (int) $values['days'] : 0);
+                $issued = $this->tokens->issue($values['name'], array_map(ApiScope::from(...), $values['scopes']), ctype_digit($values['days']) ? (int) $values['days'] : 0);
 
                 return $this->noStore($this->render('identity/api/created.html.twig', [
                     'name' => $issued->token->name(),
@@ -103,7 +108,8 @@ final class ApiTokenController extends AbstractController
                 $errors[match ($refused->reason) {
                     ApiTokenRefused::NAME => 'name',
                     ApiTokenRefused::EXPIRY => 'days',
-                    ApiTokenRefused::TWO_FACTOR_REQUIRED, ApiTokenRefused::SCOPES => 'form',
+                    ApiTokenRefused::SCOPES => 'scopes',
+                    ApiTokenRefused::TWO_FACTOR_REQUIRED => 'form',
                     default => throw $this->denied($refused),
                 }] = $this->translator->trans('api_tokens.refused.'.$refused->reason);
             }
@@ -113,6 +119,7 @@ final class ApiTokenController extends AbstractController
             'canIssue' => $this->hasTwoFactor(),
             'values' => $values,
             'errors' => $errors,
+            'scopes' => $offered,
             'expiries' => array_combine(
                 array_map(strval(...), ManageApiTokens::EXPIRY_DAYS),
                 array_map(fn (int $days): string => $this->translator->trans('api_tokens.expiry', ['days' => $days]), ManageApiTokens::EXPIRY_DAYS),
@@ -132,6 +139,36 @@ final class ApiTokenController extends AbstractController
         $this->addFlash('success', $this->translator->trans('api_tokens.flash.revoked'));
 
         return $this->redirectToRoute(self::ROUTE);
+    }
+
+    /**
+     * Everything a token can be given: all reads, all writes, then reading or
+     * changing each resource of the installed modules.
+     *
+     * @return array<string, string> scope => label
+     */
+    private function offeredScopes(): array
+    {
+        $offered = [ApiScope::READ => $this->scopeLabel(ApiScope::read()), ApiScope::WRITE => $this->scopeLabel(ApiScope::write())];
+        foreach ($this->resources->declared() as $resource) {
+            foreach ([false, true] as $write) {
+                $scope = ApiScope::of($resource, $write);
+                $offered[$scope->value] = $this->scopeLabel($scope);
+            }
+        }
+
+        return $offered;
+    }
+
+    private function scopeLabel(ApiScope $scope): string
+    {
+        $resource = $scope->resource();
+        if (null === $resource) {
+            return $this->translator->trans('api_tokens.scope.'.$scope->value);
+        }
+        $name = $this->translator->trans('api_tokens.resource.'.$resource);
+
+        return $this->translator->trans($scope->writes() ? 'api_tokens.scope.resource_write' : 'api_tokens.scope.resource_read', ['resource' => $name]);
     }
 
     /**
@@ -193,7 +230,7 @@ final class ApiTokenController extends AbstractController
             'label' => $token->name(),
             'secondary' => '…'.$token->lastFour(),
             'cells' => $cells + [
-                'access' => ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->translator->trans('api_tokens.scope.'.$scope->value), 'tone' => 'gray'], $token->scopes())],
+                'access' => ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeLabel($scope), 'tone' => 'gray'], $token->scopes())],
                 'token' => '…'.$token->lastFour(),
                 'created' => $this->date($token->createdAt()),
                 'expires' => match ($state) {

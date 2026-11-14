@@ -30,8 +30,12 @@ final readonly class ApiTokenGrant
     ) {
     }
 
+    /**
+     * Whether one of the token's scopes grants this one: "write" everything,
+     * "read" every read, "contacts:write" also "contacts:read".
+     */
     public function allows(ApiScope $scope): bool
     {
-        return \in_array($scope, $this->scopes, true);
+        return array_any($this->scopes, static fn (ApiScope $granted): bool => $granted->grants($scope));
     }
 }

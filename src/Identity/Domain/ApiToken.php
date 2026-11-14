@@ -133,7 +133,7 @@ class ApiToken implements TenantOwned, Audited
      */
     public function scopes(): array
     {
-        return array_map(ApiScope::from(...), $this->scopes);
+        return array_values(array_filter(array_map(ApiScope::tryFrom(...), $this->scopes)));
     }
 
     public function lastFour(): string

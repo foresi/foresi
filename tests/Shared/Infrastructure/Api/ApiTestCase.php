@@ -85,9 +85,9 @@ abstract class ApiTestCase extends WebTestCase
     }
 
     /**
-     * @param list<ApiScope> $scopes
+     * @param list<ApiScope>|null $scopes null for read only
      */
-    protected function issued(array $scopes = [ApiScope::Read]): string
+    protected function issued(?array $scopes = null): string
     {
         return $this->inTenant($this->tenant, fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Reporting', $scopes)->secret);
     }

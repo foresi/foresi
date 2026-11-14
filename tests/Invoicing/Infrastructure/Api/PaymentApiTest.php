@@ -161,10 +161,10 @@ final class PaymentApiTest extends ApiTestCase
         }
     }
 
-    public function testATokenWithoutTheReadScopeReadsNothing(): void
+    public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
         $payment = $this->inTenant($this->tenant, fn (): Payment => $this->payment(amount: '100'));
-        $secret = $this->issued([ApiScope::Write]);
+        $secret = $this->issued([ApiScope::from('invoices:read')]);
 
         $this->get('/api/v1/payments', secret: $secret);
         $this->assertProblem(403, 'insufficient_scope');

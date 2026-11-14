@@ -213,9 +213,9 @@ final class ContactApiTest extends ApiTestCase
         }
     }
 
-    public function testATokenWithoutTheReadScopeReadsNothing(): void
+    public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
-        $secret = $this->issued([ApiScope::Write]);
+        $secret = $this->issued([ApiScope::from('invoices:write')]);
 
         $this->get('/api/v1/contacts', secret: $secret);
         $this->assertProblem(403, 'insufficient_scope');

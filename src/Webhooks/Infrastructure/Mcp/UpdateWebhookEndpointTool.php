@@ -34,6 +34,11 @@ final readonly class UpdateWebhookEndpointTool implements WriteTool
         return 'Update a webhook endpoint';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:write';
+    }
+
     public function description(): string
     {
         return 'Changes a webhook endpoint: only the arguments you give change, the rest stays. '

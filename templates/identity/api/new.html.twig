@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A new personal API token: its name and how long it lasts. It can only read for now. A dialog over
+    A new personal API token: its name, how long it lasts and what it may do (ADR 0032). A dialog over
     the tokens; the same URL is a page of its own. The form answers with the page that shows the secret.
 #}
 {% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
@@ -28,7 +28,13 @@
 
             <twig:Ui:TextInput name="name" id="name" :label="'api_tokens.field.name'|trans" :help="'api_tokens.field.name_help'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="80" required autocomplete="off" />
             <twig:Ui:Select name="days" id="days" :label="'api_tokens.field.expiry'|trans" :options="expiries" :value="values.days" :error="errors.days|default(null)" />
-            <twig:Ui:TextInput id="access" :label="'api_tokens.field.access'|trans" :help="'api_tokens.field.access_help'|trans" :value="'api_tokens.scope.read'|trans" readonly />
+            <twig:Ui:FieldGroup :title="'api_tokens.field.access'|trans">
+                <p class="m-0 text-small text-muted md:pl-[calc(var(--spacing-label)+1rem)]">{{ 'api_tokens.field.access_help'|trans }}</p>
+                {% if errors.scopes is defined %}<twig:Ui:Alert tone="error">{{ errors.scopes }}</twig:Ui:Alert>{% endif %}
+                {% for scope, label in scopes %}
+                    <twig:Ui:Checkbox name="scopes[]" :id="'scope-' ~ scope|replace({':': '-'})" :value="scope" :label="label" :checked="scope in values.scopes" />
+                {% endfor %}
+            </twig:Ui:FieldGroup>
         </form>
     {% endif %}
 {% endblock %}

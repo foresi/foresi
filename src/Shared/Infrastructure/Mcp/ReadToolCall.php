@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Runs one call of a read or a write tool. The caller is confirmed and the
- * scope checked first: read for a read tool, write for a write tool. The answer marks everything the tool returns as data: much
+ * tool's scope checked first (ADR 0032). The answer marks everything the tool returns as data: much
  * of it was written by people outside the conversation. A refusal goes back
  * as an error result the model can act on; anything unexpected as a generic
  * one, with the details only in the log.
@@ -39,11 +39,11 @@ final readonly class ReadToolCall
     {
         try {
             $this->caller->confirm();
-            $scope = $tool instanceof WriteTool ? ScopeGuard::WRITE : ScopeGuard::READ;
+            $scope = $tool->scope();
             try {
                 $this->scopes->require($scope);
             } catch (\DomainException) {
-                throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope.', $scope));
+                throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, ScopeGuard::ANY === $scope ? 'The connection has no valid token.' : \sprintf('The token does not have the "%s" scope.', $scope));
             }
 
             return $this->answer($tool->call($arguments));

@@ -26,4 +26,9 @@ final class FakeScopes implements ScopeGuard
             throw new \DomainException('no scope');
         }
     }
+
+    public function allows(string $scope): bool
+    {
+        return !$this->refuse;
+    }
 }

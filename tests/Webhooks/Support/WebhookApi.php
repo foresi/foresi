@@ -34,7 +34,7 @@ trait WebhookApi
 
     protected function setUpWebhookApi(): void
     {
-        $this->writer = $this->issued([ApiScope::Read, ApiScope::Write]);
+        $this->writer = $this->issued([ApiScope::read(), ApiScope::write()]);
         $this->rows = new DeliveryRows($this->em()->getConnection());
         $this->webhooks()->reset();
     }
