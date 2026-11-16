@@ -142,11 +142,11 @@
         ],
         "phpunit": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -d max_execution_time=0 vendor/bin/phpunit"
+            "@php -d max_execution_time=0 vendor/bin/paratest --passthru-php=\"'-d' 'max_execution_time=0'\""
         ],
         "phpunit:coverage": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -d max_execution_time=0 -d memory_limit=2G vendor/bin/phpunit --coverage-xml=var/coverage/coverage-xml --log-junit=var/coverage/junit.xml"
+            "@php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest --passthru-php=\"'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'\" --coverage-xml=var/coverage/coverage-xml --log-junit=var/coverage/junit.xml"
         ],
         "isdoc:schema": "@php bin/fetch-isdoc-schema",
         "infection": [
@@ -185,6 +185,7 @@
         }
     },
     "require-dev": {
+        "brianium/paratest": "^7.29",
         "chillerlan/php-qrcode": "^6.0.1",
         "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
@@ -195,7 +196,7 @@
         "phpstan/phpstan-phpunit": "^2.1.1",
         "phpstan/phpstan-strict-rules": "^2.1",
         "phpstan/phpstan-symfony": "^2.1.1",
-        "phpunit/phpunit": "^13.4.5",
+        "phpunit/phpunit": "^13.4.7",
         "rector/rector": "^2.8.3",
         "symfony/browser-kit": "7.4.*",
         "symfony/css-selector": "7.4.*",

@@ -15,11 +15,19 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  e2e:
-    name: E2E
+  # The browser tests in four shards side by side, each with its own server and freshly
+  # seeded database. Playwright splits them by file, so a file of tests that write data
+  # still runs whole and in order. The job named "E2E" below is the required check.
+  shard:
+    name: E2E (shard ${{ matrix.shard }} of 4)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,14 +76,32 @@ jobs:
       # playwright.config.ts skips them. They come back afterwards on a few key screens.
       - name: End-to-end, accessibility and layout tests
         working-directory: tests/e2e
-        run: npx playwright test
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: npx playwright test --shard="${SHARD}/4"
 
       - name: Upload the report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             tests/e2e/playwright-report/
             tests/e2e/test-results/
           retention-days: 7
+
+  # The required check. It stays named "E2E" and passes only when every shard passed.
+  e2e:
+    name: E2E
+    needs: shard
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Every shard passed
+        env:
+          SHARDS: ${{ needs.shard.result }}
+        run: |
+          echo "Shards: ${SHARDS}"
+          [ "${SHARDS}" = success ]

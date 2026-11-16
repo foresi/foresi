@@ -98,7 +98,8 @@ jobs:
   coverage:
     name: Tests with coverage (sqlite)
     runs-on: ubuntu-latest
-    # The suite with coverage takes 19 to 28 minutes on a hosted runner and more on a slow one.
+    # ParaTest runs the suite with coverage in one process per CPU; that took 26 to 44 minutes
+    # in a single process on a hosted runner.
     timeout-minutes: 45
     permissions:
       contents: read
@@ -407,9 +408,16 @@ jobs:
   # PostgreSQL leg. Static analysis does not depend on the database, so only
   # migrations, mapping and the test suite run here. Infection is not run:
   # its parallel processes would share this one database.
+  #
+  # The PostgreSQL and PHP 8.5 legs run in the merge queue, on main and when started by
+  # hand, not on every push to a pull request: the queue tests each change on top of main
+  # before it lands, so nothing reaches main without them. On a pull request they are
+  # skipped, and a skipped job counts as passed for the required check.
   postgres:
     name: Tests (postgres)
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
     services:
@@ -518,6 +526,13 @@ jobs:
       - name: Reset the database
         run: bin/console doctrine:schema:drop --full-database --force
 
+      # ParaTest runs one process per CPU, and each one works in a database of its own,
+      # app_1, app_2 and so on (tests/bootstrap.php).
+      - name: A database for each test process
+        env:
+          PGPASSWORD: app
+        run: for i in $(seq 1 "$(nproc)"); do createdb -h 127.0.0.1 -U app "app_${i}"; done
+
       - name: Tests
         env:
           REQUIRE_VERAPDF: '1'
@@ -533,9 +548,12 @@ jobs:
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
   # runs on it too, on the in-memory SQLite database of the test environment.
+  # Skipped on a pull request like the PostgreSQL leg above.
   php85:
     name: Tests (php 8.5, sqlite)
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
