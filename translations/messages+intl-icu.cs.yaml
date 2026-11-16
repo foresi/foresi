@@ -104,6 +104,8 @@ ui:
     keep_editing: Pokračovat v úpravách
     discard: Zahodit
     failed: Něco se nepovedlo. Zkuste to prosím znovu.
+  sheet:
+    resize: Změnit šířku panelu
   confirm:
     accept: Potvrdit
     cancel: Zrušit
@@ -203,6 +205,7 @@ catalogue:
   mobile_preview: Náhled 390 px
   interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
   state:
+    live: Živá ukázka
     default: Výchozí
     variants: Varianty
     sizes: Velikosti
