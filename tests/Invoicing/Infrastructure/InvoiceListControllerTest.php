@@ -1319,8 +1319,10 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $sums = $crawler->filter('[data-list-sums]');
         self::assertSame('Sums of the list', $sums->filter('h2')->text());
-        self::assertSame(['Documents', 'Base', 'VAT', 'Total'], $sums->filter('dt')->each(static fn (Crawler $term): string => $term->text()));
-        self::assertSame(['2', '1,600.00 Kč', '291.00 Kč', '1,891.00 Kč'], $sums->filter('dd')->each(fn (Crawler $value): string => $this->nbspless($value->text())));
+        // One table, no tiles: a row per rate, then the row of the whole list.
+        self::assertCount(0, $sums->filter('dl'));
+        self::assertSame(['Rate', 'Base', 'VAT', 'Total'], $sums->filter('[role="columnheader"]')->each(static fn (Crawler $header): string => $header->text()));
+        self::assertSame(['Total', '1,600.00 Kč', '291.00 Kč', '1,891.00 Kč'], $sums->filter('[data-sum-total] [role="rowheader"], [data-sum-total] [role="cell"]')->each(fn (Crawler $cell): string => $this->nbspless($cell->text())));
         self::assertSame([['21%', '1,100.00 Kč', '231.00 Kč', '1,331.00 Kč'], ['12%', '500.00 Kč', '60.00 Kč', '560.00 Kč']], $sums->filter('[data-sum-line]')->each(fn (Crawler $row): array => $row->filter('[role="rowheader"], [role="cell"]')->each(fn (Crawler $cell): string => $this->nbspless($cell->text()))));
     }
 

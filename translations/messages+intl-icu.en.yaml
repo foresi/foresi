@@ -1556,7 +1556,6 @@ invoice:
     all: All months
   sums:
     title: Sums of the list
-    count: Documents
     base: Base
     vat: VAT
     total: Total

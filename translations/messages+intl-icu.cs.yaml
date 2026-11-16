@@ -1556,7 +1556,6 @@ invoice:
     all: Všechny měsíce
   sums:
     title: Součty seznamu
-    count: Dokladů
     base: Základ
     vat: DPH
     total: Celkem

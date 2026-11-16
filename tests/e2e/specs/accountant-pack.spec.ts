@@ -66,8 +66,10 @@ test.describe.serial('the accountant pack', () => {
     const sums = page.locator('[data-list-sums]');
     await expect(sums.getByRole('heading', { name: 'Součty seznamu' })).toBeVisible();
     // 1 210 Kč and 560 Kč: 1 500 Kč of base, 270 Kč of VAT, a line per rate.
-    await expect(sums).toContainText(/1\s500,00/);
-    await expect(sums).toContainText(/1\s770,00/);
+    // One table: a row per rate, then the row of the whole list.
+    await expect(sums.locator('dl')).toHaveCount(0);
+    await expect(sums.locator('[data-sum-total]')).toContainText(/1\s500,00/);
+    await expect(sums.locator('[data-sum-total]')).toContainText(/1\s770,00/);
     await expect(sums.locator('[data-sum-line]')).toHaveCount(2);
     await expect(sums.locator('[data-sum-line]').filter({ hasText: '21 %' })).toContainText(/1\s210,00/);
     await expect(sums.locator('[data-sum-line]').filter({ hasText: '12 %' })).toContainText(/560,00/);

@@ -492,18 +492,17 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * What the list adds up to, as shown under it: the totals, then a line per treatment and rate.
+     * What the list adds up to, as shown under it: a line per treatment and rate, then the totals.
      *
-     * @return array{facts: list<array{label: string, value: string, big?: bool}>, lines: list<array{label: string, base: string, vat: string, total: string}>}
+     * @return array{total: array{base: string, vat: string, total: string}, lines: list<array{label: string, base: string, vat: string, total: string}>}
      */
     private function sums(InvoiceSums $sums): array
     {
         return [
-            'facts' => [
-                ['label' => $this->translator->trans('invoice.sums.count'), 'value' => (string) $sums->count],
-                ['label' => $this->translator->trans('invoice.sums.base'), 'value' => $this->amounts->shown($sums->base)],
-                ['label' => $this->translator->trans('invoice.sums.vat'), 'value' => $this->amounts->shown($sums->vat)],
-                ['label' => $this->translator->trans('invoice.sums.total'), 'value' => $this->amounts->shown($sums->total), 'big' => true],
+            'total' => [
+                'base' => $this->amounts->shown($sums->base),
+                'vat' => $this->amounts->shown($sums->vat),
+                'total' => $this->amounts->shown($sums->total),
             ],
             'lines' => array_map(fn (InvoiceSumLine $line): array => [
                 'label' => $line->rate instanceof Percent
