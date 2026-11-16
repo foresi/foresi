@@ -26,6 +26,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final class PartyControllerTest extends WebTestCase
 {
@@ -823,6 +824,10 @@ final class PartyControllerTest extends WebTestCase
      */
     private function party(string $name, TenantId $tenant, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false): Party
     {
+        // The fixture is set up by the application, not by the signed-in person.
+        $tokens = self::getContainer()->get(TokenStorageInterface::class);
+        $signedIn = $tokens->getToken();
+        $tokens->setToken(null);
         $this->context->switchTo($tenant);
         $party = self::getContainer()->get(CreateParty::class)->create(
             $kind ?? (null === $number && null === $vat ? PartyKind::SoleTrader : PartyKind::Company),
@@ -840,6 +845,7 @@ final class PartyControllerTest extends WebTestCase
             self::getContainer()->get(EntityManagerInterface::class)->flush();
         }
         $this->context->reset();
+        $tokens->setToken($signedIn);
 
         return $party;
     }

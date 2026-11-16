@@ -22,6 +22,7 @@ use App\Party\Application\PartyPage;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRefused;
 use App\Party\Application\PartyRow;
+use App\Party\Application\PartyRules;
 use App\Party\Application\Query\ContactDetails;
 use App\Party\Application\Query\ContactList;
 use App\Party\Application\RefreshRegistryChecks;
@@ -275,6 +276,10 @@ final class PartyController extends AbstractController
         $errors = [];
         if (!$person instanceof Party) {
             $errors['person'] = 'party.contacts.person_invalid';
+            // Without a person the rules never run, so the length is told here too.
+            if (mb_strlen($position) > PartyRules::MAX_POSITION) {
+                $errors['position'] = PartySubmissionReader::MESSAGES[PartyRefused::TOO_LONG];
+            }
         } else {
             try {
                 $this->linkContactPerson->link($company, $person, $position, $primary);
