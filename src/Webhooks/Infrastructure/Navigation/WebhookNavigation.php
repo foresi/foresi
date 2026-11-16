@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Webhooks\Infrastructure\Navigation;
 
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 use App\Webhooks\Application\WebhookAccess;
@@ -26,7 +27,7 @@ final readonly class WebhookNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ([] !== $this->access->readableModules()) {
-            yield new NavigationItem('settings', 'nav.item.webhooks', 'send', WebhookEndpointController::ROUTE, weight: 18, routePrefixes: ['app_webhook']);
+            yield new NavigationItem('settings', 'nav.item.webhooks', 'send', WebhookEndpointController::ROUTE, weight: 18, routePrefixes: ['app_webhook'], area: NavigationArea::SETTINGS);
         }
     }
 }

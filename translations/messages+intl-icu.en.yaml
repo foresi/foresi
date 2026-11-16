@@ -51,6 +51,22 @@ registry:
     not_registered: Not a registered VAT payer
     unavailable: Register unavailable
 nav:
+  area:
+    overview: Overview
+    sales: Sales
+    purchasing: Purchasing
+    money: Money
+    contacts: Contacts
+    projects: Projects
+    settings: Settings
+  area_caption:
+    overview: Running the firm
+    sales: From offer to payment
+    purchasing: From order to payment
+    money: Bank and cash
+    contacts: Customers and suppliers
+    projects: Delivering the work
+    settings: The firm, people and connections
   group:
     main: Main
     sales: Sales

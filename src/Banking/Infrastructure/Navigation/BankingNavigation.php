@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Ui\Navigation\CoreNavigationAreas;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -25,7 +26,7 @@ final readonly class BankingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('money', 'nav.item.bank', 'landmark', 'app_bank_movements', weight: 10, routePrefixes: ['app_bank_movement', 'app_bank_message']);
+            yield new NavigationItem('money', 'nav.item.bank', 'landmark', 'app_bank_movements', weight: 10, routePrefixes: ['app_bank_movement', 'app_bank_message'], area: CoreNavigationAreas::MONEY);
         }
     }
 }

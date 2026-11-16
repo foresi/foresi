@@ -10,6 +10,7 @@ namespace App\Identity\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Infrastructure\Controller\PeopleController;
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -25,7 +26,7 @@ final readonly class PeopleNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.people', 'user', PeopleController::ROUTE, weight: 5, routePrefixes: ['app_people']);
+            yield new NavigationItem('settings', 'nav.item.people', 'user', PeopleController::ROUTE, weight: 5, routePrefixes: ['app_people'], area: NavigationArea::SETTINGS);
         }
     }
 }

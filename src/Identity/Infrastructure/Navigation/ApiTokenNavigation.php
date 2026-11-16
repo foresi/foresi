@@ -10,6 +10,7 @@ namespace App\Identity\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Infrastructure\Controller\ApiTokenController;
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -25,7 +26,7 @@ final readonly class ApiTokenNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token']);
+            yield new NavigationItem('settings', 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token'], area: NavigationArea::SETTINGS);
         }
     }
 }

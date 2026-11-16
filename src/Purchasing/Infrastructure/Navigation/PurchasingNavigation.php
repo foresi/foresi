@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Purchasing\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Ui\Navigation\CoreNavigationAreas;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -28,7 +29,7 @@ final readonly class PurchasingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('money', 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE]);
+            yield new NavigationItem('money', 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE], area: CoreNavigationAreas::PURCHASING);
         }
     }
 }

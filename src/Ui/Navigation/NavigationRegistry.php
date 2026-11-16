@@ -11,9 +11,12 @@ namespace App\Ui\Navigation;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
- * Collects the items of all providers into the sidebar structure.
+ * Collects the items of all providers into the navigation structure: flat
+ * groups for the sidebar, and the same items by area, with their groups as the
+ * sections of each area.
  *
  * @phpstan-type Group array{key: string, labelKey: string, items: list<NavigationEntry>}
+ * @phpstan-type Area array{area: NavigationArea, current: bool, groups: list<Group>}
  */
 final readonly class NavigationRegistry
 {
@@ -21,10 +24,13 @@ final readonly class NavigationRegistry
 
     /**
      * @param iterable<NavigationItemProvider> $providers
+     * @param iterable<NavigationAreaProvider> $areaProviders
      */
     public function __construct(
         #[AutowireIterator(self::TAG)]
         private iterable $providers,
+        #[AutowireIterator(NavigationArea::TAG)]
+        private iterable $areaProviders = [],
     ) {
     }
 
@@ -36,16 +42,100 @@ final readonly class NavigationRegistry
      */
     public function groups(?string $currentRoute, bool $tenantActive): array
     {
-        $byGroup = array_fill_keys(NavigationItem::GROUPS, []);
-        $order = 0;
+        return $this->grouped($this->entries($currentRoute, $tenantActive));
+    }
+
+    /**
+     * The areas that have items, by weight then registration order, with the
+     * settings area always last. An area is current when one of its items is.
+     *
+     * @return list<Area>
+     *
+     * @throws \LogicException when an item names an area no provider registers, or two providers register one id
+     */
+    public function areas(?string $currentRoute, bool $tenantActive): array
+    {
+        $areas = [];
+        foreach ($this->areaProviders as $provider) {
+            foreach ($provider->areas() as $area) {
+                if (isset($areas[$area->id])) {
+                    throw new \LogicException(sprintf('Navigation area "%s" is registered twice.', $area->id));
+                }
+                $areas[$area->id] = $area;
+            }
+        }
+        // Sorting is stable, so areas of equal weight keep their registration order.
+        uasort($areas, static fn (NavigationArea $a, NavigationArea $b): int => [NavigationArea::SETTINGS === $a->id, $a->weight] <=> [NavigationArea::SETTINGS === $b->id, $b->weight]);
+
+        $byArea = array_fill_keys(array_keys($areas), []);
+        foreach ($this->entries($currentRoute, $tenantActive) as $entry) {
+            if (!isset($byArea[$entry[0]->area])) {
+                throw new \LogicException(sprintf('Navigation item "%s" names the area "%s", which no provider registers.', $entry[0]->labelKey, $entry[0]->area));
+            }
+            $byArea[$entry[0]->area][] = $entry;
+        }
+
+        $result = [];
+        foreach ($byArea as $id => $entries) {
+            if ([] === $entries) {
+                continue;
+            }
+            $groups = $this->grouped($entries);
+            $result[] = [
+                'area' => $areas[$id],
+                'current' => array_any($entries, static fn (array $entry): bool => $entry[2]->current),
+                'groups' => $groups,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Every item with its registration order and its resolved entry.
+     *
+     * @return list<array{NavigationItem, int, NavigationEntry}>
+     */
+    private function entries(?string $currentRoute, bool $tenantActive): array
+    {
+        $items = [];
         foreach ($this->providers as $provider) {
             foreach ($provider->items() as $item) {
-                $byGroup[$item->groupKey][] = [$item, $order++];
+                $items[] = $item;
             }
         }
 
         // A page that is an item of its own is that item's, even where another item's prefix covers it.
-        $owned = array_any(array_merge(...array_values($byGroup)), static fn (array $entry): bool => $entry[0]->route === $currentRoute);
+        $owned = array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute);
+        $entries = [];
+        foreach ($items as $order => $item) {
+            $entries[] = [$item, $order, new NavigationEntry(
+                $item->labelKey,
+                $item->icon,
+                $item->route,
+                $tenantActive ? $item->countProvider?->count() : null,
+                $this->isCurrent($item, $currentRoute, $owned),
+                $item->commandLabelKey,
+                $item->commandRoute,
+                $item->countCap,
+            )];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<array{NavigationItem, int, NavigationEntry}> $entries
+     *
+     * @return list<Group>
+     */
+    private function grouped(array $entries): array
+    {
+        $byGroup = array_fill_keys(NavigationItem::GROUPS, []);
+        foreach ($entries as $entry) {
+            $byGroup[$entry[0]->groupKey][] = $entry;
+        }
+
         $groups = [];
         foreach ($byGroup as $key => $items) {
             if ([] === $items) {
@@ -55,26 +145,14 @@ final readonly class NavigationRegistry
             $groups[] = [
                 'key' => $key,
                 'labelKey' => 'nav.group.'.$key,
-                'items' => array_map(
-                    static fn (array $entry): NavigationEntry => new NavigationEntry(
-                        $entry[0]->labelKey,
-                        $entry[0]->icon,
-                        $entry[0]->route,
-                        $tenantActive ? $entry[0]->countProvider?->count() : null,
-                        self::isCurrent($entry[0], $currentRoute, $owned),
-                        $entry[0]->commandLabelKey,
-                        $entry[0]->commandRoute,
-                        $entry[0]->countCap,
-                    ),
-                    $items,
-                ),
+                'items' => array_map(static fn (array $entry): NavigationEntry => $entry[2], $items),
             ];
         }
 
         return $groups;
     }
 
-    private static function isCurrent(NavigationItem $item, ?string $currentRoute, bool $owned): bool
+    private function isCurrent(NavigationItem $item, ?string $currentRoute, bool $owned): bool
     {
         if (null === $currentRoute) {
             return false;

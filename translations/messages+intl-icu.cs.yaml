@@ -51,6 +51,22 @@ registry:
 auth:
   logout: Odhlásit se
 nav:
+  area:
+    overview: Přehled
+    sales: Prodej
+    purchasing: Nákup
+    money: Peníze
+    contacts: Kontakty
+    projects: Projekty
+    settings: Nastavení
+  area_caption:
+    overview: Řízení firmy
+    sales: Od nabídky po zaplacení
+    purchasing: Od objednávky po úhradu
+    money: Banka a hotovost
+    contacts: Zákazníci a dodavatelé
+    projects: Dodání práce
+    settings: Firma, lidé a napojení
   group:
     main: Hlavní
     sales: Prodej
