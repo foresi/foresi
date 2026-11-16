@@ -3091,7 +3091,7 @@ api_tokens:
     name_help: Where you will use it, such as Reporting
     expiry: Expires after
     access: Access
-    access_help: Give the token only what its program needs. Changing includes reading.
+    access_help: Only what its program needs. Changing includes reading.
   expiry: '{days, plural, one {# day} other {# days}}'
   action:
     revoke: Revoke

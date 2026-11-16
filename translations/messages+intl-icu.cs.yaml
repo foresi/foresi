@@ -3091,7 +3091,7 @@ api_tokens:
     name_help: Kde ho použijete, třeba Reporting
     expiry: Platnost
     access: Přístup
-    access_help: Dejte tokenu jen to, co jeho program potřebuje. Měnit zahrnuje i číst.
+    access_help: Jen to, co program potřebuje. Kdo mění, smí i číst.
   expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
   action:
     revoke: Zrušit token
