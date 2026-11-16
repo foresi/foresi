@@ -19,7 +19,7 @@ use App\Shared\Domain\Module\ModuleManifest;
 final class ModulesView
 {
     /**
-     * @return array{modules: list<array{id: string, kind: string, package: string, requires: list<string>, optional: list<string>}>, problems: list<string>}
+     * @return array{modules: list<array{id: string, kind: string, package: string, requires: list<string>, optional: list<string>, scopes: list<string>}>, problems: list<string>}
      */
     public static function toArray(ModuleGraph $graph): array
     {
@@ -30,6 +30,7 @@ final class ModulesView
                 'package' => $module->package,
                 'requires' => self::ids($module->requires),
                 'optional' => self::ids($module->optional),
+                'scopes' => $module->scopes,
             ], $graph->all()),
             'problems' => array_map(static fn (GraphProblem $problem): string => $problem->code, $graph->problems()),
         ];

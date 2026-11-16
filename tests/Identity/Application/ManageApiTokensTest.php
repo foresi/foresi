@@ -20,6 +20,7 @@ use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Shared\Application\Api\ApiResources;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantScope;
 use App\Tenancy\Domain\TenantId;
@@ -59,14 +60,14 @@ final class ManageApiTokensTest extends TestCase
 
     public function testIssuingGivesTheSecretOnceAndKeepsOnlyItsHash(): void
     {
-        $issued = $this->service()->issue('  Reporting  ', [ApiScope::Read]);
+        $issued = $this->service()->issue('  Reporting  ', [ApiScope::read()]);
 
         self::assertTrue(ApiTokenSecret::isWellFormed($issued->secret));
         self::assertSame([$issued->token], $this->tokens->tokens);
         self::assertSame(1, $this->tokens->flushes);
         self::assertSame($this->me->id(), $issued->token->userId());
         self::assertSame('Reporting', $issued->token->name());
-        self::assertSame([ApiScope::Read], $issued->token->scopes());
+        self::assertEquals([ApiScope::read()], $issued->token->scopes());
         self::assertSame(substr($issued->secret, -4), $issued->token->lastFour());
         self::assertEquals(new \DateTimeImmutable('2026-11-10 10:00:00'), $issued->token->createdAt());
         self::assertEquals(new \DateTimeImmutable('2027-02-08 10:00:00'), $issued->token->expiresAt());
@@ -76,14 +77,14 @@ final class ManageApiTokensTest extends TestCase
     {
         $token = $this->service()->issue('Reporting')->token;
 
-        self::assertSame([ApiScope::Read], $token->scopes());
+        self::assertEquals([ApiScope::read()], $token->scopes());
         self::assertEquals(new \DateTimeImmutable('2027-02-08 10:00:00'), $token->expiresAt());
     }
 
     #[DataProvider('lifetimes')]
     public function testEveryOfferedLifetimeIsIssued(int $days, string $expires): void
     {
-        self::assertEquals(new \DateTimeImmutable($expires), $this->service()->issue('Reporting', [ApiScope::Read, ApiScope::Write], $days)->token->expiresAt());
+        self::assertEquals(new \DateTimeImmutable($expires), $this->service()->issue('Reporting', [ApiScope::read(), ApiScope::write()], $days)->token->expiresAt());
     }
 
     /**
@@ -111,11 +112,11 @@ final class ManageApiTokensTest extends TestCase
      */
     public static function invalidRequests(): iterable
     {
-        yield 'blank name' => [' ', [ApiScope::Read], 90, ApiTokenRefused::NAME];
-        yield 'long name' => [str_repeat('a', 81), [ApiScope::Read], 90, ApiTokenRefused::NAME];
+        yield 'blank name' => [' ', [ApiScope::read()], 90, ApiTokenRefused::NAME];
+        yield 'long name' => [str_repeat('a', 81), [ApiScope::read()], 90, ApiTokenRefused::NAME];
         yield 'no scope' => ['Name', [], 90, ApiTokenRefused::SCOPES];
-        yield 'other lifetime' => ['Name', [ApiScope::Read], 31, ApiTokenRefused::EXPIRY];
-        yield 'no lifetime' => ['Name', [ApiScope::Read], 0, ApiTokenRefused::EXPIRY];
+        yield 'other lifetime' => ['Name', [ApiScope::read()], 31, ApiTokenRefused::EXPIRY];
+        yield 'no lifetime' => ['Name', [ApiScope::read()], 0, ApiTokenRefused::EXPIRY];
     }
 
     public function testANameOfEightyCharactersIsIssued(): void
@@ -162,7 +163,7 @@ final class ManageApiTokensTest extends TestCase
     {
         $this->actorId = null;
 
-        $issued = $this->service()->issueAsOperator($this->colleague->id(), 'Import', [ApiScope::Read], 30);
+        $issued = $this->service()->issueAsOperator($this->colleague->id(), 'Import', [ApiScope::read()], 30);
 
         self::assertSame($this->colleague->id(), $issued->token->userId());
         self::assertEquals(new \DateTimeImmutable('2026-12-10 10:00:00'), $issued->token->expiresAt());
@@ -270,7 +271,7 @@ final class ManageApiTokensTest extends TestCase
 
     private function token(User $user): ApiToken
     {
-        $token = new ApiToken($user->id(), 'Token', [ApiScope::Read], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'));
+        $token = new ApiToken($user->id(), 'Token', [ApiScope::read()], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-12-01'));
         $this->tokens->add($token);
 
         return $token;
@@ -301,6 +302,11 @@ final class ManageApiTokensTest extends TestCase
             $context->switchTo($this->tenant);
         }
 
-        return new ManageApiTokens($this->tokens, $users, $memberships, $context, $actor, $this->clock);
+        return new ManageApiTokens($this->tokens, $users, $memberships, $context, $actor, $this->clock, new class implements ApiResources {
+            public function declared(): array
+            {
+                return ['contacts'];
+            }
+        });
     }
 }

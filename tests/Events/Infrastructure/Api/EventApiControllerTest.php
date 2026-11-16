@@ -228,12 +228,15 @@ final class EventApiControllerTest extends ApiTestCase
         }
     }
 
-    public function testWriteScopeNotNeeded(): void
+    public function testTheFeedNeedsTheEventsScope(): void
     {
-        $this->get('/api/v1/events', secret: $this->issued([ApiScope::Write]));
+        $this->get('/api/v1/events', secret: $this->issued([ApiScope::from('contacts:write')]));
         $this->assertProblem(403, 'insufficient_scope');
 
-        $this->get('/api/v1/events', secret: $this->issued([ApiScope::Read]));
+        $this->get('/api/v1/events', secret: $this->issued([ApiScope::from('events:read')]));
+        self::assertResponseIsSuccessful();
+
+        $this->get('/api/v1/events', secret: $this->issued([ApiScope::read()]));
         self::assertResponseIsSuccessful();
 
         $this->client->request('GET', '/api/v1/events');

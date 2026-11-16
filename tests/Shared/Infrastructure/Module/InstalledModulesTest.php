@@ -65,6 +65,15 @@ final class InstalledModulesTest extends TestCase
         self::assertSame('App\\Timesheet\\', $manifest->namespace);
     }
 
+    public function testTheInstalledModulesDeclareTheirApiResources(): void
+    {
+        $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
+
+        self::assertSame(['contacts', 'events', 'invoices', 'payments', 'webhooks'], $graph->resources());
+        self::assertSame(['contacts'], $graph->get(\App\Shared\Domain\Module\ModuleId::of('party'))->scopes);
+        self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
+    }
+
     public function testExtraMissingIsRefused(): void
     {
         $composer = self::composer();
@@ -85,6 +94,8 @@ final class InstalledModulesTest extends TestCase
         yield 'unknown kind' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['kind' => 'plugin']]])];
         yield 'package not named after the id' => [array_replace_recursive($composer, ['name' => 'foresi/time'])];
         yield 'namespace outside App' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['namespace' => 'Vendor\\Timesheet\\']]])];
+        yield 'scopes not a list' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => 'hours']]])];
+        yield 'a scope that is not a word' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => ['Hours:read']]]])];
         yield 'optional not a list of ids' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['optional' => 'invoicing']]])];
     }
 

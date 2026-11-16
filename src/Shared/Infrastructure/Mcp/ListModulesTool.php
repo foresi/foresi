@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Mcp;
 
+use App\Shared\Application\Api\ScopeGuard;
 use App\Shared\Infrastructure\Module\InstalledModules;
 use App\Shared\Infrastructure\Module\ModulesView;
 
@@ -29,6 +30,11 @@ final readonly class ListModulesTool implements ReadTool
     public function title(): string
     {
         return 'List modules';
+    }
+
+    public function scope(): string
+    {
+        return ScopeGuard::ANY;
     }
 
     public function description(): string

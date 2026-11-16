@@ -33,6 +33,12 @@ interface WriteTool
     public function title(): string;
 
     /**
+     * The scope a token needs to see and call the tool, such as "webhooks:write"
+     * (ADR 0032); ScopeGuard::ANY for a tool every token may call.
+     */
+    public function scope(): string;
+
+    /**
      * What the tool changes and when to use it, written for the model.
      */
     public function description(): string;

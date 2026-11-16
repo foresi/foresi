@@ -34,6 +34,11 @@ final readonly class RedeliverWebhookTool implements WriteTool
         return 'Redeliver a webhook';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:write';
+    }
+
     public function description(): string
     {
         return 'Sends a finished (succeeded or failed) delivery to its endpoint once more: the same event and webhook-id, a new timestamp and signature. '

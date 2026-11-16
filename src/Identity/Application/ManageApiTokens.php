@@ -14,6 +14,7 @@ use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Shared\Application\Api\ApiResources;
 use App\Tenancy\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
@@ -36,17 +37,18 @@ final readonly class ManageApiTokens
         private TenantContext $context,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private ApiResources $resources,
     ) {
     }
 
     /**
      * A token of the signed-in person.
      *
-     * @param list<ApiScope> $scopes
+     * @param list<ApiScope>|null $scopes null for read only
      *
      * @throws ApiTokenRefused
      */
-    public function issue(string $name, array $scopes = [ApiScope::Read], int $days = self::DEFAULT_EXPIRY_DAYS): IssuedApiToken
+    public function issue(string $name, ?array $scopes = null, int $days = self::DEFAULT_EXPIRY_DAYS): IssuedApiToken
     {
         $userId = $this->staff();
         $user = $this->users->findById($userId);
@@ -54,24 +56,24 @@ final readonly class ManageApiTokens
             throw new ApiTokenRefused(ApiTokenRefused::TWO_FACTOR_REQUIRED);
         }
 
-        return $this->create($userId, $name, $scopes, $days);
+        return $this->create($userId, $name, $scopes ?? [ApiScope::read()], $days);
     }
 
     /**
      * A token the operator issues for a person of the active organisation.
      *
-     * @param list<ApiScope> $scopes
+     * @param list<ApiScope>|null $scopes null for read only
      *
      * @throws ApiTokenRefused
      */
-    public function issueAsOperator(string $userId, string $name, array $scopes = [ApiScope::Read], int $days = self::DEFAULT_EXPIRY_DAYS): IssuedApiToken
+    public function issueAsOperator(string $userId, string $name, ?array $scopes = null, int $days = self::DEFAULT_EXPIRY_DAYS): IssuedApiToken
     {
         $role = $this->roleOf($userId);
         if (!$role instanceof Role || !$role->isStaff()) {
             throw new ApiTokenRefused(ApiTokenRefused::NOT_STAFF);
         }
 
-        return $this->create($userId, $name, $scopes, $days);
+        return $this->create($userId, $name, $scopes ?? [ApiScope::read()], $days);
     }
 
     /**
@@ -137,7 +139,8 @@ final readonly class ManageApiTokens
         if ('' === $name || mb_strlen($name) > ApiToken::NAME_MAX_LENGTH) {
             throw new ApiTokenRefused(ApiTokenRefused::NAME);
         }
-        if ([] === $scopes) {
+        $declared = $this->resources->declared();
+        if ([] === $scopes || array_any($scopes, static fn (ApiScope $scope): bool => null !== $scope->resource() && !\in_array($scope->resource(), $declared, true))) {
             throw new ApiTokenRefused(ApiTokenRefused::SCOPES);
         }
         if (!\in_array($days, self::EXPIRY_DAYS, true)) {

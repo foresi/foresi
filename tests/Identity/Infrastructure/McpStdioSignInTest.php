@@ -207,7 +207,7 @@ final class McpStdioSignInTest extends KernelTestCase
     {
         $this->context()->switchTo($this->tenant);
         try {
-            return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Claude', [ApiScope::Read])->secret;
+            return self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($this->user->id(), 'Claude', [ApiScope::read()])->secret;
         } finally {
             $this->context()->reset();
         }

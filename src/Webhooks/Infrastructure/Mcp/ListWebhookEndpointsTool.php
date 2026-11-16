@@ -35,6 +35,11 @@ final readonly class ListWebhookEndpointsTool implements ReadTool
         return 'List webhook endpoints';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:read';
+    }
+
     public function description(): string
     {
         return 'Lists the webhook endpoints of the organisation that you may manage, newest first: each has its id, url, description, event_types, version, whether it is active, the disabled_reason when it is not, and when the previous secret stops signing. '

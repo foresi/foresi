@@ -51,19 +51,24 @@ final readonly class IssueApiTokenCommand
         string $name = '',
         #[Option(description: 'Days until it expires: 30, 90 or 365')]
         int $days = ManageApiTokens::DEFAULT_EXPIRY_DAYS,
-        #[Option(description: 'read or write; repeat for both')]
-        array $scope = ['read'],
+        #[Option(description: 'read, write, or a resource such as contacts:read or contacts:write; repeat for more')]
+        array $scope = [],
     ): int {
         if (!Id::isValid($tenant)) {
             $io->error('Pass the id of the organisation with --tenant.');
 
             return Command::INVALID;
         }
+        if ([] === $scope) {
+            $io->error('Pass what the token may do with --scope, such as --scope=read or --scope=contacts:write.');
+
+            return Command::INVALID;
+        }
         $scopes = [];
         foreach ($scope as $value) {
             $parsed = ApiScope::tryFrom($value);
-            if (null === $parsed) {
-                $io->error(\sprintf('Unknown scope "%s", expected read or write.', $value));
+            if (!$parsed instanceof ApiScope) {
+                $io->error(\sprintf('Unknown scope "%s", expected read, write, or a resource such as contacts:write.', $value));
 
                 return Command::INVALID;
             }
@@ -99,7 +104,7 @@ final readonly class IssueApiTokenCommand
         return match ($reason) {
             ApiTokenRefused::NOT_STAFF => 'The user is not the owner or a member of this organisation.',
             ApiTokenRefused::NAME => \sprintf('Pass a name of 1 to %d characters with --name.', ApiToken::NAME_MAX_LENGTH),
-            ApiTokenRefused::SCOPES => 'Pass at least one scope.',
+            ApiTokenRefused::SCOPES => 'A scope names a resource no installed module declares; bin/console app:modules lists them.',
             ApiTokenRefused::EXPIRY => 'A token is valid for 30, 90 or 365 days.',
             default => \sprintf('The token was refused: %s.', $reason),
         };

@@ -34,6 +34,11 @@ final readonly class ListFirmsTool implements ReadTool
         return 'List firms';
     }
 
+    public function scope(): string
+    {
+        return 'contacts:read';
+    }
+
     public function description(): string
     {
         return 'Returns the firms of the organisation, the companies that issue its documents and receive its payments, by name: {items} with the id, name and whether the firm is archived. '

@@ -20,12 +20,13 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * The address book of the organisation, read by a personal API token with the
- * read scope. The query services decide who may read; what they refuse is
+ * contacts:read scope. The query services decide who may read; what they refuse is
  * answered by PartyErrors.
  */
 #[AsController]
 final readonly class ContactApiController
 {
+    public const string READ_SCOPE = 'contacts:read';
     public const string LIST = 'api_v1_contacts';
     public const string SHOW = 'api_v1_contact';
 
@@ -38,27 +39,27 @@ final readonly class ContactApiController
     #[OA\Response(response: 200, description: 'The contacts, newest first, and the cursor of the next slice.', content: new OA\JsonContent(ref: '#/components/schemas/ContactPage'))]
     #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the contacts:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function list(#[MapQueryString(validationFailedStatusCode: 400)] ContactListQuery $query): JsonResponse
     {
-        $this->scope->require(ScopeGuard::READ);
+        $this->scope->require(self::READ_SCOPE);
         $slice = $this->list->slice($query->filter(), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse(['data' => array_map(ContactJson::row(...), $slice->rows), 'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null)]);
     }
 
-    #[Route('/api/v1/contacts/{id}', name: self::SHOW, methods: ['GET'])]
+    #[Route('/api/v1/contacts/{contactId}', name: self::SHOW, methods: ['GET'])]
     #[OA\Tag(name: 'Contacts')]
     #[OA\Response(response: 200, description: 'The contact with its addresses, e-mails, bank accounts and contact persons.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ContactDetail')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the contacts:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such contact.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    public function show(string $id): JsonResponse
+    public function show(string $contactId): JsonResponse
     {
-        $this->scope->require(ScopeGuard::READ);
+        $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => ContactJson::detail($this->details->of($id))]);
+        return new JsonResponse(['data' => ContactJson::detail($this->details->of($contactId))]);
     }
 }

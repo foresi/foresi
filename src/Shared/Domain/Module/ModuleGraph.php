@@ -34,7 +34,14 @@ final readonly class ModuleGraph
             $byId[$module->id->value] = $module;
         }
         ksort($byId, \SORT_STRING);
+        $owners = [];
         foreach ($byId as $module) {
+            foreach ($module->scopes as $scope) {
+                if (isset($owners[$scope])) {
+                    throw new InvalidManifest(\sprintf('Modules %s and %s both declare the scope "%s".', $owners[$scope], $module->id->value, $scope));
+                }
+                $owners[$scope] = $module->id->value;
+            }
             foreach ($module->requires as $dependency) {
                 if (!isset($byId[$dependency->value])) {
                     throw new InvalidManifest(\sprintf('Module %s requires %s, which is not installed.', $module->id->value, $dependency->value));
@@ -60,6 +67,19 @@ final readonly class ModuleGraph
     public function all(): array
     {
         return array_values($this->modules);
+    }
+
+    /**
+     * The API resources the modules declare, each by one module only.
+     *
+     * @return list<string> sorted
+     */
+    public function resources(): array
+    {
+        $resources = array_merge(...array_map(static fn (ModuleManifest $module): array => $module->scopes, array_values($this->modules)));
+        sort($resources, \SORT_STRING);
+
+        return $resources;
     }
 
     /**

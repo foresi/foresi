@@ -177,15 +177,25 @@ final class ApiTokenSignInTest extends WebTestCase
         self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->json()['user']);
     }
 
-    public function testATokenWithoutTheReadScopeIsForbidden(): void
+    public function testATokenOfAnyScopeTellsWhatItIs(): void
     {
         $this->start();
-        $secret = $this->issued(scopes: [ApiScope::Write]);
+        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
 
         $this->get($secret);
 
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testATokenWithoutTheScopeIsForbiddenAndToldWhichOne(): void
+    {
+        $this->start();
+        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
+
+        $this->client->request('GET', '/api/v1/invoices', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret]);
+
         $this->assertProblem(403, 'insufficient_scope');
-        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer error="insufficient_scope", scope="read"');
+        self::assertResponseHeaderSame('WWW-Authenticate', 'Bearer error="insufficient_scope", scope="invoices:read"');
     }
 
     public function testASignInOnTheScreensDoesNotReachTheApi(): void
@@ -241,9 +251,9 @@ final class ApiTokenSignInTest extends WebTestCase
     }
 
     /**
-     * @param list<ApiScope> $scopes
+     * @param list<ApiScope>|null $scopes null for read only
      */
-    private function issued(?TenantId $tenant = null, array $scopes = [ApiScope::Read]): string
+    private function issued(?TenantId $tenant = null, ?array $scopes = null): string
     {
         $this->context()->switchTo($tenant ?? $this->tenant);
         try {
@@ -256,7 +266,7 @@ final class ApiTokenSignInTest extends WebTestCase
     private function stored(\DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false): string
     {
         $secret = ApiTokenSecret::generate();
-        $token = new ApiToken($this->user->id(), 'Reporting', [ApiScope::Read], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
+        $token = new ApiToken($this->user->id(), 'Reporting', [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
         if ($revoked) {
             $token->revoke(null, $created);
         }

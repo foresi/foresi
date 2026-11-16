@@ -305,7 +305,7 @@ final class AuditLogTest extends KernelTestCase
         $this->em->flush();
 
         $mcp = new PostAuthenticationToken($user, ApiFirewalls::MCP, ['ROLE_USER']);
-        $mcp->setAttribute(SecurityApiTokenContext::ATTRIBUTE, new ApiTokenGrant($user->id(), $this->context->current(), '019a0000-0000-7000-8000-0000000000aa', 'Agent', [ApiScope::Read], new \DateTimeImmutable('2030-01-01')));
+        $mcp->setAttribute(SecurityApiTokenContext::ATTRIBUTE, new ApiTokenGrant($user->id(), $this->context->current(), '019a0000-0000-7000-8000-0000000000aa', 'Agent', [ApiScope::read()], new \DateTimeImmutable('2030-01-01')));
         $tokens->setToken($mcp);
         $this->setProperty($party, 'phone', '+420222222222');
         $this->em->flush();

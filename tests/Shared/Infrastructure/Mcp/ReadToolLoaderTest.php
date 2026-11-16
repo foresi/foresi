@@ -45,7 +45,7 @@ final class ReadToolLoaderTest extends TestCase
     public function testEachWriteToolIsRegisteredAsNotReadOnly(): void
     {
         $registry = new Registry();
-        $loader = new ReadToolLoader([new FakeReadTool('foresi_read')], new ReadToolCall(new FakeCaller(), new FakeScopes(), new RecordingLogger()), [
+        $loader = new ReadToolLoader([new FakeReadTool('foresi_read')], ToolCalls::create(), [
             new FakeWriteTool('foresi_change'),
             new FakeWriteTool('foresi_delete', destructive: true),
         ]);
@@ -59,7 +59,7 @@ final class ReadToolLoaderTest extends TestCase
 
     public function testAWriteToolOfAReadToolsNameIsRefused(): void
     {
-        $loader = new ReadToolLoader([new FakeReadTool('foresi_one')], new ReadToolCall(new FakeCaller(), new FakeScopes(), new RecordingLogger()), [new FakeWriteTool('foresi_one')]);
+        $loader = new ReadToolLoader([new FakeReadTool('foresi_one')], ToolCalls::create(), [new FakeWriteTool('foresi_one')]);
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessageIsOrContains('Two MCP tools are named "foresi_one".');
@@ -118,6 +118,6 @@ final class ReadToolLoaderTest extends TestCase
 
     private function loader(FakeReadTool ...$tools): ReadToolLoader
     {
-        return new ReadToolLoader($tools, new ReadToolCall(new FakeCaller(), new FakeScopes(), new RecordingLogger()));
+        return new ReadToolLoader($tools, ToolCalls::create());
     }
 }

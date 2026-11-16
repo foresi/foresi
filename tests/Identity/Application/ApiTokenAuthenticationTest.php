@@ -63,10 +63,12 @@ final class ApiTokenAuthenticationTest extends TestCase
         self::assertTrue($grant->tenantId->equals($this->tenant));
         self::assertSame(self::TOKEN, $grant->tokenId);
         self::assertSame('Reporting', $grant->tokenName);
-        self::assertSame([ApiScope::Read], $grant->scopes);
+        self::assertEquals([ApiScope::read()], $grant->scopes);
         self::assertEquals(new \DateTimeImmutable('2026-12-01 00:00:00'), $grant->expiresAt);
-        self::assertTrue($grant->allows(ApiScope::Read));
-        self::assertFalse($grant->allows(ApiScope::Write));
+        self::assertTrue($grant->allows(ApiScope::read()));
+        self::assertTrue($grant->allows(ApiScope::from('contacts:read')));
+        self::assertFalse($grant->allows(ApiScope::write()));
+        self::assertFalse($grant->allows(ApiScope::from('contacts:write')));
     }
 
     public function testTheOwnerSignsInToo(): void
@@ -165,7 +167,7 @@ final class ApiTokenAuthenticationTest extends TestCase
             $this->tenant,
             self::USER,
             'Reporting',
-            [ApiScope::Read],
+            [ApiScope::read()],
             'wxyz',
             new \DateTimeImmutable('2026-11-01 00:00:00'),
             new \DateTimeImmutable($expiresAt),

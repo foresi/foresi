@@ -38,6 +38,11 @@ final readonly class SearchPaymentsTool implements ReadTool
         return 'Search payments';
     }
 
+    public function scope(): string
+    {
+        return 'payments:read';
+    }
+
     public function description(): string
     {
         return 'Searches the payments of the organisation\'s sales documents, received money and refunds, newest first. Cancelled payments are left out unless include_cancelled is true. '

@@ -3089,7 +3089,16 @@ api_tokens:
     expires: Expires
     last_used: Last used
   scope:
-    read: Read
+    read: Read everything
+    write: Read and change everything
+    resource_read: '{resource}: read'
+    resource_write: '{resource}: read and change'
+  resource:
+    contacts: Contacts
+    invoices: Invoices
+    payments: Payments
+    webhooks: Webhooks
+    events: Events
   state:
     expired: Expired
     revoked: Revoked
@@ -3098,7 +3107,7 @@ api_tokens:
     name_help: Where you will use it, such as Reporting
     expiry: Expires after
     access: Access
-    access_help: Tokens can only read for now
+    access_help: Only what its program needs. Changing includes reading.
   expiry: '{days, plural, one {# day} other {# days}}'
   action:
     revoke: Revoke

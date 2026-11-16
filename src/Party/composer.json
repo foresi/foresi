@@ -16,7 +16,10 @@
             "module": "party",
             "kind": "module",
             "namespace": "App\\Party\\",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "contacts"
+            ]
         }
     }
 }

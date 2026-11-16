@@ -99,7 +99,7 @@ final class ApiTokenPersistenceTest extends KernelTestCase
         self::assertTrue($records[0]->tenantId->equals($other));
         self::assertSame($this->user->id(), $records[0]->userId);
         self::assertSame('Reporting', $records[0]->name);
-        self::assertSame([ApiScope::Read], $records[0]->scopes);
+        self::assertEquals([ApiScope::read()], $records[0]->scopes);
         self::assertSame($second->lastFour(), $records[0]->lastFour);
         // The database keeps whole seconds.
         self::assertSame($second->expiresAt()->format(\DATE_ATOM), $records[0]->expiresAt->format(\DATE_ATOM));

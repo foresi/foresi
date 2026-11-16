@@ -10,6 +10,7 @@ namespace App\Tests\Shared\Infrastructure\Api;
 
 use App\Shared\Application\Api\ApiClient;
 use App\Shared\Infrastructure\Api\ApiRateLimit;
+use App\Shared\Infrastructure\Api\WriteBudget;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -131,16 +132,48 @@ final class ApiRateLimitTest extends TestCase
             }
         };
         $factory = new RateLimiterFactory(['id' => 'api_token', 'policy' => 'sliding_window', 'limit' => 3, 'interval' => '1 minute'], $this->storage);
+        $writes = new RateLimiterFactory(['id' => 'api_token_write', 'policy' => 'sliding_window', 'limit' => 2, 'interval' => '1 minute'], $this->storage);
 
-        return new ApiRateLimit($factory, $client);
+        return new ApiRateLimit($factory, $client, new WriteBudget($writes, $client));
+    }
+
+    public function testAWriteSpendsTheWriteBudgetTooAndSaysTheOneWithLessLeft(): void
+    {
+        $limit = $this->limit('token-1');
+
+        [$request, $event] = $this->request('/api/v1/contacts', method: 'POST');
+        $limit->onRequest($event);
+        self::assertNull($event->getResponse());
+        $response = $this->respond($limit, $request);
+        self::assertSame('2', $response->headers->get('RateLimit-Limit'), 'The write budget has less left.');
+        self::assertSame('1', $response->headers->get('RateLimit-Remaining'));
+
+        $limit->onRequest($this->request('/api/v1/contacts', method: 'PATCH')[1]);
+        [, $event] = $this->request('/api/v1/contacts', method: 'DELETE');
+        $limit->onRequest($event);
+        $refusal = $event->getResponse();
+        self::assertInstanceOf(Response::class, $refusal);
+        self::assertSame(429, $refusal->getStatusCode());
+        self::assertStringContainsString('too many writes', (string) $refusal->getContent());
+    }
+
+    public function testAReadAndAnMcpRequestSpendNoWrite(): void
+    {
+        $limit = $this->limit('token-1');
+        $limit->onRequest($this->request('/mcp', method: 'POST')[1]);
+
+        [$request, $event] = $this->request('/api/v1/contacts');
+        $limit->onRequest($event);
+
+        self::assertSame('3', $this->respond($limit, $request)->headers->get('RateLimit-Limit'));
     }
 
     /**
      * @return array{Request, RequestEvent}
      */
-    private function request(string $path, int $type = HttpKernelInterface::MAIN_REQUEST): array
+    private function request(string $path, int $type = HttpKernelInterface::MAIN_REQUEST, string $method = 'GET'): array
     {
-        $request = Request::create($path);
+        $request = Request::create($path, $method);
 
         return [$request, new RequestEvent(self::createStub(HttpKernelInterface::class), $request, $type)];
     }

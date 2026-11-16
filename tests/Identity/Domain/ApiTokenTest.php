@@ -62,12 +62,12 @@ final class ApiTokenTest extends TestCase
     {
         $created = new \DateTimeImmutable('2026-11-10 10:00:00');
         $expires = new \DateTimeImmutable('2027-02-08 10:00:00');
-        $token = new ApiToken(self::USER, '  Reporting script ', [ApiScope::Read, ApiScope::Write, ApiScope::Read], str_repeat('a', 64), 'wxyz', $created, $expires);
+        $token = new ApiToken(self::USER, '  Reporting script ', [ApiScope::read(), ApiScope::write(), ApiScope::read()], str_repeat('a', 64), 'wxyz', $created, $expires);
 
         self::assertTrue(Id::isValid($token->id()));
         self::assertSame(self::USER, $token->userId());
         self::assertSame('Reporting script', $token->name());
-        self::assertSame([ApiScope::Read, ApiScope::Write], $token->scopes());
+        self::assertEquals([ApiScope::read(), ApiScope::write()], $token->scopes());
         self::assertSame('wxyz', $token->lastFour());
         self::assertSame($created, $token->createdAt());
         self::assertSame($expires, $token->expiresAt());
@@ -99,15 +99,15 @@ final class ApiTokenTest extends TestCase
     {
         $hash = str_repeat('a', 64);
         $later = '2026-11-11 10:00:00';
-        yield 'no user' => ['', 'Name', [ApiScope::Read], $hash, 'wxyz', $later];
-        yield 'blank name' => [self::USER, '   ', [ApiScope::Read], $hash, 'wxyz', $later];
-        yield 'long name' => [self::USER, str_repeat('a', 81), [ApiScope::Read], $hash, 'wxyz', $later];
+        yield 'no user' => ['', 'Name', [ApiScope::read()], $hash, 'wxyz', $later];
+        yield 'blank name' => [self::USER, '   ', [ApiScope::read()], $hash, 'wxyz', $later];
+        yield 'long name' => [self::USER, str_repeat('a', 81), [ApiScope::read()], $hash, 'wxyz', $later];
         yield 'no scope' => [self::USER, 'Name', [], $hash, 'wxyz', $later];
-        yield 'short hash' => [self::USER, 'Name', [ApiScope::Read], str_repeat('a', 63), 'wxyz', $later];
-        yield 'upper-case hash' => [self::USER, 'Name', [ApiScope::Read], str_repeat('A', 64), 'wxyz', $later];
-        yield 'three last' => [self::USER, 'Name', [ApiScope::Read], $hash, 'xyz', $later];
-        yield 'five last' => [self::USER, 'Name', [ApiScope::Read], $hash, 'vwxyz', $later];
-        yield 'expires when created' => [self::USER, 'Name', [ApiScope::Read], $hash, 'wxyz', '2026-11-10 10:00:00'];
+        yield 'short hash' => [self::USER, 'Name', [ApiScope::read()], str_repeat('a', 63), 'wxyz', $later];
+        yield 'upper-case hash' => [self::USER, 'Name', [ApiScope::read()], str_repeat('A', 64), 'wxyz', $later];
+        yield 'three last' => [self::USER, 'Name', [ApiScope::read()], $hash, 'xyz', $later];
+        yield 'five last' => [self::USER, 'Name', [ApiScope::read()], $hash, 'vwxyz', $later];
+        yield 'expires when created' => [self::USER, 'Name', [ApiScope::read()], $hash, 'wxyz', '2026-11-10 10:00:00'];
     }
 
     public function testATokenExpiresAtExactlyItsExpiry(): void
@@ -145,8 +145,18 @@ final class ApiTokenTest extends TestCase
         $this->token()->tenantId();
     }
 
+    public function testAStoredValueThatIsNoScopeIsLeftOut(): void
+    {
+        $token = $this->token();
+        // A value written by an older release, or by hand.
+        new \ReflectionProperty(ApiToken::class, 'scopes')->setValue($token, ['read', 'contacts:delete', 'contacts:write']);
+
+        self::assertSame(['read', 'contacts:write'], array_map(static fn (ApiScope $scope): string => $scope->value, $token->scopes()));
+        self::assertSame([0, 1], array_keys($token->scopes()));
+    }
+
     private function token(string $name = 'Name'): ApiToken
     {
-        return new ApiToken(self::USER, $name, [ApiScope::Read], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-10 10:00:00'), new \DateTimeImmutable('2026-11-11 10:00:00'));
+        return new ApiToken(self::USER, $name, [ApiScope::read()], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-10 10:00:00'), new \DateTimeImmutable('2026-11-11 10:00:00'));
     }
 }

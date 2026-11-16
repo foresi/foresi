@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Party\Application;
 
+use App\Party\Contract\Event\ContactCreated;
+use App\Party\Contract\Event\ContactKind;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\EmailPurpose;
@@ -19,17 +21,23 @@ use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
+use App\Shared\Application\Event\EventRecorder;
 
 /**
  * The one way to create a party: it always comes with exactly one billing
  * address, and with a general e-mail address when one is given. It owns its
  * unit of work: everything is stored in one transaction, so a failure leaves
- * nothing behind.
+ * nothing behind, and records party.contact.created with it. Only the owners
+ * and members of the organisation create, or the application's own work.
  */
 final readonly class CreateParty
 {
-    public function __construct(private Parties $parties, private TransactionalWork $transaction)
-    {
+    public function __construct(
+        private Parties $parties,
+        private TransactionalWork $transaction,
+        private PartyAccess $access,
+        private EventRecorder $events,
+    ) {
     }
 
     /**
@@ -48,8 +56,13 @@ final readonly class CreateParty
         return $this->createFrom(new PartyInput($kind, $displayName, $registrationNumber, $vatId, $email, $phone, $roles, $billingAddress));
     }
 
+    /**
+     * @throws PartyNotAllowed for a guest
+     */
     public function createFrom(PartyInput $input): Party
     {
+        $this->access->denyUnlessMayChange();
+
         return $this->transaction->run(function () use ($input): Party {
             $party = new Party($input->kind, $input->displayName, $input->registrationNumber, $input->vatId, $input->phone, $input->roles);
             $party->changePrivateNote($input->privateNote);
@@ -60,6 +73,7 @@ final readonly class CreateParty
             }
             $emails = '' === trim($input->email) ? [] : [new PartyEmail($party, $input->email, EmailPurpose::General)];
             $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $input->billingAddress), $emails);
+            $this->events->record(new ContactCreated($party->id(), ContactKind::from($party->kind()->value)));
 
             return $party;
         });

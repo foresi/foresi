@@ -19,4 +19,9 @@ interface ContactLinks
      * @throws \DomainException when the person is linked to the company already
      */
     public function add(ContactLink $link): void;
+
+    /**
+     * Removes a stored link; the surrounding unit of work flushes.
+     */
+    public function remove(ContactLink $link): void;
 }

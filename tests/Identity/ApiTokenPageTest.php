@@ -101,7 +101,7 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame(0, $this->stored(self::MEMBER));
     }
 
-    public function testTheFormOffersThreeLifetimesAndAFixedAccess(): void
+    public function testTheFormOffersThreeLifetimesAndTheScopes(): void
     {
         $this->signIn(self::MEMBER, twoFactor: true);
 
@@ -112,9 +112,11 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertSame(['30', '90', '365'], $options->each(static fn (Crawler $option): string => (string) $option->attr('value')));
         self::assertSame(['30 days', '90 days', '365 days'], $options->each(static fn (Crawler $option): string => trim($option->text())));
         self::assertSame('90', $crawler->filter('select[name="days"] option[selected]')->attr('value'));
-        self::assertSame('Read', $crawler->filter('#access')->attr('value'));
-        self::assertSame('', $crawler->filter('#access')->attr('name'), 'The access is not a choice.');
-        self::assertNotNull($crawler->filter('#access')->attr('readonly'));
+        $scopes = $crawler->filter('input[name="scopes[]"]');
+        self::assertSame(['read', 'write', 'contacts:read', 'contacts:write'], \array_slice($scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')), 0, 4));
+        self::assertContains('webhooks:write', $scopes->each(static fn (Crawler $box): string => (string) $box->attr('value')));
+        self::assertSame(['read'], $crawler->filter('input[name="scopes[]"][checked]')->each(static fn (Crawler $box): string => (string) $box->attr('value')), 'Reading everything is the default.');
+        self::assertSelectorTextContains('label[for="scope-contacts-write"]', 'Contacts: read and change');
         self::assertSame('80', $crawler->filter('input[name="name"]')->attr('maxlength'));
     }
 
@@ -157,7 +159,7 @@ final class ApiTokenPageTest extends WebTestCase
         $stored = $this->tokens(self::MEMBER);
         self::assertCount(1, $stored);
         self::assertSame('Reporting', $stored[0]->name());
-        self::assertSame([ApiScope::Read], $stored[0]->scopes());
+        self::assertEquals([ApiScope::read()], $stored[0]->scopes());
         self::assertSame(substr($secret, -4), $stored[0]->lastFour());
         self::assertSame($expires, $stored[0]->expiresAt()->format('Y-m-d'));
 
@@ -169,7 +171,7 @@ final class ApiTokenPageTest extends WebTestCase
         $row = $list->filter('[data-api-tokens="mine"] tbody tr');
         self::assertCount(1, $row);
         $cells = $row->filter('td')->each(static fn (Crawler $cell): string => trim((string) preg_replace('/\s+/', ' ', $cell->text())));
-        self::assertSame(['Reporting…'.substr($secret, -4), 'Read', '…'.substr($secret, -4), date('Y-m-d'), $expires, 'Never'], \array_slice($cells, 0, 6));
+        self::assertSame(['Reporting…'.substr($secret, -4), 'Read everything', '…'.substr($secret, -4), date('Y-m-d'), $expires, 'Never'], \array_slice($cells, 0, 6));
     }
 
     public function testTheDialogShowsTheSecretAndLoadsTheListAgainOnClosing(): void
@@ -185,6 +187,31 @@ final class ApiTokenPageTest extends WebTestCase
         self::assertMatchesRegularExpression('/^'.ApiTokenSecret::PATTERN.'$/', (string) $crawler->filter('input#api-token-secret')->attr('value'));
         self::assertStringNotContainsString('id="sidebar"', (string) $this->client->getResponse()->getContent());
         self::assertSame(1, $this->stored(self::MEMBER));
+    }
+
+    public function testAWriteTokenForOneResourceIsIssuedBehindTwoFactor(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+
+        $this->client->request('POST', '/settings/api/new', ['_token' => $this->csrf(), 'name' => 'Outreach', 'days' => '30', 'scopes' => ['contacts:write', 'ledger:write']]);
+
+        self::assertResponseIsSuccessful();
+        $stored = $this->tokens(self::MEMBER);
+        self::assertCount(1, $stored);
+        self::assertEquals([ApiScope::from('contacts:write')], $stored[0]->scopes(), 'A scope the form does not offer is dropped.');
+        $this->client->request('GET', '/settings/api');
+        self::assertSelectorTextContains('main', 'Contacts: read and change');
+    }
+
+    public function testATokenWithoutAnyScopeIsRefusedWithTheFormAgain(): void
+    {
+        $this->signIn(self::MEMBER, twoFactor: true);
+
+        $this->client->request('POST', '/settings/api/new', ['_token' => $this->csrf(), 'name' => 'Nothing', 'days' => '30']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form#api-token-form', 'Choose what the token may do.');
+        self::assertSame([], $this->tokens(self::MEMBER));
     }
 
     public function testAnEmptyNameIsRefusedWithTheFormAgain(): void
@@ -378,7 +405,7 @@ final class ApiTokenPageTest extends WebTestCase
         $stranger = $this->fixtures->user('stranger@example.com');
         $this->fixtures->join($stranger, $other);
         $this->context->switchTo($other);
-        $token = new ApiToken($stranger->id(), 'Elsewhere', [ApiScope::Read], ApiTokenSecret::hash(ApiTokenSecret::generate()), 'abcd', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
+        $token = new ApiToken($stranger->id(), 'Elsewhere', [ApiScope::read()], ApiTokenSecret::hash(ApiTokenSecret::generate()), 'abcd', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
         $this->em->persist($token);
         $this->em->flush();
         $this->context->reset();
@@ -417,7 +444,7 @@ final class ApiTokenPageTest extends WebTestCase
 
     private function issue(string $name, string $days, bool $dialog = false): void
     {
-        $this->client->request('POST', '/settings/api/new', ['_token' => $this->csrf(), 'name' => $name, 'days' => $days], server: $dialog ? ['HTTP_X_FORESI_DIALOG' => '1'] : []);
+        $this->client->request('POST', '/settings/api/new', ['_token' => $this->csrf(), 'name' => $name, 'days' => $days, 'scopes' => ['read']], server: $dialog ? ['HTTP_X_FORESI_DIALOG' => '1'] : []);
     }
 
     /**
@@ -450,7 +477,7 @@ final class ApiTokenPageTest extends WebTestCase
     private function store(string $email, string $name, \DateTimeImmutable $created, \DateTimeImmutable $expires, bool $revoked = false): string
     {
         $secret = ApiTokenSecret::generate();
-        $token = new ApiToken($this->userId($email), $name, [ApiScope::Read], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
+        $token = new ApiToken($this->userId($email), $name, [ApiScope::read()], ApiTokenSecret::hash($secret), ApiTokenSecret::lastFour($secret), $created, $expires);
         if ($revoked) {
             $token->revoke(null, $created);
         }

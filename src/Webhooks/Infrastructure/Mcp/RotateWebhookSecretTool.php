@@ -36,6 +36,11 @@ final readonly class RotateWebhookSecretTool implements WriteTool
         return 'Rotate a webhook secret';
     }
 
+    public function scope(): string
+    {
+        return 'webhooks:write';
+    }
+
     public function description(): string
     {
         return 'Makes a new signing secret for a webhook endpoint and returns it as {secret, previous_secret_expires_at}. '

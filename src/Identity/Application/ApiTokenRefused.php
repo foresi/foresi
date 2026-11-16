@@ -29,6 +29,7 @@ final class ApiTokenRefused extends \DomainException
     /** Someone else's token, which only an owner revokes or lists. */
     public const string NOT_YOURS = 'not_yours';
     public const string NAME = 'name';
+    /** No scope, or one of a resource no installed module declares. */
     public const string SCOPES = 'scopes';
     public const string EXPIRY = 'expiry';
 

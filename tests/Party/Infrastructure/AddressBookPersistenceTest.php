@@ -10,6 +10,7 @@ namespace App\Tests\Party\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
 use App\Party\Application\CreateParty;
+use App\Party\Application\PartyAccess;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\ContactLink;
@@ -32,6 +33,7 @@ use App\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
 use App\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
 use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use App\Shared\Application\Event\EventOutbox;
+use App\Shared\Application\Event\EventRecorder;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantMismatch;
 use App\Tenancy\Domain\TenantId;
@@ -165,7 +167,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
 
     public function testCreatingAPartyAlwaysYieldsExactlyOneBillingAddress(): void
     {
-        $create = new CreateParty(new DoctrineParties($this->em), $this->transaction());
+        $create = new CreateParty(new DoctrineParties($this->em), $this->transaction(), self::getContainer()->get(PartyAccess::class), self::getContainer()->get(EventRecorder::class));
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
         $create->create(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), null, 'invoices@example.com', '', [PartyRole::Customer], $billing);
         $create->create(PartyKind::Person, 'Test Person', null, null, '  ', '', [], $billing);
@@ -183,7 +185,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
     public function testAnotherBillingAddressAfterCreationIsRejected(): void
     {
         $billing = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $party = new CreateParty(new DoctrineParties($this->em), $this->transaction())->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
+        $party = new CreateParty(new DoctrineParties($this->em), $this->transaction(), self::getContainer()->get(PartyAccess::class), self::getContainer()->get(EventRecorder::class))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], $billing);
 
         $this->expectException(\DomainException::class);
         $this->addresses()->add(new PartyAddress($party, AddressType::Billing, $billing));
@@ -296,7 +298,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
         });
 
         try {
-            new CreateParty(new DoctrineParties($this->em), $this->transaction())->create(PartyKind::Person, 'Test Person', null, null, '', '', [], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+            new CreateParty(new DoctrineParties($this->em), $this->transaction(), self::getContainer()->get(PartyAccess::class), self::getContainer()->get(EventRecorder::class))->create(PartyKind::Person, 'Test Person', null, null, '', '', [], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
             self::fail('The failure should surface.');
         } catch (\RuntimeException) {
         }

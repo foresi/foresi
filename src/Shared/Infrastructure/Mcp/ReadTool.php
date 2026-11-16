@@ -32,6 +32,12 @@ interface ReadTool
     public function title(): string;
 
     /**
+     * The scope a token needs to see and call the tool, such as "contacts:read"
+     * (ADR 0032); ScopeGuard::ANY for a tool every token may call.
+     */
+    public function scope(): string;
+
+    /**
      * What the tool returns and when to use it, written for the model.
      */
     public function description(): string;

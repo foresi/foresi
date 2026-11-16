@@ -20,7 +20,9 @@ use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyHistoryEntry;
 use App\Party\Application\PartyPage;
 use App\Party\Application\PartyQuery;
+use App\Party\Application\PartyRefused;
 use App\Party\Application\PartyRow;
+use App\Party\Application\PartyRules;
 use App\Party\Application\Query\ContactDetails;
 use App\Party\Application\Query\ContactList;
 use App\Party\Application\RefreshRegistryChecks;
@@ -33,6 +35,7 @@ use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistryCheck;
 use App\Party\Domain\RegistryResult;
 use App\Party\Domain\VatId;
+use App\Party\Infrastructure\Form\PartySubmissionReader;
 use App\Party\Infrastructure\Http\WebsiteLink;
 use App\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
@@ -64,8 +67,6 @@ final class PartyController extends AbstractController
     private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
     private const int MAX_BULK = 1000;
     private const int MAX_SEARCH = 100;
-    /** The length of the position column of a contact link. */
-    private const int MAX_POSITION = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
 
     public function __construct(
@@ -273,19 +274,18 @@ final class PartyController extends AbstractController
         $person = '' === $personId ? null : $this->party($personId);
 
         $errors = [];
-        if (!$person instanceof Party || PartyKind::Person === $company->kind() || PartyKind::Person !== $person->kind() || $this->alreadyLinked($company, $person)) {
+        if (!$person instanceof Party) {
             $errors['person'] = 'party.contacts.person_invalid';
-        }
-        if (mb_strlen($position) > self::MAX_POSITION) {
-            $errors['position'] = 'party.error.too_long';
-        }
-        if ([] === $errors && $person instanceof Party) {
+            // Without a person the rules never run, so the length is told here too.
+            if (mb_strlen($position) > PartyRules::MAX_POSITION) {
+                $errors['position'] = PartySubmissionReader::MESSAGES[PartyRefused::TOO_LONG];
+            }
+        } else {
             try {
                 $this->linkContactPerson->link($company, $person, $position, $primary);
-            } catch (\DomainException) {
-                $errors['person'] = 'party.contacts.person_invalid';
-                // The failed write reset the persistence session; read the company again for the page.
-                $company = $this->party($id);
+            } catch (PartyRefused $refused) {
+                // The rules name the person by its id; the form has a field "person".
+                $errors['personId' === $refused->field ? 'person' : (string) $refused->field] = PartySubmissionReader::MESSAGES[$refused->reason] ?? 'party.contacts.person_invalid';
             }
         }
         if ([] !== $errors) {
@@ -372,11 +372,6 @@ final class PartyController extends AbstractController
         }
 
         return \array_slice(array_values($ids), 0, self::MAX_BULK);
-    }
-
-    private function alreadyLinked(Party $company, Party $person): bool
-    {
-        return array_any($this->details->contactLinks($company), fn (\App\Party\Domain\ContactLink $link): bool => $link->person() === $person);
     }
 
     /**

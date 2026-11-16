@@ -32,7 +32,7 @@ final readonly class MeController
     #[OA\Tag(name: 'Identity')]
     #[OA\Response(response: 200, description: 'The person, the organisation and the token.', content: new OA\JsonContent(ref: '#/components/schemas/Me'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The request has no valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function __invoke(): JsonResponse
     {
         $identity = $this->identity->get();

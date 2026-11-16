@@ -3089,7 +3089,16 @@ api_tokens:
     expires: Platí do
     last_used: Naposledy použit
   scope:
-    read: Čtení
+    read: Číst vše
+    write: Číst a měnit vše
+    resource_read: '{resource}: číst'
+    resource_write: '{resource}: číst a měnit'
+  resource:
+    contacts: Kontakty
+    invoices: Faktury
+    payments: Platby
+    webhooks: Webhooky
+    events: Události
   state:
     expired: Vypršel
     revoked: Zrušen
@@ -3098,7 +3107,7 @@ api_tokens:
     name_help: Kde ho použijete, třeba Reporting
     expiry: Platnost
     access: Přístup
-    access_help: Token zatím umí jen číst
+    access_help: Jen to, co program potřebuje. Kdo mění, smí i číst.
   expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
   action:
     revoke: Zrušit token

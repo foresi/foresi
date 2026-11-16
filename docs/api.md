@@ -1,8 +1,8 @@
 # REST API
 
-Foresi has a REST API. Scripts and other systems use it to read the data of an organisation. The decision behind it is in [ADR 0027](adr/0027-api-and-mcp.md). Assistants use the [MCP server](mcp.md), which is built on the same code.
+Foresi has a REST API. Scripts and other systems use it to read the data of an organisation and to change its contacts. The decisions behind it are in [ADR 0027](adr/0027-api-and-mcp.md) and [ADR 0032](adr/0032-api-writes.md). Assistants use the [MCP server](mcp.md), which is built on the same code.
 
-The API lists and shows invoices, contacts and payments, and follows the feed of domain events. The only records it writes are [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
+The API lists and shows invoices, contacts and payments, and follows the feed of domain events. It writes [contacts](#contact-writes) and [webhook endpoints](#webhooks): addresses of your own that receive the events as signed requests.
 
 ## Personal API tokens
 
@@ -13,14 +13,15 @@ Every request is signed in with a personal API token. A token belongs to one per
 1. Sign in and open **Settings > API access**.
 2. Click **New token**.
 3. Enter a name (where you will use it, such as `Reporting`) and choose how long it lasts: 30, 90 or 365 days.
-4. Click **Create token** and copy the token.
+4. Under **Access**, choose what the token may do: read everything, read and change everything, or read or change one kind of record, such as contacts.
+5. Click **Create token** and copy the token.
 
 The token is shown **once**. Foresi keeps only a hash, so it cannot show the token again. If you lose it, revoke it and issue a new one.
 
 Rules:
 
 - Only a person who has set up two-factor sign-in can issue a token. Without it the page shows a notice with a link to set it up.
-- A token issued in Settings can only read (the `read` scope). A token that also writes (the `write` scope), which managing webhooks needs, is issued by the operator from the console for now.
+- Give a token only the [scopes](#scopes) its program needs. An outreach agent that keeps contacts needs `contacts:write`, not `write`.
 - A token always expires. There is no token without an end date.
 - You see your own tokens. An owner also sees the tokens of the other people in the organisation and can revoke them.
 - Issuing and revoking a token are recorded in the audit log. What a token does is recorded under the token, next to the person.
@@ -35,7 +36,8 @@ The operator can manage tokens from the console. No two-factor sign-in is asked 
 
 ```bash
 # Issue a token for a person (the organisation id is the tenant id).
-bin/console app:api-token:issue anna@example.com --tenant=<tenant-id> --name="Reporting" --days=90
+bin/console app:api-token:issue anna@example.com --tenant=<tenant-id> --name="Reporting" --days=90 --scope=read
+bin/console app:api-token:issue anna@example.com --tenant=<tenant-id> --name="Outreach" --scope=contacts:write
 
 # List the tokens of all organisations, or of one. Only the last four characters of a token are known.
 bin/console app:api-token:list
@@ -45,7 +47,20 @@ bin/console app:api-token:list --tenant=<tenant-id>
 bin/console app:api-token:revoke <token-id>
 ```
 
-`issue` takes `--days` of 30, 90 or 365 (90 by default) and `--scope=read` (the default) or `--scope=write`, which also reads and is needed to manage [webhooks](#webhooks). The person must be the owner or a team member of the organisation. The command prints the token once.
+`issue` takes `--days` of 30, 90 or 365 (90 by default) and one or more `--scope`, which it requires: `read`, `write` or a resource scope such as `contacts:write` (see [Scopes](#scopes)). A scope no installed module declares is refused. The person must be the owner or a team member of the organisation. The command prints the token once.
+
+### Scopes
+
+A scope says what a token may reach. A token has one or more:
+
+| Scope | Grants |
+| --- | --- |
+| `read` | Every `:read` scope. |
+| `write` | Everything, reading included. |
+| `<resource>:read` | Reading one kind of record. |
+| `<resource>:write` | Changing one kind of record, and reading it. |
+
+The resources are `contacts`, `invoices`, `payments`, `events` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -95,18 +110,18 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET` and need the `read` scope. Those of webhooks are listed under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of contacts are under [Contact writes](#contact-writes), and those of webhooks under [Webhooks](#webhooks).
 
-| Endpoint | What it returns |
-| --- | --- |
-| `/api/v1/me` | The person, the organisation and the token. |
-| `/api/v1/invoices` | Sales documents, newest first. |
-| `/api/v1/invoices/{id}` | One document with its lines, payments, corrections and balances. |
-| `/api/v1/contacts` | Contacts, newest first. |
-| `/api/v1/contacts/{id}` | One contact with its addresses, e-mails, bank accounts and contact persons. |
-| `/api/v1/payments` | Payments, newest first. |
-| `/api/v1/payments/{id}` | One payment with the invoices it pays. |
-| `/api/v1/events` | Domain events of the last 30 days, oldest first. |
+| Endpoint | Scope | What it returns |
+| --- | --- | --- |
+| `/api/v1/me` | none | The person, the organisation and the token. |
+| `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
+| `/api/v1/invoices/{id}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
+| `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
+| `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
+| `/api/v1/payments` | `payments:read` | Payments, newest first. |
+| `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
+| `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 
 ### Invoices
 
@@ -153,7 +168,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, delivered, paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -164,27 +179,88 @@ An item has `id`, `type`, `version`, `position`, `occurred_at`, `subject` (`type
 
 A value an endpoint cannot use, such as a date that is not a date or a `limit` above 100, is answered `400 invalid_parameter`, with the name of the parameter.
 
+## Contact writes
+
+These endpoints need the `contacts:write` scope. Each answers `{"data": {...}}` with the contact as `GET /api/v1/contacts/{contactId}` shows it; for a link or an unlink, that is the company with its contact persons. Bodies are JSON (`Content-Type: application/json`) with snake case fields. The rules are those of the address book screens, and the owners and team members of the organisation may write.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/contacts` | `201` with the new contact and `Location`. |
+| `PATCH /api/v1/contacts/{contactId}` | The contact as it is now. |
+| `POST /api/v1/contacts/{contactId}/archive` | The archived contact. Archiving it again changes nothing. |
+| `POST /api/v1/contacts/{contactId}/restore` | The restored contact. Restoring it again changes nothing. |
+| `POST /api/v1/contacts/{contactId}/contact-persons` | The company with the person linked. |
+| `DELETE /api/v1/contacts/{contactId}/contact-persons/{personId}` | The company without the link. Both contacts stay. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 5b0e1c2a-create-alpha" \
+  -d '{"kind": "company", "display_name": "Alpha Example s.r.o.", "registration_number": "12345679", "email": "alpha@example.com", "roles": ["customer"], "street": "Example Street 1", "city": "Example City", "postal_code": "100 00", "country_code": "CZ"}' \
+  "https://app.example.com/api/v1/contacts"
+```
+
+Fields of a contact:
+
+| Field | Value |
+| --- | --- |
+| `kind` | Required on create. `person`, `sole_trader` or `company`. It does not change later. |
+| `display_name` | Required. At most 255 characters. |
+| `street`, `city`, `postal_code`, `country_code` | Required. The billing address; every contact has one. The country is ISO 3166-1 alpha-2, such as `DE`. |
+| `registration_number` | The company registration number, checked by the rules of its country. A company needs it or a `vat_id`. |
+| `registration_country` | The country that issued the number. The country of the billing address when left out. |
+| `vat_id` | Two letters of the country, then the number. |
+| `email` | The general e-mail address. |
+| `phone`, `mobile`, `website` | Text. |
+| `roles` | A list of `customer`, `supplier`, `partner` and `authority`. An update replaces the list. |
+| `private_note` | A note for the staff, never printed. |
+
+`PATCH` changes only the fields sent. A field left out keeps its value; an optional field sent as `null` is cleared. The fields of a link are `person_id` (a contact of kind `person`), `position` (at most 100 characters) and `primary` (`true` makes it the company's primary contact person, in place of the previous one).
+
+What a contact write refuses:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which rule: `required`, `too_long`, `kind_invalid`, `role_invalid`, `country_unsupported`, `email_invalid`, `registration_number_invalid`, `vat_id_invalid`, `company_identifier_required` or `person_invalid`. |
+| 404 | `not_found` | The organisation has no such contact. |
+| 404 | `not_linked` | The person is not linked to the company. |
+| 409 | `duplicate` | Another contact has the registration number or the VAT id. `existing_ids` lists the contacts it matched. |
+| 409 | `already_linked` | The person is linked to the company already. |
+
+There is no upsert. To keep a contact you may have created before, search for it first (`q` also matches e-mails), and on `duplicate` read the contact in `existing_ids` and update it.
+
+## Idempotency
+
+Every write (`POST`, `PATCH` and `DELETE` under `/api/v1`) takes an optional `Idempotency-Key` header, so a request you retry after a timeout acts once. Use a new random value, such as a UUID, for each change, and the same value when you send that change again. A key is 1 to 255 visible ASCII characters.
+
+- A repeat with the same key, method, path and body after the first finished answers the saved status and body, with `Idempotent-Replayed: true`.
+- A repeat while the first is still running is refused with `409 idempotency_key_in_flight`. Wait a moment and send it again.
+- The same key on the same endpoint with another path or body is refused with `422 idempotency_key_reused`.
+- What is saved: a success, and a refusal of the change itself (`403 forbidden`, `404` and `409`). What is not saved, so you can fix the request and send the same key again: `400`, `401`, a missing scope, `429` and any `5xx`.
+- A key belongs to its token and its endpoint, and is kept for 24 hours.
+
+A request without a key is not protected: retrying a `POST` that timed out may create twice.
+
 ## Webhooks
 
 A webhook endpoint is an HTTPS address of yours that receives the domain events it subscribes to, as soon as they happen, instead of you polling `/api/v1/events`. Foresi sends each event as a signed [Standard Webhooks](https://www.standardwebhooks.com/) request, retries a failing endpoint on a schedule, and records every delivery and every attempt.
 
 An endpoint belongs to the organisation. The person who registers it is its owner. It can be seen and changed only by people who may read every module it subscribes to (today the owners and team members, for `invoicing`); anyone else neither lists it nor gets it, and is answered `403 forbidden`. If the owner later may no longer read a module, the endpoint is disabled before the next event of it is sent, and the owner is told by e-mail.
 
-Reading endpoints and deliveries needs the `read` scope. Everything else needs the `write` scope, including reading the secret. Bodies are JSON (`Content-Type: application/json`) with snake case fields. Requests are not idempotent: retrying a `POST` that timed out may register a second endpoint, so list the endpoints before you retry.
+Reading endpoints and deliveries needs the `webhooks:read` scope. Everything else needs `webhooks:write`, including reading the secret. Bodies are JSON (`Content-Type: application/json`) with snake case fields. Send an [`Idempotency-Key`](#idempotency) with a `POST`, so a retry after a timeout does not register a second endpoint. A saved answer holds the secret of the endpoint for the 24 hours its key is kept.
 
 | Method and path | Scope | Answer |
 | --- | --- | --- |
-| `GET /api/v1/webhook-endpoints` | read | The endpoints, newest first, paged. |
-| `POST /api/v1/webhook-endpoints` | write | `201` with the endpoint and its secret. A ping is queued. |
-| `GET /api/v1/webhook-endpoints/{id}` | read | The endpoint, without its secret. |
-| `PATCH /api/v1/webhook-endpoints/{id}` | write | The endpoint as it is now. |
-| `DELETE /api/v1/webhook-endpoints/{id}` | write | `204`. Its deliveries and their attempts are deleted with it. |
-| `POST /api/v1/webhook-endpoints/{id}/secret/rotate` | write | `200` with the new secret. |
-| `GET /api/v1/webhook-endpoints/{id}/secret` | write | The secret it is signed with now. |
-| `POST /api/v1/webhook-endpoints/{id}/ping` | write | `202`. A ping is queued. |
-| `GET /api/v1/webhook-endpoints/{id}/deliveries` | read | Its deliveries of the last 30 days, newest first, paged. |
-| `GET /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}` | read | One delivery with its attempts. |
-| `POST /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver` | write | `202`. One more attempt is queued. |
+| `GET /api/v1/webhook-endpoints` | `webhooks:read` | The endpoints, newest first, paged. |
+| `POST /api/v1/webhook-endpoints` | `webhooks:write` | `201` with the endpoint and its secret. A ping is queued. |
+| `GET /api/v1/webhook-endpoints/{id}` | `webhooks:read` | The endpoint, without its secret. |
+| `PATCH /api/v1/webhook-endpoints/{id}` | `webhooks:write` | The endpoint as it is now. |
+| `DELETE /api/v1/webhook-endpoints/{id}` | `webhooks:write` | `204`. Its deliveries and their attempts are deleted with it. |
+| `POST /api/v1/webhook-endpoints/{id}/secret/rotate` | `webhooks:write` | `200` with the new secret. |
+| `GET /api/v1/webhook-endpoints/{id}/secret` | `webhooks:write` | The secret it is signed with now. |
+| `POST /api/v1/webhook-endpoints/{id}/ping` | `webhooks:write` | `202`. A ping is queued. |
+| `GET /api/v1/webhook-endpoints/{id}/deliveries` | `webhooks:read` | Its deliveries of the last 30 days, newest first, paged. |
+| `GET /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}` | `webhooks:read` | One delivery with its attempts. |
+| `POST /api/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/redeliver` | `webhooks:write` | `202`. One more attempt is queued. |
 
 ### Register an endpoint
 
@@ -352,11 +428,15 @@ Program on `code`, which is stable. `detail` is a sentence for people and may ch
 | 401 | `token_revoked` | The token has been revoked. |
 | 403 | `insufficient_scope` | The token lacks the scope the request needs. `WWW-Authenticate` names it. |
 | 403 | `forbidden` | The person is not allowed to read or change this. |
+| 403 | `confirmation_required` | The change needs a person to confirm it in Foresi, which the API cannot do yet. No endpoint needs it today. |
 | 404 | `not_found` | The organisation has no such record, or the path does not exist. |
 | 405 | `method_not_allowed` | The endpoint does not take this method. `Allow` lists the ones it does. |
 | 406 | `not_acceptable` | The `Accept` header asks for something the API does not send. |
 | 409 | `conflict` | The request does not fit the record's state now, such as redelivering to a disabled webhook endpoint. |
+| 409 | `idempotency_key_in_flight` | A request with the same `Idempotency-Key` is still running. |
+| 409 | other | A refusal of the change named by its own code, such as `duplicate` or `already_linked` for [contacts](#contact-writes). |
 | 415 | `unsupported_media_type` | The request body has a type the API does not read. |
+| 422 | `idempotency_key_reused` | The `Idempotency-Key` was used for another request. |
 | 429 | `rate_limited` | Too many requests. See `Retry-After`. |
 | 500 | `internal_error` | The request failed on the server. The answer says nothing more; the operator finds the cause in the log. |
 | 503 | `service_unavailable` | The installation cannot do this yet, such as managing webhooks before the operator has set `WEBHOOK_SECRET_KEYS`. |
@@ -373,7 +453,9 @@ Each token may make 600 requests in 10 minutes (a sliding window). Every answer 
 | `RateLimit-Remaining` | Requests left in the window. |
 | `RateLimit-Reset` | Seconds until the next request is let through; 0 while some are left. |
 
-The [MCP server](mcp.md) over HTTP spends the same budget. Over the budget the answer is `429 rate_limited` with `Retry-After`, the seconds to wait. Wait that long, then go on. Do not retry at once in a loop.
+Writes also spend a second budget of 120 in 10 minutes per token. A write answers the `RateLimit-*` headers of whichever budget has less left. There are no batch endpoints: loop over the records, with an `Idempotency-Key` on each write.
+
+The [MCP server](mcp.md) over HTTP spends the same budgets. Over a budget the answer is `429 rate_limited` with `Retry-After`, the seconds to wait. Wait that long, then go on. Do not retry at once in a loop.
 
 ## OpenAPI
 
@@ -381,7 +463,7 @@ The OpenAPI document is at `/api/v1/openapi.json`. It needs no token. Load it in
 
 ## Security
 
-- **Treat a token like a password.** Anyone who has it can read your data as you, until it expires or is revoked. Do not commit it, paste it into chat or a ticket, or put it in a URL.
+- **Treat a token like a password.** Anyone who has it can read your data as you, and change what its scopes allow, until it expires or is revoked. Do not commit it, paste it into chat or a ticket, or put it in a URL.
 - **Revoke a token you think has leaked**, at once, under **Settings > API access**. Revoking is free; issue a new one.
 - **Give each program its own token**, with a name that says where it is used and the shortest expiry that works. Then you can revoke one without stopping the others.
 - **A token acts as its person and its organisation.** It sees what that person sees. If the person leaves the organisation, their tokens stop working.

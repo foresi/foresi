@@ -36,6 +36,11 @@ final readonly class GetInvoiceTool implements ReadTool
         return 'Get an invoice';
     }
 
+    public function scope(): string
+    {
+        return 'invoices:read';
+    }
+
     public function description(): string
     {
         return 'Returns one sales document of the organisation by its id, in the trash too: '

@@ -20,11 +20,13 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 /**
  * Counts every request of the REST API and of the MCP server over HTTP against
  * one budget of its token (the api_token limiter, config/packages/rate_limiter.yaml),
- * so a client cannot spend twice by switching surface. Every answer to a signed-in
- * request says the budget, what is left of it and the seconds until the next request
- * is let through, zero while some is left; over the budget the answer is 429
- * rate_limited with Retry-After. It runs after the firewall, which signs the token
- * in, and before the controller.
+ * so a client cannot spend twice by switching surface. A REST write (POST, PATCH
+ * or DELETE) spends the write budget too (WriteBudget, ADR 0032). Every answer to
+ * a signed-in request says the budget, what is left of it and the seconds until
+ * the next request is let through, zero while some is left; a write says the
+ * budget of the two with less left. Over a budget the answer is 429 rate_limited
+ * with Retry-After. It runs after the firewall, which signs the token in, and
+ * before the controller.
  */
 final readonly class ApiRateLimit
 {
@@ -33,7 +35,9 @@ final readonly class ApiRateLimit
     public const string MCP_PATH = '#^/mcp(/|$)#';
     private const string ATTRIBUTE = '_api_rate_limit';
 
-    public function __construct(private RateLimiterFactoryInterface $apiTokenLimiter, private ApiClient $client)
+    private const array WRITES = ['POST', 'PATCH', 'DELETE'];
+
+    public function __construct(private RateLimiterFactoryInterface $apiTokenLimiter, private ApiClient $client, private WriteBudget $writes)
     {
     }
 
@@ -49,12 +53,20 @@ final readonly class ApiRateLimit
             return;
         }
         $limit = $this->apiTokenLimiter->create($tokenId)->consume();
+        $message = 'This token made too many requests. Try again later.';
+        if ($limit->isAccepted() && \in_array($request->getMethod(), self::WRITES, true) && str_starts_with($request->getPathInfo(), ApiErrors::PATH_PREFIX)) {
+            $write = $this->writes->spend();
+            if ($write instanceof RateLimit && (!$write->isAccepted() || $write->getRemainingTokens() < $limit->getRemainingTokens())) {
+                $limit = $write;
+                $message = 'This token made too many writes. Try again later.';
+            }
+        }
         $request->attributes->set(self::ATTRIBUTE, $limit);
         if (!$limit->isAccepted()) {
             $event->setResponse(ProblemResponse::create(
                 Response::HTTP_TOO_MANY_REQUESTS,
                 self::RATE_LIMITED,
-                'This token made too many requests. Try again later.',
+                $message,
                 ['Retry-After' => (string) max(1, $this->secondsUntil($limit))],
             ));
         }

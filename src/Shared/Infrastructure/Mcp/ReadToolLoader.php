@@ -8,6 +8,10 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Mcp;
 
+use App\Shared\Infrastructure\Api\Idempotency;
+use App\Shared\Infrastructure\Operation\OperationRunner;
+use App\Shared\Infrastructure\Operation\Operations;
+use App\Shared\Infrastructure\Operation\OperationTool;
 use Mcp\Capability\Registry\Loader\LoaderInterface;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Request\CallToolRequest;
@@ -21,7 +25,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  * Puts every read and write tool of the modules into the MCP server's registry.
  * The annotations of a read tool say it only reads, the same answer every time,
  * from Foresi alone; a write tool says it changes things, and whether it
- * destroys. They are hints for the client, the scope check decides.
+ * destroys, and takes an idempotency_key. They are hints for the client, the scope check decides.
  */
 final readonly class ReadToolLoader implements LoaderInterface
 {
@@ -37,6 +41,8 @@ final readonly class ReadToolLoader implements LoaderInterface
         private ReadToolCall $call,
         #[AutowireIterator(WriteTool::TAG)]
         private iterable $writeTools = [],
+        private ?Operations $operations = null,
+        private ?OperationRunner $runner = null,
     ) {
     }
 
@@ -45,9 +51,64 @@ final readonly class ReadToolLoader implements LoaderInterface
         foreach ($this->tools as $tool) {
             $this->register($registry, $tool, new ToolAnnotations($tool->title(), readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false));
         }
-        foreach ($this->writeTools as $tool) {
+        foreach ($this->writeTools() as $tool) {
             $this->register($registry, $tool, new ToolAnnotations($tool->title(), readOnlyHint: false, destructiveHint: $tool->isDestructive(), idempotentHint: false, openWorldHint: false));
         }
+    }
+
+    /**
+     * The scope each tool needs, by tool name, for listing only what a token may call.
+     *
+     * @return array<string, string>
+     */
+    public function scopes(): array
+    {
+        $scopes = [];
+        foreach ([...$this->tools, ...$this->writeTools()] as $tool) {
+            $scopes[$tool->name()] = $tool->scope();
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * The write tools of the modules and one for each declared operation (ADR 0032).
+     *
+     * @return list<WriteTool>
+     */
+    private function writeTools(): array
+    {
+        $tools = [...$this->writeTools];
+        if ($this->operations instanceof Operations && $this->runner instanceof OperationRunner) {
+            foreach ($this->operations->all() as $definition) {
+                $tools[] = new OperationTool($definition, $this->runner);
+            }
+        }
+
+        return array_values($tools);
+    }
+
+    /**
+     * Every write tool takes an optional idempotency_key (ADR 0032); MCP has no
+     * standard for one, so it is an argument.
+     *
+     * @param array<string, mixed> $schema
+     *
+     * @return array<string, mixed>
+     */
+    private function withIdempotencyKey(array $schema): array
+    {
+        $properties = $schema['properties'] ?? [];
+        $properties = $properties instanceof \stdClass ? (array) $properties : (\is_array($properties) ? $properties : []);
+        $properties[Idempotency::ARGUMENT] = [
+            'type' => 'string',
+            'minLength' => 1,
+            'maxLength' => 255,
+            'description' => 'Optional. A unique string you choose per change, such as a UUID. Send the same key when you retry the same call after a timeout or an error: Foresi then makes the change once and answers what the first call answered. Never reuse a key for a different call.',
+        ];
+        $schema['properties'] = $properties;
+
+        return $schema;
     }
 
     private function register(RegistryInterface $registry, ReadTool|WriteTool $tool, ToolAnnotations $annotations): void
@@ -60,8 +121,12 @@ final readonly class ReadToolLoader implements LoaderInterface
             throw new \LogicException(\sprintf('Two MCP tools are named "%s".', $name));
         }
 
+        $schema = $tool->inputSchema();
+        if ($tool instanceof WriteTool) {
+            $schema = $this->withIdempotencyKey($schema);
+        }
         $registry->registerTool(
-            new Tool($name, $tool->title(), $tool->inputSchema(), $tool->description(), $annotations),
+            new Tool($name, $tool->title(), $schema, $tool->description(), $annotations),
             // The SDK hands a handler its arguments by parameter name; the
             // request context carries them whole, as the tool's schema has them.
             function (RequestContext $context) use ($tool): CallToolResult {

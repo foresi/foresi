@@ -27,6 +27,11 @@ final readonly class DoctrineContactLinks implements ContactLinks
         $this->em->persist($link);
     }
 
+    public function remove(ContactLink $link): void
+    {
+        $this->em->remove($link);
+    }
+
     private function exists(ContactLink $link): bool
     {
         $uow = $this->em->getUnitOfWork();
