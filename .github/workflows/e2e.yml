@@ -15,11 +15,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The browser tests in four shards side by side, each with its own server and freshly
-  # seeded database. Playwright splits them by file, so a file of tests that write data
-  # still runs whole and in order. The job named "E2E" below is the required check.
+  # The browser tests in two jobs side by side, each with its own server and freshly seeded
+  # database: the tests that only read, and the tests that write data. The tests that write
+  # share the seeded invoices and run in one job, in their order, as before. The job named
+  # "E2E" below is the required check.
   shard:
-    name: E2E (shard ${{ matrix.shard }} of 4)
+    name: E2E (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -27,7 +28,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        include:
+          - shard: read-only
+            projects: --project=desktop --project=mobile
+          - shard: writes data
+            projects: --project=lifecycle
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,20 +82,22 @@ jobs:
       - name: End-to-end, accessibility and layout tests
         working-directory: tests/e2e
         env:
-          SHARD: ${{ matrix.shard }}
-        run: npx playwright test --shard="${SHARD}/4"
+          PROJECTS: ${{ matrix.projects }}
+        run: |
+          # shellcheck disable=SC2086
+          npx playwright test ${PROJECTS}
 
       - name: Upload the report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report-${{ matrix.shard }}
+          name: playwright-report-${{ strategy.job-index }}
           path: |
             tests/e2e/playwright-report/
             tests/e2e/test-results/
           retention-days: 7
 
-  # The required check. It stays named "E2E" and passes only when every shard passed.
+  # The required check. It stays named "E2E" and passes only when both jobs passed.
   e2e:
     name: E2E
     needs: shard
