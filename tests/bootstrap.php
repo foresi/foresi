@@ -18,7 +18,10 @@ require dirname(__DIR__).'/vendor/autoload.php';
 // The in-memory SQLite database is private to each process already.
 $token = getenv('TEST_TOKEN');
 $url = $_SERVER['DATABASE_URL'] ?? '';
-if (false !== $token && '' !== $token && \is_string($url) && !str_starts_with($url, 'sqlite')) {
+// The worker processes that some tests start load this file again with the URL already
+// set, so the number is appended only once.
+if (false !== $token && '' !== $token && \is_string($url) && !str_starts_with($url, 'sqlite')
+    && 1 !== preg_match('~^[^?]+/[^/?]+_'.preg_quote($token, '~').'(\?|$)~', $url)) {
     $url = (string) preg_replace('~^([^?]+/)([^/?]+)~', '$1$2_'.$token, $url);
     $_SERVER['DATABASE_URL'] = $_ENV['DATABASE_URL'] = $url;
     putenv('DATABASE_URL='.$url);

@@ -142,7 +142,7 @@
         ],
         "phpunit": [
             "Composer\\Config::disableProcessTimeout",
-            "@php -d max_execution_time=0 vendor/bin/paratest --passthru-php=\"'-d' 'max_execution_time=0'\""
+            "@php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest --passthru-php=\"'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'\""
         ],
         "phpunit:coverage": [
             "Composer\\Config::disableProcessTimeout",
