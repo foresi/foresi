@@ -37,7 +37,7 @@ final class AppShellTest extends WebTestCase
         $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('#sidebar', 'Example Company s.r.o.');
+        self::assertSelectorTextContains('#rail [data-organisation]', 'Example Company s.r.o.');
         self::assertSelectorTextContains('[data-controller="dropdown"]', 'Example Company');
         self::assertSelectorTextContains('[data-controller="dropdown"]', IdentityFixtures::EMAIL);
         self::assertSelectorCount(1, 'main h1');
@@ -53,8 +53,9 @@ final class AppShellTest extends WebTestCase
 
         $this->client->request('GET', '/');
 
-        self::assertSelectorTextContains('#sidebar [data-organisation]', 'Tenant B');
-        self::assertSelectorTextNotContains('#sidebar [data-organisation]', 'Tenant A');
+        self::assertSelectorTextContains('#rail [data-organisation]', 'Tenant B');
+        self::assertSelectorTextNotContains('#rail [data-organisation]', 'Tenant A');
+        self::assertStringContainsString('Tenant B', $this->client->getCrawler()->filter('#user-menu-button')->text());
     }
 
     public function testTheNavigationItemOfTheCurrentRouteIsMarked(): void
@@ -68,6 +69,70 @@ final class AppShellTest extends WebTestCase
         $current = $crawler->filter('#sidebar [aria-current="page"]');
         self::assertSame('/', $current->attr('href'));
         self::assertSelectorTextContains('#sidebar [aria-current="page"]', 'Dashboard');
+    }
+
+    public function testTheRailListsTheAreasWithSettingsAtTheBottomAndMarksTheCurrentOne(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/');
+
+        $rail = $crawler->filter('#rail');
+        self::assertCount(1, $rail);
+        self::assertNotNull($rail->attr('data-turbo-permanent'));
+        $areas = $rail->filter('a[data-nav-area]')->each(static fn ($a): string => (string) $a->attr('data-nav-area'));
+        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $areas);
+        self::assertSame(['overview'], $rail->filter('a[aria-current="true"]')->each(static fn ($a): string => (string) $a->attr('data-nav-area')));
+        self::assertSame('/', $rail->filter('a[data-nav-area="overview"]')->attr('href'));
+        self::assertSame('Overview', trim($rail->filter('a[data-nav-area="overview"]')->text()));
+        // Search, settings and the account follow the spacer, in that order.
+        $tail = $rail->filter('[data-controller="command-palette"], a[data-nav-area="settings"], #user-menu-button')->each(static fn ($n): string => $n->nodeName());
+        self::assertSame(['div', 'a', 'button'], $tail);
+    }
+
+    public function testTheSidebarShowsTheAreaOfThePageWithItsTitleAndCaption(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/settings/people');
+
+        self::assertResponseIsSuccessful();
+        $sidebar = $crawler->filter('#sidebar');
+        self::assertNotNull($sidebar->attr('data-turbo-permanent'));
+        $shown = $sidebar->filter('[data-nav-area][data-shown]');
+        self::assertCount(1, $shown);
+        self::assertSame('settings', $shown->attr('data-nav-area'));
+        self::assertSame('Settings', $shown->filter('h2')->text());
+        self::assertSame('The firm, people and connections', $shown->filter('h2 + p')->text());
+        self::assertSame('settings', $crawler->filter('#rail a[aria-current="true"]')->attr('data-nav-area'));
+        self::assertSame('/settings/people', $sidebar->filter('[aria-current="page"]')->attr('href'));
+        // One group: no group heading; every area is in the drawer, so the other areas are there too.
+        self::assertCount(0, $shown->filter('h3'));
+        self::assertCount(8, $sidebar->filter('section[data-nav-area]'));
+    }
+
+    public function testOnlyTheContentPanelTakesPartInTheViewTransition(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertSame('same-origin', $crawler->filter('meta[name="view-transition"]')->attr('content'));
+        self::assertStringContainsString('[view-transition-name:content]', (string) $crawler->filter('main')->attr('class'));
+        self::assertSame(1, substr_count((string) $this->client->getResponse()->getContent(), 'view-transition-name'));
+    }
+
+    public function testNoUnreadDotWithoutUnreadNotifications(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+
+        $this->client->request('GET', '/');
+
+        self::assertSelectorNotExists('#rail [data-nav-unread]');
     }
 
     public function testEveryNavigationItemSitsInExactlyOneArea(): void
@@ -95,9 +160,11 @@ final class AppShellTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/');
 
-        $group = $crawler->filter('#sidebar [data-nav-group="extensions"]');
+        $area = $crawler->filter('#sidebar [data-nav-area="extensions"]');
+        self::assertCount(1, $area);
+        self::assertSame('Extensions', $area->filter('h2')->text());
+        $group = $area->filter('[data-nav-group="extensions"]');
         self::assertCount(1, $group);
-        self::assertStringContainsString('Extensions', $group->text());
         self::assertStringContainsString('Pergola configurator', $group->text());
         self::assertSame('4', trim($group->filter('[data-nav-count]')->text()));
         self::assertSame('/organisation/choose', $group->filter('a')->attr('href'));
@@ -116,20 +183,21 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorExists('#sidebar [data-nav-group="extensions"]');
     }
 
-    public function testSidebarHasASearchOpeningTheCommandPaletteThatListsTheNavigation(): void
+    public function testRailHasASearchOpeningTheCommandPaletteThatListsTheNavigation(): void
     {
         $this->browser->seed(['Tenant A']);
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/');
 
-        self::assertSelectorExists('#sidebar [data-controller="command-palette"] button[data-action="command-palette#open"]');
+        self::assertSelectorExists('#rail [data-controller="command-palette"] button[data-action="command-palette#open"]');
+        self::assertSelectorTextContains('#rail [data-controller="command-palette"] button[data-action="command-palette#open"]', 'Search');
         $options = $crawler->filter('[data-controller="command-palette"] [role="option"]')->each(static fn ($o): string => $o->text());
         self::assertNotEmpty(array_filter($options, static fn (string $t): bool => str_contains($t, 'Dashboard')));
         self::assertNotEmpty(array_filter($options, static fn (string $t): bool => str_contains($t, 'Pergola configurator')));
     }
 
-    public function testMobileMenuButtonControlsTheSidebar(): void
+    public function testMobileMenuButtonControlsTheDrawer(): void
     {
         $this->browser->seed(['Tenant A']);
         $this->browser->signIn();
@@ -138,10 +206,12 @@ final class AppShellTest extends WebTestCase
 
         $button = $crawler->filter('button[data-sidebar-target="toggle"]');
         self::assertCount(1, $button);
-        self::assertSame('sidebar', $button->attr('aria-controls'));
+        self::assertSame('navigation', $button->attr('aria-controls'));
         self::assertSame('false', $button->attr('aria-expanded'));
         self::assertNotSame('', trim((string) $button->attr('aria-label')));
-        self::assertSelectorExists('#sidebar[data-sidebar-target="panel"]');
+        // The drawer holds the rail and the sidebar.
+        self::assertSelectorExists('#navigation[data-sidebar-target="panel"] > #rail');
+        self::assertSelectorExists('#navigation[data-sidebar-target="panel"] > #sidebar');
     }
 
     public function testUserMenuListsProfileNotificationsApiLanguageOrganisationAndLogout(): void
@@ -172,7 +242,7 @@ final class AppShellTest extends WebTestCase
         $this->client->request('GET', '/');
 
         self::assertSelectorNotExists('[role="menu"] a[href="/organisation/choose"]');
-        self::assertSelectorNotExists('#sidebar a[data-organisation]');
+        self::assertSelectorNotExists('[role="menu"] a[data-organisation]');
     }
 
     #[DataProvider('titles')]

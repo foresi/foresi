@@ -46,7 +46,7 @@
             <ol class="m-0 grid list-none gap-3 p-0">
                 {% for day in days %}
                     <li class="rounded-panel border border-container bg-white" data-time-day="{{ day.key }}">
-                        <div class="flex min-h-11 items-center justify-between gap-2 px-4 py-2 max-[899px]:px-3{{ day.entries is not empty ? ' border-b border-divider' : '' }}">
+                        <div class="flex min-h-11 items-center justify-between gap-2 px-4 py-2 max-shell:px-3{{ day.entries is not empty ? ' border-b border-divider' : '' }}">
                             <h3 id="time-day-{{ day.key }}" class="m-0 flex min-w-0 flex-wrap items-center gap-x-2 text-small font-semibold text-ink">
                                 <span>{{ day.weekday }}</span>
                                 <time datetime="{{ day.key }}" class="font-normal text-muted">{{ day.date }}</time>
@@ -57,7 +57,7 @@
                         {% if day.entries is not empty %}
                             <ul class="m-0 grid list-none divide-y divide-divider p-0" aria-labelledby="time-day-{{ day.key }}">
                                 {% for entry in day.entries %}
-                                    <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-[899px]:px-3" data-time-entry>
+                                    <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-shell:px-3" data-time-entry>
                                         <div class="grid min-w-0 flex-1 gap-0.5">
                                             <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small">
                                                 {% if entry.running %}

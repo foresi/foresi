@@ -21,10 +21,25 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
 
 async function openMenuOnPhone(page: Page): Promise<void> {
   const toggle = page.locator('button[data-sidebar-target="toggle"]');
-  if (await toggle.isVisible()) {
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) !== 'true') {
     await toggle.click();
     await expect(page.locator('#sidebar')).toBeVisible();
   }
+}
+
+function isPhone(): boolean {
+  return test.info().project.name === 'mobile';
+}
+
+// Opens an area: from the rail on a wide screen, from the drawer on a phone.
+async function openArea(page: Page, label: string): Promise<void> {
+  if (isPhone()) {
+    await openMenuOnPhone(page);
+    await page.locator('#sidebar').getByRole('link', { name: label, exact: true }).first().click();
+  } else {
+    await page.locator('#rail').getByRole('link', { name: label, exact: true }).click();
+  }
+  await expect(page.locator(`#sidebar [data-shown] h2`)).toHaveText(label);
 }
 
 async function shot(page: Page, name: string): Promise<void> {
@@ -37,32 +52,65 @@ async function shot(page: Page, name: string): Promise<void> {
 test.describe('navigation', () => {
   test.use({ storageState: INVOICING_OWNER_STATE });
 
-  test('groups the sidebar around documents and settings @layout', async ({ page }) => {
+  test('shows the areas in the rail and the sections of the current area @layout', async ({ page }) => {
     await page.goto('/');
     await openMenuOnPhone(page);
     const sidebar = page.locator('#sidebar');
 
-    // Only groups that hold something are shown, in the fixed order, and Settings is last.
-    const groups = await sidebar.locator('[data-nav-group]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-group')));
-    expect(groups).toEqual(['main', 'sales', 'money', 'contacts', 'work', 'settings']);
+    // Only areas that hold something are shown, in the fixed order, and Settings is last.
+    const areas = await sidebar.locator('section[data-nav-area]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-area')));
+    expect(areas).toEqual(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings']);
+    if (!isPhone()) {
+      const rail = page.locator('#rail');
+      await expect(rail.locator('a[data-nav-area]')).toHaveText([/Přehled/, 'Prodej', 'Nákup', 'Peníze', 'Kontakty', 'Projekty', 'Nastavení']);
+      await expect(rail.locator('a[aria-current="true"]')).toHaveAttribute('data-nav-area', 'overview');
+      await expect(rail.getByRole('button', { name: 'Hledat' })).toBeVisible();
+      await expect(sidebar.getByRole('heading', { level: 2, name: 'Přehled' })).toBeVisible();
+    }
     // The inbox sits under the start page: where a person begins, not a part of the projects.
-    await expect(sidebar.locator('[data-nav-group="main"]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
-    await expect(sidebar.locator('[data-nav-group="work"]').getByRole('link')).toHaveText([/Projekty/, /Moje úkoly/, /Čas/]);
-    await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('heading', { name: 'Prodej' })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="sales"]').getByRole('link', { name: 'Faktury', exact: true })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="money"]').getByRole('heading', { name: 'Finance' })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="money"]').getByRole('link', { name: 'Banka', exact: true })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('heading', { name: 'Adresář' })).toBeVisible();
-    await expect(sidebar.locator('[data-nav-group="contacts"]').getByRole('link', { name: /Adresář/ })).toBeVisible();
-    const settings = sidebar.locator('[data-nav-group="settings"]').getByRole('link');
-    await expect(settings).toHaveText(['Lidé', 'Moje firmy', 'Štítky', 'Přístup k API', 'Webhooky', 'Import a export']);
+    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-group="main"]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
     await shot(page, 'sidebar');
+
+    for (const [label, area, links] of [
+      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/]],
+      ['Nákup', 'purchasing', [/Náklady/]],
+      ['Kontakty', 'contacts', [/Adresář/]],
+      ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
+      ['Nastavení', 'settings', ['Lidé', 'Moje firmy', 'Štítky', 'Přístup k API', 'Webhooky', 'Import a export']],
+    ] as const) {
+      await openArea(page, label);
+      await openMenuOnPhone(page);
+      const shown = sidebar.locator(`[data-nav-area="${area}"][data-shown]`);
+      await expect(shown.locator('[data-nav-group]').getByRole('link')).toHaveText([...links]);
+      await expect(shown.locator('[aria-current="page"]')).toHaveCount(1);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
+    await expectNoSidewaysScroll(page);
   });
 
-  test('keeps the group marked on the pages that belong to it @layout', async ({ page }) => {
+  test('keeps the rail and the sidebar across visits and moves only the content @layout', async ({ page }) => {
+    test.skip(isPhone(), 'The rail is part of the drawer on a phone.');
+    await page.goto('/invoices');
+    await page.evaluate(() => {
+      (window as unknown as { keptRail: Element | null }).keptRail = document.getElementById('rail');
+    });
+
+    await page.locator('#rail').getByRole('link', { name: 'Kontakty' }).click();
+    await expect(page).toHaveURL(/\/contacts$/);
+    await expect(page.locator('#rail a[aria-current="true"]')).toHaveAttribute('data-nav-area', 'contacts');
+    await expect(page.locator('#sidebar [data-shown]')).toHaveAttribute('data-nav-area', 'contacts');
+    await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Adresář/);
+    expect(await page.evaluate(() => (window as unknown as { keptRail: Element | null }).keptRail === document.getElementById('rail'))).toBe(true);
+    expect(await page.locator('main').evaluate((main) => getComputedStyle(main).viewTransitionName)).toBe('content');
+    expect(await page.locator('#rail').evaluate((rail) => getComputedStyle(rail).viewTransitionName)).toBe('none');
+    await expectNoSeriousViolations(page);
+  });
+
+  test('keeps the section marked on the pages that belong to it @layout', async ({ page }) => {
     await page.goto('/invoices');
     await openMenuOnPhone(page);
     await expect(page.locator('#sidebar [aria-current="page"]')).toHaveText(/Faktury/);
+    await expect(page.locator('#sidebar [data-shown]')).toHaveAttribute('data-nav-area', 'sales');
 
     await page.goto('/imports');
     await openMenuOnPhone(page);

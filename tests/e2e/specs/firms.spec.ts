@@ -45,8 +45,9 @@ test.describe('first run', () => {
 test.describe.serial('an owner manages firms', () => {
   test.use({ storageState: OWNER_STATE });
 
-  test('reaches them from the sidebar', async ({ page }) => {
+  test('reaches them from the settings area', async ({ page }) => {
     await page.goto('/contacts');
+    await page.locator('#rail').getByRole('link', { name: 'Nastavení' }).click();
     await page.locator('#sidebar').getByRole('link', { name: 'Moje firmy' }).click();
     await expect(page).toHaveURL(/\/settings\/firms$/);
   });

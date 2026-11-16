@@ -151,6 +151,7 @@ ui:
   breadcrumb:
     label: Drobečková navigace
   palette:
+    search: Hledat
     open: Hledat nebo spustit příkaz
     label: Příkazová paleta
     placeholder: Zadejte příkaz nebo hledejte
@@ -159,6 +160,8 @@ ui:
 shell:
   skip_to_content: Přeskočit na obsah
   sidebar_label: Hlavní navigace
+  rail_label: Oblasti
+  unread_notifications: Nepřečtená oznámení
   menu:
     open: Otevřít menu
   palette:

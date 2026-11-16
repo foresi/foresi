@@ -8,6 +8,8 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        {# Turbo cross-fades the content panel between pages; the shell sets which part moves. #}
+        <meta name="view-transition" content="same-origin">
         <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block title %}{% endblock %}</title>
         {% block head %}{% endblock %}
         {% block stylesheets %}{% endblock %}

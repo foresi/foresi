@@ -17,7 +17,7 @@
     {% else %}
         <ul class="m-0 grid list-none divide-y divide-divider rounded-panel border border-container bg-white p-0">
             {% for entry in time.entries %}
-                <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-[899px]:px-3" data-time-entry>
+                <li id="time-{{ entry.id }}" class="flex items-start gap-2 px-4 py-2.5 max-shell:px-3" data-time-entry>
                     <div class="grid min-w-0 flex-1 gap-0.5">
                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-small">
                             {% if entry.running %}

@@ -2,7 +2,7 @@
 {% set badgeView = this.badgeView %}
 {% set actionsHtml %}{% block content %}{% endblock %}{% endset %}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-<header {{ attributes.defaults({class: 'flex flex-wrap items-center gap-3 border-b border-divider px-6 py-4 max-[899px]:px-3.5'}) }}>
+<header {{ attributes.defaults({class: 'flex flex-wrap items-center gap-3 border-b border-divider px-6 py-4 max-shell:px-3.5'}) }}>
     <div class="min-w-0">
         {% if this.crumbViews is not empty %}
             <nav aria-label="{{ 'ui.breadcrumb.label'|trans }}" class="mb-1 text-small text-muted">

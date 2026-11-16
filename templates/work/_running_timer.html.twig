@@ -8,7 +8,7 @@
 {% if timer %}
     {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
     {% set elapsed = date().timestamp - timer.startedAt.timestamp %}
-    <div class="flex min-w-0 items-center gap-2 border-b border-divider bg-head px-3.5 py-1.5 text-small min-[900px]:rounded-t-panel" role="region" aria-label="{{ 'work.time.timer.region'|trans }}" data-running-timer>
+    <div class="flex min-w-0 items-center gap-2 border-b border-divider bg-head px-3.5 py-1.5 text-small shell:rounded-t-xl" role="region" aria-label="{{ 'work.time.timer.region'|trans }}" data-running-timer>
         {{ ux_icon('lucide:timer', {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}
         <a href="{{ timer.taskId ? path('app_task', {id: timer.taskId}) : path('app_project', {id: timer.projectId}) }}" class="min-w-0 truncate font-medium text-ink no-underline hover:underline {{ focus }}" data-running-timer-link>{{ timer.taskTitle ?? timer.projectName }}</a>
         <time datetime="{{ timer.startedAt|date('c') }}" class="num shrink-0 font-semibold text-ink" data-controller="elapsed" data-elapsed-start-value="{{ timer.startedAt|date('c') }}" data-running-timer-elapsed>{{ (elapsed // 3600) ~ ':' ~ '%02d'|format(elapsed // 60 % 60) ~ ':' ~ '%02d'|format(elapsed % 60) }}</time>
