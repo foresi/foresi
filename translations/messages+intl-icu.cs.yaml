@@ -1554,13 +1554,6 @@ invoice:
   month:
     label: Měsíc
     all: Všechny měsíce
-  sums:
-    title: Součty seznamu
-    base: Základ
-    vat: DPH
-    total: Celkem
-    rate: Sazba
-    note: V Kč podle kurzu každého dokladu, za všechny stránky
   rate: '{rate} %'
   errors_title: Fakturu zatím nelze uložit
   cut_off: Formulář byl příliš velký a nedorazil celý, takže se nic neuložilo.

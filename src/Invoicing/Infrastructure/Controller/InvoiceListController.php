@@ -21,8 +21,6 @@ use App\Invoicing\Application\InvoiceRow;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\InvoiceStatus;
 use App\Invoicing\Application\InvoiceStore;
-use App\Invoicing\Application\InvoiceSumLine;
-use App\Invoicing\Application\InvoiceSums;
 use App\Invoicing\Application\InvoicingCountries;
 use App\Invoicing\Application\IssuePaymentTaxDocument;
 use App\Invoicing\Application\IssueRefused;
@@ -47,7 +45,6 @@ use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
-use App\Invoicing\Domain\Percent;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
 use App\Invoicing\Infrastructure\Form\AmountText;
@@ -173,7 +170,6 @@ final class InvoiceListController extends AbstractController
             // The months with a document of the list, and the one asked for, though it has none.
             'months' => ['' => $this->translator->trans('invoice.month.all')] + MonthChoices::of([...$this->months->months($kind, '' === $firm ? null : $firm), ...(null === $month ? [] : [$month])], $this->translator->getLocale()),
             // An empty list adds up to nothing to show, and saves the queries.
-            'sums' => 0 === $page->total ? null : $this->sums($this->list->sums($filter)),
             'filtered' => '' !== $text || '' !== $firm || $toSend || $export instanceof ExportState || null !== $month,
         ]);
     }
@@ -489,30 +485,6 @@ final class InvoiceListController extends AbstractController
         $parameters = array_filter(array_intersect_key($query, array_flip(self::LIST_QUERY)), \is_string(...));
 
         return [self::ROUTES[$kind->value], $parameters];
-    }
-
-    /**
-     * What the list adds up to, as shown under it: a line per treatment and rate, then the totals.
-     *
-     * @return array{total: array{base: string, vat: string, total: string}, lines: list<array{label: string, base: string, vat: string, total: string}>}
-     */
-    private function sums(InvoiceSums $sums): array
-    {
-        return [
-            'total' => [
-                'base' => $this->amounts->shown($sums->base),
-                'vat' => $this->amounts->shown($sums->vat),
-                'total' => $this->amounts->shown($sums->total),
-            ],
-            'lines' => array_map(fn (InvoiceSumLine $line): array => [
-                'label' => $line->rate instanceof Percent
-                    ? $this->translator->trans('invoice.rate', ['rate' => $this->amounts->trimmed($line->rate->decimal())])
-                    : $this->translator->trans('invoice.vat.'.$line->treatment->value),
-                'base' => $this->amounts->shown($line->base),
-                'vat' => $this->amounts->shown($line->vat),
-                'total' => $this->amounts->shown($line->total),
-            ], $sums->lines),
-        ];
     }
 
     /**
