@@ -11,6 +11,7 @@ namespace App\Tests\Webhooks\Infrastructure\Controller;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
+use App\Party\Infrastructure\Events\PartyEventAccess;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
@@ -191,23 +192,29 @@ final class WebhookEndpointControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->stored();
-        // The person no longer works with invoices: the module's access service says no.
-        self::getContainer()->set(InvoicingEventAccess::class, new class implements EventReadAccess {
-            public function module(): string
-            {
-                return 'invoicing';
-            }
+        // The person no longer works with invoices or contacts: the access services of the modules say no.
+        foreach ([InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party'] as $service => $module) {
+            self::getContainer()->set($service, new readonly class($module) implements EventReadAccess {
+                public function __construct(private string $module)
+                {
+                }
 
-            public function mayRead(): bool
-            {
-                return false;
-            }
+                public function module(): string
+                {
+                    return $this->module;
+                }
 
-            public function mayUserRead(string $userId): bool
-            {
-                return false;
-            }
-        });
+                public function mayRead(): bool
+                {
+                    return false;
+                }
+
+                public function mayUserRead(string $userId): bool
+                {
+                    return false;
+                }
+            });
+        }
 
         $crawler = $this->client->request('GET', '/');
         self::assertNotContains('/settings/webhooks', $crawler->filter('#sidebar a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));

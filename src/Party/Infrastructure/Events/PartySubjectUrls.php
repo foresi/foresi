@@ -29,6 +29,6 @@ final readonly class PartySubjectUrls implements EventSubjectUrl
 
     public function url(EventSubject $subject): ?string
     {
-        return 'contact' === $subject->type ? $this->urls->generate(ContactApiController::SHOW, ['id' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH) : null;
+        return 'contact' === $subject->type ? $this->urls->generate(ContactApiController::SHOW, ['contactId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH) : null;
     }
 }

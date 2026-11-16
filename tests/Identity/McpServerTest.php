@@ -24,11 +24,14 @@ final class McpServerTest extends ApiTestCase
 {
     /** Every tool the server offers, by name. */
     private const array TOOLS = [
+        'foresi_archive_contact',
+        'foresi_create_contact',
         'foresi_create_webhook_endpoint',
         'foresi_delete_webhook_endpoint',
         'foresi_get_contact',
         'foresi_get_invoice',
         'foresi_get_payment',
+        'foresi_link_contact_person',
         'foresi_list_event_types',
         'foresi_list_events',
         'foresi_list_firms',
@@ -36,20 +39,29 @@ final class McpServerTest extends ApiTestCase
         'foresi_list_webhook_deliveries',
         'foresi_list_webhook_endpoints',
         'foresi_redeliver_webhook',
+        'foresi_restore_contact',
         'foresi_rotate_webhook_secret',
         'foresi_search_contacts',
         'foresi_search_invoices',
         'foresi_search_payments',
+        'foresi_unlink_contact_person',
+        'foresi_update_contact',
         'foresi_update_webhook_endpoint',
         'foresi_whoami',
     ];
 
     /** The tools that change data, with whether they destroy: every other tool only reads. */
     private const array WRITE_TOOLS = [
+        'foresi_archive_contact' => false,
+        'foresi_create_contact' => false,
         'foresi_create_webhook_endpoint' => false,
         'foresi_delete_webhook_endpoint' => true,
+        'foresi_link_contact_person' => false,
         'foresi_redeliver_webhook' => false,
+        'foresi_restore_contact' => false,
         'foresi_rotate_webhook_secret' => true,
+        'foresi_unlink_contact_person' => false,
+        'foresi_update_contact' => false,
         'foresi_update_webhook_endpoint' => false,
     ];
 
@@ -168,6 +180,33 @@ final class McpServerTest extends ApiTestCase
         sort($names);
 
         self::assertSame(['foresi_get_contact', 'foresi_list_firms', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+    }
+
+    public function testAContactsWriteTokenListsTheContactToolsAlone(): void
+    {
+        $this->secret = $this->issued([ApiScope::from('contacts:write')]);
+
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+        $tools = $this->in($this->rpc('tools/list'), 'result', 'tools');
+        self::assertIsArray($tools);
+        $names = array_column($tools, 'name');
+        sort($names);
+
+        // contacts:write grants contacts:read, and nothing of invoices, payments, events or webhooks.
+        self::assertSame([
+            'foresi_archive_contact',
+            'foresi_create_contact',
+            'foresi_get_contact',
+            'foresi_link_contact_person',
+            'foresi_list_firms',
+            'foresi_list_modules',
+            'foresi_restore_contact',
+            'foresi_search_contacts',
+            'foresi_unlink_contact_person',
+            'foresi_update_contact',
+            'foresi_whoami',
+        ], $names);
     }
 
     public function testAToolOutsideTheScopesOfTheTokenGetsAnErrorResult(): void
