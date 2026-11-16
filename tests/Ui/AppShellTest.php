@@ -11,6 +11,8 @@ namespace App\Tests\Ui;
 use App\Tenancy\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
+use App\Ui\Navigation\NavigationEntry;
+use App\Ui\Navigation\NavigationRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -66,6 +68,24 @@ final class AppShellTest extends WebTestCase
         $current = $crawler->filter('#sidebar [aria-current="page"]');
         self::assertSame('/', $current->attr('href'));
         self::assertSelectorTextContains('#sidebar [aria-current="page"]', 'Dashboard');
+    }
+
+    public function testEveryNavigationItemSitsInExactlyOneArea(): void
+    {
+        $this->browser->seed(['Tenant A']);
+        $this->browser->signIn();
+        $this->client->request('GET', '/');
+
+        $registry = self::getContainer()->get(NavigationRegistry::class);
+        $all = self::entries($registry->groups('app_dashboard', false));
+        $areas = $registry->areas('app_dashboard', false);
+        $inAreas = array_merge(...array_map(static fn (array $area): array => self::entries($area['groups']), $areas));
+
+        self::assertGreaterThan(15, \count($all), 'The owner should see the full navigation.');
+        sort($all);
+        sort($inAreas);
+        self::assertSame($all, $inAreas);
+        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
     }
 
     public function testARegisteredProviderItemAppearsInTheExtensionsGroupWithItsCount(): void
@@ -219,5 +239,15 @@ final class AppShellTest extends WebTestCase
         $this->client->followRedirect();
 
         self::assertSelectorExists('[role="alert"]');
+    }
+
+    /**
+     * @param list<array{key: string, labelKey: string, items: list<NavigationEntry>}> $groups
+     *
+     * @return list<string>
+     */
+    private static function entries(array $groups): array
+    {
+        return array_merge(...array_map(static fn (array $group): array => array_map(static fn (NavigationEntry $entry): string => $entry->labelKey.' '.$entry->route, $group['items']), $groups));
     }
 }

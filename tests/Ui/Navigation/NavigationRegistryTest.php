@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Ui\Navigation;
 
+use App\Ui\Navigation\CoreNavigationAreas;
+use App\Ui\Navigation\NavigationArea;
+use App\Ui\Navigation\NavigationAreaProvider;
 use App\Ui\Navigation\NavigationCountProvider;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
@@ -19,10 +22,10 @@ final class NavigationRegistryTest extends TestCase
     public function testGroupsComeInTheFixedOrderWhateverTheRegistrationOrder(): void
     {
         $registry = $this->registry(
-            new NavigationItem('extensions', 'e', 'plug', 'r_e'),
+            new NavigationItem('extensions', 'e', 'plug', 'r_e', area: 'extensions'),
             new NavigationItem('work', 'w', 'check', 'r_w'),
             new NavigationItem('contacts', 'c', 'users', 'r_c'),
-            new NavigationItem('money', 'm', 'landmark', 'r_m'),
+            new NavigationItem('money', 'm', 'landmark', 'r_m', area: 'money'),
             new NavigationItem('sales', 's', 'target', 'r_s'),
             new NavigationItem('main', 'a', 'layout-grid', 'r_a'),
             new NavigationItem('settings', 'x', 'settings', 'r_x'),
@@ -33,7 +36,7 @@ final class NavigationRegistryTest extends TestCase
 
     public function testEmptyGroupsAreLeftOut(): void
     {
-        $groups = $this->registry(new NavigationItem('money', 'm', 'landmark', 'r_m'))->groups(null, true);
+        $groups = $this->registry(new NavigationItem('money', 'm', 'landmark', 'r_m', area: 'money'))->groups(null, true);
 
         self::assertCount(1, $groups);
         self::assertSame('money', $groups[0]['key']);
@@ -185,6 +188,135 @@ final class NavigationRegistryTest extends TestCase
         new NavigationItem('main', 'a', 'plus', '');
     }
 
+    public function testCoreProvidesSixBusinessAreasAndSettings(): void
+    {
+        $areas = iterator_to_array(new CoreNavigationAreas()->areas(), false);
+
+        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings'], array_map(static fn (NavigationArea $a): string => $a->id, $areas));
+        self::assertSame(['layout-grid', 'trending-up', 'shopping-bag', 'landmark', 'users', 'square-kanban', 'settings'], array_map(static fn (NavigationArea $a): string => $a->icon, $areas));
+        self::assertSame('nav.area.sales', $areas[1]->labelKey);
+        self::assertSame('nav.area_caption.sales', $areas[1]->captionKey);
+    }
+
+    public function testAGroupThatMapsToOneAreaGivesTheAreaOnItsOwn(): void
+    {
+        self::assertSame(
+            ['overview', 'sales', 'contacts', 'projects', 'settings'],
+            array_map(static fn (string $group): string => new NavigationItem($group, 'a', 'plus', 'r1')->area, ['main', 'sales', 'contacts', 'work', 'settings']),
+        );
+        self::assertSame('purchasing', new NavigationItem('money', 'a', 'plus', 'r1', area: 'purchasing')->area);
+    }
+
+    public function testAnItemOfAGroupThatSpansAreasMustNameItsArea(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('A navigation item in group "money" needs an area.');
+
+        new NavigationItem('money', 'a', 'plus', 'r1');
+    }
+
+    public function testAMalformedAreaIdIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NavigationItem('main', 'a', 'plus', 'r1', area: 'Not An Id');
+    }
+
+    public function testAnAreaWithAMalformedIdIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NavigationArea('Sales', 'l', 'c', 'plus');
+    }
+
+    public function testAnAreaWithAnIconOutsideTheLockedSetIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NavigationArea('sales', 'l', 'c', 'no-such-icon');
+    }
+
+    public function testItemsAreGroupedByAreaWithTheirGroupsAsSections(): void
+    {
+        $areas = $this->areaRegistry(
+            new NavigationItem('money', 'bank', 'landmark', 'r_bank', area: 'money'),
+            new NavigationItem('money', 'costs', 'file-text', 'r_costs', area: 'purchasing'),
+            new NavigationItem('sales', 'invoices', 'receipt-text', 'r_inv'),
+            new NavigationItem('main', 'dashboard', 'layout-grid', 'r_dash'),
+            new NavigationItem('main', 'notifications', 'inbox', 'r_notif'),
+            new NavigationItem('settings', 'people', 'user', 'r_people'),
+        )->areas('r_costs', true);
+
+        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
+        self::assertSame(['main'], array_map(static fn (array $g): string => $g['key'], $areas[0]['groups']));
+        self::assertSame(['dashboard', 'notifications'], array_map(static fn (\App\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[0]['groups'][0]['items']));
+        self::assertSame(['costs'], array_map(static fn (\App\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[2]['groups'][0]['items']));
+        self::assertSame([false, false, true, false, false], array_map(static fn (array $a): bool => $a['current'], $areas));
+    }
+
+    public function testAreasWithoutItemsAreLeftOut(): void
+    {
+        $areas = $this->areaRegistry(new NavigationItem('main', 'shared', 'share-2', 'r1'))->areas(null, true);
+
+        self::assertSame(['overview'], array_map(static fn (array $a): string => $a['area']->id, $areas));
+        self::assertFalse($areas[0]['current']);
+    }
+
+    public function testAreasComeByWeightWithSettingsAlwaysLast(): void
+    {
+        $registry = new NavigationRegistry(
+            [$this->provider(
+                new NavigationItem('settings', 's', 'settings', 'r1'),
+                new NavigationItem('extensions', 'b', 'puzzle', 'r2', area: 'late'),
+                new NavigationItem('extensions', 'a', 'puzzle', 'r3', area: 'early'),
+            )],
+            [$this->areas(
+                new NavigationArea('settings', 'l', 'c', 'settings', 1),
+                new NavigationArea('late', 'l', 'c', 'puzzle', 50),
+                new NavigationArea('early', 'l', 'c', 'puzzle', 5),
+            )],
+        );
+
+        self::assertSame(['early', 'late', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $registry->areas(null, true)));
+    }
+
+    public function testAnItemInAnUnregisteredAreaFailsLoudly(): void
+    {
+        $registry = $this->areaRegistry(new NavigationItem('extensions', 'orphan', 'puzzle', 'r1', area: 'nowhere'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('Navigation item "orphan" names the area "nowhere", which no provider registers.');
+
+        $registry->areas(null, true);
+    }
+
+    public function testAnAreaRegisteredTwiceFailsLoudly(): void
+    {
+        $registry = new NavigationRegistry([], [new CoreNavigationAreas(), $this->areas(new NavigationArea('sales', 'l', 'c', 'plus'))]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('Navigation area "sales" is registered twice.');
+
+        $registry->areas(null, true);
+    }
+
+    public function testCountsAreEvaluatedOnceAndSkippedWithoutATenantInAreasToo(): void
+    {
+        $counter = new class implements NavigationCountProvider {
+            public int $calls = 0;
+
+            public function count(): int
+            {
+                return ++$this->calls;
+            }
+        };
+        $registry = $this->areaRegistry(new NavigationItem('main', 'a', 'inbox', 'r1', $counter));
+
+        self::assertNull($registry->areas(null, false)[0]['groups'][0]['items'][0]->count);
+        self::assertSame(0, $counter->calls);
+        self::assertSame(1, $registry->areas(null, true)[0]['groups'][0]['items'][0]->count);
+    }
+
     private function registry(NavigationItem ...$items): NavigationRegistry
     {
         return new NavigationRegistry([$this->provider(...$items)]);
@@ -203,6 +335,28 @@ final class NavigationRegistryTest extends TestCase
             public function items(): iterable
             {
                 return $this->items;
+            }
+        };
+    }
+
+    private function areaRegistry(NavigationItem ...$items): NavigationRegistry
+    {
+        return new NavigationRegistry([$this->provider(...$items)], [new CoreNavigationAreas()]);
+    }
+
+    private function areas(NavigationArea ...$areas): NavigationAreaProvider
+    {
+        return new readonly class(array_values($areas)) implements NavigationAreaProvider {
+            /**
+             * @param list<NavigationArea> $areas
+             */
+            public function __construct(private array $areas)
+            {
+            }
+
+            public function areas(): iterable
+            {
+                return $this->areas;
             }
         };
     }

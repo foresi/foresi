@@ -10,6 +10,8 @@ namespace App\Party\Infrastructure\Navigation;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Ui\Navigation\CoreNavigationAreas;
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -28,9 +30,9 @@ final readonly class PartyNavigation implements NavigationItemProvider
         if (!$this->staff->isStaff()) {
             return;
         }
-        yield new NavigationItem('contacts', 'nav.item.contacts', 'users', 'app_contacts', $this->count, weight: 10, routePrefixes: ['app_contact']);
+        yield new NavigationItem('contacts', 'nav.item.contacts', 'users', 'app_contacts', $this->count, weight: 10, routePrefixes: ['app_contact'], area: CoreNavigationAreas::CONTACTS);
         if ($this->owner->isOwner()) {
-            yield new NavigationItem('settings', 'nav.item.firms', 'building-2', 'app_firm_index', weight: 10, routePrefixes: ['app_firm', 'app_series']);
+            yield new NavigationItem('settings', 'nav.item.firms', 'building-2', 'app_firm_index', weight: 10, routePrefixes: ['app_firm', 'app_series'], area: NavigationArea::SETTINGS);
         }
     }
 }

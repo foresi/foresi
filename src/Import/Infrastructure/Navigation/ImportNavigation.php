@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Import\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 
@@ -25,7 +26,7 @@ final readonly class ImportNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.import', 'upload', 'app_imports', weight: 20, routePrefixes: ['app_import']);
+            yield new NavigationItem('settings', 'nav.item.import', 'upload', 'app_imports', weight: 20, routePrefixes: ['app_import'], area: NavigationArea::SETTINGS);
         }
     }
 }

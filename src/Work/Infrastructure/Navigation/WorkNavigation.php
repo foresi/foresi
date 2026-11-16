@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Ui\Navigation\CoreNavigationAreas;
+use App\Ui\Navigation\NavigationArea;
 use App\Ui\Navigation\NavigationItem;
 use App\Ui\Navigation\NavigationItemProvider;
 use App\Work\Infrastructure\Controller\LabelController;
@@ -38,15 +40,15 @@ final readonly class WorkNavigation implements NavigationItemProvider
 
     public function items(): iterable
     {
-        yield new NavigationItem('main', 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP);
+        yield new NavigationItem('main', 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP, area: CoreNavigationAreas::OVERVIEW);
         if (!$this->staff->isStaff()) {
-            yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE]);
+            yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE], area: CoreNavigationAreas::PROJECTS);
 
             return;
         }
-        yield new NavigationItem('work', 'nav.item.projects', 'columns-3', 'app_projects', weight: 10, routePrefixes: ['app_project', 'app_task']);
-        yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE]);
-        yield new NavigationItem('work', 'nav.item.time', 'clock-3', TimeWeekController::ROUTE, weight: 30, routePrefixes: [TimeWeekController::ROUTE.'_report', TimeWeekController::ROUTE.'_new']);
-        yield new NavigationItem('settings', 'nav.item.labels', 'tag', LabelController::ROUTE, weight: 15, routePrefixes: ['app_label']);
+        yield new NavigationItem('work', 'nav.item.projects', 'columns-3', 'app_projects', weight: 10, routePrefixes: ['app_project', 'app_task'], area: CoreNavigationAreas::PROJECTS);
+        yield new NavigationItem('work', 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE], area: CoreNavigationAreas::PROJECTS);
+        yield new NavigationItem('work', 'nav.item.time', 'clock-3', TimeWeekController::ROUTE, weight: 30, routePrefixes: [TimeWeekController::ROUTE.'_report', TimeWeekController::ROUTE.'_new'], area: CoreNavigationAreas::PROJECTS);
+        yield new NavigationItem('settings', 'nav.item.labels', 'tag', LabelController::ROUTE, weight: 15, routePrefixes: ['app_label'], area: NavigationArea::SETTINGS);
     }
 }
