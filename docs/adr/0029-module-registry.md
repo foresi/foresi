@@ -55,7 +55,7 @@ The root `composer.json` adds a path repository over `src/*` and requires every 
 
 ### Later
 
-Public contracts in a `Contract/` namespace per module, which other modules will be limited to, come with the next steps, as do conditional loading of integration code for optional dependencies and ordering migrations by the graph.
+Public contracts in a `Contract/` namespace per module (the event catalogue of ADR 0030 reads `Contract/Event` of the installed modules), which other modules will be limited to, come with the next steps, as do conditional loading of integration code for optional dependencies and ordering migrations by the graph.
 
 ### Consequences
 

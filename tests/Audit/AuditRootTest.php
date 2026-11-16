@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Audit;
 
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Domain\Membership;
@@ -135,8 +136,8 @@ final class AuditRootTest extends KernelTestCase
         // Two sources, every moment twice, more than the limit in each.
         for ($i = 0; $i < 120; ++$i) {
             $at = $start->modify('+'.$i.' minutes');
-            $this->em->persist(new AuditEntry(Party::class, $person->id(), AuditAction::Updated, [], null, $at));
-            $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, [], null, $at, null, Party::class, 'the-company'));
+            $this->em->persist(new AuditEntry(Party::class, $person->id(), AuditAction::Updated, [], null, ActorKind::System, $at));
+            $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, [], null, ActorKind::System, $at, null, Party::class, 'the-company'));
         }
         $this->em->flush();
         $this->em->clear();
@@ -157,7 +158,7 @@ final class AuditRootTest extends KernelTestCase
     public function testAnEntryFoundBothWaysIsInTheHistoryOnce(): void
     {
         [$person, $link] = $this->linkedPerson();
-        $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, ['position' => ['a', 'b']], null, new \DateTimeImmutable('2030-01-01 12:00:00'), null, Party::class, $person->id()));
+        $this->em->persist(new AuditEntry(ContactLink::class, $link->id(), AuditAction::Updated, ['position' => ['a', 'b']], null, ActorKind::System, new \DateTimeImmutable('2030-01-01 12:00:00'), null, Party::class, $person->id()));
         $this->em->flush();
         $this->em->clear();
 

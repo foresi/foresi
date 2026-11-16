@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Audit\Domain;
 
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Shared\Domain\Id;
@@ -19,7 +20,7 @@ final class AuditEntryTest extends TestCase
     public function testExposesWhatItWasCreatedWith(): void
     {
         $at = new \DateTimeImmutable('2026-10-29T10:00:00+00:00');
-        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], '019a0000-0000-7000-8000-000000000003', $at);
+        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, ['name' => ['a', 'b']], '019a0000-0000-7000-8000-000000000003', ActorKind::User, $at);
 
         self::assertTrue(Id::isValid($entry->id()));
         self::assertSame('App\\Thing', $entry->entityClass());
@@ -27,13 +28,14 @@ final class AuditEntryTest extends TestCase
         self::assertSame(AuditAction::Updated, $entry->action());
         self::assertSame(['name' => ['a', 'b']], $entry->changes());
         self::assertSame('019a0000-0000-7000-8000-000000000003', $entry->userId());
+        self::assertSame(ActorKind::User, $entry->actorKind());
         self::assertSame($at, $entry->occurredAt());
         self::assertNull($entry->apiTokenId());
     }
 
     public function testKeepsThePersonalApiTokenOfTheChange(): void
     {
-        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, [], '019a0000-0000-7000-8000-000000000003', new \DateTimeImmutable(), null, null, null, '019a0000-0000-7000-8000-0000000000aa');
+        $entry = new AuditEntry('App\\Thing', '7', AuditAction::Updated, [], '019a0000-0000-7000-8000-000000000003', ActorKind::User, new \DateTimeImmutable(), null, null, null, '019a0000-0000-7000-8000-0000000000aa');
 
         self::assertSame('019a0000-0000-7000-8000-0000000000aa', $entry->apiTokenId());
     }
@@ -41,7 +43,7 @@ final class AuditEntryTest extends TestCase
     public function testTenantIsStampedOnPersist(): void
     {
         $this->expectException(\LogicException::class);
-        new AuditEntry('App\\Thing', '7', AuditAction::Created, [], null, new \DateTimeImmutable())->tenantId();
+        new AuditEntry('App\\Thing', '7', AuditAction::Created, [], null, ActorKind::System, new \DateTimeImmutable())->tenantId();
     }
 
     /**
@@ -51,7 +53,7 @@ final class AuditEntryTest extends TestCase
     public function testRejectsIncompleteEntries(string $class, string $id, array $changes): void
     {
         $this->expectException(\DomainException::class);
-        new AuditEntry($class, $id, AuditAction::Created, $changes, null, new \DateTimeImmutable());
+        new AuditEntry($class, $id, AuditAction::Created, $changes, null, ActorKind::System, new \DateTimeImmutable());
     }
 
     /**

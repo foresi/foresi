@@ -73,6 +73,28 @@ final class ReadToolCallTest extends TestCase
         self::assertNull($tool->arguments);
     }
 
+    public function testAWriteToolNeedsTheWriteScope(): void
+    {
+        $tool = new FakeWriteTool(output: new ToolOutput(['done' => true], 'Done.'));
+
+        $result = $this->call($tool, ['id' => 'x']);
+
+        self::assertFalse($result->isError);
+        self::assertSame([ScopeGuard::WRITE], $this->scopes->asked);
+        self::assertSame(['id' => 'x'], $tool->arguments);
+    }
+
+    public function testWriteToolRefusedWithReadScope(): void
+    {
+        $this->scopes->refuse = true;
+        $tool = new FakeWriteTool();
+
+        $result = $this->call($tool, []);
+
+        $this->assertRefused($result, 'insufficient_scope', 'The token does not have the "write" scope.');
+        self::assertNull($tool->arguments);
+    }
+
     public function testACallerWhoMayNoLongerActIsRefusedBeforeTheScope(): void
     {
         $this->caller->refusal = new ToolRefusal('token_revoked', 'The token was revoked.');
@@ -138,7 +160,7 @@ final class ReadToolCallTest extends TestCase
     /**
      * @param array<string, mixed> $arguments
      */
-    private function call(FakeReadTool $tool, array $arguments): CallToolResult
+    private function call(FakeReadTool|FakeWriteTool $tool, array $arguments): CallToolResult
     {
         return new ReadToolCall($this->caller, $this->scopes, $this->logger)($tool, $arguments);
     }

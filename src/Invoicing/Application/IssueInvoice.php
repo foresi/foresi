@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Contract\Event\InvoiceIssued;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceChange;
@@ -23,6 +24,7 @@ use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
+use App\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -36,6 +38,8 @@ use Psr\Clock\ClockInterface;
  * the number is known and records itself in the same transaction; when it refuses,
  * nothing is stored. Each retry asks it again. A person's form that bills the work
  * of another module, such as time, is issued by that module's origin (BilledWork).
+ * Once everything is written, the same transaction records that the document was
+ * issued.
  */
 final readonly class IssueInvoice
 {
@@ -58,6 +62,7 @@ final readonly class IssueInvoice
         private AdvanceDeductions $deductions,
         private CorrectionRules $corrections,
         private BilledWork $billedWork,
+        private EventRecorder $events,
     ) {
     }
 
@@ -99,6 +104,19 @@ final readonly class IssueInvoice
                 $this->contacts->makeCustomer($party, $firm);
                 $origin?->recordIn($invoice, $lines);
                 $this->corrections->claim($input, null, $regime, $this->countries->for($firm->address()->countryCode));
+                $this->events->record(new InvoiceIssued(
+                    $invoice->id(),
+                    EventFacts::kind($invoice->kind()),
+                    $invoice->number(),
+                    $series->id(),
+                    $firm->id(),
+                    $party->id(),
+                    $invoice->currency()->value,
+                    EventFacts::amount($invoice->gross()),
+                    EventFacts::day($invoice->issueDate()),
+                    EventFacts::day($invoice->dueDate()),
+                    $invoice->correctedInvoiceId(),
+                ));
 
                 return $invoice;
             });

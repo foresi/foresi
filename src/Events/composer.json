@@ -1,0 +1,19 @@
+{
+    "name": "foresi/events",
+    "description": "Domain events: the catalogue of contract events, their recording and delivery.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "require": {
+        "foresi/shared": "*",
+        "foresi/tenancy": "*",
+        "foresi/audit": "*"
+    },
+    "extra": {
+        "foresi": {
+            "module": "events",
+            "kind": "core",
+            "namespace": "App\\Events\\",
+            "optional": []
+        }
+    }
+}

@@ -42,6 +42,31 @@ final class ReadToolLoaderTest extends TestCase
         self::assertTrue($registry->hasTool('foresi_two'));
     }
 
+    public function testEachWriteToolIsRegisteredAsNotReadOnly(): void
+    {
+        $registry = new Registry();
+        $loader = new ReadToolLoader([new FakeReadTool('foresi_read')], new ReadToolCall(new FakeCaller(), new FakeScopes(), new RecordingLogger()), [
+            new FakeWriteTool('foresi_change'),
+            new FakeWriteTool('foresi_delete', destructive: true),
+        ]);
+
+        $loader->load($registry);
+
+        self::assertEquals(new ToolAnnotations('Fake tool', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false), $registry->getTool('foresi_read')->tool->annotations);
+        self::assertEquals(new ToolAnnotations('Fake tool', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false), $registry->getTool('foresi_change')->tool->annotations);
+        self::assertEquals(new ToolAnnotations('Fake tool', readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false), $registry->getTool('foresi_delete')->tool->annotations);
+    }
+
+    public function testAWriteToolOfAReadToolsNameIsRefused(): void
+    {
+        $loader = new ReadToolLoader([new FakeReadTool('foresi_one')], new ReadToolCall(new FakeCaller(), new FakeScopes(), new RecordingLogger()), [new FakeWriteTool('foresi_one')]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('Two MCP tools are named "foresi_one".');
+
+        $loader->load(new Registry());
+    }
+
     public function testTheHandlerPassesTheArgumentsOfTheRequest(): void
     {
         $registry = new Registry();

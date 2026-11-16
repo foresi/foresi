@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The plain text of the e-mail to the owner of a disabled webhook endpoint; the system mail layout adds the footer. #}
+{% autoescape false %}
+{{ reason }}
+
+{{ 'webhooks.disabled_mail.pending'|trans({}, null, locale) }}
+
+{{ 'webhooks.disabled_mail.open'|trans({}, null, locale) }}:
+{{ endpointUrl }}
+{% endautoescape %}

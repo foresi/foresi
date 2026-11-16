@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Changes an endpoint: its address, description, events and version. A dialog over the endpoint; the
+    same URL is a page of its own. Saving goes back to the endpoint. Variables: endpoint, title, values,
+    errors, modules.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title, href: path('app_webhook', {id: endpoint.id})}, {label: 'webhooks.edit'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'webhooks.edit'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="webhook-form" action="{{ path('app_webhook_edit', {id: endpoint.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
+        {% include 'webhooks/_fields.html.twig' %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="webhook-form" variant="primary">{{ 'webhooks.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'webhooks.edit'|trans" icon="pencil" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_webhook', {id: endpoint.id})">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="webhook-form" variant="primary">{{ 'webhooks.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

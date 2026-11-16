@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Import\Application;
 
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Import\Application\CancelImport;
@@ -779,7 +780,7 @@ final class PipelineTest extends KernelTestCase
 
         // Someone edits a record after the import.
         $this->target->records[$edited]['values']['name'] = 'Edited by hand';
-        $this->em->persist(new AuditEntry(FakeTarget::class, $edited, AuditAction::Updated, ['name' => ['Name 2', 'Edited by hand']], '019a0000-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-10-01 10:30:00')));
+        $this->em->persist(new AuditEntry(FakeTarget::class, $edited, AuditAction::Updated, ['name' => ['Name 2', 'Edited by hand']], '019a0000-0000-7000-8000-000000000001', ActorKind::User, new \DateTimeImmutable('2026-10-01 10:30:00')));
         $this->em->flush();
         self::mockTime('2026-10-20 10:00:00');
 

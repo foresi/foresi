@@ -19,6 +19,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Country\\.*
+    - name: events
+      collectors:
+        - type: classLike
+          value: ^App\\Events\\.*
     - name: exchange_rate
       collectors:
         - type: classLike
@@ -63,6 +67,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^App\\Ui\\.*
+    - name: webhooks
+      collectors:
+        - type: classLike
+          value: ^App\\Webhooks\\.*
     - name: work
       collectors:
         - type: classLike
@@ -90,6 +98,10 @@ deptrac:
       - invoicing
       - party
       - shared
+    events:
+      - audit
+      - shared
+      - tenancy
     exchange_rate:
       - tenancy
     identity:
@@ -148,6 +160,13 @@ deptrac:
       - work
     ui:
       - shared
+    webhooks:
+      - audit
+      - events
+      - identity
+      - shared
+      - tenancy
+      - ui
     work:
       - attachment
       - audit

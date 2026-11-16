@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Rotates the signing secret of an endpoint: how long the current one keeps signing beside the new
+    one, so the receiver can switch over. A dialog over the endpoint; the same URL is a page of its own.
+    The form answers with the dialog that shows the new secret once.
+    Variables: endpoint, title, hours, errors, options.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title, href: path('app_webhook', {id: endpoint.id})}, {label: 'webhooks.rotate.title'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'webhooks.rotate.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {# The answer is the page with the secret, which Turbo would refuse as a form answer without a redirect. #}
+    <form method="post" id="webhook-rotate-form" action="{{ path('app_webhook_rotate', {id: endpoint.id}) }}" class="grid gap-4" data-turbo="false" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
+        {% if errors.form is defined %}<twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>{% endif %}
+        <p class="m-0 text-text">{{ 'webhooks.rotate.text'|trans({host: endpoint.url.host}) }}</p>
+        <twig:Ui:Select name="keep_previous_hours" id="keep-previous-hours" :label="'webhooks.rotate.field'|trans" :help="'webhooks.rotate.help'|trans" :options="options" :value="hours" :error="errors.keep_previous_hours|default(null)" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="webhook-rotate-form" variant="primary" icon="refresh-cw">{{ 'webhooks.action.rotate'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'webhooks.rotate.title'|trans" icon="refresh-cw" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_webhook', {id: endpoint.id})">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="webhook-rotate-form" variant="primary" icon="refresh-cw">{{ 'webhooks.action.rotate'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

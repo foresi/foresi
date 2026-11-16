@@ -28,6 +28,8 @@ use App\Invoicing\Application\UndrawableDocument;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Application\UnknownInvoiceSend;
 use App\Invoicing\Application\UnsupportedCountry;
+use App\Invoicing\Contract\Event\DeliveryChannel;
+use App\Invoicing\Contract\Event\InvoiceDelivered;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
@@ -38,6 +40,7 @@ use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\TransactionalWork;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\PartyEmail;
+use App\Shared\Application\Event\EventRecorder;
 use Doctrine\ORM\EntityNotFoundException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -108,6 +111,7 @@ final readonly class DeliverInvoiceSendHandler
         private ReminderSettings $reminders,
         private ContactSettingsForFirm $contacts,
         private SendDraft $drafts,
+        private EventRecorder $events,
     ) {
     }
 
@@ -291,7 +295,8 @@ final readonly class DeliverInvoiceSendHandler
 
     /**
      * Marks the invoice delivered by a send the server accepted, unless it is
-     * delivered already or went to the trash meanwhile.
+     * delivered already or went to the trash meanwhile; only the first delivery is
+     * recorded as an event.
      *
      * @return InvoiceSend the send as stored now
      */
@@ -306,7 +311,11 @@ final readonly class DeliverInvoiceSendHandler
                     $this->logger->warning('The send {send} went out while its invoice {invoice} went to the trash; the invoice stays there, not delivered.', ['send' => $id, 'invoice' => $invoiceId]);
                 }
             } else {
+                $wasDelivered = $invoice->isDelivered();
                 $invoice->markDelivered($send->sentAt() ?? $this->now());
+                if (!$wasDelivered && $invoice->isDelivered()) {
+                    $this->events->record(new InvoiceDelivered($invoiceId, DeliveryChannel::Email, ($invoice->deliveredAt() ?? $this->now())->format(\DATE_ATOM)));
+                }
             }
             if (!$send->isCopyOwed()) {
                 $send->release();

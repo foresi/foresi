@@ -15,8 +15,9 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * One line of the append-only audit log: who changed which entity, when, and
- * how; through which personal API token, when it was one. Exposes no mutators; the audit listener rejects any update or removal
- * of a persisted entry at flush.
+ * how, and what kind of actor it was; through which personal API token, when
+ * it was one. Exposes no mutators; the audit listener rejects any update or
+ * removal of a persisted entry at flush.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'audit_entry')]
@@ -61,6 +62,8 @@ class AuditEntry implements TenantOwned
         array $changes,
         #[ORM\Column(name: 'user_id', type: 'guid', nullable: true)]
         private ?string $userId,
+        #[ORM\Column(name: 'actor_kind', type: 'string', length: 16, enumType: ActorKind::class, options: ['default' => 'user'])]
+        private ActorKind $actorKind,
         #[ORM\Column(name: 'occurred_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $occurredAt,
         #[ORM\Column(name: 'correlation_id', type: 'string', length: 64, nullable: true)]
@@ -131,6 +134,11 @@ class AuditEntry implements TenantOwned
     public function userId(): ?string
     {
         return $this->userId;
+    }
+
+    public function actorKind(): ActorKind
+    {
+        return $this->actorKind;
     }
 
     public function apiTokenId(): ?string

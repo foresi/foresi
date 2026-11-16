@@ -61,9 +61,9 @@ final class ApiErrorsTest extends TestCase
 
     public function testAStatusWithoutACodeOfItsOwnHasTheGenericOne(): void
     {
-        $response = $this->answer(new HttpException(409, 'Conflict here.'));
+        $response = $this->answer(new HttpException(418, 'Teapot here.'));
 
-        self::assertSame(409, $response->getStatusCode());
+        self::assertSame(418, $response->getStatusCode());
         self::assertSame('http_error', $this->body($response)['code']);
     }
 

@@ -14,8 +14,8 @@ use Mcp\Schema\Result\CallToolResult;
 use Psr\Log\LoggerInterface;
 
 /**
- * Runs one call of a read tool. The caller is confirmed and the read scope
- * checked first. The answer marks everything the tool returns as data: much
+ * Runs one call of a read or a write tool. The caller is confirmed and the
+ * scope checked first: read for a read tool, write for a write tool. The answer marks everything the tool returns as data: much
  * of it was written by people outside the conversation. A refusal goes back
  * as an error result the model can act on; anything unexpected as a generic
  * one, with the details only in the log.
@@ -35,14 +35,15 @@ final readonly class ReadToolCall
     /**
      * @param array<string, mixed> $arguments
      */
-    public function __invoke(ReadTool $tool, array $arguments): CallToolResult
+    public function __invoke(ReadTool|WriteTool $tool, array $arguments): CallToolResult
     {
         try {
             $this->caller->confirm();
+            $scope = $tool instanceof WriteTool ? ScopeGuard::WRITE : ScopeGuard::READ;
             try {
-                $this->scopes->require(ScopeGuard::READ);
+                $this->scopes->require($scope);
             } catch (\DomainException) {
-                throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, 'The token does not have the "read" scope.');
+                throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope.', $scope));
             }
 
             return $this->answer($tool->call($arguments));

@@ -9,9 +9,12 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Invoicing\Contract\Event\InvoiceRestored;
+use App\Invoicing\Contract\Event\InvoiceTrashed;
 use App\Invoicing\Domain\InvalidDeletionReason;
 use App\Invoicing\Domain\Invoice;
 use App\Party\Application\TransactionalWork;
+use App\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -21,7 +24,8 @@ use Psr\Clock\ClockInterface;
  * link back, and sending again makes a new one. A document with payments is not a
  * mistake to bin: they are removed first. A tax document of a cancelled payment
  * stays in the trash. The work an invoice billed, such as time, is free while it
- * is in the trash and billed again on restore.
+ * is in the trash and billed again on restore, synchronously and in the same
+ * transaction as the events of both. The reason is free text, so no event carries it.
  */
 final readonly class TrashInvoice
 {
@@ -35,6 +39,7 @@ final readonly class TrashInvoice
         private ClockInterface $clock,
         private AdvanceDeductions $deductions,
         private BilledWorkRelease $billed,
+        private EventRecorder $events,
     ) {
     }
 
@@ -57,6 +62,7 @@ final readonly class TrashInvoice
             $invoice->trash($now, $this->actor->userId(), $reason);
             $this->deductions->release($invoice);
             $this->billed->released($invoice);
+            $this->events->record(new InvoiceTrashed($invoice->id(), EventFacts::kind($invoice->kind())));
             $this->sends->cancelQueued($invoice, $now);
             $this->sends->revokeAll($invoice, $now);
 
@@ -86,6 +92,7 @@ final readonly class TrashInvoice
             if ($wasTrashed) {
                 $this->reclaim($invoice);
                 $this->billed->reclaim($invoice);
+                $this->events->record(new InvoiceRestored($invoice->id(), EventFacts::kind($invoice->kind())));
             }
 
             return $invoice;

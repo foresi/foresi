@@ -24,6 +24,7 @@
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
         "foresi/country": "dev-main",
+        "foresi/events": "dev-main",
         "foresi/exchange-rate": "dev-main",
         "foresi/identity": "dev-main",
         "foresi/idoklad": "dev-main",
@@ -35,6 +36,7 @@
         "foresi/tenancy": "dev-main",
         "foresi/timesheet": "dev-main",
         "foresi/ui": "dev-main",
+        "foresi/webhooks": "dev-main",
         "foresi/work": "dev-main",
         "league/commonmark": "^2.10",
         "nelmio/api-doc-bundle": "^5.13",
@@ -51,7 +53,7 @@
         "symfony/flex": "^2.12",
         "symfony/framework-bundle": "7.4.*",
         "symfony/html-sanitizer": "7.4.*",
-        "symfony/http-client": "7.4.*",
+        "symfony/http-client": "^7.4.23",
         "symfony/lock": "^7.4.23",
         "symfony/mailer": "7.4.*",
         "symfony/mcp-bundle": "^0.15",
@@ -133,6 +135,7 @@
             "phpstan analyse --memory-limit=1G --ansi"
         ],
         "modules:check": "@php bin/console app:modules:deptrac --check",
+        "events:check": "@php bin/console app:events --check",
         "deptrac": [
             "deptrac analyse --no-progress --ansi",
             "deptrac analyse --config-file=deptrac.modules.yaml --no-progress --ansi"
@@ -156,6 +159,7 @@
             "@lint",
             "@phpstan",
             "@modules:check",
+            "@events:check",
             "@deptrac"
         ],
         "qa": [
@@ -175,6 +179,7 @@
             "accepted-problems": [
                 "core-requires-module:identity>party",
                 "core-requires-module:identity>ui",
+                "core-requires-module:webhooks>ui",
                 "cycle:identity>party>identity"
             ]
         }
@@ -207,6 +212,7 @@
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",
                     "foresi/country": "dev-main",
+                    "foresi/events": "dev-main",
                     "foresi/exchange-rate": "dev-main",
                     "foresi/identity": "dev-main",
                     "foresi/idoklad": "dev-main",
@@ -218,6 +224,7 @@
                     "foresi/tenancy": "dev-main",
                     "foresi/timesheet": "dev-main",
                     "foresi/ui": "dev-main",
+                    "foresi/webhooks": "dev-main",
                     "foresi/work": "dev-main"
                 }
             }

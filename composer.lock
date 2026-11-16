@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c63bc7ce0883d0fd1cfd9047e79208ab",
+    "content-hash": "83fdbd40ff2a06aa1760c9e607facfc2",
     "packages": [
         {
             "name": "brick/math",
@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "ce1fe9940989d29a7fc93d3f6278d075eaedfb5d"
+                "reference": "cac38114ee855901baa258a3658daeaf3fe0fd93"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1634,7 +1634,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "87c4e45e5d8942cbe61e63996413fdde6e7b22b3"
+                "reference": "8c7d090d82f9af9ddfe5ea41fce8d9aea2231a39"
             },
             "require": {
                 "foresi/shared": "*",
@@ -1664,7 +1664,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "c0ce6589ece1cb9e8ed84d5222e38f47b56dddcc"
+                "reference": "8ee703faf1b3561dec56e8a4ad57e57ff7ec2aec"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1699,7 +1699,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "a50e14d5747910bd037fe3461a967cbe3c832700"
+                "reference": "89586661263e3b5c9f7e0891963e3d7e4a3488c7"
             },
             "require": {
                 "foresi/banking": "*",
@@ -1727,12 +1727,43 @@
             }
         },
         {
+            "name": "foresi/events",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Events",
+                "reference": "16f4e11019ef00b16f7785d3b6bf1485cc0ef180"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "events",
+                    "kind": "core",
+                    "namespace": "App\\Events\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Domain events: the catalogue of contract events, their recording and delivery.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/exchange-rate",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "62ba55be5fc8d68039ea3cd08526b2735826b787"
+                "reference": "c3926e0f0bdfe862554e1a82896c2b33e02d4cc1"
             },
             "require": {
                 "foresi/tenancy": "*"
@@ -1761,7 +1792,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "dc42d0411c4e168b122ff222531781323e812ff3"
+                "reference": "48e3db56c381e1e5bf3b48dafbf5563c66e50694"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1794,7 +1825,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "62dd31446c5a6b280a4bfc00a13af8a712a3d058"
+                "reference": "f338a69e0ba8437d928dae00a922159f970f6e2b"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1829,7 +1860,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "11abad27296219e87e4f9bdff251e80b17a68f4b"
+                "reference": "12d1bb543a060c8367ad5208734aa67e494ff347"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1862,7 +1893,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "2d9d8304726d195571b57f829f4c452d4e4e2158"
+                "reference": "a0667d6151f1cd746a5ae602be5c33f9ee74e5c4"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1896,7 +1927,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "809a4365c6109eff573b79b4ff470ffc87c559d9"
+                "reference": "e4d359fc150fc0ee25375f2b3351c8e562e4a5bc"
             },
             "require": {
                 "foresi/audit": "*",
@@ -1930,7 +1961,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "797e39e34d869d700fdf3a92d4e90630f7c96d76"
+                "reference": "2d71f459d28b591b8f148a8a9b853088115eb200"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -1966,7 +1997,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "d4073212fa495d3da161df90159dccf1b2834390"
+                "reference": "e0805a04f992f6d61a9b4643169c032003ba1802"
             },
             "type": "foresi-module",
             "extra": {
@@ -1992,7 +2023,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Tenancy",
-                "reference": "489ac0f62e0b06934e09e82556eddb8659dbd45f"
+                "reference": "118c4e6d9e374cf9116f61008ad94848a50b197f"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2021,7 +2052,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "0f3784ea05349fe203bb0ac6db0aadb84363364c"
+                "reference": "707325a4ea836e0935ff0ca64460d4f473225983"
             },
             "require": {
                 "foresi/audit": "*",
@@ -2056,7 +2087,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "ff24be9e482d89bfcc7227f101f197dc111ae94e"
+                "reference": "0c5b3b74ec0c263b774bd3f90977f52f9957f817"
             },
             "require": {
                 "foresi/shared": "*"
@@ -2080,12 +2111,45 @@
             }
         },
         {
+            "name": "foresi/webhooks",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Webhooks",
+                "reference": "253a45a52f6d535a0fdb59ff1dc8f42e501c1fa6"
+            },
+            "require": {
+                "foresi/audit": "*",
+                "foresi/events": "*",
+                "foresi/identity": "*",
+                "foresi/shared": "*",
+                "foresi/tenancy": "*"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "webhooks",
+                    "kind": "core",
+                    "namespace": "App\\Webhooks\\",
+                    "optional": []
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Outbound webhooks: endpoints that receive the domain events as signed Standard Webhooks requests.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/work",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "8d5015edecbeb77f3614f8de3dd3d38b145e8d3b"
+                "reference": "b6deb10775d6d9347637197b27c6a091b4d01e18"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -18324,6 +18388,7 @@
         "foresi/audit": 20,
         "foresi/banking": 20,
         "foresi/country": 20,
+        "foresi/events": 20,
         "foresi/exchange-rate": 20,
         "foresi/identity": 20,
         "foresi/idoklad": 20,
@@ -18335,6 +18400,7 @@
         "foresi/tenancy": 20,
         "foresi/timesheet": 20,
         "foresi/ui": 20,
+        "foresi/webhooks": 20,
         "foresi/work": 20
     },
     "prefer-stable": true,

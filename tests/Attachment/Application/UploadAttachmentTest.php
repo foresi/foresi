@@ -19,6 +19,7 @@ use App\Attachment\Application\UploadAttachment;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
+use App\Audit\Domain\ActorKind;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
 use App\Tenancy\Application\TenantScope;
@@ -328,6 +329,11 @@ final class UploadAttachmentTest extends TestCase
             public function userId(): ?string
             {
                 return $this->id;
+            }
+
+            public function kind(): ActorKind
+            {
+                return null === $this->id ? ActorKind::System : ActorKind::User;
             }
         };
     }

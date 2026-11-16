@@ -1,0 +1,36 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The attempts of one delivery: when, what asked for it, the status the receiver answered with, how
+    long it took and a short error. A dialog over the endpoint; the same URL is a page of its own.
+    Variables: endpoint, title, event, columns, rows.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: title, href: path('app_webhook', {id: endpoint.id})}, {label: 'webhooks.attempt.title'|trans}] %}
+{% set dialog_size = 'lg' %}
+{% set dialog_fields = false %}
+{% set dialog_description = event %}
+
+{% block title %}{{ 'webhooks.attempt.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div data-webhook-attempts>
+        <twig:Ui:DataTable :caption="'webhooks.attempt.title'|trans" :columns="columns" :rows="rows">
+            <twig:block name="empty">
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'webhooks.attempt.empty'|trans }}</p>
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button variant="primary" data-action="dialog#dismiss">{{ 'webhooks.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'webhooks.attempt.title'|trans" icon="history">
+        <p class="mb-3 text-muted">{{ event }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+{% endblock %}

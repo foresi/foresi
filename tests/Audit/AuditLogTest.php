@@ -8,11 +8,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Audit;
 
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
+use App\Identity\Application\ApiTokenGrant;
+use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Identity\Infrastructure\Security\ApiFirewalls;
+use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityUser;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
@@ -39,6 +44,7 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 
 final class AuditLogTest extends KernelTestCase
 {
@@ -282,6 +288,32 @@ final class AuditLogTest extends KernelTestCase
         $entries = $this->entries();
         self::assertNull($entries[0]->userId());
         self::assertSame('019a0000-0000-7000-8000-00000000002a', $entries[1]->userId());
+    }
+
+    public function testTheKindOfActorIsRecorded(): void
+    {
+        $this->context->switchTo(TenantId::generate());
+        $this->em->persist($this->party());
+        $this->em->flush();
+
+        $tokens = self::getContainer()->get(TokenStorageInterface::class);
+        $user = new SecurityUser('019a0000-0000-7000-8000-00000000002a', 'testing@example.com', 'hash');
+        $party = $this->em->getRepository(Party::class)->findAll()[0];
+
+        $tokens->setToken(new UsernamePasswordToken($user, 'main', ['ROLE_USER']));
+        $this->setProperty($party, 'phone', '+420111111111');
+        $this->em->flush();
+
+        $mcp = new PostAuthenticationToken($user, ApiFirewalls::MCP, ['ROLE_USER']);
+        $mcp->setAttribute(SecurityApiTokenContext::ATTRIBUTE, new ApiTokenGrant($user->id(), $this->context->current(), '019a0000-0000-7000-8000-0000000000aa', 'Agent', [ApiScope::Read], new \DateTimeImmutable('2030-01-01')));
+        $tokens->setToken($mcp);
+        $this->setProperty($party, 'phone', '+420222222222');
+        $this->em->flush();
+
+        $entries = $this->entries();
+        self::assertSame(ActorKind::System, $entries[0]->actorKind());
+        self::assertSame(ActorKind::User, $entries[1]->actorKind());
+        self::assertSame(ActorKind::McpAgent, $entries[2]->actorKind());
     }
 
     public function testCreatedEntryUsesTheEntitysTenant(): void

@@ -128,6 +128,7 @@ final class AuditListener
             $action,
             $changes,
             $this->actor->userId(),
+            $this->actor->kind(),
             $this->clock->now(),
             $this->correlation->current(),
             $em->getClassMetadata($root::class)->getName(),

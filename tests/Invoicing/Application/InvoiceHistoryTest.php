@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditTrail;
+use App\Audit\Domain\ActorKind;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Identity\Application\UserRepository;
@@ -285,6 +286,6 @@ final class InvoiceHistoryTest extends InvoiceTestCase
      */
     private function entry(string $class, AuditAction $action, array $changes, string $at = '2026-11-01 12:00:00', ?string $user = self::USER, ?string $correlation = null): AuditEntry
     {
-        return new AuditEntry($class, self::LINE, $action, $changes, $user, new \DateTimeImmutable($at, new \DateTimeZone('UTC')), $correlation);
+        return new AuditEntry($class, self::LINE, $action, $changes, $user, null === $user ? ActorKind::System : ActorKind::User, new \DateTimeImmutable($at, new \DateTimeZone('UTC')), $correlation);
     }
 }

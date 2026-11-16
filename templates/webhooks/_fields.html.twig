@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The fields of an endpoint, for the new and the edit form: its HTTPS address, a description, the
+    events it receives (by module, only of modules the person may read) and the event version it is
+    pinned to. Variables: values, errors, modules.
+#}
+{% if errors.form is defined %}
+    <twig:Ui:Alert tone="error">{{ errors.form }}</twig:Ui:Alert>
+{% endif %}
+<twig:Ui:TextInput name="url" id="url" type="url" :label="'webhooks.field.url'|trans" :help="'webhooks.field.url_help'|trans" :value="values.url" :error="errors.url|default(null)" maxlength="2048" required autocomplete="off" spellcheck="false" />
+<twig:Ui:TextInput name="description" id="description" :label="'webhooks.field.description'|trans" :help="'webhooks.field.description_help'|trans" :value="values.description" :error="errors.description|default(null)" maxlength="255" autocomplete="off" />
+{% for module, options in modules %}
+    <twig:Ui:ChoiceChips name="event_types[]" :id="'event-types-' ~ module" :legend="'webhooks.field.events'|trans({module: module})" :help="loop.first ? 'webhooks.field.events_help'|trans : null" :options="options" :values="values.event_types" :error="loop.first ? errors.event_types|default(null) : null" />
+{% endfor %}
+<twig:Ui:TextInput name="version" id="version" type="number" min="1" step="1" inputmode="numeric" :label="'webhooks.field.version'|trans" :help="'webhooks.field.version_help'|trans" :value="values.version" :error="errors.version|default(null)" required />

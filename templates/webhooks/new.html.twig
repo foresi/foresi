@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new webhook endpoint. A dialog over the list; the same URL is a page of its own. The form answers
+    with the dialog that shows the signing secret once. Variables: values, errors, modules.
+#}
+{% extends in_dialog() ? 'layout/dialog.html.twig' : 'layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'webhooks.title'|trans, href: path('app_webhooks')}, {label: 'webhooks.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'webhooks.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {# The answer is the page with the secret, which Turbo would refuse as a form answer without a redirect. #}
+    <form method="post" id="webhook-form" action="{{ path('app_webhook_new') }}" class="grid gap-4" data-turbo="false" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN')) }}">
+        {% include 'webhooks/_fields.html.twig' %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="webhook-form" variant="primary">{{ 'webhooks.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'webhooks.new'|trans" icon="send" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_webhooks')">{{ 'webhooks.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="webhook-form" variant="primary">{{ 'webhooks.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

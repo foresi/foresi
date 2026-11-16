@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The HTML content of the e-mail to the owner of a disabled webhook endpoint, inline styled for mail clients; the system mail layout wraps it. #}
+<p style="margin:0 0 8px;font-size:17px;font-weight:bold;color:#1f2933;">{{ 'webhooks.disabled_mail.subject'|trans({host: host}, null, locale) }}</p>
+<p style="margin:0 0 16px;color:#1f2933;">{{ reason }}</p>
+<p style="margin:0 0 16px;color:#3e4c59;">{{ 'webhooks.disabled_mail.pending'|trans({}, null, locale) }}</p>
+<p style="margin:0;"><a href="{{ endpointUrl }}" style="display:inline-block;padding:10px 16px;border-radius:6px;background:#2f4a3a;color:#ffffff;font-weight:bold;text-decoration:none;">{{ 'webhooks.disabled_mail.open'|trans({}, null, locale) }}</a></p>

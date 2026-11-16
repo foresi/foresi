@@ -810,6 +810,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $this->deductions(),
             $container->get(\App\Invoicing\Application\CorrectionRules::class),
             $container->get(\App\Invoicing\Application\BilledWork::class),
+            $container->get(\App\Shared\Application\Event\EventRecorder::class),
         );
 
         try {

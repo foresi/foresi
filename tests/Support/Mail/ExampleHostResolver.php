@@ -9,9 +9,10 @@ declare(strict_types=1);
 namespace App\Tests\Support\Mail;
 
 /**
- * Resolves host names for the mail host policy in the test and end-to-end
- * environments, so no test asks a real DNS server. Names under example.com get a
- * public address, internal.example.com a private one, and anything else none.
+ * Resolves host names for the mail host policy and the webhook URL policy in
+ * the test and end-to-end environments, so no test asks a real DNS server.
+ * Names under example.com get a public address, internal.example.com a private
+ * one, and anything else none.
  */
 final class ExampleHostResolver
 {
