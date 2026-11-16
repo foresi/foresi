@@ -163,6 +163,7 @@ final class NavigationRegistryTest extends TestCase
     public function testUnknownGroupIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('Unknown navigation group "nope"');
 
         new NavigationItem('nope', 'a', 'plus', 'r1');
     }
@@ -194,6 +195,7 @@ final class NavigationRegistryTest extends TestCase
 
         self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings'], array_map(static fn (NavigationArea $a): string => $a->id, $areas));
         self::assertSame(['layout-grid', 'trending-up', 'shopping-bag', 'landmark', 'users', 'square-kanban', 'settings'], array_map(static fn (NavigationArea $a): string => $a->icon, $areas));
+        self::assertSame([10, 20, 30, 40, 50, 60, 1000], array_map(static fn (NavigationArea $a): int => $a->weight, $areas));
         self::assertSame('nav.area.sales', $areas[1]->labelKey);
         self::assertSame('nav.area_caption.sales', $areas[1]->captionKey);
     }
@@ -222,11 +224,35 @@ final class NavigationRegistryTest extends TestCase
         new NavigationItem('main', 'a', 'plus', 'r1', area: 'Not An Id');
     }
 
-    public function testAnAreaWithAMalformedIdIsRefused(): void
+    public function testAnAreaWeighsAHundredByDefault(): void
+    {
+        self::assertSame(100, new NavigationArea('sales', 'l', 'c', 'plus')->weight);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function malformedAreas(): iterable
+    {
+        yield 'uppercase id' => ['Sales', 'l', 'c'];
+        yield 'id with trailing junk' => ['sales-x', 'l', 'c'];
+        yield 'no label' => ['sales', '', 'c'];
+        yield 'no caption' => ['sales', 'l', ''];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('malformedAreas')]
+    public function testAMalformedAreaIsRefused(string $id, string $label, string $caption): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationArea('Sales', 'l', 'c', 'plus');
+        new NavigationArea($id, $label, $caption, 'plus');
+    }
+
+    public function testAnItemAreaWithTrailingJunkIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NavigationItem('main', 'a', 'plus', 'r1', area: 'sales-x');
     }
 
     public function testAnAreaWithAnIconOutsideTheLockedSetIsRefused(): void
@@ -278,6 +304,16 @@ final class NavigationRegistryTest extends TestCase
         );
 
         self::assertSame(['early', 'late', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $registry->areas(null, true)));
+    }
+
+    public function testAreasOfEqualWeightKeepTheirRegistrationOrder(): void
+    {
+        $registry = new NavigationRegistry(
+            [$this->provider(...array_map(static fn (string $id): NavigationItem => new NavigationItem('extensions', $id, 'puzzle', 'r_'.$id, area: $id), ['c', 'a', 'b']))],
+            [$this->areas(new NavigationArea('b', 'l', 'c', 'puzzle'), new NavigationArea('c', 'l', 'c', 'puzzle')), $this->areas(new NavigationArea('a', 'l', 'c', 'puzzle'))],
+        );
+
+        self::assertSame(['b', 'c', 'a'], array_map(static fn (array $a): string => $a['area']->id, $registry->areas(null, true)));
     }
 
     public function testAnItemInAnUnregisteredAreaFailsLoudly(): void

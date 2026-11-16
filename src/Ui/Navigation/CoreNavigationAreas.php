@@ -24,14 +24,12 @@ final readonly class CoreNavigationAreas implements NavigationAreaProvider
 
     public function areas(): iterable
     {
-        $icons = [self::OVERVIEW => 'layout-grid', self::SALES => 'trending-up', self::PURCHASING => 'shopping-bag', self::MONEY => 'landmark', self::CONTACTS => 'users', self::PROJECTS => 'square-kanban'];
-        $weight = 0;
-        foreach ($icons as $id => $icon) {
-            $weight += 10;
-
-            yield new NavigationArea($id, 'nav.area.'.$id, 'nav.area_caption.'.$id, $icon, $weight);
-        }
-
+        yield new NavigationArea(self::OVERVIEW, 'nav.area.overview', 'nav.area_caption.overview', 'layout-grid', 10);
+        yield new NavigationArea(self::SALES, 'nav.area.sales', 'nav.area_caption.sales', 'trending-up', 20);
+        yield new NavigationArea(self::PURCHASING, 'nav.area.purchasing', 'nav.area_caption.purchasing', 'shopping-bag', 30);
+        yield new NavigationArea(self::MONEY, 'nav.area.money', 'nav.area_caption.money', 'landmark', 40);
+        yield new NavigationArea(self::CONTACTS, 'nav.area.contacts', 'nav.area_caption.contacts', 'users', 50);
+        yield new NavigationArea(self::PROJECTS, 'nav.area.projects', 'nav.area_caption.projects', 'square-kanban', 60);
         yield new NavigationArea(NavigationArea::SETTINGS, 'nav.area.settings', 'nav.area_caption.settings', 'settings', 1000);
     }
 }

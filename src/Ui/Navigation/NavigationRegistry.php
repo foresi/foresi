@@ -56,16 +56,16 @@ final readonly class NavigationRegistry
     public function areas(?string $currentRoute, bool $tenantActive): array
     {
         $areas = [];
-        $order = 0;
         foreach ($this->areaProviders as $provider) {
             foreach ($provider->areas() as $area) {
                 if (isset($areas[$area->id])) {
                     throw new \LogicException(sprintf('Navigation area "%s" is registered twice.', $area->id));
                 }
-                $areas[$area->id] = [$area, $order++];
+                $areas[$area->id] = $area;
             }
         }
-        uasort($areas, static fn (array $a, array $b): int => [NavigationArea::SETTINGS === $a[0]->id, $a[0]->weight, $a[1]] <=> [NavigationArea::SETTINGS === $b[0]->id, $b[0]->weight, $b[1]]);
+        // Sorting is stable, so areas of equal weight keep their registration order.
+        uasort($areas, static fn (NavigationArea $a, NavigationArea $b): int => [NavigationArea::SETTINGS === $a->id, $a->weight] <=> [NavigationArea::SETTINGS === $b->id, $b->weight]);
 
         $byArea = array_fill_keys(array_keys($areas), []);
         foreach ($this->entries($currentRoute, $tenantActive) as $entry) {
@@ -82,7 +82,7 @@ final readonly class NavigationRegistry
             }
             $groups = $this->grouped($entries);
             $result[] = [
-                'area' => $areas[$id][0],
+                'area' => $areas[$id],
                 'current' => array_any($entries, static fn (array $entry): bool => $entry[2]->current),
                 'groups' => $groups,
             ];
