@@ -355,12 +355,7 @@ final class AttachmentControllerTest extends WebTestCase
 
     private function png(): string
     {
-        $png = base64_decode(self::PNG, true);
-        if (false === $png) {
-            throw new \LogicException('The pixel is not base64.');
-        }
-
-        return $png;
+        return base64_decode(self::PNG, true);
     }
 
     /**

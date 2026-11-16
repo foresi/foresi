@@ -130,7 +130,7 @@ final class WebhookSenderTest extends TestCase
 
     public function testTimeoutIsReportedAsTimeout(): void
     {
-        $client = new MockHttpClient(static fn () => throw new TimeoutException('Idle timeout reached.'));
+        $client = new MockHttpClient(static fn (): never => throw new TimeoutException('Idle timeout reached.'));
 
         $result = $this->sender($client)->send('https://example.com/hook', 'evt_1', self::BODY, [WebhookSecret::generate()]);
 
@@ -141,7 +141,7 @@ final class WebhookSenderTest extends TestCase
 
     public function testMaxDurationAbortIsReportedAsTimeout(): void
     {
-        $client = new MockHttpClient(static fn () => throw new TransportException('Max duration was reached for "https://example.com/hook".'));
+        $client = new MockHttpClient(static fn (): never => throw new TransportException('Max duration was reached for "https://example.com/hook".'));
 
         $result = $this->sender($client)->send('https://example.com/hook', 'evt_1', self::BODY, [WebhookSecret::generate()]);
 
@@ -151,7 +151,7 @@ final class WebhookSenderTest extends TestCase
 
     public function testTlsFailureIsReportedAsTls(): void
     {
-        $client = new MockHttpClient(static fn () => throw new TransportException('SSL certificate problem: certificate has expired'));
+        $client = new MockHttpClient(static fn (): never => throw new TransportException('SSL certificate problem: certificate has expired'));
 
         $result = $this->sender($client)->send('https://example.com/hook', 'evt_1', self::BODY, [WebhookSecret::generate()]);
 
@@ -160,7 +160,7 @@ final class WebhookSenderTest extends TestCase
 
     public function testOtherTransportErrorsAreConnection(): void
     {
-        $client = new MockHttpClient(static fn () => throw new TransportException('Could not resolve host'));
+        $client = new MockHttpClient(static fn (): never => throw new TransportException('Could not resolve host'));
 
         $result = $this->sender($client)->send('https://example.com/hook', 'evt_1', self::BODY, [WebhookSecret::generate()]);
 

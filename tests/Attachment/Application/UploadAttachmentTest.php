@@ -63,7 +63,7 @@ final class UploadAttachmentTest extends TestCase
 
     public function testAFileIsKeptWithTheTypeOfItsBytesNeverTheOneTheBrowserClaims(): void
     {
-        $path = $this->file((string) base64_decode(self::PNG, true));
+        $path = $this->file(base64_decode(self::PNG, true));
 
         $attachment = $this->upload()->upload('task', $this->owner, new AttachmentUpload($path, 'C:\\fakepath\\pixel.exe', 999));
 
