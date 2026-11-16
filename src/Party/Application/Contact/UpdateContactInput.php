@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Application\Contact;
 
+use App\Party\Application\PartyRules;
 use App\Shared\Application\Api\Field;
 use App\Shared\Application\Api\Omitted;
 use App\Shared\Application\Api\Operation;
@@ -35,29 +36,29 @@ final readonly class UpdateContactInput
     public function __construct(
         #[Field('The id of the contact.', format: 'uuid')]
         public string $contactId,
-        #[Field('The name shown in the address book and on documents.', maxLength: 255)]
+        #[Field('The name shown in the address book and on documents.', maxLength: PartyRules::MAX_NAME)]
         public string|Omitted $displayName = new Omitted(),
-        #[Field('The street and number of the billing address.', maxLength: 255)]
+        #[Field('The street and number of the billing address.', maxLength: PartyRules::MAX_STREET)]
         public string|Omitted $street = new Omitted(),
-        #[Field('The city of the billing address.', maxLength: 128)]
+        #[Field('The city of the billing address.', maxLength: PartyRules::MAX_CITY)]
         public string|Omitted $city = new Omitted(),
-        #[Field('The postal code of the billing address.', maxLength: 32)]
+        #[Field('The postal code of the billing address.', maxLength: PartyRules::MAX_POSTAL_CODE)]
         public string|Omitted $postalCode = new Omitted(),
-        #[Field('The country of the billing address, ISO 3166-1 alpha-2, such as DE.', maxLength: 2)]
+        #[Field('The country of the billing address, ISO 3166-1 alpha-2, such as DE.', maxLength: PartyRules::COUNTRY_CODE_LENGTH)]
         public string|Omitted $countryCode = new Omitted(),
-        #[Field('The company registration number; null clears it.', maxLength: 64)]
+        #[Field('The company registration number; null clears it.', maxLength: PartyRules::MAX_REGISTRATION_NUMBER)]
         public string|Omitted|null $registrationNumber = new Omitted(),
-        #[Field('The country that issued the registration number, ISO 3166-1 alpha-2; null takes the country of the billing address.', maxLength: 2)]
+        #[Field('The country that issued the registration number, ISO 3166-1 alpha-2; null takes the country of the billing address.', maxLength: PartyRules::COUNTRY_CODE_LENGTH)]
         public string|Omitted|null $registrationCountry = new Omitted(),
-        #[Field('The VAT id; null clears it.', maxLength: 32)]
+        #[Field('The VAT id; null clears it.', maxLength: PartyRules::MAX_VAT_ID)]
         public string|Omitted|null $vatId = new Omitted(),
-        #[Field('The general e-mail address; null clears it.', maxLength: 254)]
+        #[Field('The general e-mail address; null clears it.', maxLength: PartyRules::MAX_EMAIL)]
         public string|Omitted|null $email = new Omitted(),
-        #[Field('The phone number; null clears it.', maxLength: 64)]
+        #[Field('The phone number; null clears it.', maxLength: PartyRules::MAX_PHONE)]
         public string|Omitted|null $phone = new Omitted(),
-        #[Field('The mobile number; null clears it.', maxLength: 64)]
+        #[Field('The mobile number; null clears it.', maxLength: PartyRules::MAX_PHONE)]
         public string|Omitted|null $mobile = new Omitted(),
-        #[Field('The website; null clears it.', maxLength: 255)]
+        #[Field('The website; null clears it.', maxLength: PartyRules::MAX_WEBSITE)]
         public string|Omitted|null $website = new Omitted(),
         #[Field('What the contact is to the organisation; replaces the roles it has.', enum: ['customer', 'supplier', 'partner', 'authority'], items: 'string')]
         public array|Omitted $roles = new Omitted(),

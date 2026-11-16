@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Application\Contact;
 
+use App\Party\Application\PartyRules;
 use App\Shared\Application\Api\Field;
 use App\Shared\Application\Api\Operation;
 
@@ -36,29 +37,29 @@ final readonly class CreateContactInput
     public function __construct(
         #[Field('What the contact is.', enum: ['person', 'sole_trader', 'company'])]
         public string $kind,
-        #[Field('The name shown in the address book and on documents.', maxLength: 255)]
+        #[Field('The name shown in the address book and on documents.', maxLength: PartyRules::MAX_NAME)]
         public string $displayName,
-        #[Field('The street and number of the billing address.', maxLength: 255)]
+        #[Field('The street and number of the billing address.', maxLength: PartyRules::MAX_STREET)]
         public string $street,
-        #[Field('The city of the billing address.', maxLength: 128)]
+        #[Field('The city of the billing address.', maxLength: PartyRules::MAX_CITY)]
         public string $city,
-        #[Field('The postal code of the billing address.', maxLength: 32)]
+        #[Field('The postal code of the billing address.', maxLength: PartyRules::MAX_POSTAL_CODE)]
         public string $postalCode,
-        #[Field('The country of the billing address, ISO 3166-1 alpha-2, such as DE.', maxLength: 2)]
+        #[Field('The country of the billing address, ISO 3166-1 alpha-2, such as DE.', maxLength: PartyRules::COUNTRY_CODE_LENGTH)]
         public string $countryCode,
-        #[Field('The company registration number, empty for none.', maxLength: 64)]
+        #[Field('The company registration number, empty for none.', maxLength: PartyRules::MAX_REGISTRATION_NUMBER)]
         public string $registrationNumber = '',
-        #[Field('The country that issued the registration number, ISO 3166-1 alpha-2; the country of the billing address when left out.', maxLength: 2)]
+        #[Field('The country that issued the registration number, ISO 3166-1 alpha-2; the country of the billing address when left out.', maxLength: PartyRules::COUNTRY_CODE_LENGTH)]
         public ?string $registrationCountry = null,
-        #[Field('The VAT id: two letters of the country, then the number; empty for none.', maxLength: 32)]
+        #[Field('The VAT id: two letters of the country, then the number; empty for none.', maxLength: PartyRules::MAX_VAT_ID)]
         public string $vatId = '',
-        #[Field('The general e-mail address, empty for none.', maxLength: 254)]
+        #[Field('The general e-mail address, empty for none.', maxLength: PartyRules::MAX_EMAIL)]
         public string $email = '',
-        #[Field('The phone number, empty for none.', maxLength: 64)]
+        #[Field('The phone number, empty for none.', maxLength: PartyRules::MAX_PHONE)]
         public string $phone = '',
-        #[Field('The mobile number, empty for none.', maxLength: 64)]
+        #[Field('The mobile number, empty for none.', maxLength: PartyRules::MAX_PHONE)]
         public string $mobile = '',
-        #[Field('The website, empty for none.', maxLength: 255)]
+        #[Field('The website, empty for none.', maxLength: PartyRules::MAX_WEBSITE)]
         public string $website = '',
         #[Field('What the contact is to the organisation.', enum: ['customer', 'supplier', 'partner', 'authority'], items: 'string')]
         public array $roles = [],

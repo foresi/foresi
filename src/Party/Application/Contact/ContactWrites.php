@@ -27,7 +27,6 @@ use App\Party\Application\UpdateParty;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatId;
 use App\Shared\Application\Api\Omitted;
 
 /**
@@ -181,16 +180,14 @@ final readonly class ContactWrites
      */
     private function refuseDuplicates(PartyInput $input, ?string $self): void
     {
-        if (!$input->registrationNumber instanceof RegistrationNumber && !$input->vatId instanceof VatId) {
-            return;
-        }
+        // The finder answers nothing for an input without identifiers, and one match per contact.
         $matches = $this->duplicates->find($input->registrationNumber, $input->vatId, true, $self);
         if ([] === $matches) {
             return;
         }
         $field = array_any($matches, static fn (DuplicateMatch $match): bool => $match->sameRegistrationNumber) ? 'registrationNumber' : 'vatId';
 
-        throw new PartyRefused(PartyRefused::DUPLICATE, $field, array_values(array_unique(array_map(static fn (DuplicateMatch $match): string => $match->partyId, $matches))));
+        throw new PartyRefused(PartyRefused::DUPLICATE, $field, array_map(static fn (DuplicateMatch $match): string => $match->partyId, $matches));
     }
 
     private function sameIdentifiers(Party $party, PartyInput $input): bool

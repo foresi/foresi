@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Party\Application\Contact;
 
+use App\Party\Application\PartyRules;
 use App\Shared\Application\Api\Field;
 use App\Shared\Application\Api\Operation;
 
@@ -31,7 +32,7 @@ final readonly class LinkContactPersonInput
         public string $contactId,
         #[Field('The id of the person.', format: 'uuid')]
         public string $personId,
-        #[Field('The position of the person at the company, such as Accountant.', maxLength: 100)]
+        #[Field('The position of the person at the company, such as Accountant.', maxLength: PartyRules::MAX_POSITION)]
         public string $position = '',
         #[Field('Whether the person is the primary contact of the company.')]
         public bool $primary = false,

@@ -145,6 +145,16 @@ final class ApiTokenTest extends TestCase
         $this->token()->tenantId();
     }
 
+    public function testAStoredValueThatIsNoScopeIsLeftOut(): void
+    {
+        $token = $this->token();
+        // A value written by an older release, or by hand.
+        new \ReflectionProperty(ApiToken::class, 'scopes')->setValue($token, ['read', 'contacts:delete', 'contacts:write']);
+
+        self::assertSame(['read', 'contacts:write'], array_map(static fn (ApiScope $scope): string => $scope->value, $token->scopes()));
+        self::assertSame([0, 1], array_keys($token->scopes()));
+    }
+
     private function token(string $name = 'Name'): ApiToken
     {
         return new ApiToken(self::USER, $name, [ApiScope::read()], str_repeat('a', 64), 'wxyz', new \DateTimeImmutable('2026-11-10 10:00:00'), new \DateTimeImmutable('2026-11-11 10:00:00'));

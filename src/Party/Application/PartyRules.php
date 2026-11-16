@@ -37,6 +37,10 @@ final readonly class PartyRules
     public const int MAX_EMAIL = 254;
     public const int MAX_POSITION = 100;
     public const int MAX_REGISTRATION_NUMBER = 64;
+    /** The longest VAT id a client may send; VatId checks its shape. */
+    public const int MAX_VAT_ID = 32;
+    /** An ISO 3166-1 alpha-2 code, which Countries checks. */
+    public const int COUNTRY_CODE_LENGTH = 2;
 
     public function __construct(private RegistrationNumberFactory $registrationNumbers)
     {
@@ -59,7 +63,7 @@ final readonly class PartyRules
         if (!Countries::supports($draft->countryCode)) {
             $refusals['countryCode'] = new PartyRefused('' === $draft->countryCode ? PartyRefused::REQUIRED : PartyRefused::COUNTRY, 'countryCode');
         }
-        if ('' !== $draft->email && (mb_strlen($draft->email) > self::MAX_EMAIL || !PartyEmail::isValid($draft->email))) {
+        if ('' !== $draft->email && (\strlen($draft->email) > self::MAX_EMAIL || !PartyEmail::isValid($draft->email))) {
             $refusals['email'] = new PartyRefused(PartyRefused::EMAIL, 'email');
         }
         $roles = [];
@@ -73,7 +77,7 @@ final readonly class PartyRules
         }
         $registrationNumber = $this->registrationNumber($draft, $refusals);
         $vatId = $this->vatId($draft, $refusals);
-        if (PartyKind::Company === $kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId && !isset($refusals['registrationNumber'], $refusals['vatId'])) {
+        if (PartyKind::Company === $kind && !$registrationNumber instanceof RegistrationNumber && !$vatId instanceof VatId && !isset($refusals['registrationNumber']) && !isset($refusals['vatId'])) {
             $refusals['registrationNumber'] = new PartyRefused(PartyRefused::COMPANY_IDENTIFIER, 'registrationNumber');
         }
         if ([] !== $refusals || !$kind instanceof PartyKind) {

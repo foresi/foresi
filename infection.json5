@@ -233,6 +233,9 @@
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
         // string fails the check of its column below.
         "LogicalAnd": {"ignore": [
+            // Equivalent mutant: a scope that reads, asked for the same resource and not for a write, is the scope
+            // asked for, granted above.
+            "App\\Identity\\Domain\\ApiScope::grants::84",
             "App\\Invoicing\\Domain\\RecurringInvoice::resume::308", "App\\Ui\\Component\\DataTable::alert::242",
             // Equivalent mutants: two equal invoices are both close to the amount, so nothing pairs either way; when
             // only one statement has an IBAN, the IBAN comparison below refuses with the same reason.
