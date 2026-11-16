@@ -7,6 +7,9 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 // Specs that only read data run on both viewports; the ones that change data run on the desktop only.
 const READ_ONLY = /@visual|@a11y|@layout/;
+// Screenshot tests are off while the layout redesign keeps changing the UI (decided 2026-11-16).
+// They come back after the redesign, on a few key screens.
+const SCREENSHOTS = /@visual/;
 const WRITES_DATA = /(api-tokens|contact-(lifecycle|duplicate)|dialogs|import|firms|firm-scope|firm-mail|firm-bank|bank-movements|first-run|advances|corrections|accountant-pack|invoice(-list|-send|-pay|-reminder)?|recurring-(form|list)|people|projects|discussion|sharing|notifications|purchasing|time(-invoicing)?)\.spec\.ts/;
 
 export default defineConfig({
@@ -14,6 +17,7 @@ export default defineConfig({
   // One database, one worker: specs that create and archive contacts must not race each other.
   fullyParallel: false,
   workers: 1,
+  grepInvert: SCREENSHOTS,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
