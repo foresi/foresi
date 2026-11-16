@@ -286,10 +286,6 @@ final class PartyController extends AbstractController
             } catch (PartyRefused $refused) {
                 // The rules name the person by its id; the form has a field "person".
                 $errors['personId' === $refused->field ? 'person' : (string) $refused->field] = PartySubmissionReader::MESSAGES[$refused->reason] ?? 'party.contacts.person_invalid';
-            } catch (\DomainException) {
-                $errors['person'] = 'party.contacts.person_invalid';
-                // The failed write reset the persistence session; read the company again for the page.
-                $company = $this->party($id);
             }
         }
         if ([] !== $errors) {
