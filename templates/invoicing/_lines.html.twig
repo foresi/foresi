@@ -7,7 +7,7 @@
     column: their right margin is the width of the actions column plus the cell padding.
     A recurring template's form passes textAttributes, which its variable chips need on the text cell.
 #}
-{% set overInput = 'py-1 px-[calc(0.25rem+0.625rem+1px)] font-medium' %}
+{% set overInput = 'py-1 px-[calc(0.25rem+0.75rem+1px)] font-medium' %}
 <table class="block w-full xl:table xl:table-fixed" data-invoice-form-target="lines" data-action="dragstart->invoice-form#dragStart dragover->invoice-form#dragOver drop->invoice-form#dragDrop:prevent dragend->invoice-form#dragEnd">
     <thead class="max-xl:sr-only">
         <tr class="text-left text-small font-medium text-muted inset-shadow-rail">

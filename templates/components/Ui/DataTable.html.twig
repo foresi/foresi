@@ -107,23 +107,21 @@
                                     <td class="h-row whitespace-nowrap border-b border-divider px-2 text-right group-last:border-b-0 group-hover:bg-head group-data-[selected=true]:bg-green-tint" data-row-actions>
                                         <div class="flex items-center justify-end gap-0.5">
                                             {% set menuId = 'row-menu-' ~ row.id %}
-                                            <div class="relative" data-controller="dropdown" data-dropdown-float-value="true">
-                                                <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: row.label})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
-                                                <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating">
-                                                    {% for action in row.actions %}
-                                                        {% set itemClass = 'flex h-control w-full cursor-pointer items-center rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
-                                                        {% if action.method == 'POST' %}
-                                                            <form method="post" action="{{ action.href }}"{{ _self.confirm(action.confirm) }}>
-                                                                <input type="hidden" name="_token" value="{{ actionToken }}">
-                                                                {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-                                                                <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ action.label }}</button>
-                                                            </form>
-                                                        {% else %}
-                                                            <a href="{{ action.href }}" role="menuitem" tabindex="-1"{% if action.plain %} data-turbo="false"{% endif %}{% if action.dialog %} data-dialog aria-haspopup="dialog"{% endif %} class="{{ itemClass }}">{{ action.label }}</a>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
+                                            {# Macros of this template are out of reach inside the menu's content block. #}
+                                            {% set confirms = row.actions|map(action => _self.confirm(action.confirm)) %}
+                                            <twig:Ui:Menu :id="menuId" :label="'ui.table.more_actions'|trans({label: row.label})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true">
+                                                {% for action in row.actions %}
+                                                    {% if action.method == 'POST' %}
+                                                        <form method="post" action="{{ action.href }}" role="none"{{ confirms[loop.index0] }}>
+                                                            <input type="hidden" name="_token" value="{{ actionToken }}">
+                                                            {% for name, value in action.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                                                            <twig:Ui:MenuItem type="submit">{{ action.label }}</twig:Ui:MenuItem>
+                                                        </form>
+                                                    {% else %}
+                                                        <twig:Ui:MenuItem :href="action.href" :data-turbo="action.plain ? 'false' : null" :data-dialog="action.dialog ? true : null" :aria-haspopup="action.dialog ? 'dialog' : null">{{ action.label }}</twig:Ui:MenuItem>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </twig:Ui:Menu>
                                         </div>
                                     </td>
                                 {% endif %}

@@ -30,8 +30,8 @@ final class DesignTokensTest extends TestCase
         'src/Ui/Component/Dialog.php' => ['rounded-none'],
     ];
 
-    /** Radius: small marks, controls, surfaces, and the content panel of the app shell. */
-    private const array RADII = ['sm', 'control', 'panel', 'xl'];
+    /** Radius: small marks, controls, menu option rows, surfaces, and the content panel of the app shell. */
+    private const array RADII = ['sm', 'control', 'option', 'panel', 'xl'];
 
     private const array SHADOWS = ['raised', 'floating', 'overlay'];
 

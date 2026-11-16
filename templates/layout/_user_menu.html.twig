@@ -5,56 +5,45 @@
     Variables: shell (ShellView).
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head' %}
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
-<div class="relative shell:mt-1.5" data-controller="dropdown" data-dropdown-float-value="true">
-    <div id="user-menu" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-label="{{ 'shell.user_menu.label'|trans }}" class="absolute bottom-full left-0 z-50 mb-2 w-max min-w-60 max-w-[min(340px,calc(100vw-24px))] rounded-panel border border-container bg-white p-1.5 shadow-floating">
-        <div class="px-2.5 pb-2 pt-1.5">
-            {% if shell.userName != shell.userEmail %}<b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ shell.userName }}</b>{% endif %}
-            <small class="mt-0.5 block text-caption text-muted [overflow-wrap:anywhere]">{{ shell.userEmail }}</small>
-            <div data-organisation class="mt-2 flex items-center gap-2">
-                <span class="grid size-6 shrink-0 place-items-center rounded-sm bg-green text-caption font-semibold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
-                <span class="min-w-0">
-                    <b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ orgName }}</b>
-                    {% if shell.organisation %}<small class="block text-caption text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
-                </span>
-            </div>
+<twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
+    <twig:block name="trigger">
+        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="grid size-9 cursor-pointer place-items-center rounded-control border-0 bg-green-tint text-caption font-semibold text-green hover:bg-badge-green {{ focus }}">
+            <span aria-hidden="true">{{ shell.initials }}</span>
+            <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
+        </button>
+    </twig:block>
+    <div class="px-3 pb-2 pt-1.5">
+        {% if shell.userName != shell.userEmail %}<b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ shell.userName }}</b>{% endif %}
+        <small class="mt-0.5 block text-caption text-muted [overflow-wrap:anywhere]">{{ shell.userEmail }}</small>
+        <div data-organisation class="mt-2 flex items-center gap-2">
+            <span class="grid size-6 shrink-0 place-items-center rounded-sm bg-green text-caption font-semibold text-white" aria-hidden="true">{{ orgName|first|upper }}</span>
+            <span class="min-w-0">
+                <b class="block text-small leading-tight text-ink [overflow-wrap:anywhere]">{{ orgName }}</b>
+                {% if shell.organisation %}<small class="block text-caption text-muted">{{ ('role.' ~ shell.organisation.role.value)|trans }}</small>{% endif %}
+            </span>
         </div>
-        <div role="separator" class="mb-1.5 h-px bg-divider"></div>
-        <span role="menuitem" tabindex="-1" aria-disabled="true" class="{{ itemClass }} cursor-default opacity-60 {{ focus }}">
-            {{ ux_icon('lucide:user', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.profile'|trans }}</span><span class="ml-auto text-caption text-muted">{{ 'shell.user_menu.soon'|trans }}</span>
-        </span>
-        <a href="{{ path('app_notification_settings') }}" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}" data-user-menu-notifications>
-            {{ ux_icon('lucide:bell-ring', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.notifications'|trans }}</span>
-        </a>
+    </div>
+    <twig:Ui:MenuSection>
+        <twig:Ui:MenuItem icon="user" :disabled="true">{{ 'shell.user_menu.profile'|trans }}<span class="ml-auto text-caption font-normal text-muted">{{ 'shell.user_menu.soon'|trans }}</span></twig:Ui:MenuItem>
+        <twig:Ui:MenuItem :href="path('app_notification_settings')" icon="bell-ring" data-user-menu-notifications>{{ 'shell.user_menu.notifications'|trans }}</twig:Ui:MenuItem>
         {% if shell.organisation and shell.organisation.role.isStaff %}
-        <a href="{{ path('app_api_tokens') }}" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
-            {{ ux_icon('lucide:key-round', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.api_access'|trans }}</span>
-        </a>
+            <twig:Ui:MenuItem :href="path('app_api_tokens')" icon="key-round">{{ 'shell.user_menu.api_access'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         <form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
             <input type="hidden" name="locale" value="{{ shell.otherLocale }}">
             <input type="hidden" name="redirect" value="{{ app.request.requestUri }}" data-nav-sync>
-            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
-                {{ ux_icon('lucide:languages', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</span>
-            </button>
+            <twig:Ui:MenuItem type="submit" icon="languages">{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</twig:Ui:MenuItem>
         </form>
         {% if shell.organisations|length > 1 %}
-            <a href="{{ path('app_organisation_choose') }}" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
-                {{ ux_icon('lucide:building-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'shell.user_menu.switch_organisation'|trans }}</span>
-            </a>
+            <twig:Ui:MenuItem :href="path('app_organisation_choose')" icon="building-2">{{ 'shell.user_menu.switch_organisation'|trans }}</twig:Ui:MenuItem>
         {% endif %}
-        <div role="separator" class="my-1.5 h-px bg-divider"></div>
+    </twig:Ui:MenuSection>
+    <twig:Ui:MenuSection>
         <form method="post" action="{{ path('app_logout') }}" data-turbo="false" role="none">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }} {{ focus }}">
-                {{ ux_icon('lucide:log-out', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'auth.logout'|trans }}</span>
-            </button>
+            <twig:Ui:MenuItem type="submit" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:MenuItem>
         </form>
-    </div>
-    <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="grid size-9 cursor-pointer place-items-center rounded-control border-0 bg-green-tint text-caption font-semibold text-green hover:bg-badge-green {{ focus }}">
-        <span aria-hidden="true">{{ shell.initials }}</span>
-        <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
-    </button>
-</div>
+    </twig:Ui:MenuSection>
+</twig:Ui:Menu>

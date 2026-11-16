@@ -20,9 +20,13 @@
     <div class="grid min-h-screen shell:grid-cols-[var(--spacing-rail)_var(--spacing-sidebar)_minmax(0,1fr)] max-shell:p-2" data-controller="sidebar nav">
         <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-white focus:px-3 focus:py-2 focus:text-ink focus:outline-2 focus:outline-green">{{ 'shell.skip_to_content'|trans }}</a>
         <div hidden data-sidebar-target="scrim" data-action="click->sidebar#close" class="fixed inset-0 z-30 bg-ink/25 shell:hidden"></div>
-        {# Wide screen: the rail and the sidebar are grid columns. Phone: one drawer, the rail its top row. #}
+        {#
+            Wide screen: the rail and the sidebar are grid columns, the rail one tonal step darker than
+            the sidebar (level.io separates its columns by tone, not by a line). Phone: one drawer, the
+            rail its top row.
+        #}
         <div id="navigation" data-sidebar-target="panel" class="shell:contents max-shell:invisible max-shell:fixed max-shell:inset-y-0 max-shell:left-0 max-shell:z-40 max-shell:flex max-shell:w-[82%] max-shell:max-w-80 max-shell:flex-col max-shell:bg-frame max-shell:data-[open]:visible">
-            <nav id="rail" data-turbo-permanent data-nav-key="{{ navKey }}" aria-label="{{ 'shell.rail_label'|trans }}" class="flex items-center gap-2 px-3 pb-1 pt-3 shell:sticky shell:top-0 shell:z-10 shell:h-screen shell:flex-col shell:gap-1 shell:overflow-y-auto shell:px-2 shell:py-3.5">
+            <nav id="rail" data-turbo-permanent data-nav-key="{{ navKey }}" aria-label="{{ 'shell.rail_label'|trans }}" class="flex items-center gap-2 px-3 pb-1 pt-3 shell:sticky shell:bg-frame-hover shell:top-0 shell:z-10 shell:h-screen shell:flex-col shell:gap-1 shell:overflow-y-auto shell:px-2 shell:py-3.5">
                 {% include 'layout/_rail.html.twig' with {shell: shell, areas: areas} only %}
             </nav>
             <aside id="sidebar" data-turbo-permanent data-nav-key="{{ navKey }}" class="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 shell:sticky shell:top-0 shell:h-screen shell:pb-4 shell:pl-1.5 shell:pr-2.5 shell:pt-4">

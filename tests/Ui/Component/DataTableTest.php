@@ -62,7 +62,7 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('name="_token" value="tok"', $html);
         self::assertStringContainsString('name="return" value="tab=trash"', $html);
         self::assertStringContainsString('data-turbo-confirm="Sure?"', $html);
-        self::assertStringContainsString('role="menuitem" tabindex="-1" data-turbo="false"', $html);
+        self::assertMatchesRegularExpression('~<a href="/invoices/a1/edit" role="menuitem" tabindex="-1"[^>]* data-turbo="false"~', $html);
         self::assertStringNotContainsString('data-phone-only', $html);
         self::assertStringContainsString('data-dropdown-float-value="true"', $html);
         self::assertSame(4, substr_count($html, 'role="menuitem"'), 'Every action is in the row menu.');

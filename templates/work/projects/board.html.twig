@@ -17,7 +17,6 @@
 {% set newTask %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_task_new', {id: project.id, return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-new-open>{{ 'work.task.new'|trans }}</twig:Ui:Button>{% endset %}
 {% set trashToken = csrf_token(constant('App\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN')) %}
 {% set dots = {gray: 'bg-badge-gray-text', amber: 'bg-badge-amber-text', green: 'bg-badge-green-text', red: 'bg-badge-red-text'} %}
-{% set itemClass = 'flex h-control w-full cursor-pointer items-center gap-2.5 rounded-control border-0 bg-transparent px-2.5 text-left text-text no-underline hover:bg-head focus-visible:bg-head ' ~ focus %}
 
 {% macro filters(query) %}
     {% for name, value in query %}{% if value != '' %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endif %}{% endfor %}
@@ -68,41 +67,41 @@
                                         <span class="min-w-0 flex-1 self-center"><a href="{{ card.href }}" class="break-words font-medium text-ink no-underline hover:underline {{ focus }}" data-card-title>{{ card.title }}</a>{% if card.private %} {{ include('work/_private_badge.html.twig') }}{% endif %}</span>
                                         {% if editable or card.deletable %}
                                             {% set menuId = 'card-menu-' ~ card.id %}
-                                            <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
-                                                <twig:Ui:IconButton icon="ellipsis" :label="'ui.table.more_actions'|trans({label: card.title})" variant="ghost" size="sm" :id="menuId ~ '-button'" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" />
-                                                <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ menuId }}-button" class="absolute right-0 z-50 w-max min-w-40 rounded-panel border border-container bg-white p-1.5 text-left shadow-floating" data-card-menu>
-                                                    {% if editable %}
-                                                    <div role="group" aria-labelledby="{{ menuId }}-move">
-                                                        <div id="{{ menuId }}-move" role="presentation" class="px-2.5 pb-1 pt-0.5 text-caption text-muted">{{ 'work.board.move_to'|trans }}</div>
+                                            {# Macros of this template are out of reach inside the menu's content block. #}
+                                            {% set filterFields %}{{ _self.filters(query) }}{% endset %}
+                                            <twig:Ui:Menu :id="menuId" :label="'ui.table.more_actions'|trans({label: card.title})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" class="shrink-0" data-card-menu>
+                                                {% if editable %}
+                                                    <twig:Ui:MenuSection :label="'work.board.move_to'|trans">
                                                         {% for status in card.moveTo %}
-                                                            <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" data-move-status="{{ status.id }}"{% if status.current %} hidden{% endif %}>
+                                                            <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" role="none" data-move-status="{{ status.id }}"{% if status.current %} hidden{% endif %}>
                                                                 <input type="hidden" name="_token" value="{{ token }}">
                                                                 <input type="hidden" name="statusId" value="{{ status.id }}">
-                                                                {{ _self.filters(query) }}
-                                                                <button type="submit" role="menuitem" tabindex="-1" aria-label="{{ 'work.board.move_to_status'|trans({status: status.name}) }}" class="{{ itemClass }}">{{ status.name }}</button>
+                                                                {{ filterFields }}
+                                                                <twig:Ui:MenuItem type="submit" :aria-label="'work.board.move_to_status'|trans({status: status.name})">{{ status.name }}</twig:Ui:MenuItem>
                                                             </form>
                                                         {% endfor %}
-                                                    </div>
-                                                    <div role="separator" class="my-1 border-t border-divider"></div>
-                                                    {% for direction, shown in {up: card.up, down: card.down} %}
-                                                        <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" data-move="{{ direction }}"{% if not shown %} hidden{% endif %}>
-                                                            <input type="hidden" name="_token" value="{{ token }}">
-                                                            <input type="hidden" name="direction" value="{{ direction }}">
-                                                            {{ _self.filters(query) }}
-                                                            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ('work.board.move_' ~ direction)|trans }}</button>
-                                                        </form>
-                                                    {% endfor %}
-                                                    {% endif %}
-                                                    {% if card.deletable %}
-                                                        {% if editable %}<div role="separator" class="my-1 border-t border-divider"></div>{% endif %}
-                                                        <form method="post" action="{{ path('app_task_delete', {id: card.id}) }}" data-card-delete>
+                                                    </twig:Ui:MenuSection>
+                                                    <twig:Ui:MenuSection>
+                                                        {% for direction, shown in {up: card.up, down: card.down} %}
+                                                            <form method="post" action="{{ path('app_task_move', {id: card.id}) }}" role="none" data-move="{{ direction }}"{% if not shown %} hidden{% endif %}>
+                                                                <input type="hidden" name="_token" value="{{ token }}">
+                                                                <input type="hidden" name="direction" value="{{ direction }}">
+                                                                {{ filterFields }}
+                                                                <twig:Ui:MenuItem type="submit">{{ ('work.board.move_' ~ direction)|trans }}</twig:Ui:MenuItem>
+                                                            </form>
+                                                        {% endfor %}
+                                                    </twig:Ui:MenuSection>
+                                                {% endif %}
+                                                {% if card.deletable %}
+                                                    <twig:Ui:MenuSection>
+                                                        <form method="post" action="{{ path('app_task_delete', {id: card.id}) }}" role="none" data-card-delete>
                                                             <input type="hidden" name="_token" value="{{ trashToken }}">
                                                             <input type="hidden" name="from" value="board">
-                                                            <button type="submit" role="menuitem" tabindex="-1" class="{{ itemClass }}">{{ ux_icon('lucide:trash-2', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ 'work.trash.delete'|trans }}</span></button>
+                                                            <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'work.trash.delete'|trans }}</twig:Ui:MenuItem>
                                                         </form>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
+                                                    </twig:Ui:MenuSection>
+                                                {% endif %}
+                                            </twig:Ui:Menu>
                                         {% endif %}
                                     </div>
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">

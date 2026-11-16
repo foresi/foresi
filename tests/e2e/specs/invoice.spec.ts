@@ -652,7 +652,9 @@ test.describe.serial('an invoice', () => {
     await page.screenshot({ path: `${SHOTS}/discount-one-line.png`, fullPage: true });
     const plain = (await box('#lines-0-text')).height;
     const rowPlain = await page.locator('tbody[data-invoice-form-target=line] > tr').first().evaluate((row) => row.getBoundingClientRect().height);
-    const totalY = (await box('[data-line-total]')).y;
+    // In page coordinates: focusing the discount field may scroll it clear of the action bar.
+    const pageY = async (selector: string) => page.locator(selector).first().evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+    const totalY = await pageY('[data-line-total]');
 
     await page.locator('#lines-0-discount-add').click();
     await page.keyboard.type('10');
@@ -661,7 +663,7 @@ test.describe.serial('an invoice', () => {
     expect((await box('#lines-0-text')).height).toBe(plain);
     expect((await box('#lines-0-discount')).height).toBe(plain);
     expect(await page.locator('tbody[data-invoice-form-target=line] > tr').first().evaluate((row) => row.getBoundingClientRect().height)).toBe(rowPlain);
-    expect((await box('[data-line-total]')).y).toBe(totalY);
+    expect(await pageY('[data-line-total]')).toBe(totalY);
     const discountRow = await page.locator('#lines-0-discount-box').evaluate((row) => row.getBoundingClientRect().height);
     expect(discountRow).toBe(rowPlain);
 

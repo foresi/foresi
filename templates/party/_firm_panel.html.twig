@@ -6,30 +6,28 @@
     The hourly rate of the invoicing panel is for an owner only.
 #}
 {% set focus = constant('App\\Ui\\Component\\Style::FOCUS') %}
-{% set itemClass = 'group flex min-h-control w-full cursor-pointer items-center gap-2 rounded-control border-0 bg-transparent px-2.5 py-1 text-left text-text hover:bg-head focus-visible:bg-head' %}
 {% set menuId = 'scope-' ~ panel.key ~ '-menu' %}
 {% set buttonId = 'scope-' ~ panel.key ~ '-button' %}
 {% set activeScope = panel.scopes|filter(s => s.id == panel.active)|first %}
 <twig:Ui:Card :title="title" :icon="icon" class="min-w-0" data-firm-panel="{{ panel.key }}" data-controller="firm-scope" data-firm-scope-active-value="{{ panel.active }}" data-firm-scope-confirm-value="{{ {title: 'party.scope.reset_confirm'|trans, text: 'party.scope.reset_confirm_text'|trans, accept: 'party.scope.reset_confirm_accept'|trans, cancel: 'party.scope.reset_confirm_cancel'|trans, tone: 'danger'}|json_encode }}">
     <twig:block name="actions">
         <input type="hidden" name="panelScope[{{ panel.key }}]" value="{{ panel.active }}" data-firm-scope-target="current">
-        <div class="relative" data-controller="dropdown">
-            <twig:Ui:Button size="sm" :id="buttonId" class="max-w-44 sm:max-w-64" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">
-                <span class="sr-only">{{ 'party.scope.applies_to'|trans }}: </span>
-                <span class="truncate" data-firm-scope-target="label">{{ activeScope.name }}</span>
-                <span data-firm-scope-target="currentMarker"{% if not activeScope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
-                {{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
-            </twig:Ui:Button>
-            <div id="{{ menuId }}" role="menu" hidden data-dropdown-target="menu" data-action="keydown->dropdown#navigate" aria-labelledby="{{ buttonId }}" class="absolute right-0 top-full z-50 mt-1.5 w-max min-w-full max-w-[calc(100vw-4rem)] rounded-panel border border-container bg-white p-1.5 shadow-floating sm:max-w-sm">
-                {% for scope in panel.scopes %}
-                    <button type="button" role="menuitemradio" aria-checked="{{ scope.id == panel.active ? 'true' : 'false' }}" tabindex="-1" class="{{ itemClass }} {{ focus }}" data-scope="{{ scope.id }}" data-name="{{ scope.name }}" data-firm-scope-target="option" data-action="firm-scope#choose dropdown#close">
-                        {{ ux_icon('lucide:check', {class: 'invisible size-4 shrink-0 text-green group-aria-checked:visible', 'aria-hidden': 'true'}) }}
-                        <span class="min-w-0 flex-1 truncate">{{ scope.name }}</span>
-                        <span data-firm-scope-target="marker" data-scope="{{ scope.id }}"{% if not scope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
-                    </button>
-                {% endfor %}
-            </div>
-        </div>
+        <twig:Ui:Menu :id="menuId" :buttonId="buttonId" :label="'party.scope.applies_to'|trans" size="sm" menuClass="min-w-full max-w-[calc(100vw-4rem)] sm:max-w-sm">
+            <twig:block name="trigger">
+                <twig:Ui:Button size="sm" :id="buttonId" class="max-w-44 sm:max-w-64" aria-haspopup="menu" aria-expanded="false" :aria-controls="menuId" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton">
+                    <span class="sr-only">{{ 'party.scope.applies_to'|trans }}: </span>
+                    <span class="truncate" data-firm-scope-target="label">{{ activeScope.name }}</span>
+                    <span data-firm-scope-target="currentMarker"{% if not activeScope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
+                    {{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0 text-muted', 'aria-hidden': 'true'}) }}
+                </twig:Ui:Button>
+            </twig:block>
+            {% for scope in panel.scopes %}
+                <twig:Ui:MenuItem :checked="scope.id == panel.active" data-scope="{{ scope.id }}" data-name="{{ scope.name }}" data-firm-scope-target="option" data-action="firm-scope#choose dropdown#close">
+                    <span class="min-w-0 flex-1 truncate">{{ scope.name }}</span>
+                    <span data-firm-scope-target="marker" data-scope="{{ scope.id }}"{% if not scope.own %} hidden{% endif %}><twig:Ui:Badge tone="green">{{ 'party.scope.own'|trans }}</twig:Ui:Badge></span>
+                </twig:Ui:MenuItem>
+            {% endfor %}
+        </twig:Ui:Menu>
     </twig:block>
 
     {% for scope in panel.scopes %}
