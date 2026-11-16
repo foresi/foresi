@@ -86,15 +86,16 @@
 
     /*
      * Radius: small marks, every interactive control (4 px, level.io's "rounded"), the option rows
-     * of a menu (6 px, level.io's select options), every surface.
+     * of a menu (6 px, level.io's select options), every surface (8 px, level.io's menus and
+     * popovers; chosen by Martin on 2026-11-16 to sit with the 4 px controls).
      */
     --radius-*: initial;
     --radius-sm: 4px;
     --radius-control: 4px;
     --radius-option: 6px;
-    --radius-panel: 14px;
+    --radius-panel: 8px;
     /* The content panel of the app shell, which sits on the frame with a 10 px gap. */
-    --radius-xl: 16px;
+    --radius-xl: 12px;
 
     /*
      * Heights: controls (sm, md, lg = touch and the palette field) and table rows. A field, a

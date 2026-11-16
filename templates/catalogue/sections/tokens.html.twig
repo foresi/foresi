@@ -3,7 +3,7 @@
 {% set label = 'text-caption text-muted' %}
 <div class="grid gap-5" data-tokens>
 {% embed 'catalogue/_state.html.twig' with {state: 'radius'} %}{% block sample %}
-    {% for name, use in {'rounded-sm': 'sm · 4 px · badge, tag, kbd, progress, checkbox', 'rounded-control': 'control · 4 px · button, field, chip, menu', 'rounded-option': 'option · 6 px · menu row, list option', 'rounded-panel': 'panel · 14 px · card, table, bar, dialog'} %}
+    {% for name, use in {'rounded-sm': 'sm · 4 px · badge, tag, kbd, progress, checkbox', 'rounded-control': 'control · 4 px · button, field, chip, menu', 'rounded-option': 'option · 6 px · menu row, list option', 'rounded-panel': 'panel · 8 px · card, table, menu, bar, dialog'} %}
         <figure class="m-0 grid w-48 gap-2">
             <span class="block h-16 border border-control-line bg-head {{ name }}"></span>
             <figcaption class="{{ label }}"><span class="font-medium text-ink">{{ name }}</span><br>{{ use }}</figcaption>

@@ -83,7 +83,7 @@ final class DesignTokensTest extends TestCase
         foreach (self::RADII as $radius) {
             self::assertMatchesRegularExpression('/--radius-'.$radius.':\s*\d+px;/', $css, sprintf('The radius "%s" must be defined in @theme.', $radius));
         }
-        self::assertStringContainsString('--radius-xl: 16px;', $css);
+        self::assertStringContainsString('--radius-xl: 12px;', $css);
     }
 
     public function testTheScanCatchesArbitraryValues(): void
