@@ -59,7 +59,7 @@ An `OperationHandler` in the module's infrastructure (tag `app.operation_handler
 
 * `OperationRoutes` adds a route per operation to the generic `OperationController`, and `OperationDocs` adds each to the OpenAPI document with its body schema.
 * The MCP loader registers a tool per operation with a JSON Schema derived from the input (`additionalProperties: false`, plus `idempotency_key`) and the annotations `readOnlyHint: false`, `destructiveHint` from the declaration, `idempotentHint: false`.
-* `OperationRunner` runs both surfaces in one order: the scope, the confirmation flag, the write budget, the input (types and allowed values; a wrong one is 400 `invalid_parameter` or `invalid_argument` naming the field), then the handler. Idempotency wraps it on both surfaces.
+* Both surfaces run the same checks. Over MCP the order is the scope, the write budget, idempotency, the confirmation flag, the input (types and allowed values; a wrong one is `invalid_argument` naming the field), then the handler. Over REST the write budget is spent and the key claimed before the controller, and `OperationRunner` then checks the scope, the confirmation flag and the input (400 `invalid_parameter` naming the field), then calls the handler. A refusal before the handler is never saved under the key, so the order differs only in which refusal comes first.
 * A contract test checks that every operation has a route and a tool and that names, tools and routes are unique.
 
 Reads, webhooks and the `whoami` style tools stay hand-written and can move later.
