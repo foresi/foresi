@@ -73,7 +73,7 @@ final readonly class Idempotency
             return false;
         }
 
-        return null === $code || !(\in_array($code, self::NOT_KEPT, true) || str_starts_with($code, 'idempotency_key_'));
+        return null === $code || !\in_array($code, self::NOT_KEPT, true) && !str_starts_with($code, 'idempotency_key_');
     }
 
     /**

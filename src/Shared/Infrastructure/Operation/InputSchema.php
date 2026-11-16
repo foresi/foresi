@@ -58,7 +58,7 @@ final class InputSchema
         if (null !== $describe?->format) {
             $property['format'] = $describe->format;
         }
-        if (null !== $describe) {
+        if ($describe instanceof \App\Shared\Application\Api\Field) {
             $property['description'] = $describe->description;
         }
 

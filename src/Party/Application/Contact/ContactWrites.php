@@ -92,33 +92,33 @@ final readonly class ContactWrites
         $party = $this->contacts->party($input->contactId);
         $address = $this->details->billingAddress($party)?->address();
         $number = $party->registrationNumber();
-        $countryCode = self::upper(self::given($input->countryCode, $address->countryCode ?? ''));
-        $registrationNumber = self::given($input->registrationNumber, $number?->toString() ?? '');
+        $countryCode = $this->upper($this->given($input->countryCode, $address->countryCode ?? ''));
+        $registrationNumber = $this->given($input->registrationNumber, $number?->toString() ?? '');
         // A number given without its country, or a country cleared, takes the country of the billing address.
         $registrationCountry = match (true) {
             null === $input->registrationCountry => $countryCode,
-            !$input->registrationCountry instanceof Omitted => self::upper($input->registrationCountry),
+            !$input->registrationCountry instanceof Omitted => $this->upper($input->registrationCountry),
             $number instanceof RegistrationNumber && $number->toString() === $registrationNumber => $number->countryCode,
             default => $countryCode,
         };
         $parsed = $this->rules->parse(new PartyDraft(
             $party->kind()->value,
-            self::given($input->displayName, $party->displayName()),
+            $this->given($input->displayName, $party->displayName()),
             $registrationCountry,
             $registrationNumber,
-            self::given($input->vatId, $party->vatId()?->toString() ?? ''),
-            self::given($input->email, $this->details->generalEmail($party)?->address() ?? ''),
-            self::given($input->phone, $party->phone()),
-            self::given($input->mobile, $party->mobile()),
-            self::given($input->website, $party->website()),
+            $this->given($input->vatId, $party->vatId()?->toString() ?? ''),
+            $this->given($input->email, $this->details->generalEmail($party)?->address() ?? ''),
+            $this->given($input->phone, $party->phone()),
+            $this->given($input->mobile, $party->mobile()),
+            $this->given($input->website, $party->website()),
             $input->roles instanceof Omitted ? array_map(static fn (PartyRole $role): string => $role->value, $party->roles()) : $input->roles,
-            self::given($input->street, $address->street ?? ''),
-            self::given($input->city, $address->city ?? ''),
-            self::given($input->postalCode, $address->postalCode ?? ''),
+            $this->given($input->street, $address->street ?? ''),
+            $this->given($input->city, $address->city ?? ''),
+            $this->given($input->postalCode, $address->postalCode ?? ''),
             $countryCode,
-            self::given($input->privateNote, $party->privateNote()),
+            $this->given($input->privateNote, $party->privateNote()),
         ))->orRefuse();
-        if (!self::sameIdentifiers($party, $parsed)) {
+        if (!$this->sameIdentifiers($party, $parsed)) {
             $this->refuseDuplicates($parsed, $party->id());
         }
         $this->update->update($party, $parsed);
@@ -193,7 +193,7 @@ final readonly class ContactWrites
         throw new PartyRefused(PartyRefused::DUPLICATE, $field, array_values(array_unique(array_map(static fn (DuplicateMatch $match): string => $match->partyId, $matches))));
     }
 
-    private static function sameIdentifiers(Party $party, PartyInput $input): bool
+    private function sameIdentifiers(Party $party, PartyInput $input): bool
     {
         $number = $party->registrationNumber();
 
@@ -205,7 +205,7 @@ final readonly class ContactWrites
     /**
      * The value sent, trimmed; the stored one when left out, nothing when cleared.
      */
-    private static function given(string|Omitted|null $sent, string $stored): string
+    private function given(string|Omitted|null $sent, string $stored): string
     {
         return match (true) {
             null === $sent => '',
@@ -214,7 +214,7 @@ final readonly class ContactWrites
         };
     }
 
-    private static function upper(string $value): string
+    private function upper(string $value): string
     {
         return strtoupper(trim($value));
     }

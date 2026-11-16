@@ -60,7 +60,7 @@ final readonly class CreateContactInput
         public string $mobile = '',
         #[Field('The website, empty for none.', maxLength: 255)]
         public string $website = '',
-        #[Field('What the contact is to the organisation.', items: 'string', enum: ['customer', 'supplier', 'partner', 'authority'])]
+        #[Field('What the contact is to the organisation.', enum: ['customer', 'supplier', 'partner', 'authority'], items: 'string')]
         public array $roles = [],
         #[Field('A note for the staff, never printed.')]
         public string $privateNote = '',

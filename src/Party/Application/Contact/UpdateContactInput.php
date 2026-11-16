@@ -59,7 +59,7 @@ final readonly class UpdateContactInput
         public string|Omitted|null $mobile = new Omitted(),
         #[Field('The website; null clears it.', maxLength: 255)]
         public string|Omitted|null $website = new Omitted(),
-        #[Field('What the contact is to the organisation; replaces the roles it has.', items: 'string', enum: ['customer', 'supplier', 'partner', 'authority'])]
+        #[Field('What the contact is to the organisation; replaces the roles it has.', enum: ['customer', 'supplier', 'partner', 'authority'], items: 'string')]
         public array|Omitted $roles = new Omitted(),
         #[Field('A note for the staff, never printed; null clears it.')]
         public string|Omitted|null $privateNote = new Omitted(),

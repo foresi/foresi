@@ -39,8 +39,8 @@ final class OperationTest extends TestCase
         $definition = OperationDefinition::of(new ThingHandler());
 
         self::assertSame('api_v1_operation_things.change', $definition->route());
-        self::assertSame(['thing_id', 'name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn ($field): string => $field->wire, $definition->fields));
-        self::assertSame(['name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn ($field): string => $field->wire, $definition->bodyFields()));
+        self::assertSame(['thing_id', 'name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\App\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->fields));
+        self::assertSame(['name', 'note', 'colour', 'tags', 'count', 'shiny'], array_map(static fn (\App\Shared\Infrastructure\Operation\OperationField $field): string => $field->wire, $definition->bodyFields()));
         self::assertTrue($definition->fields[0]->inPath);
         self::assertTrue($definition->fields[1]->required);
         self::assertFalse($definition->fields[2]->required);
@@ -183,7 +183,7 @@ final class OperationTest extends TestCase
     public function testNamesToolsAndRoutesAreUnique(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Two operations are declared as things.change.');
+        $this->expectExceptionMessageIsOrContains('Two operations are declared as things.change.');
 
         new Operations([new ThingHandler(), new ThingHandler()])->all();
     }

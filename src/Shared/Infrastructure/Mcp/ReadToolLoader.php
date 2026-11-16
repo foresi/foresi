@@ -96,7 +96,7 @@ final readonly class ReadToolLoader implements LoaderInterface
      *
      * @return array<string, mixed>
      */
-    private static function withIdempotencyKey(array $schema): array
+    private function withIdempotencyKey(array $schema): array
     {
         $properties = $schema['properties'] ?? [];
         $properties = $properties instanceof \stdClass ? (array) $properties : (\is_array($properties) ? $properties : []);
@@ -123,7 +123,7 @@ final readonly class ReadToolLoader implements LoaderInterface
 
         $schema = $tool->inputSchema();
         if ($tool instanceof WriteTool) {
-            $schema = self::withIdempotencyKey($schema);
+            $schema = $this->withIdempotencyKey($schema);
         }
         $registry->registerTool(
             new Tool($name, $tool->title(), $schema, $tool->description(), $annotations),

@@ -27,7 +27,7 @@ final readonly class ThingInput
         public string|Omitted|null $note = new Omitted(),
         #[Field('Its colour.', enum: ['red', 'blue'])]
         public ?string $colour = null,
-        #[Field('Its tags.', items: 'string', enum: ['a', 'b'])]
+        #[Field('Its tags.', enum: ['a', 'b'], items: 'string')]
         public array|Omitted $tags = new Omitted(),
         #[Field('How many.')]
         public int $count = 1,

@@ -67,7 +67,7 @@ final readonly class IssueApiTokenCommand
         $scopes = [];
         foreach ($scope as $value) {
             $parsed = ApiScope::tryFrom($value);
-            if (null === $parsed) {
+            if (!$parsed instanceof ApiScope) {
                 $io->error(\sprintf('Unknown scope "%s", expected read, write, or a resource such as contacts:write.', $value));
 
                 return Command::INVALID;
