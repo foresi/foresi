@@ -151,6 +151,7 @@ ui:
   breadcrumb:
     label: Breadcrumb
   palette:
+    search: Search
     open: Search or run a command
     label: Command palette
     placeholder: Type a command or search
@@ -159,6 +160,8 @@ ui:
 shell:
   skip_to_content: Skip to content
   sidebar_label: Main navigation
+  rail_label: Areas
+  unread_notifications: Unread notifications
   menu:
     open: Open menu
   palette:

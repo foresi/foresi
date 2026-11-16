@@ -52,7 +52,7 @@
                     <legend class="mb-1.5 p-0 text-small font-medium text-ink">{{ 'timesheet.invoice.entries'|trans }}</legend>
                     <ul class="m-0 grid list-none divide-y divide-divider rounded-panel border border-container bg-white p-0" data-action="change->time-invoice#count">
                         {% for entry in entries %}
-                            <li class="flex items-start gap-3 px-4 py-2.5 max-[899px]:px-3" data-time-invoice-entry="{{ entry.id }}"
+                            <li class="flex items-start gap-3 px-4 py-2.5 max-shell:px-3" data-time-invoice-entry="{{ entry.id }}"
                                 data-minutes="{{ entry.minutes }}" data-rate="{{ entry.rateMinor ?? '' }}" data-currency="{{ entry.rateCurrency ?? '' }}" data-scale="{{ entry.rateScale ?? 1 }}"
                                 {% for grouping, group in entry.groups %} data-group-{{ grouping }}="{{ group }}"{% endfor %}>
                                 <input type="hidden" name="listed[]" value="{{ entry.id }}">

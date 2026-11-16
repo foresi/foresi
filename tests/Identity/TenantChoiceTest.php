@@ -72,7 +72,7 @@ final class TenantChoiceTest extends WebTestCase
         self::assertSame($b->toString(), $this->client->getRequest()->getSession()->get('active_tenant'));
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('#sidebar', 'Tenant B');
+        self::assertSelectorTextContains('#rail [data-organisation]', 'Tenant B');
     }
 
     public function testSwitchingLaterToTheOtherOrganisationWorksToo(): void
@@ -86,7 +86,7 @@ final class TenantChoiceTest extends WebTestCase
         $this->client->submit($crawler->filter('form[action="/organisation/switch/'.$b->toString().'"]')->form());
         $this->client->followRedirect();
 
-        self::assertSelectorTextContains('#sidebar', 'Tenant B');
+        self::assertSelectorTextContains('#rail [data-organisation]', 'Tenant B');
     }
 
     public function testTenantWithoutMembershipIsNotFound(): void

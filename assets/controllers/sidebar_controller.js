@@ -3,10 +3,18 @@
  */
 import { Controller } from '@hotwired/stimulus';
 
-const NARROW = '(max-width: 899px)';
+/**
+ * The shell breakpoint, from the --breakpoint-shell token of assets/styles/app.css,
+ * so the drawer and the layout switch at the same width.
+ */
+function narrowQuery() {
+    const width = getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-shell').trim();
+
+    return `(width < ${width})`;
+}
 
 /**
- * Narrow screens: the sidebar is a drawer behind the menu button. While it is
+ * Narrow screens: the rail and the sidebar are one drawer behind the menu button. While it is
  * open the page behind it is inert, Escape closes it and focus returns to the
  * button. On wide screens the sidebar is always shown and this does nothing.
  */
@@ -14,7 +22,7 @@ export default class extends Controller {
     static targets = ['panel', 'scrim', 'toggle', 'page'];
 
     connect() {
-        this.media = window.matchMedia(NARROW);
+        this.media = window.matchMedia(narrowQuery());
         this.onKeydown = (event) => {
             // A menu inside the drawer handles its own Escape first; an open dialog takes Escape for
             // itself, and preventing it here would keep the dialog open.

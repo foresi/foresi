@@ -77,7 +77,8 @@ test.describe.serial('the invoice list', () => {
 
   test('is reached from the sidebar and the palette', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('navigation').getByRole('link', { name: 'Faktury', exact: true }).click();
+    await page.locator('#rail').getByRole('link', { name: 'Prodej' }).click();
+    await page.locator('#sidebar').getByRole('link', { name: 'Faktury', exact: true }).click();
     await expect(page).toHaveURL(/\/invoices$/);
   });
 

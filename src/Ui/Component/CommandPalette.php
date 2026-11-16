@@ -20,6 +20,12 @@ final class CommandPalette
     public string $id = 'command-palette';
 
     /**
+     * How the opener looks: "field" is a search field, "rail" an icon tile with a
+     * short label for the app shell's rail.
+     */
+    public string $trigger = 'field';
+
+    /**
      * @var list<array<string, mixed>> each with a string label and href, optional group, icon, shortcut and keywords
      */
     public array $commands = [];
@@ -30,6 +36,9 @@ final class CommandPalette
     #[PostMount]
     public function validate(): void
     {
+        if (!in_array($this->trigger, ['field', 'rail'], true)) {
+            throw new \InvalidArgumentException(sprintf('Unknown command palette trigger "%s".', $this->trigger));
+        }
         $byGroup = [];
         foreach ($this->commands as $index => $command) {
             $href = Style::requireString($command, 'href', 'A command');

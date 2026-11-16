@@ -26,13 +26,12 @@ final class DesignTokensTest extends TestCase
     private const array ALLOWED = [
         // The step markers are circles: a number or a check in a ring.
         'templates/components/Ui/Stepper.html.twig' => ['rounded-full'],
-        // The sticky sidebar is as tall as the viewport minus the frame padding.
-        'templates/layout/app.html.twig' => ['h-[calc(100vh-20px)]'],
         // A dialog with fields fills a phone screen edge to edge, where a rounded corner would be cut off.
         'src/Ui/Component/Dialog.php' => ['rounded-none'],
     ];
 
-    private const array RADII = ['sm', 'control', 'panel'];
+    /** Radius: small marks, controls, surfaces, and the content panel of the app shell. */
+    private const array RADII = ['sm', 'control', 'panel', 'xl'];
 
     private const array SHADOWS = ['raised', 'floating', 'overlay'];
 
@@ -77,6 +76,16 @@ final class DesignTokensTest extends TestCase
         self::assertSame([], $violations, "Use the design tokens of assets/styles/app.css:\n".implode("\n", $violations));
     }
 
+    public function testEveryAllowedRadiusIsAThemeToken(): void
+    {
+        $css = (string) file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
+
+        foreach (self::RADII as $radius) {
+            self::assertMatchesRegularExpression('/--radius-'.$radius.':\s*\d+px;/', $css, sprintf('The radius "%s" must be defined in @theme.', $radius));
+        }
+        self::assertStringContainsString('--radius-xl: 16px;', $css);
+    }
+
     public function testTheScanCatchesArbitraryValues(): void
     {
         self::assertTrue($this->violates('radius', 'rounded-full'));
@@ -84,6 +93,8 @@ final class DesignTokensTest extends TestCase
         self::assertTrue($this->violates('radius', 'rounded-md'));
         self::assertTrue($this->violates('radius', 'file:rounded-lg'));
         self::assertFalse($this->violates('radius', 'rounded-control'));
+        self::assertFalse($this->violates('radius', 'rounded-xl'));
+        self::assertTrue($this->violates('radius', 'rounded-2xl'));
         self::assertFalse($this->violates('radius', 'has-[:checked]:rounded-panel'));
         self::assertTrue($this->violates('height', 'h-[30px]'));
         self::assertTrue($this->violates('height', 'min-h-[2rem]'));

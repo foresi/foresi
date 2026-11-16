@@ -22,9 +22,8 @@ test('signing in with a wrong password shows an error and stays on the page', as
 
 test('an owner signs in and signs out again', async ({ page }) => {
   await signIn(page);
-  await expect(page.locator('#user-menu-button')).toContainText(OWNER);
-
   await page.locator('#user-menu-button').click();
+  await expect(page.locator('#user-menu')).toContainText(OWNER);
   await page.getByRole('menuitem', { name: 'Odhlásit se' }).click();
 
   await expect(page).toHaveURL(/\/login$/);

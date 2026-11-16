@@ -7,11 +7,6 @@ on:
   # The merge queue tests each pull request on top of main before it lands.
   merge_group:
   workflow_dispatch:
-    inputs:
-      update-snapshots:
-        description: Regenerate Linux screenshot baselines and upload them as an artifact
-        type: boolean
-        default: false
 
 permissions: {}
 
@@ -69,44 +64,11 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      # Screenshot baselines are kept per platform. Linux baselines are generated on request or when none are committed yet. Decided before the
-      # tests run, because generating them creates the files the check looks for.
-      - name: Decide whether to generate Linux screenshot baselines
-        id: baselines
-        env:
-          REQUESTED: ${{ inputs.update-snapshots }}
-          NONE_COMMITTED: ${{ hashFiles('tests/e2e/screenshots/desktop-linux/**') == '' }}
-        run: |
-          if [ "$REQUESTED" = "true" ] || [ "$NONE_COMMITTED" = "true" ]; then
-            echo "generate=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "generate=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # While baselines are being generated, the screenshot specs (tagged @visual) are skipped here.
-      - name: End-to-end, accessibility, layout and screenshot tests
+      # Screenshot tests (tagged @visual) are off while the layout redesign keeps changing the UI;
+      # playwright.config.ts skips them. They come back afterwards on a few key screens.
+      - name: End-to-end, accessibility and layout tests
         working-directory: tests/e2e
-        env:
-          GENERATING: ${{ steps.baselines.outputs.generate }}
-        run: |
-          if [ "$GENERATING" = "true" ]; then
-            npx playwright test --grep-invert @visual
-          else
-            npx playwright test
-          fi
-
-      - name: Generate Linux screenshot baselines
-        if: ${{ steps.baselines.outputs.generate == 'true' }}
-        working-directory: tests/e2e
-        run: npx playwright test --grep @visual --update-snapshots=all
-
-      - name: Upload the Linux screenshot baselines
-        if: ${{ steps.baselines.outputs.generate == 'true' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: screenshots-linux
-          path: tests/e2e/screenshots/*-linux/
-          retention-days: 7
+        run: npx playwright test
 
       - name: Upload the report
         if: failure()

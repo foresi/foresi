@@ -89,7 +89,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertStringContainsString('To complete', $crawler->filter('main nav a[href="/purchasing"]')->text());
         self::assertCount(2, $crawler->filter('main table tbody tr'));
         self::assertStringContainsString('Draft of', $crawler->filter('main table tbody')->text());
-        $sidebar = $crawler->filter('#sidebar a[href="/purchasing"]');
+        $sidebar = $crawler->filter('#sidebar [data-nav-group] a[href="/purchasing"]');
         self::assertStringContainsString('Costs', $sidebar->text());
         self::assertStringContainsString('2', $sidebar->text());
         // Every action sits in the page header.

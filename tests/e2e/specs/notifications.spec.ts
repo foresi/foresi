@@ -55,6 +55,8 @@ test.describe('the inbox', () => {
     const link = page.locator('#sidebar [data-nav-group="main"]').getByRole('link', { name: /Oznámení/ });
     await expect(link).toBeVisible();
     expect(await unreadCount(page)).toBeGreaterThanOrEqual(2);
+    // The rail marks Overview, where the inbox lives, with a dot.
+    await expect(page.locator('#rail a[data-nav-area="overview"] [data-nav-unread]')).toBeVisible();
     await link.click();
     await expect(page).toHaveURL(/\/notifications$/);
     await expect(page.locator('main h1')).toHaveText('Oznámení');
