@@ -69,6 +69,14 @@ final class DialogTest extends KernelTestCase
         self::assertStringContainsString('max-w-[720px]', (string) $this->render(['size' => 'lg'])->filter('dialog')->attr('class'));
     }
 
+    public function testThePageBehindDimsUnderABlurredScrim(): void
+    {
+        $class = ' '.$this->render([])->filter('dialog')->attr('class').' ';
+
+        self::assertStringContainsString(' backdrop:bg-ink/70 ', $class);
+        self::assertStringContainsString(' backdrop:backdrop-blur-overlay ', $class);
+    }
+
     public function testUnknownSizeThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);

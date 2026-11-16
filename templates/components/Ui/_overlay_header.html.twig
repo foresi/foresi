@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The header of a dialog or a sheet (`id`, `title`, `description`): the title, a muted line under
+    it and the X, as in level.io's modals and side panels.
+#}
+<header class="flex shrink-0 items-start gap-3 pb-4 pl-6 pr-4 pt-5 max-sm:pl-4 max-sm:pr-3">
+    <div class="min-w-0 flex-1 pt-1">
+        <h2 id="{{ id }}-title" tabindex="-1" data-dialog-target="title" class="m-0 text-heading font-semibold text-ink outline-none [overflow-wrap:anywhere]">{{ title }}</h2>
+        {% if description %}<p id="{{ id }}-description" data-dialog-target="description" class="m-0 mt-1 text-body text-muted">{{ description }}</p>{% endif %}
+    </div>
+    <twig:Ui:IconButton icon="x" :label="'ui.dialog.close'|trans" variant="ghost" data-action="dialog#dismiss" />
+</header>

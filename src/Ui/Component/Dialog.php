@@ -25,13 +25,18 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * one primary verb last). Variants: "confirm" is an alert dialog the confirm
  * function fills, "bare" has no header and footer (the command palette). A
  * remote dialog is the one empty host that loads a dialog URL in place.
+ *
+ * Look (level.io "Assign to group" modal, Untitled UI modal where level.io is
+ * silent): 24 px padding, the title with a muted description line and an X in
+ * the header, the buttons right-aligned in the footer, Cancel then the primary
+ * verb; the page behind dims under a 70 % ink scrim with a 6 px blur.
  */
 #[AsTwigComponent]
 final class Dialog
 {
     private const array SIZES = ['sm' => 'max-w-[400px]', 'md' => 'max-w-[560px]', 'lg' => 'max-w-[720px]'];
     private const array VARIANTS = ['default', 'confirm', 'bare'];
-    private const string BASE = 'm-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden rounded-panel border border-container bg-white p-0 text-text shadow-overlay open:flex backdrop:bg-ink/25';
+    private const string BASE = 'm-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden rounded-panel border border-container bg-white p-0 text-text shadow-overlay open:flex backdrop:bg-ink/70 backdrop:backdrop-blur-overlay';
     private const string FULL_SCREEN = 'max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0';
     private const array ACTIONS = [
         'cancel->dialog#cancelled', 'close->dialog#closed', 'click->dialog#clicked', 'submit->dialog#submit',
