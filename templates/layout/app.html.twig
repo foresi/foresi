@@ -46,8 +46,8 @@
                     <div data-shell-notices class="mb-4 grid gap-2">
                         {% for notice in notices %}
                             <twig:Ui:Alert :tone="notice.tone">
-                                <span>{{ notice.text }}</span>
-                                <a href="{{ notice.href }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
+                                <span class="block">{{ notice.text }}</span>
+                                <a href="{{ notice.href }}" class="mt-0.5 inline-block font-semibold text-current underline underline-offset-2 {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ notice.linkLabel }}</a>
                             </twig:Ui:Alert>
                         {% endfor %}
                     </div>
