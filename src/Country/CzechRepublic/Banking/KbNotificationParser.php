@@ -77,7 +77,7 @@ final readonly class KbNotificationParser implements BankMessageParser
             return false;
         }
 
-        return array_any($this->parts($mail), fn ($lines): bool => $this->carriesLabels($lines));
+        return array_any($this->parts($mail), fn (array $lines): bool => $this->carriesLabels($lines));
     }
 
     public function parse(InboundMail $mail): ParseResult

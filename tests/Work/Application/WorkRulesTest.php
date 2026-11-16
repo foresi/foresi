@@ -171,8 +171,8 @@ final class WorkRulesTest extends WorkTestCase
     public function testAWorkRefusalTellsWhy(): void
     {
         self::assertSame('The change is refused: name.', new WorkRefused('name')->getMessage());
-        $this->assertRefused('parent', static fn (): mixed => WorkRefused::unlessNamed(static fn () => throw new WorkRefused('parent')));
-        $this->assertRefused('name', static fn (): mixed => WorkRefused::unlessNamed(static fn () => throw new \DomainException('Too long.')));
+        $this->assertRefused('parent', static fn (): mixed => WorkRefused::unlessNamed(static fn (): never => throw new WorkRefused('parent')));
+        $this->assertRefused('name', static fn (): mixed => WorkRefused::unlessNamed(static fn (): never => throw new \DomainException('Too long.')));
     }
 
     private function trail(): AuditTrail
