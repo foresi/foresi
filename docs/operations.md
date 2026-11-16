@@ -343,6 +343,13 @@ requests, so a migration must not break the code of the previous release.
 is kept in a release's cache, and the workers read the cache of the release
 they started from.
 
+The project's own instance deploys main continuously:
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) calls the
+hosting panel's deploy webhook on every push to `main`, which only happens
+through the merge queue. The webhook URL is the `PLOI_DEPLOY_WEBHOOK` secret of
+the `production` environment; without it the workflow fails instead of
+skipping silently.
+
 ### Ploi
 
 [`ops/ploi-deploy.sh.example`](../ops/ploi-deploy.sh.example) is the same

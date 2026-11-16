@@ -1,0 +1,28 @@
+name: Deploy
+
+# Every push to main has passed the merge queue, so it deploys app.foresi.app
+# through the site's deploy webhook in Ploi. See docs/operations.md#deploy.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Deploys run one at a time; a newer push waits instead of cancelling a running deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy app.foresi.app
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger the Ploi deploy webhook
+        env:
+          PLOI_DEPLOY_WEBHOOK: ${{ secrets.PLOI_DEPLOY_WEBHOOK }}
+        run: |
+          [ -n "${PLOI_DEPLOY_WEBHOOK}" ] || { echo "PLOI_DEPLOY_WEBHOOK is not set."; exit 1; }
+          curl --fail --silent --show-error --max-time 30 -X POST "${PLOI_DEPLOY_WEBHOOK}"
