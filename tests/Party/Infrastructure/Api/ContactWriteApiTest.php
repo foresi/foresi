@@ -102,9 +102,13 @@ final class ContactWriteApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/contacts', ['kind' => 'robot'] + self::COMPANY);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'kind']);
 
+        $this->send('POST', '/api/v1/contacts', ['registration_country' => 'DE', 'registration_number' => str_repeat('1', 65)] + self::COMPANY);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'registration_number']);
+
         $call = $this->tool('foresi_create_contact', ['email' => 'not an e-mail'] + self::COMPANY);
         self::assertTrue($call['isError'] ?? false);
         self::assertSame('invalid_argument', $this->in($call, 'structuredContent', 'error', 'code'));
+        self::assertSame('email', $this->in($call, 'structuredContent', 'error', 'details', 'parameter'));
         self::assertSame([], $this->contactsNamed('Alpha'));
     }
 

@@ -64,7 +64,7 @@ final readonly class OperationTool implements WriteTool
         try {
             $output = $this->runner->run($this->definition, $arguments);
         } catch (Refused $refused) {
-            throw RefusalKind::Invalid === $refused->kind() ? new ToolRefusal(ToolRefusal::INVALID_ARGUMENT, $refused->getMessage(), ['reason' => $refused->reason()] + $refused->details()) : new ToolRefusal($refused->reason(), $refused->getMessage(), $refused->details());
+            throw RefusalKind::Invalid === $refused->kind() ? new ToolRefusal(ToolRefusal::INVALID_ARGUMENT, $refused->getMessage(), ['parameter' => null === $refused->field() ? null : OperationField::wireName($refused->field()), 'reason' => $refused->reason()] + $refused->details()) : new ToolRefusal($refused->reason(), $refused->getMessage(), $refused->details());
         }
 
         return new ToolOutput($output->data, $output->summary);

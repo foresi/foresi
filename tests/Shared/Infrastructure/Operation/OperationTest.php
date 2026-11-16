@@ -142,7 +142,7 @@ final class OperationTest extends TestCase
             self::fail('Nothing was refused.');
         } catch (ToolRefusal $refusal) {
             self::assertSame('invalid_argument', $refusal->errorCode);
-            self::assertSame(['reason' => 'invalid_input'], $refusal->details);
+            self::assertSame(['parameter' => 'name', 'reason' => 'invalid_input'], $refusal->details);
         }
     }
 

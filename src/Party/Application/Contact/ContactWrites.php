@@ -13,6 +13,7 @@ use App\Party\Application\CreateParty;
 use App\Party\Application\DuplicateFinder;
 use App\Party\Application\DuplicateMatch;
 use App\Party\Application\LinkContactPerson;
+use App\Party\Application\PartyAccess;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyDraft;
 use App\Party\Application\PartyInput;
@@ -38,6 +39,7 @@ use App\Shared\Application\Api\Omitted;
 final readonly class ContactWrites
 {
     public function __construct(
+        private PartyAccess $access,
         private ContactDetails $contacts,
         private PartyDetails $details,
         private PartyRules $rules,
@@ -56,6 +58,8 @@ final readonly class ContactWrites
      */
     public function create(CreateContactInput $input): string
     {
+        // Asked first, so a guest learns nothing from a refusal of the rules or a duplicate.
+        $this->access->denyUnlessMayChange();
         $parsed = $this->rules->parse(new PartyDraft(
             $input->kind,
             trim($input->displayName),

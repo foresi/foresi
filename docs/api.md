@@ -234,7 +234,7 @@ Every write (`POST`, `PATCH` and `DELETE` under `/api/v1`) takes an optional `Id
 
 - A repeat with the same key, method, path and body after the first finished answers the saved status and body, with `Idempotent-Replayed: true`.
 - A repeat while the first is still running is refused with `409 idempotency_key_in_flight`. Wait a moment and send it again.
-- The same key with another method, path or body is refused with `422 idempotency_key_reused`.
+- The same key on the same endpoint with another path or body is refused with `422 idempotency_key_reused`.
 - What is saved: a success, and a refusal of the change itself (`403 forbidden`, `404` and `409`). What is not saved, so you can fix the request and send the same key again: `400`, `401`, a missing scope, `429` and any `5xx`.
 - A key belongs to its token and its endpoint, and is kept for 24 hours.
 

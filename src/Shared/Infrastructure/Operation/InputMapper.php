@@ -60,6 +60,10 @@ final class InputMapper
                 'string' => 'must be a string.', 'int' => 'must be a whole number.', 'bool' => 'must be true or false.', default => 'must be a list of strings.',
             });
         }
+        $longest = $field->describe?->maxLength;
+        if (null !== $longest && \is_string($value) && mb_strlen($value) > $longest) {
+            throw new InvalidInput($field->wire, \sprintf('must be at most %d characters.', $longest));
+        }
         $allowed = $field->describe?->enum;
         if (null !== $allowed) {
             foreach (\is_array($value) ? $value : [$value] as $item) {

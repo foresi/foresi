@@ -104,7 +104,8 @@ final readonly class ApiIdempotency
         try {
             return json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            return $content;
+            // Bytes that are no JSON (and may be no UTF-8) are compared by their hash.
+            return ['raw_sha256' => hash('sha256', $content)];
         }
     }
 

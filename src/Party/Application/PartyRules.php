@@ -36,6 +36,7 @@ final readonly class PartyRules
     public const int MAX_POSTAL_CODE = 32;
     public const int MAX_EMAIL = 254;
     public const int MAX_POSITION = 100;
+    public const int MAX_REGISTRATION_NUMBER = 64;
 
     public function __construct(private RegistrationNumberFactory $registrationNumbers)
     {
@@ -137,6 +138,11 @@ final readonly class PartyRules
     private function registrationNumber(PartyDraft $draft, array &$refusals): ?RegistrationNumber
     {
         if ('' === $draft->registrationNumber) {
+            return null;
+        }
+        if (mb_strlen($draft->registrationNumber) > self::MAX_REGISTRATION_NUMBER) {
+            $refusals['registrationNumber'] = new PartyRefused(PartyRefused::TOO_LONG, 'registrationNumber');
+
             return null;
         }
         if (!Countries::supports($draft->registrationCountry)) {
