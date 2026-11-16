@@ -84,7 +84,7 @@ final class AuditCorrelationTest extends KernelTestCase
     {
         $this->expectException(\RuntimeException::class);
         try {
-            $this->correlation->within('import:1', static fn () => throw new \RuntimeException('boom'));
+            $this->correlation->within('import:1', static fn (): never => throw new \RuntimeException('boom'));
         } finally {
             self::assertNull($this->correlation->current());
         }
