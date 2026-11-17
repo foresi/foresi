@@ -55,7 +55,7 @@ final readonly class DocumentRecording
             $this->contacts->addRole($content->supplierParty, $firm, PartyRole::Supplier);
         }
         $total = $document->total();
-        if ($first && null !== $total) {
+        if ($first && $total instanceof \App\Shared\Domain\Money) {
             $this->events->record(new ReceivedDocumentRecorded(
                 $document->id(),
                 $firm->id(),

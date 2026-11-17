@@ -33,7 +33,7 @@ final readonly class PaymentBalance
     {
         $currency = $document->currency();
         $total = $document->isRecorded() ? $document->total() : null;
-        $dueMinor = null === $total ? 0 : abs($total->minor());
+        $dueMinor = $total instanceof Money ? abs($total->minor()) : 0;
 
         return new self(
             $currency,

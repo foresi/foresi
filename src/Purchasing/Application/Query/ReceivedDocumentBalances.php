@@ -38,9 +38,9 @@ final readonly class ReceivedDocumentBalances
     {
         $this->access->denyUnlessStaff();
         [$documents, $hasMore] = $this->queries->slice($filter, $afterId, $limit);
-        $sums = $this->payments->sums(array_map(static fn ($document): string => $document->id(), $documents));
+        $sums = $this->payments->sums(array_map(static fn (\App\Purchasing\Domain\ReceivedDocument $document): string => $document->id(), $documents));
 
-        return new ReceivedDocumentSlice(array_map(static fn ($document): PayableDocument => new PayableDocument(
+        return new ReceivedDocumentSlice(array_map(static fn (\App\Purchasing\Domain\ReceivedDocument $document): PayableDocument => new PayableDocument(
             $document,
             PaymentBalance::of($document, $sums[$document->id()]['paid'] ?? 0, $sums[$document->id()]['last'] ?? null),
         ), $documents), $hasMore);

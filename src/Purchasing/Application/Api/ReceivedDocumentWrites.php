@@ -61,10 +61,10 @@ final readonly class ReceivedDocumentWrites
             $input->supplierId,
             $input->supplierNumber,
             $input->variableSymbol,
-            self::date($input->issueDate, 'issueDate'),
-            self::date($input->taxPointDate, 'taxPointDate'),
-            self::date($input->dueDate, 'dueDate'),
-            self::date($input->receivedDate, 'receivedDate') ?? $this->today->today(),
+            $this->date($input->issueDate, 'issueDate'),
+            $this->date($input->taxPointDate, 'taxPointDate'),
+            $this->date($input->dueDate, 'dueDate'),
+            $this->date($input->receivedDate, 'receivedDate') ?? $this->today->today(),
             $currency,
             self::money($input->total, $currency, 'total'),
             null === $input->exchangeRate ? null : ExchangeRate::of($input->exchangeRate),
@@ -98,7 +98,7 @@ final readonly class ReceivedDocumentWrites
 
         return $this->refusing(fn (): string => $this->payments->pay(
             $input->documentId,
-            self::date($input->paidOn, 'paidOn') ?? throw PurchasingRefused::unreadable(PurchasingRefused::DATE, 'paidOn', 'The day must be YYYY-MM-DD.'),
+            $this->date($input->paidOn, 'paidOn') ?? throw PurchasingRefused::unreadable(PurchasingRefused::DATE, 'paidOn', 'The day must be YYYY-MM-DD.'),
             self::money($input->amount, $currency, 'amount'),
             PaymentMethod::from($input->method),
             $input->bankMovementId,
@@ -143,7 +143,7 @@ final readonly class ReceivedDocumentWrites
         }
     }
 
-    private static function date(?string $value, string $field): ?\DateTimeImmutable
+    private function date(?string $value, string $field): ?\DateTimeImmutable
     {
         if (null === $value) {
             return null;

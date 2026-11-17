@@ -56,13 +56,13 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testAPaymentIsNeverMoreThanWhatRemains(): void
     {
         $id = $this->recorded();
-        $this->assertRefused(ReceivedDocumentRefused::OVERPAID, fn () => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1210.01', Currency::CZK), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn () => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('0', Currency::CZK), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn () => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::EUR), PaymentMethod::BankTransfer));
-        $this->assertRefused(ReceivedDocumentRefused::BANK_MOVEMENT_INVALID, fn () => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::CZK), PaymentMethod::BankTransfer, 'nope'));
+        $this->assertRefused(ReceivedDocumentRefused::OVERPAID, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1210.01', Currency::CZK), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('0', Currency::CZK), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::EUR), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::BANK_MOVEMENT_INVALID, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::CZK), PaymentMethod::BankTransfer, 'nope'));
 
         $this->payments()->markPaid($id, PaymentMethod::Card);
-        $this->assertRefused(ReceivedDocumentRefused::PAID, fn () => $this->payments()->markPaid($id, PaymentMethod::Card));
+        $this->assertRefused(ReceivedDocumentRefused::PAID, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Card));
         self::assertCount(1, $this->events('purchasing.received_document.paid'));
     }
 
@@ -118,11 +118,11 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     public function testADraftAndADocumentInTheTrashTakeNoPayment(): void
     {
         $draft = $this->draft();
-        $this->assertRefused(ReceivedDocumentRefused::NOT_RECORDED, fn () => $this->payments()->markPaid($draft, PaymentMethod::Cash));
+        $this->assertRefused(ReceivedDocumentRefused::NOT_RECORDED, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->markPaid($draft, PaymentMethod::Cash));
 
         $id = $this->recorded();
         self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Recorded twice.');
-        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $this->payments()->markPaid($id, PaymentMethod::Cash));
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn (): \App\Purchasing\Domain\ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Cash));
     }
 
     public function testAGuestPaysNothing(): void
@@ -141,7 +141,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         $draft = $this->draft();
         $this->payments()->markPaid($paid, PaymentMethod::Cash);
 
-        $ids = fn (ReceivedDocumentSliceFilter $filter): array => array_map(static fn ($item): string => $item->document->id(), $this->balances()->slice($filter, null, 10)->items);
+        $ids = fn (ReceivedDocumentSliceFilter $filter): array => array_map(static fn (\App\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice($filter, null, 10)->items);
 
         self::assertSame([$draft, $open, $paid], $ids(new ReceivedDocumentSliceFilter()));
         self::assertSame([$open], $ids(new ReceivedDocumentSliceFilter(unpaid: true)));
@@ -150,7 +150,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         self::assertSame([], $ids(new ReceivedDocumentSliceFilter(unpaid: true, dueBefore: new \DateTimeImmutable('2026-11-11'))));
         $slice = $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 2);
         self::assertTrue($slice->hasMore);
-        self::assertSame([$paid], array_map(static fn ($item): string => $item->document->id(), $this->balances()->slice(new ReceivedDocumentSliceFilter(), $slice->lastId(), 2)->items));
+        self::assertSame([$paid], array_map(static fn (\App\Purchasing\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice(new ReceivedDocumentSliceFilter(), $slice->lastId(), 2)->items));
     }
 
     public function testRecordingADocumentRecordsItsEventOnceAndADraftNone(): void
