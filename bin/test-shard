@@ -1,0 +1,131 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Splits the PHPUnit run with coverage into shards that CI runs side by side, and puts their
+ * JUnit logs back together. The coverage of the shards is merged by phpcov.
+ *
+ *   bin/test-shard config INDEX COUNT
+ *       Writes phpunit.shard.xml: phpunit.dist.xml with one test suite that holds the test
+ *       files of shard INDEX (1 to COUNT). The files are every *Test.php under tests/, spread
+ *       over the shards by size so that the shards take about as long. Every file is in
+ *       exactly one shard, so the shards together run the whole suite.
+ *
+ *   bin/test-shard junit OUTPUT COUNT INPUT...
+ *       Writes one JUnit log with the test suites of all INPUT logs, for Infection. Fails unless
+ *       there are COUNT logs, so a missing shard cannot pass for a smaller suite.
+ */
+
+$root = dirname(__DIR__);
+$arguments = $_SERVER['argv'];
+array_shift($arguments);
+$command = array_shift($arguments);
+
+exit(match ($command) {
+    'config' => config($root, $arguments),
+    'junit' => junit($arguments),
+    default => fail("Usage: bin/test-shard config INDEX COUNT | junit OUTPUT COUNT INPUT...\n"),
+});
+
+function fail(string $message): int
+{
+    fwrite(\STDERR, $message);
+
+    return 1;
+}
+
+/**
+ * @param list<string> $arguments
+ */
+function config(string $root, array $arguments): int
+{
+    $index = (int) ($arguments[0] ?? 0);
+    $count = (int) ($arguments[1] ?? 0);
+    if ($count < 1 || $index < 1 || $index > $count) {
+        return fail("INDEX must be from 1 to COUNT.\n");
+    }
+
+    $sizes = [];
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/tests', FilesystemIterator::SKIP_DOTS));
+    foreach ($files as $file) {
+        if ($file->isFile() && str_ends_with($file->getFilename(), 'Test.php')) {
+            $sizes[substr($file->getPathname(), strlen($root) + 1)] = $file->getSize();
+        }
+    }
+    if ([] === $sizes) {
+        return fail("There is no test file under tests/.\n");
+    }
+
+    // Longest processing time first, as in bin/infection-shard: each file goes to the shard with
+    // the least so far. Ties are broken by path, so every shard computes the same split.
+    uksort($sizes, static fn (string $a, string $b): int => [$sizes[$b], $a] <=> [$sizes[$a], $b]);
+    $load = array_fill(1, $count, 0);
+    $shards = array_fill(1, $count, []);
+    foreach ($sizes as $path => $size) {
+        $target = array_search(min($load), $load, true);
+        $load[$target] += $size;
+        $shards[$target][] = $path;
+    }
+    $mine = $shards[$index];
+    sort($mine);
+
+    $document = new DOMDocument();
+    $document->preserveWhiteSpace = false;
+    $document->formatOutput = true;
+    if (!$document->load($root.'/phpunit.dist.xml')) {
+        return fail("phpunit.dist.xml cannot be read.\n");
+    }
+    $suites = $document->getElementsByTagName('testsuites')->item(0);
+    if (null === $suites) {
+        return fail("phpunit.dist.xml has no <testsuites>.\n");
+    }
+    while (null !== $suites->firstChild) {
+        $suites->removeChild($suites->firstChild);
+    }
+    $suite = $suites->appendChild($document->createElement('testsuite'));
+    \assert($suite instanceof DOMElement);
+    $suite->setAttribute('name', sprintf('Shard %d of %d', $index, $count));
+    foreach ($mine as $path) {
+        $suite->appendChild($document->createElement('file', $path));
+    }
+    $document->save($root.'/phpunit.shard.xml');
+
+    printf("Shard %d of %d: %d of %d test files\n", $index, $count, count($mine), count($sizes));
+
+    return 0;
+}
+
+/**
+ * @param list<string> $arguments
+ */
+function junit(array $arguments): int
+{
+    $output = (string) array_shift($arguments);
+    $count = (int) array_shift($arguments);
+    if ('' === $output || $count < 1) {
+        return fail("Usage: bin/test-shard junit OUTPUT COUNT INPUT...\n");
+    }
+    if (count($arguments) !== $count) {
+        return fail(sprintf("Expected the JUnit logs of %d shards, found %d.\n", $count, count($arguments)));
+    }
+
+    $merged = new DOMDocument('1.0', 'UTF-8');
+    $root = $merged->appendChild($merged->createElement('testsuites'));
+    foreach ($arguments as $input) {
+        $log = new DOMDocument();
+        if (!$log->load($input)) {
+            return fail("$input cannot be read.\n");
+        }
+        foreach ($log->documentElement?->childNodes ?? [] as $suite) {
+            if ($suite instanceof DOMElement) {
+                $root->appendChild($merged->importNode($suite, true));
+            }
+        }
+    }
+    $merged->save($output);
+
+    return 0;
+}

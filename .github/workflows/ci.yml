@@ -23,9 +23,9 @@ concurrency:
 jobs:
   # The quality gate is split in jobs that run side by side, and the job named
   # "Quality gate (sqlite)" below puts them together. Static checks, migrations and the
-  # production build need no tests. The tests run once, with coverage. Mutation testing
-  # then runs on that coverage: the changed lines on a pull request, everything in
-  # parallel shards on main and once a week.
+  # production build need no tests. The tests run once, with coverage, in parallel shards
+  # whose coverage is merged into one. Mutation testing then runs on that coverage: the
+  # changed lines on a pull request, everything in parallel shards on main and once a week.
   static:
     name: Static analysis and build
     runs-on: ubuntu-latest
@@ -101,15 +101,22 @@ jobs:
         run: composer audit
 
   # The full test suite on the in-memory SQLite database of the test environment
-  # (.env.test), once, with the coverage that every mutation shard reuses.
-  coverage:
-    name: Tests with coverage (sqlite)
+  # (.env.test), once, with coverage. The test files are split into shards by size
+  # (bin/test-shard); each shard runs its part with ParaTest, one process per CPU. The
+  # suite takes about 47 CPU minutes, 10 to 18 minutes on one runner, and 3 to 7 per shard.
+  # Keep TEST_SHARD_COUNT and the matrix in step; the job after it fails on a missing shard.
+  tests:
+    name: Tests with coverage (sqlite, shard ${{ matrix.shard }})
     runs-on: ubuntu-latest
-    # ParaTest runs the suite with coverage in one process per CPU; that took 26 to 44 minutes
-    # in a single process on a hosted runner.
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      TEST_SHARD_COUNT: '4'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -198,7 +205,75 @@ jobs:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
           REQUIRE_POPPLER: '1'
-        run: composer phpunit:coverage
+          SHARD: ${{ matrix.shard }}
+        run: |
+          php bin/test-shard config "${SHARD}" "${TEST_SHARD_COUNT}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.shard.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'" \
+            --coverage-php="var/coverage-shard/shard-${SHARD}.cov" --log-junit="var/coverage-shard/junit-${SHARD}.xml"
+
+      - name: Upload the coverage of the shard
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: var/coverage-shard/
+          if-no-files-found: error
+          retention-days: 1
+
+  # The coverage of all test shards, merged by phpcov into the XML report and one JUnit log
+  # that every mutation shard reuses.
+  coverage:
+    name: Tests with coverage (sqlite)
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TEST_SHARD_COUNT: '4'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # phpcov only; the auto-scripts (cache warmup, importmap) are not needed for a merge.
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+
+      - name: Download the coverage of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-shard-*
+          path: var/coverage-shard/
+          merge-multiple: true
+
+      - name: Merge the coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          covs=(var/coverage-shard/shard-*.cov)
+          [ "${#covs[@]}" = "${TEST_SHARD_COUNT}" ] || { echo "Expected the coverage of ${TEST_SHARD_COUNT} shards, found ${#covs[@]}."; exit 1; }
+          php -d memory_limit=-1 vendor/bin/phpcov merge --xml var/coverage/coverage-xml var/coverage-shard
+          php bin/test-shard junit var/coverage/junit.xml "${TEST_SHARD_COUNT}" var/coverage-shard/junit-*.xml
 
       - name: Upload the coverage
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -329,6 +404,7 @@ jobs:
             --coverage=var/coverage --skip-initial-tests \
             --git-diff-lines --git-diff-base="${BASE}" \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
+            --only-covering-test-cases \
             --min-msi=80 --min-covered-msi=90 --ignore-msi-with-no-mutations \
             --show-mutations=max --no-progress
 
@@ -356,6 +432,7 @@ jobs:
           php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
             --coverage=var/coverage --skip-initial-tests \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
+            --only-covering-test-cases \
             --min-msi=0 --min-covered-msi=0 \
             --logger-summary-json="var/shard/shard-${SHARD}.json" \
             --show-mutations --no-progress \
@@ -378,7 +455,7 @@ jobs:
   # with no mutant skipped. It runs even when a job before it failed, and then fails on that.
   quality:
     name: Quality gate (sqlite)
-    needs: [static, coverage, mutation]
+    needs: [static, tests, coverage, mutation]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -390,7 +467,7 @@ jobs:
       - name: The jobs before it passed
         env:
           STATIC: ${{ needs.static.result }}
-          COVERAGE: ${{ needs.coverage.result }}
+          COVERAGE: ${{ needs.tests.result == 'success' && needs.coverage.result || needs.tests.result }}
           MUTATION: ${{ needs.mutation.result }}
           EVENT: ${{ github.event_name }}
         run: |
