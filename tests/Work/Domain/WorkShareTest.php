@@ -59,9 +59,6 @@ final class WorkShareTest extends TestCase
         self::assertSame($now, $ofTask->createdAt());
         self::assertTrue(Id::isValid($ofTask->id()));
         self::assertNotSame($ofTask->id(), $ofSection->id());
-
-        $this->expectException(\LogicException::class);
-        $ofTask->tenantId();
     }
 
     /**

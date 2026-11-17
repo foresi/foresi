@@ -10,8 +10,6 @@ namespace App\Work\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -21,17 +19,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task_label')]
-#[ORM\Index(name: 'idx_task_label_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_task_label_label', columns: ['label_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_task_label', columns: ['task_id', 'label_id'])]
-class TaskLabel implements TenantOwned, Audited, AuditRooted
+class TaskLabel implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Task::class)]
@@ -62,10 +56,5 @@ class TaskLabel implements TenantOwned, Audited, AuditRooted
     public function label(): Label
     {
         return $this->label;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

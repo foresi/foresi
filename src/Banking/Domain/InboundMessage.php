@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Banking\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -21,27 +19,23 @@ use Doctrine\ORM\Mapping as ORM;
  * The raw message is a file named by raw_key, and its sha256 is kept to tell a
  * changed file. The dedup key is the sha256 of the Message-ID, or of the raw
  * bytes when there is none or another message with other bytes holds that
- * Message-ID, and is unique in the tenant: the same mail fetched and posted is
+ * Message-ID, and is unique: the same mail fetched and posted is
  * one row. Rows are inserted by a single statement that skips a duplicate, so
  * the two never race.
  *
  * The feed is named by its id only: a feed is never deleted, and the row is
- * written before any entity of the tenant is loaded.
+ * written before any other entity is loaded.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'inbound_message')]
-#[ORM\Index(name: 'idx_inbound_message_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_inbound_message_feed', columns: ['bank_feed_id'])]
 #[ORM\Index(name: 'idx_inbound_message_status', columns: ['status'])]
-#[ORM\UniqueConstraint(name: 'uniq_inbound_message_dedup', columns: ['tenant_id', 'dedup_key'])]
-class InboundMessage implements TenantOwned
+#[ORM\UniqueConstraint(name: 'uniq_inbound_message_dedup', columns: ['dedup_key'])]
+class InboundMessage
 {
     public const int MAX_FROM = 320;
     public const int MAX_SUBJECT = 255;
     public const int MAX_RAW_KEY = 128;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: 16, enumType: InboundStatus::class)]
     private InboundStatus $status = InboundStatus::Received;
@@ -122,11 +116,6 @@ class InboundMessage implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function feedId(): string

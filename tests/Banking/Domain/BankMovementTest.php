@@ -191,15 +191,6 @@ final class BankMovementTest extends TestCase
         $movement->pairWith('refund-2');
     }
 
-    public function testTheTenantIsOnlyKnownOncePersisted(): void
-    {
-        $movement = $this->movement();
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessageIsOrContains('The tenant is stamped on persist.');
-        $movement->tenantId();
-    }
-
     private function movement(
         string $amount = '100.00',
         ?string $counterAccount = null,

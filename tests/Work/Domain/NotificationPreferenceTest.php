@@ -138,12 +138,6 @@ final class NotificationPreferenceTest extends TestCase
         self::assertSame($at, $preference->lastDigestAt());
     }
 
-    public function testTheTenantIsStampedOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-        new NotificationPreference($this->membership)->tenantId();
-    }
-
     /**
      * @return array<string, string>
      */

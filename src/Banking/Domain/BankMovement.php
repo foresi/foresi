@@ -10,8 +10,6 @@ namespace App\Banking\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
@@ -33,13 +31,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'bank_movement')]
-#[ORM\Index(name: 'idx_bank_movement_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_bank_movement_fingerprint', columns: ['fingerprint'])]
 #[ORM\Index(name: 'idx_bank_movement_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_bank_movement_account_booked', columns: ['firm_bank_account_id', 'booked_on'])]
 #[ORM\Index(name: 'idx_bank_movement_message', columns: ['inbound_message_id'])]
 #[ORM\Index(name: 'idx_bank_movement_payment', columns: ['payment_id'])]
-class BankMovement implements TenantOwned, Audited
+class BankMovement implements Audited
 {
     public const int MAX_COUNTER_ACCOUNT = 64;
     public const int MAX_COUNTER_NAME = 255;
@@ -50,9 +47,6 @@ class BankMovement implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
     #[ORM\JoinColumn(name: 'legal_entity_id', nullable: false, onDelete: 'RESTRICT')]
@@ -316,11 +310,6 @@ class BankMovement implements TenantOwned, Audited
     public function version(): int
     {
         return $this->version;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function assertReason(MovementState $state, ?UnmatchedReason $reason): void

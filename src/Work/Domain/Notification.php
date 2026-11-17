@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Work\Domain;
 
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -33,19 +31,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'notification')]
-#[ORM\Index(name: 'idx_notification_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_notification_inbox', columns: ['recipient_id', 'done_at', 'created_at'])]
 #[ORM\Index(name: 'idx_notification_task', columns: ['recipient_id', 'task_id', 'done_at'])]
 #[ORM\Index(name: 'idx_notification_of_task', columns: ['task_id'])]
 #[ORM\Index(name: 'idx_notification_actor', columns: ['actor_id'])]
-class Notification implements TenantOwned
+class Notification
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     /** How many events came since the row was last read. */
     #[ORM\Column(type: 'integer')]
@@ -224,10 +218,5 @@ class Notification implements TenantOwned
     public function emailedAt(): ?\DateTimeImmutable
     {
         return $this->emailedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

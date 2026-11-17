@@ -11,8 +11,6 @@ namespace App\Work\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -22,17 +20,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'comment_mention')]
-#[ORM\Index(name: 'idx_comment_mention_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_comment_mention_membership', columns: ['membership_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_comment_mention', columns: ['comment_id', 'membership_id'])]
-class CommentMention implements TenantOwned, Audited, AuditRooted
+class CommentMention implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     public function __construct(
         #[ORM\ManyToOne(targetEntity: TaskComment::class)]
@@ -63,10 +57,5 @@ class CommentMention implements TenantOwned, Audited, AuditRooted
     public function membership(): Membership
     {
         return $this->membership;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

@@ -29,13 +29,13 @@ final class FailingInboundFiles implements InboundFiles
         self::$marker = $marker;
     }
 
-    public function store(string $tenantId, string $messageId, string $raw): string
+    public function store(string $messageId, string $raw): string
     {
         if (null !== self::$marker && str_contains($raw, self::$marker)) {
             throw new \RuntimeException('The disk is full.');
         }
 
-        return $this->files->store($tenantId, $messageId, $raw);
+        return $this->files->store($messageId, $raw);
     }
 
     /**
@@ -47,9 +47,9 @@ final class FailingInboundFiles implements InboundFiles
         self::$readMarker = $marker;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $messageId, string $key, string $sha256): string
     {
-        $raw = $this->files->read($tenantId, $key, $sha256);
+        $raw = $this->files->read($messageId, $key, $sha256);
         if (null !== self::$readMarker && str_contains($raw, self::$readMarker)) {
             throw new \LogicException('The store broke.');
         }
@@ -57,8 +57,8 @@ final class FailingInboundFiles implements InboundFiles
         return $raw;
     }
 
-    public function remove(string $tenantId, string $messageId): void
+    public function remove(string $messageId): void
     {
-        $this->files->remove($tenantId, $messageId);
+        $this->files->remove($messageId);
     }
 }

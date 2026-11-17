@@ -11,8 +11,6 @@ namespace App\Work\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
@@ -37,22 +35,18 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'time_entry')]
-#[ORM\Index(name: 'idx_time_entry_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_time_entry_project', columns: ['project_id', 'worked_on'])]
 #[ORM\Index(name: 'idx_time_entry_task', columns: ['task_id'])]
 #[ORM\Index(name: 'idx_time_entry_membership', columns: ['membership_id', 'worked_on'])]
 #[ORM\Index(name: 'idx_time_entry_invoice', columns: ['invoice_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_time_entry_running', columns: ['running_for'])]
-class TimeEntry implements TenantOwned, Audited, AuditRooted
+class TimeEntry implements Audited, AuditRooted
 {
     public const int MAX_NOTE_LENGTH = 2_000;
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\ManyToOne(targetEntity: Task::class)]
     #[ORM\JoinColumn(name: 'task_id', nullable: true, onDelete: 'RESTRICT')]
@@ -379,11 +373,6 @@ class TimeEntry implements TenantOwned, Audited, AuditRooted
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     /**

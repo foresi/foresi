@@ -11,8 +11,6 @@ namespace App\Work\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -27,21 +25,17 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'work_share')]
-#[ORM\Index(name: 'idx_work_share_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_work_share_project', columns: ['project_id'])]
 #[ORM\Index(name: 'idx_work_share_section', columns: ['section_id'])]
 #[ORM\Index(name: 'idx_work_share_task', columns: ['task_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_work_share_project', columns: ['membership_id', 'project_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_work_share_section', columns: ['membership_id', 'section_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_work_share_task', columns: ['membership_id', 'task_id'])]
-class WorkShare implements TenantOwned, Audited, AuditRooted
+class WorkShare implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     private function __construct(
         #[ORM\ManyToOne(targetEntity: Membership::class)]
@@ -118,10 +112,5 @@ class WorkShare implements TenantOwned, Audited, AuditRooted
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

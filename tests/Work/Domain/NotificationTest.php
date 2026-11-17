@@ -146,12 +146,6 @@ final class NotificationTest extends TestCase
         self::assertTrue($row->isRead());
     }
 
-    public function testTheTenantIsStampedOnPersist(): void
-    {
-        $this->expectException(\LogicException::class);
-        new Notification($this->recipient, $this->task, NotificationKind::Shared, $this->olga, new \DateTimeImmutable())->tenantId();
-    }
-
     private function person(string $email, string $name): Membership
     {
         return new Membership(new User($email, 'hash', $name), Role::Member);

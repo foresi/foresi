@@ -10,8 +10,6 @@ namespace App\Banking\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,9 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'firm_bank_pairing')]
-#[ORM\Index(name: 'idx_firm_bank_pairing_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_firm_bank_pairing_firm', columns: ['legal_entity_id'])]
-class FirmPairing implements TenantOwned, Audited, AuditRooted
+class FirmPairing implements Audited, AuditRooted
 {
     public const bool DEFAULT_AUTO_PAIRING = true;
     public const bool DEFAULT_SMALL_DIFFERENCE = false;
@@ -32,9 +29,6 @@ class FirmPairing implements TenantOwned, Audited, AuditRooted
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     private function __construct(
         #[ORM\ManyToOne(targetEntity: LegalEntity::class)]
@@ -82,10 +76,5 @@ class FirmPairing implements TenantOwned, Audited, AuditRooted
     public function smallDifference(): bool
     {
         return $this->smallDifference;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

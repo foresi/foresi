@@ -16,8 +16,7 @@ use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Tenant-scoped through the Doctrine tenant filter. A firm without a stored row
- * has the defaults.
+ * Through the ORM. A firm without a stored row has the defaults.
  */
 final readonly class DoctrineFirmPairings implements FirmPairings, FirmPairingRules
 {

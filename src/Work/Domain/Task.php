@@ -10,8 +10,6 @@ namespace App\Work\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Identity\Domain\Membership;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -43,16 +41,15 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task')]
-#[ORM\Index(name: 'idx_task_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_task_project_position', columns: ['tenant_id', 'project_id', 'position'])]
-#[ORM\Index(name: 'idx_task_responsible_due', columns: ['tenant_id', 'responsible_id', 'due_on'])]
+#[ORM\Index(name: 'idx_task_project_position', columns: ['project_id', 'position'])]
+#[ORM\Index(name: 'idx_task_responsible_due', columns: ['responsible_id', 'due_on'])]
 #[ORM\Index(name: 'idx_task_project', columns: ['project_id'])]
 #[ORM\Index(name: 'idx_task_section', columns: ['section_id'])]
 #[ORM\Index(name: 'idx_task_parent', columns: ['parent_id'])]
 #[ORM\Index(name: 'idx_task_status', columns: ['status_id'])]
 #[ORM\Index(name: 'idx_task_responsible', columns: ['responsible_id'])]
-#[ORM\Index(name: 'idx_task_deleted', columns: ['tenant_id', 'deleted_at'])]
-class Task implements TenantOwned, Audited
+#[ORM\Index(name: 'idx_task_deleted', columns: ['deleted_at'])]
+class Task implements Audited
 {
     public const int MAX_TITLE_LENGTH = 500;
     /** 9,999 hours: more is no estimate. */
@@ -61,9 +58,6 @@ class Task implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_TITLE_LENGTH)]
     private string $title;
@@ -329,11 +323,6 @@ class Task implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function assertSameProject(Project $project, string $what): void

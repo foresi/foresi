@@ -64,9 +64,6 @@ final class TimeEntryTest extends TestCase
 
         $onProject = TimeEntry::logged($this->project, null, $this->membership, $now, 30, null, null, '', false, $createdBy, $now);
         self::assertSame($this->project, $onProject->auditRoot());
-
-        $this->expectException(\LogicException::class);
-        $entry->tenantId();
     }
 
     public function testTimeIsAtLeastAMinuteWithBothAStartAndAnEndAfterItOrNeither(): void

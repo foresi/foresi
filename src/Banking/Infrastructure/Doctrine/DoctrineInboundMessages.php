@@ -23,7 +23,6 @@ use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\InboundMessage;
 use App\Banking\Domain\InboundStatus;
 use App\Banking\Domain\MessageTrust;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -34,8 +33,8 @@ use Doctrine\ORM\Query;
 use Psr\Clock\ClockInterface;
 
 /**
- * Plain statements in the active tenant, the same on SQLite and PostgreSQL. The
- * insert does nothing on a second dedup key of the tenant, so of two deliveries
+ * Plain statements, the same on SQLite and PostgreSQL. The insert does
+ * nothing on a second dedup key, so of two deliveries
  * of one mail at the same moment exactly one is stored, and no failed insert
  * leaves the persistence session broken. Processing writes by plain statements
  * too: the processing of a message starts the session over on the way, and the
@@ -44,36 +43,35 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class DoctrineInboundMessages implements InboundMessages
 {
-    private const string HAS = 'SELECT 1 FROM inbound_message WHERE tenant_id = :tenant AND dedup_key = :key';
+    private const string HAS = 'SELECT 1 FROM inbound_message WHERE dedup_key = :key';
 
     private const string ADD = <<<'SQL'
-        INSERT INTO inbound_message (id, tenant_id, bank_feed_id, channel, dedup_key, raw_key, raw_sha256, size, from_address, subject, received_at, status, attempts)
-        VALUES (:id, :tenant, :feed, :channel, :key, :raw_key, :raw_sha256, :size, :from_address, :subject, :received_at, :status, 0)
-        ON CONFLICT (tenant_id, dedup_key) DO NOTHING
+        INSERT INTO inbound_message (id, bank_feed_id, channel, dedup_key, raw_key, raw_sha256, size, from_address, subject, received_at, status, attempts)
+        VALUES (:id, :feed, :channel, :key, :raw_key, :raw_sha256, :size, :from_address, :subject, :received_at, :status, 0)
+        ON CONFLICT (dedup_key) DO NOTHING
         SQL;
 
     private const string CLAIMED = <<<'SQL'
         SELECT m.raw_key, m.raw_sha256, m.channel, f.firm_bank_account_id
-        FROM inbound_message m JOIN bank_feed f ON f.id = m.bank_feed_id AND f.tenant_id = m.tenant_id
-        WHERE m.id = :id AND m.tenant_id = :tenant
+        FROM inbound_message m JOIN bank_feed f ON f.id = m.bank_feed_id
+        WHERE m.id = :id
         SQL;
 
     private const string FINISH = <<<'SQL'
         UPDATE inbound_message SET status = :status, trust = :trust, trust_basis = :basis, parser_id = :parser, parser_version = :version,
             failure = :failure, failure_detail = :detail, attempts = attempts + 1, processed_at = :at
-        WHERE id = :id AND tenant_id = :tenant
+        WHERE id = :id
         SQL;
 
-    private const string FAILED_ATTEMPT = 'UPDATE inbound_message SET attempts = attempts + 1 WHERE id = :id AND tenant_id = :tenant';
+    private const string FAILED_ATTEMPT = 'UPDATE inbound_message SET attempts = attempts + 1 WHERE id = :id';
 
-    /** The account and firm a message came to, through its feed, all of the tenant. */
-    private const string FEED = 'JOIN bank_feed f ON f.id = m.bank_feed_id AND f.tenant_id = m.tenant_id '
-        .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id AND a.tenant_id = m.tenant_id '
-        .'JOIN legal_entity e ON e.id = a.legal_entity_id AND e.tenant_id = m.tenant_id';
+    /** The account and firm a message came to, through its feed. */
+    private const string FEED = 'JOIN bank_feed f ON f.id = m.bank_feed_id '
+        .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id '
+        .'JOIN legal_entity e ON e.id = a.legal_entity_id';
 
     public function __construct(
         private Connection $connection,
-        private TenantContext $context,
         private EntityManagerInterface $em,
         private AuditActor $actor,
         private AuditCorrelation $correlation,
@@ -83,12 +81,12 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function has(string $dedupKey): bool
     {
-        return false !== $this->connection->fetchOne(self::HAS, ['tenant' => $this->context->current()->toString(), 'key' => $dedupKey]);
+        return false !== $this->connection->fetchOne(self::HAS, ['key' => $dedupKey]);
     }
 
     public function rawHashOf(string $dedupKey): ?string
     {
-        $hash = $this->connection->fetchOne('SELECT raw_sha256 FROM inbound_message WHERE tenant_id = :tenant AND dedup_key = :key', ['tenant' => $this->context->current()->toString(), 'key' => $dedupKey]);
+        $hash = $this->connection->fetchOne('SELECT raw_sha256 FROM inbound_message WHERE dedup_key = :key', ['key' => $dedupKey]);
 
         return false === $hash ? null : $this->text($hash);
     }
@@ -97,7 +95,6 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     {
         return 1 === $this->connection->executeStatement(self::ADD, [
             'id' => $message->id(),
-            'tenant' => $this->context->current()->toString(),
             'feed' => $message->feedId(),
             'channel' => $message->channel()->value,
             'key' => $message->dedupKey(),
@@ -113,7 +110,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function find(string $id): ?InboundMessage
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter, and the row is written by statements.
+        // A query, not find(): find() answers from the identity map, and the row is written by statements.
         $message = $this->em->createQuery('SELECT m FROM '.InboundMessage::class.' m WHERE m.id = :id')
             ->setParameter('id', $id)
             ->setHint(Query::HINT_REFRESH, true)
@@ -125,8 +122,8 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     public function lastOfFeed(string $feedId): ?InboundMessage
     {
         $id = $this->connection->fetchOne(
-            'SELECT id FROM inbound_message WHERE tenant_id = :tenant AND bank_feed_id = :feed ORDER BY received_at DESC, id DESC LIMIT 1',
-            ['tenant' => $this->context->current()->toString(), 'feed' => $feedId],
+            'SELECT id FROM inbound_message WHERE bank_feed_id = :feed ORDER BY received_at DESC, id DESC LIMIT 1',
+            ['feed' => $feedId],
         );
 
         return false === $id ? null : $this->find($this->text($id));
@@ -134,9 +131,8 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function claim(string $id, array $from, ?string $failure = null): ?ClaimedMessage
     {
-        $tenant = $this->context->current()->toString();
-        $sql = 'UPDATE inbound_message SET status = :processing WHERE id = :id AND tenant_id = :tenant AND status IN (:from)';
-        $parameters = ['processing' => InboundStatus::Processing->value, 'id' => $id, 'tenant' => $tenant, 'from' => array_map(static fn (InboundStatus $status): string => $status->value, $from)];
+        $sql = 'UPDATE inbound_message SET status = :processing WHERE id = :id AND status IN (:from)';
+        $parameters = ['processing' => InboundStatus::Processing->value, 'id' => $id, 'from' => array_map(static fn (InboundStatus $status): string => $status->value, $from)];
         if (null !== $failure) {
             $sql .= ' AND failure = :failure';
             $parameters['failure'] = $failure;
@@ -144,12 +140,12 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         if (1 !== $this->connection->executeStatement($sql, $parameters, ['from' => ArrayParameterType::STRING])) {
             return null;
         }
-        $row = $this->connection->fetchAssociative(self::CLAIMED, ['id' => $id, 'tenant' => $tenant]);
+        $row = $this->connection->fetchAssociative(self::CLAIMED, ['id' => $id]);
         if (false === $row) {
-            throw new \LogicException('A claimed message has no feed of its tenant.');
+            throw new \LogicException('A claimed message has no feed.');
         }
 
-        return new ClaimedMessage($id, $tenant, $this->text($row['firm_bank_account_id']), $this->text($row['raw_key']), $this->text($row['raw_sha256']), InboundChannel::from($this->text($row['channel'])));
+        return new ClaimedMessage($id, $this->text($row['firm_bank_account_id']), $this->text($row['raw_key']), $this->text($row['raw_sha256']), InboundChannel::from($this->text($row['channel'])));
     }
 
     public function finish(string $id, ProcessingResult $result, \DateTimeImmutable $at): void
@@ -164,15 +160,14 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             'detail' => $result->detail,
             'at' => $at,
             'id' => $id,
-            'tenant' => $this->context->current()->toString(),
         ], ['version' => null === $result->parserVersion ? ParameterType::NULL : ParameterType::INTEGER, 'at' => Types::DATETIME_IMMUTABLE]);
     }
 
     public function recordAccepted(string $id, InboundStatus $status): void
     {
-        $row = $this->connection->fetchAssociative('SELECT status, trust_basis FROM inbound_message WHERE id = :id AND tenant_id = :tenant', ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $row = $this->connection->fetchAssociative('SELECT status, trust_basis FROM inbound_message WHERE id = :id', ['id' => $id]);
         if (false === $row) {
-            throw new \LogicException('Only a stored message of the tenant is recorded anyway.');
+            throw new \LogicException('Only a stored message is recorded anyway.');
         }
         $this->em->persist(new AuditEntry(
             InboundMessage::class,
@@ -189,7 +184,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function countFailedAttempt(string $id): void
     {
-        $this->connection->executeStatement(self::FAILED_ATTEMPT, ['id' => $id, 'tenant' => $this->context->current()->toString()]);
+        $this->connection->executeStatement(self::FAILED_ATTEMPT, ['id' => $id]);
     }
 
     public function due(array $parserVersions, string $signature, int $limit): array
@@ -197,12 +192,10 @@ final readonly class DoctrineInboundMessages implements InboundMessages
         $query = $this->connection->createQueryBuilder()
             ->select('id')
             ->from('inbound_message')
-            ->where('tenant_id = :tenant')
-            ->andWhere('status IN (:statuses)')
+            ->where('status IN (:statuses)')
             ->orderBy('received_at')
             ->addOrderBy('id')
             ->setMaxResults(max(1, $limit))
-            ->setParameter('tenant', $this->context->current()->toString())
             ->setParameter('statuses', [InboundStatus::Failed->value, InboundStatus::NotBankMail->value], ArrayParameterType::STRING)
             ->setParameter('prefix', BankMessageParsers::SIGNATURE_PREFIX.'%')
             ->setParameter('signature', $signature);
@@ -240,7 +233,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function row(string $id, \DateTimeImmutable $stuckBefore): ?MessageRow
     {
-        return $this->listed('m.tenant_id = :tenant AND m.id = :id', ['tenant' => $this->context->current()->toString(), 'id' => $id], $stuckBefore, 0, 1)[0] ?? null;
+        return $this->listed('m.id = :id', ['id' => $id], $stuckBefore, 0, 1)[0] ?? null;
     }
 
     public function rows(MovementFilter $filter, \DateTimeImmutable $stuckBefore, int $offset, int $limit): array
@@ -294,14 +287,13 @@ final readonly class DoctrineInboundMessages implements InboundMessages
 
     public function dismiss(string $id, array $from, ?\DateTimeImmutable $receivedBefore): ?InboundStatus
     {
-        $tenant = $this->context->current()->toString();
-        $status = $this->connection->fetchOne('SELECT status FROM inbound_message WHERE id = :id AND tenant_id = :tenant', ['id' => $id, 'tenant' => $tenant]);
+        $status = $this->connection->fetchOne('SELECT status FROM inbound_message WHERE id = :id', ['id' => $id]);
         $was = \is_string($status) ? InboundStatus::tryFrom($status) : null;
         if (!$was instanceof InboundStatus || !\in_array($was, $from, true)) {
             return null;
         }
-        $sql = 'UPDATE inbound_message SET status = :dismissed WHERE id = :id AND tenant_id = :tenant AND status = :was';
-        $parameters = ['dismissed' => InboundStatus::Dismissed->value, 'id' => $id, 'tenant' => $tenant, 'was' => $was->value];
+        $sql = 'UPDATE inbound_message SET status = :dismissed WHERE id = :id AND status = :was';
+        $parameters = ['dismissed' => InboundStatus::Dismissed->value, 'id' => $id, 'was' => $was->value];
         $types = [];
         if (InboundStatus::Received === $was) {
             if (!$receivedBefore instanceof \DateTimeImmutable) {
@@ -330,14 +322,14 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     }
 
     /**
-     * The messages of the tenant, of one firm or account when named.
+     * All messages, or those of one firm or account when named.
      *
      * @return array{string, array<string, string>}
      */
     private function narrowed(?string $firmId, ?string $accountId): array
     {
-        $where = 'm.tenant_id = :tenant';
-        $parameters = ['tenant' => $this->context->current()->toString()];
+        $where = '1 = 1';
+        $parameters = [];
         if (null !== $firmId) {
             $where .= ' AND a.legal_entity_id = :firm';
             $parameters['firm'] = $firmId;

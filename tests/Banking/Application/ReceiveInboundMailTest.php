@@ -30,7 +30,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * Inbound mail is routed by the token in its recipient, stored as a file and a
- * row in the token's tenant, and queued for processing. The same message twice
+ * row, and queued for processing. The same message twice
  * is one row, and nothing of an unknown recipient is kept.
  */
 final class ReceiveInboundMailTest extends KernelTestCase
@@ -39,6 +39,9 @@ final class ReceiveInboundMailTest extends KernelTestCase
     private ReceiveInboundMail $receive;
     private Connection $connection;
     private InMemoryTransport $queue;
+
+    /** @var list<string> the files other tests left in the shared directory */
+    private array $before = [];
 
     protected function setUp(): void
     {
@@ -51,6 +54,7 @@ final class ReceiveInboundMailTest extends KernelTestCase
         $queue = $container->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $queue);
         $this->queue = $queue;
+        $this->before = $this->storedFiles();
     }
 
     protected function tearDown(): void
@@ -66,7 +70,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($raw, InboundChannel::Webhook));
 
         $row = $this->onlyRow();
-        self::assertSame($this->kit->tenant->toString(), $row['tenant_id']);
         self::assertSame($this->kit->feedId, $row['bank_feed_id']);
         self::assertSame('webhook', $row['channel']);
         self::assertSame(hash('sha256', InboundMailKit::MESSAGE_ID), $row['dedup_key']);
@@ -81,8 +84,8 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertStringStartsWith('2026-11-20 12:00:00', Scalars::text($row['received_at']));
 
         $id = Scalars::text($row['id']);
-        self::assertSame($this->kit->tenant->toString().'/'.$id.'.eml', $row['raw_key']);
-        $stored = self::getContainer()->get(InboundFiles::class)->read($this->kit->tenant->toString(), Scalars::text($row['raw_key']), hash('sha256', $raw));
+        self::assertSame($id.'.eml', $row['raw_key']);
+        $stored = self::getContainer()->get(InboundFiles::class)->read($id, Scalars::text($row['raw_key']), hash('sha256', $raw));
         self::assertSame($raw, $stored);
 
         $sent = $this->queue->getSent();
@@ -192,16 +195,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertSame($expected, $keys);
     }
 
-    public function testTheSameMessageInAnotherTenantIsItsOwnRow(): void
-    {
-        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive(InboundMailKit::mail($this->kit->address), InboundChannel::Imap));
-        // The same dedup key in another tenant does not hide the message.
-        $this->connection->executeStatement('UPDATE inbound_message SET tenant_id = :other', ['other' => TenantId::generate()->toString()]);
-
-        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive(InboundMailKit::mail($this->kit->address), InboundChannel::Imap));
-        self::assertSame(2, $this->rowCount());
-    }
-
     public function testAboveTenMebibytesIsTooLarge(): void
     {
         $limit = 10 * 1024 * 1024;
@@ -294,13 +287,15 @@ final class ReceiveInboundMailTest extends KernelTestCase
     }
 
     /**
+     * The mail files stored since the test began.
+     *
      * @return list<string>
      */
     private function storedFiles(): array
     {
-        $directory = self::getContainer()->getParameter('app.inbound_mail_dir').'/'.$this->kit->tenant->toString();
+        $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
         $names = is_dir($directory) ? scandir($directory) : false;
 
-        return false === $names ? [] : array_values(array_diff($names, ['.', '..']));
+        return false === $names ? [] : array_values(array_filter($names, fn (string $name): bool => str_ends_with($name, '.eml') && !\in_array($name, $this->before, true)));
     }
 }

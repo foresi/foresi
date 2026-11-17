@@ -8,10 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance;
 
-use App\Banking\Domain\BankFeed;
-use App\Banking\Domain\BankMovement;
-use App\Banking\Domain\FirmPairing;
-use App\Banking\Domain\InboundMessage;
 use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\Invitation;
 use App\Identity\Domain\Membership;
@@ -46,19 +42,6 @@ use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
-use App\Work\Domain\CommentMention;
-use App\Work\Domain\Label;
-use App\Work\Domain\Notification;
-use App\Work\Domain\NotificationPreference;
-use App\Work\Domain\Project;
-use App\Work\Domain\ProjectStatus;
-use App\Work\Domain\Section;
-use App\Work\Domain\Task;
-use App\Work\Domain\TaskComment;
-use App\Work\Domain\TaskLabel;
-use App\Work\Domain\TaskWatcher;
-use App\Work\Domain\TimeEntry;
-use App\Work\Domain\WorkShare;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -103,7 +86,7 @@ final class TenantColumnMappingTest extends KernelTestCase
      */
     public static function tenantOwnedEntities(): iterable
     {
-        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, ApiToken::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, BankMovement::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class, BankFeed::class, FirmPairing::class, InboundMessage::class, Project::class, ProjectStatus::class, Section::class, Task::class, TaskWatcher::class, Label::class, TaskLabel::class, TaskComment::class, CommentMention::class, WorkShare::class, Notification::class, NotificationPreference::class, TimeEntry::class] as $class) {
+        foreach ([Party::class, PartyAddress::class, PartyEmail::class, PartyBankAccount::class, ContactLink::class, LegalEntity::class, FirmBankAccount::class, Membership::class, Invitation::class, ApiToken::class, Series::class, SeriesCounter::class, FirmInvoicing::class, FirmMailServer::class, MailTemplate::class, Invoice::class, InvoiceLine::class, InvoiceSend::class, AbandonedNumber::class, RecurringInvoice::class, RecurringInvoiceLine::class, FirmReminders::class, Payment::class, PaymentAllocation::class, PartyFirmSettings::class, Import::class, ImportRow::class, ImportProfile::class, ImportMissingRecord::class, ImportAmbiguousMatch::class, ScheduledJobRun::class] as $class) {
             yield $class => [$class];
         }
     }

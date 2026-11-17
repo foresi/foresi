@@ -103,7 +103,7 @@ final readonly class ReceiveInboundMail
 
         $id = Id::generate();
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $key = $this->files->store($route->tenantId, $id, $raw);
+        $key = $this->files->store($id, $raw);
         try {
             $stored = $this->transaction->run(function () use ($id, $route, $channel, $dedupKey, $key, $mail, $now): bool {
                 $message = new InboundMessage($id, $route->feedId, $channel, $dedupKey, $key, $mail->sha256(), $mail->size(), $mail->from(), $mail->subject(), $now);
@@ -115,13 +115,13 @@ final readonly class ReceiveInboundMail
                 return true;
             });
         } catch (\Throwable $failure) {
-            $this->files->remove($route->tenantId, $id);
+            $this->files->remove($id);
 
             throw $failure;
         }
         if (!$stored) {
             // Another delivery of the same mail was stored a moment before.
-            $this->files->remove($route->tenantId, $id);
+            $this->files->remove($id);
 
             return ReceiveOutcome::Duplicate;
         }

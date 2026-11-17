@@ -11,22 +11,23 @@ namespace App\Banking\Infrastructure\Files;
 use App\Banking\Application\InboundFiles;
 
 /**
- * Raw inbound mail under one directory per tenant, never below public/, each
- * file readable by the server's user only. Back the directory up with the
- * database.
+ * Raw inbound mail in one directory, never below public/, each file readable by
+ * the server's user only. Back the directory up with the database. Mail stored
+ * while an instance had tenants lies one directory deeper, under the tenant's id.
  */
 final readonly class DiskInboundFiles implements InboundFiles
 {
-    private const string KEY = '/^([0-9a-f-]{36})\/([0-9a-f-]{36})\.eml$/D';
+    private const string ID = '/^[0-9a-f-]{36}$/D';
+    private const string KEY = '/^(?:[0-9a-f-]{36}\/)?([0-9a-f-]{36})\.eml$/D';
 
     public function __construct(private string $root)
     {
     }
 
-    public function store(string $tenantId, string $messageId, string $raw): string
+    public function store(string $messageId, string $raw): string
     {
-        $key = $this->key($tenantId, $messageId);
-        $directory = $this->root.'/'.$tenantId;
+        $key = $this->key($messageId);
+        $directory = $this->root;
         if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The directory of inbound mail cannot be created.');
         }
@@ -55,10 +56,10 @@ final readonly class DiskInboundFiles implements InboundFiles
         return $key;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $messageId, string $key, string $sha256): string
     {
-        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
-            throw new \RuntimeException('The inbound mail does not belong to the tenant.');
+        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $messageId) {
+            throw new \RuntimeException('The inbound mail does not belong to the message.');
         }
         $path = $this->root.'/'.$key;
         $bytes = is_file($path) ? file_get_contents($path) : false;
@@ -72,21 +73,20 @@ final readonly class DiskInboundFiles implements InboundFiles
         return $bytes;
     }
 
-    public function remove(string $tenantId, string $messageId): void
+    public function remove(string $messageId): void
     {
-        $path = $this->root.'/'.$this->key($tenantId, $messageId);
+        $path = $this->root.'/'.$this->key($messageId);
         if (is_file($path)) {
             unlink($path);
         }
     }
 
-    private function key(string $tenantId, string $messageId): string
+    private function key(string $messageId): string
     {
-        $key = $tenantId.'/'.$messageId.'.eml';
-        if (1 !== preg_match(self::KEY, $key)) {
-            throw new \InvalidArgumentException('A tenant and a message are named by their ids.');
+        if (1 !== preg_match(self::ID, $messageId)) {
+            throw new \InvalidArgumentException('A message is named by its id.');
         }
 
-        return $key;
+        return $messageId.'.eml';
     }
 }
