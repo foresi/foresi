@@ -1,6 +1,6 @@
 # 10. Several firms in one tenant
 
-* Status: accepted
+* Status: accepted, superseded in part by [ADR 0035](0035-one-instance-per-customer.md) (tenants: an instance takes the place of a tenant)
 * Date: 2026-11-01
 
 ## Context and problem statement

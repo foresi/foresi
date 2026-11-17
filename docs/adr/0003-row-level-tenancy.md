@@ -1,6 +1,6 @@
 # 3. Row-level tenancy
 
-* Status: accepted
+* Status: superseded by [ADR 0035](0035-one-instance-per-customer.md)
 * Date: 2026-10-29
 
 ## Context and problem statement
