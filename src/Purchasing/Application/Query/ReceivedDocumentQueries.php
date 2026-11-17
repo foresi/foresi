@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Application\Query;
 
+use App\Purchasing\Domain\ReceivedDocument;
+
 /**
  * Reads over the received documents of the active tenant for the lists, without
  * loading them. The query services ask here after checking who asks.
@@ -48,4 +50,14 @@ interface ReceivedDocumentQueries
      * @return list<ReceivedDocumentRow>
      */
     public function correctable(string $firmId, ?string $exceptId, int $limit): array;
+
+    /**
+     * The documents of a slice for the API, newest first by id, after the
+     * document with $afterId when given, and whether more follow.
+     *
+     * @return array{list<ReceivedDocument>, bool}
+     *
+     * @throws \InvalidArgumentException for a limit below one, or an id that is none
+     */
+    public function slice(ReceivedDocumentSliceFilter $filter, ?string $afterId, int $limit): array;
 }

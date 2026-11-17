@@ -4026,6 +4026,11 @@ purchasing:
     evidence_numbers_exhausted: "Číselná řada firmy pro tento rok došla."
     stale: "Doklad mezitím někdo změnil. Načtěte ho znovu a změny zopakujte."
     locked: "Doklad patří do uzavřeného měsíce a nejde změnit."
+    not_recorded: "Platby lze zapsat jen k zaúčtovanému dokladu."
+    payment_amount: "Platba potřebuje částku větší než nula v měně dokladu."
+    overpaid: "Platba je vyšší než zbývá zaplatit."
+    paid: "Doklad je už zaplacený celý."
+    bank_movement_invalid: "Bankovní pohyb není platný."
   warning:
     duplicate_file: "Stejný soubor už má {count, plural, one {jiný doklad} other {# jiné doklady}}."
     duplicate_supplier_number: "Doklad dodavatele s tímto číslem už je {count, plural, one {zaevidovaný} other {zaevidovaný # krát}}."

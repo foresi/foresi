@@ -32,8 +32,8 @@ final class ListEventTypesToolTest extends ReadToolTestCase
 
         $items = $output->data['items'];
         self::assertIsArray($items);
-        self::assertSame('10 event types.', $output->summary);
-        self::assertSame(['invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded', 'party.contact.archived', 'party.contact.created', 'party.contact.restored', 'party.contact.updated'], array_column($items, 'name'));
+        self::assertSame('12 event types.', $output->summary);
+        self::assertSame(['invoicing.invoice.delivered', 'invoicing.invoice.issued', 'invoicing.invoice.paid', 'invoicing.invoice.restored', 'invoicing.invoice.trashed', 'invoicing.payment.recorded', 'party.contact.archived', 'party.contact.created', 'party.contact.restored', 'party.contact.updated', 'purchasing.received_document.paid', 'purchasing.received_document.recorded'], array_column($items, 'name'));
         self::assertSame(['name' => 'invoicing.invoice.paid', 'version' => 1, 'module' => 'invoicing', 'subject_type' => 'invoice', 'fields' => ['invoice_id', 'state', 'payment_id']], $items[2]);
         self::assertSame(['payment', 'invoice', 'contact'], [array_column($items, 'subject_type')[5], array_column($items, 'subject_type')[0], array_column($items, 'subject_type')[7]]);
         self::assertSame(['name' => 'party.contact.created', 'version' => 1, 'module' => 'party', 'subject_type' => 'contact', 'fields' => ['contact_id', 'kind']], $items[7]);

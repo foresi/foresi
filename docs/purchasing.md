@@ -93,6 +93,14 @@ A save that went through tells its warnings in a notice. A warning never stops t
 
 The trash and the history work as for invoices (see [ADR 0013](adr/0013-invoice-numbers-and-trash.md)). Every change reaches the audit log, and each document shows its history: created, recorded, changed, trashed and restored, with who and when.
 
+## Payments
+
+A recorded document keeps its payments, built the way the payments of issued invoices are ([ADR 0019](adr/0019-payments-and-allocations.md)): the day, the amount in the document's currency, the method (`bank_transfer`, `card`, `cash` or `other`) and, when known, the bank movement that paid it. A document may have several; together they are never more than its total. What is paid and what remains are derived from them, never stored. For a credit note the payments are what the supplier returned, and its negative total remains until they reach it.
+
+**Mark as paid** records one payment of all that remains, dated today in the organisation's time zone, so a document marked as paid at 00:30 in Prague is paid that day, not the day before in UTC. A draft, a document in the trash and one paid in full take no payment. A closed month does not stop one, as a payment changes nothing the VAT reports read. A payment recorded by mistake is removed, and the audit log keeps it.
+
+Payments are recorded over the [REST API](api.md#received-documents) and [MCP](mcp.md) for now; the screens show them in a later step. Recording a document for the first time records the event `purchasing.received_document.recorded`, and the payment that leaves nothing to pay `purchasing.received_document.paid`, for the event feed and webhooks.
+
 ## Operating it
 
 Received documents are rows of the application database, tenant-isolated like the rest. The original files are attachments in the `attachments` directory of the share directory, outside the web root and the database; the ops backup already includes the whole share directory (see [operations](operations.md)). Run `bin/console doctrine:migrations:migrate` on upgrade. The ČNB rates are fetched by a scheduled job of the worker; see [operations](operations.md#exchange-rates).
@@ -106,4 +114,4 @@ Not in this release:
 - **Quarterly VAT payers**: deduction periods by quarter.
 - **Invoice lines** on a received document, for the lines of a long usage invoice; the recap per rate is all that is stored.
 - **A proportional or reduced deduction** (sections 75 and 76 of the VAT Act) beside the treatment.
-- **Paying**: pairing outgoing bank payments with the due date, variable symbol and total already kept.
+- **Pairing outgoing bank payments** with a document by its due date, variable symbol and total, recorded as its payment; and payments on the document's page.

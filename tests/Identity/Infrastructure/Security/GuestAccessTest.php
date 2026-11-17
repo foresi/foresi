@@ -43,6 +43,10 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_webhook_deliveries', 'api_v1_webhook_delivery', 'api_v1_webhook_delivery_redeliver', '_mcp_endpoint_default',
         'api_v1_operation_contacts.create', 'api_v1_operation_contacts.update', 'api_v1_operation_contacts.archive', 'api_v1_operation_contacts.restore',
         'api_v1_operation_contacts.link_person', 'api_v1_operation_contacts.unlink_person',
+        'api_v1_received_documents', 'api_v1_received_document', 'api_v1_received_document_payments',
+        'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
+        'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
+        'api_v1_operation_received_documents.remove_payment',
         // The OpenAPI document, which describes the API and holds no data.
         'api_v1_openapi',
         // The public links to sent documents.

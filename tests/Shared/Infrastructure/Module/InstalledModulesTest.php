@@ -69,7 +69,7 @@ final class InstalledModulesTest extends TestCase
     {
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
-        self::assertSame(['contacts', 'events', 'invoices', 'payments', 'webhooks'], $graph->resources());
+        self::assertSame(['contacts', 'events', 'invoices', 'payments', 'received_documents', 'webhooks'], $graph->resources());
         self::assertSame(['contacts'], $graph->get(\App\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
     }

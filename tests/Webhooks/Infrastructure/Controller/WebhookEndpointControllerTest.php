@@ -12,6 +12,7 @@ use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use App\Party\Infrastructure\Events\PartyEventAccess;
+use App\Purchasing\Infrastructure\Events\PurchasingEventAccess;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Domain\Id;
 use App\Tenancy\Application\TenantContext;
@@ -192,8 +193,8 @@ final class WebhookEndpointControllerTest extends WebTestCase
     {
         $this->signIn();
         $id = $this->stored();
-        // The person no longer works with invoices or contacts: the access services of the modules say no.
-        foreach ([InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party'] as $service => $module) {
+        // The person no longer works with invoices, contacts or received documents: the access services of the modules say no.
+        foreach ([InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing'] as $service => $module) {
             self::getContainer()->set($service, new readonly class($module) implements EventReadAccess {
                 public function __construct(private string $module)
                 {

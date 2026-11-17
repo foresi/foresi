@@ -1971,7 +1971,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "2d71f459d28b591b8f148a8a9b853088115eb200"
+                "reference": "b7fd53703d0853e87ca124d08176baed1982d16f"
             },
             "require": {
                 "foresi/attachment": "*",
@@ -1989,7 +1989,10 @@
                     "module": "purchasing",
                     "kind": "module",
                     "namespace": "App\\Purchasing\\",
-                    "optional": []
+                    "optional": [],
+                    "scopes": [
+                        "received_documents"
+                    ]
                 }
             },
             "license": [

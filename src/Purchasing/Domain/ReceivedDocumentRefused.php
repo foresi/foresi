@@ -55,6 +55,12 @@ final class ReceivedDocumentRefused extends \DomainException
     public const string EVIDENCE_NUMBERS_EXHAUSTED = 'evidence_numbers_exhausted';
     public const string STALE = 'stale';
     public const string LOCKED = 'locked';
+    // Refused by the payments of a document.
+    public const string NOT_RECORDED = 'not_recorded';
+    public const string PAYMENT_AMOUNT = 'payment_amount';
+    public const string OVERPAID = 'overpaid';
+    public const string PAID = 'paid';
+    public const string BANK_MOVEMENT_INVALID = 'bank_movement_invalid';
 
     public const array REASONS = [
         self::TRASHED, self::RECORDED, self::SUPPLIER_MISSING, self::ISSUE_DATE_MISSING, self::RECEIVED_DATE_MISSING,
@@ -66,7 +72,8 @@ final class ReceivedDocumentRefused extends \DomainException
         self::EVIDENCE_NUMBER_FIXED, self::EVIDENCE_NUMBER_INVALID, self::ORIGINAL_FILE_FIXED, self::ORIGINAL_FILE_INVALID,
         self::REASON_MISSING, self::REASON_TOO_LONG, self::SUPPLY_CODE_NOT_ALLOWED, self::SUPPLY_CODE_INVALID,
         self::FIRM_ARCHIVED, self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
-        self::STALE, self::LOCKED,
+        self::STALE, self::LOCKED, self::NOT_RECORDED, self::PAYMENT_AMOUNT, self::OVERPAID, self::PAID,
+        self::BANK_MOVEMENT_INVALID,
     ];
 
     public function __construct(public readonly string $reason)

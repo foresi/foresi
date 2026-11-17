@@ -4026,6 +4026,11 @@ purchasing:
     evidence_numbers_exhausted: "The firm's series has no number left this year."
     stale: "Someone changed the document meanwhile. Load it again and repeat your changes."
     locked: "The document belongs to a closed month and cannot change."
+    not_recorded: "Only a recorded document takes payments."
+    payment_amount: "A payment needs an amount above zero in the currency of the document."
+    overpaid: "The payment is more than what remains to be paid."
+    paid: "The document is paid in full already."
+    bank_movement_invalid: "The bank movement is not valid."
   warning:
     duplicate_file: "The same file is on {count, plural, one {another document} other {# other documents}} already."
     duplicate_supplier_number: "The supplier's number is on {count, plural, one {a recorded document} other {# recorded documents}} already."
