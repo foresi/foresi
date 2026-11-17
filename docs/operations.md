@@ -417,7 +417,7 @@ Two layers, both to an object store in another location than the server:
    within the last weeks, to the same object store.
 
 The database and the files belong together: a sent document, a raw bank e-mail,
-a logo or an attachment of a record (`attachments/<tenant>/<id>`) is referred to
+a logo or an attachment of a record (`attachments/<id>`) is referred to
 by a row and checked against its SHA-256. Back both up and restore them as a pair.
 
 ### Setting up restic

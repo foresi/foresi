@@ -22,7 +22,6 @@ final class EventLogTable
     public const string CONSUMPTION = 'event_consumption';
 
     public const string ID = 'id';
-    public const string TENANT_ID = 'tenant_id';
     public const string NAME = 'name';
     public const string VERSION = 'version';
     public const string OCCURRED_AT = 'occurred_at';
@@ -48,7 +47,6 @@ final class EventLogTable
         if (!$schema->hasTable(self::LOG)) {
             $log = $schema->createTable(self::LOG);
             $log->addColumn(self::ID, Types::GUID);
-            $log->addColumn(self::TENANT_ID, 'tenant_id');
             $log->addColumn(self::NAME, Types::STRING, ['length' => 128]);
             $log->addColumn(self::VERSION, Types::SMALLINT);
             $log->addColumn(self::OCCURRED_AT, Types::DATETIME_IMMUTABLE);
@@ -62,7 +60,6 @@ final class EventLogTable
             $log->addColumn(self::POSITION, Types::BIGINT, ['notnull' => false]);
             $log->setPrimaryKey([self::ID]);
             $log->addUniqueIndex([self::POSITION], 'uniq_event_log_position');
-            $log->addIndex([self::TENANT_ID, self::POSITION], 'idx_event_log_tenant_position');
             $log->addIndex([self::OCCURRED_AT], 'idx_event_log_occurred');
         }
 

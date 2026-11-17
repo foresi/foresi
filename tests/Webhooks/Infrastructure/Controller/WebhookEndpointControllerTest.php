@@ -232,10 +232,10 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $this->signIn();
         $id = $this->stored();
         $rows = new DeliveryRows($this->em->getConnection());
-        $failed = $rows->insert($this->tenant->toString(), $id, T::STATUS_FAILED, 10, null);
-        $rows->attempt($this->tenant->toString(), $failed, '2026-11-13 10:00:00');
-        $pending = $rows->insert($this->tenant->toString(), $id);
-        $ping = $rows->insert($this->tenant->toString(), $id, T::STATUS_SUCCEEDED, 1, null, T::KIND_PING);
+        $failed = $rows->insert($id, T::STATUS_FAILED, 10, null);
+        $rows->attempt($failed, '2026-11-13 10:00:00');
+        $pending = $rows->insert($id);
+        $ping = $rows->insert($id, T::STATUS_SUCCEEDED, 1, null, T::KIND_PING);
 
         $crawler = $this->client->request('GET', '/settings/webhooks/'.$id);
 
@@ -386,18 +386,6 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'disabled');
     }
 
-    public function testAnEndpointOfAnotherOrganisationIsNotFound(): void
-    {
-        $this->signIn();
-        $other = $this->browser->fixtures->tenant('Other Company');
-        $foreign = $this->stored(tenant: $other);
-
-        $this->client->request('GET', '/settings/webhooks/'.$foreign);
-        self::assertResponseStatusCodeSame(404);
-        $this->client->request('POST', '/settings/webhooks/'.$foreign.'/delete', ['_token' => $this->csrf()]);
-        self::assertResponseStatusCodeSame(404);
-    }
-
     private function signIn(Role $role = Role::Owner): void
     {
         [$this->tenant] = $this->browser->seed(['Example Company'], role: $role);
@@ -408,10 +396,10 @@ final class WebhookEndpointControllerTest extends WebTestCase
      * An endpoint stored straight in the organisation, owned by the signed-in
      * person, with a secret sealed by a key of its own.
      */
-    private function stored(?string $description = null, ?DisabledReason $disabled = null, ?TenantId $tenant = null): string
+    private function stored(?string $description = null, ?DisabledReason $disabled = null): string
     {
         $owner = self::getContainer()->get(UserRepository::class)->findByEmail(IdentityFixtures::EMAIL) ?? throw new \LogicException('The user is missing.');
-        $this->context->switchTo($tenant ?? $this->tenant);
+        $this->context->switchTo($this->tenant);
         try {
             $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
             $now = new \DateTimeImmutable('2026-11-13 10:00:00');

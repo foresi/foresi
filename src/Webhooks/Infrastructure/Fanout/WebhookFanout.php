@@ -112,10 +112,8 @@ final class WebhookFanout implements EventSink, ResetInterface
         $rows = $this->connection->createQueryBuilder()
             ->select('id', 'owner_id', 'url', 'event_types', 'version')
             ->from('webhook_endpoint')
-            ->where('tenant_id = :tenant')
-            ->andWhere('active = :active')
+            ->where('active = :active')
             ->orderBy('id')
-            ->setParameter('tenant', $tenantId)
             ->setParameter('active', true, Types::BOOLEAN)
             ->fetchAllAssociative();
 
@@ -220,7 +218,6 @@ final class WebhookFanout implements EventSink, ResetInterface
         $now = $this->clock->now();
         $this->connection->insert(WebhookDeliveryTable::DELIVERY, [
             WebhookDeliveryTable::ID => $id,
-            WebhookDeliveryTable::TENANT_ID => $tenantId,
             WebhookDeliveryTable::ENDPOINT_ID => $endpointId,
             WebhookDeliveryTable::EVENT_ID => $row->id,
             WebhookDeliveryTable::EVENT_TYPE => $row->name,

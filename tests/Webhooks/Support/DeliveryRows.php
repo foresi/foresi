@@ -28,7 +28,6 @@ final readonly class DeliveryRows
      * @return string the id of the delivery
      */
     public function insert(
-        string $tenantId,
         string $endpointId,
         string $status = T::STATUS_PENDING,
         int $attempts = 0,
@@ -39,7 +38,6 @@ final readonly class DeliveryRows
         $id = Id::generate();
         $this->db->insert(T::DELIVERY, [
             T::ID => $id,
-            T::TENANT_ID => $tenantId,
             T::ENDPOINT_ID => $endpointId,
             T::EVENT_ID => Id::generate(),
             T::EVENT_TYPE => 'invoicing.invoice.issued',
@@ -60,12 +58,11 @@ final readonly class DeliveryRows
         return $id;
     }
 
-    public function attempt(string $tenantId, string $deliveryId, string $at): string
+    public function attempt(string $deliveryId, string $at): string
     {
         $id = Id::generate();
         $this->db->insert(T::ATTEMPT, [
             T::ID => $id,
-            T::TENANT_ID => $tenantId,
             T::DELIVERY_ID => $deliveryId,
             T::ATTEMPTED_AT => new \DateTimeImmutable($at),
             T::DURATION_MS => 12,

@@ -20,9 +20,6 @@ use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
 use App\Audit\Domain\ActorKind;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantScope;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -311,7 +308,7 @@ final class UploadAttachmentTest extends TestCase
 
     private function upload(int $limit = UploadAttachment::MAX_BYTES): UploadAttachment
     {
-        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$this->access]), $this->tenant(), $this->actor(), $this->correlation, new MockClock(), $limit);
+        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$this->access]), $this->actor(), $this->correlation, new MockClock(), $limit);
     }
 
     private function delete(): DeleteAttachment
@@ -336,22 +333,6 @@ final class UploadAttachmentTest extends TestCase
                 return null === $this->id ? ActorKind::System : ActorKind::User;
             }
         };
-    }
-
-    private function tenant(): TenantContext
-    {
-        $context = new TenantContext(new class implements TenantScope {
-            public function activate(TenantId $tenant): void
-            {
-            }
-
-            public function deactivate(): void
-            {
-            }
-        });
-        $context->set(TenantId::generate());
-
-        return $context;
     }
 
     private function sparse(int $bytes): string
@@ -457,27 +438,27 @@ final class RecordingFiles implements AttachmentFiles
     public array $stored = [];
     public bool $fail = false;
 
-    public function store(string $tenantId, string $attachmentId, string $sourcePath): string
+    public function store(string $attachmentId, string $sourcePath): string
     {
         if ($this->fail) {
             throw new \RuntimeException('The disk is full.');
         }
-        $this->stored[$attachmentId] = $tenantId.'/'.$attachmentId;
+        $this->stored[$attachmentId] = $attachmentId;
 
-        return $tenantId.'/'.$attachmentId;
+        return $attachmentId;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $attachmentId, string $key, string $sha256): string
     {
         return $key;
     }
 
-    public function locate(string $tenantId, string $key): string
+    public function locate(string $attachmentId, string $key): string
     {
         return $key;
     }
 
-    public function remove(string $tenantId, string $key): void
+    public function remove(string $key): void
     {
         $this->stored = array_filter($this->stored, static fn (string $stored): bool => $stored !== $key);
     }

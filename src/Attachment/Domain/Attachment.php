@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Attachment\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -22,9 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'attachment')]
-#[ORM\Index(name: 'idx_attachment_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_attachment_owner', columns: ['tenant_id', 'owner_kind', 'owner_id'])]
-class Attachment implements TenantOwned, Audited
+#[ORM\Index(name: 'idx_attachment_owner', columns: ['owner_kind', 'owner_id'])]
+class Attachment implements Audited
 {
     public const int MAX_OWNER_KIND_LENGTH = 40;
     public const int MAX_MEDIA_TYPE_LENGTH = 127;
@@ -34,9 +31,6 @@ class Attachment implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private readonly string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'file_name', type: 'string', length: FileName::MAX_LENGTH)]
     private readonly string $fileName;
@@ -164,11 +158,6 @@ class Attachment implements TenantOwned, Audited
     public function deletedAt(): ?\DateTimeImmutable
     {
         return $this->deletedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function isGuid(string $value): bool

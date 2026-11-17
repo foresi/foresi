@@ -160,19 +160,6 @@ final class EventApiControllerTest extends ApiTestCase
         $this->assertProblem(401, 'invalid_token');
     }
 
-    public function testOtherTenantsEventsAreInvisible(): void
-    {
-        $theirs = $this->foreignTenant();
-        $this->events->record($theirs, RecordedEvents::issued(Id::generate()));
-        $mine = Id::generate();
-        $this->events->record($this->tenant, RecordedEvents::issued($mine));
-        $this->events->number();
-
-        $this->get('/api/v1/events');
-
-        self::assertSame([$mine], array_column(array_column($this->dataRows(), 'subject'), 'id'));
-    }
-
     public function testOlderThanThirtyDaysIsNotListed(): void
     {
         $old = Id::generate();

@@ -26,12 +26,11 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 /**
- * Makes one attempt of a delivery, in the delivery's tenant.
+ * Makes one attempt of a delivery, in the tenant its message carries.
  *
  * It claims the delivery first, so of two messages for one attempt, a stale
  * delayed one and the sweep's, or two copies of a redelivery, only one sends;
@@ -108,9 +107,7 @@ final readonly class SendWebhookHandler
 
     /**
      * A scheduled attempt claims a due delivery; a manual one or a ping claims
-     * by the attempt its message names. A delivery of another tenant than the
-     * message's is refused: it was claimed, so the sweep queues it again under
-     * its own tenant.
+     * by the attempt its message names.
      */
     private function claim(SendWebhook $message, \DateTimeImmutable $now): ?ClaimedDelivery
     {
@@ -122,10 +119,6 @@ final readonly class SendWebhookHandler
             return null;
         } else {
             $delivery = $this->deliveries->claimAttempt($message->deliveryId, $message->attemptId, $message->trigger, $now);
-        }
-
-        if ($delivery instanceof ClaimedDelivery && $delivery->tenantId !== $this->tenant->current()->toString()) {
-            throw new UnrecoverableMessageHandlingException(\sprintf('The webhook delivery %s belongs to another tenant than its message.', $delivery->id));
         }
 
         return $delivery;
@@ -169,7 +162,7 @@ final readonly class SendWebhookHandler
     {
         $this->deliveries->schedule($delivery->id, $now->modify(\sprintf('+%d seconds', $seconds)));
         $this->bus->dispatch(new Envelope(new SendWebhook($delivery->id, AttemptTrigger::Schedule), [
-            new TenantStamp($delivery->tenantId),
+            new TenantStamp($this->tenant->current()->toString()),
             new DelayStamp($seconds * 1000),
         ]));
     }
@@ -177,6 +170,6 @@ final readonly class SendWebhookHandler
     private function disable(WebhookEndpoint $endpoint, DisabledReason $reason, \DateTimeImmutable $now): void
     {
         $endpoint->disable($reason, $now);
-        $this->mailer->notify($endpoint->tenantId()->toString(), $endpoint->ownerId(), $endpoint->id(), $endpoint->url()->host(), $reason);
+        $this->mailer->notify($this->tenant->current()->toString(), $endpoint->ownerId(), $endpoint->id(), $endpoint->url()->host(), $reason);
     }
 }

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Webhooks\Infrastructure\Delivery;
 
 use App\Instance\Application\Schedule\OperatorTask;
+use App\Instance\Application\SoleTenant;
 use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
@@ -33,6 +34,7 @@ final readonly class WebhookSweepTask implements OperatorTask
         private WebhookDeliveries $deliveries,
         private MessageBusInterface $bus,
         private ClockInterface $clock,
+        private SoleTenant $tenant,
     ) {
     }
 
@@ -48,8 +50,13 @@ final readonly class WebhookSweepTask implements OperatorTask
 
     public function run(): void
     {
-        foreach ($this->deliveries->dueBefore($this->clock->now()->modify(self::GRACE), self::LIMIT) as $due) {
-            $this->bus->dispatch(new Envelope(new SendWebhook($due['id'], AttemptTrigger::Schedule), [new TenantStamp($due['tenant'])]));
+        $due = $this->deliveries->dueBefore($this->clock->now()->modify(self::GRACE), self::LIMIT);
+        if ([] === $due) {
+            return;
+        }
+        $tenant = $this->tenant->id()->toString();
+        foreach ($due as $id) {
+            $this->bus->dispatch(new Envelope(new SendWebhook($id, AttemptTrigger::Schedule), [new TenantStamp($tenant)]));
         }
     }
 }

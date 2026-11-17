@@ -29,6 +29,7 @@ use App\Tests\Events\Fixtures\Listeners\RecordingListener;
 use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use App\Tests\Events\Fixtures\Valid\Contract\Kind;
 use App\Tests\Events\Support\EventRows;
+use App\Tests\Events\Support\SoleTenants;
 use App\Work\Infrastructure\Doctrine\DoctrineProjects;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -85,9 +86,9 @@ final class EventRelayTest extends KernelTestCase
         // A is recorded first, so its id sorts first; unit 2 with B commits before unit 1 does.
         $a = Id::generate();
         $b = Id::generate();
-        EventRows::insert($this->db, $b, $this->tenant->toString());
+        EventRows::insert($this->db, $b);
         self::assertSame(1, $this->relay()->relay());
-        EventRows::insert($this->db, $a, $this->tenant->toString());
+        EventRows::insert($this->db, $a);
         self::assertSame(1, $this->relay()->relay());
 
         self::assertSame([$a => 2, $b => 1], EventRows::positions($this->db));
@@ -95,8 +96,8 @@ final class EventRelayTest extends KernelTestCase
 
     public function testRelayIsIdempotent(): void
     {
-        EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
-        EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
+        EventRows::insert($this->db, Id::generate());
+        EventRows::insert($this->db, Id::generate());
         self::assertSame(2, $this->relay()->relay());
         $this->events->reset();
 
@@ -108,7 +109,7 @@ final class EventRelayTest extends KernelTestCase
     public function testRelayNumbersInBatchesUntilOneComesBackShort(): void
     {
         foreach (range(1, 5) as $ignored) {
-            EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
+            EventRows::insert($this->db, Id::generate());
         }
 
         self::assertSame(2, $this->relay()->relay(2));
@@ -118,7 +119,7 @@ final class EventRelayTest extends KernelTestCase
 
     public function testFailedEnqueueLeavesRowsUnpositioned(): void
     {
-        EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
+        EventRows::insert($this->db, Id::generate());
         $bus = new class implements MessageBusInterface {
             public function dispatch(object $message, array $stamps = []): Envelope
             {
@@ -140,7 +141,7 @@ final class EventRelayTest extends KernelTestCase
 
     public function testSinkFailureLeavesRowsUnpositioned(): void
     {
-        EventRows::insert($this->db, Id::generate(), $this->tenant->toString());
+        EventRows::insert($this->db, Id::generate());
         $sink = new class implements EventSink {
             /** @var list<array{string, string, int}> */
             public array $seen = [];
@@ -169,7 +170,7 @@ final class EventRelayTest extends KernelTestCase
     public function testOneDeliveryPerListener(): void
     {
         $id = Id::generate();
-        EventRows::insert($this->db, $id, $this->tenant->toString());
+        EventRows::insert($this->db, $id);
 
         $this->relay()->relay();
 
@@ -187,11 +188,10 @@ final class EventRelayTest extends KernelTestCase
         self::assertSame(['test.first', 'test.second'], $listeners);
     }
 
-    public function testDeliveriesCarryTheTenantOfTheirEventNotTheActiveOne(): void
+    public function testDeliveriesCarryTheOneTenantOfTheInstanceNotTheActiveOne(): void
     {
-        $other = TenantId::generate();
-        EventRows::insert($this->db, Id::generate(), $other->toString(), name: 'invoicing.invoice.paid');
-        $this->context->set($this->tenant);
+        EventRows::insert($this->db, Id::generate(), name: 'invoicing.invoice.paid');
+        $this->context->set(TenantId::generate());
 
         try {
             $this->relay()->relay();
@@ -201,7 +201,7 @@ final class EventRelayTest extends KernelTestCase
 
         $sent = $this->events->getSent();
         self::assertCount(1, $sent);
-        self::assertSame($other->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
+        self::assertSame($this->tenant->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
     }
 
     public function testSweepRelaysWhatNoNudgeAnnounced(): void
@@ -213,7 +213,6 @@ final class EventRelayTest extends KernelTestCase
             $this->db,
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'App\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
-            $this->context,
             new AuditCorrelation(),
             $container->get(AuditActor::class),
             new MockClock('2026-11-12 10:00:00', 'UTC'),
@@ -250,6 +249,6 @@ final class EventRelayTest extends KernelTestCase
     {
         $container = self::getContainer();
 
-        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class), $sinks);
+        return new EventRelay($this->db, $container->get(LockFactory::class), $this->listeners, $bus ?? $container->get(MessageBusInterface::class), SoleTenants::of($this->tenant), $sinks);
     }
 }

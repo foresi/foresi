@@ -11,7 +11,6 @@ namespace App\Attachment\Application;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditActor;
 use App\Audit\Application\AuditCorrelation;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
@@ -29,7 +28,6 @@ final readonly class UploadAttachment
         private Attachments $attachments,
         private AttachmentFiles $files,
         private AttachmentPermissions $permissions,
-        private TenantContext $context,
         private AuditActor $actor,
         private AuditCorrelation $correlation,
         private ClockInterface $clock,
@@ -73,9 +71,8 @@ final readonly class UploadAttachment
         $mediaType = self::mediaType(new \finfo(\FILEINFO_MIME_TYPE)->file($file->path));
 
         $id = Id::generate();
-        $tenantId = $this->context->current()->toString();
         try {
-            $key = $this->files->store($tenantId, $id, $file->path);
+            $key = $this->files->store($id, $file->path);
         } catch (\RuntimeException $failed) {
             throw new AttachmentRefused(AttachmentRefused::FAILED, $failed);
         }
@@ -89,7 +86,7 @@ final readonly class UploadAttachment
                 return $attachment;
             });
         } catch (\Throwable $failed) {
-            $this->files->remove($tenantId, $key);
+            $this->files->remove($key);
 
             throw $failed instanceof \DomainException ? new AttachmentRefused(AttachmentRefused::FAILED, $failed) : $failed;
         }

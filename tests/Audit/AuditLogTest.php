@@ -19,9 +19,7 @@ use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\ApiFirewalls;
 use App\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\NoActiveTenant;
 use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantMismatch;
 use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\DocumentLanguage;
@@ -78,7 +76,6 @@ final class AuditLogTest extends KernelTestCase
         self::assertSame(Party::class, $entries[0]->entityClass());
         self::assertSame($this->partyId($party), $entries[0]->entityId());
         self::assertSame(AuditAction::Created, $entries[0]->action());
-        self::assertSame($this->context->current()->toString(), $entries[0]->tenantId()->toString());
         $changes = $entries[0]->changes();
         self::assertSame([null, 'Example Company'], $changes['displayName']);
         self::assertSame([null, 'company'], $changes['kind']);
@@ -176,31 +173,18 @@ final class AuditLogTest extends KernelTestCase
         $this->em->flush();
     }
 
-    public function testEntriesAreTenantScoped(): void
+    public function testTheLogIsReadWithoutATenant(): void
     {
-        $a = TenantId::generate();
-        $b = TenantId::generate();
-        $this->context->switchTo($a);
-        $partyA = $this->party();
-        $this->em->persist($partyA);
+        $this->context->switchTo(TenantId::generate());
+        $party = $this->party();
+        $this->em->persist($party);
         $this->em->flush();
-        $this->setProperty($partyA, 'displayName', 'Renamed A');
+        $this->setProperty($party, 'displayName', 'Renamed');
         $this->em->flush();
-        $this->context->switchTo($b);
-        $this->em->persist($this->party());
-        $this->em->flush();
-
-        $visibleToB = $this->entries();
-        $this->context->switchTo($a);
-        self::assertCount(1, $visibleToB);
-        self::assertCount(2, $this->entries());
-        foreach ($this->entries() as $entry) {
-            self::assertTrue($a->equals($entry->tenantId()));
-        }
 
         $this->context->reset();
-        $this->expectException(NoActiveTenant::class);
-        $this->entries();
+
+        self::assertCount(2, $this->entries());
     }
 
     public function testSensitiveFieldsAreNeverWritten(): void
@@ -314,56 +298,6 @@ final class AuditLogTest extends KernelTestCase
         self::assertSame(ActorKind::System, $entries[0]->actorKind());
         self::assertSame(ActorKind::User, $entries[1]->actorKind());
         self::assertSame(ActorKind::McpAgent, $entries[2]->actorKind());
-    }
-
-    public function testCreatedEntryUsesTheEntitysTenant(): void
-    {
-        $tenant = TenantId::generate();
-        $this->context->switchTo($tenant);
-        $party = $this->party();
-        $this->em->persist($party);
-        $this->em->flush();
-
-        self::assertTrue($party->tenantId()->equals($this->entries()[0]->tenantId()));
-    }
-
-    public function testCreatedEntryRejectsTenantMismatch(): void
-    {
-        $this->context->switchTo(TenantId::generate());
-        $this->em->persist($this->party());
-        $this->setProperty($this->context, 'current', TenantId::generate());
-
-        $this->expectException(TenantMismatch::class);
-        $this->em->flush();
-    }
-
-    public function testUpdateOfAnotherTenantsEntityIsRejected(): void
-    {
-        $this->context->switchTo(TenantId::generate());
-        $secret = new AuditedSecret('first', 'x');
-        $this->em->persist($secret);
-        $this->em->flush();
-
-        // Switching the tenant detaches managed entities, so swap the active tenant underneath them.
-        $this->setProperty($this->context, 'current', TenantId::generate());
-        $secret->changeLabel('second');
-
-        $this->expectException(TenantMismatch::class);
-        $this->em->flush();
-    }
-
-    public function testRemovalOfAnotherTenantsEntityIsRejected(): void
-    {
-        $this->context->switchTo(TenantId::generate());
-        $secret = new AuditedSecret('first', 'x');
-        $this->em->persist($secret);
-        $this->em->flush();
-
-        $this->setProperty($this->context, 'current', TenantId::generate());
-        $this->em->remove($secret);
-
-        $this->expectException(TenantMismatch::class);
-        $this->em->flush();
     }
 
     public function testCollectionChangesOfAuditedEntitiesAreRejected(): void

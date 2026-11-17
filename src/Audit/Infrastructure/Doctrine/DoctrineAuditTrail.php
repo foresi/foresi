@@ -13,8 +13,8 @@ use App\Audit\Domain\AuditEntry;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Reads the audit log through the entity manager, so the tenant filter
- * confines the answer to the active tenant.
+ * Reads the audit log through the entity manager. One instance serves one
+ * customer, so the log holds no rows of anyone else.
  */
 final readonly class DoctrineAuditTrail implements AuditTrail
 {

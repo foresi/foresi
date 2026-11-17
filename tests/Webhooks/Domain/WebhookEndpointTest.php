@@ -67,13 +67,6 @@ final class WebhookEndpointTest extends TestCase
         self::assertSame(WebhookEndpoint::MAX_VERSION, $endpoint->version());
     }
 
-    public function testTheTenantIsKnownOnlyOncePersisted(): void
-    {
-        $this->expectException(\LogicException::class);
-
-        $this->endpoint(new \DateTimeImmutable())->tenantId();
-    }
-
     public function testChangeReplacesOnlyWhatIsGiven(): void
     {
         $endpoint = $this->endpoint(new \DateTimeImmutable('2026-11-13 10:00:00'));

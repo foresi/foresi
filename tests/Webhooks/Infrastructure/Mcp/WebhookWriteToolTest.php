@@ -126,18 +126,15 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
         self::assertNull($this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'description' => null])->data['description']);
     }
 
-    public function testUpdateOfAnUnknownEndpointIsNotFoundAndOfAnotherOrganisationToo(): void
+    public function testUpdateOfAnUnknownEndpointIsNotFound(): void
     {
         self::assertSame('not_found', $this->refusal(UpdateWebhookEndpointTool::class, ['endpoint_id' => Id::generate(), 'active' => false])->errorCode);
-
-        $foreign = $this->stored($this->fixtures->tenant('Other Organisation'));
-        self::assertSame('not_found', $this->refusal(UpdateWebhookEndpointTool::class, ['endpoint_id' => $foreign, 'active' => false])->errorCode);
     }
 
     public function testDeleteRemovesTheEndpointWithItsDeliveries(): void
     {
         $id = $this->stored($this->tenant);
-        $delivery = $this->rows->insert($this->tenant->toString(), $id, T::STATUS_FAILED, attempts: 3, nextAttemptAt: null);
+        $delivery = $this->rows->insert($id, T::STATUS_FAILED, attempts: 3, nextAttemptAt: null);
 
         $output = $this->call(DeleteWebhookEndpointTool::class, ['endpoint_id' => $id]);
 
@@ -190,7 +187,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
     public function testRedeliverQueuesOneManualAttempt(): void
     {
         $id = $this->stored($this->tenant);
-        $delivery = $this->rows->insert($this->tenant->toString(), $id, T::STATUS_FAILED, attempts: 10, nextAttemptAt: null);
+        $delivery = $this->rows->insert($id, T::STATUS_FAILED, attempts: 10, nextAttemptAt: null);
 
         $output = $this->call(RedeliverWebhookTool::class, ['endpoint_id' => $id, 'delivery_id' => $delivery]);
 
@@ -205,11 +202,11 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
     public function testRedeliverConflictsAndNotFounds(): void
     {
         $disabled = $this->stored($this->tenant, active: false);
-        $delivery = $this->rows->insert($this->tenant->toString(), $disabled, T::STATUS_FAILED, attempts: 10, nextAttemptAt: null);
+        $delivery = $this->rows->insert($disabled, T::STATUS_FAILED, attempts: 10, nextAttemptAt: null);
         self::assertSame('conflict', $this->refusal(RedeliverWebhookTool::class, ['endpoint_id' => $disabled, 'delivery_id' => $delivery])->errorCode);
 
         $active = $this->stored($this->tenant);
-        $pending = $this->rows->insert($this->tenant->toString(), $active);
+        $pending = $this->rows->insert($active);
         self::assertSame('conflict', $this->refusal(RedeliverWebhookTool::class, ['endpoint_id' => $active, 'delivery_id' => $pending])->errorCode);
         self::assertSame('not_found', $this->refusal(RedeliverWebhookTool::class, ['endpoint_id' => $active, 'delivery_id' => Id::generate()])->errorCode);
         self::assertSame([], $this->queued());

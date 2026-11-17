@@ -10,8 +10,6 @@ namespace App\Webhooks\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -24,16 +22,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'webhook_endpoint')]
-#[ORM\Index(name: 'idx_webhook_endpoint_tenant_active', columns: ['tenant_id', 'active'])]
-class WebhookEndpoint implements TenantOwned, Audited
+#[ORM\Index(name: 'idx_webhook_endpoint_active', columns: ['active'])]
+class WebhookEndpoint implements Audited
 {
     public const int DESCRIPTION_MAX_LENGTH = 255;
     /** Failing for this long disables an endpoint. */
     public const string FAILING_LIMIT = '+5 days';
     public const int MAX_VERSION = 32767;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: EndpointUrl::MAX_LENGTH)]
     private string $url;
@@ -244,11 +239,6 @@ class WebhookEndpoint implements TenantOwned, Audited
     public function updatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     private function validDescription(?string $description): ?string

@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Audit\Domain;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -21,18 +19,14 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'audit_entry')]
-#[ORM\Index(name: 'idx_audit_entry_tenant', columns: ['tenant_id'])]
-#[ORM\Index(name: 'idx_audit_entry_entity', columns: ['tenant_id', 'entity_class', 'entity_id'])]
-#[ORM\Index(name: 'idx_audit_entry_root', columns: ['tenant_id', 'root_class', 'root_id'])]
-#[ORM\Index(name: 'idx_audit_entry_correlation', columns: ['tenant_id', 'correlation_id'])]
-class AuditEntry implements TenantOwned
+#[ORM\Index(name: 'idx_audit_entry_entity', columns: ['entity_class', 'entity_id'])]
+#[ORM\Index(name: 'idx_audit_entry_root', columns: ['root_class', 'root_id'])]
+#[ORM\Index(name: 'idx_audit_entry_correlation', columns: ['correlation_id'])]
+class AuditEntry
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'entity_class', type: 'string', length: 255)]
     private string $entityClass;
@@ -154,10 +148,5 @@ class AuditEntry implements TenantOwned
     public function correlationId(): ?string
     {
         return $this->correlationId;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

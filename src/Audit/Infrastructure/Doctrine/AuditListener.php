@@ -16,10 +16,6 @@ use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditEntry;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Application\TenantContext;
-use App\Instance\Application\TenantMismatch;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
@@ -45,7 +41,6 @@ final class AuditListener
     private ?AuditValueNormalizer $normalizer = null;
 
     public function __construct(
-        private readonly TenantContext $context,
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly AuditCorrelation $correlation,
@@ -72,13 +67,11 @@ final class AuditListener
         $entries = [];
         foreach ($uow->getScheduledEntityInsertions() as $entity) {
             if ($entity instanceof Audited) {
-                $this->tenantOf($entity);
                 $entries[] = $this->entry($em, $entity, AuditAction::Created, $this->snapshot($em, $entity, true));
             }
         }
         foreach ($uow->getScheduledEntityUpdates() as $entity) {
             if ($entity instanceof Audited) {
-                $this->tenantOf($entity);
                 $changes = $this->updateChanges($em, $entity);
                 if ([] !== $changes) {
                     $entries[] = $this->entry($em, $entity, AuditAction::Updated, $changes);
@@ -87,7 +80,6 @@ final class AuditListener
         }
         foreach ($uow->getScheduledEntityDeletions() as $entity) {
             if ($entity instanceof Audited) {
-                $this->tenantOf($entity);
                 $entries[] = $this->entry($em, $entity, AuditAction::Deleted, $this->snapshot($em, $entity, false));
             }
         }
@@ -97,22 +89,6 @@ final class AuditListener
             $em->persist($entry);
             $uow->computeChangeSet($metadata, $entry);
         }
-    }
-
-    /**
-     * Same rule as StampTenantListener: an owned entity's tenant must be the
-     * active one, for every kind of change, so an entry is never written under
-     * a tenant other than the entity's own.
-     */
-    private function tenantOf(object $entity): TenantId
-    {
-        $active = $this->context->current();
-        $tenant = $entity instanceof TenantOwned ? $entity->tenantId() : $active;
-        if (!$tenant->equals($active)) {
-            throw TenantMismatch::create();
-        }
-
-        return $tenant;
     }
 
     /**
@@ -216,8 +192,8 @@ final class AuditListener
     }
 
     /**
-     * Identifiers and the tenant are implied by the entry itself; excluded
-     * fields are never written.
+     * Identifiers are implied by the entry itself, and the tenant of an entity
+     * that still has one is the instance's; excluded fields are never written.
      *
      * @param ClassMetadata<object> $metadata
      */

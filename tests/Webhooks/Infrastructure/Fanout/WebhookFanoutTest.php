@@ -48,7 +48,6 @@ final class WebhookFanoutTest extends KernelTestCase
     private InMemoryTransport $webhooks;
     private InMemoryTransport $mail;
     private RecordedEvents $events;
-    private IdentityFixtures $fixtures;
     private User $owner;
     private TenantId $tenant;
 
@@ -58,8 +57,8 @@ final class WebhookFanoutTest extends KernelTestCase
         $container = self::getContainer();
         $this->em = $container->get(EntityManagerInterface::class);
         $this->context = $container->get(TenantContext::class);
-        $this->fixtures = new IdentityFixtures($this->em, $this->context);
-        $this->fixtures->rebuildSchema();
+        $fixtures = new IdentityFixtures($this->em, $this->context);
+        $fixtures->rebuildSchema();
         $this->db = $this->em->getConnection();
         $webhooks = $container->get('messenger.transport.webhooks');
         self::assertInstanceOf(InMemoryTransport::class, $webhooks);
@@ -71,9 +70,9 @@ final class WebhookFanoutTest extends KernelTestCase
         $this->mail->reset();
         $this->events = new RecordedEvents($this->context, $this->db, $container->get(EventRecorder::class), $container->get(EventRelay::class));
 
-        $this->owner = $this->fixtures->user();
-        $this->tenant = $this->fixtures->tenant('Tenant A');
-        $this->fixtures->join($this->owner, $this->tenant, Role::Member);
+        $this->owner = $fixtures->user();
+        $this->tenant = $fixtures->tenant('Tenant A');
+        $fixtures->join($this->owner, $this->tenant, Role::Member);
     }
 
     public function testMatchingEndpointGetsOneDelivery(): void
@@ -94,7 +93,7 @@ final class WebhookFanoutTest extends KernelTestCase
         self::assertSame(WebhookDeliveryTable::KIND_EVENT, $delivery[WebhookDeliveryTable::KIND]);
         self::assertEquals(0, $delivery[WebhookDeliveryTable::ATTEMPTS]);
         self::assertNotNull($delivery[WebhookDeliveryTable::NEXT_ATTEMPT_AT]);
-        self::assertSame($this->tenant->toString(), $delivery[WebhookDeliveryTable::TENANT_ID]);
+        self::assertArrayNotHasKey('tenant_id', $delivery);
 
         $expected = self::getContainer()->get(EventView::class)->of($this->row());
         unset($expected['position']);
@@ -139,19 +138,6 @@ final class WebhookFanoutTest extends KernelTestCase
     public function testInactiveEndpointIsSkipped(): void
     {
         $this->endpoint(['invoicing.invoice.issued'], active: false);
-
-        $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
-        $this->events->number();
-
-        self::assertSame([], $this->deliveries());
-        self::assertCount(0, $this->webhooks->getSent());
-    }
-
-    public function testOtherTenantsEndpointIsSkipped(): void
-    {
-        $other = $this->fixtures->tenant('Tenant B');
-        $this->fixtures->join($this->owner, $other, Role::Owner);
-        $this->endpoint(['invoicing.invoice.issued'], tenant: $other);
 
         $this->events->record($this->tenant, RecordedEvents::issued(Id::generate()));
         $this->events->number();
@@ -216,7 +202,6 @@ final class WebhookFanoutTest extends KernelTestCase
         $this->expectException(UniqueConstraintViolationException::class);
         $this->db->insert(WebhookDeliveryTable::DELIVERY, [
             WebhookDeliveryTable::ID => Id::generate(),
-            WebhookDeliveryTable::TENANT_ID => $this->tenant->toString(),
             WebhookDeliveryTable::ENDPOINT_ID => $endpoint,
             WebhookDeliveryTable::EVENT_ID => $deliveries[0][WebhookDeliveryTable::EVENT_ID],
             WebhookDeliveryTable::EVENT_TYPE => 'invoicing.invoice.issued',
@@ -233,10 +218,10 @@ final class WebhookFanoutTest extends KernelTestCase
      *
      * @return string the id of the endpoint
      */
-    private function endpoint(array $types, int $version = 1, bool $active = true, ?TenantId $tenant = null): string
+    private function endpoint(array $types, int $version = 1, bool $active = true): string
     {
         $now = new \DateTimeImmutable('2026-11-13 10:00:00');
-        $this->context->switchTo($tenant ?? $this->tenant);
+        $this->context->switchTo($this->tenant);
         try {
             $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/x'), null, EventTypes::of($types), $version, 'sealed', $this->owner->id(), $now);
             $this->em->persist($endpoint);

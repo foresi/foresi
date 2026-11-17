@@ -338,10 +338,10 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
     {
         $id = $this->created();
         $other = $this->created();
-        $delivery = $this->rows->insert($this->tenant->toString(), $id, T::STATUS_FAILED);
-        $this->rows->attempt($this->tenant->toString(), $delivery, '2026-11-13 10:00:00');
-        $kept = $this->rows->insert($this->tenant->toString(), $other, T::STATUS_FAILED);
-        $this->rows->attempt($this->tenant->toString(), $kept, '2026-11-13 10:00:00');
+        $delivery = $this->rows->insert($id, T::STATUS_FAILED);
+        $this->rows->attempt($delivery, '2026-11-13 10:00:00');
+        $kept = $this->rows->insert($other, T::STATUS_FAILED);
+        $this->rows->attempt($kept, '2026-11-13 10:00:00');
 
         $this->send('DELETE', self::ENDPOINTS.'/'.$id, secret: $this->secret);
         $this->assertProblem(403, 'insufficient_scope');
@@ -379,27 +379,6 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         $this->send('PATCH', self::ENDPOINTS.'/'.$id, ['active' => false]);
         $this->send('POST', self::ENDPOINTS.'/'.$id.'/ping');
         $this->assertProblem(409, 'conflict');
-    }
-
-    public function testOtherTenantsEndpointIs404(): void
-    {
-        $foreign = $this->stored($this->foreignTenant());
-
-        $this->get(self::ENDPOINTS.'/'.$foreign);
-        $this->assertProblem(404, 'not_found');
-        $this->send('PATCH', self::ENDPOINTS.'/'.$foreign, ['description' => 'Taken']);
-        $this->assertProblem(404, 'not_found');
-        $this->send('DELETE', self::ENDPOINTS.'/'.$foreign);
-        $this->assertProblem(404, 'not_found');
-        $this->get(self::ENDPOINTS.'/'.$foreign.'/secret', secret: $this->writer);
-        $this->assertProblem(404, 'not_found');
-        $this->send('POST', self::ENDPOINTS.'/'.$foreign.'/secret/rotate');
-        $this->assertProblem(404, 'not_found');
-        $this->get(self::ENDPOINTS.'/'.$foreign.'/deliveries');
-        $this->assertProblem(404, 'not_found');
-        $this->get(self::ENDPOINTS);
-        self::assertSame([], $this->ids());
-        self::assertSame([$foreign], $this->endpoints());
     }
 
     public function testSecretsUnavailableIs503(): void

@@ -245,7 +245,7 @@ final class AttachmentControllerTest extends WebTestCase
         self::assertSame(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM attachment'));
     }
 
-    public function testAnAttachmentThatIsUnknownDeletedOfAnotherTenantOrOfARecordNotSeenIsNotFound(): void
+    public function testAnAttachmentThatIsUnknownDeletedOrOfARecordNotSeenIsNotFound(): void
     {
         $this->seed();
         $this->upload($this->file('report', 'report.txt'));
@@ -256,11 +256,9 @@ final class AttachmentControllerTest extends WebTestCase
         $this->client->request('GET', '/attachments/'.Id::generate());
         self::assertResponseStatusCodeSame(404);
 
-        $other = $this->browser->fixtures->tenant('Other Organisation');
-        $foreign = $this->copy($row, ['tenant_id' => $other->toString()]);
         $unclaimed = $this->copy($row, ['owner_kind' => 'invoice']);
         $orphan = $this->copy($row, ['owner_id' => Id::generate()]);
-        foreach ([$foreign, $unclaimed, $orphan] as $hidden) {
+        foreach ([$unclaimed, $orphan] as $hidden) {
             $this->client->request('GET', '/attachments/'.$hidden);
             self::assertResponseStatusCodeSame(404, $hidden);
         }

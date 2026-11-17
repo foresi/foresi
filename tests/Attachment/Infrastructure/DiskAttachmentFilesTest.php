@@ -39,36 +39,45 @@ final class DiskAttachmentFilesTest extends TestCase
         @rmdir($this->root);
     }
 
-    public function testAFileIsKeptPrivatelyUnderItsTenantAndReadBackOnlyUnchanged(): void
+    public function testAFileIsKeptPrivatelyUnderItsIdAndReadBackOnlyUnchanged(): void
     {
-        $tenant = Id::generate();
         $id = Id::generate();
         $umask = umask(0);
         try {
-            $key = $this->files->store($tenant, $id, $this->source);
+            $key = $this->files->store($id, $this->source);
         } finally {
             umask($umask);
         }
 
-        self::assertSame($tenant.'/'.$id, $key);
-        self::assertSame(0o700, fileperms($this->root.'/'.$tenant) & 0o777);
+        self::assertSame($id, $key);
+        self::assertSame(0o700, fileperms($this->root) & 0o777);
         self::assertSame(0o600, fileperms($this->root.'/'.$key) & 0o777);
-        self::assertSame(['the bytes'], [file_get_contents($this->files->read($tenant, $key, hash('sha256', 'the bytes')))]);
-        self::assertCount(1, $this->found($this->root.'/'.$tenant.'/*'), 'No temporary file is left behind.');
+        self::assertSame(['the bytes'], [file_get_contents($this->files->read($id, $key, hash('sha256', 'the bytes')))]);
+        self::assertCount(1, $this->found($this->root.'/*'), 'No temporary file is left behind.');
 
         file_put_contents($this->root.'/'.$key, 'tampered');
         $this->expectException(AttachmentFileUnreadable::class);
-        $this->files->read($tenant, $key, hash('sha256', 'the bytes'));
+        $this->files->read($id, $key, hash('sha256', 'the bytes'));
     }
 
-    public function testAnotherTenantsKeyOrAMissingFileIsUnreadable(): void
+    public function testAFileStoredUnderATenantStillReads(): void
     {
         $tenant = Id::generate();
-        $key = $this->files->store($tenant, Id::generate(), $this->source);
+        $id = Id::generate();
+        mkdir($this->root.'/'.$tenant, 0o700, true);
+        file_put_contents($this->root.'/'.$tenant.'/'.$id, 'the bytes');
+
+        self::assertSame($this->root.'/'.$tenant.'/'.$id, $this->files->read($id, $tenant.'/'.$id, hash('sha256', 'the bytes')));
+    }
+
+    public function testAnotherAttachmentsKeyOrAMissingFileIsUnreadable(): void
+    {
+        $id = Id::generate();
+        $key = $this->files->store($id, $this->source);
         $sha = hash('sha256', 'the bytes');
 
         $refused = [];
-        foreach ([[Id::generate(), $key], [$tenant, $tenant.'/../'.$tenant], [$tenant, $tenant.'/'.Id::generate()]] as [$reader, $candidate]) {
+        foreach ([[Id::generate(), $key], [$id, $id.'/../'.$id], [$id, Id::generate().'/'.$id], [$id, $id.'/'.Id::generate()]] as [$reader, $candidate]) {
             try {
                 $this->files->read($reader, $candidate, $sha);
                 $refused[] = false;
@@ -77,19 +86,19 @@ final class DiskAttachmentFilesTest extends TestCase
             }
         }
 
-        self::assertSame([true, true, true], $refused);
+        self::assertSame([true, true, true, true], $refused);
     }
 
-    public function testLocatingAFileForAPartOfItChecksTheTenantButDoesNotHashIt(): void
+    public function testLocatingAFileForAPartOfItChecksTheAttachmentButDoesNotHashIt(): void
     {
-        $tenant = Id::generate();
-        $key = $this->files->store($tenant, Id::generate(), $this->source);
+        $id = Id::generate();
+        $key = $this->files->store($id, $this->source);
         file_put_contents($this->root.'/'.$key, 'tampered');
 
-        self::assertSame($this->root.'/'.$key, $this->files->locate($tenant, $key));
+        self::assertSame($this->root.'/'.$key, $this->files->locate($id, $key));
 
         $refused = [];
-        foreach ([[Id::generate(), $key], [$tenant, $tenant.'/'.Id::generate()]] as [$reader, $candidate]) {
+        foreach ([[Id::generate(), $key], [$id, Id::generate()]] as [$reader, $candidate]) {
             try {
                 $this->files->locate($reader, $candidate);
                 $refused[] = false;
@@ -100,15 +109,14 @@ final class DiskAttachmentFilesTest extends TestCase
         self::assertSame([true, true], $refused);
     }
 
-    public function testRemovingDeletesOnlyTheTenantsOwnFile(): void
+    public function testRemovingDeletesOnlyAFileNamedByAKey(): void
     {
-        $tenant = Id::generate();
-        $key = $this->files->store($tenant, Id::generate(), $this->source);
+        $key = $this->files->store(Id::generate(), $this->source);
 
-        $this->files->remove(Id::generate(), $key);
+        $this->files->remove('../'.$key);
         self::assertFileExists($this->root.'/'.$key);
 
-        $this->files->remove($tenant, $key);
+        $this->files->remove($key);
         self::assertFileDoesNotExist($this->root.'/'.$key);
     }
 
@@ -116,7 +124,7 @@ final class DiskAttachmentFilesTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->files->store('..', Id::generate(), $this->source);
+        $this->files->store('..', $this->source);
     }
 
     /**

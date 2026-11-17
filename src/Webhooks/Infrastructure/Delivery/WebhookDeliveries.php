@@ -76,7 +76,6 @@ final readonly class WebhookDeliveries
         try {
             $this->connection->insert(T::ATTEMPT, [
                 T::ID => $attemptId,
-                T::TENANT_ID => $delivery->tenantId,
                 T::DELIVERY_ID => $delivery->id,
                 T::ATTEMPTED_AT => $now,
                 T::DURATION_MS => 0,
@@ -107,7 +106,6 @@ final readonly class WebhookDeliveries
         } else {
             $this->connection->insert(T::ATTEMPT, [
                 T::ID => Id::generate(),
-                T::TENANT_ID => $delivery->tenantId,
                 T::DELIVERY_ID => $delivery->id,
                 T::ATTEMPTED_AT => $at,
                 T::TRIGGER => $trigger->value,
@@ -150,12 +148,11 @@ final readonly class WebhookDeliveries
      *
      * @return string the id of the delivery
      */
-    public function addPing(string $tenantId, string $endpointId, string $pingId, string $body, \DateTimeImmutable $now): string
+    public function addPing(string $endpointId, string $pingId, string $body, \DateTimeImmutable $now): string
     {
         $id = Id::generate();
         $this->connection->insert(T::DELIVERY, [
             T::ID => $id,
-            T::TENANT_ID => $tenantId,
             T::ENDPOINT_ID => $endpointId,
             T::EVENT_ID => $pingId,
             T::EVENT_TYPE => 'webhooks.endpoint.ping',
@@ -171,14 +168,14 @@ final readonly class WebhookDeliveries
     }
 
     /**
-     * Pending deliveries due at $before or earlier, oldest first, with their tenant.
+     * The ids of pending deliveries due at $before or earlier, oldest first.
      *
-     * @return list<array{id: string, tenant: string}>
+     * @return list<string>
      */
     public function dueBefore(\DateTimeImmutable $before, int $limit): array
     {
         $rows = $this->connection->createQueryBuilder()
-            ->select(T::ID, T::TENANT_ID)
+            ->select(T::ID)
             ->from(T::DELIVERY)
             ->where(T::STATUS.' = :pending')
             ->andWhere(T::NEXT_ATTEMPT_AT.' <= :before')
@@ -191,7 +188,7 @@ final readonly class WebhookDeliveries
 
         $due = [];
         foreach ($rows as $row) {
-            $due[] = ['id' => $this->text($row[T::ID]), 'tenant' => $this->text($row[T::TENANT_ID])];
+            $due[] = $this->text($row[T::ID]);
         }
 
         return $due;
@@ -200,7 +197,7 @@ final readonly class WebhookDeliveries
     public function find(string $id): ?ClaimedDelivery
     {
         $row = $this->connection->createQueryBuilder()
-            ->select(T::ID, T::TENANT_ID, T::ENDPOINT_ID, T::EVENT_ID, T::BODY, T::STATUS, T::ATTEMPTS, T::KIND)
+            ->select(T::ID, T::ENDPOINT_ID, T::EVENT_ID, T::BODY, T::STATUS, T::ATTEMPTS, T::KIND)
             ->from(T::DELIVERY)
             ->where(T::ID.' = :id')
             ->setParameter('id', $id)
@@ -211,7 +208,6 @@ final readonly class WebhookDeliveries
 
         return new ClaimedDelivery(
             $this->text($row[T::ID]),
-            $this->text($row[T::TENANT_ID]),
             $this->text($row[T::ENDPOINT_ID]),
             $this->text($row[T::EVENT_ID]),
             $this->text($row[T::BODY]),

@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Attachment\Application;
 
-use App\Instance\Application\TenantContext;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,7 +24,6 @@ final readonly class PurgeAttachments
     public function __construct(
         private Attachments $attachments,
         private AttachmentFiles $files,
-        private TenantContext $context,
         private LoggerInterface $logger,
     ) {
     }
@@ -53,10 +51,9 @@ final readonly class PurgeAttachments
      */
     public function removeFiles(array $keys): void
     {
-        $tenantId = $this->context->current()->toString();
         foreach ($keys as $key) {
             try {
-                $this->files->remove($tenantId, $key);
+                $this->files->remove($key);
             } catch (\Throwable $failure) {
                 $this->logger->warning('The file of a purged attachment could not be removed and is left behind.', ['key' => $key, 'exception' => $failure]);
             }

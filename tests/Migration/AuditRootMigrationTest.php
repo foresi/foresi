@@ -38,6 +38,8 @@ use PHPUnit\Framework\TestCase;
 final class AuditRootMigrationTest extends TestCase
 {
     private const string BEFORE = 'DoctrineMigrations\Version20261101000001';
+    /** The last migration before the audit log loses its tenant column, which these rows still carry. */
+    private const string UNTIL = 'DoctrineMigrations\Version20261118000001';
     private const string TENANT = '11111111-1111-1111-1111-111111111111';
     private const string SCHEMA = 'audit_root_migration_test';
     private const string AT = '2026-10-31 12:00:00';
@@ -203,7 +205,7 @@ final class AuditRootMigrationTest extends TestCase
         );
         $migrations->getMetadataStorage()->ensureInitialized();
         $plan = $migrations->getMigrationPlanCalculator()->getPlanUntilVersion(
-            null === $version ? $migrations->getVersionAliasResolver()->resolveVersionAlias('latest') : new Version($version),
+            new Version($version ?? self::UNTIL),
         );
         $migrations->getMigrator()->migrate($plan, new MigratorConfiguration());
     }
