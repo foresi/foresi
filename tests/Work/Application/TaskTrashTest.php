@@ -13,7 +13,6 @@ use App\Attachment\Application\AttachmentFileUnreadable;
 use App\Attachment\Application\AttachmentPermissions;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Domain\AuditAction;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 use App\Work\Application\ManageComments;
 use App\Work\Application\PurgeDeletedTasks;
@@ -261,15 +260,14 @@ final class TaskTrashTest extends WorkTestCase
         self::assertSame(['Olga Owner', 'Olga Owner'], $connection->fetchFirstColumn('SELECT u.display_name FROM task_watcher w JOIN membership m ON m.id = w.membership_id JOIN app_user u ON u.id = m.user_id'));
         self::assertSame([$youngFile->id()], $connection->fetchFirstColumn('SELECT id FROM attachment'));
         $store = self::getContainer()->get(AttachmentFiles::class);
-        $tenant = self::getContainer()->get(TenantContext::class)->current()->toString();
         foreach ($files as $file) {
             try {
-                $store->locate($tenant, $file->storageKey());
+                $store->locate($file->id(), $file->storageKey());
                 self::fail('The file of '.$file->fileName().' is still there.');
             } catch (AttachmentFileUnreadable) {
             }
         }
-        self::assertFileExists($store->locate($tenant, $youngFile->storageKey()));
+        self::assertFileExists($store->locate($youngFile->id(), $youngFile->storageKey()));
         // The log keeps what they were.
         self::assertSame(3, $this->number('SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND action = ?', [Task::class, AuditAction::Deleted->value]));
         self::assertSame(2, $this->number('SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND action = ?', [TaskComment::class, AuditAction::Deleted->value]));
@@ -303,7 +301,7 @@ final class TaskTrashTest extends WorkTestCase
 
         self::assertSame(1, $this->number('SELECT COUNT(*) FROM task WHERE deleted_at IS NOT NULL'));
         self::assertSame([$file->id()], $this->em->getConnection()->fetchFirstColumn('SELECT id FROM attachment'));
-        self::assertFileExists(self::getContainer()->get(AttachmentFiles::class)->locate(self::getContainer()->get(TenantContext::class)->current()->toString(), $file->storageKey()));
+        self::assertFileExists(self::getContainer()->get(AttachmentFiles::class)->locate($file->id(), $file->storageKey()));
     }
 
     public function testASubtaskDoesNotBringBackATaskThePersonMayNotRestore(): void
@@ -356,7 +354,7 @@ final class TaskTrashTest extends WorkTestCase
         self::assertIsString($source);
         file_put_contents($source, 'A file of '.$ownerId);
         $id = Id::generate();
-        $key = self::getContainer()->get(AttachmentFiles::class)->store(self::getContainer()->get(TenantContext::class)->current()->toString(), $id, $source);
+        $key = self::getContainer()->get(AttachmentFiles::class)->store($id, $source);
         $attachment = new Attachment($id, $kind, $ownerId, 'notes.txt', 'text/plain', (int) filesize($source), (string) hash_file('sha256', $source), $key, $this->owner->user()->id(), $this->clock->now());
         unlink($source);
         if ($deleted) {
