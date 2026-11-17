@@ -93,7 +93,11 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $properties = InputSchema::of(self::getContainer()->get(Operations::class)->get('received_documents.record')->fields)['properties'];
         self::assertIsArray($properties);
 
-        self::assertSame([10, 3], [$properties['variable_symbol']['maxLength'] ?? null, $properties['currency']['maxLength'] ?? null]);
+        $symbol = $properties['variable_symbol'];
+        $currency = $properties['currency'];
+        self::assertIsArray($symbol);
+        self::assertIsArray($currency);
+        self::assertSame([10, 3], [$symbol['maxLength'] ?? null, $currency['maxLength'] ?? null]);
     }
 
     public function testPaymentsAndMarkAsPaidOverRestAndTheUnpaidList(): void

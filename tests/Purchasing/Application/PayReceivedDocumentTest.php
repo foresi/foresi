@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Purchasing\Application;
 
+use App\Events\Infrastructure\Dbal\EventLogTable;
 use App\Purchasing\Application\Api\AddReceivedDocumentPaymentInput;
 use App\Purchasing\Application\Api\ReceivedDocumentWrites;
 use App\Purchasing\Application\PayReceivedDocument;
@@ -164,11 +165,11 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         // Uploading a draft records nothing; recording it once does, saving it again does not.
         $draft = $this->draft();
         $this->recording()->record($draft, $this->input());
-        self::assertCount(1, $this->events('purchasing.received_document.recorded'));
-        $this->editing()->edit($draft, $this->input(supplierNumber: 'FV-2026-124'));
-
         $events = $this->events('purchasing.received_document.recorded');
         self::assertCount(1, $events);
+        $this->editing()->edit($draft, $this->input(supplierNumber: 'FV-2026-124'));
+
+        self::assertSame(1, $this->recordedEvents());
         self::assertSame(['received_document_id' => $draft, 'firm_id' => $this->firm->id(), 'kind' => 'tax_invoice', 'supplier_id' => $this->supplier->id(), 'total' => '1210.00', 'currency' => 'CZK', 'due_date' => '2026-11-11'], $events[0]['data']);
     }
 
@@ -245,6 +246,17 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
 
         $this->expectException(\LogicException::class);
         $payment->tenantId();
+    }
+
+    /**
+     * How many purchasing.received_document.recorded events the log holds.
+     */
+    private function recordedEvents(): int
+    {
+        $count = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['purchasing.received_document.recorded']);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
     }
 
     private function recorded(string $number = 'FV-2026-123'): string
