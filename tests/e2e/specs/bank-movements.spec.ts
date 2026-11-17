@@ -9,7 +9,7 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
 const PHONE = { width: 390, height: 844 };
 const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
-// The tenant of this spec in tests/e2e/seed.php: 20260001 paired by a verified notice, the
+// The world of this spec in tests/e2e/seed.php: 20260001 paired by a verified notice, the
 // unverified payment of 2 420 Kč for 20260002 waiting, and one bank e-mail of each kind.
 const MOVEMENTS_OWNER = 'movements@example.com';
 

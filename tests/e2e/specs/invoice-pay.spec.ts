@@ -8,7 +8,7 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
 const PHONE = { width: 390, height: 844 };
 const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
-// The tenant of this spec in tests/e2e/seed.php: 20260001 unpaid (1 210 Kč), 20260002 paid in
+// The world of this spec in tests/e2e/seed.php: 20260001 unpaid (1 210 Kč), 20260002 paid in
 // part (1 000 of 2 420 Kč), 20260003 paid in full.
 const PAYING_OWNER = 'paying@example.com';
 

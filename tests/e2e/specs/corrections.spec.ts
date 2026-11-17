@@ -8,7 +8,7 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
 const PHONE = { width: 390, height: 844 };
 const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
-// The tenant of this spec in tests/e2e/seed.php: invoice 20260001 of 1 210 Kč unpaid, and
+// The world of this spec in tests/e2e/seed.php: invoice 20260001 of 1 210 Kč unpaid, and
 // 20260002 of 1 210 Kč paid in full.
 const OWNER = 'corrections@example.com';
 
@@ -62,8 +62,7 @@ test.describe.serial('corrective tax documents', () => {
     await page.setViewportSize(DESKTOP);
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
 
-    // Bank notices of other specs share the screen; the saved document's status is the other one.
-    await expect(page.locator('main').getByRole('status').filter({ hasNotText: 'příchozí plat' })).toBeVisible();
+    await expect(page.locator('main').getByRole('status')).toBeVisible();
     await page.goto('/invoices');
     await page.getByRole('link', { name: '20260001', exact: true }).click();
     const payments = page.locator('[data-payments]');
@@ -74,8 +73,7 @@ test.describe.serial('corrective tax documents', () => {
   test('a credit note on the paid invoice leaves it to refund, and the refund is recorded by hand', async ({ page }) => {
     await openCorrection(page, '20260002');
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
-    // Bank notices of other specs share the screen; the saved document's status is the other one.
-    await expect(page.locator('main').getByRole('status').filter({ hasNotText: 'příchozí plat' })).toBeVisible();
+    await expect(page.locator('main').getByRole('status')).toBeVisible();
 
     await page.goto('/invoices?tab=to_refund');
     await expect(row(page, '20260002')).toContainText('K vrácení');

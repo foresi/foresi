@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { PASSWORD, PROJECTS_GUEST_STATE, PROJECTS_MEMBER, PROJECTS_OWNER_STATE } from '../support/session';
+import { PASSWORD, PROJECTS_GUEST_STATE, PROJECTS_MEMBER, PROJECTS_OWNER_STATE, worldState } from '../support/session';
 
 // The guest of the client in "Example Projects" of tests/e2e/seed.php: the section "Shared with
 // client" of "Website" is shared with them, and so is, on its own, "Sign the lease" of "Office
@@ -144,9 +144,9 @@ test.describe('the owner', () => {
     await dialog.getByRole('button', { name: 'Hotovo' }).click();
     await expect(page.locator('[data-header-badge]')).toContainText('Soukromé');
 
-    // Without the owner's cookie, which the context would inherit: signing in moves the session to a
+    // Without the owner's session cookie, which the context would inherit: signing in moves the session to a
     // new id and ends the old one, the owner's for the specs that come after.
-    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const context = await browser.newContext({ storageState: worldState('projects') });
     const member = await context.newPage();
     await member.goto('/login');
     await member.locator('#username').fill(PROJECTS_MEMBER);

@@ -8,7 +8,7 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const DESKTOP = { width: 1440, height: 960 };
 const PHONE = { width: 390, height: 844 };
 const SHOTS = process.env.E2E_SHOTS ?? 'test-results/shots';
-// The tenant of this spec in tests/e2e/seed.php: advance Z920260001 of 1 210 Kč unpaid, and
+// The world of this spec in tests/e2e/seed.php: advance Z920260001 of 1 210 Kč unpaid, and
 // Z920260002 paid, waiting for its tax document.
 const OWNER = 'advances@example.com';
 
@@ -66,10 +66,9 @@ test.describe.serial('advances and tax documents on payment', () => {
     await row(page, 'Z920260002').getByRole('button', { name: /Další akce/ }).click();
     await row(page, 'Z920260002').getByRole('menuitem', { name: 'Vystavit daňový doklad' }).click();
 
-    await expect(page.locator('main').getByRole('status').filter({ hasText: 'D820260001' })).toContainText('Daňový doklad D820260001 je vystavený.');
+    await expect(page.locator('main').getByRole('status')).toContainText('Daňový doklad D820260001 je vystavený.');
     await expect(page.locator('main')).toContainText('Každá uhrazená záloha má svůj daňový doklad.');
-    // Bank notices come from the bank data of other specs, which shares the instance.
-    await expect(page.locator('[data-shell-notices] a:not([href^="/bank"])')).toHaveCount(0);
+    await expect(page.locator('[data-shell-notices]')).toHaveCount(0);
   });
 
   test('a payment of an advance issues its tax document, and its links show the chain', async ({ page }) => {
@@ -78,7 +77,7 @@ test.describe.serial('advances and tax documents on payment', () => {
     await row(page, 'Z920260001').getByRole('menuitem', { name: 'Uhradit' }).click();
     const dialog = page.getByRole('dialog', { name: /Z920260001/ });
     await dialog.getByRole('button', { name: 'Zaznamenat úhradu' }).click();
-    await expect(page.locator('main').getByRole('status').filter({ hasText: 'Z920260001' })).toContainText('Z920260001');
+    await expect(page.locator('main').getByRole('status')).toContainText('Z920260001');
 
     await page.goto('/advances?tab=unsettled');
     await expect(page.getByRole('link', { name: /^Nevyúčtované/ })).toContainText('2');

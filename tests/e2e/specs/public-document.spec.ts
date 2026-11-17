@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { worldState } from '../support/session';
 
 // Written by tests/e2e/seed.php: the links of the seeded send, derived from the e2e secret.
 const links = JSON.parse(readFileSync(resolve(__dirname, '../../../var/e2e-links.json'), 'utf8')) as { customer: string; copy: string; number: string; due: string };
@@ -18,11 +19,11 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
   expect(blocking.map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(' | ')}`)).toEqual([]);
 }
 
-// How often the customer opened the PDF, read from the e2e database with PHP, which every runner has.
+// How often the customer opened the PDF, read from the database of the world with PHP, which every runner has.
 function readCount(): number {
   const read = `$s = new PDO('sqlite:'.$argv[1])->prepare('SELECT read_count FROM invoice_send WHERE token_hash = ?'); $s->execute([$argv[2]]); echo $s->fetchColumn();`;
   const hash = createHash('sha256').update(links.customer).digest('hex');
-  return Number(execFileSync('php', ['-r', read, resolve(__dirname, '../../../var/e2e.db'), hash]).toString());
+  return Number(execFileSync('php', ['-r', read, resolve(__dirname, '../../../var/e2e/public.db'), hash]).toString());
 }
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
@@ -30,8 +31,8 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-// The customer opens the link from a mail: no session, no sign-in.
-test.use({ storageState: { cookies: [], origins: [] } });
+// The customer opens the link from a mail: no session, no sign-in, in the world of the sender.
+test.use({ storageState: worldState('public') });
 
 // The page embeds the PDF on wide screens; the browser loading it is no person reading it.
 test('the embedded PDF alone never counts as read, the Open PDF button does', async ({ page, browserName }) => {
