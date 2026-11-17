@@ -18,6 +18,7 @@ use App\Purchasing\Domain\ReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocumentContent;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Shared\Application\Event\EventRecorder;
+use App\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -54,13 +55,16 @@ final readonly class DocumentRecording
         if ($content->supplierParty instanceof Party) {
             $this->contacts->addRole($content->supplierParty, $firm, PartyRole::Supplier);
         }
-        $total = $document->total();
-        if ($first && $total instanceof \App\Shared\Domain\Money) {
+        if ($first) {
+            // A recorded document always has its total and its supplier.
+            $total = $document->total();
+            $supplier = $document->supplierParty();
+            \assert($total instanceof Money && $supplier instanceof Party);
             $this->events->record(new ReceivedDocumentRecorded(
                 $document->id(),
                 $firm->id(),
                 $document->kind()->value,
-                $document->supplierParty()?->id(),
+                $supplier->id(),
                 EventAmount::of($total),
                 $total->currency()->value,
                 $document->dueDate()?->format('Y-m-d'),

@@ -62,8 +62,8 @@ class ReceivedDocumentPayment implements TenantOwned, Audited
         private readonly PaymentMethod $method,
         #[ORM\Column(name: 'bank_movement_id', type: 'guid', nullable: true)]
         private readonly ?string $bankMovementId,
-        #[ORM\Column(name: 'created_by', type: 'guid', nullable: true)]
-        private readonly ?string $createdBy,
+        #[ORM\Column(name: 'created_by', type: 'guid')]
+        private readonly string $createdBy,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
@@ -109,7 +109,7 @@ class ReceivedDocumentPayment implements TenantOwned, Audited
         return $this->bankMovementId;
     }
 
-    public function createdBy(): ?string
+    public function createdBy(): string
     {
         return $this->createdBy;
     }

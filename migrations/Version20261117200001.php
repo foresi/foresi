@@ -36,7 +36,7 @@ final class Version20261117200001 extends AbstractMigration
         $table->addColumn('currency', Types::STRING, ['length' => 3, 'fixed' => true]);
         $table->addColumn('method', Types::STRING, ['length' => 16]);
         $table->addColumn('bank_movement_id', Types::GUID, ['notnull' => false]);
-        $table->addColumn('created_by', Types::GUID, ['notnull' => false]);
+        $table->addColumn('created_by', Types::GUID);
         $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['tenant_id'], 'idx_received_document_payment_tenant');

@@ -52,7 +52,7 @@ final readonly class ReceivedDocumentWrites
      */
     public function record(RecordReceivedDocumentInput $input): string
     {
-        $currency = Currency::tryFrom(strtoupper(trim($input->currency)))
+        $currency = Currency::tryFrom($input->currency)
             ?? throw PurchasingRefused::unreadable(PurchasingRefused::CURRENCY, 'currency', 'The currency is not an ISO 4217 code Foresi knows, such as CZK or EUR.');
 
         return $this->refusing(fn (): string => $this->recording->create($input->firmId, new ReceivedDocumentInput(
@@ -61,7 +61,7 @@ final readonly class ReceivedDocumentWrites
             $input->supplierId,
             $input->supplierNumber,
             $input->variableSymbol,
-            $this->date($input->issueDate, 'issueDate'),
+            $this->day($input->issueDate, 'issueDate'),
             $this->date($input->taxPointDate, 'taxPointDate'),
             $this->date($input->dueDate, 'dueDate'),
             $this->date($input->receivedDate, 'receivedDate') ?? $this->today->today(),
@@ -98,7 +98,7 @@ final readonly class ReceivedDocumentWrites
 
         return $this->refusing(fn (): string => $this->payments->pay(
             $input->documentId,
-            $this->date($input->paidOn, 'paidOn') ?? throw PurchasingRefused::unreadable(PurchasingRefused::DATE, 'paidOn', 'The day must be YYYY-MM-DD.'),
+            $this->day($input->paidOn, 'paidOn'),
             self::money($input->amount, $currency, 'amount'),
             PaymentMethod::from($input->method),
             $input->bankMovementId,
@@ -145,11 +145,13 @@ final readonly class ReceivedDocumentWrites
 
     private function date(?string $value, string $field): ?\DateTimeImmutable
     {
-        if (null === $value) {
-            return null;
-        }
-        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', trim($value));
-        if (false === $day || $day->format('Y-m-d') !== trim($value)) {
+        return null === $value ? null : $this->day($value, $field);
+    }
+
+    private function day(string $value, string $field): \DateTimeImmutable
+    {
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        if (false === $day || $day->format('Y-m-d') !== $value) {
             throw PurchasingRefused::unreadable(PurchasingRefused::DATE, $field, 'The day must be YYYY-MM-DD.');
         }
 
@@ -158,8 +160,7 @@ final readonly class ReceivedDocumentWrites
 
     private static function money(string $value, Currency $currency, string $field): Money
     {
-        $value = trim($value);
-        if (1 !== preg_match('/^-?\d{1,15}(\.\d{1,'.max(1, $currency->minorUnits()).'})?$/D', $value)) {
+        if (1 !== preg_match('/^-?\d{1,15}(\.\d{1,'.$currency->minorUnits().'})?$/D', $value)) {
             throw PurchasingRefused::unreadable(PurchasingRefused::AMOUNT, $field, \sprintf('The amount must be a decimal with at most %d places, such as "1210.00".', $currency->minorUnits()));
         }
 
@@ -168,7 +169,7 @@ final readonly class ReceivedDocumentWrites
 
     private static function recapLine(string $line, Currency $currency): VatRecapLine
     {
-        $parts = explode(':', trim($line));
+        $parts = explode(':', $line);
         if (\count($parts) < 3 || \count($parts) > 4) {
             throw PurchasingRefused::unreadable(PurchasingRefused::VAT_RECAP_LINE, 'vatRecap', 'A line of the VAT recap is "rate:base:vat" or "rate:base:vat:stated_vat_czk", such as "21:1000.00:210.00".');
         }

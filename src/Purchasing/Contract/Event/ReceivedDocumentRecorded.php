@@ -22,7 +22,7 @@ final readonly class ReceivedDocumentRecorded implements DomainEventPayload
         public string $receivedDocumentId,
         public string $firmId,
         public string $kind,
-        public ?string $supplierId,
+        public string $supplierId,
         public string $total,
         public string $currency,
         public ?string $dueDate,

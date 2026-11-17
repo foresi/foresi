@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Purchasing\Infrastructure\Api;
 
 use App\Identity\Domain\ApiScope;
+use App\Shared\Infrastructure\Operation\InputSchema;
+use App\Shared\Infrastructure\Operation\Operations;
 use App\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
@@ -41,6 +43,9 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertFalse($this->at('data', 'has_original_file'));
         self::assertSame('21', $this->at('data', 'vat_recap', 0, 'rate'));
         self::assertSame($this->customerId, $this->at('data', 'supplier', 'id'));
+        self::assertSame('2026-11-03', $this->at('data', 'received_date'));
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'base'));
+        self::assertSame(['amount_minor' => 21_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'vat'));
         $created = $this->json()['data'];
 
         $this->get('/api/v1/received-documents/'.$id, secret: $this->writer);
@@ -57,6 +62,38 @@ final class ReceivedDocumentApiTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/received-documents', ['supplier_id' => '01940000-0000-7000-8000-000000000001'] + $this->fields());
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'supplier_id', 'reason' => 'supplier_unknown']);
+
+        $this->send('POST', '/api/v1/received-documents', ['total' => '1210.001'] + $this->fields());
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'total', 'reason' => 'amount_invalid']);
+
+        $this->send('POST', '/api/v1/received-documents', ['vat_recap' => ['21:1000.00:210.00:1:1']] + $this->fields());
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'vat_recap', 'reason' => 'vat_recap_line_invalid']);
+
+        $this->send('POST', '/api/v1/received-documents', ['currency' => 'XYZ'] + $this->fields());
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'currency', 'reason' => 'currency_unsupported']);
+
+        $this->send('POST', '/api/v1/received-documents', ['firm_id' => '01940000-0000-7000-8000-000000000001'] + $this->fields());
+        $this->assertProblem(404, 'firm_unknown');
+
+        $this->send('POST', '/api/v1/received-documents/01940000-0000-7000-8000-000000000001/payments', ['paid_on' => '2026-11-12', 'amount' => '1.00']);
+        $this->assertProblem(404, 'not_found');
+    }
+
+    public function testADocumentInAnotherCurrencyKeepsTheVatInCzkItPrints(): void
+    {
+        $this->send('POST', '/api/v1/received-documents', ['currency' => 'EUR', 'exchange_rate' => '25', 'total' => '121.00', 'vat_recap' => ['21:100.00:21.00:530.00']] + $this->fields());
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(['amount_minor' => 10_000, 'currency' => 'EUR'], $this->at('data', 'vat_recap', 0, 'base'));
+        self::assertSame(['amount_minor' => 53_000, 'currency' => 'CZK'], $this->at('data', 'vat_recap', 0, 'vat_czk'));
+    }
+
+    public function testTheSchemaTellsTheLengthsOfTheShortFields(): void
+    {
+        $properties = InputSchema::of(self::getContainer()->get(Operations::class)->get('received_documents.record')->fields)['properties'];
+        self::assertIsArray($properties);
+
+        self::assertSame([10, 3], [$properties['variable_symbol']['maxLength'] ?? null, $properties['currency']['maxLength'] ?? null]);
     }
 
     public function testPaymentsAndMarkAsPaidOverRestAndTheUnpaidList(): void

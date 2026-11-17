@@ -14,6 +14,7 @@ use App\Purchasing\Application\PurchasingNotAllowed;
 use App\Purchasing\Application\ReceivedDocumentPayments;
 use App\Purchasing\Application\ReceivedDocuments;
 use App\Purchasing\Application\UnknownReceivedDocument;
+use App\Purchasing\Domain\ReceivedDocumentPayment;
 
 /**
  * The received documents for the API and MCP with what is paid and what
@@ -55,12 +56,9 @@ final readonly class ReceivedDocumentBalances
         $this->access->denyUnlessStaff();
         $document = $this->documents->find($documentId) ?? throw new UnknownReceivedDocument();
         $payments = $this->payments->ofDocument($document->id());
-        $paid = 0;
-        $last = null;
-        foreach ($payments as $payment) {
-            $paid += $payment->amount()->minor();
-            $last = null === $last || $payment->paidOn() > $last ? $payment->paidOn() : $last;
-        }
+        $paid = array_sum(array_map(static fn (ReceivedDocumentPayment $payment): int => $payment->amount()->minor(), $payments));
+        // The payments come by the day paid, so the last is the latest.
+        $last = [] === $payments ? null : $payments[array_key_last($payments)]->paidOn();
 
         return new PaidDocument($document, PaymentBalance::of($document, $paid, $last), $payments);
     }

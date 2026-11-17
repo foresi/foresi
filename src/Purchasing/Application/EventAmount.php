@@ -18,12 +18,9 @@ final class EventAmount
 {
     public static function of(Money $money): string
     {
-        $places = $money->currency()->minorUnits();
-        $unit = 10 ** $places;
+        $unit = 10 ** $money->currency()->minorUnits();
         $minor = abs($money->minor());
 
-        return 0 === $places
-            ? \sprintf('%s%d', $money->isNegative() ? '-' : '', $minor)
-            : \sprintf('%s%d.%0'.$places.'d', $money->isNegative() ? '-' : '', intdiv($minor, $unit), $minor % $unit);
+        return \sprintf('%s%d.%0'.$money->currency()->minorUnits().'d', $money->isNegative() ? '-' : '', intdiv($minor, $unit), $minor % $unit);
     }
 }
