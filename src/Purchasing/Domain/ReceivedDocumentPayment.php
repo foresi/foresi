@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Purchasing\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
@@ -27,17 +25,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'received_document_payment')]
-#[ORM\Index(name: 'idx_received_document_payment_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_received_document_payment_document', columns: ['received_document_id'])]
 #[ORM\Index(name: 'idx_received_document_payment_movement', columns: ['bank_movement_id'])]
-class ReceivedDocumentPayment implements TenantOwned, Audited
+class ReceivedDocumentPayment implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'paid_on', type: 'date_immutable')]
     private \DateTimeImmutable $paidOn;
@@ -117,10 +111,5 @@ class ReceivedDocumentPayment implements TenantOwned, Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

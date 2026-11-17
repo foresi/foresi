@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\CashFlow\Domain;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\FirmBankAccount;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
@@ -24,16 +22,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cash_flow_checkpoint')]
-#[ORM\Index(name: 'idx_cash_flow_checkpoint_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_cash_flow_checkpoint_day', columns: ['firm_bank_account_id', 'balance_on'])]
-class Checkpoint implements TenantOwned, Audited
+class Checkpoint implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'amount_minor', type: 'bigint')]
     private int $amountMinor;
@@ -69,11 +63,6 @@ class Checkpoint implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function account(): FirmBankAccount

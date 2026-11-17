@@ -11,8 +11,6 @@ namespace App\CashFlow\Domain;
 use App\Audit\Domain\Audited;
 use App\CashFlow\Contract\FlowCategory;
 use App\CashFlow\Contract\FlowDirection;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
@@ -33,10 +31,9 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cash_flow_planned_item')]
-#[ORM\Index(name: 'idx_cash_flow_planned_item_tenant', columns: ['tenant_id'])]
 #[ORM\Index(name: 'idx_cash_flow_planned_item_firm', columns: ['legal_entity_id'])]
 #[ORM\Index(name: 'idx_cash_flow_planned_item_counterparty', columns: ['counterparty_id'])]
-class PlannedItem implements TenantOwned, Audited
+class PlannedItem implements Audited
 {
     public const int MAX_NAME = 120;
     public const int MAX_MATCH_ACCOUNT = 50;
@@ -45,9 +42,6 @@ class PlannedItem implements TenantOwned, Audited
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME)]
     private string $name;
@@ -152,11 +146,6 @@ class PlannedItem implements TenantOwned, Audited
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 
     public function firm(): LegalEntity

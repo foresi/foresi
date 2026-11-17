@@ -12,19 +12,15 @@ use App\Idoklad\Domain\IdokladConnection;
 use App\Idoklad\Domain\IdokladImportRun;
 use App\Idoklad\Domain\IdokladJob;
 use App\Idoklad\Domain\IdokladJobKind;
-use App\Idoklad\Domain\IdokladLink;
-use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportReport;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class IdokladEntitiesTest extends TestCase
@@ -104,30 +100,6 @@ final class IdokladEntitiesTest extends TestCase
         self::assertSame(['IssuedInvoices' => 'IssuedInvoice', 'ProformaInvoices' => 'ProformaInvoice', 'IssuedTaxDocuments' => 'IssuedTaxDocument', 'CreditNotes' => 'CreditNote'], array_filter($reports, static fn (?string $report): bool => null !== $report));
         self::assertSame(['NumericSequences', 'IssuedDocumentPayments', 'Countries', 'Currencies', 'PaymentOptions', 'ConstantSymbols', 'BankAccounts'], array_keys(array_filter($filters, static fn (?string $filter): bool => null === $filter)));
         self::assertSame('DateFrom', IdokladResource::Logs->changeFilter());
-    }
-
-    /**
-     * @return iterable<string, array{\Closure(): TenantOwned}>
-     */
-    public static function unstamped(): iterable
-    {
-        yield 'connection' => [static fn (): TenantOwned => new IdokladConnection(self::firm(), 'example-client', 'sealed')];
-        yield 'import run' => [static fn (): TenantOwned => new IdokladImportRun(self::firm(), ImportMode::Run, new \DateTimeImmutable())];
-        yield 'job' => [static fn (): TenantOwned => new IdokladJob(self::firm(), IdokladJobKind::Pull, new \DateTimeImmutable())];
-        yield 'link' => [static fn (): TenantOwned => new IdokladLink(self::firm(), IdokladResource::Contacts, 1, 'target', 'run', new \DateTimeImmutable())];
-        yield 'pull' => [static fn (): TenantOwned => new IdokladPull(self::firm(), new \DateTimeImmutable())];
-        yield 'record' => [static fn (): TenantOwned => new IdokladRecord(self::firm(), IdokladResource::Contacts, 1, [], new \DateTimeImmutable())];
-    }
-
-    /**
-     * @param \Closure(): TenantOwned $entity
-     */
-    #[DataProvider('unstamped')]
-    public function testTheTenantIsKnownOnlyOncePersisted(\Closure $entity): void
-    {
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessageIsOrContains('The tenant is stamped on persist.');
-        $entity()->tenantId();
     }
 
     private static function firm(): LegalEntity

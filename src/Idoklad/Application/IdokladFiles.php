@@ -9,22 +9,22 @@ declare(strict_types=1);
 namespace App\Idoklad\Application;
 
 /**
- * Port: the PDFs of pulled documents, kept beside the database. Every key
- * starts with the tenant's id, so a row can never point into another tenant's
- * files.
+ * Port: the PDFs of pulled documents, kept beside the database. Every key ends
+ * with the record's id, so a row can never point at another record's file.
  */
 interface IdokladFiles
 {
     /**
-     * @return string the key of the file, "{tenant}/{recordId}.pdf"
+     * @return string the key of the file, "{recordId}.pdf"
      */
-    public function store(string $tenantId, string $recordId, string $bytes): string;
+    public function store(string $recordId, string $bytes): string;
 
     /**
-     * The bytes, after checking that the key lies in the tenant's storage and the
-     * file still has the hash it was stored with.
+     * The bytes, after checking that the key names the record's file and the
+     * file still has the hash it was stored with. Keys stored before one
+     * instance served one customer, "{tenant}/{recordId}.pdf", still read.
      *
      * @throws IdokladFileUnreadable
      */
-    public function read(string $tenantId, string $key, string $sha256): string;
+    public function read(string $recordId, string $key, string $sha256): string;
 }

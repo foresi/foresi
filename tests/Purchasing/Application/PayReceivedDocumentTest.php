@@ -240,14 +240,6 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         self::assertSame('2026-11-14', $item->balance->lastPaidOn?->format('Y-m-d'));
     }
 
-    public function testAPaymentHasNoTenantUntilItIsSaved(): void
-    {
-        $payment = new ReceivedDocumentPayment($this->document($this->recorded()), new \DateTimeImmutable('2026-11-12'), Money::of('1.00', Currency::CZK), PaymentMethod::Cash, null, 'user', new \DateTimeImmutable());
-
-        $this->expectException(\LogicException::class);
-        $payment->tenantId();
-    }
-
     /**
      * How many purchasing.received_document.recorded events the log holds.
      */

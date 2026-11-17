@@ -11,8 +11,6 @@ namespace App\Idoklad\Domain;
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditExcluded;
 use App\Audit\Domain\AuditRooted;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,16 +22,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'idoklad_connection')]
-#[ORM\Index(name: 'idx_idoklad_connection_tenant', columns: ['tenant_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_idoklad_connection_firm', columns: ['legal_entity_id'])]
-class IdokladConnection implements TenantOwned, Audited, AuditRooted
+class IdokladConnection implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     #[ORM\Column(name: 'client_id', type: 'string', length: 255)]
     private string $clientId;
@@ -89,10 +83,5 @@ class IdokladConnection implements TenantOwned, Audited, AuditRooted
     public function sealedSecret(): string
     {
         return $this->sealedSecret;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

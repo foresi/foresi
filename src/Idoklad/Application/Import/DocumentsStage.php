@@ -685,7 +685,7 @@ final readonly class DocumentsStage implements ImportStage
             return null;
         }
 
-        return $this->files->read($record->tenantId()->toString(), $key, $hash);
+        return $this->files->read($record->id(), $key, $hash);
     }
 
     /** The type of the document in iDoklad's numeric sequences and logs. */

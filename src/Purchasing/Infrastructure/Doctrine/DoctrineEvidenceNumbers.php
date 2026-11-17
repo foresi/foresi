@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Purchasing\Application\EvidenceNumbers;
 use App\Purchasing\Application\EvidenceNumbersExhausted;
 use App\Purchasing\Domain\EvidenceNumberFormat;
@@ -28,26 +27,26 @@ use Doctrine\DBAL\Exception\DriverException;
 final readonly class DoctrineEvidenceNumbers implements EvidenceNumbers
 {
     private const string NEXT = <<<'SQL'
-        INSERT INTO evidence_counter (id, tenant_id, evidence_series_id, period, last_value)
-        VALUES (:id, :tenant, :series, :period, 1)
+        INSERT INTO evidence_counter (id, evidence_series_id, period, last_value)
+        VALUES (:id, :series, :period, 1)
         ON CONFLICT (evidence_series_id, period) DO UPDATE
         SET last_value = evidence_counter.last_value + 1
         RETURNING last_value
         SQL;
 
-    private const string LAST = 'SELECT last_value FROM evidence_counter WHERE tenant_id = :tenant AND evidence_series_id = :series AND period = :period';
+    private const string LAST = 'SELECT last_value FROM evidence_counter WHERE evidence_series_id = :series AND period = :period';
 
     /** PostgreSQL refuses a value above its integer column; SQLite stores it, so it is checked here. */
     private const string NUMERIC_OUT_OF_RANGE = '22003';
 
-    public function __construct(private Connection $connection, private TenantContext $context)
+    public function __construct(private Connection $connection)
     {
     }
 
     public function peek(EvidenceSeries $series, \DateTimeImmutable $date): string
     {
         $format = $series->format();
-        $last = $this->connection->fetchOne(self::LAST, ['tenant' => $this->context->current()->toString(), 'series' => $series->id(), 'period' => $format->period($date)]);
+        $last = $this->connection->fetchOne(self::LAST, ['series' => $series->id(), 'period' => $format->period($date)]);
 
         return $format->render($date, (false === $last ? 0 : $this->sequence($last)) + 1);
     }
@@ -56,7 +55,7 @@ final readonly class DoctrineEvidenceNumbers implements EvidenceNumbers
     {
         $format = $series->format();
         try {
-            $given = $this->connection->fetchFirstColumn(self::NEXT, ['id' => Id::generate(), 'tenant' => $this->context->current()->toString(), 'series' => $series->id(), 'period' => $format->period($date)]);
+            $given = $this->connection->fetchFirstColumn(self::NEXT, ['id' => Id::generate(), 'series' => $series->id(), 'period' => $format->period($date)]);
         } catch (DriverException $failure) {
             throw self::NUMERIC_OUT_OF_RANGE === $failure->getSQLState() ? new EvidenceNumbersExhausted('The series has no number left.', previous: $failure) : $failure;
         }

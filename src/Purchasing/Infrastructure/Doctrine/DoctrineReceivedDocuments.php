@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use App\Purchasing\Application\ReceivedDocuments;
 use App\Purchasing\Application\UnknownReceivedDocument;
 use App\Purchasing\Domain\ReceivedDocument;
@@ -19,9 +18,9 @@ use Doctrine\ORM\EntityManagerInterface;
 final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
 {
     // A write that changes nothing: the row lock alone, the same on SQLite and PostgreSQL.
-    private const string LOCK = 'UPDATE received_document SET version = version WHERE id = :id AND tenant_id = :tenant';
+    private const string LOCK = 'UPDATE received_document SET version = version WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $entityManager, private TenantContext $context)
+    public function __construct(private EntityManagerInterface $entityManager)
     {
     }
 
@@ -32,7 +31,7 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
 
     public function lock(string $id): ReceivedDocument
     {
-        if (!Id::isValid($id) || 1 !== $this->entityManager->getConnection()->executeStatement(self::LOCK, ['id' => $id, 'tenant' => $this->context->current()->toString()])) {
+        if (!Id::isValid($id) || 1 !== $this->entityManager->getConnection()->executeStatement(self::LOCK, ['id' => $id])) {
             throw new UnknownReceivedDocument();
         }
         // What this process loaded before may be older than the lock, so it is read again.

@@ -12,32 +12,33 @@ use App\Idoklad\Application\IdokladFiles;
 use App\Idoklad\Application\IdokladFileUnreadable;
 
 /**
- * Pulled PDFs under one directory per tenant, never below public/. Back the
- * directory up with the database while an import still needs them.
+ * Pulled PDFs in one private directory, never below public/. Back the directory
+ * up with the database while an import still needs them. Files pulled while an
+ * instance had tenants lie one directory deeper, under the tenant's id.
  */
 final readonly class DiskIdokladFiles implements IdokladFiles
 {
-    private const string KEY = '/^([0-9a-f-]{36})\/([0-9a-f-]{36})\.pdf$/D';
+    private const string ID = '/^[0-9a-f-]{36}$/D';
+    private const string KEY = '/^(?:[0-9a-f-]{36}\/)?([0-9a-f-]{36})\.pdf$/D';
 
     public function __construct(private string $root)
     {
     }
 
-    public function store(string $tenantId, string $recordId, string $bytes): string
+    public function store(string $recordId, string $bytes): string
     {
-        $key = $tenantId.'/'.$recordId.'.pdf';
-        if (1 !== preg_match(self::KEY, $key)) {
-            throw new \InvalidArgumentException('A tenant and a record are named by their ids.');
+        if (1 !== preg_match(self::ID, $recordId)) {
+            throw new \InvalidArgumentException('A record is named by its id.');
         }
-        $directory = $this->root.'/'.$tenantId;
-        if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
+        $key = $recordId.'.pdf';
+        if (!is_dir($this->root) && !mkdir($this->root, 0o700, true) && !is_dir($this->root)) {
             throw new \RuntimeException('The directory of iDoklad documents cannot be created.');
         }
         // A directory that already exists may have been created with wider permissions.
-        chmod($directory, 0o700);
+        chmod($this->root, 0o700);
 
         // Private from the start, so the content is never readable by others.
-        $temporary = tempnam($directory, 'idoklad');
+        $temporary = tempnam($this->root, 'idoklad');
         if (false === $temporary || false === file_put_contents($temporary, $bytes) || !chmod($temporary, 0o600) || !rename($temporary, $this->root.'/'.$key)) {
             throw new \RuntimeException('The iDoklad document cannot be stored.');
         }
@@ -45,10 +46,10 @@ final readonly class DiskIdokladFiles implements IdokladFiles
         return $key;
     }
 
-    public function read(string $tenantId, string $key, string $sha256): string
+    public function read(string $recordId, string $key, string $sha256): string
     {
-        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $tenantId) {
-            throw new IdokladFileUnreadable('The iDoklad document does not belong to the tenant.');
+        if (1 !== preg_match(self::KEY, $key, $parts) || $parts[1] !== $recordId) {
+            throw new IdokladFileUnreadable('The iDoklad document does not belong to the record.');
         }
         $path = $this->root.'/'.$key;
         $bytes = is_file($path) ? file_get_contents($path) : false;

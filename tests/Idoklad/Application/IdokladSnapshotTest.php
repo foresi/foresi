@@ -301,7 +301,7 @@ final class IdokladSnapshotTest extends KernelTestCase
         $record = $this->snapshot()->record($firm, IdokladResource::IssuedInvoices, 101);
         self::assertNotNull($record?->pdfKey());
         self::assertSame(hash('sha256', self::PDF), $record->pdfSha256());
-        self::assertSame(self::PDF, self::getContainer()->get(IdokladFiles::class)->read($record->tenantId()->toString(), $record->pdfKey(), $record->pdfSha256()));
+        self::assertSame(self::PDF, self::getContainer()->get(IdokladFiles::class)->read($record->id(), $record->pdfKey(), $record->pdfSha256()));
         self::assertSame([202], array_map(static fn (IdokladRecord $record): int => $record->externalId(), $this->snapshot()->withoutPdf($firm, 10)));
 
         // A pull that brings the same record keeps its PDF; a changed one asks for it again.

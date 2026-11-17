@@ -76,7 +76,7 @@ final readonly class PullIdokladSnapshot
             if (false === $bytes || !str_starts_with($bytes, '%PDF-')) {
                 throw new IdokladFailure('iDoklad returned a document that is not a PDF.');
             }
-            $key = $this->files->store($record->tenantId()->toString(), $record->id(), $bytes);
+            $key = $this->files->store($record->id(), $bytes);
             $this->work->run(fn () => $record->attachPdf($key, hash('sha256', $bytes)));
             ++$downloaded;
         }

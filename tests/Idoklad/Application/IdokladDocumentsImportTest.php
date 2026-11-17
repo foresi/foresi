@@ -669,7 +669,7 @@ final class IdokladDocumentsImportTest extends KernelTestCase
         $this->invoice(131, []);
         $record = $this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::IssuedInvoices, 'externalId' => 131]) ?? self::fail('The record is stored.');
         $bytes = '%PDF-1.4 example';
-        $record->attachPdf(self::getContainer()->get(IdokladFiles::class)->store($this->tenant->toString(), $record->id(), $bytes), hash('sha256', $bytes));
+        $record->attachPdf(self::getContainer()->get(IdokladFiles::class)->store($record->id(), $bytes), hash('sha256', $bytes));
         $this->em->flush();
 
         $first = $this->import()->run($this->firm, ImportMode::Run);
