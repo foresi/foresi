@@ -32,8 +32,7 @@ final class ForecastPeriods
         $periods = [];
         $start = $from;
         while (self::day($start) <= self::day($weeksUntil) && self::day($start) <= self::day($end)) {
-            $sunday = $start->modify(\sprintf('+%d days', 7 - (int) $start->format('N')));
-            $last = self::day($sunday) > self::day($end) ? $end : $sunday;
+            $last = min($start->modify('sunday this week'), $end);
             $periods[] = new ForecastPeriod(PeriodKind::Week, $start, $last);
             $start = $last->modify('+1 day');
         }

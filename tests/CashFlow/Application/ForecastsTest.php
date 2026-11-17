@@ -38,6 +38,8 @@ use App\Tenancy\Application\TenantClock;
 use App\Tests\CashFlow\Support\CashFlowTestCase;
 use App\Tests\CashFlow\Support\FakeBalanceSource;
 use App\Tests\CashFlow\Support\FakeSource;
+use App\Tests\CashFlow\Support\SpyLogger;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
@@ -278,6 +280,127 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame(2, $rates->asked, 'A rate is asked once per currency.');
     }
 
+    public function testWhatFailsIsLoggedWithItsKeyAndItsCause(): void
+    {
+        $this->checkpoint('2026-11-16', '1000.00');
+        $logger = new SpyLogger();
+        $rates = new class implements ExchangeRates {
+            public int $asked = 0;
+
+            public function rateOn(string $currency, \DateTimeImmutable $date): ExchangeRate
+            {
+                ++$this->asked;
+
+                throw new RateNotAvailable('No rate today.');
+            }
+        };
+        $source = new FakeSource('test.broken', fails: true);
+        $foreign = new FakeSource('test.foreign', [$this->flow('inv-eur', '2026-11-20', '10.00', currency: Currency::EUR), $this->flow('inv-czk', '2026-11-21', '10.00')]);
+
+        $forecast = $this->forecasts([$source, $foreign], [new FakeBalanceSource('test.bank', fails: true)], $rates, $logger)->of($this->firm->id());
+
+        self::assertSame(['test.bank', 'test.broken'], $forecast->unavailableSources);
+        self::assertSame(['EUR'], $forecast->unavailableRates);
+        self::assertSame(1, $rates->asked, 'A CZK amount needs no rate.');
+        self::assertCount(3, $logger->records);
+        [$balance, $flows, $rate] = $logger->records;
+        self::assertSame(['error', 'The balance source {source} failed.', ['source', 'exception']], [$balance['level'], $balance['message'], array_keys($balance['context'])]);
+        self::assertSame('test.bank', $balance['context']['source']);
+        self::assertInstanceOf(\RuntimeException::class, $balance['context']['exception']);
+        self::assertSame(['error', 'The cash-flow source {source} failed.', ['source', 'exception']], [$flows['level'], $flows['message'], array_keys($flows['context'])]);
+        self::assertSame('test.broken', $flows['context']['source']);
+        self::assertInstanceOf(\RuntimeException::class, $flows['context']['exception']);
+        self::assertSame(['warning', 'No rate of {currency} for the cash-flow forecast.', ['currency', 'exception']], [$rate['level'], $rate['message'], array_keys($rate['context'])]);
+        self::assertSame('EUR', $rate['context']['currency']);
+        self::assertInstanceOf(RateNotAvailable::class, $rate['context']['exception']);
+    }
+
+    public function testAnUnavailableSourceIsListedOnceInAList(): void
+    {
+        $this->checkpoint('2026-11-16', '1000.00');
+        $this->checkpoint('2026-11-16', '2000.00', $this->euroAccount());
+
+        $forecast = $this->forecast(sources: [new FakeSource('test.broken', fails: true)], balanceSources: [new FakeBalanceSource('test.bank', fails: true)]);
+
+        self::assertSame(['test.bank', 'test.broken'], $forecast->unavailableSources);
+    }
+
+    public function testTheBalanceIsAsOldAsTheOldestKnownOneEvenWhenAnAccountHasNone(): void
+    {
+        $this->checkpoint('2026-11-16', '1000.00');
+        $this->euroAccount();
+
+        $forecast = $this->forecast();
+
+        self::assertSame('2026-11-16', $forecast->balanceAsOf?->format('Y-m-d'));
+        self::assertTrue($forecast->isIncomplete());
+    }
+
+    public function testTheLinesOfAPeriodAreInTheOrderTheyAreCountedNotTheOrderASourceGaveThem(): void
+    {
+        $source = new FakeSource('test.invoices', [$this->flow('later', '2026-11-19', '1.00'), $this->flow('sooner', '2026-11-18', '1.00')]);
+
+        $forecast = $this->forecast(sources: [$source]);
+
+        self::assertSame(['sooner', 'later'], $this->ids($forecast->periods[0]->lines));
+    }
+
+    public function testTheLastDayOfTheHorizonCountsAndWhatComesAfterItIsNotLookedAt(): void
+    {
+        $rates = new class implements ExchangeRates {
+            public function rateOn(string $currency, \DateTimeImmutable $date): ExchangeRate
+            {
+                throw new RateNotAvailable('No rate today.');
+            }
+        };
+        $source = new FakeSource('test.invoices', [$this->flow('last-day', '2026-11-30', '5.00'), $this->flow('after', '2026-12-01', '5.00', currency: Currency::EUR)]);
+
+        $forecast = $this->forecasts([$source], [], $rates)->of($this->firm->id(), months: 1);
+
+        self::assertSame(['last-day'], $this->ids($forecast->periods[\count($forecast->periods) - 1]->lines));
+        self::assertSame([], $forecast->unavailableRates);
+    }
+
+    public function testAnOpeningEqualToTheMinimumIsNotAShortfall(): void
+    {
+        $this->checkpoint('2026-11-17', '5000.00');
+        $this->minimum('5000.00');
+
+        $forecast = $this->forecast();
+
+        self::assertNull($forecast->shortfallOn);
+        self::assertSame('2026-11-17', $forecast->lowestOn->format('Y-m-d'));
+    }
+
+    public function testALaterDayAsLowAsTheLowestDoesNotMoveIt(): void
+    {
+        $this->checkpoint('2026-11-17', '1000.00');
+        $this->planned(on: '2026-11-18', amount: '100.00', direction: 'in', category: 'revenue', name: 'Client');
+        $this->planned(on: '2026-11-19', amount: '100.00');
+
+        $forecast = $this->forecast();
+
+        self::assertSame(100000, $forecast->lowest->minor());
+        self::assertSame('2026-11-17', $forecast->lowestOn->format('Y-m-d'));
+    }
+
+    public function testOnlyTheBalanceAtTheEndOfADayCanBeTheLowest(): void
+    {
+        $this->checkpoint('2026-11-17', '1000.00');
+        // The overdue payment comes first on the day and the payment received after it.
+        $source = new FakeSource('test.invoices', [
+            $this->flow('inv-late', '2026-11-10', '600.00', direction: FlowDirection::Out),
+            $this->flow('inv-today', '2026-11-17', '1000.00'),
+        ]);
+
+        $forecast = $this->forecast(sources: [$source]);
+
+        self::assertSame(['inv-late', 'inv-today'], $this->ids($forecast->periods[0]->lines));
+        self::assertSame(140000, $forecast->periods[0]->closing->minor());
+        self::assertSame(100000, $forecast->lowest->minor());
+        self::assertSame('2026-11-17', $forecast->lowestOn->format('Y-m-d'));
+    }
+
     public function testTheLowestPointAndTheFirstDayBelowTheMinimum(): void
     {
         $this->checkpoint('2026-11-17', '20000.00');
@@ -401,11 +524,11 @@ final class ForecastsTest extends CashFlowTestCase
      * @param list<CashFlowSource> $sources
      * @param list<BalanceSource>  $balanceSources
      */
-    private function forecasts(array $sources = [], array $balanceSources = [], ?ExchangeRates $rates = null): Forecasts
+    private function forecasts(array $sources = [], array $balanceSources = [], ?ExchangeRates $rates = null, ?LoggerInterface $logger = null): Forecasts
     {
         $container = self::getContainer();
 
-        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(TenantClock::class), $rates ?? $container->get(ExchangeRates::class), new NullLogger(), $sources, $balanceSources);
+        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(TenantClock::class), $rates ?? $container->get(ExchangeRates::class), $logger ?? new NullLogger(), $sources, $balanceSources);
     }
 
     private function plannedSource(): PlannedItemFlows
@@ -416,9 +539,9 @@ final class ForecastsTest extends CashFlowTestCase
     /**
      * @param list<FlowFlag> $flags
      */
-    private function flow(string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowDirection $direction = FlowDirection::In, array $flags = []): ExpectedFlow
+    private function flow(string $id, string $on, string $amount, FlowCertainty $certainty = FlowCertainty::Document, FlowDirection $direction = FlowDirection::In, array $flags = [], Currency $currency = Currency::CZK): ExpectedFlow
     {
-        return new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, '/api/v1/invoices/'.$id), $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, $certainty, 'Invoice '.$id, $flags);
+        return new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, '/api/v1/invoices/'.$id), $direction, Money::of($amount, $currency), new \DateTimeImmutable($on, new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, $certainty, 'Invoice '.$id, $flags);
     }
 
     private function checkpoint(string $on, string $amount, ?\App\Party\Domain\FirmBankAccount $account = null): void

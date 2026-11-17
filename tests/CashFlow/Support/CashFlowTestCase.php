@@ -155,7 +155,7 @@ abstract class CashFlowTestCase extends KernelTestCase
     }
 
     /**
-     * @return list<array<string, mixed>> the data of the recorded events of this name, oldest first
+     * @return list<array<mixed>> the data of the recorded events of this name, oldest first
      */
     protected function events(string $name): array
     {

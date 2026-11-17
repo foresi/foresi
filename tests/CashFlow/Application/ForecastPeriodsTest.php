@@ -66,6 +66,23 @@ final class ForecastPeriodsTest extends TestCase
         self::assertSame(['month 2026-11 2026-11-17 2026-11-30', 'month 2026-12 2026-12-01 2026-12-31'], $this->describe($periods));
     }
 
+    public function testTheLastDayOfTheHorizonIsAMonthOfOneDay(): void
+    {
+        $periods = ForecastPeriods::of($this->day('2026-11-30'), 1, $this->day('2026-11-16'));
+
+        self::assertSame(['month 2026-11 2026-11-30 2026-11-30'], $this->describe($periods));
+    }
+
+    public function testAWeekEndingOnTheLastDayOfTheHorizonIsNotCut(): void
+    {
+        $periods = ForecastPeriods::of($this->day('2026-11-24'), 1, $this->day('2026-11-30'));
+
+        self::assertSame([
+            'week 2026-W48 2026-11-24 2026-11-29',
+            'week 2026-W49 2026-11-30 2026-11-30',
+        ], $this->describe($periods));
+    }
+
     public function testTheHorizonCutsTheLastWeek(): void
     {
         $periods = ForecastPeriods::of($this->day('2026-11-17'), 1, $this->day('2026-12-31'));

@@ -260,7 +260,7 @@ class PlannedItem implements TenantOwned, Audited
 
     private function schedule(\DateTimeImmutable $firstOn, ?Recurrence $recurrence): void
     {
-        $this->firstOn = $recurrence?->firstIssueOn() ?? $firstOn;
+        $this->firstOn = $firstOn;
         $this->unit = $recurrence?->unit();
         $this->every = $recurrence?->every();
         $this->onLastDayOfMonth = $recurrence?->onLastDayOfMonth() ?? false;

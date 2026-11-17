@@ -16,6 +16,8 @@ use App\CashFlow\Contract\FlowFlag;
 use App\CashFlow\Contract\FlowSubject;
 use App\CashFlow\Contract\ForecastPeriod;
 use App\CashFlow\Contract\PeriodKind;
+use App\CashFlow\Domain\Checkpoint;
+use App\CashFlow\Domain\ExpectedDate;
 use App\CashFlow\Domain\MatchRule;
 use App\CashFlow\Domain\MinimumBalance;
 use App\CashFlow\Domain\PlannedItem;
@@ -26,6 +28,8 @@ use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
+use App\Tenancy\Domain\TenantId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -101,6 +105,25 @@ final class CashFlowValuesTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $minimum->change(Money::of('100.00', Currency::EUR));
+    }
+
+    #[DataProvider('stampedOnPersist')]
+    public function testTheTenantIsKnownOnlyOncePersisted(\Closure $tenantOfANewOne): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('The tenant is stamped on persist.');
+        $tenantOfANewOne();
+    }
+
+    /**
+     * @return iterable<string, array{\Closure}>
+     */
+    public static function stampedOnPersist(): iterable
+    {
+        yield 'planned item' => [static fn (): TenantId => new \ReflectionClass(PlannedItem::class)->newInstanceWithoutConstructor()->tenantId()];
+        yield 'checkpoint' => [static fn (): TenantId => new \ReflectionClass(Checkpoint::class)->newInstanceWithoutConstructor()->tenantId()];
+        yield 'expected date' => [static fn (): TenantId => new \ReflectionClass(ExpectedDate::class)->newInstanceWithoutConstructor()->tenantId()];
+        yield 'minimum balance' => [static fn (): TenantId => new \ReflectionClass(MinimumBalance::class)->newInstanceWithoutConstructor()->tenantId()];
     }
 
     public function testAnItemsDayIsTheSameCalendarDayInAnyZone(): void

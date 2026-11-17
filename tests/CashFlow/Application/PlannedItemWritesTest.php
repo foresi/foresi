@@ -81,15 +81,15 @@ final class PlannedItemWritesTest extends CashFlowTestCase
     {
         $this->assertRefused('name_required', 'name', fn (): PlannedItem => $this->planned(name: ' '));
         $this->assertRefused('name_required', 'name', fn (): PlannedItem => $this->planned(name: str_repeat('ř', PlannedItem::MAX_NAME + 1)));
-        $this->assertRefused('category_unknown', 'category', fn (): PlannedItem => $this->planned(category: 'fun'));
-        $this->assertRefused('currency_unknown', 'currency', fn (): PlannedItem => $this->planned(currency: 'GBP'));
+        $this->assertRefused('category_unknown', 'category', fn (): PlannedItem => $this->planned(category: 'fun'), message: 'The category is one of revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other.');
+        $this->assertRefused('currency_unknown', 'currency', fn (): PlannedItem => $this->planned(currency: 'GBP'), message: 'The currency is one of CZK, EUR, USD.');
         $this->assertRefused('amount_invalid', 'amount', fn (): PlannedItem => $this->planned(amount: '12.345'));
         $this->assertRefused('amount_invalid', 'amount', fn (): PlannedItem => $this->planned(amount: 'ten'));
         $this->assertRefused('amount_not_positive', 'amount', fn (): PlannedItem => $this->planned(amount: '0'));
         $this->assertRefused('amount_not_positive', 'amount', fn (): PlannedItem => $this->planned(amount: '-5'));
         $this->assertRefused('date_invalid', 'on', fn (): PlannedItem => $this->planned(on: '2026-02-30'));
         $this->assertRefused('date_invalid', 'on', fn (): PlannedItem => $this->planned(on: '20.11.2026'));
-        $this->assertRefused('repeat_unknown', 'repeat', fn (): PlannedItem => $this->planned(repeat: 'quarter'));
+        $this->assertRefused('repeat_unknown', 'repeat', fn (): PlannedItem => $this->planned(repeat: 'quarter'), message: 'repeat is one of day, week, month, year.');
         $this->assertRefused('not_recurring', 'repeat', fn (): PlannedItem => $this->planned(endsAfter: 3));
         $this->assertRefused('not_recurring', 'repeat', fn (): PlannedItem => $this->planned(endsOn: '2027-01-01'));
         $this->assertRefused('not_recurring', 'repeat', fn (): PlannedItem => $this->planned(lastDayOfMonth: true));
@@ -168,6 +168,64 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         $this->writes()->change(new ChangePlannedItemInput($item->id(), name: 'Rent'));
         self::assertSame(500, $this->reloaded($item)->matchRule()->toleranceMinor());
         self::assertCount(5, $this->events('cash-flow.planned_item.changed'));
+    }
+
+    public function testTheLimitsOfANameAndAnAccountCountCharactersAndAnAmountMayHaveSpaces(): void
+    {
+        $item = $this->planned(amount: ' 1500.00 ', name: str_repeat('ř', PlannedItem::MAX_NAME));
+        self::assertSame(str_repeat('ř', PlannedItem::MAX_NAME), $this->reloaded($item)->name());
+        self::assertSame(150000, $this->reloaded($item)->amount()->minor());
+
+        $item = $this->match(str_repeat('ř', PlannedItem::MAX_MATCH_ACCOUNT), null, ' 0.50 ');
+        self::assertSame(str_repeat('ř', PlannedItem::MAX_MATCH_ACCOUNT), $item->matchRule()->counterpartyAccount());
+        self::assertSame(50, $item->matchRule()->toleranceMinor());
+    }
+
+    public function testChangeKeepsTheEndDayTheEveryAndTheScheduleOfWhatIsLeftOut(): void
+    {
+        $zone = new \DateTimeZone('Europe/Prague');
+        $item = $this->planned(repeat: 'week', endsOn: '2027-06-30', every: 2);
+
+        $this->writes()->change(new ChangePlannedItemInput($item->id(), name: 'Rent'));
+
+        $recurrence = $this->reloaded($item)->recurrence($zone) ?? throw new \LogicException('Not recurring.');
+        self::assertSame(RecurrenceEnd::OnDate, $recurrence->end());
+        self::assertSame('2027-06-30', $recurrence->endOn()?->format('Y-m-d'));
+        self::assertSame(2, $recurrence->every());
+        self::assertSame(RecurrenceUnit::Week, $recurrence->unit());
+    }
+
+    public function testAOneOffItemMadeRecurringRepeatsEveryUnitUnlessToldOtherwise(): void
+    {
+        $item = $this->planned(lastDayOfMonth: false);
+        self::assertFalse($this->lastDayOfMonthStored($item));
+
+        $this->writes()->change(new ChangePlannedItemInput($item->id(), repeat: 'month'));
+
+        $recurrence = $this->reloaded($item)->recurrence(new \DateTimeZone('Europe/Prague')) ?? throw new \LogicException('Not recurring.');
+        self::assertSame(1, $recurrence->every());
+        self::assertSame(RecurrenceEnd::Never, $recurrence->end());
+        self::assertFalse($recurrence->onLastDayOfMonth());
+    }
+
+    public function testAOneOffItemDoesNotKeepTheLastDayOfTheMonth(): void
+    {
+        $item = $this->planned(on: '2026-11-30', repeat: 'month', lastDayOfMonth: true);
+        self::assertTrue($this->lastDayOfMonthStored($item));
+
+        $this->writes()->change(new ChangePlannedItemInput($item->id(), repeat: null));
+
+        self::assertFalse($this->lastDayOfMonthStored($item));
+    }
+
+    public function testSkipsTheFirstOccurrenceAndNothingAfterTheLastOne(): void
+    {
+        $item = $this->planned(on: '2026-11-25', repeat: 'month', endsAfter: 2);
+
+        $this->writes()->skip(new SkipPlannedOccurrenceInput($item->id(), '2026-11-25'));
+
+        self::assertSame(['2026-11-25'], $this->reloaded($item)->skippedOn());
+        $this->assertRefused('not_an_occurrence', 'on', fn (): PlannedItem => $this->writes()->skip(new SkipPlannedOccurrenceInput($item->id(), '2027-03-25')));
     }
 
     public function testChangeRefusesAsCreateDoesAndAnUnknownItem(): void
@@ -266,6 +324,13 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         return $this->writes()->create(new \App\CashFlow\Application\CreatePlannedItemInput($this->firm->id(), 'out', 'Insurance', 'insurance', '5005.00', '2026-11-30', matchAccount: $account, matchVariableSymbol: $symbol, matchTolerance: $tolerance));
     }
 
+    private function lastDayOfMonthStored(PlannedItem $item): bool
+    {
+        $this->em->clear();
+
+        return (bool) $this->em->getConnection()->fetchOne('SELECT last_day_of_month FROM cash_flow_planned_item WHERE id = ?', [$item->id()]);
+    }
+
     private function reloaded(PlannedItem $item): PlannedItem
     {
         $this->em->clear();
@@ -273,7 +338,7 @@ final class PlannedItemWritesTest extends CashFlowTestCase
         return $this->em->find(PlannedItem::class, $item->id()) ?? throw new \LogicException('The item was not stored.');
     }
 
-    private function assertRefused(string $reason, ?string $field, \Closure $work, RefusalKind $kind = RefusalKind::Invalid): void
+    private function assertRefused(string $reason, ?string $field, \Closure $work, RefusalKind $kind = RefusalKind::Invalid, ?string $message = null): void
     {
         try {
             $work();
@@ -283,6 +348,9 @@ final class PlannedItemWritesTest extends CashFlowTestCase
             self::assertSame($field, $refused->field());
             self::assertSame('not_found' === $reason ? RefusalKind::NotFound : $kind, $refused->kind());
             self::assertSame([], $refused->details());
+            if (null !== $message) {
+                self::assertSame($message, $refused->getMessage());
+            }
         }
     }
 }

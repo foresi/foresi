@@ -266,7 +266,7 @@ final class Forecasts
         $rate = $this->rates[$currency->value];
         $czk = Money::ofMinor($money->minor(), Currency::CZK)->multipliedBy($rate->rate);
 
-        return 1 === $rate->amount ? $czk : $czk->dividedBy((string) $rate->amount);
+        return $czk->dividedBy((string) $rate->amount);
     }
 
     /**
