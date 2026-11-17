@@ -27,25 +27,25 @@ final class IdokladEntitiesTest extends TestCase
 {
     public function testOnlyARunSetsTheDayRemindersStartFrom(): void
     {
-        $run = new IdokladJob(self::firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'));
+        $run = new IdokladJob($this->firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'));
         self::assertNull($run->remindFrom());
 
         $this->expectException(\InvalidArgumentException::class);
-        new IdokladJob(self::firm(), IdokladJobKind::Pull, new \DateTimeImmutable('2026-11-06'), new \DateTimeImmutable('2026-11-02'));
+        new IdokladJob($this->firm(), IdokladJobKind::Pull, new \DateTimeImmutable('2026-11-06'), new \DateTimeImmutable('2026-11-02'));
     }
 
     public function testOnlyARunIsGivenOptionsAndARunKeepsThem(): void
     {
-        $job = new IdokladJob(self::firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
+        $job = new IdokladJob($this->firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
         self::assertEquals(new ImportOptions(null), $job->options());
-        self::assertNull(new IdokladJob(self::firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'))->options());
-        $run = new IdokladImportRun(self::firm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06'));
+        self::assertNull(new IdokladJob($this->firm(), IdokladJobKind::Run, new \DateTimeImmutable('2026-11-06'))->options());
+        $run = new IdokladImportRun($this->firm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06'));
         self::assertNull($run->options());
         $run->ranWith(new ImportOptions(new \DateTimeImmutable('2024-07-01 13:00')));
         self::assertEquals(new ImportOptions(new \DateTimeImmutable('2024-07-01')), $run->options());
 
         $this->expectException(\InvalidArgumentException::class);
-        new IdokladJob(self::firm(), IdokladJobKind::Check, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
+        new IdokladJob($this->firm(), IdokladJobKind::Check, new \DateTimeImmutable('2026-11-06'), null, new ImportOptions(null));
     }
 
     public function testTheOptionsSayOnWhichDaysTheFirmWasAPayer(): void
@@ -66,23 +66,23 @@ final class IdokladEntitiesTest extends TestCase
 
     public function testTheErrorOfAJobAndOfARunIsCutToTheColumnInCharacters(): void
     {
-        $job = new IdokladJob(self::firm(), IdokladJobKind::Pull, new \DateTimeImmutable('2026-11-06'));
+        $job = new IdokladJob($this->firm(), IdokladJobKind::Pull, new \DateTimeImmutable('2026-11-06'));
         $job->finish(new \DateTimeImmutable('2026-11-06 10:00:00'), null, str_repeat('é', 300));
         self::assertSame(str_repeat('é', 255), $job->error());
 
-        $run = new IdokladImportRun(self::firm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06'));
+        $run = new IdokladImportRun($this->firm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06'));
         $run->finish(new \DateTimeImmutable('2026-11-06 10:00:00'), new ImportReport(), str_repeat('é', 300));
         self::assertSame(str_repeat('é', 255), $run->error());
     }
 
     public function testAClientIdOf255CharactersIsCountedInCharacters(): void
     {
-        self::assertSame(str_repeat('č', 255), new IdokladConnection(self::firm(), str_repeat('č', 255), 'sealed')->clientId());
+        self::assertSame(str_repeat('č', 255), new IdokladConnection($this->firm(), str_repeat('č', 255), 'sealed')->clientId());
     }
 
     public function testARecordKeepsSlashesAndAccentsAsTheyAre(): void
     {
-        $record = new IdokladRecord(self::firm(), IdokladResource::Contacts, 1, ['Www' => 'https://example.com/', 'Name' => 'Česká'], new \DateTimeImmutable('2026-11-06'));
+        $record = new IdokladRecord($this->firm(), IdokladResource::Contacts, 1, ['Www' => 'https://example.com/', 'Name' => 'Česká'], new \DateTimeImmutable('2026-11-06'));
         $stored = new \ReflectionProperty(IdokladRecord::class, 'payload')->getValue($record);
 
         self::assertSame('{"Www":"https://example.com/","Name":"Česká"}', $stored);
@@ -102,7 +102,7 @@ final class IdokladEntitiesTest extends TestCase
         self::assertSame('DateFrom', IdokladResource::Logs->changeFilter());
     }
 
-    private static function firm(): LegalEntity
+    private function firm(): LegalEntity
     {
         return new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
     }
