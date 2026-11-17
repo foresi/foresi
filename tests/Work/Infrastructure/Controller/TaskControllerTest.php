@@ -62,7 +62,8 @@ final class TaskControllerTest extends WebTestCase
         self::assertSame('/tasks/'.$this->taskId('Wireframes').'/subtasks/new', $open->attr('href'));
         self::assertNotNull($open->attr('data-dialog'));
         self::assertSame('New subtask', trim($open->text()));
-        self::assertCount(0, $crawler->filter('main input[name="title"]'));
+        // The title's field waits, hidden, until the title is clicked.
+        self::assertNotNull($crawler->filter('main form[data-page-title-form]')->attr('hidden'));
         self::assertSame('In progress', trim($crawler->filter('#task-status option[selected]')->text()));
         self::assertSame('Example Company', trim($crawler->filter('#task-responsible option[selected]')->text()));
         self::assertSame(['Nobody', 'Example Company', 'Jana Example'], $crawler->filter('#task-responsible option')->each(static fn (Crawler $option): string => trim($option->text())));
@@ -135,21 +136,37 @@ final class TaskControllerTest extends WebTestCase
         $this->seed();
         $id = $this->taskId('Wireframes');
 
+        // The title in the header and its form are both on the page; the form opens in place.
         $crawler = $this->client->request('GET', '/tasks/'.$id);
-        self::assertSame('/tasks/'.$id.'?edit=title', $crawler->filter('[data-task-edit-title]')->attr('href'));
-        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit=title');
-        self::assertSame('Wireframes', $crawler->filter('#title')->attr('value'));
+        $header = $crawler->filter('main header [data-page-title-edit]');
+        self::assertSame('Wireframes', $header->filter('h1')->text());
+        self::assertNull($header->filter('h1')->attr('hidden'));
+        self::assertSame('/tasks/'.$id.'?edit=title', $header->filter('a[data-page-title-pencil]')->attr('href'));
+        self::assertSame('Edit title', $header->filter('a[data-page-title-pencil]')->attr('aria-label'));
+        self::assertNull($header->filter('a[data-page-title-pencil]')->attr('hidden'));
+        self::assertNotNull($header->filter('form[data-page-title-form]')->attr('hidden'));
+        self::assertNull($header->filter('#title')->attr('autofocus'));
+        self::assertSame('Wireframes', $header->filter('#title')->attr('value'));
+        self::assertCount(0, $crawler->filter('[data-page-actions] [data-task-edit-title]'));
 
-        $crawler = $this->client->submit($crawler->filter('[data-task-title-form]')->form(['title' => '  ']));
+        // Without JavaScript the pencil opens the same form on the page.
+        $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit=title');
+        $header = $crawler->filter('main header [data-page-title-edit]');
+        self::assertNotNull($header->filter('h1')->attr('hidden'));
+        self::assertNull($header->filter('form[data-page-title-form]')->attr('hidden'));
+        self::assertNotNull($header->filter('#title')->attr('autofocus'));
+        self::assertSame('/tasks/'.$id, $header->filter('a[data-page-title-cancel]')->attr('href'));
+
+        $crawler = $this->client->submit($crawler->filter('[data-page-title-form]')->form(['title' => '  ']));
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Enter the title of the task.', trim($crawler->filter('#title-error')->text()));
         self::assertSame('true', $crawler->filter('#title')->attr('aria-invalid'));
 
-        $crawler = $this->client->submit($crawler->filter('[data-task-title-form]')->form(['title' => str_repeat('a', Task::MAX_TITLE_LENGTH + 1)]));
+        $crawler = $this->client->submit($crawler->filter('[data-page-title-form]')->form(['title' => str_repeat('a', Task::MAX_TITLE_LENGTH + 1)]));
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Enter a name that is not too long.', trim($crawler->filter('#title-error')->text()));
 
-        $this->client->submit($crawler->filter('[data-task-title-form]')->form(['title' => 'Wireframes v2']));
+        $this->client->submit($crawler->filter('[data-page-title-form]')->form(['title' => 'Wireframes v2']));
         self::assertResponseRedirects('/tasks/'.$id);
         $this->client->followRedirect();
         self::assertSelectorTextContains('main h1', 'Wireframes v2');
@@ -162,7 +179,17 @@ final class TaskControllerTest extends WebTestCase
         $this->seed();
         $id = $this->taskId('Brief');
 
+        // The text and its form are both on the page; the form opens in place, or by the link without JavaScript.
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        self::assertNotNull($crawler->filter('form[data-task-description-form]')->attr('hidden'));
+        self::assertSame('/tasks/'.$id.'?edit=description#task-description-title', $crawler->filter('a[data-task-edit-description]')->attr('href'));
+        self::assertSame('Edit description', $crawler->filter('a[data-task-edit-description]')->attr('aria-label'));
+        self::assertNull($crawler->filter('a[data-task-edit-description]')->attr('hidden'));
+        self::assertNull($crawler->filter('#description')->attr('autofocus'));
         $crawler = $this->client->request('GET', '/tasks/'.$id.'?edit=description');
+        self::assertNull($crawler->filter('form[data-task-description-form]')->attr('hidden'));
+        self::assertNotNull($crawler->filter('a[data-task-edit-description]')->attr('hidden'));
+        self::assertNotNull($crawler->filter('#description')->attr('autofocus'));
         $this->client->submit($crawler->filter('[data-task-description-form]')->form(['description' => "<b>One</b>\nTwo"]));
         self::assertResponseRedirects('/tasks/'.$id);
         $crawler = $this->client->followRedirect();

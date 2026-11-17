@@ -97,6 +97,10 @@ nav:
     time: Time
     notifications: Notifications
 ui:
+  inline_field:
+    edit: 'Edit {label}'
+    save: Save
+    cancel: Cancel
   avatar:
     nobody: Nobody
   person_picker:
