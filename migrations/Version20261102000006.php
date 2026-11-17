@@ -26,7 +26,7 @@ final class Version20261102000006 extends AbstractMigration
     {
         $send = $schema->createTable('invoice_send');
         $send->addColumn('id', Types::GUID);
-        $send->addColumn('tenant_id', 'tenant_id');
+        $send->addColumn('tenant_id', 'guid');
         $send->addColumn('invoice_id', Types::GUID);
         $send->addColumn('status', Types::STRING, ['length' => 16]);
         $send->addColumn('recipients_to', Types::JSON);

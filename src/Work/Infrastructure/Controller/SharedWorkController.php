@@ -10,7 +10,7 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\SharedProject;
 use App\Work\Application\SharedTaskGroup;
 use App\Work\Application\TaskRow;
@@ -36,7 +36,7 @@ final class SharedWorkController extends AbstractController
     public function __construct(
         private readonly WorkQueries $queries,
         private readonly StaffCheck $staff,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
     }

@@ -41,7 +41,7 @@ final readonly class RecurringRules
 
     /**
      * @param RecurringInvoice|null $existing the template being edited
-     * @param \DateTimeImmutable    $today    the tenant's today
+     * @param \DateTimeImmutable    $today    the instance's today
      * @param RecurringHistory|null $history  what an imported template issued elsewhere: its first
      *                                        issue date may have passed, and it may have ended there
      *

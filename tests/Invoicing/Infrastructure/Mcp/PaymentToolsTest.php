@@ -61,7 +61,7 @@ final class PaymentToolsTest extends ReadToolTestCase
 
     public function testThePaymentIsAnsweredAsTheRestApiWritesIt(): void
     {
-        $payment = $this->inTenant($this->tenant, function (): Payment {
+        $payment = $this->flushed(function (): Payment {
             $invoice = $this->invoice();
 
             return $this->payment('2026-11-12', [$invoice->id() => '1000'], note: 'Paid by bank');
@@ -80,7 +80,7 @@ final class PaymentToolsTest extends ReadToolTestCase
 
     public function testEveryFilterNarrowsTheSearch(): void
     {
-        [$first, $other, $refund, $otherFirm, $invoice, $cancelled] = $this->inTenant($this->tenant, function (): array {
+        [$first, $other, $refund, $otherFirm, $invoice, $cancelled] = $this->flushed(function (): array {
             $invoice = $this->invoice();
             $first = $this->payment('2026-11-01', [$invoice->id() => '1000']);
             $refund = $this->payment('2026-11-05', [$invoice->id() => '100'], direction: PaymentDirection::Refund);
@@ -102,7 +102,7 @@ final class PaymentToolsTest extends ReadToolTestCase
 
     public function testTheCursorPagesThroughTheSearch(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (int $day): string => $this->payment(\sprintf('2026-11-%02d', $day), amount: '100')->id(), [1, 2, 3]));
+        $ids = $this->flushed(fn (): array => array_map(fn (int $day): string => $this->payment(\sprintf('2026-11-%02d', $day), amount: '100')->id(), [1, 2, 3]));
 
         self::assertSame([[$ids[2], $ids[1]], [$ids[0]]], $this->toolPages(SearchPaymentsTool::class, 2));
         self::assertSame([[$ids[2], $ids[1], $ids[0]]], $this->toolPages(SearchPaymentsTool::class, 3));
@@ -137,7 +137,7 @@ final class PaymentToolsTest extends ReadToolTestCase
 
     public function testAGuestReadsNoPayments(): void
     {
-        $payment = $this->inTenant($this->tenant, fn (): Payment => $this->payment(amount: '100'));
+        $payment = $this->flushed(fn (): Payment => $this->payment(amount: '100'));
         $guest = $this->guest();
 
         $this->assertRefused('forbidden', 'Only the owners and members of the organisation read its payments.', SearchPaymentsTool::class, [], $guest);

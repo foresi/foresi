@@ -16,8 +16,6 @@ use App\Banking\Application\TrustVerdict;
 use App\Banking\Application\UnpairMovement;
 use App\Banking\Domain\MessageTrust;
 use App\Banking\Domain\MovementDirection;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
 use App\Invoicing\Application\InvoiceInput;
@@ -54,7 +52,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * in time slots shared with the others, one invoice per slot. Each invoice has two
  * verified notices of its whole amount, told apart by their bank references.
  *
- * @phpstan-type Ids array{tenant: string, invoices: list<string>, first: list<string>, second: list<string>}
+ * @phpstan-type Ids array{invoices: list<string>, first: list<string>, second: list<string>}
  */
 abstract class PairingWorker extends KernelTestCase
 {
@@ -78,8 +76,6 @@ abstract class PairingWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
         $account = FirmAccounts::add($em, $firm, self::IBAN);
@@ -90,7 +86,7 @@ abstract class PairingWorker extends KernelTestCase
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->flush();
 
-        $ids = ['tenant' => $tenant->toString(), 'invoices' => [], 'first' => [], 'second' => []];
+        $ids = ['invoices' => [], 'first' => [], 'second' => []];
         $issue = $container->get(IssueInvoice::class);
         $record = $container->get(RecordMovement::class);
         $day = new \DateTimeImmutable('2026-11-01');
@@ -121,7 +117,7 @@ abstract class PairingWorker extends KernelTestCase
     public static function perform(string $json, string $job, float $startAt): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $pairing = self::getContainer()->get(PairMovement::class);
         $results = [];
         $began = [];
@@ -157,7 +153,7 @@ abstract class PairingWorker extends KernelTestCase
     public static function inspect(string $json): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $found = [];
         foreach ($ids['invoices'] as $round => $invoice) {
@@ -221,13 +217,9 @@ abstract class PairingWorker extends KernelTestCase
         return (int) $value;
     }
 
-    /**
-     * @param Ids $ids
-     */
-    private static function enter(array $ids): void
+    private static function enter(): void
     {
         self::bootKernel(['debug' => false]);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
     }
 
     /**

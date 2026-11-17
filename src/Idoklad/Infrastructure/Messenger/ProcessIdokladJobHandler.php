@@ -12,7 +12,7 @@ use App\Idoklad\Application\IdokladJobRunner;
 use App\Idoklad\Application\Message\ProcessIdokladJob;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
-/** Does a pull, check or run of the move from iDoklad in the tenant of the message. */
+/** Does a pull, check or run of the move from iDoklad. */
 #[AsMessageHandler]
 final readonly class ProcessIdokladJobHandler
 {

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\DailyPeriod;
 use App\Instance\Application\Schedule\ScheduledJob;
-use App\Instance\Application\TenantClock;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\RecurringDelivery;
 use App\Invoicing\Domain\RecurringInvoice;
@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Issues the invoices of recurring templates once a day from 05:00 in the
- * tenant's zone, so the first of the month's invoices leave early that morning.
+ * instance's zone, so the first of the month's invoices leave early that morning.
  * Each active template due by today issues every occurrence from its next date
  * up to today, oldest first, each once whatever else runs (IssueRecurringOccurrence),
  * at most MAX_PER_RUN per template: a worker that was down catches up, the rest
@@ -66,7 +66,7 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
         private DeliverRecurringInvoice $delivery,
         private RecurringAlerts $alerts,
         private TransactionalWork $work,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -132,11 +132,11 @@ final readonly class IssueRecurringInvoices implements ScheduledJob
     }
 
     /**
-     * The tenant's day the run works for: before START_HOUR it is still the day before.
+     * The instance's day the run works for: before START_HOUR it is still the day before.
      */
     public function today(): \DateTimeImmutable
     {
-        return new \DateTimeImmutable($this->period($this->now(), $this->tenantClock->timezone()));
+        return new \DateTimeImmutable($this->period($this->now(), $this->instanceClock->timezone()));
     }
 
     /**

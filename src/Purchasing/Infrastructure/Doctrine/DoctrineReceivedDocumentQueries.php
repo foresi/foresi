@@ -26,7 +26,7 @@ use Doctrine\ORM\Query;
 
 /**
  * The lists of received documents in DQL over scalar columns, so a page loads
- * no document; the tenant filter keeps every query inside the active tenant.
+ * no document.
  */
 final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocumentQueries
 {

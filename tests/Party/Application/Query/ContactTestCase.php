@@ -12,9 +12,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyNotAllowed;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
@@ -33,14 +30,11 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
- * An organisation with an owner signed in, a member and a guest, and a second
- * organisation whose contacts must never show, on a fresh schema.
+ * An instance with an owner signed in, a member and a guest, on a fresh schema.
  */
 abstract class ContactTestCase extends KernelTestCase
 {
     protected EntityManagerInterface $em;
-    protected Tenant $tenant;
-    protected Tenant $foreign;
     protected Membership $owner;
     protected Membership $member;
     protected Membership $guest;
@@ -54,13 +48,6 @@ abstract class ContactTestCase extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-
-        $this->tenant = new Tenant(TenantId::generate(), 'Example Organisation', new \DateTimeImmutable('2026-11-10 09:00:00'));
-        $this->foreign = new Tenant(TenantId::generate(), 'Foreign Organisation', new \DateTimeImmutable('2026-11-10 09:00:00'));
-        $this->em->persist($this->tenant);
-        $this->em->persist($this->foreign);
-        $this->em->flush();
-        $container->get(TenantContext::class)->switchTo($this->tenant->id());
 
         $client = new Party(PartyKind::Person, 'Example Client', null, null, '');
         $client->archive(new \DateTimeImmutable('2026-11-01 10:00:00'));
@@ -112,7 +99,7 @@ abstract class ContactTestCase extends KernelTestCase
     }
 
     /**
-     * A contact of the active tenant, with a billing address and, when given, a general e-mail address.
+     * A contact with a billing address and, when given, a general e-mail address.
      *
      * @param list<PartyRole> $roles
      */

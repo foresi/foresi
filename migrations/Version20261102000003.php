@@ -27,7 +27,7 @@ final class Version20261102000003 extends AbstractMigration
     {
         $run = $schema->createTable('scheduled_job_run');
         $run->addColumn('id', Types::GUID);
-        $run->addColumn('tenant_id', 'tenant_id');
+        $run->addColumn('tenant_id', 'guid');
         $run->addColumn('job', Types::STRING, ['length' => 64]);
         $run->addColumn('last_period', Types::STRING, ['length' => 32, 'notnull' => false]);
         $run->addColumn('started_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);

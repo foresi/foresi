@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Identity;
 
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -24,9 +23,9 @@ final class LoginTest extends WebTestCase
         // The test database lives in memory, so every request must share the kernel.
         $this->client->disableReboot();
 
-        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'));
         $fixtures->rebuildSchema();
-        $fixtures->join($fixtures->user(), $fixtures->tenant('Tenant A'));
+        $fixtures->join($fixtures->user());
     }
 
     public function testLoginWithValidCredentialsRedirectsToDashboard(): void

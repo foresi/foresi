@@ -12,7 +12,7 @@ use App\Idoklad\Application\IdokladQueue;
 use App\Idoklad\Application\Message\ProcessIdokladJob;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-/** Sends jobs through Messenger; the tenant middleware stamps the active tenant. */
+/** Sends jobs through Messenger. */
 final readonly class MessengerIdokladQueue implements IdokladQueue
 {
     public function __construct(private MessageBusInterface $bus)

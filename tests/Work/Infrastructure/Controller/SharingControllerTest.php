@@ -10,8 +10,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\Project;
 use App\Work\Domain\ProjectStatus;
@@ -37,16 +35,13 @@ final class SharingControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheProjectHeaderOpensTheDialogWithWhoSeesItAndWhomItCanBeSharedWith(): void
@@ -366,7 +361,7 @@ final class SharingControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
@@ -384,8 +379,8 @@ final class SharingControllerTest extends WebTestCase
         $this->em->persist($jana);
         $this->em->persist($guest);
         $this->em->flush();
-        $this->browser->fixtures->join($jana, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($guest, $this->tenant, Role::Guest);
+        $this->browser->fixtures->join($jana, Role::Member);
+        $this->browser->fixtures->join($guest, Role::Guest);
         $this->scoped(function () use ($id): void {
             $project = $this->em->find(Project::class, $id) ?? throw new \LogicException('Project.');
             [$open] = $this->em->getRepository(ProjectStatus::class)->findBy(['project' => $project], ['position' => 'ASC']);
@@ -466,11 +461,6 @@ final class SharingControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 }

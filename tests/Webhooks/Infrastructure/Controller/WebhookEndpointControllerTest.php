@@ -12,8 +12,6 @@ use App\Banking\Infrastructure\Events\BankingEventAccess;
 use App\CashFlow\Infrastructure\Events\CashFlowEventAccess;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use App\Party\Infrastructure\Events\PartyEventAccess;
 use App\Purchasing\Infrastructure\Events\PurchasingEventAccess;
@@ -48,17 +46,14 @@ final class WebhookEndpointControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private SignedInBrowser $browser;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
         $this->webhooks()->reset();
     }
 
@@ -388,32 +383,27 @@ final class WebhookEndpointControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Company'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
     /**
-     * An endpoint stored straight in the organisation, owned by the signed-in
+     * An endpoint stored straight in the database, owned by the signed-in
      * person, with a secret sealed by a key of its own.
      */
     private function stored(?string $description = null, ?DisabledReason $disabled = null): string
     {
         $owner = self::getContainer()->get(UserRepository::class)->findByEmail(IdentityFixtures::EMAIL) ?? throw new \LogicException('The user is missing.');
-        $this->context->switchTo($this->tenant);
-        try {
-            $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
-            $now = new \DateTimeImmutable('2026-11-13 10:00:00');
-            $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/stored'), $description, EventTypes::of(['invoicing.*']), 1, $secrets->seal(WebhookSecret::generate()), $owner->id(), $now);
-            if ($disabled instanceof DisabledReason) {
-                $endpoint->disable($disabled, $now);
-            }
-            $this->em->persist($endpoint);
-            $this->em->flush();
-
-            return $endpoint->id();
-        } finally {
-            $this->context->reset();
+        $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
+        $now = new \DateTimeImmutable('2026-11-13 10:00:00');
+        $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/stored'), $description, EventTypes::of(['invoicing.*']), 1, $secrets->seal(WebhookSecret::generate()), $owner->id(), $now);
+        if ($disabled instanceof DisabledReason) {
+            $endpoint->disable($disabled, $now);
         }
+        $this->em->persist($endpoint);
+        $this->em->flush();
+
+        return $endpoint->id();
     }
 
     /**
@@ -422,12 +412,8 @@ final class WebhookEndpointControllerTest extends WebTestCase
     private function endpoints(): array
     {
         $this->em->clear();
-        $this->context->switchTo($this->tenant);
-        try {
-            return $this->em->getRepository(WebhookEndpoint::class)->findAll();
-        } finally {
-            $this->context->reset();
-        }
+
+        return $this->em->getRepository(WebhookEndpoint::class)->findAll();
     }
 
     /**

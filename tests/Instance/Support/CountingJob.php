@@ -9,31 +9,23 @@ declare(strict_types=1);
 namespace App\Tests\Instance\Support;
 
 use App\Instance\Application\Schedule\ScheduledJob;
-use App\Instance\Application\TenantContext;
-use App\Tests\Instance\Fixtures\TestNote;
-use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * A daily job that remembers each run: the tenant it ran in, the notes it could
- * see and the last period it was given, and the zone of each period it was asked
- * for. Its day is the calendar day of the zone. It can be told to fail. The record is
+ * A daily job that remembers each run: the last period it was given, and the zone
+ * of each period it was asked for. Its day is the calendar day of the zone. It can be told to fail. The record is
  * static, as the job is a service of the container and the test reads it.
  */
 final class CountingJob implements ScheduledJob
 {
     public const string NAME = 'counting';
 
-    /** @var list<array{tenant: string, lastPeriod: ?string, notes: list<string>}> */
+    /** @var list<array{lastPeriod: ?string}> */
     private static array $runs = [];
 
     /** @var list<string> */
     private static array $zones = [];
 
     private static int $failures = 0;
-
-    public function __construct(private readonly TenantContext $context, private readonly EntityManagerInterface $em)
-    {
-    }
 
     public function name(): string
     {
@@ -55,8 +47,7 @@ final class CountingJob implements ScheduledJob
             throw new \RuntimeException('Planned failure.');
         }
 
-        $notes = array_map(static fn (TestNote $note): string => $note->text(), $this->em->getRepository(TestNote::class)->findAll());
-        self::$runs[] = ['tenant' => $this->context->current()->toString(), 'lastPeriod' => $lastPeriod, 'notes' => $notes];
+        self::$runs[] = ['lastPeriod' => $lastPeriod];
     }
 
     public static function reset(): void
@@ -72,7 +63,9 @@ final class CountingJob implements ScheduledJob
     }
 
     /**
-     * @return list<array{tenant: string, lastPeriod: ?string, notes: list<string>}>
+     * @phpstan-impure
+     *
+     * @return list<array{lastPeriod: ?string}>
      */
     public static function runs(): array
     {

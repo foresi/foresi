@@ -60,7 +60,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * ticked; PairMovement holds the same rule.
  * Unpairing from a row asks first, as it also stops the movement from pairing by
  * itself again. Each dialog is also a page of its own, which works without
- * JavaScript. A movement of another tenant is never found, so it answers 404.
+ * JavaScript. An unknown movement answers 404.
  *
  * @phpstan-type Values array{invoices: list<string>, amounts: array<string, string>, q: string, settle: bool, checked: bool}
  */

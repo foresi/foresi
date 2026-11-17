@@ -10,6 +10,6 @@ use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 
-// The tenant of the bank settings spec: a firm with no bank account yet.
+// The world of the bank settings spec: a firm with no bank account yet.
 $entityManager->persist(new LegalEntity('Example Bank Settings s.r.o.', new RegistrationNumber('CZ', '12345695'), null, $address(4), VatStatus::NotRegistered, ''));
 $entityManager->flush();

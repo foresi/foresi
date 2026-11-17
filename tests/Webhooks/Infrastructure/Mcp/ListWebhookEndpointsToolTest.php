@@ -26,8 +26,8 @@ final class ListWebhookEndpointsToolTest extends WebhookToolTestCase
 
     public function testItAnswersAsTheRestApiDoesWithoutSecrets(): void
     {
-        $first = $this->stored($this->tenant);
-        $second = $this->stored($this->tenant, ['invoicing.invoice.paid'], false);
+        $first = $this->stored();
+        $second = $this->stored(['invoicing.invoice.paid'], false);
 
         $output = $this->call(ListWebhookEndpointsTool::class);
 
@@ -46,7 +46,7 @@ final class ListWebhookEndpointsToolTest extends WebhookToolTestCase
     public function testItPagesByCursor(): void
     {
         foreach (range(1, 3) as $ignored) {
-            $this->stored($this->tenant);
+            $this->stored();
         }
 
         $pages = $this->toolPages(ListWebhookEndpointsTool::class, 2);
@@ -56,7 +56,7 @@ final class ListWebhookEndpointsToolTest extends WebhookToolTestCase
 
     public function testAGuestSeesNoEndpoints(): void
     {
-        $this->stored($this->tenant);
+        $this->stored();
 
         $output = $this->call(ListWebhookEndpointsTool::class, [], $this->guest());
 

@@ -52,7 +52,7 @@ final readonly class RecordMovement
     }
 
     /**
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount for an unknown account
      */
     public function record(MovementInput $input, TrustVerdict $verdict): BankMovement
     {

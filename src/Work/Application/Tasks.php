@@ -17,8 +17,8 @@ use App\Work\Domain\TaskLabel;
 use App\Work\Domain\TaskWatcher;
 
 /**
- * The tasks of the active tenant with their watchers and labels. A task in the
- * trash is found only by what asks for the trash.
+ * The tasks with their watchers and labels. A task in the trash is found only
+ * by what asks for the trash.
  */
 interface Tasks
 {

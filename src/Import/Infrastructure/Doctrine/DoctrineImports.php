@@ -16,7 +16,6 @@ use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Domain\RowOutcome;
 use App\Import\Domain\Text;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
@@ -31,7 +30,6 @@ final readonly class DoctrineImports implements Imports
     public function __construct(
         private EntityManagerInterface $em,
         private ManagerRegistry $registry,
-        private TenantContext $context,
     ) {
     }
 
@@ -90,15 +88,11 @@ final readonly class DoctrineImports implements Imports
             if ($connection->isTransactionActive()) {
                 $connection->rollBack();
             }
-            // A failed flush closes the manager; the caller must be able to query on, inside the same tenant.
+            // A failed flush closes the manager; the caller must be able to query on.
             if (!$this->em->isOpen()) {
                 $this->registry->resetManager();
             }
-            if ($this->context->has()) {
-                $this->context->switchTo($this->context->current());
-            } else {
-                $this->em->clear();
-            }
+            $this->em->clear();
 
             throw $failure;
         }

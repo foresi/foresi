@@ -25,8 +25,6 @@ use App\Import\Domain\ImportRow;
 use App\Import\Domain\ImportState;
 use App\Import\Domain\MatchReason;
 use App\Import\Domain\RowOutcome;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyDetails;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RecheckRegistry;
@@ -82,7 +80,6 @@ final class PartyImportEndToEndTest extends KernelTestCase
 
         $this->dir = sys_get_temp_dir().'/foresi-party-import-'.bin2hex(random_bytes(6));
         mkdir($this->dir);
-        $this->service(TenantContext::class)->switchTo(TenantId::generate());
     }
 
     protected function tearDown(): void

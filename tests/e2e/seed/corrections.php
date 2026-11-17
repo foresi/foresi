@@ -31,7 +31,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the corrections spec: a payer firm and one customer, an unpaid invoice
+// The world of the corrections spec: a payer firm and one customer, an unpaid invoice
 // 20260001 of 1 210 Kč the spec credits in part, and an invoice 20260002 of 1 210 Kč paid in
 // full, which the spec credits in full and refunds by hand.
 $correctionsFirm = new LegalEntity('Example Corrections s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(10), VatStatus::Registered, 'Example register, entry C 8642');

@@ -12,8 +12,6 @@ use App\Import\Application\ImportGate;
 use App\Import\Application\Imports;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
-use App\Instance\Application\SoleTenant;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
@@ -36,9 +34,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * way to tell which chunks of one import are still waiting, and a run is not
  * safe to guess at. The import fails and can be uploaded again.
  *
- * It works on the whole instance and finds the imports through the connection. The
- * messages a release sends are still stamped with the tenant, so it works as the
- * one tenant of the instance until the tenant goes.
+ * It works on the whole instance and finds the imports through the connection.
  */
 #[AsCommand(name: 'app:import:health', description: 'Fail imports that stopped moving and start the imports queued behind them')]
 final readonly class ImportHealthCommand
@@ -50,8 +46,6 @@ final readonly class ImportHealthCommand
 
     public function __construct(
         private Connection $connection,
-        private TenantContext $tenants,
-        private SoleTenant $sole,
         private Imports $imports,
         private ImportGate $gate,
         private ClockInterface $clock,
@@ -74,28 +68,23 @@ final readonly class ImportHealthCommand
         $failed = 0;
         $errors = 0;
         $released = 0;
-        $this->tenants->switchTo($this->sole->id());
-        try {
-            foreach ($stalled as $row) {
-                try {
-                    $failed += $this->fail($row['id'], $now, $cutoff);
-                } catch (\Throwable $error) {
-                    ++$errors;
-                    $this->logger->error('Import health check could not fail import {import}: {class}', ['import' => $row['id'], 'class' => $error::class, 'exception' => $error]);
-                }
+        foreach ($stalled as $row) {
+            try {
+                $failed += $this->fail($row['id'], $now, $cutoff);
+            } catch (\Throwable $error) {
+                ++$errors;
+                $this->logger->error('Import health check could not fail import {import}: {class}', ['import' => $row['id'], 'class' => $error::class, 'exception' => $error]);
             }
-            // Targets with waiting imports and none running: the one that held them just failed, or an earlier release did not finish.
-            foreach ($this->orphanedQueues() as $queue) {
-                try {
-                    $this->gate->release($queue['target_key']);
-                    ++$released;
-                } catch (\Throwable $error) {
-                    ++$errors;
-                    $this->logger->error('Import health check could not release target {target}: {class}', ['target' => $queue['target_key'], 'class' => $error::class, 'exception' => $error]);
-                }
+        }
+        // Targets with waiting imports and none running: the one that held them just failed, or an earlier release did not finish.
+        foreach ($this->orphanedQueues() as $queue) {
+            try {
+                $this->gate->release($queue['target_key']);
+                ++$released;
+            } catch (\Throwable $error) {
+                ++$errors;
+                $this->logger->error('Import health check could not release target {target}: {class}', ['target' => $queue['target_key'], 'class' => $error::class, 'exception' => $error]);
             }
-        } finally {
-            $this->tenants->reset();
         }
 
         $io->success(\sprintf('Failed %d stalled imports, released %d waiting queues.', $failed, $released));

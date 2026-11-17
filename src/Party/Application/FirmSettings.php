@@ -14,7 +14,7 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
 
 /**
- * The per-firm values of the contacts of the active tenant. add() and remove()
+ * The per-firm values of the contacts. add() and remove()
  * are for a unit of work that flushes.
  */
 interface FirmSettings

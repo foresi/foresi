@@ -11,6 +11,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\OpenToGuest;
+use App\Identity\Application\Organisation;
 use App\Invoicing\Application\DocumentFormat;
 use App\Invoicing\Application\LinkTokens;
 use App\Invoicing\Application\PaymentState;
@@ -36,7 +37,7 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The one page open to anyone with the link: the document as it was sent, in its
  * own language, with nothing of the application around it and no script. It
- * needs no session and never makes a tenant active.
+ * needs no session.
  *
  * An unknown, revoked or cancelled link and a malformed one get the same answer,
  * so the page tells nothing about what exists. Opening the PDF from the page
@@ -281,7 +282,7 @@ final class PublicDocumentController extends AbstractController
             return false;
         }
 
-        return [] !== $this->memberships->organisationsOf($userId);
+        return $this->memberships->organisationOf($userId) instanceof Organisation;
     }
 
     private function stylesheet(): string

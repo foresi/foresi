@@ -22,9 +22,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Stores a ping as a delivery of its own and queues its one attempt, or queues
- * one more attempt of a stored delivery, on the webhooks transport; the tenant
- * middleware stamps it with the active tenant. The ping has the envelope of an event without a
- * position, and is encoded once, so the attempt signs the bytes it sends.
+ * one more attempt of a stored delivery, on the webhooks transport. The ping
+ * has the envelope of an event without a position, and is encoded once, so the
+ * attempt signs the bytes it sends.
  */
 final readonly class MessengerWebhookQueue implements WebhookQueue
 {

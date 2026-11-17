@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace App\Instance\Application\Schedule;
 
 /**
- * Runs one operator task, with no tenant. Never tenant-scoped: a message that
- * arrives carrying a tenant is refused.
+ * Runs one operator task.
  */
 final readonly class RunOperatorTask
 {

@@ -45,7 +45,6 @@ final readonly class DoctrineSeriesCatalog implements SeriesCatalog
 
     public function get(string $id): Series
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
         $series = $this->em->createQuery('SELECT s FROM '.Series::class.' s WHERE s.id = :id')->setParameter('id', $id)->getOneOrNullResult();
 
         return $series instanceof Series ? $series : throw new UnknownSeries();

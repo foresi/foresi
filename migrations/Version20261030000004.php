@@ -40,7 +40,7 @@ final class Version20261030000004 extends AbstractMigration
 
         $missing = $schema->createTable('import_missing_record');
         $missing->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $missing->addColumn('tenant_id', 'tenant_id');
+        $missing->addColumn('tenant_id', 'guid');
         $missing->addColumn('outcome', Types::STRING, ['length' => 32]);
         $missing->addColumn('before', Types::JSON, ['notnull' => false]);
         $missing->addColumn('processed_in_run', Types::BOOLEAN);

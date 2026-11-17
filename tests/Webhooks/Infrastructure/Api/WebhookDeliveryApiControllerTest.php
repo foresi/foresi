@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Webhooks\Infrastructure\Api;
 
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Infrastructure\Dbal\WebhookDeliveryTable as T;
@@ -21,13 +20,13 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
 {
     public function testDeliveryLogListsAttempts(): void
     {
-        $id = $this->stored($this->tenant);
+        $id = $this->stored();
         $older = $this->rows->insert($id, T::STATUS_FAILED, attempts: 2, nextAttemptAt: null, createdAt: '2026-11-13 08:00:00');
         $first = $this->rows->attempt($older, '2026-11-13 08:00:00');
         $second = $this->rows->attempt($older, '2026-11-13 08:00:05');
         $middle = $this->rows->insert($id, T::STATUS_SUCCEEDED, attempts: 1, nextAttemptAt: null, createdAt: '2026-11-13 09:00:00');
         $newest = $this->rows->insert($id, createdAt: '2026-11-13 10:00:00');
-        $this->rows->insert($this->stored($this->tenant), T::STATUS_FAILED);
+        $this->rows->insert($this->stored(), T::STATUS_FAILED);
 
         self::assertSame([[$newest, $middle], [$older]], $this->pages(self::ENDPOINTS.'/'.$id.'/deliveries', 2));
 
@@ -54,7 +53,7 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
         self::assertSame('schedule', $this->at('data', 'attempts', 0, 'trigger'));
         self::assertStringNotContainsString('body-marker', (string) $this->client->getResponse()->getContent());
 
-        $this->get(self::ENDPOINTS.'/'.$this->stored($this->tenant).'/deliveries/'.$older);
+        $this->get(self::ENDPOINTS.'/'.$this->stored().'/deliveries/'.$older);
         $this->assertProblem(404, 'not_found');
         $this->get(self::ENDPOINTS.'/'.$id.'/deliveries', ['cursor' => 'nonsense']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'cursor']);
@@ -62,7 +61,7 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
 
     public function testRedeliverQueuesOneManualAttempt(): void
     {
-        $id = $this->stored($this->tenant);
+        $id = $this->stored();
         $delivery = $this->rows->insert($id, T::STATUS_FAILED, attempts: 10, nextAttemptAt: null);
 
         $this->send('POST', $this->redeliver($id, $delivery), secret: $this->secret);
@@ -78,7 +77,6 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
         self::assertSame($delivery, $message->deliveryId);
         self::assertSame(AttemptTrigger::Manual, $message->trigger);
         self::assertNotNull($message->attemptId);
-        self::assertSame($this->tenant->toString(), $queued[0]->last(TenantStamp::class)?->tenantId);
         self::assertSame($delivery, $this->at('data', 'delivery_id'));
         self::assertSame($message->attemptId, $this->at('data', 'attempt_id'));
         // The handler writes the attempt; the request only queues it.
@@ -88,7 +86,7 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
 
     public function testRedeliverOfAPendingDeliveryIs409(): void
     {
-        $id = $this->stored($this->tenant);
+        $id = $this->stored();
         $pending = $this->rows->insert($id);
         $ping = $this->rows->insert($id, T::STATUS_FAILED, nextAttemptAt: null, kind: T::KIND_PING);
 
@@ -101,7 +99,7 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
 
     public function testRedeliverOnDisabledEndpointIs409(): void
     {
-        $id = $this->stored($this->tenant, active: false);
+        $id = $this->stored(active: false);
         $delivery = $this->rows->insert($id, T::STATUS_FAILED, nextAttemptAt: null);
 
         $this->send('POST', $this->redeliver($id, $delivery));

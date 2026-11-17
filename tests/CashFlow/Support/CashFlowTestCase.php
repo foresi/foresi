@@ -17,9 +17,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
@@ -52,7 +49,6 @@ abstract class CashFlowTestCase extends KernelTestCase
     protected EntityManagerInterface $em;
     protected MockClock $clock;
     protected FakeRateSource $rates;
-    protected Tenant $tenant;
     protected LegalEntity $firm;
     protected FirmBankAccount $account;
     protected Party $customer;
@@ -74,12 +70,7 @@ abstract class CashFlowTestCase extends KernelTestCase
         $this->clock = new MockClock('2026-11-17 10:00:00', 'UTC');
         Clock::set($this->clock);
 
-        $this->tenant = new Tenant(TenantId::generate(), 'Example Organisation', $this->clock->now());
-        $this->tenant->changeTimezone(new \DateTimeZone('Europe/Prague'));
-        $this->em->persist($this->tenant);
-        $this->em->flush();
-        $container->get(TenantContext::class)->switchTo($this->tenant->id());
-
+        // A Czech firm gives the instance the zone Europe/Prague.
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
         $this->em->persist($this->firm);
         $this->account = FirmAccounts::add($this->em, $this->firm, self::IBAN);

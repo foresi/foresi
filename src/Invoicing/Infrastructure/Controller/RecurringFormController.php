@@ -12,7 +12,7 @@ use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\CopyInvoice;
 use App\Invoicing\Application\CustomerOption;
 use App\Invoicing\Application\CustomerPicker;
@@ -113,7 +113,7 @@ final class RecurringFormController extends AbstractController
         private readonly SubmissionTokens $tokens,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly UserRepository $users,
         private readonly TranslatorInterface $translator,
         private readonly OwnerCheck $owner,

@@ -63,8 +63,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * one page, each a form of its own. A firm in a country without invoicing rules
  * has no home currency to set a minimum in, so its page has no reminders card and
  * its stored reminder settings stay as they are. The
- * password is never sent back to the browser; a blank one keeps what is stored. A
- * firm of another tenant is never found, so it answers 404.
+ * password is never sent back to the browser; a blank one keeps what is stored. An
+ * unknown firm answers 404.
  */
 final class FirmMailController extends AbstractController
 {

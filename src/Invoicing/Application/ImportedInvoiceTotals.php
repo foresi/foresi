@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * What the imported documents of the active tenant came to as Foresi stores
+ * What the imported documents came to as Foresi stores
  * them, for comparing an import with its source.
  */
 interface ImportedInvoiceTotals

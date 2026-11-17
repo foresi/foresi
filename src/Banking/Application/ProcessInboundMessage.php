@@ -8,12 +8,10 @@ declare(strict_types=1);
 
 namespace App\Banking\Application;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /**
- * Processes one stored inbound message in the tenant the message carries.
+ * Processes one stored inbound message.
  */
-final readonly class ProcessInboundMessage implements TenantScopedMessage
+final readonly class ProcessInboundMessage
 {
     public function __construct(public string $messageId)
     {

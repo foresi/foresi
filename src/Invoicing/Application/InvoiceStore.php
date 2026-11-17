@@ -15,7 +15,7 @@ use App\Invoicing\Domain\InvoiceLine;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The invoices of the active tenant. Call the writing methods inside
+ * The invoices. Call the writing methods inside
  * TransactionalWork, which flushes.
  */
 interface InvoiceStore
@@ -23,7 +23,7 @@ interface InvoiceStore
     public const int PER_PAGE = 25;
 
     /**
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function get(string $id): Invoice;
 
@@ -34,7 +34,7 @@ interface InvoiceStore
      * the session over, so whatever was loaded before is detached: work from what it
      * returns. Call it inside TransactionalWork.
      *
-     * @throws UnknownInvoice  also for an invoice of another tenant
+     * @throws UnknownInvoice
      * @throws \LogicException when the session holds unsaved changes, which it would lose
      */
     public function lock(string $id): Invoice;
@@ -43,7 +43,7 @@ interface InvoiceStore
      * Locks the row of an invoice until the transaction ends, inside a transaction
      * that has written already: unlike lock(), it keeps what the session holds.
      *
-     * @throws UnknownInvoice also for an invoice of another tenant
+     * @throws UnknownInvoice
      */
     public function lockRow(string $id): void;
 
@@ -51,7 +51,7 @@ interface InvoiceStore
      * The invoice and its lines in one statement, so a save that commits meanwhile
      * shows entirely or not at all. It starts the session over, as lock() does.
      *
-     * @throws UnknownInvoice  also for an invoice of another tenant
+     * @throws UnknownInvoice
      * @throws \LogicException when the session holds unsaved changes, which it would lose
      */
     public function snapshot(string $id): StoredInvoice;

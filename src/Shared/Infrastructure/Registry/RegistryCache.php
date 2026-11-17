@@ -12,7 +12,7 @@ use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * Remembers public registry answers for 24 hours. Registry data is public, not
- * tenant data, so keys hold only the registry and the normalised identifier.
+ * the instance's data, so keys hold only the registry and the normalised identifier.
  */
 final readonly class RegistryCache
 {

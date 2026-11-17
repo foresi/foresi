@@ -2,7 +2,6 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
         types:
-            tenant_id: App\Instance\Infrastructure\Doctrine\TenantIdType
             vat_id: App\Party\Infrastructure\Doctrine\VatIdType
 
         profiling_collect_backtrace: '%kernel.debug%'
@@ -110,21 +109,11 @@ doctrine:
         dql:
             string_functions:
                 CAST_TEXT: App\Party\Infrastructure\Doctrine\CastTextFunction
-        filters:
-            tenant:
-                class: App\Instance\Infrastructure\Doctrine\TenantFilter
-                enabled: true
 
 when@test:
     doctrine:
         orm:
             mappings:
-                InstanceFixtures:
-                    type: attribute
-                    is_bundle: false
-                    dir: '%kernel.project_dir%/tests/Instance/Fixtures'
-                    prefix: 'App\Tests\Instance\Fixtures'
-                    alias: InstanceFixtures
                 SharedFixtures:
                     type: attribute
                     is_bundle: false

@@ -14,7 +14,7 @@ use App\Invoicing\Domain\Invoice;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Queries of the ORM, so the tenant filter holds.
+ * Queries of the ORM.
  */
 final readonly class DoctrineImportedInvoiceTotals implements ImportedInvoiceTotals
 {

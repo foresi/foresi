@@ -45,8 +45,8 @@ final readonly class ImportPayment
     }
 
     /**
-     * @throws UnknownLegalEntity also for a firm of another tenant
-     * @throws UnknownInvoice     also for a document of another tenant
+     * @throws UnknownLegalEntity
+     * @throws UnknownInvoice
      * @throws UnsupportedCountry for a firm whose country Foresi does not invoice in
      */
     public function import(ImportedPaymentInput $import): ImportedPaymentResult

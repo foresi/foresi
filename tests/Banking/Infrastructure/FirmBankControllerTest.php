@@ -17,9 +17,6 @@ use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Domain\InboundChannel;
 use App\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use App\Invoicing\Application\MailSecrets;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
@@ -50,10 +47,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
 
-    /** @var array<string, TenantId> the tenant of each firm made here, by firm id */
-    private array $firmTenants = [];
     /** @var array<string, string> environment variables a test changed, with their old values */
     private array $changedEnv = [];
 
@@ -255,14 +249,10 @@ final class FirmBankControllerTest extends WebTestCase
         $raw = (string) file_get_contents(__DIR__.'/../../Fixtures/Banking/kb/incoming-booked.eml');
         $raw = "Authentication-Results: mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n".str_replace('bank+token@example.com', $address, $raw);
 
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message'));
         $before = $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]')->text();
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         self::getContainer()->get(ProcessMessage::class)->process($id);
-        $this->context->reset();
 
         $check = $this->client->request('GET', $this->url($firm, 'pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]');
 
@@ -358,8 +348,8 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testAClientRoleGets403(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Guest)[0];
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: Role::Guest);
+        $firm = $this->firm();
         $account = $this->withAccount($firm);
         $this->browser->signIn();
 
@@ -378,13 +368,11 @@ final class FirmBankControllerTest extends WebTestCase
      */
     public function testAMemberGets403AndNeverSeesTheAddress(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Member)[0];
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: Role::Member);
+        $firm = $this->firm();
         $account = $this->withAccount($firm);
         $other = $this->withAccount($firm, self::OTHER_IBAN);
-        $this->context->switchTo($tenant);
         $address = self::getContainer()->get(GenerateAddress::class)->generate($account);
-        $this->context->reset();
         $token = Scalars::text($this->addresses()->tokenIn($address));
         $this->browser->signIn();
         $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
@@ -415,8 +403,7 @@ final class FirmBankControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     private function changeEnv(string $name, string $value): void
@@ -429,21 +416,18 @@ final class FirmBankControllerTest extends WebTestCase
 
     private function signedInFirm(): LegalEntity
     {
-        [$tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
 
-        return $this->firm($tenant);
+        return $this->firm();
     }
 
-    private function firm(TenantId $tenant): LegalEntity
+    private function firm(): LegalEntity
     {
-        $this->context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em = $this->browser->em();
         $em->persist($firm);
         $em->flush();
-        $this->context->reset();
-        $this->firmTenants[$firm->id()] = $tenant;
 
         return $firm;
     }
@@ -453,12 +437,10 @@ final class FirmBankControllerTest extends WebTestCase
      */
     private function withAccount(LegalEntity $firm, string $iban = self::IBAN): string
     {
-        $this->context->switchTo($this->firmTenants[$firm->id()]);
         $em = $this->browser->em();
         $managed = $em->find(LegalEntity::class, $firm->id()) ?? throw new \LogicException('The firm is gone.');
         $account = FirmAccounts::add($em, $managed, $iban);
         $em->flush();
-        $this->context->reset();
 
         return $account->id();
     }
@@ -533,7 +515,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     private function directory(): DoctrineBankFeedDirectory
     {
-        return new DoctrineBankFeedDirectory($this->connection(), self::getContainer()->get(TenantFilterBypass::class));
+        return new DoctrineBankFeedDirectory($this->connection());
     }
 
     private function connection(): Connection

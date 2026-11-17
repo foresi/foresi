@@ -10,44 +10,37 @@ namespace App\Tests\Identity\Support;
 
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**
- * Test helper for browser tests: rebuilds the schema, seeds one user with the
- * given organisations and signs in through the real login form.
+ * Test helper for browser tests: rebuilds the schema, seeds one user with their
+ * membership and signs in through the real login form.
  */
 final readonly class SignedInBrowser
 {
     public IdentityFixtures $fixtures;
 
-    public function __construct(private KernelBrowser $client, private EntityManagerInterface $em, TenantContext $context)
+    public function __construct(private KernelBrowser $client, private EntityManagerInterface $em)
     {
-        $this->fixtures = new IdentityFixtures($em, $context);
+        $this->fixtures = new IdentityFixtures($em);
         $this->fixtures->rebuildSchema();
     }
 
     /**
-     * @param list<string> $organisations
-     *
-     * @return list<TenantId>
+     * The user, with a membership of the given role; without one when the role is null.
      */
-    public function seed(array $organisations, string $locale = 'en', Role $role = Role::Owner): array
+    public function seed(string $locale = 'en', ?Role $role = Role::Owner): User
     {
         $em = $this->em;
         $user = new User(IdentityFixtures::EMAIL, password_hash(IdentityFixtures::PASSWORD, \PASSWORD_BCRYPT, ['cost' => 4]), 'Example Company', $locale);
         $em->persist($user);
         $em->flush();
-        $ids = [];
-        foreach ($organisations as $name) {
-            $id = $this->fixtures->tenant($name);
-            $this->fixtures->join($user, $id, $role);
-            $ids[] = $id;
+        if ($role instanceof Role) {
+            $this->fixtures->join($user, $role);
         }
 
-        return $ids;
+        return $user;
     }
 
     public function signIn(): void

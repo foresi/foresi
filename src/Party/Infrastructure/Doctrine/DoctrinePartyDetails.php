@@ -21,9 +21,6 @@ use App\Party\Domain\PartyEmail;
 use App\Party\Domain\PartyFirmSettings;
 use Doctrine\ORM\EntityManagerInterface;
 
-/**
- * Tenant-scoped through the Doctrine tenant filter.
- */
 final readonly class DoctrinePartyDetails implements PartyDetails
 {
     private const int HISTORY_LIMIT = 100;

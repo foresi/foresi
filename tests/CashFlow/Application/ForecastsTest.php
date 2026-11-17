@@ -31,7 +31,7 @@ use App\CashFlow\Infrastructure\Source\PlannedItemFlows;
 use App\ExchangeRate\Application\ExchangeRates;
 use App\ExchangeRate\Domain\ExchangeRate;
 use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Application\RefusalKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
@@ -96,7 +96,7 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame([], $forecast->unavailableRates);
     }
 
-    public function testAsksEverySourceFromTodayToTheEndOfTheHorizonInTheTenantsZone(): void
+    public function testAsksEverySourceFromTodayToTheEndOfTheHorizonInTheInstancesZone(): void
     {
         $source = new FakeSource('test.source');
 
@@ -528,7 +528,7 @@ final class ForecastsTest extends CashFlowTestCase
     {
         $container = self::getContainer();
 
-        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(TenantClock::class), $rates ?? $container->get(ExchangeRates::class), $logger ?? new NullLogger(), $sources, $balanceSources);
+        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(InstanceClock::class), $rates ?? $container->get(ExchangeRates::class), $logger ?? new NullLogger(), $sources, $balanceSources);
     }
 
     private function plannedSource(): PlannedItemFlows

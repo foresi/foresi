@@ -47,10 +47,10 @@ final readonly class EndpointDisabledMailer
     ) {
     }
 
-    public function notify(string $tenantId, string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
+    public function notify(string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
     {
         try {
-            $this->send($tenantId, $ownerId, $endpointId, $host, $reason);
+            $this->send($ownerId, $endpointId, $host, $reason);
         } catch (SystemMailUnavailable|\InvalidArgumentException $e) {
             $this->logger->warning('The owner of the disabled webhook endpoint {endpoint} was not told: {reason}', ['endpoint' => $endpointId, 'reason' => $e->getMessage()]);
         } catch (\Throwable $e) {
@@ -58,7 +58,7 @@ final readonly class EndpointDisabledMailer
         }
     }
 
-    private function send(string $tenantId, string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
+    private function send(string $ownerId, string $endpointId, string $host, DisabledReason $reason): void
     {
         $owner = $this->users->findById($ownerId);
         if (!$owner instanceof User) {
@@ -81,18 +81,7 @@ final readonly class EndpointDisabledMailer
             trim($this->twig->render('email/webhooks/endpoint_disabled.txt.twig', $context)),
             $this->twig->render('email/webhooks/endpoint_disabled.html.twig', $context),
             $locale,
-            $this->organisation($tenantId, $ownerId),
+            $this->directory->organisationOf($ownerId)?->name,
         ));
-    }
-
-    private function organisation(string $tenantId, string $ownerId): ?string
-    {
-        foreach ($this->directory->organisationsOf($ownerId) as $organisation) {
-            if ($organisation->id->toString() === $tenantId) {
-                return $organisation->name;
-            }
-        }
-
-        return null;
     }
 }

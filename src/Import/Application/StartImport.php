@@ -17,7 +17,7 @@ use App\Import\Domain\ImportProfile;
 use Psr\Clock\ClockInterface;
 
 /**
- * Registers an uploaded file as a new import of the active tenant and has it
+ * Registers an uploaded file as a new import and has it
  * read in the background. Takes plain values, so the screens, the API and MCP
  * share it.
  */

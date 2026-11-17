@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Events\Application\Query;
 
 /**
- * One positioned event of the log as the feed reads it. The tenant, the user and
- * the token behind it stay in the log and are not part of the row.
+ * One positioned event of the log as the feed reads it. The user and the token
+ * behind it stay in the log and are not part of the row.
  */
 final readonly class EventRow
 {

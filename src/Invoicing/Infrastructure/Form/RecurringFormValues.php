@@ -42,7 +42,7 @@ final readonly class RecurringFormValues
     }
 
     /**
-     * @param \DateTimeImmutable $today the tenant's today, the first issue it offers
+     * @param \DateTimeImmutable $today the instance's today, the first issue it offers
      *
      * @return array<string, mixed>
      *

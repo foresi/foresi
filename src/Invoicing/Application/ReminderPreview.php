@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Domain\FirmReminders;
 use App\Party\Domain\LegalEntity;
 
 /**
  * Which invoices of a firm would be reminded tomorrow, so the owner sees it before
- * the first reminder leaves. The day is the tenant's, as the reminder run counts it.
+ * the first reminder leaves. The day is the instance's, as the reminder run counts it.
  * While reminders are off, it shows instead which first reminders the coming
  * days would bring if they were switched on today: switching on only reminds
  * invoices due from that day, so nothing older appears.
@@ -29,7 +29,7 @@ final readonly class ReminderPreview
         private ReminderSettings $settings,
         private ReminderCandidates $candidates,
         private InvoiceStore $store,
-        private TenantClock $clock,
+        private InstanceClock $clock,
         private InvoicePayments $payments,
     ) {
     }
@@ -80,7 +80,7 @@ final readonly class ReminderPreview
     }
 
     /**
-     * Today of the tenant, at its start, in the tenant's zone.
+     * Today, at its start, in the instance's zone.
      */
     public function today(): \DateTimeImmutable
     {

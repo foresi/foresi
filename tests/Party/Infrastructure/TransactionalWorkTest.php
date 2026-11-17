@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
@@ -25,13 +23,10 @@ final class TransactionalWorkTest extends KernelTestCase
     {
         self::bootKernel();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $context = self::getContainer()->get(TenantContext::class);
         $tool = new SchemaTool($this->em);
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        $context->switchTo($tenant);
     }
 
     public function testCaughtDomainErrorLeavesAUsableSession(): void

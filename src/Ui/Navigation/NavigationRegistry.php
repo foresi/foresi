@@ -36,13 +36,13 @@ final readonly class NavigationRegistry
 
     /**
      * @param string|null $currentRoute route of the page being shown
-     * @param bool        $tenantActive counts run tenant-owned queries, so they are skipped without a tenant
+     * @param bool        $member       counts run queries on the instance's data, so they are skipped without an active membership
      *
      * @return list<Group>
      */
-    public function groups(?string $currentRoute, bool $tenantActive): array
+    public function groups(?string $currentRoute, bool $member): array
     {
-        return $this->grouped($this->entries($currentRoute, $tenantActive));
+        return $this->grouped($this->entries($currentRoute, $member));
     }
 
     /**
@@ -53,7 +53,7 @@ final readonly class NavigationRegistry
      *
      * @throws \LogicException when an item names an area no provider registers, or two providers register one id
      */
-    public function areas(?string $currentRoute, bool $tenantActive): array
+    public function areas(?string $currentRoute, bool $member): array
     {
         $areas = [];
         foreach ($this->areaProviders as $provider) {
@@ -68,7 +68,7 @@ final readonly class NavigationRegistry
         uasort($areas, static fn (NavigationArea $a, NavigationArea $b): int => [NavigationArea::SETTINGS === $a->id, $a->weight] <=> [NavigationArea::SETTINGS === $b->id, $b->weight]);
 
         $byArea = array_fill_keys(array_keys($areas), []);
-        foreach ($this->entries($currentRoute, $tenantActive) as $entry) {
+        foreach ($this->entries($currentRoute, $member) as $entry) {
             if (!isset($byArea[$entry[0]->area])) {
                 throw new \LogicException(sprintf('Navigation item "%s" names the area "%s", which no provider registers.', $entry[0]->labelKey, $entry[0]->area));
             }
@@ -123,7 +123,7 @@ final readonly class NavigationRegistry
      *
      * @return list<array{NavigationItem, int, NavigationEntry}>
      */
-    private function entries(?string $currentRoute, bool $tenantActive): array
+    private function entries(?string $currentRoute, bool $member): array
     {
         $items = [];
         foreach ($this->providers as $provider) {
@@ -140,7 +140,7 @@ final readonly class NavigationRegistry
                 $item->labelKey,
                 $item->icon,
                 $item->route,
-                $tenantActive ? $item->countProvider?->count() : null,
+                $member ? $item->countProvider?->count() : null,
                 $this->isCurrent($item, $currentRoute, $owned),
                 $item->commandLabelKey,
                 $item->commandRoute,

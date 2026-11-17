@@ -28,7 +28,7 @@ final class Version20261117000001 extends AbstractMigration
     {
         $item = $schema->createTable('cash_flow_planned_item');
         $item->addColumn('id', Types::GUID);
-        $item->addColumn('tenant_id', 'tenant_id');
+        $item->addColumn('tenant_id', 'guid');
         $item->addColumn('legal_entity_id', Types::GUID);
         $item->addColumn('direction', Types::STRING, ['length' => 3]);
         $item->addColumn('name', Types::STRING, ['length' => 120]);
@@ -58,7 +58,7 @@ final class Version20261117000001 extends AbstractMigration
 
         $checkpoint = $schema->createTable('cash_flow_checkpoint');
         $checkpoint->addColumn('id', Types::GUID);
-        $checkpoint->addColumn('tenant_id', 'tenant_id');
+        $checkpoint->addColumn('tenant_id', 'guid');
         $checkpoint->addColumn('firm_bank_account_id', Types::GUID);
         $checkpoint->addColumn('balance_on', Types::DATE_IMMUTABLE);
         $checkpoint->addColumn('amount_minor', Types::BIGINT);
@@ -70,7 +70,7 @@ final class Version20261117000001 extends AbstractMigration
 
         $expected = $schema->createTable('cash_flow_expected_date');
         $expected->addColumn('id', Types::GUID);
-        $expected->addColumn('tenant_id', 'tenant_id');
+        $expected->addColumn('tenant_id', 'guid');
         $expected->addColumn('subject_type', Types::STRING, ['length' => 40]);
         $expected->addColumn('subject_id', Types::STRING, ['length' => 64]);
         $expected->addColumn('expected_on', Types::DATE_IMMUTABLE);
@@ -80,7 +80,7 @@ final class Version20261117000001 extends AbstractMigration
 
         $minimum = $schema->createTable('cash_flow_minimum_balance');
         $minimum->addColumn('id', Types::GUID);
-        $minimum->addColumn('tenant_id', 'tenant_id');
+        $minimum->addColumn('tenant_id', 'guid');
         $minimum->addColumn('legal_entity_id', Types::GUID);
         $minimum->addColumn('amount_minor', Types::BIGINT);
         $minimum->setPrimaryKey(['id']);

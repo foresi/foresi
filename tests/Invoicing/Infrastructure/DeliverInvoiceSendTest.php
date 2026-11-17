@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
-use App\Instance\Infrastructure\Messenger\TenantStamp;
-use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoiceSendQueue;
 use App\Invoicing\Application\MailMessage;
@@ -41,7 +39,6 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Stamp\RedeliveryStamp;
@@ -272,7 +269,6 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         $waiting = $this->onlyWaiting(1);
         self::assertSame(185_000, $waiting->last(DelayStamp::class)?->getDelay(), 'back when the lease of 09:58 ends, and a little after');
         self::assertNull($waiting->last(RedeliveryStamp::class), 'waiting uses no retry');
-        self::assertSame($this->tenant->toString(), $waiting->last(TenantStamp::class)?->tenantId);
         self::assertSame('queued', $this->row($send->id())['status']);
 
         // A retry that has to wait keeps the count it had.
@@ -387,19 +383,6 @@ final class DeliverInvoiceSendTest extends SendingTestCase
         self::assertNull($row['copy_sent_at']);
         self::assertSame(MailRefused::LINK_CHANGED, $row['copy_error_code']);
         self::assertNull($row['claimed_at']);
-    }
-
-    public function testAMessageWithoutATenantIsRejected(): void
-    {
-        $invoice = $this->issue->issue($this->input());
-        $send = $this->sent($invoice);
-
-        try {
-            self::getContainer()->get(MessageBusInterface::class)->dispatch(new Envelope(new DeliverInvoiceSend($send->id()), [new ReceivedStamp('mail')]));
-            self::fail('A message without a tenant is refused.');
-        } catch (UnrecoverableMessageHandlingException) {
-        }
-        self::assertSame([], $this->gateway->attempts());
     }
 
     public function testTrashDuringDeliveryLeavesTheInvoiceTrashed(): void

@@ -15,7 +15,7 @@ use App\Party\Domain\PartyBankAccount;
 use App\Party\Domain\PartyEmail;
 
 /**
- * What belongs to one party of the active tenant.
+ * What belongs to one party.
  */
 interface PartyDetails
 {

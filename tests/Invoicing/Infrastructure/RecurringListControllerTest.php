@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\IssueRecurringInvoices;
 use App\Invoicing\Application\IssueRecurringTemplate;
 use App\Invoicing\Application\LineInput;
@@ -68,8 +66,6 @@ final class RecurringListControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -78,8 +74,7 @@ final class RecurringListControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
     }
 
@@ -245,8 +240,8 @@ final class RecurringListControllerTest extends WebTestCase
         // Resumed on the day of an occurrence, after the day's run.
         Clock::set(new MockClock('2027-01-01 12:00:00', 'UTC'));
         $this->em()->getConnection()->executeStatement(
-            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
-            ['019a0000-0000-7000-8000-0000000000ac', $this->tenant->toString(), IssueRecurringInvoices::NAME, '2027-01-01', '2027-01-01 04:10:00'],
+            'INSERT INTO scheduled_job_run (id, job, last_period, finished_at) VALUES (?, ?, ?, ?)',
+            ['019a0000-0000-7000-8000-0000000000ac', IssueRecurringInvoices::NAME, '2027-01-01', '2027-01-01 04:10:00'],
         );
 
         $this->post($template, 'resume');
@@ -636,8 +631,7 @@ final class RecurringListControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
-        $this->context->switchTo($this->tenant);
+        $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
         FirmAccounts::add($this->em(), $this->firm, self::IBAN);
@@ -645,7 +639,6 @@ final class RecurringListControllerTest extends WebTestCase
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->em()->flush();
-        $this->context->reset();
         $this->customer = $this->customerNamed('Example Customer a.s.');
         $this->browser->signIn();
     }
@@ -691,12 +684,7 @@ final class RecurringListControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function em(): EntityManagerInterface

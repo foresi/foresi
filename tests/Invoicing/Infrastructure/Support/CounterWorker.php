@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
@@ -31,9 +29,9 @@ abstract class CounterWorker extends KernelTestCase
     /**
      * Rebuilds the schema and creates one firm with one series.
      *
-     * @return array{string, string} the series and its tenant
+     * @return string the series id
      */
-    public static function seed(): array
+    public static function seed(): string
     {
         self::bootKernel(['debug' => false]);
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
@@ -42,18 +40,13 @@ abstract class CounterWorker extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $tenant = TenantId::generate();
-        self::getContainer()->get(TenantContext::class)->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
         $series = new Series($firm, 'Standard', SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
         self::getContainer()->get(SeriesCatalog::class)->add($series);
         $em->flush();
 
-        return [
-            $series->id(),
-            $tenant->toString(),
-        ];
+        return $series->id();
     }
 
     /**
@@ -64,11 +57,10 @@ abstract class CounterWorker extends KernelTestCase
      *
      * @return array{list<string>, float, float} the numbers that stayed, when it began and when it ended
      */
-    public static function allocate(string $seriesId, string $tenant, int $count, float $startAt, int $rollBackEvery): array
+    public static function allocate(string $seriesId, int $count, float $startAt, int $rollBackEvery): array
     {
         self::bootKernel(['debug' => false]);
         $container = self::getContainer();
-        $container->get(TenantContext::class)->switchTo(TenantId::fromString($tenant));
         $catalog = $container->get(SeriesCatalog::class);
         $counter = $container->get(NumberCounter::class);
         $work = $container->get(TransactionalWork::class);

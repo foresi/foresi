@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Mail;
 
 use App\Identity\Domain\Membership;
-use App\Instance\Application\SoleTenant;
 use App\Work\Infrastructure\Controller\NotificationController;
 use App\Work\Infrastructure\Controller\NotificationSettingsController;
 use App\Work\Infrastructure\Controller\TaskController;
@@ -19,15 +18,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * The absolute links of a notification e-mail. The link that stops a kind of
- * e-mail names the organisation, the person and the kind, and is signed with
- * the secret of the installation, so it works without signing in and cannot
- * be changed to stop someone else's. It does not expire, as an old e-mail
- * should still stop the next ones; the organisation is the instance's one
- * tenant, kept in the path so links already sent still work.
+ * e-mail names the person and the kind, and is signed with the secret of the
+ * installation, so it works without signing in and cannot be changed to stop
+ * someone else's. It does not expire, as an old e-mail should still stop the
+ * next ones.
  */
 final readonly class NotificationLinks
 {
-    public function __construct(private UrlGeneratorInterface $urls, private UriSigner $signer, private SoleTenant $soleTenant)
+    public function __construct(private UrlGeneratorInterface $urls, private UriSigner $signer)
     {
     }
 
@@ -52,7 +50,6 @@ final readonly class NotificationLinks
     public function unsubscribe(Membership $membership, string $what): string
     {
         return $this->signer->sign($this->urls->generate(UnsubscribeController::ROUTE, [
-            'tenant' => $this->soleTenant->id()->toString(),
             'membership' => $membership->id(),
             'what' => $what,
             'lang' => $membership->user()->locale(),

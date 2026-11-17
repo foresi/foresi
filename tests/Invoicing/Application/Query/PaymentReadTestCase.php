@@ -14,9 +14,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\Query\PaymentAccess;
 use App\Invoicing\Application\Query\PaymentsNotAllowed;
 use App\Invoicing\Domain\Invoice;
@@ -48,14 +45,10 @@ abstract class PaymentReadTestCase extends InvoiceTestCase
     protected Membership $owner;
     protected Membership $member;
     protected Membership $guest;
-    protected TenantId $tenantId;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $context = self::getContainer()->get(TenantContext::class);
-        $this->tenantId = $context->current();
-        $this->em->persist(new Tenant($this->tenantId, 'Example Organisation', new \DateTimeImmutable('2026-11-10 09:00:00')));
         $client = new Party(PartyKind::Person, 'Example Client', null, null, '');
         $this->em->persist($client);
         $this->owner = $this->person('owner@example.com', 'Olga Owner', Role::Owner);

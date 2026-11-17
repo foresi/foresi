@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Application\SeriesCatalog;
@@ -52,7 +50,6 @@ final class NumberCounterTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::generate());
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);
         $this->em->flush();
@@ -348,10 +345,10 @@ final class NumberCounterTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testParallelProcessesGetEveryNumberOnce(string $kind): void
     {
-        [$url, $series, $tenant] = $this->seeded($kind);
+        [$url, $series] = $this->seeded($kind);
         $startAt = microtime(true) + 2.5;
 
-        $processes = array_map(fn (): Process => $this->start($url, $series, $tenant, 25, $startAt), range(1, 8));
+        $processes = array_map(fn (): Process => $this->start($url, $series, 25, $startAt), range(1, 8));
         $numbers = $this->collect($processes);
 
         self::assertCount(200, array_unique($numbers));
@@ -361,10 +358,10 @@ final class NumberCounterTest extends KernelTestCase
     #[DataProvider('databases')]
     public function testRolledBackNumbersComeBackUnderLoad(string $kind): void
     {
-        [$url, $series, $tenant] = $this->seeded($kind);
+        [$url, $series] = $this->seeded($kind);
         $startAt = microtime(true) + 2.5;
 
-        $processes = array_map(fn (): Process => $this->start($url, $series, $tenant, 25, $startAt, 5), range(1, 8));
+        $processes = array_map(fn (): Process => $this->start($url, $series, 25, $startAt, 5), range(1, 8));
         $numbers = $this->collect($processes);
 
         // Every fifth transaction of each process is rolled back: 20 of 25 stay, without a gap.
@@ -390,7 +387,7 @@ final class NumberCounterTest extends KernelTestCase
     }
 
     /**
-     * @return array{string, string, string} the database URL, the series and its tenant
+     * @return array{string, string} the database URL and the series
      */
     private function seeded(string $kind): array
     {
@@ -402,14 +399,14 @@ final class NumberCounterTest extends KernelTestCase
 
         $seed = $this->process($url, ['seed']);
         $seed->mustRun();
-        [$series, $tenant] = explode(' ', trim($seed->getOutput()));
+        $series = trim($seed->getOutput());
 
-        return [$url, $series, $tenant];
+        return [$url, $series];
     }
 
-    private function start(string $url, string $series, string $tenant, int $count, float $startAt, int $rollBackEvery = 0): Process
+    private function start(string $url, string $series, int $count, float $startAt, int $rollBackEvery = 0): Process
     {
-        $process = $this->process($url, [$series, $tenant, (string) $count, \sprintf('%.6F', $startAt), (string) $rollBackEvery]);
+        $process = $this->process($url, [$series, (string) $count, \sprintf('%.6F', $startAt), (string) $rollBackEvery]);
         $process->start();
 
         return $process;

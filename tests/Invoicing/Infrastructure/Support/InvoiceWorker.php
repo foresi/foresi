@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\InvoiceStore;
@@ -51,7 +49,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * goes through the invoices in time slots shared with the others, so one boot
  * gives many collisions. Every job starts from a form opened at version 1.
  *
- * @phpstan-type Ids array{tenant: string, firm: string, series: string, customer: string, invoices: list<string>}
+ * @phpstan-type Ids array{firm: string, series: string, customer: string, invoices: list<string>}
  */
 abstract class InvoiceWorker extends KernelTestCase
 {
@@ -75,8 +73,6 @@ abstract class InvoiceWorker extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
 
-        $tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
         FirmAccounts::add($em, $firm, self::IBAN);
@@ -87,7 +83,7 @@ abstract class InvoiceWorker extends KernelTestCase
         $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
         $em->flush();
 
-        $ids = ['tenant' => $tenant->toString(), 'firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'invoices' => []];
+        $ids = ['firm' => $firm->id(), 'series' => $series->id(), 'customer' => $customer->id(), 'invoices' => []];
         $issue = $container->get(IssueInvoice::class);
         for ($i = 0; $i < $invoices; ++$i) {
             $ids['invoices'][] = $issue->issue(self::input($ids, self::lines($lines, 'seed', '100.00')))->id();
@@ -102,7 +98,7 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function perform(string $json, string $job, float $startAt): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $container = self::getContainer();
         $edit = $container->get(EditInvoice::class);
         $trash = $container->get(TrashInvoice::class);
@@ -151,7 +147,7 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function hold(string $json, string $change, float $startAt): void
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
         $connection->beginTransaction();
@@ -170,7 +166,7 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function churn(string $json, float $startAt, int $saves): void
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $edit = self::getContainer()->get(EditInvoice::class);
         usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
         for ($save = 0; $save < $saves; ++$save) {
@@ -186,7 +182,7 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function read(string $json, float $startAt, float $seconds): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $documents = self::getContainer()->get(IssuedDocumentFactory::class);
         usleep(max(0, (int) (($startAt - microtime(true)) * 1_000_000)));
         $reads = 0;
@@ -210,7 +206,7 @@ abstract class InvoiceWorker extends KernelTestCase
     public static function inspect(string $json): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $store = self::getContainer()->get(InvoiceStore::class);
         $found = [];
         foreach ($ids['invoices'] as $id) {
@@ -231,13 +227,9 @@ abstract class InvoiceWorker extends KernelTestCase
         return $found;
     }
 
-    /**
-     * @param Ids $ids
-     */
-    private static function enter(array $ids): void
+    private static function enter(): void
     {
         self::bootKernel(['debug' => false]);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
     }
 
     /**

@@ -25,7 +25,7 @@ final class PaymentApiTest extends ApiTestCase
 {
     public function testAPaymentIsWrittenWithItsAllocationsInTheListAndAlone(): void
     {
-        [$invoice, $payment] = $this->inTenant($this->tenant, function (): array {
+        [$invoice, $payment] = $this->flushed(function (): array {
             $invoice = $this->invoice();
 
             return [$invoice, $this->payment('2026-11-12', [$invoice->id() => '1000'], note: 'Paid by bank')];
@@ -63,7 +63,7 @@ final class PaymentApiTest extends ApiTestCase
 
     public function testACancelledPaymentIsListedWhenAskedForAndSaysWhen(): void
     {
-        [$live, $cancelled] = $this->inTenant($this->tenant, fn (): array => [
+        [$live, $cancelled] = $this->flushed(fn (): array => [
             $this->payment(note: 'Live', amount: '100'),
             $this->payment(note: 'Cancelled', amount: '100', cancelled: true),
         ]);
@@ -77,7 +77,7 @@ final class PaymentApiTest extends ApiTestCase
 
     public function testTheFirmTheInvoiceAndTheDirectionNarrowTheList(): void
     {
-        [$first, $other, $refund, $otherFirm, $invoice] = $this->inTenant($this->tenant, function (): array {
+        [$first, $other, $refund, $otherFirm, $invoice] = $this->flushed(function (): array {
             $invoice = $this->invoice();
             $first = $this->payment(parts: [$invoice->id() => '1000']);
             $refund = $this->payment(parts: [$invoice->id() => '100'], direction: PaymentDirection::Refund);
@@ -102,7 +102,7 @@ final class PaymentApiTest extends ApiTestCase
 
     public function testTheDaysAreInclusive(): void
     {
-        [$early, $middle, $late] = $this->inTenant($this->tenant, fn (): array => array_map(fn (string $day): Payment => $this->payment($day, amount: '100'), ['2026-11-01', '2026-11-05', '2026-11-10']));
+        [$early, $middle, $late] = $this->flushed(fn (): array => array_map(fn (string $day): Payment => $this->payment($day, amount: '100'), ['2026-11-01', '2026-11-05', '2026-11-10']));
 
         $this->get('/api/v1/payments', ['received_from' => '2026-11-05']);
         self::assertSame([$late->id(), $middle->id()], $this->ids());
@@ -112,7 +112,7 @@ final class PaymentApiTest extends ApiTestCase
 
     public function testTheCursorPagesThroughTheListWithoutOverlap(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (int $day): string => $this->payment(\sprintf('2026-11-%02d', $day), amount: '100')->id(), [1, 2, 3]));
+        $ids = $this->flushed(fn (): array => array_map(fn (int $day): string => $this->payment(\sprintf('2026-11-%02d', $day), amount: '100')->id(), [1, 2, 3]));
 
         self::assertSame([[$ids[2], $ids[1]], [$ids[0]]], $this->pages('/api/v1/payments', 2));
         self::assertSame([[$ids[2], $ids[1], $ids[0]]], $this->pages('/api/v1/payments', 3));
@@ -146,7 +146,7 @@ final class PaymentApiTest extends ApiTestCase
 
     public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
-        $payment = $this->inTenant($this->tenant, fn (): Payment => $this->payment(amount: '100'));
+        $payment = $this->flushed(fn (): Payment => $this->payment(amount: '100'));
         $secret = $this->issued([ApiScope::from('invoices:read')]);
 
         $this->get('/api/v1/payments', secret: $secret);

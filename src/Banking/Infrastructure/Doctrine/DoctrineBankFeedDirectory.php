@@ -10,13 +10,11 @@ namespace App\Banking\Infrastructure\Doctrine;
 
 use App\Banking\Application\BankFeedDirectory;
 use App\Banking\Application\FeedRoute;
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\DBAL\Connection;
 
 /**
- * Plain SQL inside the sanctioned bypass: the token hash is the only key, and
- * no entity is loaded, so nothing of a tenant stays in the session. An archived
- * account takes in nothing, as it gets no address.
+ * Plain SQL: the token hash is the only key, and no entity is loaded. An
+ * archived account takes in nothing, as it gets no address.
  */
 final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
 {
@@ -27,7 +25,7 @@ final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
         WHERE f.token_hash = :hash
         SQL;
 
-    public function __construct(private Connection $connection, private TenantFilterBypass $bypass)
+    public function __construct(private Connection $connection)
     {
     }
 
@@ -36,7 +34,7 @@ final readonly class DoctrineBankFeedDirectory implements BankFeedDirectory
         if (1 !== preg_match('/^[0-9a-f]{64}$/D', $tokenHash)) {
             return null;
         }
-        $row = $this->bypass->run(fn (): array|false => $this->connection->fetchAssociative(self::ROUTE, ['hash' => $tokenHash]));
+        $row = $this->connection->fetchAssociative(self::ROUTE, ['hash' => $tokenHash]);
         if (false === $row) {
             return null;
         }

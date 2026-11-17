@@ -35,7 +35,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the reminder specs, dated from the day the seed runs so its invoices stay
+// The world of the reminder specs, dated from the day the seed runs so its invoices stay
 // overdue. "Example Reminding" reminds automatically since two months ago: R0001 has had two
 // reminders today, R0002 gets its first tomorrow, R0003 is not due yet. "Example Manual" has
 // reminders off: S0001 is overdue, for a reminder by hand, and S0002 is due in five days,

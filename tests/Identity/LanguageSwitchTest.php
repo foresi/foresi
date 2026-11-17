@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Identity;
 
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -25,8 +24,8 @@ final class LanguageSwitchTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
-        $this->browser->seed(['Tenant A'], 'en');
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
+        $this->browser->seed('en');
         $this->browser->signIn();
     }
 

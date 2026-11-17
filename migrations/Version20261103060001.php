@@ -27,7 +27,7 @@ final class Version20261103060001 extends AbstractMigration
     {
         $feed = $schema->createTable('bank_feed');
         $feed->addColumn('id', Types::GUID);
-        $feed->addColumn('tenant_id', 'tenant_id');
+        $feed->addColumn('tenant_id', 'guid');
         $feed->addColumn('firm_bank_account_id', Types::GUID);
         $feed->addColumn('token_hash', Types::STRING, ['length' => 64, 'fixed' => true]);
         $feed->addColumn('token_sealed', Types::TEXT);
@@ -43,7 +43,7 @@ final class Version20261103060001 extends AbstractMigration
 
         $pairing = $schema->createTable('firm_bank_pairing');
         $pairing->addColumn('id', Types::GUID);
-        $pairing->addColumn('tenant_id', 'tenant_id');
+        $pairing->addColumn('tenant_id', 'guid');
         $pairing->addColumn('legal_entity_id', Types::GUID);
         $pairing->addColumn('auto_pairing', Types::BOOLEAN, ['default' => true]);
         $pairing->addColumn('small_difference', Types::BOOLEAN, ['default' => false]);

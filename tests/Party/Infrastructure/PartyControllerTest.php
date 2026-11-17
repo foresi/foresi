@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
@@ -32,8 +30,6 @@ final class PartyControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function tearDown(): void
     {
@@ -46,14 +42,13 @@ final class PartyControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     public function testTheAddressBookIsForTheStaffAlone(): void
     {
         $this->signIn(role: Role::Guest);
-        $contact = $this->party('Example Company s.r.o.', $this->tenant);
+        $contact = $this->party('Example Company s.r.o.');
 
         foreach (['/contacts', '/contacts/new', '/contacts/'.$contact->id(), '/contacts/'.$contact->id().'/edit'] as $url) {
             $this->client->request('GET', $url);
@@ -78,7 +73,7 @@ final class PartyControllerTest extends WebTestCase
     public function testAnIdThatIsNotAUuidNeverReachesTheDatabase(): void
     {
         $this->signIn();
-        $company = $this->party('Example Company s.r.o.', $this->tenant);
+        $company = $this->party('Example Company s.r.o.');
 
         // PostgreSQL refuses such a value for a uuid column, which must not become a server error.
         $this->client->request('GET', '/contacts?import=12&outcome=create');
@@ -92,7 +87,7 @@ final class PartyControllerTest extends WebTestCase
     public function testListShowsTheContacts(): void
     {
         $this->signIn();
-        $this->party('Example Company s.r.o.', $this->tenant);
+        $this->party('Example Company s.r.o.');
 
         $this->client->request('GET', '/contacts');
 
@@ -105,8 +100,8 @@ final class PartyControllerTest extends WebTestCase
     public function testArchivedContactsAreHiddenUnlessTheArchivedViewIsOpen(): void
     {
         $this->signIn();
-        $this->party('Active Company', $this->tenant);
-        $archived = $this->party('Archived Company', $this->tenant);
+        $this->party('Active Company');
+        $archived = $this->party('Archived Company');
         $this->archive($archived);
 
         $this->client->request('GET', '/contacts');
@@ -121,10 +116,10 @@ final class PartyControllerTest extends WebTestCase
     public function testViewsFilterByRoleAndTheKpiStripCountsThem(): void
     {
         $this->signIn();
-        $this->party('Customer Only', $this->tenant, roles: [PartyRole::Customer]);
-        $this->party('Supplier Only', $this->tenant, roles: [PartyRole::Supplier]);
-        $this->party('Both Roles', $this->tenant, roles: [PartyRole::Customer, PartyRole::Supplier]);
-        $this->party('Unreliable Company', $this->tenant, vat: 'CZ12345687', refresh: true);
+        $this->party('Customer Only', roles: [PartyRole::Customer]);
+        $this->party('Supplier Only', roles: [PartyRole::Supplier]);
+        $this->party('Both Roles', roles: [PartyRole::Customer, PartyRole::Supplier]);
+        $this->party('Unreliable Company', vat: 'CZ12345687', refresh: true);
 
         $this->client->request('GET', '/contacts?view=suppliers');
         self::assertSelectorCount(2, 'main tbody tr');
@@ -142,8 +137,8 @@ final class PartyControllerTest extends WebTestCase
     public function testSearchCoversNameRegistrationNumberVatIdAndEmail(): void
     {
         $this->signIn();
-        $this->party('Alpha Trading', $this->tenant, number: '12345687', email: 'orders@example.com');
-        $this->party('Beta Services', $this->tenant, vat: 'CZ12345695', email: 'office@example.org');
+        $this->party('Alpha Trading', number: '12345687', email: 'orders@example.com');
+        $this->party('Beta Services', vat: 'CZ12345695', email: 'office@example.org');
 
         $found = static fn (Crawler $crawler): int => $crawler->filter('main tbody tr')->count();
 
@@ -161,7 +156,7 @@ final class PartyControllerTest extends WebTestCase
     {
         $this->signIn();
         for ($i = 1; $i <= 27; ++$i) {
-            $this->party(sprintf('Company %02d', $i), $this->tenant);
+            $this->party(sprintf('Company %02d', $i));
         }
 
         $crawler = $this->client->request('GET', '/contacts');
@@ -179,7 +174,7 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorExists('th[aria-sort="descending"]');
     }
 
-    public function testEmptyTenantShowsTheEmptyStateWithTheAddAction(): void
+    public function testAnEmptyAddressBookShowsTheEmptyStateWithTheAddAction(): void
     {
         $this->signIn();
 
@@ -290,7 +285,7 @@ final class PartyControllerTest extends WebTestCase
     public function testEditingKeepsTheInputAndMarksTheInvalidField(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant);
+        $party = $this->party('Example Company');
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         $form = $crawler->filter('main form')->form(['displayName' => 'Example Renamed', 'postalCode' => '', 'email' => 'not-an-email']);
 
@@ -306,7 +301,7 @@ final class PartyControllerTest extends WebTestCase
     public function testADomainErrorInsideTheWriteIsAFormErrorAndThePageStillQueries(): void
     {
         $this->signIn();
-        $this->party('Existing Company', $this->tenant);
+        $this->party('Existing Company');
         $crawler = $this->client->request('GET', '/contacts/new');
         $form = $crawler->filter('main form')->form($this->values(['displayName' => 'Rejected s.r.o.']));
 
@@ -327,7 +322,7 @@ final class PartyControllerTest extends WebTestCase
     public function testDuplicateRegistrationNumberWarnsWithALinkAndStillAllowsSaving(): void
     {
         $this->signIn();
-        $existing = $this->party('Existing Company', $this->tenant, number: '12345687');
+        $existing = $this->party('Existing Company', number: '12345687');
         $crawler = $this->client->request('GET', '/contacts/new');
         $form = $crawler->filter('main form')->form($this->values(['displayName' => 'Second Company', 'registrationNumber' => '12345687']));
 
@@ -354,7 +349,7 @@ final class PartyControllerTest extends WebTestCase
     public function testEditChangesTheContactAndDoesNotWarnAboutItself(): void
     {
         $this->signIn();
-        $party = $this->party('Old Name', $this->tenant, number: '12345687', email: 'old@example.com');
+        $party = $this->party('Old Name', number: '12345687', email: 'old@example.com');
 
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         self::assertResponseIsSuccessful();
@@ -377,7 +372,7 @@ final class PartyControllerTest extends WebTestCase
     public function testMobileAndWebsiteAreEditedAndShownOnlyWhenKnown(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant, number: '12345687');
+        $party = $this->party('Example Company', number: '12345687');
 
         $crawler = $this->client->request('GET', '/contacts/'.$party->id());
         self::assertCount(4, $crawler->filter('main dl dt')->reduce(static fn ($node): bool => \in_array($node->text(), ['Registration number', 'VAT ID', 'E-mail', 'Phone', 'Mobile', 'Website'], true)));
@@ -426,7 +421,7 @@ final class PartyControllerTest extends WebTestCase
     public function testArchiveAndRestoreAreCsrfProtectedPosts(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant);
+        $party = $this->party('Example Company');
         $this->client->request('GET', '/contacts/'.$party->id().'/archive');
         self::assertResponseStatusCodeSame(405);
         $this->client->request('POST', '/contacts/'.$party->id().'/archive', ['_token' => 'forged']);
@@ -446,9 +441,9 @@ final class PartyControllerTest extends WebTestCase
     public function testBulkArchiveArchivesTheSelectedContacts(): void
     {
         $this->signIn();
-        $a = $this->party('First Company', $this->tenant);
-        $this->party('Second Company', $this->tenant);
-        $c = $this->party('Third Company', $this->tenant);
+        $a = $this->party('First Company');
+        $this->party('Second Company');
+        $c = $this->party('Third Company');
 
         $this->client->request('POST', '/contacts/archive', ['_token' => $this->token('party_action'), 'ids' => [$a->id(), $c->id()]]);
 
@@ -461,9 +456,9 @@ final class PartyControllerTest extends WebTestCase
     public function testCsvExportContainsOnlyTheSelectedContacts(): void
     {
         $this->signIn();
-        $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687', vat: 'CZ12345687', email: 'info@example.com');
-        $this->party('Not Selected', $this->tenant);
-        $formula = $this->party('=HYPERLINK("http://example.com")', $this->tenant);
+        $mine = $this->party('Example Company s.r.o.', number: '12345687', vat: 'CZ12345687', email: 'info@example.com');
+        $this->party('Not Selected');
+        $formula = $this->party('=HYPERLINK("http://example.com")');
 
         $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id(), $formula->id(), 'abc', '']]);
 
@@ -483,7 +478,7 @@ final class PartyControllerTest extends WebTestCase
     public function testXlsxExportIsAWorkbookWithTheSameContacts(): void
     {
         $this->signIn();
-        $mine = $this->party('Example Company s.r.o.', $this->tenant, number: '12345687');
+        $mine = $this->party('Example Company s.r.o.', number: '12345687');
 
         $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id()], 'format' => 'xlsx']);
 
@@ -507,7 +502,7 @@ final class PartyControllerTest extends WebTestCase
     public function testLookupReturnsTheMappedRegistryRecord(): void
     {
         $this->signIn();
-        $existing = $this->party('Own Copy', $this->tenant, number: '12345687');
+        $existing = $this->party('Own Copy', number: '12345687');
 
         $this->client->request('GET', '/contacts/lookup?q=1234 5687');
 
@@ -549,7 +544,7 @@ final class PartyControllerTest extends WebTestCase
     public function testDetailShowsTheUnreliablePayerBadgeTheCheckTimeAndThePublishedAccounts(): void
     {
         $this->signIn('cs');
-        $party = $this->party('Unreliable Company', $this->tenant, vat: 'CZ12345687', refresh: true);
+        $party = $this->party('Unreliable Company', vat: 'CZ12345687', refresh: true);
 
         RegistryCalls::reset();
 
@@ -566,7 +561,7 @@ final class PartyControllerTest extends WebTestCase
     public function testNotRegisteredPayersAreLabelledAsNotVatPayers(): void
     {
         $this->signIn('cs');
-        $party = $this->party('Small Trader', $this->tenant, vat: 'CZ99999994', refresh: true);
+        $party = $this->party('Small Trader', vat: 'CZ99999994', refresh: true);
 
         $this->client->request('GET', '/contacts/'.$party->id());
 
@@ -608,7 +603,7 @@ final class PartyControllerTest extends WebTestCase
     public function testLongSearchTextIsCutToOneHundredCharacters(): void
     {
         $this->signIn();
-        $this->party('Example Company', $this->tenant);
+        $this->party('Example Company');
 
         $crawler = $this->client->request('GET', '/contacts?q='.str_repeat('a', 300));
 
@@ -619,7 +614,7 @@ final class PartyControllerTest extends WebTestCase
     public function testManualRefreshStoresThePublishedAccountsSoViewingNeedsNoRegister(): void
     {
         $this->signIn();
-        $party = $this->party('Unreliable Company', $this->tenant, vat: 'CZ12345687');
+        $party = $this->party('Unreliable Company', vat: 'CZ12345687');
         $this->client->request('POST', '/contacts/'.$party->id().'/registry-checks', ['_token' => $this->token('party_action')]);
         RegistryCalls::reset();
 
@@ -632,7 +627,7 @@ final class PartyControllerTest extends WebTestCase
     public function testRegistryChecksCanBeRefreshedByHand(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant, vat: 'CZ12345695');
+        $party = $this->party('Example Company', vat: 'CZ12345695');
 
         $this->client->request('GET', '/contacts/'.$party->id());
         self::assertSelectorTextContains('main', 'Not checked yet');
@@ -646,7 +641,7 @@ final class PartyControllerTest extends WebTestCase
     public function testRefreshingChecksIsLimitedPerUser(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant, vat: 'CZ12345695');
+        $party = $this->party('Example Company', vat: 'CZ12345695');
 
         for ($i = 0; $i < 10; ++$i) {
             $this->client->request('POST', '/contacts/'.$party->id().'/registry-checks', ['_token' => $this->token('party_action')]);
@@ -664,8 +659,8 @@ final class PartyControllerTest extends WebTestCase
     public function testContactPersonsCanBeLinkedToACompany(): void
     {
         $this->signIn();
-        $company = $this->party('Example Company', $this->tenant);
-        $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
+        $company = $this->party('Example Company');
+        $person = $this->party('Test Person', kind: PartyKind::Person);
 
         $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
         self::assertSelectorTextContains('main', 'There is no contact person yet.');
@@ -688,8 +683,8 @@ final class PartyControllerTest extends WebTestCase
     public function testARefusedContactPersonIsShownAgainWithEveryProblemAtItsField(): void
     {
         $this->signIn();
-        $company = $this->party('Example Company', $this->tenant);
-        $person = $this->party('Test Person', $this->tenant, kind: PartyKind::Person);
+        $company = $this->party('Example Company');
+        $person = $this->party('Test Person', kind: PartyKind::Person);
         $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=contacts');
         self::assertNotNull($crawler->filter('form[action$="/link"]')->attr('novalidate'));
         $form = $crawler->filter('form[action$="/link"]')->form();
@@ -715,7 +710,7 @@ final class PartyControllerTest extends WebTestCase
     public function testAddressAndBankAccountTabsRender(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant);
+        $party = $this->party('Example Company');
 
         $this->client->request('GET', '/contacts/'.$party->id().'?tab=addresses');
         self::assertSelectorTextContains('main table', 'Billing');
@@ -728,8 +723,8 @@ final class PartyControllerTest extends WebTestCase
     public function testHistoryListsTheAuditEntriesOfThisContactOnly(): void
     {
         $this->signIn();
-        $mine = $this->party('Example Company', $this->tenant, email: 'info@example.com');
-        $this->party('Second Company', $this->tenant);
+        $mine = $this->party('Example Company', email: 'info@example.com');
+        $this->party('Second Company');
         $crawler = $this->client->request('GET', '/contacts/'.$mine->id().'/edit');
         $this->client->submit($crawler->filter('main form')->form(['displayName' => 'Renamed Company']));
 
@@ -750,7 +745,7 @@ final class PartyControllerTest extends WebTestCase
     public function testTheHistoryOfAnEmailChangeNamesOnlyTheAddress(): void
     {
         $this->signIn();
-        $party = $this->party('Example Company', $this->tenant, email: 'info@example.com');
+        $party = $this->party('Example Company', email: 'info@example.com');
         $crawler = $this->client->request('GET', '/contacts/'.$party->id().'/edit');
         $this->client->submit($crawler->filter('main form')->form(['email' => 'Changed@example.com']));
 
@@ -771,20 +766,19 @@ final class PartyControllerTest extends WebTestCase
 
     private function signIn(string $locale = 'en', Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
+        $this->browser->seed($locale, $role);
         $this->browser->signIn();
     }
 
     /**
      * @param list<PartyRole> $roles
      */
-    private function party(string $name, TenantId $tenant, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false): Party
+    private function party(string $name, ?PartyKind $kind = null, array $roles = [PartyRole::Customer], ?string $number = null, ?string $vat = null, string $email = '', bool $refresh = false): Party
     {
         // The fixture is set up by the application, not by the signed-in person.
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
         $signedIn = $tokens->getToken();
         $tokens->setToken(null);
-        $this->context->switchTo($tenant);
         $party = self::getContainer()->get(CreateParty::class)->create(
             $kind ?? (null === $number && null === $vat ? PartyKind::SoleTrader : PartyKind::Company),
             $name,
@@ -800,7 +794,6 @@ final class PartyControllerTest extends WebTestCase
             $checks->refresh($party);
             self::getContainer()->get(EntityManagerInterface::class)->flush();
         }
-        $this->context->reset();
         $tokens->setToken($signedIn);
 
         return $party;
@@ -808,10 +801,8 @@ final class PartyControllerTest extends WebTestCase
 
     private function archive(Party $party): void
     {
-        $this->context->switchTo($this->tenant);
         $party = self::getContainer()->get(EntityManagerInterface::class)->find(Party::class, $party->id()) ?? throw new \LogicException();
         self::getContainer()->get(ArchiveParty::class)->archive([$party]);
-        $this->context->reset();
     }
 
     private function token(string $id): string
@@ -835,11 +826,7 @@ final class PartyControllerTest extends WebTestCase
 
     private function partyCount(): int
     {
-        $this->context->switchTo($this->tenant);
-        $count = (int) self::getContainer()->get(EntityManagerInterface::class)->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p')->getSingleScalarResult();
-        $this->context->reset();
-
-        return $count;
+        return (int) self::getContainer()->get(EntityManagerInterface::class)->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p')->getSingleScalarResult();
     }
 
     private function idOf(string $name): string

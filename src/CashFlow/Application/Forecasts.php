@@ -23,7 +23,7 @@ use App\CashFlow\Domain\PlannedItem;
 use App\ExchangeRate\Application\ExchangeRates;
 use App\ExchangeRate\Domain\ExchangeRate;
 use App\ExchangeRate\Domain\RateNotAvailable;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
@@ -33,7 +33,7 @@ use Psr\Log\LoggerInterface;
 /**
  * The forecast of a firm, computed on read from every source and the latest
  * balance of each of its bank accounts (C2, C6–C10, C14). "Today" is the
- * tenant's today only. A flow still open before today is counted on the first
+ * instance's today only. A flow still open before today is counted on the first
  * day and flagged overdue; a document with an expected day is counted then.
  * Every amount is converted to CZK at today's rate and keeps its own amount.
  * A planned occurrence that a document or a bank movement already fulfils is
@@ -63,7 +63,7 @@ final class Forecasts
     public function __construct(
         private readonly CashFlowAccess $access,
         private readonly CashFlowStore $store,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly ExchangeRates $exchangeRates,
         private readonly LoggerInterface $logger,
         private readonly iterable $sources,

@@ -27,7 +27,6 @@ use App\Import\Application\Target\TargetRegistry;
 use App\Import\Application\UndoImport;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
-use App\Instance\Application\TenantContext;
 use App\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -46,8 +45,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The import screens: history, upload, and one page per import that shows the
  * step it is at (mapping, check, progress, summary). Every action goes through
- * the import's application services; an import of another tenant is never
- * found, so it answers 404 like one that does not exist.
+ * the import's application services; an import that does not exist answers 404.
  */
 final class ImportController extends AbstractController
 {
@@ -69,7 +67,6 @@ final class ImportController extends AbstractController
         private readonly ProfileRepository $profiles,
         private readonly TargetRegistry $targets,
         private readonly ImportScreens $screens,
-        private readonly TenantContext $tenants,
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
@@ -80,8 +77,6 @@ final class ImportController extends AbstractController
     #[Route('/imports', name: 'app_imports', methods: ['GET'])]
     public function index(): Response
     {
-        $this->requireTenant();
-
         return $this->render('import/index.html.twig', [
             'columns' => $this->screens->historyColumns(),
             'rows' => $this->screens->historyRows($this->imports->history(self::HISTORY_LIMIT)),
@@ -94,8 +89,6 @@ final class ImportController extends AbstractController
     #[Route('/imports/new', name: 'app_import_new', methods: ['GET'])]
     public function new(Request $request): Response
     {
-        $this->requireTenant();
-
         return $this->upload($this->chosenTarget($request->query->getString('target')));
     }
 
@@ -104,8 +97,6 @@ final class ImportController extends AbstractController
     {
         // A body over post_max_size reaches the controller empty: no token, no file, nothing to act on.
         if (0 === $request->request->count() && 0 === $request->files->count() && $request->server->getInt('CONTENT_LENGTH') > 0) {
-            $this->requireTenant();
-
             return $this->upload($this->chosenTarget($request->query->getString('target')), ['file' => $this->serverLimit()], null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->checkToken($request);
@@ -443,17 +434,8 @@ final class ImportController extends AbstractController
 
     private function import(string $id): Import
     {
-        $this->requireTenant();
-
         // Fresh: a long-running process (a worker in the same process, a test) may hold an older copy.
         return $this->imports->findFresh($id) ?? throw new NotFoundHttpException();
-    }
-
-    private function requireTenant(): void
-    {
-        if (!$this->tenants->has()) {
-            throw new NotFoundHttpException();
-        }
     }
 
     private function userId(): string
@@ -463,7 +445,6 @@ final class ImportController extends AbstractController
 
     private function checkToken(Request $request): void
     {
-        $this->requireTenant();
         if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }

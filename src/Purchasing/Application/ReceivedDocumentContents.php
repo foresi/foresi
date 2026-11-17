@@ -77,7 +77,7 @@ final readonly class ReceivedDocumentContents
     }
 
     /**
-     * @throws ReceivedDocumentRefused with SUPPLIER_UNKNOWN for an id no contact of the tenant has
+     * @throws ReceivedDocumentRefused with SUPPLIER_UNKNOWN for an id no contact has
      */
     private function supplier(?string $id): ?Party
     {

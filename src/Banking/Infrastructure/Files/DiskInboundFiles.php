@@ -13,7 +13,7 @@ use App\Banking\Application\InboundFiles;
 /**
  * Raw inbound mail in one directory, never below public/, each file readable by
  * the server's user only. Back the directory up with the database. Mail stored
- * while an instance had tenants lies one directory deeper, under the tenant's id.
+ * by older versions lies one directory deeper, under the organisation's id.
  */
 final readonly class DiskInboundFiles implements InboundFiles
 {

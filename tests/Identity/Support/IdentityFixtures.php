@@ -11,9 +11,6 @@ namespace App\Tests\Identity\Support;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,10 +25,8 @@ final readonly class IdentityFixtures
     public const string EMAIL = 'testing@example.com';
     public const string PASSWORD = 'throwaway-password-1';
 
-    public function __construct(
-        private EntityManagerInterface $em,
-        private TenantContext $context,
-    ) {
+    public function __construct(private EntityManagerInterface $em)
+    {
     }
 
     public function rebuildSchema(): void
@@ -52,27 +47,19 @@ final readonly class IdentityFixtures
         return $user;
     }
 
-    public function tenant(string $name): TenantId
+    /**
+     * Gives the user their one membership in the instance.
+     */
+    public function join(User $user, Role $role = Role::Owner): void
     {
-        $tenant = new Tenant(TenantId::generate(), $name, new \DateTimeImmutable());
-        $this->em->persist($tenant);
-        $this->em->flush();
-
-        return $tenant->id();
-    }
-
-    public function join(User $user, TenantId $tenant, Role $role = Role::Owner): void
-    {
-        $this->context->switchTo($tenant);
-        // A guest always represents a contact of the tenant.
+        // A guest always represents a contact.
         $party = null;
         if (Role::Guest === $role) {
             $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
             $this->em->persist($party);
         }
-        // Switching tenant clears the entity manager, so the user is re-attached by reference.
+        // By reference, as a test may have cleared the entity manager since the user was made.
         $this->em->persist(new Membership($this->em->getReference(User::class, $user->id()) ?? throw new \LogicException('The user is missing.'), $role, $party));
         $this->em->flush();
-        $this->context->reset();
     }
 }

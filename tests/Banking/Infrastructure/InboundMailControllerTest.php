@@ -10,7 +10,6 @@ namespace App\Tests\Banking\Infrastructure;
 
 use App\Banking\Application\GenerateAddress;
 use App\Banking\Application\ReceiveInboundMail;
-use App\Instance\Application\TenantContext;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;
 use Doctrine\DBAL\Connection;
@@ -98,7 +97,6 @@ final class InboundMailControllerTest extends WebTestCase
         self::assertCount(1, array_unique($answers), implode("\n", $answers));
         self::assertSame(1, $this->rowCount());
         self::assertSame('webhook', $this->connection()->fetchOne('SELECT channel FROM inbound_message'));
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     public function testTheRecipientHeaderRoutesTheMessage(): void
@@ -224,7 +222,7 @@ final class InboundMailControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->kit = InboundMailKit::seed(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(TenantContext::class), self::getContainer()->get(GenerateAddress::class));
+        $this->kit = InboundMailKit::seed(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(GenerateAddress::class));
     }
 
     private function changeEnv(string $name, string $value): void

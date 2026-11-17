@@ -10,8 +10,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -39,8 +37,6 @@ final class MyTasksControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -48,8 +44,7 @@ final class MyTasksControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -139,7 +134,7 @@ final class MyTasksControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
@@ -149,46 +144,41 @@ final class MyTasksControllerTest extends WebTestCase
      */
     private function seed(): void
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            $me = $this->em->getRepository(Membership::class)->findOneBy([]) ?? throw new \LogicException('Membership.');
-            $userId = $me->user()->id();
-            $now = new \DateTimeImmutable('2026-11-01');
-            $client = new Party(PartyKind::Person, 'Example Client', null, null, '');
-            $this->em->persist($client);
-            $position = 0;
-            foreach (['Website' => $client, 'Other' => null, 'Old' => null] as $name => $for) {
-                $project = new Project($name, $for, WorkflowTemplate::Simple, $userId, $now);
-                $open = new ProjectStatus($project, 'To do', StatusType::Open, 0);
-                $done = new ProjectStatus($project, 'Done', StatusType::Done, 1);
-                foreach ([$project, $open, $done] as $entity) {
-                    $this->em->persist($entity);
-                }
-                $tasks = match ($name) {
-                    'Website' => [['Fix the form', '2026-11-18', Priority::None, $open], ['Call the client', '2026-11-20', Priority::High, $open], ['Write the copy', '2026-11-25', Priority::Low, $open], ['Plan the launch', '2026-12-15', Priority::None, $open], ['Old bug', '2026-11-10', Priority::None, $done]],
-                    'Other' => [['Order the hosting', '2026-11-20', Priority::None, $open]],
-                    default => [['Archived work', '2026-11-19', Priority::None, $open]],
-                };
-                foreach ($tasks as [$title, $due, $priority, $status]) {
-                    $task = new Task($project, $title, $status, $position++, $userId, $now);
-                    $task->assign($me);
-                    $task->dueOn(new \DateTimeImmutable($due));
-                    $task->prioritise($priority);
-                    $this->em->persist($task);
-                }
-                if ('Other' === $name) {
-                    $watched = new Task($project, 'Review the budget', $open, $position++, $userId, $now);
-                    $this->em->persist($watched);
-                    $this->em->persist(new TaskWatcher($watched, $me));
-                }
-                if ('Old' === $name) {
-                    $project->archive($now);
-                }
+        $me = $this->em->getRepository(Membership::class)->findOneBy([]) ?? throw new \LogicException('Membership.');
+        $userId = $me->user()->id();
+        $now = new \DateTimeImmutable('2026-11-01');
+        $client = new Party(PartyKind::Person, 'Example Client', null, null, '');
+        $this->em->persist($client);
+        $position = 0;
+        foreach (['Website' => $client, 'Other' => null, 'Old' => null] as $name => $for) {
+            $project = new Project($name, $for, WorkflowTemplate::Simple, $userId, $now);
+            $open = new ProjectStatus($project, 'To do', StatusType::Open, 0);
+            $done = new ProjectStatus($project, 'Done', StatusType::Done, 1);
+            foreach ([$project, $open, $done] as $entity) {
+                $this->em->persist($entity);
             }
-            $this->em->flush();
-        } finally {
-            $this->context->reset();
+            $tasks = match ($name) {
+                'Website' => [['Fix the form', '2026-11-18', Priority::None, $open], ['Call the client', '2026-11-20', Priority::High, $open], ['Write the copy', '2026-11-25', Priority::Low, $open], ['Plan the launch', '2026-12-15', Priority::None, $open], ['Old bug', '2026-11-10', Priority::None, $done]],
+                'Other' => [['Order the hosting', '2026-11-20', Priority::None, $open]],
+                default => [['Archived work', '2026-11-19', Priority::None, $open]],
+            };
+            foreach ($tasks as [$title, $due, $priority, $status]) {
+                $task = new Task($project, $title, $status, $position++, $userId, $now);
+                $task->assign($me);
+                $task->dueOn(new \DateTimeImmutable($due));
+                $task->prioritise($priority);
+                $this->em->persist($task);
+            }
+            if ('Other' === $name) {
+                $watched = new Task($project, 'Review the budget', $open, $position++, $userId, $now);
+                $this->em->persist($watched);
+                $this->em->persist(new TaskWatcher($watched, $me));
+            }
+            if ('Old' === $name) {
+                $project->archive($now);
+            }
         }
+        $this->em->flush();
     }
 
     /**

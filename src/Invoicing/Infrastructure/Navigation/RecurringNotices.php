@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
+use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\IssueRecurringInvoices;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Ui\Notice\ShellNotice;
@@ -25,7 +25,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * last run was refused, until a run goes clean or the template ends, or, for a
  * refused send, until its invoice is sent or marked delivered; invoices a
  * template issued that wait to be sent, held for review or refused for sending;
- * and a day whose run has not finished by LATE_HOUR in the tenant's zone while
+ * and a day whose run has not finished by LATE_HOUR in the instance's zone while
  * templates are due, which most likely means no worker or scheduler runs.
  */
 final readonly class RecurringNotices implements ShellNoticeProvider
@@ -36,7 +36,7 @@ final readonly class RecurringNotices implements ShellNoticeProvider
     public function __construct(
         private RecurringInvoices $templates,
         private ScheduledJobRuns $runs,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private StaffCheck $staff,
         private ClockInterface $clock,
         private UrlGeneratorInterface $urls,
@@ -64,7 +64,7 @@ final readonly class RecurringNotices implements ShellNoticeProvider
 
     private function runIsLate(): bool
     {
-        $local = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->tenantClock->timezone());
+        $local = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->instanceClock->timezone());
         if ((int) $local->format('G') < self::LATE_HOUR) {
             return false;
         }

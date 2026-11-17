@@ -39,7 +39,7 @@ final class Version20261109160001 extends AbstractMigration
 
         $entry = $schema->createTable('time_entry');
         $entry->addColumn('id', Types::GUID);
-        $entry->addColumn('tenant_id', 'tenant_id');
+        $entry->addColumn('tenant_id', 'guid');
         $entry->addColumn('project_id', Types::GUID);
         $entry->addColumn('task_id', Types::GUID, ['notnull' => false]);
         $entry->addColumn('membership_id', Types::GUID);

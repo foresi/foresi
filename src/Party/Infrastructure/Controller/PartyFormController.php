@@ -10,7 +10,6 @@ namespace App\Party\Infrastructure\Controller;
 
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\OwnerCheck;
-use App\Instance\Application\TenantContext;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\ContactSettingsForFirm;
 use App\Party\Application\CreateParty;
@@ -77,7 +76,6 @@ final class PartyFormController extends AbstractController
         private readonly PartySubmissionReader $reader,
         private readonly SubmissionTokens $tokens,
         private readonly RegistryLookup $lookup,
-        private readonly TenantContext $context,
         private readonly AuditActor $actor,
         #[Autowire(service: 'limiter.party_lookup')]
         private readonly RateLimiterFactory $lookupLimiter,
@@ -135,9 +133,6 @@ final class PartyFormController extends AbstractController
     #[Route('/contacts/lookup', name: 'app_contact_lookup', methods: ['GET'])]
     public function lookup(Request $request): JsonResponse
     {
-        if (!$this->context->has()) {
-            throw new NotFoundHttpException();
-        }
         $limit = $this->lookupLimiter->create((string) ($this->actor->userId() ?? $request->getClientIp()))->consume();
         if (!$limit->isAccepted()) {
             $retry = max(1, $limit->getRetryAfter()->getTimestamp() - time());

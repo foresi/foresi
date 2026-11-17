@@ -12,8 +12,7 @@ use App\Party\Domain\Party;
 use App\Party\Domain\PartyRole;
 
 /**
- * Reads parties of the active tenant. Parties of any other tenant do not exist
- * for it: they are never listed and never found.
+ * Reads parties.
  */
 interface PartyQuery
 {
@@ -45,7 +44,7 @@ interface PartyQuery
     /**
      * @param list<string> $ids
      *
-     * @return list<Party> those of the ids that belong to the active tenant
+     * @return list<Party> those of the ids that exist
      */
     public function findMany(array $ids): array;
 

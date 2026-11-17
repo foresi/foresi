@@ -23,7 +23,7 @@ final readonly class PaymentDetails
 
     /**
      * @throws PaymentsNotAllowed for anyone but the owners and members of the organisation
-     * @throws UnknownPayment     also for a payment of another tenant
+     * @throws UnknownPayment
      */
     public function of(string $id): PaymentRow
     {

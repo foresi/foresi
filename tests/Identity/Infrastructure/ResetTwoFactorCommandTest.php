@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Infrastructure;
 
 use App\Identity\Application\UserRepository;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -23,7 +22,7 @@ final class ResetTwoFactorCommandTest extends KernelTestCase
     protected function setUp(): void
     {
         $kernel = self::bootKernel();
-        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'));
         $fixtures->rebuildSchema();
         $user = $fixtures->user();
         $user->enrolTwoFactor('test1:sealed', [hash('sha256', 'CODE')]);

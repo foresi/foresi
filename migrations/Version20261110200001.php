@@ -29,7 +29,7 @@ final class Version20261110200001 extends AbstractMigration
     {
         $series = $schema->createTable('evidence_series');
         $series->addColumn('id', Types::GUID);
-        $series->addColumn('tenant_id', 'tenant_id');
+        $series->addColumn('tenant_id', 'guid');
         $series->addColumn('legal_entity_id', Types::GUID);
         $series->addColumn('format', Types::STRING, ['length' => 32]);
         $series->setPrimaryKey(['id']);
@@ -39,7 +39,7 @@ final class Version20261110200001 extends AbstractMigration
 
         $counter = $schema->createTable('evidence_counter');
         $counter->addColumn('id', Types::GUID);
-        $counter->addColumn('tenant_id', 'tenant_id');
+        $counter->addColumn('tenant_id', 'guid');
         $counter->addColumn('evidence_series_id', Types::GUID);
         $counter->addColumn('period', Types::STRING, ['length' => 8]);
         $counter->addColumn('last_value', Types::INTEGER);

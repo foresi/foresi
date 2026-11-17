@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Instance\Infrastructure;
 
 use App\Instance\Application\Schedule\RunOperatorTask;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Instance\Infrastructure\Schedule\ForesiSchedule;
 use App\Instance\Infrastructure\Schedule\ScheduleTick;
 use App\Tests\Import\Support\RunMessages;
@@ -26,8 +24,8 @@ use Symfony\Component\Scheduler\Generator\MessageContext;
 use Symfony\Component\Scheduler\Trigger\PeriodicalTrigger;
 
 /**
- * Operator tasks are installation work with no tenant, such as polling the
- * operator's bank inbox. The schedule sends each at its own pace, and a run
+ * Operator tasks are installation work, such as polling the operator's bank
+ * inbox. The schedule sends each at its own pace, and a run
  * holds a lock, so a second worker at the same moment skips instead of doing
  * the work twice.
  */
@@ -53,7 +51,7 @@ final class OperatorTaskTest extends KernelTestCase
         parent::tearDown();
     }
 
-    public function testOperatorTasksRunWithoutATenantUnderALock(): void
+    public function testOperatorTasksRunUnderALock(): void
     {
         // A second worker gets the same task while the first still runs it.
         CountingOperatorTask::during(function (): void {
@@ -63,11 +61,11 @@ final class OperatorTaskTest extends KernelTestCase
         $this->bus->dispatch(new RunOperatorTask(CountingOperatorTask::NAME));
         self::assertSame(1, $this->worker->run());
 
-        self::assertSame([false], CountingOperatorTask::runs());
+        self::assertSame(1, CountingOperatorTask::runs());
 
         // The lock is released afterwards, so the next run goes ahead.
         $this->deliver(new RunOperatorTask(CountingOperatorTask::NAME));
-        self::assertSame([false, false], CountingOperatorTask::runs());
+        self::assertSame(2, CountingOperatorTask::runs());
     }
 
     public function testARunHeldElsewhereIsSkipped(): void
@@ -81,7 +79,7 @@ final class OperatorTaskTest extends KernelTestCase
             $lock->release();
         }
 
-        self::assertSame([], CountingOperatorTask::runs());
+        self::assertSame(0, CountingOperatorTask::runs());
     }
 
     public function testAFailedRunFreesTheLock(): void
@@ -91,24 +89,7 @@ final class OperatorTaskTest extends KernelTestCase
         $this->deliver(new RunOperatorTask(CountingOperatorTask::NAME));
         $this->deliver(new RunOperatorTask(CountingOperatorTask::NAME));
 
-        self::assertSame([false, false], CountingOperatorTask::runs());
-    }
-
-    public function testAnOperatorTaskNeverRunsInATenant(): void
-    {
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->set(TenantId::generate());
-
-        try {
-            $this->bus->dispatch(new RunOperatorTask(CountingOperatorTask::NAME));
-            $context->reset();
-            $this->worker->run();
-            self::fail('A task sent from inside a tenant must be refused.');
-        } catch (HandlerFailedException $failure) {
-            self::assertStringContainsString('without a tenant', $failure->getMessage());
-        }
-
-        self::assertSame([], CountingOperatorTask::runs());
+        self::assertSame(2, CountingOperatorTask::runs());
     }
 
     public function testAnUnknownTaskIsRefused(): void

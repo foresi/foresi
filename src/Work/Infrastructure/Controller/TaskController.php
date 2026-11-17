@@ -16,7 +16,7 @@ use App\Identity\Application\OpenToGuest;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Ui\FileSize;
 use App\Work\Application\Choice;
 use App\Work\Application\Comments;
@@ -105,7 +105,7 @@ final class TaskController extends AbstractController
         private readonly People $people,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly VisibleAttachments $attachments,
         private readonly AttachmentPermissions $attachmentPermissions,

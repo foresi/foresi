@@ -11,9 +11,7 @@ namespace App\Tests\Work\Infrastructure\Controller;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantClock;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
+use App\Instance\Application\InstanceClock;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Ui\Dialog\DialogRequest;
@@ -39,16 +37,13 @@ final class TimeControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTimeIsLoggedInTheDialogAndShownWithItsTotal(): void
@@ -264,7 +259,7 @@ final class TimeControllerTest extends WebTestCase
      */
     private function seed(): string
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation']);
+        $this->browser->seed();
         $this->browser->signIn();
         $crawler = $this->client->request('GET', '/projects/new');
         $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website']));
@@ -274,8 +269,8 @@ final class TimeControllerTest extends WebTestCase
         $this->em->persist($jana);
         $this->em->persist($guest);
         $this->em->flush();
-        $this->browser->fixtures->join($jana, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($guest, $this->tenant, Role::Guest);
+        $this->browser->fixtures->join($jana, Role::Member);
+        $this->browser->fixtures->join($guest, Role::Guest);
         $this->scoped(function () use ($id): void {
             $project = $this->em->find(Project::class, $id) ?? throw new \LogicException('Project.');
             [$open] = $this->em->getRepository(ProjectStatus::class)->findBy(['project' => $project], ['position' => 'ASC']);
@@ -333,7 +328,7 @@ final class TimeControllerTest extends WebTestCase
 
     private function today(): string
     {
-        return $this->scoped(fn (): string => self::getContainer()->get(TenantClock::class)->today()->format('Y-m-d'));
+        return $this->scoped(fn (): string => self::getContainer()->get(InstanceClock::class)->today()->format('Y-m-d'));
     }
 
     private function membership(string $email): Membership
@@ -376,11 +371,6 @@ final class TimeControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 }

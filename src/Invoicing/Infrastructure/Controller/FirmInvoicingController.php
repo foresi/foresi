@@ -40,8 +40,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The invoicing settings and number series of a firm, for the owner, worked like
- * the firm form. A firm or series of another tenant is never found, so it answers
- * 404 exactly like one that does not exist; a series of another firm does too.
+ * the firm form. An unknown firm or series answers 404; a series of another firm
+ * does too.
  */
 final class FirmInvoicingController extends AbstractController
 {

@@ -11,8 +11,7 @@ namespace App\Tests\Webhooks\Application;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
+use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Webhooks\Application\CreatedEndpoint;
 use App\Webhooks\Application\InvalidWebhookEndpoint;
@@ -48,15 +47,12 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get(EntityManagerInterface::class);
-        $context = $container->get(TenantContext::class);
-        $fixtures = new IdentityFixtures($em, $context);
+        $fixtures = new IdentityFixtures($em);
         $fixtures->rebuildSchema();
         $this->member = $fixtures->user('member@example.com');
         $this->guest = $fixtures->user('guest@example.com');
-        $tenant = $fixtures->tenant('Example Organisation');
-        $fixtures->join($this->member, $tenant, Role::Member);
-        $fixtures->join($this->guest, $tenant, Role::Guest);
-        $context->switchTo($tenant);
+        $fixtures->join($this->member, Role::Member);
+        $fixtures->join($this->guest, Role::Guest);
         $this->signIn($this->member);
         $this->manage = $container->get(ManageWebhookEndpoints::class);
         $this->list = $container->get(WebhookEndpointList::class);
@@ -209,7 +205,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
     public function testUnknownEndpointIsUnknown(): void
     {
         $this->expectException(UnknownWebhookEndpoint::class);
-        $this->manage->delete(TenantId::generate()->toString());
+        $this->manage->delete(Id::generate());
     }
 
     private function signIn(User $user): void

@@ -43,7 +43,7 @@ final readonly class RequeueStuckSends implements ScheduledJob
     }
 
     /**
-     * Five minutes of UTC, the same in every zone: sends wait for no tenant's day.
+     * Five minutes of UTC, the same in every zone: sends wait for no local day.
      */
     public function period(\DateTimeImmutable $now, \DateTimeZone $zone): string
     {

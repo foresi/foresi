@@ -233,7 +233,7 @@ final class ContactWriteApiTest extends ApiTestCase
      */
     private function contactsNamed(string $prefix): array
     {
-        return $this->inTenant($this->tenant, fn (): array => array_values(array_filter(
+        return $this->flushed(fn (): array => array_values(array_filter(
             $this->em()->getRepository(Party::class)->findAll(),
             static fn (Party $party): bool => str_starts_with($party->displayName(), $prefix),
         )));

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\MissingTaxDocuments;
 use App\Invoicing\Application\UncorrectedTaxDocuments;
 use App\Ui\Notice\ShellNotice;
@@ -29,7 +29,7 @@ final readonly class TaxDocumentNotices implements ShellNoticeProvider
     public function __construct(
         private MissingTaxDocuments $missing,
         private UncorrectedTaxDocuments $uncorrected,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private StaffCheck $staff,
         private UrlGeneratorInterface $urls,
         private TranslatorInterface $translator,
@@ -41,7 +41,7 @@ final readonly class TaxDocumentNotices implements ShellNoticeProvider
         if (!$this->staff->isStaff()) {
             return;
         }
-        $today = $this->tenantClock->today();
+        $today = $this->instanceClock->today();
         $deadlines = [];
         foreach ($this->missing->on($today) as $row) {
             $deadlines[] = ['deadline' => $row->deadline, 'late' => $row->isLate(), 'route' => 'app_advances_missing'];

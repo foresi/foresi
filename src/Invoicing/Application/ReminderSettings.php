@@ -12,7 +12,7 @@ use App\Invoicing\Domain\FirmReminders;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The reminder settings of the firms of the active tenant. Call save() inside
+ * The reminder settings of the firms. Call save() inside
  * TransactionalWork, which flushes.
  */
 interface ReminderSettings

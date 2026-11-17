@@ -29,7 +29,7 @@ final class Version20261112000002 extends AbstractMigration
     {
         $log = $schema->createTable('event_log');
         $log->addColumn('id', Types::GUID);
-        $log->addColumn('tenant_id', 'tenant_id');
+        $log->addColumn('tenant_id', 'guid');
         $log->addColumn('name', Types::STRING, ['length' => 128]);
         $log->addColumn('version', Types::SMALLINT);
         $log->addColumn('occurred_at', Types::DATETIME_IMMUTABLE);

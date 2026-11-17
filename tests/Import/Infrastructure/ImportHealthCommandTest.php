@@ -16,10 +16,6 @@ use App\Import\Application\Message\RunImportChunk;
 use App\Import\Domain\Import;
 use App\Import\Domain\ImportState;
 use App\Import\Infrastructure\Console\ImportHealthCommand;
-use App\Instance\Application\Schedule\TenantDirectory;
-use App\Instance\Application\SoleTenant;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,7 +34,6 @@ final class ImportHealthCommandTest extends KernelTestCase
     private const string STALLED = '2026-11-15 07:59:59';
 
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private Imports $imports;
     private CommandTester $tester;
 
@@ -52,7 +47,6 @@ final class ImportHealthCommandTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $this->em = $container->get('doctrine.orm.entity_manager');
-        $this->context = $container->get(TenantContext::class);
         $this->imports = $container->get(Imports::class);
         $tool = new SchemaTool($this->em);
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
@@ -69,26 +63,10 @@ final class ImportHealthCommandTest extends KernelTestCase
             }
         };
         $this->lock = new FailingLock();
-        $directory = new class implements TenantDirectory {
-            public function ids(): array
-            {
-                return [TenantId::generate()];
-            }
-
-            public function zones(): array
-            {
-                return [];
-            }
-
-            public function zone(TenantId $tenant): \DateTimeZone
-            {
-                return new \DateTimeZone('UTC');
-            }
-        };
         $clock = new MockClock(self::NOW);
         $gate = new ImportGate($this->imports, $this->lock, $this->jobs, $clock);
         $application = new Application();
-        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->context, new SoleTenant($directory), $this->imports, $gate, $clock, new NullLogger()));
+        $application->addCommand(new ImportHealthCommand($this->em->getConnection(), $this->imports, $gate, $clock, new NullLogger()));
         $this->tester = new CommandTester($application->find('app:import:health'));
     }
 
@@ -234,7 +212,6 @@ final class ImportHealthCommandTest extends KernelTestCase
         $status = $this->tester->execute([]);
 
         self::assertSame(Command::FAILURE, $status);
-        self::assertFalse($this->context->has());
         self::assertSame(ImportState::Failed, $this->imports->find($fineStalled)?->state());
         self::assertSame(ImportState::Running, $this->imports->find($fineWaiting)?->state());
         self::assertSame(ImportState::Failed, $this->imports->find($brokenStalled)?->state());
@@ -258,15 +235,6 @@ final class ImportHealthCommandTest extends KernelTestCase
         self::assertSame($sent, $this->jobs->sent);
         self::assertSame(ImportState::Failed, $this->imports->find($stalled)?->state());
         self::assertSame(ImportState::Running, $this->imports->find($waiting)?->state());
-    }
-
-    public function testTheTenantIsClearedAfterTheRun(): void
-    {
-        $this->importIn(ImportState::Running, self::STALLED);
-
-        $this->tester->execute([]);
-
-        self::assertFalse($this->context->has());
     }
 
     /**

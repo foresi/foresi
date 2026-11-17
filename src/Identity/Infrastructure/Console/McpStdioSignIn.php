@@ -11,7 +11,6 @@ namespace App\Identity\Infrastructure\Console;
 use App\Identity\Application\ApiTokenRefused;
 use App\Identity\Infrastructure\Security\ApiTokenLogin;
 use App\Identity\Infrastructure\Security\ApiTokenRejected;
-use App\Instance\Application\TenantContext;
 use App\Shared\Infrastructure\Mcp\ToolCaller;
 use App\Shared\Infrastructure\Mcp\ToolRefusal;
 use Doctrine\ORM\EntityManagerInterface;
@@ -44,7 +43,6 @@ final class McpStdioSignIn implements ToolCaller
     public function __construct(
         private readonly ApiTokenLogin $login,
         private readonly TokenStorageInterface $tokens,
-        private readonly TenantContext $context,
         private readonly EntityManagerInterface $entities,
         #[Autowire(env: 'default::'.self::VARIABLE), \SensitiveParameter]
         private readonly ?string $secret = null,
@@ -116,7 +114,6 @@ final class McpStdioSignIn implements ToolCaller
     {
         $this->signedInWith = null;
         $this->tokens->setToken(null);
-        $this->context->reset();
     }
 
     private function explain(string $reason): string

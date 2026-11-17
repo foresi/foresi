@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Events\Support;
 
 use App\Events\Infrastructure\Relay\EventRelay;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Contract\Event\DocumentKindValue;
 use App\Invoicing\Contract\Event\InvoiceIssued;
 use App\Invoicing\Contract\Event\InvoicePaid;
@@ -24,29 +22,23 @@ use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 
 /**
- * Real contract events recorded in an organisation, as a use case records them,
- * and numbered by the relay, for the tests of the feed.
+ * Real contract events recorded as a use case records them, and numbered by
+ * the relay, for the tests of the feed.
  */
 final readonly class RecordedEvents
 {
     public function __construct(
-        private TenantContext $context,
         private Connection $connection,
         private EventRecorder $recorder,
         private EventRelay $relay,
     ) {
     }
 
-    public function record(TenantId $tenant, DomainEventPayload $event): void
+    public function record(DomainEventPayload $event): void
     {
-        $this->context->switchTo($tenant);
-        try {
-            $this->connection->transactional(function () use ($event): void {
-                $this->recorder->record($event);
-            });
-        } finally {
-            $this->context->reset();
-        }
+        $this->connection->transactional(function () use ($event): void {
+            $this->recorder->record($event);
+        });
     }
 
     public function number(): void

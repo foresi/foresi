@@ -19,8 +19,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * The records of the cash flow in Doctrine. The tenant filter keeps every
- * query in the active tenant. A write is flushed by the unit of work around it.
+ * The records of the cash flow in Doctrine. A write is flushed by the unit of work around it.
  */
 final readonly class DoctrineCashFlowStore implements CashFlowStore
 {

@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Identity;
 
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -62,12 +61,12 @@ final class UserLocaleTest extends WebTestCase
     private function signIn(string $locale): void
     {
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $fixtures = new IdentityFixtures($em, self::getContainer()->get(TenantContext::class));
+        $fixtures = new IdentityFixtures($em);
         $fixtures->rebuildSchema();
         $user = new User(IdentityFixtures::EMAIL, password_hash(IdentityFixtures::PASSWORD, \PASSWORD_BCRYPT, ['cost' => 4]), 'Example Company', $locale);
         $em->persist($user);
         $em->flush();
-        $fixtures->join($user, $fixtures->tenant('Tenant A'));
+        $fixtures->join($user);
 
         $crawler = $this->client->request('GET', '/login');
         $this->client->submit($crawler->filter('form')->form(['_username' => IdentityFixtures::EMAIL, '_password' => IdentityFixtures::PASSWORD]));

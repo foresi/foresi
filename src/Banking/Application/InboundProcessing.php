@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 /**
- * Port: queues a stored inbound message for processing in the active tenant.
- * Called inside the transaction that stores it, so a queue kept in the
- * database takes the message with the row or not at all.
+ * Port: queues a stored inbound message for processing. Called inside the
+ * transaction that stores it, so a queue kept in the database takes the message
+ * with the row or not at all.
  */
 interface InboundProcessing
 {

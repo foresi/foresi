@@ -25,8 +25,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * The contacts a firm can invoice, for the combobox of the invoice form: found by
  * text, or the one with an id, which the form asks for after the contact was created
- * in another tab. A firm of another tenant is never found, so it answers 404 like
- * one that does not exist.
+ * in another tab. An unknown firm answers 404.
  */
 final class CustomerPickerController extends AbstractController
 {

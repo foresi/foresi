@@ -11,22 +11,18 @@ namespace App\Instance\Domain;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * The state of one scheduled job in one tenant: the last period that finished,
+ * The state of one scheduled job: the last period that finished,
  * the run in progress, the error of the last failed run and the period queued
  * for a worker. Mapped so the schema
- * is validated and the tenant filter applies, but only the atomic statements of
+ * is validated, but only the atomic statements of
  * the DoctrineScheduledJobRuns write it and the ORM never loads a row. A
  * technical value, so not audited, like the series counter.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'scheduled_job_run')]
-#[ORM\Index(name: 'idx_scheduled_job_run_tenant', columns: ['tenant_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_scheduled_job_run', columns: ['tenant_id', 'job'])]
-class ScheduledJobRun implements TenantOwned
+#[ORM\UniqueConstraint(name: 'uniq_scheduled_job_run', columns: ['job'])]
+class ScheduledJobRun
 {
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
-
     public function __construct(
         #[ORM\Id]
         #[ORM\Column(type: 'guid')]
@@ -51,10 +47,5 @@ class ScheduledJobRun implements TenantOwned
     public function id(): string
     {
         return $this->id;
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

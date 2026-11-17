@@ -11,7 +11,7 @@ namespace App\Invoicing\Application;
 use App\Shared\Domain\Money;
 
 /**
- * Port: what is still owed on invoices of the active tenant. Reminders ask it
+ * Port: what is still owed on invoices. Reminders ask it
  * before they are queued and again before they are delivered.
  *
  * PaymentBalances answers from the recorded payments and is authoritative; it is
@@ -30,7 +30,7 @@ interface InvoiceBalances
      *
      * @return array<string, Money> by invoice id
      *
-     * @throws UnknownInvoice if any id is not an invoice of this tenant
+     * @throws UnknownInvoice if any id is not an invoice
      */
     public function outstanding(array $invoiceIds): array;
 

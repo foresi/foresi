@@ -14,7 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * The budgets of sending: a person may ask for 30 sends a minute, a firm for 500
  * a day. Sends of the system, the daily runs, have no person: they spend the
- * budget of their own firm only, so a large run of one firm or tenant never
+ * budget of their own firm only, so a large run of one firm never
  * holds back another's.
  */
 final class RateLimitedSendsTest extends KernelTestCase
@@ -44,13 +44,13 @@ final class RateLimitedSendsTest extends KernelTestCase
         }
     }
 
-    public function testSystemSendsOfFirmsInOtherTenantsDoNotShareABudget(): void
+    public function testSystemSendsOfOtherFirmsDoNotShareABudget(): void
     {
         $firm = self::getContainer()->get('test.invoice_send_firm_limiter');
         $firm->create('firm-a')->consume(500);
 
         self::assertFalse($this->limits->take(null, 'firm-a'), 'its own day is spent');
-        self::assertTrue($this->limits->take(null, 'firm-b'), 'a firm of another tenant still sends');
+        self::assertTrue($this->limits->take(null, 'firm-b'), 'another firm still sends');
     }
 
     public function testTheSystemLeavesAFifthOfTheFirmsDayToPeople(): void

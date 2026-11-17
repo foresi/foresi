@@ -12,7 +12,7 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 
 /**
- * Port: the sends of the active tenant. Call the writing methods inside
+ * Port: the sends. Call the writing methods inside
  * TransactionalWork, which flushes.
  */
 interface InvoiceSends
@@ -23,7 +23,7 @@ interface InvoiceSends
      * Takes the row of the send for this transaction and gives it as stored now.
      * Lock the invoice first when both are needed, as trash does.
      *
-     * @throws UnknownInvoiceSend also for a send of another tenant
+     * @throws UnknownInvoiceSend
      */
     public function lock(string $id): InvoiceSend;
 

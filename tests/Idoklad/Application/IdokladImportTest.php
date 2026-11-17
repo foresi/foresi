@@ -21,8 +21,6 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
@@ -63,7 +61,6 @@ final class IdokladImportTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
 
         $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);

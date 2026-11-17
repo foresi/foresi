@@ -21,7 +21,7 @@ interface RecurringAlertTexts
      * @param non-empty-list<array{customer: string, code: string}> $failures each template told, with its customer and code:
      *                                                                        a problem key of IssueRefused, or "send." and a
      *                                                                        reason of SendRefused
-     * @param \DateTimeImmutable                                    $today    the tenant's day of the run
+     * @param \DateTimeImmutable                                    $today    the instance's day of the run
      *
      * @return array{subject: string, text: string}
      */

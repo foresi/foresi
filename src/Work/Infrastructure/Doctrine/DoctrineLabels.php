@@ -25,8 +25,8 @@ final readonly class DoctrineLabels implements Labels
     }
 
     /**
-     * Compared in PHP: LOWER of SQLite folds ASCII letters only, and a tenant
-     * has few labels.
+     * Compared in PHP: LOWER of SQLite folds ASCII letters only, and an
+     * instance has few labels.
      */
     public function named(string $name): ?Label
     {

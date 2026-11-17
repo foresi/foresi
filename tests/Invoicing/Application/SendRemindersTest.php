@@ -38,7 +38,7 @@ use App\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
 use App\Tests\Support\PdfTools;
 
 /**
- * The daily reminder run, at 08:00 in the tenant's zone (Prague here, from the
+ * The daily reminder run, at 08:00 in the instance's zone (Prague here, from the
  * firm's country). An invoice due on 10 January gets its first reminder on the
  * 17th, each next one seven days after the previous. Every outcome is read back
  * from invoice_send.
@@ -75,7 +75,7 @@ final class SendRemindersTest extends SendingTestCase
         self::assertCount(1, $this->mailQueue->getSent(), 'handed to the mail worker');
     }
 
-    public function testTheDayBeginsAtEightTenantTime(): void
+    public function testTheDayBeginsAtEightInstanceTime(): void
     {
         $invoice = $this->overdue();
         $this->switchOn();

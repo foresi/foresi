@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * Implemented by modules that have something to tell the signed-in user on
  * every page. Every implementation is picked up automatically (tag
- * "app.shell_notice"). Providers are asked only while a tenant is active.
+ * "app.shell_notice"). Providers are asked only for a signed-in person with an active membership.
  */
 #[AutoconfigureTag(ShellNotices::TAG)]
 interface ShellNoticeProvider

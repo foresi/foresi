@@ -28,7 +28,7 @@ final class Version20261114000001 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $table = $schema->createTable('api_idempotency_key');
-        $table->addColumn('tenant_id', 'tenant_id');
+        $table->addColumn('tenant_id', 'guid');
         $table->addColumn('token_id', Types::GUID);
         $table->addColumn('operation', Types::STRING, ['length' => 120]);
         $table->addColumn('idempotency_key', Types::STRING, ['length' => 255]);

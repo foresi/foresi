@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Domain\RecurringContent;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
@@ -43,7 +43,7 @@ final readonly class SaveRecurringInvoice
         private ConflictRetry $retry,
         private AuditActor $actor,
         private ClockInterface $clock,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
     ) {
     }
 
@@ -52,13 +52,13 @@ final readonly class SaveRecurringInvoice
      * @param string|null $importedFrom the identifier of the template in the system it was imported from
      *
      * @throws RecurringRefused   when a rule refuses; nothing is stored
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity
      */
     public function create(RecurringInput $input, bool $startPaused = false, ?string $importedFrom = null): RecurringInvoice
     {
         return $this->work->run(function () use ($input, $startPaused, $importedFrom): RecurringInvoice {
             $firm = $this->firms->get($input->firmId);
-            $problems = $this->rules->check($input, $firm, null, $this->tenantClock->today());
+            $problems = $this->rules->check($input, $firm, null, $this->instanceClock->today());
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
@@ -74,13 +74,13 @@ final readonly class SaveRecurringInvoice
      * more is stored ended.
      *
      * @throws RecurringRefused   when a rule refuses; nothing is stored
-     * @throws UnknownLegalEntity also for a firm of another tenant
+     * @throws UnknownLegalEntity
      */
     public function import(RecurringInput $input, RecurringHistory $history): RecurringInvoice
     {
         return $this->work->run(function () use ($input, $history): RecurringInvoice {
             $firm = $this->firms->get($input->firmId);
-            $problems = $this->rules->check($input, $firm, null, $this->tenantClock->today(), $history);
+            $problems = $this->rules->check($input, $firm, null, $this->instanceClock->today(), $history);
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);
             }
@@ -99,7 +99,7 @@ final readonly class SaveRecurringInvoice
      *
      * @throws RecurringRefused        when a rule refuses, when the template has ended, or when
      *                                 someone saved since the form was opened (field "version")
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function edit(string $id, int $version, RecurringInput $input): RecurringInvoice
     {
@@ -112,7 +112,7 @@ final readonly class SaveRecurringInvoice
                 throw RecurringRefused::because('version', 'invoice.problem.changed_meanwhile');
             }
             $firm = $template->firm();
-            $today = $this->tenantClock->today();
+            $today = $this->instanceClock->today();
             $problems = $this->rules->check($input, $firm, $template, $today);
             if ([] !== $problems) {
                 throw new RecurringRefused($problems);

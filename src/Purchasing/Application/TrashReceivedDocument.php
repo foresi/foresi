@@ -31,7 +31,7 @@ final readonly class TrashReceivedDocument
 
     /**
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with TRASHED when it is there already, LOCKED once locked, or without a usable reason
      */
     public function trash(string $documentId, string $reason): ReceivedDocument

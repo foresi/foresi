@@ -144,9 +144,6 @@ final class McpServerTest extends ApiTestCase
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
         self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->in($call, 'structuredContent', 'data', 'user'));
-        $data = $this->in($call, 'structuredContent', 'data');
-        self::assertIsArray($data);
-        self::assertArrayNotHasKey('tenant', $data);
         self::assertSame('Reporting', $this->in($call, 'structuredContent', 'data', 'token', 'name'));
         self::assertSame(['read', 'write'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
         $text = $this->text($call, 'content', '0', 'text');
@@ -156,7 +153,7 @@ final class McpServerTest extends ApiTestCase
 
     public function testASearchAnswersTheRestDataMarkedAsData(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
         $this->get('/api/v1/invoices');
         $rest = $this->at('data');
         $this->rpc('initialize', $this->initialize());

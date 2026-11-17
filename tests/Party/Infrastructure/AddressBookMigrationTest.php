@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -35,10 +34,8 @@ final class AddressBookMigrationTest extends TestCase
 
     protected function setUp(): void
     {
-        foreach (['tenant_id' => TenantIdType::class, 'vat_id' => VatIdType::class] as $name => $class) {
-            if (!Type::hasType($name)) {
-                Type::addType($name, $class);
-            }
+        if (!Type::hasType('vat_id')) {
+            Type::addType('vat_id', VatIdType::class);
         }
         $this->connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
         $this->migrateTo(self::BEFORE);

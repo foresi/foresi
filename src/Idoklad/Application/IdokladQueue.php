@@ -10,7 +10,7 @@ namespace App\Idoklad\Application;
 
 use App\Idoklad\Application\Message\ProcessIdokladJob;
 
-/** Port: hands a job to a worker, in the active tenant. */
+/** Port: hands a job to a worker. */
 interface IdokladQueue
 {
     public function dispatch(ProcessIdokladJob $message): void;

@@ -36,7 +36,7 @@ final class ContactApiTest extends ApiTestCase
 {
     public function testARowOfTheListIsWrittenAsTheAddressBookHoldsIt(): void
     {
-        $contact = $this->inTenant($this->tenant, fn (): Party => $this->contact('Alpha Example s.r.o.', vatId: 'CZ12345679', email: 'alpha@example.com'));
+        $contact = $this->flushed(fn (): Party => $this->contact('Alpha Example s.r.o.', vatId: 'CZ12345679', email: 'alpha@example.com'));
 
         $this->get('/api/v1/contacts', ['limit' => '1']);
 
@@ -61,7 +61,7 @@ final class ContactApiTest extends ApiTestCase
 
     public function testARowWithoutAddressOrNumbersHasNulls(): void
     {
-        $person = $this->inTenant($this->tenant, function (): Party {
+        $person = $this->flushed(function (): Party {
             $person = new Party(PartyKind::Person, 'Petra Example', null, null, '');
             $this->em()->persist($person);
 
@@ -86,7 +86,7 @@ final class ContactApiTest extends ApiTestCase
 
     public function testTheDetailHoldsAddressesEmailsAccountsAndContactPersons(): void
     {
-        [$company, $person, $ids] = $this->inTenant($this->tenant, function (): array {
+        [$company, $person, $ids] = $this->flushed(function (): array {
             $em = $this->em();
             $company = $this->contact('Alpha Example s.r.o.', email: 'alpha@example.com');
             $company->changeMobile('+420 111 111 111');
@@ -102,7 +102,7 @@ final class ContactApiTest extends ApiTestCase
 
             return [$company, $person, ['delivery' => $delivery->id(), 'invoices' => $invoices->id(), 'account' => $account->id(), 'link' => $link->id()]];
         });
-        [$billing, $general] = $this->inTenant($this->tenant, fn (): array => [
+        [$billing, $general] = $this->flushed(fn (): array => [
             $this->em()->getRepository(PartyAddress::class)->findOneBy(['type' => AddressType::Billing, 'party' => $company->id()])?->id(),
             $this->em()->getRepository(PartyEmail::class)->findOneBy(['purpose' => EmailPurpose::General, 'party' => $company->id()])?->id(),
         ]);
@@ -148,7 +148,7 @@ final class ContactApiTest extends ApiTestCase
 
     public function testTheFiltersNarrowTheList(): void
     {
-        [$alpha, $beta, $archived] = $this->inTenant($this->tenant, fn (): array => [
+        [$alpha, $beta, $archived] = $this->flushed(fn (): array => [
             $this->contact('Alpha Example s.r.o.', roles: [PartyRole::Supplier], number: '12345679', vatId: 'CZ12345679'),
             $this->contact('Beta Example a.s.', roles: [PartyRole::Partner], number: '25596641'),
             $this->contact('Archived Example', archived: true),
@@ -170,7 +170,7 @@ final class ContactApiTest extends ApiTestCase
 
     public function testTheCursorPagesThroughTheListWithoutOverlap(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (string $name): string => $this->contact($name)->id(), ['First Example', 'Second Example']));
+        $ids = $this->flushed(fn (): array => array_map(fn (string $name): string => $this->contact($name)->id(), ['First Example', 'Second Example']));
 
         self::assertSame([[$ids[1], $ids[0]], [$this->customerId]], $this->pages('/api/v1/contacts', 2));
         self::assertSame([[$ids[1], $ids[0], $this->customerId]], $this->pages('/api/v1/contacts', 3));

@@ -13,7 +13,7 @@ use App\Invoicing\Domain\RecurringState;
 /**
  * A template saved or resumed with a date due today, or earlier, waits for the
  * daily run only while the run's time is still to come today (before
- * IssueRecurringInvoices::START_HOUR in the tenant's zone). Once that time has
+ * IssueRecurringInvoices::START_HOUR in the instance's zone). Once that time has
  * passed, the template is handed to the worker at once (RecurringIssueQueue),
  * whether or not the run has finished: a run that is late, or a scheduler that
  * is not running, must not leave a promised invoice waiting for tomorrow. The
@@ -44,7 +44,7 @@ final readonly class IssueAfterTodaysRun
      *
      * @return bool whether the template was handed to the worker
      *
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function afterChange(string $templateId): bool
     {

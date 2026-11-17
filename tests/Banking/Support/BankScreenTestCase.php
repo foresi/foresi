@@ -20,8 +20,6 @@ use App\Banking\Domain\InboundChannel;
 use App\Banking\Domain\MessageTrust;
 use App\Banking\Domain\MovementDirection;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
 use App\Invoicing\Application\LineInput;
@@ -60,7 +58,7 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * A signed-in tenant with a payer firm, its account on the test IBAN, a series
+ * A signed-in owner with a payer firm, its account on the test IBAN, a series
  * and a customer, on 20 November 2026 at noon UTC; movements and bank mail are
  * recorded through the application, as the bank screens would find them.
  */
@@ -75,8 +73,6 @@ abstract class BankScreenTestCase extends WebTestCase
 
     protected KernelBrowser $client;
     protected SignedInBrowser $browser;
-    protected TenantContext $context;
-    protected TenantId $tenant;
     protected LegalEntity $firm;
     protected FirmBankAccount $account;
     protected Series $series;
@@ -89,8 +85,7 @@ abstract class BankScreenTestCase extends WebTestCase
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em(), $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em());
     }
 
     protected function tearDown(): void
@@ -101,7 +96,7 @@ abstract class BankScreenTestCase extends WebTestCase
 
     protected function signedIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
+        $this->browser->seed(role: $role);
         $this->scoped(function (): void {
             [$this->firm, $this->account, $this->series, $this->customer] = $this->firmWithSeries('Example Firm s.r.o.', self::IBAN);
         });
@@ -113,7 +108,7 @@ abstract class BankScreenTestCase extends WebTestCase
      */
     protected function firmWithSeries(string $name, string $iban, string $customer = 'Example Customer a.s.'): array
     {
-        // A second firm of a tenant needs a number of its own.
+        // A second firm needs a number of its own.
         $number = 'Example Firm s.r.o.' === $name ? '12345695' : '12345687';
         $firm = new LegalEntity($name, new RegistrationNumber('CZ', $number), VatId::fromString('CZ'.$number), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($firm);
@@ -127,7 +122,7 @@ abstract class BankScreenTestCase extends WebTestCase
     }
 
     /**
-     * A customer with a billing address; call it in the tenant's scope.
+     * A customer with a billing address.
      */
     protected function party(string $name): Party
     {
@@ -166,7 +161,6 @@ abstract class BankScreenTestCase extends WebTestCase
         ?string $counterName = 'Example Remitter Ltd',
         ?string $message = 'Payment for an invoice',
         bool $auto = true,
-        ?TenantId $tenant = null,
         string $counterIban = self::COUNTER_IBAN,
     ): string {
         return $this->scoped(function () use ($amount, $vs, $direction, $trust, $account, $bookedOn, $counterName, $message, $auto, $counterIban): string {
@@ -196,7 +190,7 @@ abstract class BankScreenTestCase extends WebTestCase
             }
 
             return $id;
-        }, $tenant);
+        });
     }
 
     /**
@@ -347,14 +341,9 @@ abstract class BankScreenTestCase extends WebTestCase
      *
      * @return T
      */
-    protected function scoped(callable $work, ?TenantId $tenant = null): mixed
+    protected function scoped(callable $work): mixed
     {
-        $this->context->switchTo($tenant ?? $this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     protected function connection(): Connection

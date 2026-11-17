@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Work\Infrastructure\Twig;
 
-use App\Instance\Application\TenantContext;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -24,7 +23,6 @@ final readonly class TimeFunctions
 {
     public function __construct(
         private TimeQueries $time,
-        private TenantContext $context,
         private TranslatorInterface $translator,
     ) {
     }
@@ -46,11 +44,11 @@ final readonly class TimeFunctions
     }
 
     /**
-     * Null without an organisation chosen, whose people alone run timers.
+     * Null when the signed-in person runs no timer.
      */
     #[AsTwigFunction('running_timer')]
     public function runningTimer(): ?TimeEntryRow
     {
-        return $this->context->has() ? $this->time->running() : null;
+        return $this->time->running();
     }
 }

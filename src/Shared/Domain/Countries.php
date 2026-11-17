@@ -15,7 +15,7 @@ namespace App\Shared\Domain;
  */
 final class Countries
 {
-    /** The EU member states, then the neighbours the tenants most often trade with. */
+    /** The EU member states, then the neighbours firms most often trade with. */
     public const array CODES = [
         'CZ', 'SK', 'PL', 'DE', 'AT', 'HU', 'BE', 'BG', 'HR', 'CY', 'DK', 'EE', 'FI', 'FR', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'RO', 'SI', 'ES', 'SE',
         'GB', 'CH', 'NO', 'UA', 'US',

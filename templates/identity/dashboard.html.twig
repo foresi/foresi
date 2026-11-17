@@ -6,7 +6,7 @@
 {% block content %}
     {# The modules contribute the sections (App\Ui\Dashboard); with none to show the page waits for data. #}
     {% set app_shell = shell() %}
-    {% set sections = dashboard_sections(app_shell ? app_shell.tenantActive : false) %}
+    {% set sections = dashboard_sections(app_shell ? app_shell.member : false) %}
     {% if sections is empty %}
         <twig:Ui:EmptyState icon="layout-grid" :title="'dashboard.empty.title'|trans" :text="'dashboard.empty.text'|trans" />
     {% else %}

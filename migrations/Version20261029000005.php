@@ -64,7 +64,7 @@ final class Version20261029000005 extends AbstractMigration
 
         $link = $schema->createTable('contact_link');
         $link->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $link->addColumn('tenant_id', 'tenant_id');
+        $link->addColumn('tenant_id', 'guid');
         $link->addColumn('company_id', Types::INTEGER);
         $link->addColumn('person_id', Types::INTEGER);
         $link->addColumn('position', Types::STRING, ['length' => 100]);
@@ -104,7 +104,7 @@ final class Version20261029000005 extends AbstractMigration
     {
         $table = $schema->createTable($name);
         $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('tenant_id', 'tenant_id');
+        $table->addColumn('tenant_id', 'guid');
         $table->addColumn('party_id', Types::INTEGER);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['tenant_id'], 'idx_'.$name.'_tenant');

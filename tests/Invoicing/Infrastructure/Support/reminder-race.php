@@ -12,8 +12,8 @@ use App\Tests\Invoicing\Infrastructure\Support\ReminderWorker;
  * One process of the parallel reminder tests, run from the repository root with
  * DATABASE_URL set.
  *
- *   reminder-race.php seed <slots>                Prints the tenants and invoices as JSON.
- *   reminder-race.php run <ids> <job> <startAt>   Runs remind in each slot's tenant.
+ *   reminder-race.php seed <slots>                Prints the slots and invoices as JSON.
+ *   reminder-race.php run <ids> <job> <startAt>   Runs remind once per slot.
  *   reminder-race.php inspect <ids>               Prints the stored reminder steps as JSON.
  */
 require dirname(__DIR__, 3).'/bootstrap.php';

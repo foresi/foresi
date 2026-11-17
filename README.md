@@ -5,9 +5,9 @@ Foresi is an open-source business system for small and medium firms (website: ht
 ## What exists
 
 - **Money**: an exact money value object stored as integer minor units plus a currency code, with allocation that never loses a minor unit.
-- **Tenancy**: row-level isolation of tenants, enforced for every ORM and DQL query and failing closed when no tenant is active.
+- **Instance**: one instance serves one customer, with its firms ([ADR 0035](docs/adr/0035-one-instance-per-customer.md)); the core module holds its clock and time zone, the schedule of timed jobs and the health check.
 - **Parties**: legal entities and parties with registration numbers, VAT IDs and IBANs. Country rules are plugged in through interfaces; Czech registration number validation is included as a country module.
-- **Identity**: users, tenant memberships with roles, form login with CSRF protection and throttling, a choice of the active tenant and a console command to create users.
+- **Identity**: users, one membership each with a role, form login with CSRF protection and throttling, and a console command to create users.
 - **Address book**: customers, suppliers and other parties with roles, addresses, contact persons, bank accounts and document defaults; search, views, bulk archive and export to CSV or XLSX; lookups in the Czech business register (ARES), the EU VAT number check (VIES) and the Czech unreliable VAT payer register.
 - **Import and export**: a generic import of CSV and XLSX files (contacts first, with an iDoklad preset) that runs in a background worker: column mapping with remembered mappings, a dry-run check, three modes (add missing, update, full replace with typed confirmation), undo within 30 days; the same field definitions drive the export. See [docs/import.md](docs/import.md).
 - **Move from iDoklad**: a firm's iDoklad account read through its API (read-only) into a stored snapshot, checked with a report of what would be refused or differs and the sums by year, then imported: contacts, number series, issued and advance invoices with their original PDFs, payments with tax documents and deductions, and recurring invoices, paused. An import can be undone for 30 days. See [docs/idoklad.md](docs/idoklad.md).
@@ -60,7 +60,7 @@ Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`,
 
 ## Background worker
 
-Long-running work (imports, register re-checks, sending e-mail, timed jobs) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) and every message is handled inside the tenant it was dispatched in. Run migrations, then start one worker; it consumes the schedule's ticks (`scheduler_foresi`) and the outgoing mail (`mail`) first, then the domain events (`events`: their relay and the delivery to listeners), then `async`, then the outbound webhooks (`webhooks`: one attempt per message, after `async` so a slow receiver never holds up imports or timed jobs), and `registry` (low priority) last. An installation with many webhook endpoints also runs a second worker, `messenger:consume webhooks` (see [operations](docs/operations.md)). The first worker:
+Long-running work (imports, register re-checks, sending e-mail, timed jobs) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) Run migrations, then start one worker; it consumes the schedule's ticks (`scheduler_foresi`) and the outgoing mail (`mail`) first, then the domain events (`events`: their relay and the delivery to listeners), then `async`, then the outbound webhooks (`webhooks`: one attempt per message, after `async` so a slow receiver never holds up imports or timed jobs), and `registry` (low priority) last. An installation with many webhook endpoints also runs a second worker, `messenger:consume webhooks` (see [operations](docs/operations.md)). The first worker:
 
 ```bash
 php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600

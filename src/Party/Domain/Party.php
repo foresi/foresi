@@ -13,7 +13,7 @@ use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A person or organisation the tenant does business with: a customer, a
+ * A person or organisation the firm does business with: a customer, a
  * supplier, a partner, an authority or just a contact. Addresses, e-mails,
  * bank accounts and contact links are separate audited entities pointing here.
  *

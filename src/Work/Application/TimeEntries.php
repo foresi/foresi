@@ -13,7 +13,7 @@ use App\Work\Domain\Task;
 use App\Work\Domain\TimeEntry;
 
 /**
- * The time logged in the active tenant.
+ * The time logged.
  */
 interface TimeEntries
 {

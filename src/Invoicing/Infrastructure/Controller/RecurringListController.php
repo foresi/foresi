@@ -10,7 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\IssueAfterTodaysRun;
 use App\Invoicing\Application\IssueProblem;
@@ -69,7 +69,7 @@ final class RecurringListController extends AbstractController
         private readonly TransactionalWork $work,
         private readonly LegalEntities $firms,
         private readonly AmountText $amountText,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly StaffCheck $staff,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,

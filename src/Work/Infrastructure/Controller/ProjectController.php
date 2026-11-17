@@ -14,7 +14,7 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Application\StaffCheck;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\PartyRow;
 use App\Work\Application\DueBucket;
@@ -82,7 +82,7 @@ final class ProjectController extends AbstractController
         private readonly People $people,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeQueries $time,
         private readonly OwnerCheck $owner,

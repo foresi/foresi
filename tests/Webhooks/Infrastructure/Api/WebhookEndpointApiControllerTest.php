@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Infrastructure\Api;
 
 use App\Audit\Domain\AuditEntry;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Application\SealerUnavailable;
@@ -59,7 +58,6 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         self::assertInstanceOf(SendWebhook::class, $message);
         self::assertSame(AttemptTrigger::Ping, $message->trigger);
         self::assertNotNull($message->attemptId);
-        self::assertSame($this->tenant->toString(), $queued[0]->last(TenantStamp::class)?->tenantId);
         $ping = $this->rows->delivery($message->deliveryId);
         self::assertSame($id, $ping[T::ENDPOINT_ID]);
         self::assertSame(T::KIND_PING, $ping[T::KIND]);
@@ -75,7 +73,6 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         self::assertSame(['type' => 'webhook_endpoint', 'id' => $id, 'url' => self::ENDPOINTS.'/'.$id], $body['subject']);
         self::assertSame(['endpoint_id' => $id], $body['data']);
         self::assertArrayNotHasKey('position', $body);
-        self::assertStringNotContainsString($this->tenant->toString(), $ping[T::BODY]);
     }
 
     public function testCreateWithReadScopeIs403(): void
@@ -128,7 +125,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testUnreadableModuleIs403(): void
     {
-        $id = $this->stored($this->tenant);
+        $id = $this->stored();
         // The person no longer works with invoices: their access service says no.
         self::getContainer()->set(InvoicingEventAccess::class, new class implements EventReadAccess {
             public function module(): string
@@ -210,9 +207,9 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
         $this->em()->clear();
         /** @var list<AuditEntry> $entries */
-        $entries = $this->inTenant($this->tenant, fn (): array => $this->em()->createQuery('SELECT e FROM '.AuditEntry::class.' e WHERE e.entityClass = :class')
+        $entries = $this->em()->createQuery('SELECT e FROM '.AuditEntry::class.' e WHERE e.entityClass = :class')
             ->setParameter('class', WebhookEndpoint::class)
-            ->getResult());
+            ->getResult();
         self::assertCount(2, $entries);
         $logged = json_encode(array_map(static fn (AuditEntry $entry): array => $entry->changes(), $entries), \JSON_THROW_ON_ERROR);
         self::assertStringNotContainsString('whsec_', $logged);
@@ -383,7 +380,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 
     public function testSecretsUnavailableIs503(): void
     {
-        $id = $this->stored($this->tenant);
+        $id = $this->stored();
         self::getContainer()->set(SodiumWebhookSecrets::class, new class implements WebhookSecrets {
             public function seal(WebhookSecret $secret): string
             {

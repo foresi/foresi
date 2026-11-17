@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace App\Identity\Infrastructure\Twig;
 
 use App\Identity\Application\MembershipDirectory;
+use App\Identity\Application\Organisation;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
 use App\Ui\Avatar;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Attribute\AsTwigFunction;
@@ -23,7 +23,6 @@ final readonly class ShellTwigFunction
         private TokenStorageInterface $tokens,
         private UserRepository $users,
         private MembershipDirectory $memberships,
-        private TenantContext $context,
     ) {
     }
 
@@ -42,8 +41,7 @@ final readonly class ShellTwigFunction
             return null;
         }
 
-        $tenantActive = $this->context->has();
-        $organisation = $tenantActive ? ($this->memberships->organisationsOf($user->id())[0] ?? null) : null;
+        $organisation = $this->memberships->organisationOf($user->id());
 
         return new ShellView(
             $user->displayName(),
@@ -51,7 +49,7 @@ final readonly class ShellTwigFunction
             Avatar::initials($user->displayName()),
             $user->locale(),
             $this->otherLocale($user->locale()),
-            $tenantActive,
+            $organisation instanceof Organisation,
             $organisation,
         );
     }

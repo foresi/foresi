@@ -10,8 +10,6 @@ namespace App\Tests\Instance\Infrastructure\Support;
 
 use App\Instance\Application\Schedule\Claim;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -21,7 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 abstract class ClaimWorker extends KernelTestCase
 {
-    public static function seed(): string
+    public static function seed(): void
     {
         self::bootKernel(['debug' => false]);
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
@@ -29,8 +27,6 @@ abstract class ClaimWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-
-        return TenantId::generate()->toString();
     }
 
     /**
@@ -39,11 +35,10 @@ abstract class ClaimWorker extends KernelTestCase
      *
      * @return list<int> 1 for a round this process claimed, else 0
      */
-    public static function claim(string $tenant, float $startAt, int $rounds): array
+    public static function claim(float $startAt, int $rounds): array
     {
         self::bootKernel(['debug' => false]);
         $container = self::getContainer();
-        $container->get(TenantContext::class)->set(TenantId::fromString($tenant));
         $runs = $container->get(ScheduledJobRuns::class);
 
         $results = [];

@@ -26,8 +26,6 @@ use App\Idoklad\Domain\IdokladJobState;
 use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Infrastructure\Http\HttpIdokladClient;
 use App\Idoklad\Infrastructure\Http\HttpIdokladSession;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\MailSecrets;
 use App\Invoicing\Application\ReminderSettings;
 use App\Invoicing\Domain\FirmReminders;
@@ -65,7 +63,6 @@ final class IdokladJobRunnerTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
         $this->clock = new MockClock('2026-11-06 10:00:00');
 
         $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345678'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 /**
- * No movement with that id in the active tenant.
+ * No movement with that id.
  */
 final class UnknownBankMovement extends \DomainException
 {

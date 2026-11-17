@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\IssueRecurringInvoices;
 use App\Invoicing\Application\IssueRecurringOccurrence;
 use App\Invoicing\Application\LineInput;
@@ -55,7 +53,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 /**
  * The shell notices of recurring invoices, on every page for staff: templates
  * that failed, invoices waiting for review, and a day whose run has not finished
- * by 07:00 in the tenant's zone (Prague, from the firm's country) while templates
+ * by 07:00 in the instance's zone (Prague, from the firm's country) while templates
  * are due.
  */
 final class RecurringNoticesTest extends WebTestCase
@@ -65,9 +63,6 @@ final class RecurringNoticesTest extends WebTestCase
     private const string IBAN = 'CZ6508000000192000145399';
 
     private KernelBrowser $client;
-    private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -77,24 +72,21 @@ final class RecurringNoticesTest extends WebTestCase
         self::mockTime('2026-11-03 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
-        [$this->tenant] = $this->browser->seed(['Tenant A'], 'en', Role::Owner);
-        $this->scoped(function (): void {
-            $em = $this->browser->em();
-            $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
-            $em->persist($this->firm);
-            FirmAccounts::add($em, $this->firm, self::IBAN);
-            $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-            $this->series->markDefault();
-            $em->persist($this->series);
-            $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
-            $em->persist($this->customer);
-            $em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $em->persist(new PartyEmail($this->customer, 'billing@example.com', EmailPurpose::Invoices));
-            $em->flush();
-        });
-        $this->browser->signIn();
+        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
+        $browser->seed('en', Role::Owner);
+        $em = $browser->em();
+        $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
+        $em->persist($this->firm);
+        FirmAccounts::add($em, $this->firm, self::IBAN);
+        $this->series = new Series($this->firm, Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
+        $this->series->markDefault();
+        $em->persist($this->series);
+        $this->customer = new Party(PartyKind::Company, 'Example Customer a.s.', new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
+        $em->persist($this->customer);
+        $em->persist(new PartyAddress($this->customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
+        $em->persist(new PartyEmail($this->customer, 'billing@example.com', EmailPurpose::Invoices));
+        $em->flush();
+        $browser->signIn();
     }
 
     public function testNoNoticeWithoutRecurringWork(): void
@@ -131,7 +123,7 @@ final class RecurringNoticesTest extends WebTestCase
     public function testReviewRaisesAWarningWithTheToSendFilter(): void
     {
         $template = $this->template('2026-11-03', RecurringDelivery::Review);
-        $this->scoped(static fn () => self::getContainer()->get(IssueRecurringOccurrence::class)->issue($template->id(), new \DateTimeImmutable('2026-11-03')));
+        self::getContainer()->get(IssueRecurringOccurrence::class)->issue($template->id(), new \DateTimeImmutable('2026-11-03'));
         $this->finishedToday();
 
         $crawler = $this->client->request('GET', '/contacts');
@@ -180,7 +172,7 @@ final class RecurringNoticesTest extends WebTestCase
 
     private function template(string $firstIssueOn = '2026-12-01', RecurringDelivery $delivery = RecurringDelivery::Send): RecurringInvoice
     {
-        return $this->scoped(fn (): RecurringInvoice => self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput(
+        return self::getContainer()->get(SaveRecurringInvoice::class)->create(new RecurringInput(
             $this->firm->id(),
             $this->series->id(),
             $this->customer->id(),
@@ -197,7 +189,7 @@ final class RecurringNoticesTest extends WebTestCase
             TaxPointRule::IssueDate,
             14,
             $delivery,
-        )));
+        ));
     }
 
     /**
@@ -206,26 +198,9 @@ final class RecurringNoticesTest extends WebTestCase
     private function finishedToday(): void
     {
         $this->connection()->executeStatement(
-            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
-            ['019a0000-0000-7000-8000-0000000000aa', $this->tenant->toString(), IssueRecurringInvoices::NAME, '2026-11-03', '2026-11-03 04:10:00'],
+            'INSERT INTO scheduled_job_run (id, job, last_period, finished_at) VALUES (?, ?, ?, ?)',
+            ['019a0000-0000-7000-8000-0000000000aa', IssueRecurringInvoices::NAME, '2026-11-03', '2026-11-03 04:10:00'],
         );
-    }
-
-    /**
-     * @template T
-     *
-     * @param callable(): T $work
-     *
-     * @return T
-     */
-    private function scoped(callable $work): mixed
-    {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
     }
 
     private function connection(): Connection

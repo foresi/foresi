@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
@@ -25,16 +23,13 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class PartyPersistenceTest extends KernelTestCase
 {
     private EntityManagerInterface $em;
-    private TenantContext $context;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $em = $container->get('doctrine.orm.entity_manager');
-        $context = $container->get(TenantContext::class);
         $this->em = $em;
-        $this->context = $context;
 
         $tool = new SchemaTool($em);
         $metadata = $em->getMetadataFactory()->getAllMetadata();
@@ -44,7 +39,6 @@ final class PartyPersistenceTest extends KernelTestCase
 
     public function testPartyRoundTripsWithAndWithoutIdentifiers(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist(new Party(PartyKind::Company, 'Example Company', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), '+420000000000', [PartyRole::Customer, PartyRole::Supplier]));
         $this->em->persist(new Party(PartyKind::Person, 'Test Person', null, null, ''));
         $this->em->flush();
@@ -65,7 +59,6 @@ final class PartyPersistenceTest extends KernelTestCase
 
     public function testLegalEntityRoundTrips(): void
     {
-        $this->context->switchTo(TenantId::generate());
         $this->em->persist(new LegalEntity(
             'Example Company',
             new RegistrationNumber('CZ', '12345695'),

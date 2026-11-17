@@ -24,7 +24,7 @@ final class InvoiceApiTest extends ApiTestCase
 {
     public function testAnItemOfTheListIsWrittenAsTheDocumentHoldsIt(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
 
         $this->get('/api/v1/invoices');
 
@@ -56,8 +56,8 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheDetailHoldsTheLinesThePaymentsAndTheBalances(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
-        $payment = $this->inTenant($this->tenant, fn (): \App\Invoicing\Domain\Payment => $this->payment('2026-11-12', [$invoice->id() => '1000']));
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice('2026-11-02', '2026-11-30'));
+        $payment = $this->flushed(fn (): \App\Invoicing\Domain\Payment => $this->payment('2026-11-12', [$invoice->id() => '1000']));
 
         $this->get('/api/v1/invoices/'.$invoice->id());
 
@@ -124,7 +124,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheKindNarrowsTheList(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice());
 
         $this->get('/api/v1/invoices', ['kind' => 'invoice']);
         self::assertSame([$invoice->id()], $this->ids());
@@ -135,7 +135,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheFirmAndTheCustomerNarrowTheList(): void
     {
-        [$first, $other, $otherCustomer] = $this->inTenant($this->tenant, function (): array {
+        [$first, $other, $otherCustomer] = $this->flushed(function (): array {
             $first = $this->invoice();
             [$firm, $series, $customer] = $this->firmWithCustomer('Other Firm s.r.o.', '25596641');
 
@@ -154,7 +154,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheStateNarrowsTheList(): void
     {
-        [$paid, $overdue, $unpaid] = $this->inTenant($this->tenant, function (): array {
+        [$paid, $overdue, $unpaid] = $this->flushed(function (): array {
             $paid = $this->invoice('2026-11-01', '2099-12-31');
             $this->payment('2026-11-05', [$paid->id() => '2420']);
 
@@ -173,7 +173,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheTrashIsListedOnlyWhenAskedFor(): void
     {
-        [$kept, $trashed] = $this->inTenant($this->tenant, function (): array {
+        [$kept, $trashed] = $this->flushed(function (): array {
             $kept = $this->invoice();
             $trashed = $this->invoice();
             self::getContainer()->get(TrashInvoice::class)->trash($trashed->id(), 'Wrong customer');
@@ -192,7 +192,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheIssueDaysAreInclusive(): void
     {
-        [$early, $middle, $late] = $this->inTenant($this->tenant, fn (): array => [
+        [$early, $middle, $late] = $this->flushed(fn (): array => [
             $this->invoice('2026-11-01', '2026-11-30'),
             $this->invoice('2026-11-05', '2026-11-30'),
             $this->invoice('2026-11-10', '2026-11-30'),
@@ -208,7 +208,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheTextIsLookedForInTheNumber(): void
     {
-        [$first, $second] = $this->inTenant($this->tenant, fn (): array => [$this->invoice(), $this->invoice()]);
+        [$first, $second] = $this->flushed(fn (): array => [$this->invoice(), $this->invoice()]);
 
         $this->get('/api/v1/invoices', ['q' => ' '.$second->number().' ']);
         self::assertSame([$second->id()], $this->ids());
@@ -219,7 +219,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testTheCursorPagesThroughTheListWithoutOverlap(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (int $day): string => $this->invoice(\sprintf('2026-11-%02d', $day), '2026-11-30')->id(), [1, 2, 3, 4, 5]));
+        $ids = $this->flushed(fn (): array => array_map(fn (int $day): string => $this->invoice(\sprintf('2026-11-%02d', $day), '2026-11-30')->id(), [1, 2, 3, 4, 5]));
 
         self::assertSame([[$ids[4], $ids[3]], [$ids[2], $ids[1]], [$ids[0]]], $this->pages('/api/v1/invoices', 2));
         $this->get('/api/v1/invoices', ['limit' => '2']);
@@ -270,7 +270,7 @@ final class InvoiceApiTest extends ApiTestCase
 
     public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
-        $invoice = $this->inTenant($this->tenant, fn (): Invoice => $this->invoice());
+        $invoice = $this->flushed(fn (): Invoice => $this->invoice());
         $secret = $this->issued([ApiScope::from('contacts:write')]);
 
         $this->get('/api/v1/invoices', secret: $secret);

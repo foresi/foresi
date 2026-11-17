@@ -59,7 +59,7 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
         self::assertSame([], $detail->correctable);
     }
 
-    public function testADocumentOfAnotherTenantIsUnknown(): void
+    public function testAnUnknownDocumentIsUnknown(): void
     {
         $this->expectException(UnknownReceivedDocument::class);
 

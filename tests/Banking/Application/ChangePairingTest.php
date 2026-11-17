@@ -12,8 +12,6 @@ use App\Banking\Application\ChangePairing;
 use App\Banking\Application\FirmPairingRules;
 use App\Banking\Application\PairingRules;
 use App\Banking\Domain\FirmPairing;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
@@ -40,8 +38,6 @@ final class ChangePairingTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context = self::getContainer()->get(TenantContext::class);
-        $context->switchTo(TenantId::generate());
     }
 
     public function testDefaultsAreOnAndOffWithoutARow(): void

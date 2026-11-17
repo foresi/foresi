@@ -11,7 +11,7 @@ namespace App\Webhooks\Application;
 use App\Webhooks\Domain\WebhookEndpoint;
 
 /**
- * The endpoints of the active organisation.
+ * The endpoints of the organisation.
  */
 interface WebhookEndpoints
 {

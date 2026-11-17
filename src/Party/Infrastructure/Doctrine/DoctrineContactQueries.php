@@ -19,8 +19,7 @@ use App\Party\Domain\PartyEmail;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Tenant-scoped through the Doctrine tenant filter, which every query below
- * runs under. The text matches as the search of the screen does.
+ * The text matches as the search of the screen does.
  */
 final readonly class DoctrineContactQueries implements ContactQueries
 {

@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * Port: sent documents found by the hash of their link, across tenants, for the
- * one page that is open to anyone with the link. It never makes a tenant active.
+ * Port: sent documents found by the hash of their link, for the one page that is
+ * open to anyone with the link.
  */
 interface PublicDocuments
 {

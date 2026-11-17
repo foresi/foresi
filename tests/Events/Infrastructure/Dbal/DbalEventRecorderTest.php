@@ -14,8 +14,6 @@ use App\Events\Application\RelayEvents;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
 use App\Events\Infrastructure\Dbal\DbalEventRecorder;
 use App\Events\Infrastructure\Payload\EventPayloads;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use App\Shared\Domain\Module\ModuleId;
 use App\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
@@ -56,9 +54,6 @@ final class DbalEventRecorderTest extends KernelTestCase
         $tool->createSchema($metadata);
 
         $this->db = $em->getConnection();
-        $context = $container->get(TenantContext::class);
-        $tenant = TenantId::generate();
-        $context->set($tenant);
         $this->correlation = new AuditCorrelation();
         $this->listeners = new EventDispatcher();
         $relay = $container->get('messenger.transport.events');
@@ -77,7 +72,7 @@ final class DbalEventRecorderTest extends KernelTestCase
             $container->get(MessageBusInterface::class),
             new NullLogger(),
         );
-        $this->work = new DoctrineTransactionalWork($em, $container->get(ManagerRegistry::class), $context, $this->recorder);
+        $this->work = new DoctrineTransactionalWork($em, $container->get(ManagerRegistry::class), $this->recorder);
     }
 
     public function testRecordOutsideATransactionThrows(): void
@@ -94,7 +89,6 @@ final class DbalEventRecorderTest extends KernelTestCase
         $rows = $this->rows();
         self::assertCount(1, $rows);
         self::assertNull($rows[0]['position']);
-        self::assertArrayNotHasKey('tenant_id', $rows[0]);
         self::assertSame('work:test', $rows[0]['correlation_id']);
         self::assertSame('system', $rows[0]['actor_kind']);
         self::assertSame('invoicing.invoice.issued', $rows[0]['name']);
@@ -180,7 +174,7 @@ final class DbalEventRecorderTest extends KernelTestCase
             $bus,
             new NullLogger(),
         );
-        $work = new DoctrineTransactionalWork(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(ManagerRegistry::class), self::getContainer()->get(TenantContext::class), $recorder);
+        $work = new DoctrineTransactionalWork(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(ManagerRegistry::class), $recorder);
 
         $work->run(fn () => $recorder->record($this->event('a')));
 

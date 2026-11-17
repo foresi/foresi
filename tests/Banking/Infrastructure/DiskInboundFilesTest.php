@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class DiskInboundFilesTest extends TestCase
 {
-    private const string TENANT = '01963c5e-0000-7000-8000-000000000001';
+    private const string OLD_DIRECTORY = '01963c5e-0000-7000-8000-000000000001';
     private const string MESSAGE = '01963c5e-0000-7000-8000-000000000002';
     private const string MAIL = "From: info@kb.cz\r\n\r\nBody\r\n";
 
@@ -33,7 +33,7 @@ final class DiskInboundFilesTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach ([$this->directory.'/'.self::TENANT, $this->directory] as $directory) {
+        foreach ([$this->directory.'/'.self::OLD_DIRECTORY, $this->directory] as $directory) {
             if (is_dir($directory)) {
                 exec('chflags nouchg '.escapeshellarg($directory).' 2>/dev/null');
                 foreach ($this->found($directory.'/*') as $file) {
@@ -58,12 +58,12 @@ final class DiskInboundFilesTest extends TestCase
         self::assertSame(self::MAIL, $files->read(self::MESSAGE, $key, hash('sha256', self::MAIL)));
     }
 
-    public function testMailStoredUnderATenantIsStillRead(): void
+    public function testMailStoredOneDirectoryDeeperIsStillRead(): void
     {
-        mkdir($this->directory.'/'.self::TENANT, 0o700, true);
-        file_put_contents($this->directory.'/'.self::TENANT.'/'.self::MESSAGE.'.eml', self::MAIL);
+        mkdir($this->directory.'/'.self::OLD_DIRECTORY, 0o700, true);
+        file_put_contents($this->directory.'/'.self::OLD_DIRECTORY.'/'.self::MESSAGE.'.eml', self::MAIL);
 
-        self::assertSame(self::MAIL, new DiskInboundFiles($this->directory)->read(self::MESSAGE, self::TENANT.'/'.self::MESSAGE.'.eml', hash('sha256', self::MAIL)));
+        self::assertSame(self::MAIL, new DiskInboundFiles($this->directory)->read(self::MESSAGE, self::OLD_DIRECTORY.'/'.self::MESSAGE.'.eml', hash('sha256', self::MAIL)));
     }
 
     public function testTheFileOfAnotherMessageIsRefused(): void
@@ -72,7 +72,7 @@ final class DiskInboundFilesTest extends TestCase
         $key = $files->store(self::MESSAGE, self::MAIL);
 
         $this->expectExceptionMessageIsOrContains('The inbound mail does not belong to the message.');
-        $files->read(self::TENANT, $key, hash('sha256', self::MAIL));
+        $files->read(self::OLD_DIRECTORY, $key, hash('sha256', self::MAIL));
     }
 
     /**

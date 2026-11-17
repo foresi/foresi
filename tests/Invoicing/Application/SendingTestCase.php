@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\LinkTokens;
@@ -45,7 +42,6 @@ abstract class SendingTestCase extends InvoiceTestCase
     protected RecordingMailGateway $gateway;
     protected InMemoryTransport $mailQueue;
     protected RunMessages $worker;
-    protected TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -61,9 +57,6 @@ abstract class SendingTestCase extends InvoiceTestCase
         self::assertInstanceOf(InMemoryTransport::class, $queue);
         $this->mailQueue = $queue;
         $this->worker = new RunMessages($queue, $container->get(MessageBusInterface::class));
-        $this->tenant = $container->get(TenantContext::class)->current();
-        $this->em->persist(new Tenant($this->tenant, 'Example Company', new \DateTimeImmutable('2026-10-01')));
-        $this->em->flush();
         $this->serverFor();
     }
 

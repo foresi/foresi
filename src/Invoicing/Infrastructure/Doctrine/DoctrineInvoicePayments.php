@@ -19,8 +19,7 @@ use App\Shared\Domain\Money;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Every read goes through the ORM, so the tenant filter narrows the payments and
- * their allocations both.
+ * Every read goes through the ORM, for the payments and their allocations both.
  */
 final readonly class DoctrineInvoicePayments implements InvoicePayments
 {
@@ -160,7 +159,6 @@ final readonly class DoctrineInvoicePayments implements InvoicePayments
 
     public function get(string $paymentId): Payment
     {
-        // A query, not find(): find() answers from the identity map without the tenant filter.
         $payment = $this->em->createQuery('SELECT p FROM '.Payment::class.' p WHERE p.id = :id')->setParameter('id', $paymentId)->getOneOrNullResult();
 
         return $payment instanceof Payment ? $payment : throw new UnknownPayment();

@@ -14,8 +14,8 @@ use App\Attachment\Application\AttachmentFileUnreadable;
 /**
  * Attachments in one private directory, never below public/, each file named
  * by its attachment id only. Back the directory up with the database: an
- * attachment without its file cannot be opened. Files uploaded while an
- * instance had tenants lie one directory deeper, under the tenant's id.
+ * attachment without its file cannot be opened. Files uploaded by older
+ * versions lie one directory deeper, under a second id.
  */
 final readonly class DiskAttachmentFiles implements AttachmentFiles
 {

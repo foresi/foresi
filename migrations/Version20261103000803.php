@@ -28,7 +28,7 @@ final class Version20261103000803 extends AbstractMigration
     {
         $template = $schema->createTable('recurring_invoice');
         $template->addColumn('id', Types::GUID);
-        $template->addColumn('tenant_id', 'tenant_id');
+        $template->addColumn('tenant_id', 'guid');
         $template->addColumn('legal_entity_id', Types::GUID);
         $template->addColumn('series_id', Types::GUID, ['notnull' => false]);
         $template->addColumn('customer_id', Types::GUID);
@@ -76,7 +76,7 @@ final class Version20261103000803 extends AbstractMigration
 
         $line = $schema->createTable('recurring_invoice_line');
         $line->addColumn('id', Types::GUID);
-        $line->addColumn('tenant_id', 'tenant_id');
+        $line->addColumn('tenant_id', 'guid');
         $line->addColumn('recurring_invoice_id', Types::GUID);
         $line->addColumn('position', Types::INTEGER);
         $line->addColumn('text', Types::TEXT);

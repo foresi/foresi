@@ -30,7 +30,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the pay dialog spec: three invoices of one firm, one unpaid to pay in the
+// The world of the pay dialog spec: three invoices of one firm, one unpaid to pay in the
 // dialog, one paid in part and one paid in full, so the list shows each state.
 $payingFirm = new LegalEntity('Example Paying s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(4), VatStatus::Registered, 'Example register, entry C 7890');
 $entityManager->persist($payingFirm);

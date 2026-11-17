@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PublicDocument;
 use App\Invoicing\Application\PublicDocuments;
@@ -23,9 +22,8 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 
 /**
- * Reads the frozen columns of a send by plain SQL inside the sanctioned bypass:
- * the link is the only key, and no entity is loaded, so nothing of another tenant
- * stays in the session.
+ * Reads the frozen columns of a send by plain SQL: the link is the only key, and
+ * no entity is loaded.
  */
 final readonly class DoctrinePublicDocuments implements PublicDocuments
 {
@@ -57,14 +55,13 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
 
     public function __construct(
         private Connection $connection,
-        private TenantFilterBypass $bypass,
         private ClockInterface $clock,
     ) {
     }
 
     public function find(string $tokenHash): ?PublicDocument
     {
-        $row = $this->bypass->run(fn (): array|false => $this->connection->fetchAssociative(self::FIND, ['hash' => $tokenHash, 'cancelled' => SendStatus::Cancelled->value]));
+        $row = $this->connection->fetchAssociative(self::FIND, ['hash' => $tokenHash, 'cancelled' => SendStatus::Cancelled->value]);
         if (false === $row) {
             return null;
         }
@@ -118,12 +115,12 @@ final readonly class DoctrinePublicDocuments implements PublicDocuments
     public function recordRead(string $sendId): void
     {
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-        $this->bypass->run(fn (): int|string => $this->connection->executeStatement(self::READ, ['now' => $now, 'id' => $sendId], ['now' => 'datetime_immutable']));
+        $this->connection->executeStatement(self::READ, ['now' => $now, 'id' => $sendId], ['now' => 'datetime_immutable']);
     }
 
     public function exists(string $sendId): bool
     {
-        return false !== $this->bypass->run(fn (): mixed => $this->connection->fetchOne('SELECT 1 FROM invoice_send WHERE id = :id', ['id' => $sendId]));
+        return false !== $this->connection->fetchOne('SELECT 1 FROM invoice_send WHERE id = :id', ['id' => $sendId]);
     }
 
     /**

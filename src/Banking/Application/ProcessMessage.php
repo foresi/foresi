@@ -75,7 +75,7 @@ final readonly class ProcessMessage
      *
      * @return InboundStatus where the message stands afterwards
      *
-     * @throws UnknownInboundMessage also for a message of another tenant
+     * @throws UnknownInboundMessage for an unknown message
      */
     public function process(string $messageId): InboundStatus
     {
@@ -87,7 +87,7 @@ final readonly class ProcessMessage
      * someone chose to record anyway: its movements are recorded and never paired
      * by themselves. Only AcceptRejectedMessage calls this.
      *
-     * @throws UnknownInboundMessage also for a message of another tenant
+     * @throws UnknownInboundMessage for an unknown message
      */
     public function processAccepted(string $messageId): InboundStatus
     {

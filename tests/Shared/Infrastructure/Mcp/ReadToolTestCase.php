@@ -78,11 +78,9 @@ abstract class ReadToolTestCase extends ApiTestCase
         $instance = $this->tool($tool);
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
         $tokens->setToken(new UsernamePasswordToken(SecurityUser::fromUser($as ?? $this->user), 'mcp', ['ROLE_USER']));
-        $this->context()->switchTo($this->tenant);
         try {
             return $instance->call($arguments);
         } finally {
-            $this->context()->reset();
             $tokens->setToken(null);
         }
     }
@@ -118,7 +116,7 @@ abstract class ReadToolTestCase extends ApiTestCase
     protected function guest(): User
     {
         $guest = $this->fixtures->user('guest@example.com');
-        $this->fixtures->join($guest, $this->tenant, Role::Guest);
+        $this->fixtures->join($guest, Role::Guest);
 
         return $guest;
     }

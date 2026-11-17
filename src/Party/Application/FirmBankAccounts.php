@@ -12,7 +12,7 @@ use App\Party\Domain\FirmBankAccount;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The bank accounts of the firms of the active tenant. Lists put the primary
+ * The bank accounts of the firms. Lists put the primary
  * account first and then follow the position. Call add() and makePrimary()
  * inside TransactionalWork, which flushes.
  */
@@ -33,7 +33,7 @@ interface FirmBankAccounts
     public function ibansOf(LegalEntity $firm): array;
 
     /**
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount also for an unknown account
      */
     public function get(string $id): FirmBankAccount;
 
@@ -42,7 +42,7 @@ interface FirmBankAccounts
      * the lock a movement is recorded under too, so a change that depends on the
      * account's movements sees every one of them. Call it inside TransactionalWork.
      *
-     * @throws UnknownFirmBankAccount also for an account of another tenant
+     * @throws UnknownFirmBankAccount also for an unknown account
      */
     public function lock(string $id): FirmBankAccount;
 

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * Reads about advance invoices of the active tenant and the tax documents on their
+ * Reads about advance invoices and the tax documents on their
  * payments.
  */
 interface AdvanceDocuments

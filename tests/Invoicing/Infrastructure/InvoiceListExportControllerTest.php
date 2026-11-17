@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
@@ -56,8 +54,6 @@ final class InvoiceListExportControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     /** @var array{firm: LegalEntity, series: Series, customer: Party} */
     private array $world;
 
@@ -65,8 +61,7 @@ final class InvoiceListExportControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
     }
 
@@ -393,11 +388,9 @@ final class InvoiceListExportControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], $locale, $role);
-        $this->context->switchTo($this->tenant);
+        $this->browser->seed($locale, $role);
         $this->world = $this->world('Example Firm s.r.o.');
         $this->em()->flush();
-        $this->context->reset();
         $this->browser->signIn();
     }
 
@@ -410,12 +403,7 @@ final class InvoiceListExportControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function em(): EntityManagerInterface

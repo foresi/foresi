@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\DailyPeriod;
 use App\Instance\Application\Schedule\ScheduledJob;
-use App\Instance\Application\TenantClock;
 use App\Invoicing\Domain\FirmReminders;
 use App\Invoicing\Domain\SendPurpose;
 use App\Party\Application\LegalEntities;
@@ -19,7 +19,7 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Reminds customers of overdue invoices, once a day from 08:00 in the tenant's
+ * Reminds customers of overdue invoices, once a day from 08:00 in the instance's
  * zone, business hours for a mail about money. For each active firm with
  * reminders on it reads the invoices worth their next reminder, page after page
  * until the firm's daily budget is taken, and queues one reminder per invoice
@@ -47,7 +47,7 @@ final readonly class SendReminders implements ScheduledJob
         private InvoiceStore $store,
         private SendDraft $drafts,
         private SendInvoice $sending,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -68,7 +68,7 @@ final readonly class SendReminders implements ScheduledJob
         if (!$this->settings->canSwitchOn()) {
             return;
         }
-        $zone = $this->tenantClock->timezone();
+        $zone = $this->instanceClock->timezone();
         // The day of the period, so a run given back and retried after midnight still works for its own day.
         $today = new \DateTimeImmutable($this->period(\DateTimeImmutable::createFromInterface($this->clock->now()), $zone), $zone);
         foreach ($this->firms->active() as $firm) {

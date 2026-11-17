@@ -12,8 +12,6 @@ use App\Audit\Application\AuditTrail;
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
 use App\Country\CzechRepublic\Party\CzechBankAccount;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\BankAccountRefusal;
 use App\Party\Application\BankAccountRefused;
 use App\Party\Application\BankAccountUsage;
@@ -55,9 +53,6 @@ final class ManageFirmBankAccountsTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $context = $container->get(TenantContext::class);
-        $tenant = TenantId::generate();
-        $context->switchTo($tenant);
 
         $usage = new readonly class($this) implements BankAccountUsage {
             public function __construct(private ManageFirmBankAccountsTest $test)

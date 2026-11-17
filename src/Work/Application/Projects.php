@@ -13,7 +13,7 @@ use App\Work\Domain\ProjectStatus;
 use App\Work\Domain\Section;
 
 /**
- * The projects of the active tenant with their statuses and sections.
+ * The projects their statuses and sections.
  */
 interface Projects
 {

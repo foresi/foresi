@@ -9,9 +9,8 @@ declare(strict_types=1);
 namespace App\Ui\Navigation;
 
 /**
- * Supplies the number shown next to a navigation item. It runs inside the
- * active tenant and is never called when there is none, so it may use
- * tenant-owned data. Returning null shows no number.
+ * Supplies the number shown next to a navigation item. It is only called for a signed-in
+ * person with an active membership, so it may use the instance's data. Returning null shows no number.
  */
 interface NavigationCountProvider
 {

@@ -76,8 +76,8 @@ final class ReminderRaceTest extends KernelTestCase
         /** @var list<list<list<int>>> $stored */
         $stored = json_decode($inspect->getOutput(), true, 8, \JSON_THROW_ON_ERROR);
         self::assertCount(self::ROUNDS, $stored);
-        foreach ($stored as $tenant) {
-            self::assertSame(array_fill(0, ReminderWorker::INVOICES, [1]), $tenant, 'one first reminder per invoice, whichever run took it');
+        foreach ($stored as $slot) {
+            self::assertSame(array_fill(0, ReminderWorker::INVOICES, [1]), $slot, 'one first reminder per invoice, whichever run took it');
         }
     }
 

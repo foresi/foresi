@@ -13,7 +13,7 @@ use App\Country\CzechRepublic\Invoicing\CzechSupplyCodes;
 use App\Country\CzechRepublic\Invoicing\CzechVatRates;
 use App\Country\CzechRepublic\Invoicing\IsdocWriter;
 use App\Country\CzechRepublic\Invoicing\QrPlatba;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\InvoiceHistory;
 use App\Invoicing\Application\InvoiceHistoryEntry;
 use App\Invoicing\Application\IssueInvoice;
@@ -119,7 +119,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         self::assertSame('2027-01-02', $this->invoiceRow($invoice->id())['tax_point_date']);
     }
 
-    public function testTodayIsTheTenantsDay(): void
+    public function testTodayIsTheInstancesDay(): void
     {
         $template = $this->save->create($this->recurringInput(overrides: ['recurrence' => $this->monthly('2027-01-01')]));
         // 23:30 in UTC is already New Year's Day in Prague, the zone of the firm's country.
@@ -456,7 +456,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
             }
         };
 
-        return new IssueRecurringOccurrence($templates, $container->get(IssueInvoice::class), $container->get(TenantClock::class));
+        return new IssueRecurringOccurrence($templates, $container->get(IssueInvoice::class), $container->get(InstanceClock::class));
     }
 
     /**

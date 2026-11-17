@@ -45,7 +45,7 @@ $rateStore->save(new DateTimeImmutable('2026-10-14'), new PublishedRates(new Dat
 $studio = $firmAccount(new LegalEntity('Example Studio s.r.o.', new RegistrationNumber('CZ', '12345687'), VatId::fromString('CZ12345687'), $address(3), VatStatus::Registered, 'Example register, entry C 9012'));
 $entityManager->persist($studio);
 $entityManager->flush();
-$purchasingOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'purchasing@example.com']) ?? throw new LogicException('The owner of the purchasing tenant is missing.');
+$purchasingOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'purchasing@example.com']) ?? throw new LogicException('The owner of the purchasing world is missing.');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($purchasingOwner->id(), $purchasingOwner->email(), 'hash'), 'main', ['ROLE_USER']));
 $suppliers = [];
 foreach ($entityManager->getRepository(Party::class)->findAll() as $candidate) {

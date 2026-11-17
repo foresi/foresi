@@ -12,10 +12,6 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Identity\Infrastructure\Console\CreateUserCommand;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\IdentityFixtures;
@@ -37,11 +33,11 @@ final class CreateUserCommandTest extends KernelTestCase
     protected function setUp(): void
     {
         $kernel = self::bootKernel();
-        new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class))->rebuildSchema();
+        new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'))->rebuildSchema();
         $this->tester = new CommandTester(new Application($kernel)->find('app:user:create'));
     }
 
-    public function testCreatesTheUserTheInstanceAndTheMembership(): void
+    public function testCreatesTheUserAndTheMembership(): void
     {
         $status = $this->create(['email' => 'Testing@Example.COM', 'role' => 'owner'], self::PASSWORD);
 
@@ -51,7 +47,6 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertNotSame(self::PASSWORD, $user->passwordHash());
         self::assertTrue(password_verify(self::PASSWORD, $user->passwordHash()));
         self::assertSame(Role::Owner, $this->directory()->roleOf($user->id()));
-        self::assertSame([CreateUserCommand::INSTANCE_NAME], $this->em()->getConnection()->fetchFirstColumn('SELECT name FROM tenant'));
         self::assertStringNotContainsString(self::PASSWORD, $this->tester->getDisplay());
     }
 
@@ -78,11 +73,9 @@ final class CreateUserCommandTest extends KernelTestCase
 
     public function testTheSecondUserJoinsTheSameInstance(): void
     {
-        $existing = $this->tenant('Example Company');
         $this->create(['email' => 'one@example.com', 'role' => 'owner'], self::PASSWORD);
         $this->create(['email' => 'two@example.com', 'role' => 'member'], self::PASSWORD);
 
-        self::assertSame([$existing->toString()], $this->em()->getConnection()->fetchFirstColumn('SELECT id FROM tenant'));
         self::assertSame(Role::Member, $this->directory()->roleOf($this->users()->findByEmail('two@example.com')?->id() ?? ''));
         self::assertSame(2, $this->rows('membership'));
     }
@@ -122,7 +115,6 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertSame(Command::INVALID, $status);
         self::assertStringContainsString('--contact', $this->tester->getDisplay());
         self::assertNull($this->users()->findByEmail('guest@example.com'));
-        self::assertSame(0, $this->rows('tenant'));
     }
 
     /**
@@ -175,10 +167,9 @@ final class CreateUserCommandTest extends KernelTestCase
 
         self::assertSame(Command::INVALID, $status);
         self::assertNull($this->users()->findByEmail('testing@example.com'));
-        self::assertSame(0, $this->rows('tenant'));
     }
 
-    public function testAFailureLeavesNoTenantWithoutItsFirstUser(): void
+    public function testAFailureLeavesNoUserWithoutItsMembership(): void
     {
         $this->em()->getEventManager()->addEventListener(Events::prePersist, new class {
             public function prePersist(PrePersistEventArgs $args): void
@@ -193,7 +184,6 @@ final class CreateUserCommandTest extends KernelTestCase
             $this->create(['email' => 'testing@example.com', 'role' => 'owner'], self::PASSWORD);
             self::fail('The failure must propagate.');
         } catch (\RuntimeException) {
-            self::assertSame(0, $this->rows('tenant'));
             self::assertSame(0, $this->rows('app_user'));
         }
     }
@@ -213,15 +203,6 @@ final class CreateUserCommandTest extends KernelTestCase
         $this->tester->setInputs([$name, $password, $confirmation ?? $password]);
 
         return $this->tester->execute($arguments, ['interactive' => true]);
-    }
-
-    private function tenant(string $name): TenantId
-    {
-        $tenant = new Tenant(TenantId::generate(), $name, new \DateTimeImmutable());
-        $this->em()->persist($tenant);
-        $this->em()->flush();
-
-        return $tenant->id();
     }
 
     private function contact(): string

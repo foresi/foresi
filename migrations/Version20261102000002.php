@@ -28,7 +28,7 @@ final class Version20261102000002 extends AbstractMigration
     {
         $invoice = $schema->createTable('invoice');
         $invoice->addColumn('id', Types::GUID);
-        $invoice->addColumn('tenant_id', 'tenant_id');
+        $invoice->addColumn('tenant_id', 'guid');
         $invoice->addColumn('legal_entity_id', Types::GUID);
         $invoice->addColumn('series_id', Types::GUID);
         $invoice->addColumn('customer_id', Types::GUID);
@@ -76,7 +76,7 @@ final class Version20261102000002 extends AbstractMigration
 
         $line = $schema->createTable('invoice_line');
         $line->addColumn('id', Types::GUID);
-        $line->addColumn('tenant_id', 'tenant_id');
+        $line->addColumn('tenant_id', 'guid');
         $line->addColumn('invoice_id', Types::GUID);
         $line->addColumn('position', Types::INTEGER);
         $line->addColumn('text', Types::TEXT);
@@ -101,7 +101,7 @@ final class Version20261102000002 extends AbstractMigration
 
         $abandoned = $schema->createTable('abandoned_number');
         $abandoned->addColumn('id', Types::GUID);
-        $abandoned->addColumn('tenant_id', 'tenant_id');
+        $abandoned->addColumn('tenant_id', 'guid');
         $abandoned->addColumn('legal_entity_id', Types::GUID);
         $abandoned->addColumn('invoice_id', Types::GUID);
         $abandoned->addColumn('number', Types::STRING, ['length' => 80]);

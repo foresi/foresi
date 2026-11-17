@@ -31,7 +31,7 @@ use App\Shared\Domain\Currency;
  */
 final readonly class ImportPartyValues
 {
-    /** The country a row means when it names none: the tenants are Czech for now. */
+    /** The country a row means when it names none: firms are Czech for now. */
     public const string DEFAULT_COUNTRY = 'CZ';
 
     private const int MAX_DUE_DAYS = 365;

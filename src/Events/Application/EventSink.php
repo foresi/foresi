@@ -19,8 +19,5 @@ use App\Events\Application\Query\EventRow;
  */
 interface EventSink
 {
-    /**
-     * @param string $tenantId the organisation the event belongs to
-     */
-    public function accept(string $tenantId, EventRow $row): void;
+    public function accept(EventRow $row): void;
 }

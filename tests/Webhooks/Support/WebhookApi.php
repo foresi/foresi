@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Support;
 
 use App\Identity\Domain\ApiScope;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use App\Webhooks\Domain\DisabledReason;
 use App\Webhooks\Domain\EndpointUrl;
@@ -68,15 +67,15 @@ trait WebhookApi
     }
 
     /**
-     * An endpoint stored straight in an organisation, owned by the user, with
+     * An endpoint stored straight in the database, owned by the user, with
      * no ping. Its secret is sealed with a key of its own, so storing it starts
      * none of the services a test may still replace.
      *
      * @param list<string> $eventTypes
      */
-    protected function stored(TenantId $tenant, array $eventTypes = ['invoicing.*'], bool $active = true): string
+    protected function stored(array $eventTypes = ['invoicing.*'], bool $active = true): string
     {
-        return $this->inTenant($tenant, function () use ($eventTypes, $active): string {
+        return $this->flushed(function () use ($eventTypes, $active): string {
             $secrets = new SodiumWebhookSecrets('stored:'.base64_encode(str_repeat("\x07", \SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
             $now = new \DateTimeImmutable('2026-11-13 10:00:00');
             $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/stored'), null, EventTypes::of($eventTypes), 1, $secrets->seal(WebhookSecret::generate()), $this->user->id(), $now);
@@ -93,7 +92,7 @@ trait WebhookApi
     {
         $this->em()->clear();
 
-        return $this->inTenant($this->tenant, fn (): ?WebhookEndpoint => $this->em()->find(WebhookEndpoint::class, $id));
+        return $this->em()->find(WebhookEndpoint::class, $id);
     }
 
     protected function webhooks(): InMemoryTransport

@@ -38,7 +38,7 @@ use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
 
-// The tenant of the bank movements spec: two firms with an account each and an inbound
+// The world of the bank movements spec: two firms with an account each and an inbound
 // address. The first has three invoices: 20260001 paired by a verified notice, 20260002
 // waiting for the unverified payment the spec pairs by hand, and 20260003 open. The bank
 // mail holds one of each kind: processed, failed, rejected for its sender, about another

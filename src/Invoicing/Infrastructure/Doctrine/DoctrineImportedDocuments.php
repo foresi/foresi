@@ -19,7 +19,7 @@ use App\Party\Domain\LegalEntity;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Queries of the ORM, so the tenant filter holds. Every table that names an invoice
+ * Queries of the ORM. Every table that names an invoice
  * is asked about it: its foreign keys would refuse the delete anyway, and here they
  * become reasons a person can read.
  */

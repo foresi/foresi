@@ -33,7 +33,7 @@ final readonly class RecurringLifecycle
      * Repeatable.
      *
      * @throws RecurringRefused        once ended
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function pause(string $id): void
     {
@@ -47,12 +47,12 @@ final readonly class RecurringLifecycle
      * Starts again from the first date on or after $today. The dates that fell in
      * the pause are not issued; they come back, so a dialog can name them.
      *
-     * @param \DateTimeImmutable $today the tenant's today
+     * @param \DateTimeImmutable $today the instance's today
      *
      * @return list<\DateTimeImmutable> the skipped dates, oldest first
      *
      * @throws RecurringRefused        once ended
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function resume(string $id, \DateTimeImmutable $today): array
     {
@@ -62,7 +62,7 @@ final readonly class RecurringLifecycle
     /**
      * Repeatable.
      *
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function end(string $id): void
     {
@@ -73,7 +73,7 @@ final readonly class RecurringLifecycle
 
     /**
      * @throws RecurringRefused        once the template issued an invoice
-     * @throws UnknownRecurringInvoice also for a template of another tenant
+     * @throws UnknownRecurringInvoice
      */
     public function delete(string $id): void
     {

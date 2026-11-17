@@ -10,7 +10,6 @@ namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
 use App\Instance\Application\Schedule\Heartbeats;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -32,7 +31,7 @@ final class WorkerNoticesTest extends WebTestCase
         self::mockTime('2026-11-06 10:00:00');
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
     public function testAnOwnerIsToldOfAWorkerSilentForMoreThanThreeMinutes(): void
@@ -74,7 +73,7 @@ final class WorkerNoticesTest extends WebTestCase
 
     private function seed(Role $role): void
     {
-        $this->browser->seed(['Tenant A'], 'en', $role);
+        $this->browser->seed('en', $role);
         $this->browser->signIn();
     }
 }

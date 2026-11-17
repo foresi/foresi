@@ -19,7 +19,6 @@ use App\Identity\Domain\Invitation;
 use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -101,7 +100,7 @@ final class AcceptInvitationTest extends TestCase
         $clock = self::createStub(ClockInterface::class);
         $clock->method('now')->willReturn($this->now);
         $memberships = self::createStub(MembershipDirectory::class);
-        $memberships->method('organisationsOf')->willReturn([new Organisation(TenantId::generate(), 'Example Company', Role::Owner)]);
+        $memberships->method('organisationOf')->willReturn(new Organisation('Example Company', Role::Owner));
 
         return new AcceptInvitation($this->invitations, self::createStub(People::class), $this->users, $memberships, $clock);
     }

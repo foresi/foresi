@@ -27,7 +27,7 @@ final class Version20261103020001 extends AbstractMigration
     {
         $account = $schema->createTable('firm_bank_account');
         $account->addColumn('id', Types::GUID);
-        $account->addColumn('tenant_id', 'tenant_id');
+        $account->addColumn('tenant_id', 'guid');
         $account->addColumn('legal_entity_id', Types::GUID);
         $account->addColumn('iban', Types::STRING, ['length' => 34]);
         $account->addColumn('currency', Types::STRING, ['length' => 3]);

@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Audit\Fixtures;
 
 use App\Audit\Domain\Audited;
-use App\Instance\Domain\TenantId;
-use App\Instance\Domain\TenantOwned;
 use App\Shared\Domain\Id;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -21,15 +19,11 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'test_audited_group')]
-#[ORM\Index(name: 'idx_test_audited_group_tenant', columns: ['tenant_id'])]
-class AuditedGroup implements TenantOwned, Audited
+class AuditedGroup implements Audited
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'tenant_id', type: 'tenant_id', nullable: false)]
-    private ?TenantId $tenantId = null;
 
     /** @var Collection<int, AuditedSecret> */
     #[ORM\ManyToMany(targetEntity: AuditedSecret::class)]
@@ -45,10 +39,5 @@ class AuditedGroup implements TenantOwned, Audited
     public function add(AuditedSecret $secret): void
     {
         $this->members->add($secret);
-    }
-
-    public function tenantId(): TenantId
-    {
-        return $this->tenantId ?? throw new \LogicException('The tenant is stamped on persist.');
     }
 }

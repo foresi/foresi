@@ -12,8 +12,8 @@ use App\Banking\Domain\FirmPairing;
 use App\Party\Domain\LegalEntity;
 
 /**
- * The stored pairing switches of the firms of the active tenant. Call add()
- * inside TransactionalWork, which flushes.
+ * The stored pairing switches of the firms. Call add() inside
+ * TransactionalWork, which flushes.
  */
 interface FirmPairings
 {

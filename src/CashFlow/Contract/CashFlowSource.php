@@ -13,9 +13,9 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * A module that tells the forecast what money it expects (ADR 0033). It is
  * collected by its tag, so a module implements it in its Integration/CashFlow
- * directory and Cash flow knows no source by name. A source answers inside the
- * tenant filter, and says whether the caller may read its documents: without
- * that, the forecast counts its flows in the category totals only (C15).
+ * directory and Cash flow knows no source by name. A source says whether the
+ * caller may read its documents: without that, the forecast counts its flows
+ * in the category totals only (C15).
  * Whatever it throws is caught: the forecast lists the source as unavailable
  * and goes on.
  */
@@ -42,7 +42,7 @@ interface CashFlowSource
      *
      * @param \DateTimeImmutable $from  the first day of the forecast, $today or later
      * @param \DateTimeImmutable $to    the last day of the forecast, inclusive
-     * @param \DateTimeImmutable $today midnight of today in the tenant's zone (TenantClock)
+     * @param \DateTimeImmutable $today midnight of today in the instance's zone (InstanceClock)
      *
      * @return iterable<ExpectedFlow>
      */

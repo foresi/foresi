@@ -15,7 +15,7 @@ use App\Party\Domain\LegalEntity;
 
 /**
  * The texts a firm sends its documents with: its own for a kind and language, or
- * the built-in one. A template of another tenant is never found.
+ * the built-in one.
  */
 interface MailTemplates
 {

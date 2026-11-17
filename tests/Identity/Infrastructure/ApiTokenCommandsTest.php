@@ -13,7 +13,6 @@ use App\Identity\Domain\ApiScope;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -35,10 +34,10 @@ final class ApiTokenCommandsTest extends KernelTestCase
     {
         $kernel = self::bootKernel();
         $this->application = new Application($kernel);
-        $this->fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'), self::getContainer()->get(TenantContext::class));
+        $this->fixtures = new IdentityFixtures(self::getContainer()->get('doctrine.orm.entity_manager'));
         $this->fixtures->rebuildSchema();
         $this->user = $this->fixtures->user();
-        $this->fixtures->join($this->user, $this->fixtures->tenant('Tenant A'), Role::Member);
+        $this->fixtures->join($this->user, Role::Member);
     }
 
     public function testIssuingPrintsTheSecretOnceWithoutTwoFactorSignIn(): void
@@ -59,7 +58,6 @@ final class ApiTokenCommandsTest extends KernelTestCase
         self::assertSame(substr($match[0], -4), $records[0]->lastFour);
         self::assertStringContainsString('it will not be shown again', $tester->getDisplay());
         self::assertStringContainsString($records[0]->id, $tester->getDisplay());
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     public function testIssuingLastsNinetyDaysByDefaultAndTakesAResourceScope(): void
@@ -86,7 +84,6 @@ final class ApiTokenCommandsTest extends KernelTestCase
 
         self::assertStringContainsString($message, preg_replace('/\s+/', ' ', $tester->getDisplay()) ?? '');
         self::assertSame([], $this->tokens()->records());
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     /**
@@ -104,7 +101,7 @@ final class ApiTokenCommandsTest extends KernelTestCase
 
     public function testAGuestGetsNoToken(): void
     {
-        $this->fixtures->join($this->fixtures->user('guest@example.com'), $this->fixtures->tenant('Tenant A'), Role::Guest);
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
 
         $tester = $this->tester('app:api-token:issue');
 
@@ -158,7 +155,6 @@ final class ApiTokenCommandsTest extends KernelTestCase
         self::assertSame(Command::SUCCESS, $tester->execute(['token-id' => $id]));
         self::assertStringContainsString('Revoked "Reporting"', $tester->getDisplay());
         self::assertNotNull($this->tokens()->records()[0]->revokedAt);
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     #[DataProvider('unknownIds')]

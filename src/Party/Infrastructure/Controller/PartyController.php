@@ -56,8 +56,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The address book: list, detail and the actions on existing contacts. A
- * contact of another tenant is never found, so it answers 404 exactly like a
- * contact that does not exist.
+ * contact that does not exist answers 404.
  */
 final class PartyController extends AbstractController
 {
@@ -193,8 +192,8 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * Archives the selected contacts. Either all of them are contacts of the
-     * active tenant, or nothing happens and the answer is 404.
+     * Archives the selected contacts. Either all of them are existing contacts,
+     * or nothing happens and the answer is 404.
      */
     #[Route('/contacts/archive', name: 'app_contacts_archive', methods: ['POST'])]
     public function archiveMany(Request $request): RedirectResponse
@@ -217,7 +216,7 @@ final class PartyController extends AbstractController
     /**
      * Exports the selected contacts, or the whole view as it is filtered, through
      * the import target: the file has the columns the import maps and imports
-     * again. Ids of other tenants are ignored. The file name carries the date
+     * again. Unknown ids are ignored. The file name carries the date
      * only, never a name or a number. It is streamed, so a large address book
      * needs no limit.
      */
@@ -270,7 +269,7 @@ final class PartyController extends AbstractController
         $personId = $request->request->getString('person');
         $position = trim($request->request->getString('position'));
         $primary = $request->request->getBoolean('primary');
-        // A person the select never offered (another tenant's, or none at all) is not found, as everywhere.
+        // A person the select never offered (or none at all) is not found, as everywhere.
         $person = '' === $personId ? null : $this->party($personId);
 
         $errors = [];
@@ -341,7 +340,7 @@ final class PartyController extends AbstractController
         if (!Id::isValid($id) || !\in_array($outcome, ImportedBy::OUTCOMES, true)) {
             return [null, null];
         }
-        // An import of another tenant is not found, so its id narrows nothing.
+        // An unknown import is not found, so its id narrows nothing.
         $import = $this->imports->find($id);
 
         return $import instanceof Import ? [new ImportedBy($id, $outcome), $import] : [null, null];

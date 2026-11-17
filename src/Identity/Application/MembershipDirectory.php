@@ -22,11 +22,8 @@ interface MembershipDirectory
     public function roleOf(string $userId): ?Role;
 
     /**
-     * The user's organisation with its name and the role held there, for mails
-     * that name it: empty without an active membership. It goes with the
-     * tenant itself.
-     *
-     * @return list<Organisation>
+     * The organisation with its name and the role the user holds there, for
+     * the shell and the mails that name it: null without an active membership.
      */
-    public function organisationsOf(string $userId): array;
+    public function organisationOf(string $userId): ?Organisation;
 }

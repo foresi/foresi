@@ -27,7 +27,7 @@ final class Version20261106090001 extends AbstractMigration
     {
         $job = $schema->createTable('idoklad_job');
         $job->addColumn('id', Types::GUID);
-        $job->addColumn('tenant_id', 'tenant_id');
+        $job->addColumn('tenant_id', 'guid');
         $job->addColumn('legal_entity_id', Types::GUID);
         $job->addColumn('kind', Types::STRING, ['length' => 8]);
         $job->addColumn('state', Types::STRING, ['length' => 8]);

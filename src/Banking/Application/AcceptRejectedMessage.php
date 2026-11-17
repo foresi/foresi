@@ -30,7 +30,7 @@ final readonly class AcceptRejectedMessage
      * @return InboundStatus where the message stands afterwards: Rejected when its account turns out not to be the firm's
      *
      * @throws AcceptRefused         when the user is not the owner, or the message is not rejected for its trust; nothing is stored
-     * @throws UnknownInboundMessage also for a message of another tenant
+     * @throws UnknownInboundMessage for an unknown message
      */
     public function accept(string $messageId): InboundStatus
     {

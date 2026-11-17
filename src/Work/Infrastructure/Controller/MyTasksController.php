@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\TaskGroup;
 use App\Work\Application\TaskRow;
 use App\Work\Application\WorkQueries;
@@ -36,7 +36,7 @@ final class MyTasksController extends AbstractController
 
     public function __construct(
         private readonly WorkQueries $queries,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly InlineTaskEdits $edits,
     ) {

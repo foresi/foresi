@@ -40,7 +40,7 @@ final readonly class AcceptInvitation
         if (!$invitation instanceof Invitation) {
             return null;
         }
-        $organisation = $this->memberships->organisationsOf($invitation->invitedBy())[0]->name ?? '';
+        $organisation = $this->memberships->organisationOf($invitation->invitedBy())->name ?? '';
 
         return new OpenInvitation($invitation, $organisation, $invitation->state($this->clock->now()), $this->users->findByEmail($invitation->email()) instanceof User);
     }

@@ -10,7 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\ExportDocumentList;
@@ -105,7 +105,7 @@ final class InvoiceListController extends AbstractController
         private readonly MailTokenLabels $labels,
         private readonly SendFailureText $failures,
         private readonly RecurringInvoices $recurring,
-        private readonly TenantClock $tenantClock,
+        private readonly InstanceClock $instanceClock,
         private readonly MissingTaxDocuments $missing,
         private readonly IssuePaymentTaxDocument $taxDocuments,
         private readonly UncorrectedTaxDocuments $uncorrected,
@@ -629,7 +629,7 @@ final class InvoiceListController extends AbstractController
             // A reminded row says how many reminders went, in the place of the mark: the newest
             // e-mail was one of them. A failure keeps its mark, as that is what to act on.
             if (null !== $reminders && SendMark::Failed !== $row->sendMark) {
-                $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->tenantClock->timezone())->format($date)]);
+                $last = $this->translator->trans('reminder.list.last', ['date' => $reminders['lastAt']->setTimezone($this->instanceClock->timezone())->format($date)]);
                 $sent = [
                     'text' => $this->translator->trans('reminder.list.count', ['count' => $reminders['count']]),
                     'icon' => 'bell-ring',
@@ -660,7 +660,7 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * What the accountant has of the row, with the moment that says so in the tenant's time.
+     * What the accountant has of the row, with the moment that says so in the instance's time.
      * A document never exported shows nothing; a change after the export asks for a look.
      *
      * @return array{text: string, icon: string, tone: string, hint: string}|null
@@ -678,16 +678,16 @@ final class InvoiceListController extends AbstractController
             'text' => $this->translator->trans('invoice.export_state.'.$state),
             'icon' => $changed ? 'file-pen-line' : 'archive',
             'tone' => $changed ? 'amber' : 'gray',
-            'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->tenantClock->timezone())->format($this->translator->trans('format.datetime'))]),
+            'hint' => $this->translator->trans('invoice.export_state.hint.'.$state, ['date' => $moment->setTimezone($this->instanceClock->timezone())->format($this->translator->trans('format.datetime'))]),
         ];
     }
 
     /**
-     * The tenant's day, as the reminder run counts it (ADR 0017): whether an invoice is overdue.
+     * The instance's day, as the reminder run counts it (ADR 0017): whether an invoice is overdue.
      */
     private function today(): \DateTimeImmutable
     {
-        return $this->tenantClock->today();
+        return $this->instanceClock->today();
     }
 
     /**

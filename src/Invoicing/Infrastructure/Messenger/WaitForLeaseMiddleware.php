@@ -24,7 +24,7 @@ use Symfony\Component\Messenger\Transport\Sync\SyncTransport;
  * on the mail queue, delayed until the lease ends, and counts as handled. A
  * retry would do the same but use up one of the message's retries and push the
  * later ones further out; waiting is not a failure. The message keeps its
- * stamps, its tenant and its retry count among them.
+ * stamps, its retry count among them.
  *
  * A synchronous transport would hand the message straight back, to wait again
  * at once: there the delivery fails as a retryable one, as it did before.

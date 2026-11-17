@@ -24,8 +24,6 @@ use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\InvalidIdokladConnection;
 use App\Idoklad\Infrastructure\Http\HttpIdokladClient;
 use App\Idoklad\Infrastructure\Http\HttpIdokladSession;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\MailSecrets;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
@@ -68,7 +66,6 @@ final class IdokladSnapshotTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
         $this->connect = $container->get(ConnectIdoklad::class);
         $this->clock = new MockClock('2026-11-06 10:00:00');
 

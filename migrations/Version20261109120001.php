@@ -33,7 +33,7 @@ final class Version20261109120001 extends AbstractMigration
 
         $share = $schema->createTable('work_share');
         $share->addColumn('id', Types::GUID);
-        $share->addColumn('tenant_id', 'tenant_id');
+        $share->addColumn('tenant_id', 'guid');
         $share->addColumn('membership_id', Types::GUID);
         $share->addColumn('project_id', Types::GUID, ['notnull' => false]);
         $share->addColumn('section_id', Types::GUID, ['notnull' => false]);

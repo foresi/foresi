@@ -10,7 +10,6 @@ namespace App\Work\Infrastructure\Controller;
 
 use App\Identity\Application\OpenToGuest;
 use App\Identity\Domain\User;
-use App\Instance\Domain\TenantId;
 use App\Work\Application\ManageNotificationPreferences;
 use App\Work\Domain\NotificationKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,12 +26,16 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * it asks first, as mail filters follow links; the button posts back to the
  * same link, and so does a mail client's one-click unsubscribe (RFC 8058),
  * with no session and no CSRF token, which the signature stands in for. A
- * link changed in any part is not found.
+ * link changed in any part is not found. Links sent before carry one more
+ * path segment ahead of the person, which is signed with the rest and
+ * otherwise ignored, so they still work.
  */
 #[OpenToGuest]
 final class UnsubscribeController extends AbstractController
 {
     public const string ROUTE = 'app_notification_unsubscribe';
+
+    public const string LEGACY_ROUTE = 'app_notification_unsubscribe_legacy';
 
     private const array HEADERS = [
         'X-Robots-Tag' => 'noindex, nofollow',
@@ -44,15 +47,16 @@ final class UnsubscribeController extends AbstractController
     {
     }
 
-    #[Route('/unsubscribe/{tenant}/{membership}/{what}', name: self::ROUTE, requirements: ['tenant' => Requirement::UUID_V7, 'membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], methods: ['GET', 'POST'])]
-    public function __invoke(Request $request, string $tenant, string $membership, string $what): Response
+    #[Route('/unsubscribe/{membership}/{what}', name: self::ROUTE, requirements: ['membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], methods: ['GET', 'POST'])]
+    #[Route('/unsubscribe/{legacy}/{membership}/{what}', name: self::LEGACY_ROUTE, requirements: ['legacy' => Requirement::UUID_V7, 'membership' => Requirement::UUID_V7, 'what' => '[a-z_]{1,32}'], methods: ['GET', 'POST'])]
+    public function __invoke(Request $request, string $membership, string $what): Response
     {
         if (!$this->signer->checkRequest($request)) {
             throw new NotFoundHttpException('The link is not valid.');
         }
         $done = false;
         if ($request->isMethod('POST')) {
-            if (!$this->preferences->switchOff(TenantId::fromString($tenant), $membership, $what)) {
+            if (!$this->preferences->switchOff($membership, $what)) {
                 throw new NotFoundHttpException('The link is not valid.');
             }
             $done = true;

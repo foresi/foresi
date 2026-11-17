@@ -24,7 +24,7 @@ interface AttachmentFiles
 
     /**
      * The local path of the stored file, once its content is proved unchanged.
-     * Keys stored before one instance served one customer, "{tenant}/{id}",
+     * Keys of older versions, which lie one directory deeper, "{directory}/{id}",
      * still read.
      *
      * @throws AttachmentFileUnreadable when it is missing, of another attachment or changed

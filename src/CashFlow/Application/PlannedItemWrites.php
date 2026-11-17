@@ -16,7 +16,7 @@ use App\CashFlow\Contract\Event\PlannedItemEnded;
 use App\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
 use App\CashFlow\Contract\FlowDirection;
 use App\CashFlow\Domain\PlannedItem;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Application\TransactionalWork;
 use App\Shared\Application\Api\Omitted;
 use App\Shared\Application\Event\EventRecorder;
@@ -40,7 +40,7 @@ final readonly class PlannedItemWrites
         private CashFlowStore $store,
         private TransactionalWork $transaction,
         private EventRecorder $events,
-        private TenantClock $tenantClock,
+        private InstanceClock $instanceClock,
         private ClockInterface $clock,
     ) {
     }
@@ -54,7 +54,7 @@ final readonly class PlannedItemWrites
         $direction = FlowDirection::tryFrom($input->direction) ?? throw CashFlowRefused::invalid('direction_unknown', 'direction', 'The direction is in or out.');
 
         return $this->transaction->run(function () use ($input, $direction): PlannedItem {
-            $terms = $this->rules->terms(new PlannedItemDraft($input->name, $input->category, $input->amount, $input->currency, $input->on, $input->repeat, $input->every, $input->lastDayOfMonth, $input->endsOn, $input->endsAfter, $input->counterpartyId, $input->included, $input->matchAccount, $input->matchVariableSymbol, $input->matchTolerance), $this->tenantClock->timezone());
+            $terms = $this->rules->terms(new PlannedItemDraft($input->name, $input->category, $input->amount, $input->currency, $input->on, $input->repeat, $input->every, $input->lastDayOfMonth, $input->endsOn, $input->endsAfter, $input->counterpartyId, $input->included, $input->matchAccount, $input->matchVariableSymbol, $input->matchTolerance), $this->instanceClock->timezone());
             $item = new PlannedItem($this->access->firm($input->firmId), $direction, $terms, $this->clock->now());
             $this->store->add($item);
             $this->events->record(new PlannedItemCreated($item->id(), $item->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
@@ -70,7 +70,7 @@ final readonly class PlannedItemWrites
     {
         return $this->transaction->run(function () use ($input): PlannedItem {
             $item = $this->item($input->plannedItemId);
-            $zone = $this->tenantClock->timezone();
+            $zone = $this->instanceClock->timezone();
             $was = $item->recurrence($zone);
             $match = $item->matchRule();
             $tolerance = $match->toleranceMinor();
@@ -109,7 +109,7 @@ final readonly class PlannedItemWrites
     {
         return $this->transaction->run(function () use ($input): PlannedItem {
             $item = $this->item($input->plannedItemId);
-            $zone = $this->tenantClock->timezone();
+            $zone = $this->instanceClock->timezone();
             $on = PlannedItemRules::day($input->on, $zone, 'on');
             $recurrence = $item->recurrence($zone);
             $falls = $recurrence instanceof Recurrence
@@ -132,7 +132,7 @@ final readonly class PlannedItemWrites
     {
         return $this->transaction->run(function () use ($input): PlannedItem {
             $item = $this->item($input->plannedItemId);
-            $zone = $this->tenantClock->timezone();
+            $zone = $this->instanceClock->timezone();
             $on = PlannedItemRules::day($input->on, $zone, 'on');
             $recurrence = $item->recurrence($zone) ?? throw CashFlowRefused::conflict('not_recurring', 'A one-off planned item cannot be ended; change its day or delete it.');
             try {

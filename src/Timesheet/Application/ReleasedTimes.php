@@ -11,7 +11,7 @@ namespace App\Timesheet\Application;
 use App\Timesheet\Domain\ReleasedTime;
 
 /**
- * The time released by invoices in the trash of the active tenant.
+ * The time released by invoices in the trash.
  */
 interface ReleasedTimes
 {

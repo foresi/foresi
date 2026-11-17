@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\EditInvoice;
@@ -80,7 +78,6 @@ abstract class InvoiceTestCase extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $container->get(TenantContext::class)->switchTo(TenantId::generate());
 
         $this->issue = $container->get(IssueInvoice::class);
         $this->edit = $container->get(EditInvoice::class);

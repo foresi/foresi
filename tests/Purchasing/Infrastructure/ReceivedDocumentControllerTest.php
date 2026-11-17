@@ -10,8 +10,6 @@ namespace App\Tests\Purchasing\Infrastructure;
 
 use App\ExchangeRate\Application\RateSource;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\LegalEntity;
@@ -50,8 +48,6 @@ final class ReceivedDocumentControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Party $supplier;
     /** @var list<string> */
@@ -65,8 +61,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $rates = new FakeRateSource();
         $rates->publish('2026-10-28', '24.310', '15.120');
         self::getContainer()->set(RateSource::class, $rates);
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em(), $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em());
     }
 
     protected function tearDown(): void
@@ -410,7 +405,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
+        $this->browser->seed(role: $role);
         $this->scoped(function (): void {
             $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
             $this->em()->persist($this->firm);
@@ -568,12 +563,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function em(): EntityManagerInterface

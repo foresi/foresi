@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Party\Infrastructure\Registry;
 
-use App\Instance\Application\TenantContext;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\RefreshRegistryChecks;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,7 +30,6 @@ final readonly class RefreshRegistryChecksAfterResponse
     public function __construct(
         private PartyQuery $parties,
         private RefreshRegistryChecks $refresh,
-        private TenantContext $context,
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
     ) {
@@ -46,7 +44,7 @@ final readonly class RefreshRegistryChecksAfterResponse
     public function onTerminate(TerminateEvent $event): void
     {
         $id = $event->getRequest()->attributes->get(self::ATTRIBUTE);
-        if (!\is_string($id) || !$this->context->has() || !$this->em->isOpen()) {
+        if (!\is_string($id) || !$this->em->isOpen()) {
             return;
         }
 

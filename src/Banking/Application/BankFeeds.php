@@ -11,13 +11,13 @@ namespace App\Banking\Application;
 use App\Banking\Domain\BankFeed;
 
 /**
- * The inbound addresses of the bank accounts of the active tenant. Call add()
- * inside TransactionalWork, which flushes.
+ * The inbound addresses of the bank accounts. Call add() inside
+ * TransactionalWork, which flushes.
  */
 interface BankFeeds
 {
     /**
-     * Null for an account without an address, and for one of another tenant.
+     * Null for an account without an address, and for an unknown one.
      */
     public function ofAccount(string $accountId): ?BankFeed;
 
@@ -41,9 +41,8 @@ interface BankFeeds
     public function revealAddress(BankFeed $feed): string;
 
     /**
-     * Records that mail arrived for the feed, by plain SQL: no audit entry, and
-     * across tenants, as the inbox knows the feed by its token alone. Never
-     * moves the time back.
+     * Records that mail arrived for the feed, by plain SQL: no audit entry, as
+     * the inbox knows the feed by its token alone. Never moves the time back.
      */
     public function touch(string $feedId, \DateTimeImmutable $at): void;
 }

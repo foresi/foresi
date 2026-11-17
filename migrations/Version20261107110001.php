@@ -28,7 +28,7 @@ final class Version20261107110001 extends AbstractMigration
     {
         $invitation = $schema->createTable('invitation');
         $invitation->addColumn('id', Types::GUID);
-        $invitation->addColumn('tenant_id', 'tenant_id');
+        $invitation->addColumn('tenant_id', 'guid');
         $invitation->addColumn('email', Types::STRING, ['length' => 255]);
         $invitation->addColumn('display_name', Types::STRING, ['length' => 255]);
         $invitation->addColumn('role', Types::STRING, ['length' => 32]);

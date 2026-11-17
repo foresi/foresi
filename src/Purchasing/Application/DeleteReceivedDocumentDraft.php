@@ -30,7 +30,7 @@ final readonly class DeleteReceivedDocumentDraft
 
     /**
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with RECORDED for a recorded document
      */
     public function delete(string $documentId): void

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * What the customers of the active tenant still owe, for the overview.
+ * What the customers still owe, for the overview.
  */
 interface Receivables
 {

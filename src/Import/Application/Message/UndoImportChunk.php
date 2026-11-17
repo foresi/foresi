@@ -8,10 +8,8 @@ declare(strict_types=1);
 
 namespace App\Import\Application\Message;
 
-use App\Instance\Application\TenantScopedMessage;
-
 /** Puts back one chunk of what a finished import wrote. Safe to handle twice. */
-final readonly class UndoImportChunk implements TenantScopedMessage
+final readonly class UndoImportChunk
 {
     public function __construct(
         public string $importId,

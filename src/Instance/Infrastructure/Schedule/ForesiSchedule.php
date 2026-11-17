@@ -22,7 +22,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 /**
  * The one schedule of the application, consumed by the normal worker as the
  * transport scheduler_foresi. It ticks, and the tick handler finds the jobs that
- * are due in each tenant; and it sends each operator task at the task's own
+ * are due; and it sends each operator task at the task's own
  * pace. The state survives a restart, so a tick missed while no worker ran is
  * made up once, and the lock keeps two workers from both ticking.
  */

@@ -28,8 +28,6 @@ use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportOutcome;
 use App\Idoklad\Domain\ImportReport;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringPage;
@@ -80,8 +78,6 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
 
     /** The status iDoklad answers its API requests with. */
@@ -98,8 +94,7 @@ final class IdokladImportControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em(), $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em());
         Clock::set(new MockClock('2026-11-06 12:00:00'));
         self::getContainer()->set('http_client', new MockHttpClient(fn (string $method, string $url): ResponseInterface => $this->answer($method, $url)));
     }
@@ -348,7 +343,7 @@ final class IdokladImportControllerTest extends WebTestCase
     {
         $this->connectedFirm();
         $pull = $this->pull();
-        $this->inTenant(function () use ($pull): void {
+        $this->fresh(function () use ($pull): void {
             $run = new IdokladImportRun($this->storedFirm(), ImportMode::Check, new \DateTimeImmutable('2026-11-06 10:00:00'));
             $run->readFrom($pull);
             $run->ranWith(new ImportOptions(new \DateTimeImmutable('2021-04-01')));
@@ -368,7 +363,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $this->messages()->run();
         $job = $this->latestJob();
         self::assertSame(IdokladJobState::Done, $job->state(), (string) $job->error());
-        $stored = $this->inTenant(fn (): ?IdokladImportRun => $this->em()->find(IdokladImportRun::class, (string) $job->resultId()));
+        $stored = $this->fresh(fn (): ?IdokladImportRun => $this->em()->find(IdokladImportRun::class, (string) $job->resultId()));
         self::assertEquals(new ImportOptions(new \DateTimeImmutable('2022-01-01')), $stored?->options(), 'The run keeps the day it ran with.');
     }
 
@@ -554,7 +549,7 @@ final class IdokladImportControllerTest extends WebTestCase
         $undo = new UndoIdokladImport($container->get(UndoImportedDocuments::class), $container->get(IdokladLinks::class), $container->get(IdokladImportRuns::class), $failing, $container->get(LegalEntities::class), $container->get(ClockInterface::class));
 
         try {
-            $this->inTenant(fn (): array => $undo->undo($this->em()->find(IdokladImportRun::class, $run) ?? self::fail('The run is stored.')));
+            $this->fresh(fn (): array => $undo->undo($this->em()->find(IdokladImportRun::class, $run) ?? self::fail('The run is stored.')));
             self::fail('The failure of a template travels on.');
         } catch (\RuntimeException $failure) {
             self::assertSame('Example failure of a template.', $failure->getMessage());
@@ -613,8 +608,8 @@ final class IdokladImportControllerTest extends WebTestCase
 
     public function testOnlyTheOwnerMovesFromIDoklad(): void
     {
-        $tenant = $this->browser->seed(['Tenant A'], role: Role::Member)[0];
-        $firm = $this->firm($tenant);
+        $this->browser->seed(role: Role::Member);
+        $firm = $this->firm();
         $this->browser->signIn();
 
         $this->client->request('GET', '/imports');
@@ -683,7 +678,7 @@ final class IdokladImportControllerTest extends WebTestCase
      */
     private function template(string $runId, int $externalId, bool $touched): string
     {
-        $id = $this->inTenant(function () use ($touched, $externalId): string {
+        $id = $this->fresh(function () use ($touched, $externalId): string {
             $customer = new Party(PartyKind::Person, 'Example Customer', null, null, '');
             $this->em()->persist($customer);
             $content = new RecurringContent(null, $customer, PaymentMethod::Cash, null, '', '', 'Hosting', '', '', DocumentLanguage::English, new Recurrence(new \DateTimeImmutable('2026-12-01'), RecurrenceUnit::Month, 1, false, RecurrenceEnd::Never, null, null), TaxPointRule::IssueDate, 14, RecurringDelivery::Review, 'Hosting '.$externalId);
@@ -703,7 +698,7 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function link(string $runId, int $externalId, string $targetId): void
     {
-        $this->inTenant(function () use ($runId, $externalId, $targetId): void {
+        $this->fresh(function () use ($runId, $externalId, $targetId): void {
             $this->em()->persist(new IdokladLink($this->storedFirm(), IdokladResource::RecurringInvoices, $externalId, $targetId, $runId, new \DateTimeImmutable('2026-11-06 10:00:00')));
             $this->em()->flush();
         });
@@ -741,31 +736,29 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function signedInFirm(): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A']);
+        $this->browser->seed();
         $this->browser->signIn();
-        $this->firm = $this->firm($this->tenant);
+        $this->firm = $this->firm();
     }
 
     private function connectedFirm(): void
     {
         $this->signedInFirm();
-        $this->inTenant(fn () => self::getContainer()->get(ConnectIdoklad::class)->connect($this->storedFirm(), 'example-client', self::SECRET));
+        $this->fresh(fn () => self::getContainer()->get(ConnectIdoklad::class)->connect($this->storedFirm(), 'example-client', self::SECRET));
     }
 
-    private function firm(TenantId $tenant, string $number = '12345695'): LegalEntity
+    private function firm(string $number = '12345695'): LegalEntity
     {
-        $this->context->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', $number), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em()->persist($firm);
         $this->em()->flush();
-        $this->context->reset();
 
         return $firm;
     }
 
     private function pull(): IdokladPull
     {
-        return $this->inTenant(function (): IdokladPull {
+        return $this->fresh(function (): IdokladPull {
             $pull = new IdokladPull($this->storedFirm(), new \DateTimeImmutable('2026-11-06 09:00:00'));
             $pull->counted(IdokladResource::Contacts, 1);
             $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
@@ -781,7 +774,7 @@ final class IdokladImportControllerTest extends WebTestCase
      */
     private function record(IdokladResource $resource, int $id, array $payload): void
     {
-        $this->inTenant(function () use ($resource, $id, $payload): void {
+        $this->fresh(function () use ($resource, $id, $payload): void {
             $this->em()->persist(new IdokladRecord($this->storedFirm(), $resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
             $this->em()->flush();
         });
@@ -789,7 +782,7 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function storeRun(ImportMode $mode, ImportReport $report, IdokladPull $pull): void
     {
-        $this->inTenant(function () use ($mode, $report, $pull): void {
+        $this->fresh(function () use ($mode, $report, $pull): void {
             $run = new IdokladImportRun($this->storedFirm(), $mode, new \DateTimeImmutable('2026-11-06 10:00:00'));
             $run->readFrom($pull);
             $run->finish(new \DateTimeImmutable('2026-11-06 10:01:00'), $report);
@@ -800,17 +793,17 @@ final class IdokladImportControllerTest extends WebTestCase
 
     private function connection(): ?IdokladConnection
     {
-        return $this->inTenant(fn (): ?IdokladConnection => $this->em()->getRepository(IdokladConnection::class)->findOneBy(['firm' => $this->firm->id()]));
+        return $this->fresh(fn (): ?IdokladConnection => $this->em()->getRepository(IdokladConnection::class)->findOneBy(['firm' => $this->firm->id()]));
     }
 
     private function latestJob(): IdokladJob
     {
-        return $this->inTenant(fn (): IdokladJob => $this->em()->getRepository(IdokladJob::class)->findOneBy([], ['requestedAt' => 'DESC', 'id' => 'DESC']) ?? self::fail('No job was asked for.'));
+        return $this->fresh(fn (): IdokladJob => $this->em()->getRepository(IdokladJob::class)->findOneBy([], ['requestedAt' => 'DESC', 'id' => 'DESC']) ?? self::fail('No job was asked for.'));
     }
 
     private function reminders(): ?FirmReminders
     {
-        return $this->inTenant(fn (): ?FirmReminders => $this->em()->getRepository(FirmReminders::class)->findOneBy(['firm' => $this->firm->id()]));
+        return $this->fresh(fn (): ?FirmReminders => $this->em()->getRepository(FirmReminders::class)->findOneBy(['firm' => $this->firm->id()]));
     }
 
     private function storedFirm(): LegalEntity
@@ -825,17 +818,12 @@ final class IdokladImportControllerTest extends WebTestCase
      *
      * @return T
      */
-    private function inTenant(callable $work): mixed
+    private function fresh(callable $work): mixed
     {
         $this->em()->clear();
-        $had = $this->context->has();
-        $this->context->switchTo($this->tenant);
         try {
             return $work();
         } finally {
-            if (!$had) {
-                $this->context->reset();
-            }
             $this->em()->clear();
         }
     }

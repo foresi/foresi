@@ -13,7 +13,7 @@ use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\People;
 use App\Identity\Application\Person;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Work\Application\TimeDay;
 use App\Work\Application\TimeEntryRow;
 use App\Work\Application\TimeQueries;
@@ -44,7 +44,7 @@ final class TimeWeekController extends AbstractController
         private readonly TimeQueries $time,
         private readonly People $people,
         private readonly OwnerCheck $owner,
-        private readonly TenantClock $clock,
+        private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
         private readonly TimeFunctions $format,
         private readonly AuditActor $actor,

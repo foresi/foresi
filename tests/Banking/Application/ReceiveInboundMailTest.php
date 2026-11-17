@@ -14,9 +14,6 @@ use App\Banking\Application\ProcessInboundMessage;
 use App\Banking\Application\ReceiveInboundMail;
 use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Domain\InboundChannel;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Tests\Banking\Support\FailingInboundFiles;
 use App\Tests\Banking\Support\InboundMailKit;
 use App\Tests\Banking\Support\Scalars;
@@ -48,7 +45,7 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::bootKernel();
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
         $container = self::getContainer();
-        $this->kit = InboundMailKit::seed($container->get(EntityManagerInterface::class), $container->get(TenantContext::class), $container->get(GenerateAddress::class));
+        $this->kit = InboundMailKit::seed($container->get(EntityManagerInterface::class), $container->get(GenerateAddress::class));
         $this->receive = $container->get(ReceiveInboundMail::class);
         $this->connection = $container->get(Connection::class);
         $queue = $container->get('messenger.transport.async');
@@ -93,11 +90,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
         $message = $sent[0]->getMessage();
         self::assertInstanceOf(ProcessInboundMessage::class, $message);
         self::assertSame($id, $message->messageId);
-        $stamp = $sent[0]->last(TenantStamp::class);
-        self::assertInstanceOf(TenantStamp::class, $stamp);
-        self::assertSame($this->kit->tenant->toString(), $stamp->tenantId);
-
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     public function testTheTokenIsFoundInDeliveredToWhenToIsTheOwnersMailbox(): void
@@ -141,7 +133,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertSame(0, $this->rowCount());
         self::assertSame([], $this->queue->getSent());
         self::assertSame([], $this->storedFiles());
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     public function testTheSameMessageTwiceIsOneRow(): void
@@ -222,22 +213,8 @@ final class ReceiveInboundMailTest extends KernelTestCase
         self::assertStringStartsWith('2026-11-20 12:00:00', Scalars::text($this->connection->fetchOne('SELECT last_received_at FROM bank_feed')));
     }
 
-    public function testATenantActiveBeforeIsActiveAfter(): void
+    public function testAFullDiskStoresNoRow(): void
     {
-        $context = self::getContainer()->get(TenantContext::class);
-        $own = TenantId::generate();
-        $context->switchTo($own);
-
-        self::assertSame(ReceiveOutcome::Stored, $this->receive->receive(InboundMailKit::mail($this->kit->address), InboundChannel::Imap));
-
-        self::assertTrue($context->current()->equals($own));
-    }
-
-    public function testATenantActiveBeforeIsActiveAgainWhenStoringFails(): void
-    {
-        $context = self::getContainer()->get(TenantContext::class);
-        $own = TenantId::generate();
-        $context->switchTo($own);
         FailingInboundFiles::failOn('fail-storage');
 
         try {
@@ -249,7 +226,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
             FailingInboundFiles::failOn(null);
         }
 
-        self::assertTrue($context->current()->equals($own), 'Not the tenant of the address.');
         self::assertSame(0, $this->rowCount());
     }
 
@@ -267,7 +243,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
 
         self::assertSame([], $this->storedFiles());
         self::assertSame([], $this->queue->getSent());
-        self::assertFalse(self::getContainer()->get(TenantContext::class)->has());
     }
 
     /**

@@ -11,7 +11,7 @@ namespace App\Import\Infrastructure\Messenger;
 use App\Import\Application\ImportJobs;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-/** Sends import work through Messenger; the tenant middleware stamps the active tenant. */
+/** Sends import work through Messenger. */
 final readonly class MessengerImportJobs implements ImportJobs
 {
     public function __construct(private MessageBusInterface $bus)

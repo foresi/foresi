@@ -12,9 +12,6 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\UserRepository;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Application\SealerUnavailable;
 use App\Shared\Application\SystemMail;
 use App\Shared\Application\SystemMailer;
@@ -61,12 +58,10 @@ final class SendWebhookHandlerTest extends KernelTestCase
 
     private Connection $db;
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private InMemoryTransport $webhooks;
     private InMemoryTransport $mail;
     private DeliveryRows $rows;
     private User $owner;
-    private TenantId $tenant;
     private MockClock $clock;
     private string $sealed;
     private int $requests = 0;
@@ -76,8 +71,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $this->em = $container->get(EntityManagerInterface::class);
-        $this->context = $container->get(TenantContext::class);
-        $fixtures = new IdentityFixtures($this->em, $this->context);
+        $fixtures = new IdentityFixtures($this->em);
         $fixtures->rebuildSchema();
         $this->db = $this->em->getConnection();
         $this->rows = new DeliveryRows($this->db);
@@ -87,15 +81,7 @@ final class SendWebhookHandlerTest extends KernelTestCase
         $this->sealed = $container->get(WebhookSecrets::class)->seal(WebhookSecret::generate());
 
         $this->owner = $fixtures->user();
-        $this->tenant = $fixtures->tenant('Tenant A');
-        $fixtures->join($this->owner, $this->tenant, Role::Member);
-        $this->context->switchTo($this->tenant);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->context->reset();
-        parent::tearDown();
+        $fixtures->join($this->owner, Role::Member);
     }
 
     public function testSuccessFinishesSucceeded(): void
@@ -142,7 +128,6 @@ final class SendWebhookHandlerTest extends KernelTestCase
         self::assertSame($delivery, $message->deliveryId);
         self::assertSame(AttemptTrigger::Schedule, $message->trigger);
         self::assertSame(5000, $sent[0]->last(DelayStamp::class)?->getDelay());
-        self::assertSame($this->tenant->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
     }
 
     public function testTenthFailureFinishesFailed(): void
@@ -424,7 +409,6 @@ final class SendWebhookHandlerTest extends KernelTestCase
             $container->get(MessageBusInterface::class),
             $this->clock,
             new NullLogger(),
-            $this->context,
             new Randomizer(new Mt19937(3)),
         );
         $handler($message);

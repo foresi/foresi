@@ -12,12 +12,18 @@ use App\Identity\Application\MembershipDirectory;
 use App\Identity\Application\Organisation;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
+use App\Party\Domain\LegalEntity;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * The organisation is named after the first active firm, the oldest by its
+ * time-ordered id; before the first firm, after the product.
+ */
 final readonly class DoctrineMembershipDirectory implements MembershipDirectory
 {
+    private const string PRODUCT_NAME = 'Foresi';
+
     public function __construct(private EntityManagerInterface $entityManager)
     {
     }
@@ -40,25 +46,17 @@ final readonly class DoctrineMembershipDirectory implements MembershipDirectory
         };
     }
 
-    public function organisationsOf(string $userId): array
+    public function organisationOf(string $userId): ?Organisation
     {
         $role = $this->roleOf($userId);
         if (!$role instanceof Role) {
-            return [];
+            return null;
         }
-        /** @var list<array{id: TenantId|string, name: string}> $tenants */
-        $tenants = $this->entityManager
-            ->createQuery('SELECT t.id AS id, t.name AS name FROM '.Tenant::class.' t ORDER BY t.id ASC')
+        $name = $this->entityManager
+            ->createQuery('SELECT f.name FROM '.LegalEntity::class.' f WHERE f.archivedAt IS NULL ORDER BY f.id ASC')
             ->setMaxResults(1)
-            ->getArrayResult();
+            ->getOneOrNullResult(AbstractQuery::HYDRATE_SINGLE_SCALAR);
 
-        return array_map(
-            static fn (array $tenant): Organisation => new Organisation(
-                $tenant['id'] instanceof TenantId ? $tenant['id'] : TenantId::fromString($tenant['id']),
-                $tenant['name'],
-                $role,
-            ),
-            $tenants,
-        );
+        return new Organisation(\is_string($name) ? $name : self::PRODUCT_NAME, $role);
     }
 }

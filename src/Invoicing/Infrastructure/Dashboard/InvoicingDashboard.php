@@ -23,7 +23,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The invoicing overview on the start page, for staff of a tenant with documents.
+ * The invoicing overview on the start page, for staff of an organisation with documents.
  * The firm comes from the query, as on the list, whose filtered views each number opens.
  */
 final readonly class InvoicingDashboard implements DashboardSectionProvider

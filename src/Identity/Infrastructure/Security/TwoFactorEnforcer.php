@@ -43,7 +43,7 @@ final readonly class TwoFactorEnforcer
     ) {
     }
 
-    // After the firewall (priority 8), before the tenant is set (priority 0).
+    // After the firewall (priority 8).
     #[AsEventListener(event: KernelEvents::REQUEST, priority: 4)]
     public function onRequest(RequestEvent $event): void
     {

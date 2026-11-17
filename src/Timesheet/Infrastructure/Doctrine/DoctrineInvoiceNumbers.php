@@ -16,7 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * The numbers of the invoices that billed time, for Work to name them, in one
- * query under the tenant filter.
+ * query.
  */
 final readonly class DoctrineInvoiceNumbers implements InvoiceNumbers
 {

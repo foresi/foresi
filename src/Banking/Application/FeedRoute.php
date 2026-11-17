@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace App\Banking\Application;
 
 /**
- * Where mail for one inbound address belongs: plain ids, found before any
- * tenant is active.
+ * Where mail for one inbound address belongs: plain ids.
  */
 final readonly class FeedRoute
 {

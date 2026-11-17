@@ -28,7 +28,7 @@ use App\Idoklad\Domain\IdokladPull;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\InvalidIdokladConnection;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Invoicing\Application\UndoBlocker;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
@@ -48,8 +48,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The move from iDoklad of one firm, for the owner, as the invoicing settings
  * are: connect, pull, check, run and the result, with an undo for 30 days and
  * the history of pulls and runs. Pulls, checks and runs are background jobs;
- * while one waits or runs the firm's page shows its progress. A firm or run of
- * another tenant is never found, so it answers 404 like one that does not exist.
+ * while one waits or runs the firm's page shows its progress. A firm or run that does
+ * not exist answers 404.
  */
 final class IdokladImportController extends AbstractController
 {
@@ -70,7 +70,7 @@ final class IdokladImportController extends AbstractController
         private readonly UndoIdokladImport $undo,
         private readonly IdokladScreens $screens,
         private readonly OwnerCheck $owner,
-        private readonly TenantClock $tenantClock,
+        private readonly InstanceClock $instanceClock,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -226,7 +226,7 @@ final class IdokladImportController extends AbstractController
             return $this->redirectToRoute('app_idoklad_pull', ['id' => $id]);
         }
 
-        return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today());
+        return $this->checkScreen($firm, $check, $request->getLocale(), $this->instanceClock->today());
     }
 
     #[Route('/import/idoklad/{id}/check', name: 'app_idoklad_check_start', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
@@ -265,7 +265,7 @@ final class IdokladImportController extends AbstractController
             $typed['vat_payer_from'] = $payer;
         }
         if ([] !== $errors || !$remindFrom instanceof \DateTimeImmutable) {
-            return $this->checkScreen($firm, $check, $request->getLocale(), $this->tenantClock->today(), $typed, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->checkScreen($firm, $check, $request->getLocale(), $this->instanceClock->today(), $typed, $errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->start->start($firm, IdokladJobKind::Run, $remindFrom, $chosen ? new ImportOptions($payerFrom) : null);
 
@@ -369,7 +369,7 @@ final class IdokladImportController extends AbstractController
         return $this->render('idoklad/run.html.twig', [
             'firm' => $firm,
             'run' => $run,
-            'report' => $this->screens->report($run, $locale, $this->tenantClock->today()),
+            'report' => $this->screens->report($run, $locale, $this->instanceClock->today()),
             'undoable' => UndoIdokladImport::isUndoable($run, $this->now()),
             'undoDeadline' => $run->startedAt()->modify('+30 days')->format($this->translator->trans('format.date')),
             'blockers' => array_map(fn (UndoBlocker $blocker): array => [

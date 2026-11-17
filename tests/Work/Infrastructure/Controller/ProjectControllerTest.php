@@ -10,8 +10,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Tests\Identity\Support\SignedInBrowser;
@@ -39,16 +37,13 @@ final class ProjectControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     public function testTheStaffFindTheProjectsInTheSidebarAndStartWithAnEmptyIndex(): void
@@ -573,7 +568,7 @@ final class ProjectControllerTest extends WebTestCase
 
     private function signIn(Role $role = Role::Owner): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: $role);
+        $this->browser->seed(role: $role);
         $this->browser->signIn();
     }
 
@@ -703,12 +698,7 @@ final class ProjectControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     /**

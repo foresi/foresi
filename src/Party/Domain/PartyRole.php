@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Party\Domain;
 
 /**
- * What a party is to the tenant. A party may have no role (a plain contact)
+ * What a party is to the firm. A party may have no role (a plain contact)
  * or several.
  */
 enum PartyRole: string

@@ -27,7 +27,7 @@ final class Version20261109150001 extends AbstractMigration
     {
         $preference = $schema->createTable('notification_preference');
         $preference->addColumn('id', Types::GUID);
-        $preference->addColumn('tenant_id', 'tenant_id');
+        $preference->addColumn('tenant_id', 'guid');
         $preference->addColumn('membership_id', Types::GUID);
         foreach (['mentioned', 'assigned', 'commented', 'status_changed', 'shared'] as $kind) {
             $preference->addColumn($kind, Types::STRING, ['length' => 16]);

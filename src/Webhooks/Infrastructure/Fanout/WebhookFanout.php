@@ -12,9 +12,6 @@ use App\Events\Application\EventSink;
 use App\Events\Application\Query\EventRow;
 use App\Events\Infrastructure\Api\EventView;
 use App\Events\Infrastructure\Catalogue\EventCatalogue;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Domain\Id;
 use App\Webhooks\Application\AttemptTrigger;
@@ -30,13 +27,12 @@ use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Turns each numbered event into one pending delivery per active endpoint of
- * its organisation that subscribes to its name at its version, and queues the
+ * Turns each numbered event into one pending delivery per active endpoint
+ * that subscribes to its name at its version, and queues the
  * first attempt. It runs inside the relay's transaction and makes no request:
  * the deliveries, their messages and the position are committed together. The
  * messages go through the Doctrine transport on the same connection, so they
@@ -46,15 +42,15 @@ use Symfony\Contracts\Service\ResetInterface;
  * the event's module gets nothing more, the endpoint is disabled and the owner
  * is told by a mail queued in the same transaction. The disabling is a plain
  * update in the relay's transaction, so it leaves no entry in the audit log.
- * The endpoints of an organisation are read once per batch; a row that cannot
+ * The endpoints are read once per batch; a row that cannot
  * be read is skipped with a log line, so it holds up no one else's events.
  */
 final class WebhookFanout implements EventSink, ResetInterface
 {
-    /** @var array<string, array<string, array{owner: string, host: string, names: list<string>, version: int}>> by tenant, then by id */
-    private array $endpoints = [];
+    /** @var array<string, array{owner: string, host: string, names: list<string>, version: int}>|null by id */
+    private ?array $endpoints = null;
 
-    /** @var array<string, bool> by tenant, owner and module */
+    /** @var array<string, bool> by owner and module */
     private array $owners = [];
 
     /**
@@ -64,7 +60,6 @@ final class WebhookFanout implements EventSink, ResetInterface
         private readonly Connection $connection,
         private readonly EventCatalogue $catalogue,
         private readonly EventView $view,
-        private readonly TenantContext $context,
         private readonly MessageBusInterface $bus,
         private readonly ClockInterface $clock,
         #[AutowireIterator('app.event_read_access')]
@@ -74,39 +69,39 @@ final class WebhookFanout implements EventSink, ResetInterface
     ) {
     }
 
-    public function accept(string $tenantId, EventRow $row): void
+    public function accept(EventRow $row): void
     {
         $body = null;
         $module = explode('.', $row->name, 2)[0];
-        foreach ($this->endpointsOf($tenantId) as $id => $endpoint) {
+        foreach ($this->endpoints() as $id => $endpoint) {
             if ($endpoint['version'] !== $row->version || !\in_array($row->name, $endpoint['names'], true)) {
                 continue;
             }
-            if (!$this->ownerMayRead($tenantId, $endpoint['owner'], $module)) {
+            if (!$this->ownerMayRead($endpoint['owner'], $module)) {
                 $this->disable($id);
-                $this->mailer->notify($tenantId, $endpoint['owner'], $id, $endpoint['host'], DisabledReason::OwnerLostAccess);
-                unset($this->endpoints[$tenantId][$id]);
+                $this->mailer->notify($endpoint['owner'], $id, $endpoint['host'], DisabledReason::OwnerLostAccess);
+                unset($this->endpoints[$id]);
 
                 continue;
             }
             $body ??= $this->body($row);
-            $this->deliver($tenantId, $id, $row, $body);
+            $this->deliver($id, $row, $body);
         }
     }
 
     public function reset(): void
     {
-        $this->endpoints = [];
+        $this->endpoints = null;
         $this->owners = [];
     }
 
     /**
      * @return array<string, array{owner: string, host: string, names: list<string>, version: int}> by id
      */
-    private function endpointsOf(string $tenantId): array
+    private function endpoints(): array
     {
-        if (isset($this->endpoints[$tenantId])) {
-            return $this->endpoints[$tenantId];
+        if (null !== $this->endpoints) {
+            return $this->endpoints;
         }
 
         $rows = $this->connection->createQueryBuilder()
@@ -136,16 +131,15 @@ final class WebhookFanout implements EventSink, ResetInterface
             }
         }
 
-        return $this->endpoints[$tenantId] = $endpoints;
+        return $this->endpoints = $endpoints;
     }
 
     /**
-     * Asks the module's access service in the event's organisation. A module that
-     * has none is not readable.
+     * Asks the module's access service. A module that has none is not readable.
      */
-    private function ownerMayRead(string $tenantId, string $owner, string $module): bool
+    private function ownerMayRead(string $owner, string $module): bool
     {
-        $key = $tenantId.' '.$owner.' '.$module;
+        $key = $owner.' '.$module;
         if (isset($this->owners[$key])) {
             return $this->owners[$key];
         }
@@ -153,39 +147,12 @@ final class WebhookFanout implements EventSink, ResetInterface
         $may = false;
         foreach ($this->access as $access) {
             if ($access->module() === $module) {
-                $may = $this->inTenant($tenantId, static fn (): bool => $access->mayUserRead($owner));
+                $may = $access->mayUserRead($owner);
                 break;
             }
         }
 
         return $this->owners[$key] = $may;
-    }
-
-    /**
-     * Runs a check with the event's organisation active, and puts back whatever
-     * was active before: the relay runs with none, or inside a request of
-     * another organisation when the queue is synchronous.
-     *
-     * @param \Closure(): bool $check
-     */
-    private function inTenant(string $tenantId, \Closure $check): bool
-    {
-        $tenant = TenantId::fromString($tenantId);
-        if ($this->context->has() && $this->context->current()->equals($tenant)) {
-            return $check();
-        }
-
-        $previous = $this->context->has() ? $this->context->current() : null;
-        $this->context->switchTo($tenant);
-        try {
-            return $check();
-        } finally {
-            if ($previous instanceof TenantId) {
-                $this->context->switchTo($previous);
-            } else {
-                $this->context->reset();
-            }
-        }
     }
 
     private function disable(string $endpointId): void
@@ -212,7 +179,7 @@ final class WebhookFanout implements EventSink, ResetInterface
         return json_encode($view, \JSON_THROW_ON_ERROR);
     }
 
-    private function deliver(string $tenantId, string $endpointId, EventRow $row, string $body): void
+    private function deliver(string $endpointId, EventRow $row, string $body): void
     {
         $id = Id::generate();
         $now = $this->clock->now();
@@ -232,7 +199,7 @@ final class WebhookFanout implements EventSink, ResetInterface
             WebhookDeliveryTable::NEXT_ATTEMPT_AT => Types::DATETIME_IMMUTABLE,
             WebhookDeliveryTable::CREATED_AT => Types::DATETIME_IMMUTABLE,
         ]);
-        $this->bus->dispatch(new Envelope(new SendWebhook($id, AttemptTrigger::Schedule), [new TenantStamp($tenantId)]));
+        $this->bus->dispatch(new SendWebhook($id, AttemptTrigger::Schedule));
     }
 
     private function text(mixed $value): string

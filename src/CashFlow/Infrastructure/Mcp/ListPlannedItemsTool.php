@@ -12,7 +12,7 @@ use App\CashFlow\Application\CashFlowRefused;
 use App\CashFlow\Application\PlannedItemReads;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Infrastructure\Api\CashFlowJson;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Shared\Infrastructure\Mcp\ReadTool;
 use App\Shared\Infrastructure\Mcp\ToolArguments;
 use App\Shared\Infrastructure\Mcp\ToolOutput;
@@ -22,7 +22,7 @@ use App\Shared\Infrastructure\Mcp\ToolOutput;
  */
 final readonly class ListPlannedItemsTool implements ReadTool
 {
-    public function __construct(private PlannedItemReads $items, private TenantClock $clock)
+    public function __construct(private PlannedItemReads $items, private InstanceClock $clock)
     {
     }
 

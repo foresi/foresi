@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Import\Infrastructure\Doctrine;
 
-use App\Instance\Application\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -24,14 +23,13 @@ final readonly class RowSavepoint
     public function __construct(
         private EntityManagerInterface $em,
         private ManagerRegistry $registry,
-        private TenantContext $context,
     ) {
     }
 
     /**
      * Runs the work and flushes it, then detaches everything loaded. On failure
      * the savepoint is rolled back, a manager closed by a failed flush is
-     * replaced and bound to the active tenant again, and everything loaded is
+     * replaced, and everything loaded is
      * detached as well: the caller loads what it needs anew, by id.
      *
      * @param callable(): void $work
@@ -57,11 +55,7 @@ final readonly class RowSavepoint
             if (!$this->em->isOpen()) {
                 $this->registry->resetManager();
             }
-            if ($this->context->has()) {
-                $this->context->switchTo($this->context->current());
-            } else {
-                $this->em->clear();
-            }
+            $this->em->clear();
 
             return $failure;
         }

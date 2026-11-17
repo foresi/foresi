@@ -16,9 +16,9 @@ use App\Country\CzechRepublic\Invoicing\QrPlatba;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
+use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\RunScheduledJob;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Application\TenantClock;
 use App\Instance\Infrastructure\Schedule\RunScheduledJobHandler;
 use App\Invoicing\Application\DeliverRecurringInvoice;
 use App\Invoicing\Application\InvoiceFilter;
@@ -59,7 +59,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
- * The daily run of recurring templates, at 05:00 in the tenant's zone (Prague
+ * The daily run of recurring templates, at 05:00 in the instance's zone (Prague
  * here, from the firm's country): what it issues, what it sends or holds for
  * review, and what it records and tells when a template's world moved. Every
  * outcome is read back from the stored rows; no mail leaves, the gateway records.
@@ -76,7 +76,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
         $this->templates = self::getContainer()->get(RecurringInvoices::class);
     }
 
-    public function testTheDayBeginsAtFiveTenantTime(): void
+    public function testTheDayBeginsAtFiveInstanceTime(): void
     {
         $job = self::getContainer()->get(IssueRecurringInvoices::class);
         $prague = new \DateTimeZone('Europe/Prague');
@@ -957,7 +957,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     }
 
     /**
-     * A user who works for the tenant as a member, or one who has left it.
+     * A user who works for the organisation as a member, or one who has left it.
      */
     private function owner(bool $member = true): User
     {
@@ -992,7 +992,7 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
             $container->get(DeliverRecurringInvoice::class),
             $container->get(RecurringAlerts::class),
             $container->get(TransactionalWork::class),
-            $container->get(TenantClock::class),
+            $container->get(InstanceClock::class),
             $container->get(ClockInterface::class),
             $logger,
         );
@@ -1018,8 +1018,8 @@ final class IssueRecurringInvoicesTest extends SendingTestCase
     private function finishedOn(string $period): void
     {
         $this->connection->executeStatement(
-            'INSERT INTO scheduled_job_run (id, tenant_id, job, last_period, finished_at) VALUES (?, ?, ?, ?, ?)',
-            [Id::generate(), $this->tenant->toString(), IssueRecurringInvoices::NAME, $period, $period.' 04:10:00'],
+            'INSERT INTO scheduled_job_run (id, job, last_period, finished_at) VALUES (?, ?, ?, ?)',
+            [Id::generate(), IssueRecurringInvoices::NAME, $period, $period.' 04:10:00'],
         );
     }
 

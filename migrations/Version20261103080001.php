@@ -27,7 +27,7 @@ final class Version20261103080001 extends AbstractMigration
     {
         $movement = $schema->createTable('bank_movement');
         $movement->addColumn('id', Types::GUID);
-        $movement->addColumn('tenant_id', 'tenant_id');
+        $movement->addColumn('tenant_id', 'guid');
         $movement->addColumn('legal_entity_id', Types::GUID);
         $movement->addColumn('firm_bank_account_id', Types::GUID);
         $movement->addColumn('inbound_message_id', Types::GUID, ['notnull' => false]);

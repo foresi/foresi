@@ -25,7 +25,7 @@ use App\CashFlow\Contract\FlowSubject;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Infrastructure\Source\PlannedItemFlows;
 use App\ExchangeRate\Application\ExchangeRates;
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\RegistrationNumber;
@@ -285,7 +285,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
     {
         $container = self::getContainer();
 
-        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(TenantClock::class), $container->get(ExchangeRates::class), $logger ?? new NullLogger(), $sources, [], $actuals);
+        return new Forecasts($container->get(CashFlowAccess::class), $container->get(CashFlowStore::class), $container->get(InstanceClock::class), $container->get(ExchangeRates::class), $logger ?? new NullLogger(), $sources, [], $actuals);
     }
 
     /**

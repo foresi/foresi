@@ -8,10 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Webhooks\Infrastructure\Delivery;
 
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Shared\Domain\Id;
-use App\Tests\Events\Support\SoleTenants;
 use App\Tests\Webhooks\Support\DeliveryRows;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
@@ -46,14 +43,13 @@ final class WebhookSweepTaskTest extends KernelTestCase
         $webhooks->reset();
 
         $rows = new DeliveryRows($db);
-        $tenant = TenantId::generate();
         $endpoint = Id::generate();
         $lost = $rows->insert($endpoint, nextAttemptAt: '2026-11-13 09:58:59');
         $rows->insert($endpoint, nextAttemptAt: '2026-11-13 09:59:30');
         $rows->insert($endpoint, nextAttemptAt: null, kind: T::KIND_PING);
         $rows->insert($endpoint, status: T::STATUS_FAILED, nextAttemptAt: '2026-11-13 09:00:00');
 
-        $task = new WebhookSweepTask($container->get(WebhookDeliveries::class), $container->get(MessageBusInterface::class), new MockClock('2026-11-13 10:00:00', 'UTC'), SoleTenants::of($tenant));
+        $task = new WebhookSweepTask($container->get(WebhookDeliveries::class), $container->get(MessageBusInterface::class), new MockClock('2026-11-13 10:00:00', 'UTC'));
         $task->run();
 
         self::assertSame('webhook-sweep', $task->name());
@@ -64,6 +60,5 @@ final class WebhookSweepTaskTest extends KernelTestCase
         self::assertInstanceOf(SendWebhook::class, $message);
         self::assertSame($lost, $message->deliveryId);
         self::assertSame(AttemptTrigger::Schedule, $message->trigger);
-        self::assertSame($tenant->toString(), $sent[0]->last(TenantStamp::class)?->tenantId);
     }
 }

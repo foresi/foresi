@@ -14,7 +14,7 @@ use App\Invoicing\Domain\PaymentAllocation;
 use App\Shared\Domain\Money;
 
 /**
- * The payments of the active tenant and what they pay. The paid amount of an
+ * The payments and what they pay. The paid amount of an
  * invoice is the sum of the amounts and settlements of its allocations whose
  * payment is not cancelled; it is read, never stored. Call the writing methods
  * inside TransactionalWork, which flushes.
@@ -68,7 +68,7 @@ interface InvoicePayments
     public function linesOf(Invoice $invoice): array;
 
     /**
-     * @throws UnknownPayment also for a payment of another tenant
+     * @throws UnknownPayment
      */
     public function get(string $paymentId): Payment;
 

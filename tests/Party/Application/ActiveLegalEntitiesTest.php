@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Application;
 
-use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
@@ -21,22 +20,16 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ActiveLegalEntitiesTest extends WebTestCase
 {
-    private TenantContext $context;
-
     protected function setUp(): void
     {
         $client = self::createClient();
         $client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $browser = new SignedInBrowser($client, $this->em(), $this->context);
-        [$this->tenantA] = $browser->seed(['Tenant A']);
+        $browser = new SignedInBrowser($client, $this->em());
+        $browser->seed();
     }
-
-    private \App\Instance\Domain\TenantId $tenantA;
 
     public function testActiveLeavesArchivedFirmsOutAndSortsByName(): void
     {
-        $this->context->switchTo($this->tenantA);
         $this->add('Zeta Firm', '12345695');
         $this->add('Alpha Firm', '12345679');
         $old = $this->add('Old Firm', '25596641');
@@ -50,8 +43,6 @@ final class ActiveLegalEntitiesTest extends WebTestCase
 
     public function testNoFirmsGiveAnEmptyList(): void
     {
-        $this->context->switchTo($this->tenantA);
-
         self::assertSame([], $this->firms()->active());
     }
 

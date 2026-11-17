@@ -13,7 +13,7 @@ use App\Work\Domain\Notification;
 use App\Work\Domain\Task;
 
 /**
- * The notifications of the people of the active tenant.
+ * The notifications of the people.
  */
 interface Notifications
 {
@@ -28,7 +28,7 @@ interface Notifications
     public function ofRecipient(string $id, Membership $recipient): ?Notification;
 
     /**
-     * A row of anyone in the tenant, for the worker that mails it.
+     * A row of anyone, for the worker that mails it.
      */
     public function find(string $id): ?Notification;
 

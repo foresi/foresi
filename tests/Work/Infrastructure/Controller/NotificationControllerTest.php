@@ -11,8 +11,6 @@ namespace App\Tests\Work\Infrastructure\Controller;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\IdentityFixtures;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Work\Domain\Notification;
@@ -46,8 +44,6 @@ final class NotificationControllerTest extends WebTestCase
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
@@ -55,8 +51,7 @@ final class NotificationControllerTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, $this->em, $this->context);
+        $this->browser = new SignedInBrowser($this->client, $this->em);
     }
 
     protected function tearDown(): void
@@ -232,7 +227,7 @@ final class NotificationControllerTest extends WebTestCase
 
     public function testAnEmptyInboxSaysSoWithoutTheHeaderActionOrACount(): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation'], role: Role::Member);
+        $this->browser->seed(role: Role::Member);
         $this->browser->signIn();
 
         $crawler = $this->client->request('GET', '/notifications');
@@ -300,7 +295,7 @@ final class NotificationControllerTest extends WebTestCase
      */
     private function seed(int $extra = 0): void
     {
-        [$this->tenant] = $this->browser->seed(['Example Organisation']);
+        $this->browser->seed();
         $this->browser->signIn();
         $jana = new User('jana@example.com', 'not a hash', 'Jana Example');
         $marek = new User('marek@example.com', 'not a hash', 'Marek Member');
@@ -309,57 +304,52 @@ final class NotificationControllerTest extends WebTestCase
             $this->em->persist($user);
         }
         $this->em->flush();
-        $this->browser->fixtures->join($jana, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($marek, $this->tenant, Role::Member);
-        $this->browser->fixtures->join($guest, $this->tenant, Role::Guest);
-        $this->context->switchTo($this->tenant);
-        try {
-            $me = $this->membership(IdentityFixtures::EMAIL);
-            $janaMember = $this->membership('jana@example.com');
-            $marekMember = $this->membership('marek@example.com');
-            $guestMember = $this->membership(self::GUEST);
-            $userId = $me->user()->id();
-            $now = new \DateTimeImmutable('2026-11-01');
-            $website = new Project('Website', null, WorkflowTemplate::Simple, $userId, $now);
-            $office = new Project('Office move', null, WorkflowTemplate::Simple, $userId, $now);
-            $office->changeVisibility(ProjectVisibility::Chosen);
-            $this->em->persist($website);
-            $this->em->persist($office);
-            $open = new ProjectStatus($website, 'To do', StatusType::Open, 0);
-            $officeOpen = new ProjectStatus($office, 'To do', StatusType::Open, 0);
-            $this->em->persist($open);
-            $this->em->persist($officeOpen);
-            $tasks = [];
-            foreach (['Fix the form', 'Call the client', 'Write the copy', 'Old news'] as $position => $title) {
-                $tasks[$title] = new Task($website, $title, $open, $position, $userId, $now);
-                $this->em->persist($tasks[$title]);
-            }
-            $lease = new Task($office, 'Sign the lease', $officeOpen, 0, $userId, $now);
-            $this->em->persist($lease);
-            $this->em->persist(WorkShare::of($lease, $guestMember, $now));
-            $at = static fn (string $time): \DateTimeImmutable => new \DateTimeImmutable('2026-11-20 '.$time, new \DateTimeZone('UTC'));
-
-            $this->em->persist(new Notification($me, $tasks['Fix the form'], NotificationKind::Mentioned, $janaMember, $at('10:00')));
-            $assigned = new Notification($me, $tasks['Call the client'], NotificationKind::Assigned, $janaMember, $at('09:00'));
-            $assigned->record(NotificationKind::Commented, $janaMember, $at('09:30'));
-            $this->em->persist($assigned);
-            $status = new Notification($me, $tasks['Write the copy'], NotificationKind::StatusChanged, $janaMember, $at('08:00'));
-            $status->markRead($at('08:30'));
-            $this->em->persist($status);
-            $old = new Notification($me, $tasks['Old news'], NotificationKind::Shared, $janaMember, $at('07:00'));
-            $old->markDone($at('07:30'));
-            $this->em->persist($old);
-            $this->em->persist(new Notification($marekMember, $tasks['Fix the form'], NotificationKind::Commented, $janaMember, $at('10:00')));
-            $this->em->persist(new Notification($guestMember, $lease, NotificationKind::Shared, $me, $at('06:00')));
-            for ($i = 1; $i <= $extra; ++$i) {
-                $task = new Task($website, 'Extra '.$i, $open, 10 + $i, $userId, $now);
-                $this->em->persist($task);
-                $this->em->persist(new Notification($me, $task, NotificationKind::Commented, $janaMember, $at('11:00')->modify('+'.$i.' seconds')));
-            }
-            $this->em->flush();
-        } finally {
-            $this->context->reset();
+        $this->browser->fixtures->join($jana, Role::Member);
+        $this->browser->fixtures->join($marek, Role::Member);
+        $this->browser->fixtures->join($guest, Role::Guest);
+        $me = $this->membership(IdentityFixtures::EMAIL);
+        $janaMember = $this->membership('jana@example.com');
+        $marekMember = $this->membership('marek@example.com');
+        $guestMember = $this->membership(self::GUEST);
+        $userId = $me->user()->id();
+        $now = new \DateTimeImmutable('2026-11-01');
+        $website = new Project('Website', null, WorkflowTemplate::Simple, $userId, $now);
+        $office = new Project('Office move', null, WorkflowTemplate::Simple, $userId, $now);
+        $office->changeVisibility(ProjectVisibility::Chosen);
+        $this->em->persist($website);
+        $this->em->persist($office);
+        $open = new ProjectStatus($website, 'To do', StatusType::Open, 0);
+        $officeOpen = new ProjectStatus($office, 'To do', StatusType::Open, 0);
+        $this->em->persist($open);
+        $this->em->persist($officeOpen);
+        $tasks = [];
+        foreach (['Fix the form', 'Call the client', 'Write the copy', 'Old news'] as $position => $title) {
+            $tasks[$title] = new Task($website, $title, $open, $position, $userId, $now);
+            $this->em->persist($tasks[$title]);
         }
+        $lease = new Task($office, 'Sign the lease', $officeOpen, 0, $userId, $now);
+        $this->em->persist($lease);
+        $this->em->persist(WorkShare::of($lease, $guestMember, $now));
+        $at = static fn (string $time): \DateTimeImmutable => new \DateTimeImmutable('2026-11-20 '.$time, new \DateTimeZone('UTC'));
+
+        $this->em->persist(new Notification($me, $tasks['Fix the form'], NotificationKind::Mentioned, $janaMember, $at('10:00')));
+        $assigned = new Notification($me, $tasks['Call the client'], NotificationKind::Assigned, $janaMember, $at('09:00'));
+        $assigned->record(NotificationKind::Commented, $janaMember, $at('09:30'));
+        $this->em->persist($assigned);
+        $status = new Notification($me, $tasks['Write the copy'], NotificationKind::StatusChanged, $janaMember, $at('08:00'));
+        $status->markRead($at('08:30'));
+        $this->em->persist($status);
+        $old = new Notification($me, $tasks['Old news'], NotificationKind::Shared, $janaMember, $at('07:00'));
+        $old->markDone($at('07:30'));
+        $this->em->persist($old);
+        $this->em->persist(new Notification($marekMember, $tasks['Fix the form'], NotificationKind::Commented, $janaMember, $at('10:00')));
+        $this->em->persist(new Notification($guestMember, $lease, NotificationKind::Shared, $me, $at('06:00')));
+        for ($i = 1; $i <= $extra; ++$i) {
+            $task = new Task($website, 'Extra '.$i, $open, 10 + $i, $userId, $now);
+            $this->em->persist($task);
+            $this->em->persist(new Notification($me, $task, NotificationKind::Commented, $janaMember, $at('11:00')->modify('+'.$i.' seconds')));
+        }
+        $this->em->flush();
     }
 
     private function membership(string $email): Membership

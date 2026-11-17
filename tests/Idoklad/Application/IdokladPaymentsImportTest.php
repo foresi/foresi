@@ -17,8 +17,6 @@ use App\Idoklad\Domain\IdokladRecord;
 use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\Deductible;
 use App\Invoicing\Application\DeductibleAdvances;
 use App\Invoicing\Application\UndoImportedDocuments;
@@ -67,8 +65,6 @@ final class IdokladPaymentsImportTest extends KernelTestCase
         $metadata = $this->em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($tenant);
 
         $this->firm = new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);

@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Application\PartyDetails;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyRole;
@@ -28,16 +26,13 @@ final class NewCustomerDialogTest extends WebTestCase
     private const array DIALOG = ['HTTP_X_FORESI_DIALOG' => '1'];
 
     private KernelBrowser $client;
-    private TenantContext $context;
-    private TenantId $tenant;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
-        [$this->tenant] = $browser->seed(['Tenant A']);
+        $browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
+        $browser->seed();
         $browser->signIn();
     }
 
@@ -87,11 +82,9 @@ final class NewCustomerDialogTest extends WebTestCase
         self::assertSame([PartyRole::Customer], $party->roles());
         self::assertSame('CZ12345687', $party->vatId()?->toString());
         self::assertSame('CZ', $party->registrationNumber()->countryCode);
-        $this->context->switchTo($this->tenant);
         $details = self::getContainer()->get(PartyDetails::class);
         self::assertSame('billing@example.com', $details->generalEmail($party)?->address());
         self::assertSame('Example City', $details->billingAddress($party)?->address()->city);
-        $this->context->reset();
         // The invoice form picks it with this address for invoices.
         $this->client->request('GET', '/contacts/'.$id);
         self::assertSelectorTextContains('main', 'billing@example.com');
@@ -169,11 +162,9 @@ final class NewCustomerDialogTest extends WebTestCase
 
     private function stored(string $id): Party
     {
-        $this->context->switchTo($this->tenant);
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $em->clear();
         $party = $em->find(Party::class, $id);
-        $this->context->reset();
         self::assertInstanceOf(Party::class, $party);
 
         return $party;
@@ -181,10 +172,6 @@ final class NewCustomerDialogTest extends WebTestCase
 
     private function partyCount(): int
     {
-        $this->context->switchTo($this->tenant);
-        $count = (int) self::getContainer()->get(EntityManagerInterface::class)->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p')->getSingleScalarResult();
-        $this->context->reset();
-
-        return $count;
+        return (int) self::getContainer()->get(EntityManagerInterface::class)->createQuery('SELECT COUNT(p.id) FROM '.Party::class.' p')->getSingleScalarResult();
     }
 }

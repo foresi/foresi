@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Migration;
 
 use App\Identity\Domain\Membership;
-use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use App\Party\Domain\ContactLink;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyAddress;
@@ -51,7 +50,7 @@ final class AuditRootMigrationTest extends TestCase
 
     protected function setUp(): void
     {
-        foreach (['tenant_id' => TenantIdType::class, 'vat_id' => VatIdType::class] as $name => $class) {
+        foreach (['vat_id' => VatIdType::class] as $name => $class) {
             if (!Type::hasType($name)) {
                 Type::addType($name, $class);
             }

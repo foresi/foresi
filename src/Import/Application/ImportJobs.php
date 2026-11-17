@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Import\Application;
 
-/** Hands work to the background workers, inside the active tenant. */
+/** Hands work to the background workers. */
 interface ImportJobs
 {
     public function dispatch(object $message): void;

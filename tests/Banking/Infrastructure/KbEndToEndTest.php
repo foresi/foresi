@@ -19,13 +19,10 @@ use App\Banking\Application\ProcessInboundMessage;
 use App\Banking\Application\ReceiveInboundMail;
 use App\Banking\Application\ReceiveOutcome;
 use App\Banking\Domain\InboundChannel;
-use App\Instance\Application\TenantContext;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\PaymentState;
 use App\Party\Application\TransactionalWork;
 use App\Tests\Banking\Support\InboundTestCase;
 use App\Tests\Banking\Support\Scalars;
-use App\Tests\Events\Support\SoleTenants;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -34,8 +31,8 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * A synthetic Komerční banka notice from the webhook to the paid invoice: it is
- * stored, queued, taken off the queue by the bus as a worker would, with the
- * tenant of its stamp, parsed, judged and paired. Nothing is a real message.
+ * stored, queued, taken off the queue by the bus as a worker would, parsed,
+ * judged and paired. Nothing is a real message.
  */
 final class KbEndToEndTest extends InboundTestCase
 {
@@ -174,23 +171,21 @@ final class KbEndToEndTest extends InboundTestCase
         $invoice = $this->kbInvoice();
         $container = self::getContainer();
         $bus = $container->get(MessageBusInterface::class);
-        $inline = new readonly class($bus, $container->get(TenantContext::class)) implements InboundProcessing {
-            public function __construct(private MessageBusInterface $bus, private TenantContext $context)
+        $inline = new readonly class($bus) implements InboundProcessing {
+            public function __construct(private MessageBusInterface $bus)
             {
             }
 
             public function queue(string $messageId): void
             {
-                // What the sync transport hands back to the bus: the message as received, with the tenant it was sent in.
-                $this->bus->dispatch(new Envelope(new ProcessInboundMessage($messageId), [new ReceivedStamp('sync'), new TenantStamp($this->context->current()->toString())]));
+                // What the sync transport hands back to the bus: the message as received.
+                $this->bus->dispatch(new Envelope(new ProcessInboundMessage($messageId), [new ReceivedStamp('sync')]));
             }
         };
         $receive = new ReceiveInboundMail(
             $container->get(MailReader::class),
             $container->get(InboundAddresses::class),
             $container->get(BankFeedDirectory::class),
-            $container->get(TenantContext::class),
-            SoleTenants::of($container->get(TenantContext::class)->current()),
             $container->get(InboundMessages::class),
             $container->get(InboundFiles::class),
             $inline,
@@ -233,16 +228,8 @@ final class KbEndToEndTest extends InboundTestCase
     private function handle(array $envelopes): void
     {
         $bus = self::getContainer()->get(MessageBusInterface::class);
-        $context = self::getContainer()->get(TenantContext::class);
-        $tenant = $context->current();
-        // A worker has no tenant of its own: the stamp brings it.
-        $context->reset();
-        try {
-            foreach ($envelopes as $envelope) {
-                $bus->dispatch($envelope->with(new ReceivedStamp('async')));
-            }
-        } finally {
-            $context->switchTo($tenant);
+        foreach ($envelopes as $envelope) {
+            $bus->dispatch($envelope->with(new ReceivedStamp('async')));
         }
     }
 }

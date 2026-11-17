@@ -14,8 +14,6 @@ use App\Identity\Domain\InvitationToken;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Shared\Application\SystemMail;
@@ -40,9 +38,7 @@ final class PeopleTest extends WebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private TenantContext $context;
     private IdentityFixtures $fixtures;
-    private TenantId $tenant;
 
     /** @var list<SystemMail> */
     private array $mails = [];
@@ -52,11 +48,9 @@ final class PeopleTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->fixtures = new IdentityFixtures($this->em, $this->context);
+        $this->fixtures = new IdentityFixtures($this->em);
         $this->fixtures->rebuildSchema();
-        $this->tenant = $this->fixtures->tenant('Example Company');
-        $this->fixtures->join($this->fixtures->user(self::OWNER), $this->tenant);
+        $this->fixtures->join($this->fixtures->user(self::OWNER));
     }
 
     public function testTheOwnerInvitesAMemberByMail(): void
@@ -69,9 +63,9 @@ final class PeopleTest extends WebTestCase
         $mails = $this->queuedMails();
         self::assertCount(1, $mails);
         self::assertSame('jana@example.com', $mails[0]->to);
-        self::assertSame('Example Company invites you to Example Company in Foresi', $mails[0]->subject);
+        self::assertSame('Example Company invites you to Foresi in Foresi', $mails[0]->subject);
         self::assertSame('en', $mails[0]->locale);
-        self::assertSame('Example Company', $mails[0]->organisation);
+        self::assertSame('Foresi', $mails[0]->organisation);
         self::assertMatchesRegularExpression('#http://localhost/invitation/[A-Za-z0-9_-]{43}#', $mails[0]->text);
         self::assertStringContainsString('for 7 days', $mails[0]->text);
         $crawler = $this->client->followRedirect();
@@ -103,7 +97,7 @@ final class PeopleTest extends WebTestCase
 
     public function testSomeoneWhoBelongsAlreadyIsNotInvited(): void
     {
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
         $this->signIn(self::OWNER);
 
         $this->invite(self::MEMBER, 'Member Example');
@@ -156,7 +150,7 @@ final class PeopleTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invitation/'.$token);
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Join Example Company');
+        self::assertSelectorTextContains('h1', 'Join Foresi');
         $form = $crawler->filter('form button[type="submit"]')->form(['name' => 'Jana Example', 'password' => 'short', 'password_repeat' => 'short']);
         $crawler = $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
@@ -166,11 +160,11 @@ final class PeopleTest extends WebTestCase
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'Example Company');
+        self::assertSelectorTextContains('body', 'Foresi');
 
         $user = $this->user('jana@example.com');
         self::assertSame('en', $user->locale());
-        self::assertSame([Role::Member], array_map(static fn ($organisation) => $organisation->role, self::getContainer()->get(MembershipDirectory::class)->organisationsOf($user->id())));
+        self::assertSame(Role::Member, self::getContainer()->get(MembershipDirectory::class)->organisationOf($user->id())?->role);
         $this->client->getCookieJar()->clear();
         $this->client->request('GET', '/invitation/'.$token);
         self::assertResponseStatusCodeSame(410);
@@ -190,7 +184,7 @@ final class PeopleTest extends WebTestCase
         $this->signIn(self::MEMBER);
         self::assertResponseRedirects('http://localhost/invitation/'.$token);
         $crawler = $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Join Example Company as Team member?');
+        self::assertSelectorTextContains('main', 'Join Foresi as Team member?');
 
         $this->client->submit($crawler->filter('form button[type="submit"]')->form());
         self::assertResponseRedirects('/');
@@ -257,8 +251,8 @@ final class PeopleTest extends WebTestCase
 
     public function testTheOwnerManagesMembersViewAndGuestsAreKeptOut(): void
     {
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
-        $this->fixtures->join($this->fixtures->user('guest@example.com'), $this->tenant, Role::Guest);
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
 
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people');
@@ -300,7 +294,7 @@ final class PeopleTest extends WebTestCase
 
     public function testARoleChangeToGuestNeedsAContact(): void
     {
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
@@ -313,16 +307,14 @@ final class PeopleTest extends WebTestCase
         $party = $this->contact();
         $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'guest', 'contactId' => $party]));
         self::assertResponseRedirects('/settings/people');
-        $this->context->switchTo($this->tenant);
         $changed = $this->em->find(Membership::class, $membership);
         self::assertSame(Role::Guest, $changed?->role());
         self::assertSame($party, $changed->party()?->id());
-        $this->context->reset();
     }
 
     public function testTheOwnerSetsTheHourlyRateOfAPerson(): void
     {
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
@@ -337,9 +329,7 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertSame('900.00', $crawler->filter('#rate')->attr('value'));
         self::assertSame('USD', $crawler->filter('#rate-currency option[selected]')->attr('value'));
-        $this->context->switchTo($this->tenant);
         $rate = $this->em->find(Membership::class, $membership)?->hourlyRate();
-        $this->context->reset();
         self::assertSame([90000, 'USD'], [$rate?->minor(), $rate?->currency()->value]);
 
         // The people screen shows no rate, not even to the owner, and a member never reaches the form.
@@ -353,7 +343,7 @@ final class PeopleTest extends WebTestCase
     public function testTheLastOwnerIsNeitherDemotedNorDeactivated(): void
     {
         // A member, whose row actions carry the token of the screen.
-        $this->fixtures->join($this->fixtures->user(self::MEMBER), $this->tenant, Role::Member);
+        $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
         $this->signIn(self::OWNER);
         $owner = $this->membershipOf(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people/'.$owner.'/edit');
@@ -368,7 +358,7 @@ final class PeopleTest extends WebTestCase
         self::assertSelectorTextContains('body', 'You cannot deactivate yourself.');
 
         // With a second owner, the first may step down.
-        $this->fixtures->join($this->fixtures->user('second@example.com'), $this->tenant);
+        $this->fixtures->join($this->fixtures->user('second@example.com'));
         $crawler = $this->client->request('GET', '/settings/people/'.$owner.'/edit');
         $this->client->submit($crawler->filter('form[action$="/edit"] button[type="submit"]')->form(['role' => 'member']));
         self::assertResponseRedirects('/settings/people');
@@ -377,7 +367,7 @@ final class PeopleTest extends WebTestCase
     public function testADeactivatedPersonNoLongerSignsInToTheOrganisation(): void
     {
         $member = $this->fixtures->user(self::MEMBER);
-        $this->fixtures->join($member, $this->tenant, Role::Member);
+        $this->fixtures->join($member, Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people');
@@ -387,7 +377,7 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Deactivated');
 
-        self::assertSame([], self::getContainer()->get(MembershipDirectory::class)->organisationsOf($member->id()));
+        self::assertNull(self::getContainer()->get(MembershipDirectory::class)->organisationOf($member->id()));
         $this->client->getCookieJar()->clear();
         $this->signIn(self::MEMBER);
         $this->client->request('GET', '/settings/people');
@@ -398,7 +388,7 @@ final class PeopleTest extends WebTestCase
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people');
         $this->client->request('POST', '/settings/people/'.$membership.'/reactivate', ['_token' => $this->actionToken($crawler)]);
-        self::assertCount(1, self::getContainer()->get(MembershipDirectory::class)->organisationsOf($member->id()));
+        self::assertNotNull(self::getContainer()->get(MembershipDirectory::class)->organisationOf($member->id()));
     }
 
     public function testTheOwnerResetsTheTwoFactorSignInOfAPerson(): void
@@ -406,7 +396,7 @@ final class PeopleTest extends WebTestCase
         $member = $this->fixtures->user(self::MEMBER);
         $member->enrolTwoFactor('sealed', ['hash']);
         $this->em->flush();
-        $this->fixtures->join($member, $this->tenant, Role::Member);
+        $this->fixtures->join($member, Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
         $this->signIn(self::OWNER);
         $crawler = $this->client->request('GET', '/settings/people');
@@ -472,9 +462,7 @@ final class PeopleTest extends WebTestCase
 
     private function onlyInvitation(): Invitation
     {
-        $this->context->switchTo($this->tenant);
         $invitations = $this->em->getRepository(Invitation::class)->findBy(['revokedAt' => null]);
-        $this->context->reset();
         self::assertCount(1, $invitations);
 
         return $invitations[0];
@@ -482,11 +470,9 @@ final class PeopleTest extends WebTestCase
 
     private function contact(): string
     {
-        $this->context->switchTo($this->tenant);
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
         $this->em->persist($party);
         $this->em->flush();
-        $this->context->reset();
 
         return $party->id();
     }

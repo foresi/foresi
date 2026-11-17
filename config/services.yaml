@@ -15,13 +15,13 @@ parameters:
     # empty follows the country of the first active firm, else UTC. Checked at boot.
     env(APP_TIMEZONE): ''
     app.timezone: '%env(timezone:APP_TIMEZONE)%'
-    # Uploaded import sources; never below public/, tenant directories inside.
+    # Uploaded import sources; never below public/.
     app.import_files_dir: '%kernel.project_dir%/var/imports'
     # Logos and stamps; never below public/. From the kernel, not from the environment
     # variable: that one is relative, and the web server would resolve it inside public/.
     app.firm_image_dir: '%kernel.share_dir%/firm-images'
     # A firm's mail server may not be in a private, loopback or link-local network,
-    # as tenants type the host. An installation whose server is inside sets this.
+    # as people type the host. An installation whose server is inside sets this.
     app.mail.allow_private_hosts: false
     # A webhook endpoint may not be in a private, loopback or link-local network either,
     # as people type the URL. Local development against a receiver on this machine sets this.
@@ -37,7 +37,7 @@ parameters:
     app.idoklad_files_dir: '%kernel.share_dir%/idoklad-documents'
     # The PDFs imported documents keep as their originals; never below public/. Back it up with the database.
     app.original_documents_dir: '%kernel.share_dir%/original-documents'
-    # Files attached to records, one directory per tenant; never below public/. Back it up with the database.
+    # Files attached to records; never below public/. Back it up with the database.
     app.attachments_dir: '%kernel.share_dir%/attachments'
     # Seconds between a mention or an assignment and its e-mail, skipped if read in the inbox meanwhile.
     app.notification_mail_delay: 120
@@ -82,10 +82,10 @@ services:
         # ...and contribute presets of the known sources they can read.
         App\Import\Domain\Preset\SourcePreset:
             tags: ['app.import_preset']
-        # Timed work done once per tenant and period; see App\Instance\Application\Schedule.
+        # Timed work done once per period; see App\Instance\Application\Schedule.
         App\Instance\Application\Schedule\ScheduledJob:
             tags: ['app.scheduled_job']
-        # Timed work of the installation, with no tenant; see App\Instance\Application\Schedule\OperatorTask.
+        # Timed work of the installation; see App\Instance\Application\Schedule\OperatorTask.
         App\Instance\Application\Schedule\OperatorTask:
             tags: ['app.operator_task']
         # The module that owns a kind of record decides who reaches its attachments.
@@ -363,11 +363,7 @@ services:
     # please note that last definitions always *replace* previous ones
 
     # Application classes stay framework-free, so the reset tag is declared here:
-    # long-running workers and Messenger never carry a tenant into the next job.
-    App\Instance\Application\TenantContext:
-        tags:
-            - { name: kernel.reset, method: reset }
-
+    # long-running workers and Messenger never carry state into the next job.
     App\Audit\Application\AuditCorrelation:
         tags:
             - { name: kernel.reset, method: reset }
@@ -423,9 +419,6 @@ when@e2e:
         App\Tests\Support\Registry\FakeVatPayerReliability: ~
 
         # Public handles for tests/e2e/seed.php.
-        e2e.tenant_context:
-            alias: App\Instance\Application\TenantContext
-            public: true
         e2e.create_party:
             alias: App\Party\Application\CreateParty
             public: true
@@ -489,8 +482,8 @@ when@e2e:
         e2e.issue_recurring:
             alias: App\Invoicing\Application\IssueRecurringOccurrence
             public: true
-        e2e.tenant_clock:
-            alias: App\Instance\Application\TenantClock
+        e2e.instance_clock:
+            alias: App\Instance\Application\InstanceClock
             public: true
         e2e.manage_projects:
             alias: App\Work\Application\ManageProjects
@@ -720,9 +713,6 @@ when@test:
         App\Work\Application\WorkQueries:
             alias: App\Work\Infrastructure\Doctrine\DoctrineWorkQueries
             public: true
-        # Nothing uses the tenant's clock yet; the jobs that will are on their way.
-        App\Instance\Application\TenantClock: { public: true }
-        # Nothing uses the instance's clock yet; it takes over from the tenant's clock (ADR 0035).
         App\Instance\Application\InstanceClock: { public: true }
         # The MCP server on stdio will sign in with it; until then only the tests do.
         App\Identity\Infrastructure\Security\ApiTokenLogin: { public: true }

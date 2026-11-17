@@ -11,20 +11,15 @@ namespace App\Tests\Instance\Infrastructure;
 use App\Instance\Application\Schedule\Claim;
 use App\Instance\Application\Schedule\RunScheduledJob;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Instance\Infrastructure\Schedule\ForesiSchedule;
 use App\Instance\Infrastructure\Schedule\ScheduleTick;
 use App\Tests\Import\Support\RunMessages;
-use App\Tests\Instance\Fixtures\TestNote;
 use App\Tests\Instance\Support\CountingJob;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Scheduler\Trigger\PeriodicalTrigger;
@@ -32,53 +27,40 @@ use Symfony\Component\Scheduler\Trigger\PeriodicalTrigger;
 final class ScheduleTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
-
-    private EntityManagerInterface $em;
     private Connection $connection;
-    private TenantContext $context;
     private RunMessages $worker;
     private InMemoryTransport $queue;
-    private TenantId $first;
-    private TenantId $second;
 
     protected function setUp(): void
     {
         self::bootKernel();
         self::mockTime('2026-11-01 08:00:00');
         $container = self::getContainer();
-        $this->em = $container->get('doctrine.orm.entity_manager');
+        $em = $container->get('doctrine.orm.entity_manager');
         $this->connection = $container->get(Connection::class);
-        $this->context = $container->get(TenantContext::class);
         CountingJob::reset();
         $queue = $container->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $queue);
         $this->queue = $queue;
         $this->worker = new RunMessages($queue, $container->get(MessageBusInterface::class));
 
-        $tool = new SchemaTool($this->em);
-        $metadata = $this->em->getMetadataFactory()->getAllMetadata();
+        $tool = new SchemaTool($em);
+        $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-
-        $this->first = $this->tenant('Example One', 'note of one');
-        $this->second = $this->tenant('Example Two', 'note of two');
-        $this->context->reset();
     }
 
-    public function testAJobRunsOncePerTenantPerPeriod(): void
+    public function testAJobRunsOncePerPeriod(): void
     {
         $this->tick();
         $this->tick();
 
-        self::assertCount(2, CountingJob::runs());
+        self::assertCount(1, CountingJob::runs());
         self::assertSame([], $this->worker->pending());
-        self::assertEqualsCanonicalizing([$this->first->toString(), $this->second->toString()], array_column(CountingJob::runs(), 'tenant'));
-        foreach ([$this->first, $this->second] as $tenant) {
-            $row = $this->row($tenant);
-            self::assertSame('2026-11-01', $row['last_period']);
-            self::assertNotNull($row['finished_at']);
-            self::assertNull($row['last_error']);
-        }
+        $row = $this->row();
+        self::assertSame('2026-11-01', $row['last_period']);
+        self::assertNotNull($row['finished_at']);
+        self::assertNull($row['last_error']);
     }
 
     public function testANewPeriodRunsAgainAndPassesTheLastOne(): void
@@ -88,9 +70,9 @@ final class ScheduleTest extends KernelTestCase
         $this->tick();
 
         $runs = CountingJob::runs();
-        self::assertCount(4, $runs);
-        self::assertSame([null, null, '2026-11-01', '2026-11-01'], array_column($runs, 'lastPeriod'));
-        self::assertSame('2026-11-02', $this->row($this->first)['last_period']);
+        self::assertCount(2, $runs);
+        self::assertSame([null, '2026-11-01'], array_column($runs, 'lastPeriod'));
+        self::assertSame('2026-11-02', $this->row()['last_period']);
     }
 
     public function testAFailedRunGivesItsPeriodBackAndRetries(): void
@@ -98,10 +80,8 @@ final class ScheduleTest extends KernelTestCase
         CountingJob::failNext(1);
         $this->tick();
 
-        $first = CountingJob::runs();
-        self::assertCount(1, $first);
-        $failed = $first[0]['tenant'] === $this->first->toString() ? $this->second : $this->first;
-        $row = $this->row($failed);
+        self::assertSame([], CountingJob::runs());
+        $row = $this->row();
         self::assertNull($row['last_period']);
         self::assertNotNull($row['finished_at']);
         self::assertIsString($row['last_error']);
@@ -110,52 +90,31 @@ final class ScheduleTest extends KernelTestCase
         self::mockTime('2026-11-01 08:05:00');
         $this->tick();
 
-        $runs = CountingJob::runs();
-        self::assertCount(2, $runs);
-        self::assertSame($failed->toString(), $runs[1]['tenant']);
-        $row = $this->row($failed);
+        self::assertCount(1, CountingJob::runs());
+        $row = $this->row();
         self::assertSame('2026-11-01', $row['last_period']);
         self::assertNull($row['last_error']);
     }
 
     public function testACrashedClaimIsReclaimedAfterAnHour(): void
     {
-        $this->context->set($this->first);
         self::assertInstanceOf(Claim::class, $this->runs()->claim(CountingJob::NAME, '2026-11-01'));
-        $this->context->reset();
 
         self::mockTime('2026-11-01 08:59:00');
         $this->tick();
-        self::assertSame([$this->second->toString()], array_column(CountingJob::runs(), 'tenant'));
-        $this->context->set($this->first);
+        self::assertSame([], CountingJob::runs());
         self::assertNull($this->runs()->claim(CountingJob::NAME, '2026-11-01'));
-        $this->context->reset();
 
         self::mockTime('2026-11-01 09:01:00');
         $this->tick();
-        self::assertSame([$this->second->toString(), $this->first->toString()], array_column(CountingJob::runs(), 'tenant'));
-        $row = $this->row($this->first);
+        self::assertCount(1, CountingJob::runs());
+        $row = $this->row();
         self::assertSame('2026-11-01', $row['last_period']);
         self::assertNotNull($row['finished_at']);
     }
 
-    public function testAJobSeesOnlyItsTenant(): void
-    {
-        $this->tick();
-
-        $seen = [];
-        foreach (CountingJob::runs() as $run) {
-            $seen[$run['tenant']] = $run['notes'];
-        }
-        self::assertSame(['note of one'], $seen[$this->first->toString()]);
-        self::assertSame(['note of two'], $seen[$this->second->toString()]);
-        self::assertFalse($this->context->has());
-    }
-
     public function testTwoWorkersClaimOnce(): void
     {
-        $this->context->set($this->first);
-
         $claim = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
         self::assertInstanceOf(Claim::class, $claim);
         self::assertSame(CountingJob::NAME, $claim->job);
@@ -168,7 +127,15 @@ final class ScheduleTest extends KernelTestCase
         $next = $this->runs()->claim(CountingJob::NAME, '2026-11-02');
         self::assertInstanceOf(Claim::class, $next);
         self::assertSame('2026-11-01', $next->lastPeriod);
-        self::assertFalse($this->stored($this->second));
+    }
+
+    public function testEachJobHasOneRow(): void
+    {
+        $this->runs()->claim(CountingJob::NAME, '2026-11-01');
+        $this->runs()->claim(CountingJob::NAME, '2026-11-02');
+        $this->runs()->queue(CountingJob::NAME, '2026-11-03');
+
+        self::assertEquals(1, $this->connection->fetchOne('SELECT COUNT(*) FROM scheduled_job_run WHERE job = :job', ['job' => CountingJob::NAME]));
     }
 
     public function testATickDoesNotQueueAPeriodTwice(): void
@@ -177,23 +144,22 @@ final class ScheduleTest extends KernelTestCase
         $bus->dispatch(new ScheduleTick());
         self::mockTime('2026-11-01 08:05:00');
         $bus->dispatch(new ScheduleTick());
-        self::assertCount(2, $this->countingSent(), 'A busy worker is not handed the period again.');
-        self::assertSame('2026-11-01', $this->stored($this->first)['queued_period'] ?? null);
+        self::assertCount(1, $this->countingSent(), 'A busy worker is not handed the period again.');
+        self::assertSame('2026-11-01', $this->stored()['queued_period'] ?? null);
 
         self::mockTime('2026-11-01 09:01:00');
         $bus->dispatch(new ScheduleTick());
-        self::assertCount(4, $this->countingSent(), 'A queued message lost for an hour is sent again.');
+        self::assertCount(2, $this->countingSent(), 'A queued message lost for an hour is sent again.');
 
         $this->worker->run();
-        self::assertCount(2, CountingJob::runs(), 'The second copy finds the period done.');
-        $row = $this->stored($this->first);
+        self::assertCount(1, CountingJob::runs(), 'The second copy finds the period done.');
+        $row = $this->stored();
         self::assertIsArray($row);
         self::assertNull($row['queued_period']);
     }
 
     public function testALateFinishOfAReclaimedRunChangesNothing(): void
     {
-        $this->context->set($this->first);
         $crashed = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
         self::assertInstanceOf(Claim::class, $crashed);
 
@@ -203,30 +169,28 @@ final class ScheduleTest extends KernelTestCase
 
         $this->runs()->finish($crashed);
         $this->runs()->giveBack($crashed, 'late');
-        $row = $this->row($this->first);
+        $row = $this->row();
         self::assertNull($row['finished_at']);
         self::assertNull($row['last_period']);
         self::assertNull($row['last_error']);
 
         $this->runs()->finish($again);
-        self::assertSame('2026-11-01', $this->row($this->first)['last_period']);
+        self::assertSame('2026-11-01', $this->row()['last_period']);
     }
 
     public function testTimesAreStoredInUtc(): void
     {
         self::mockTime(new \DateTimeImmutable('2026-11-01 09:00:00.750', new \DateTimeZone('Europe/Prague')));
-        $this->context->set($this->first);
 
         $claim = $this->runs()->claim(CountingJob::NAME, '2026-11-01');
 
         self::assertInstanceOf(Claim::class, $claim);
         self::assertSame('2026-11-01 08:00:00.000000 UTC', $claim->startedAt->format('Y-m-d H:i:s.u T'));
-        self::assertSame('2026-11-01 08:00:00', $this->stored($this->first)['started_at'] ?? null);
+        self::assertSame('2026-11-01 08:00:00', $this->stored()['started_at'] ?? null);
     }
 
     public function testPeriodsCompareByteByByte(): void
     {
-        $this->context->set($this->first);
         $claim = $this->runs()->claim(CountingJob::NAME, 'B');
         self::assertInstanceOf(Claim::class, $claim);
         $this->runs()->finish($claim);
@@ -235,55 +199,40 @@ final class ScheduleTest extends KernelTestCase
         self::assertInstanceOf(Claim::class, $this->runs()->claim(CountingJob::NAME, 'a'));
     }
 
-    public function testTheTickSendsOneStampedMessagePerTenantToTheQueue(): void
+    public function testTheTickSendsOneMessageToTheQueue(): void
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
 
         $sent = $this->countingSent();
-        self::assertCount(2, $sent);
-        $tenants = [];
-        foreach ($sent as $envelope) {
-            $message = $envelope->getMessage();
-            self::assertInstanceOf(RunScheduledJob::class, $message);
-            self::assertSame(CountingJob::NAME, $message->job);
-            self::assertSame('2026-11-01', $message->period);
-            $stamp = $envelope->last(TenantStamp::class);
-            self::assertInstanceOf(TenantStamp::class, $stamp);
-            $tenants[] = $stamp->tenantId;
-        }
-        self::assertEqualsCanonicalizing([$this->first->toString(), $this->second->toString()], $tenants);
+        self::assertCount(1, $sent);
+        $message = $sent[0]->getMessage();
+        self::assertInstanceOf(RunScheduledJob::class, $message);
+        self::assertSame(CountingJob::NAME, $message->job);
+        self::assertSame('2026-11-01', $message->period);
     }
 
-    public function testTheTickPassesEachTenantsZone(): void
+    public function testTheTickPassesTheInstanceZone(): void
     {
-        $this->zone($this->first, 'Europe/Prague');
-        $this->zone($this->second, 'America/New_York');
-        // 03:00 UTC is 04:00 of 1 November in Prague and 23:00 of 31 October in New York.
-        self::mockTime('2026-11-01 03:00:00');
+        // The tests run with APP_TIMEZONE empty and no firm, so the zone is UTC.
+        self::assertSame('', self::getContainer()->getParameter('app.timezone'));
+        // 23:30 UTC is already 1 November in Prague, but the period is that of UTC.
+        self::mockTime('2026-10-31 23:30:00');
 
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ScheduleTick());
 
-        $periods = [];
-        foreach ($this->countingSent() as $envelope) {
-            $message = $envelope->getMessage();
-            self::assertInstanceOf(RunScheduledJob::class, $message);
-            $stamp = $envelope->last(TenantStamp::class);
-            self::assertInstanceOf(TenantStamp::class, $stamp);
-            $periods[$stamp->tenantId] = $message->period;
-        }
-        self::assertCount(2, $periods);
-        self::assertSame('2026-11-01', $periods[$this->first->toString()] ?? null, 'Prague is past midnight.');
-        self::assertSame('2026-10-31', $periods[$this->second->toString()] ?? null, 'New York is not.');
-        self::assertEqualsCanonicalizing(['Europe/Prague', 'America/New_York'], CountingJob::zones());
+        $sent = $this->countingSent();
+        self::assertCount(1, $sent);
+        $message = $sent[0]->getMessage();
+        self::assertInstanceOf(RunScheduledJob::class, $message);
+        self::assertSame('2026-10-31', $message->period);
+        self::assertSame(['UTC'], array_values(array_unique(CountingJob::zones())));
 
         $this->worker->run();
-        self::assertSame('2026-11-01', $this->row($this->first)['last_period']);
-        self::assertSame('2026-10-31', $this->row($this->second)['last_period']);
+        self::assertSame('2026-10-31', $this->row()['last_period']);
     }
 
-    public function testLastFinishedReadsTheActiveTenantOnly(): void
+    public function testLastFinishedReadsTheJobsLastFinishedPeriod(): void
     {
-        $this->context->set($this->first);
         self::assertNull($this->runs()->lastFinished(CountingJob::NAME), 'No run yet.');
         $claim = $this->runs()->claim(CountingJob::NAME, '2026-10-31');
         self::assertInstanceOf(Claim::class, $claim);
@@ -292,10 +241,6 @@ final class ScheduleTest extends KernelTestCase
         self::assertInstanceOf(Claim::class, $running);
         self::assertSame('2026-10-31', $this->runs()->lastFinished(CountingJob::NAME), 'A run in progress has not finished.');
         self::assertNull($this->runs()->lastFinished('another-job'));
-
-        $this->context->switchTo($this->second);
-        self::assertNull($this->runs()->lastFinished(CountingJob::NAME));
-        $this->context->reset();
     }
 
     public function testTheScheduleTicksEveryFiveMinutesUnderALock(): void
@@ -326,20 +271,11 @@ final class ScheduleTest extends KernelTestCase
     /**
      * The messages of the counting job: the application's own jobs tick too.
      *
-     * @return list<\Symfony\Component\Messenger\Envelope>
+     * @return list<Envelope>
      */
     private function countingSent(): array
     {
-        return array_values(array_filter([...$this->queue->getSent()], static fn (\Symfony\Component\Messenger\Envelope $envelope): bool => !$envelope->getMessage() instanceof RunScheduledJob || CountingJob::NAME === $envelope->getMessage()->job));
-    }
-
-    private function zone(TenantId $id, string $zone): void
-    {
-        $tenant = $this->em->find(Tenant::class, $id);
-        self::assertInstanceOf(Tenant::class, $tenant);
-        $tenant->changeTimezone(new \DateTimeZone($zone));
-        $this->em->flush();
-        $this->em->clear();
+        return array_values(array_filter([...$this->queue->getSent()], static fn (Envelope $envelope): bool => !$envelope->getMessage() instanceof RunScheduledJob || CountingJob::NAME === $envelope->getMessage()->job));
     }
 
     private function runs(): ScheduledJobRuns
@@ -347,25 +283,13 @@ final class ScheduleTest extends KernelTestCase
         return self::getContainer()->get(ScheduledJobRuns::class);
     }
 
-    private function tenant(string $name, string $note): TenantId
-    {
-        $id = TenantId::generate();
-        $this->em->persist(new Tenant($id, $name, new \DateTimeImmutable('2026-10-01')));
-        $this->em->flush();
-        $this->context->switchTo($id);
-        $this->em->persist(new TestNote($note));
-        $this->em->flush();
-
-        return $id;
-    }
-
     /**
      * @return array{last_period: ?string, finished_at: ?string, last_error: ?string}
      */
-    private function row(TenantId $tenant): array
+    private function row(): array
     {
-        $row = $this->stored($tenant);
-        self::assertIsArray($row, 'The job has a run record in the tenant.');
+        $row = $this->stored();
+        self::assertIsArray($row, 'The job has a run record.');
 
         return ['last_period' => $this->text($row['last_period']), 'finished_at' => $this->text($row['finished_at']), 'last_error' => $this->text($row['last_error'])];
     }
@@ -373,11 +297,11 @@ final class ScheduleTest extends KernelTestCase
     /**
      * @return array<string, mixed>|false
      */
-    private function stored(TenantId $tenant): array|false
+    private function stored(): array|false
     {
         return $this->connection->fetchAssociative(
-            'SELECT last_period, started_at, finished_at, last_error, queued_period FROM scheduled_job_run WHERE tenant_id = :tenant AND job = :job',
-            ['tenant' => $tenant->toString(), 'job' => CountingJob::NAME],
+            'SELECT last_period, started_at, finished_at, last_error, queued_period FROM scheduled_job_run WHERE job = :job',
+            ['job' => CountingJob::NAME],
         );
     }
 

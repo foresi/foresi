@@ -12,7 +12,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Domain\Tenant;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
@@ -41,12 +40,8 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 // Projects: the owner of "Example Projects" signs in for the application services, the way the
 // browser would, and keeps a project for a client with tasks in every state of the workflow.
-// No firm gives it a zone, so it gets the seed's own: its today is the today of the due dates below.
-$projectsTenantRecord = $entityManager->find(Tenant::class, $tenant);
-\assert($projectsTenantRecord instanceof Tenant);
-$projectsTenantRecord->changeTimezone(new DateTimeZone('Europe/Prague'));
-$entityManager->flush();
-$today = $tenantClock->today();
+// Its today is the today of the instance clock, the day the due dates below count from.
+$today = $instanceClock->today();
 $manageProjects = $container->get('e2e.manage_projects');
 $manageSections = $container->get('e2e.manage_sections');
 $manageTasks = $container->get('e2e.manage_tasks');
@@ -76,7 +71,7 @@ $entityManager->persist($guestUser);
 $guestMembership = new Membership($guestUser, Role::Guest, $projectClient);
 $entityManager->persist($guestMembership);
 $entityManager->flush();
-$projectOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'projects@example.com']) ?? throw new LogicException('The owner of the projects tenant is missing.');
+$projectOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'projects@example.com']) ?? throw new LogicException('The owner of the projects world is missing.');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner->id(), $projectOwner->email(), 'hash'), 'main', ['ROLE_USER']));
 
 $design = $manageLabels->create('Design', LabelColour::Green);

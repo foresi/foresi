@@ -26,7 +26,7 @@ final class Version20261102000004 extends AbstractMigration
     {
         $server = $schema->createTable('firm_mail_server');
         $server->addColumn('id', Types::GUID);
-        $server->addColumn('tenant_id', 'tenant_id');
+        $server->addColumn('tenant_id', 'guid');
         $server->addColumn('legal_entity_id', Types::GUID);
         $server->addColumn('host', Types::STRING, ['length' => 253]);
         $server->addColumn('port', Types::INTEGER);

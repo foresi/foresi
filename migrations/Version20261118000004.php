@@ -91,7 +91,7 @@ final class Version20261118000004 extends AbstractMigration
             $schema->getTable($table)->dropIndex($name);
         }
         foreach (self::TENANT_INDEXES as $table => $index) {
-            $schema->getTable($table)->addColumn('tenant_id', 'tenant_id', ['notnull' => true]);
+            $schema->getTable($table)->addColumn('tenant_id', 'guid', ['notnull' => true]);
             $schema->getTable($table)->addIndex(['tenant_id'], $index);
         }
         foreach (self::LED_BY_TENANT as [$table, $name, $columns, $unique]) {

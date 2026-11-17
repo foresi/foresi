@@ -14,7 +14,7 @@ use App\Import\Domain\ImportState;
 use Psr\Clock\ClockInterface;
 
 /**
- * Lets one import per tenant and target run or undo at a time; the others wait
+ * Lets one import per target run or undo at a time; the others wait
  * in Queued. The database state decides (an import in Running or Undoing holds
  * the target); a named lock around each decision keeps two requests or workers
  * from deciding at once. When an import stops holding the target, release()

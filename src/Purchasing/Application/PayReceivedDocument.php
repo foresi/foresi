@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Purchasing\Application;
 
-use App\Instance\Application\TenantClock;
+use App\Instance\Application\InstanceClock;
 use App\Purchasing\Contract\Event\ReceivedDocumentPaid;
 use App\Purchasing\Domain\PaymentMethod;
 use App\Purchasing\Domain\ReceivedDocument;
@@ -21,7 +21,7 @@ use Psr\Clock\ClockInterface;
 /**
  * Records the payments of a recorded received document (decision C3 of the
  * cash flow spec): one payment of an amount on a day, or "mark as paid", which
- * pays all that remains today, in the tenant's zone. A payment may not be more
+ * pays all that remains today, in the instance's zone. A payment may not be more
  * than what remains, and one recorded by mistake can be removed. The payment that leaves nothing to pay records
  * purchasing.received_document.paid. A document in the trash, a draft and a
  * document paid in full take no payment; a closed month does not stop one, as a
@@ -35,14 +35,14 @@ final readonly class PayReceivedDocument
         private ReceivedDocuments $documents,
         private ReceivedDocumentPayments $payments,
         private EventRecorder $events,
-        private TenantClock $today,
+        private InstanceClock $today,
         private ClockInterface $clock,
     ) {
     }
 
     /**
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with TRASHED, NOT_RECORDED, PAID, OVERPAID, PAYMENT_AMOUNT or BANK_MOVEMENT_INVALID
      */
     public function pay(string $documentId, \DateTimeImmutable $paidOn, Money $amount, PaymentMethod $method, ?string $bankMovementId = null): ReceivedDocumentPayment
@@ -54,7 +54,7 @@ final readonly class PayReceivedDocument
      * Pays what remains, today.
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant
+     * @throws UnknownReceivedDocument
      * @throws ReceivedDocumentRefused with TRASHED, NOT_RECORDED, PAID or BANK_MOVEMENT_INVALID
      */
     public function markPaid(string $documentId, PaymentMethod $method, ?string $bankMovementId = null): ReceivedDocumentPayment
@@ -67,7 +67,7 @@ final readonly class PayReceivedDocument
      * paid in full before stays so in the event feed, which has no "unpaid".
      *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
-     * @throws UnknownReceivedDocument also for a document of another tenant, and for a payment it does not have
+     * @throws UnknownReceivedDocument also for a payment it does not have
      * @throws ReceivedDocumentRefused with TRASHED
      */
     public function remove(string $documentId, string $paymentId): void

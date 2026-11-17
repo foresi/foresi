@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 /**
- * No send of the active tenant has this id.
+ * No send has this id.
  */
 final class UnknownInvoiceSend extends \RuntimeException
 {

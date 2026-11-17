@@ -77,7 +77,7 @@ final class PartyToolsTest extends ReadToolTestCase
 
     public function testTheContactIsAnsweredAsTheRestApiWritesIt(): void
     {
-        $company = $this->inTenant($this->tenant, function (): Party {
+        $company = $this->flushed(function (): Party {
             $em = $this->em();
             $company = $this->contact('Alpha Example s.r.o.', email: 'alpha@example.com');
             $person = new Party(PartyKind::Person, 'Petra Example', null, null, '');
@@ -110,7 +110,7 @@ final class PartyToolsTest extends ReadToolTestCase
 
     public function testEveryFilterNarrowsTheSearch(): void
     {
-        [$alpha, $beta, $archived] = $this->inTenant($this->tenant, fn (): array => [
+        [$alpha, $beta, $archived] = $this->flushed(fn (): array => [
             $this->contact('Alpha Example s.r.o.', roles: [PartyRole::Supplier], number: '12345679', vatId: 'CZ12345679'),
             $this->contact('Beta Example a.s.', roles: [PartyRole::Partner], number: '25596641'),
             $this->contact('Archived Example', archived: true),
@@ -126,7 +126,7 @@ final class PartyToolsTest extends ReadToolTestCase
 
     public function testTheCursorPagesThroughTheSearch(): void
     {
-        $ids = $this->inTenant($this->tenant, fn (): array => array_map(fn (string $name): string => $this->contact($name)->id(), ['First Example', 'Second Example']));
+        $ids = $this->flushed(fn (): array => array_map(fn (string $name): string => $this->contact($name)->id(), ['First Example', 'Second Example']));
 
         self::assertSame([[$ids[1], $ids[0]], [$this->customerId]], $this->toolPages(SearchContactsTool::class, 2));
         $last = $this->call(SearchContactsTool::class);
@@ -169,7 +169,7 @@ final class PartyToolsTest extends ReadToolTestCase
 
     public function testTheFirmsAreListedByNameArchivedOnesToo(): void
     {
-        [$other, $archived] = $this->inTenant($this->tenant, function (): array {
+        [$other, $archived] = $this->flushed(function (): array {
             [$other] = $this->firmWithCustomer('Alpha Firm s.r.o.', '25596641');
             [$archived] = $this->firmWithCustomer('Zulu Firm s.r.o.', '27082440');
             $this->em()->find(LegalEntity::class, $archived)?->archive(new \DateTimeImmutable('2026-11-01 10:00:00'));

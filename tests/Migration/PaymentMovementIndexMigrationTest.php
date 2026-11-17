@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Migration;
 
-use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
@@ -43,7 +42,7 @@ final class PaymentMovementIndexMigrationTest extends TestCase
 
     protected function setUp(): void
     {
-        foreach (['tenant_id' => TenantIdType::class, 'vat_id' => VatIdType::class] as $name => $class) {
+        foreach (['vat_id' => VatIdType::class] as $name => $class) {
             if (!Type::hasType($name)) {
                 Type::addType($name, $class);
             }

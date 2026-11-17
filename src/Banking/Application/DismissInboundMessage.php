@@ -37,7 +37,7 @@ final readonly class DismissInboundMessage
     /**
      * @return bool false when the message stands elsewhere, processed or dismissed already, or still in the queue; nothing is stored
      *
-     * @throws UnknownInboundMessage also for a message of another tenant
+     * @throws UnknownInboundMessage for an unknown message
      */
     public function dismiss(string $messageId): bool
     {

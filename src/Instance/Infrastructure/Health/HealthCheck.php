@@ -24,7 +24,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  * the schedule ticked within fifteen (else down), no message waits in the
  * failed transport, the data directory has at least the configured share of
  * its disk free and the installation has a system mailer (else degraded).
- * Numbers only: no names, no tenant data.
+ * Numbers only: no names, no business data.
  */
 final readonly class HealthCheck
 {

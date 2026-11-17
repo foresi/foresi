@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\EditInvoice;
@@ -80,8 +78,6 @@ final class InvoiceListControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private TenantContext $context;
-    private TenantId $tenant;
     private LegalEntity $firm;
     private Series $series;
     private Party $customer;
@@ -91,8 +87,7 @@ final class InvoiceListControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->context = self::getContainer()->get(TenantContext::class);
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'), $this->context);
+        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
     }
 
@@ -162,18 +157,6 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame($second->id(), $crawler->filter('[data-filter-sheet-form] select[name="firm"] option[selected]')->attr('value'));
         // The tabs and the sort keep the firm.
         self::assertStringContainsString('firm='.$second->id(), (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
-    }
-
-    public function testAFirmOfAnotherTenantIsNoFilter(): void
-    {
-        $this->signedIn();
-        $this->issue('2026-11-01', '2026-11-05');
-        $foreign = $this->foreignFirm();
-
-        $crawler = $this->client->request('GET', '/invoices', ['firm' => $foreign->id()]);
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(['20260001'], $this->numbers($crawler));
     }
 
     public function testOverdueUsesTheCountryToday(): void
@@ -1523,21 +1506,6 @@ final class InvoiceListControllerTest extends WebTestCase
         });
     }
 
-    private function foreignFirm(): LegalEntity
-    {
-        $tenant = $this->browser->fixtures->tenant('Foreign Tenant '.bin2hex(random_bytes(2)));
-        $this->context->switchTo($tenant);
-        try {
-            $firm = new LegalEntity('Example Foreign s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 3', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, 'Register');
-            $this->em()->persist($firm);
-            $this->em()->flush();
-
-            return $firm;
-        } finally {
-            $this->context->reset();
-        }
-    }
-
     /**
      * Sends the invoice from the dialog's service; delivered at once when asked.
      *
@@ -1573,8 +1541,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
     private function signedIn(Role $role = Role::Owner, bool $server = false): void
     {
-        [$this->tenant] = $this->browser->seed(['Tenant A'], role: $role);
-        $this->context->switchTo($this->tenant);
+        $this->browser->seed(role: $role);
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($this->firm);
         FirmAccounts::add($this->em(), $this->firm, self::IBAN);
@@ -1588,7 +1555,6 @@ final class InvoiceListControllerTest extends WebTestCase
             $this->em()->persist(FirmMailServer::define($this->firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', self::getContainer()->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
         }
         $this->em()->flush();
-        $this->context->reset();
         $this->browser->signIn();
     }
 
@@ -1606,12 +1572,7 @@ final class InvoiceListControllerTest extends WebTestCase
      */
     private function scoped(callable $work): mixed
     {
-        $this->context->switchTo($this->tenant);
-        try {
-            return $work();
-        } finally {
-            $this->context->reset();
-        }
+        return $work();
     }
 
     private function em(): EntityManagerInterface

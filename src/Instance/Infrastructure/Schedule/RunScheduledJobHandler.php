@@ -18,8 +18,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 
 /**
- * Runs a job in the tenant of the message, which the tenant middleware has made
- * active. The claim makes a second delivery of the same period a no-op. A failure
+ * Runs a job for the period of the message. The claim makes a second delivery of the same period a no-op. A failure
  * is recorded on the run and gives the period back, so the next tick retries it
  * instead of the queue: the message itself is done.
  */

@@ -12,7 +12,7 @@ use App\Shared\Application\RefusalKind;
 use App\Shared\Application\Refused;
 
 /**
- * No received document of the active tenant has the id; answered as not found.
+ * No received document has the id; answered as not found.
  */
 final class UnknownReceivedDocument extends \RuntimeException implements Refused
 {

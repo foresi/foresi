@@ -14,9 +14,6 @@ use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
 use App\Identity\Infrastructure\Security\SecurityUser;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
 use App\Party\Domain\LegalEntity;
@@ -60,7 +57,6 @@ abstract class PurchasingTestCase extends KernelTestCase
     protected EntityManagerInterface $em;
     protected MockClock $clock;
     protected FakeRateSource $rates;
-    protected Tenant $tenant;
     protected LegalEntity $firm;
     protected Party $supplier;
     protected Membership $owner;
@@ -85,13 +81,7 @@ abstract class PurchasingTestCase extends KernelTestCase
         $this->clock = new MockClock('2026-11-10 09:00:00', 'UTC');
         Clock::set($this->clock);
 
-        $this->tenant = new Tenant(TenantId::generate(), 'Example Organisation', $this->clock->now());
-        $this->tenant->changeTimezone(new \DateTimeZone('Europe/Prague'));
-        $this->em->persist($this->tenant);
-        // Switching the tenant clears the entity manager.
-        $this->em->flush();
-        $container->get(TenantContext::class)->switchTo($this->tenant->id());
-
+        // A Czech firm gives the instance the zone Europe/Prague.
         $this->firm = $this->firm('Example Firm s.r.o.', '12345695');
         $this->supplier = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), VatId::fromString('CZ87654321'), '');
         $this->em->persist($this->supplier);

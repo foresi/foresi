@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
@@ -58,7 +55,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
  * mail gateway records and takes a while, as a real server does, so a second
  * worker arrives while the first one is still talking to it.
  *
- * @phpstan-type Ids array{tenant: string, invoices: list<string>, sends: list<string>}
+ * @phpstan-type Ids array{invoices: list<string>, sends: list<string>}
  */
 abstract class SendWorker extends KernelTestCase
 {
@@ -80,8 +77,6 @@ abstract class SendWorker extends KernelTestCase
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
-        $tenant = TenantId::generate();
-        $container->get(TenantContext::class)->switchTo($tenant);
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register');
         $em->persist($firm);
         FirmAccounts::add($em, $firm, self::IBAN);
@@ -93,7 +88,7 @@ abstract class SendWorker extends KernelTestCase
         $em->persist(FirmMailServer::define($firm, 'smtp.example.com', 587, MailEncryption::Starttls, 'invoices@example.com', $container->get(MailSecrets::class)->seal('correct-horse-battery'), 'invoices@example.com', 'Example Firm'));
         $em->flush();
 
-        $ids = ['tenant' => $tenant->toString(), 'invoices' => [], 'sends' => []];
+        $ids = ['invoices' => [], 'sends' => []];
         $issue = $container->get(IssueInvoice::class);
         $sending = $container->get(SendInvoice::class);
         $day = new \DateTimeImmutable('2026-11-01');
@@ -115,7 +110,7 @@ abstract class SendWorker extends KernelTestCase
     public static function perform(string $json, string $job, float $startAt): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $container = self::getContainer();
         $bus = $container->get(MessageBusInterface::class);
         $trash = $container->get(TrashInvoice::class);
@@ -130,7 +125,7 @@ abstract class SendWorker extends KernelTestCase
             $began[] = microtime(true);
             try {
                 $results[] = match ($job) {
-                    'deliver' => self::deliver($bus, $gateway, $ids['tenant'], $ids['sends'][$slot]),
+                    'deliver' => self::deliver($bus, $gateway, $ids['sends'][$slot]),
                     'trash' => $trash->trash($invoice, 'Wrong customer')->isTrashed() ? 'done' : 'not trashed',
                     'send' => '' !== $sending->send(self::request($invoice))->id() ? 'done' : 'no id',
                     default => throw new \InvalidArgumentException('Unknown job.'),
@@ -156,7 +151,7 @@ abstract class SendWorker extends KernelTestCase
     public static function inspect(string $json): array
     {
         $ids = self::ids($json);
-        self::enter($ids);
+        self::enter();
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $found = [];
         foreach ($ids['invoices'] as $invoice) {
@@ -173,13 +168,13 @@ abstract class SendWorker extends KernelTestCase
         return $found;
     }
 
-    private static function deliver(MessageBusInterface $bus, RecordingMailGateway $gateway, string $tenant, string $send): string
+    private static function deliver(MessageBusInterface $bus, RecordingMailGateway $gateway, string $send): string
     {
         $before = \count($gateway->attempts());
         $queue = self::getContainer()->get('messenger.transport.mail');
         \PHPUnit\Framework\Assert::assertInstanceOf(InMemoryTransport::class, $queue);
         $queued = \count($queue->getSent());
-        $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail'), new TenantStamp($tenant)]));
+        $bus->dispatch(new Envelope(new DeliverInvoiceSend($send), [new ReceivedStamp('mail')]));
         $mailed = \count($gateway->attempts()) > $before;
         // The other worker holds the claim: the message is put back for when its lease ends.
         if (\count($queue->getSent()) > $queued) {
@@ -194,13 +189,9 @@ abstract class SendWorker extends KernelTestCase
         return new SendRequest($invoice, ['billing@example.com'], [], false, 'Invoice 20260001', "Invoice 20260001\n{link}");
     }
 
-    /**
-     * @param Ids $ids
-     */
-    private static function enter(array $ids): void
+    private static function enter(): void
     {
         self::bootKernel(['debug' => false]);
-        self::getContainer()->get(TenantContext::class)->switchTo(TenantId::fromString($ids['tenant']));
     }
 
     /**

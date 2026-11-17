@@ -10,8 +10,6 @@ namespace App\Instance\Infrastructure\Schedule;
 
 use App\Instance\Application\Schedule\Claim;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
@@ -19,7 +17,7 @@ use Doctrine\DBAL\Types\Types;
 use Psr\Clock\ClockInterface;
 
 /**
- * One row per job and tenant, written by single statements that are the same on
+ * One row per job, written by single statements that are the same on
  * SQLite and PostgreSQL. The claim is an insert that does nothing when the row
  * exists, then one conditional update: of two workers only one sees its row
  * change, so a period runs once. The last period moves only when a run finishes,
@@ -44,49 +42,47 @@ final readonly class DoctrineScheduledJobRuns implements ScheduledJobRuns
         SQL;
 
     private const string CREATE = <<<'SQL'
-        INSERT INTO scheduled_job_run (id, tenant_id, job) VALUES (:id, :tenant, :job)
-        ON CONFLICT (tenant_id, job) DO NOTHING
+        INSERT INTO scheduled_job_run (id, job) VALUES (:id, :job)
+        ON CONFLICT (job) DO NOTHING
         SQL;
 
-    private const string QUEUE = 'UPDATE scheduled_job_run SET queued_period = :period, queued_at = :now WHERE tenant_id = :tenant AND job = :job AND %s AND (queued_period IS NULL OR queued_period <> :period OR queued_at < :stale) RETURNING id';
+    private const string QUEUE = 'UPDATE scheduled_job_run SET queued_period = :period, queued_at = :now WHERE job = :job AND %s AND (queued_period IS NULL OR queued_period <> :period OR queued_at < :stale) RETURNING id';
 
-    private const string CLAIM = 'UPDATE scheduled_job_run SET started_at = :now, finished_at = NULL, queued_period = NULL, queued_at = NULL WHERE tenant_id = :tenant AND job = :job AND %s RETURNING last_period';
+    private const string CLAIM = 'UPDATE scheduled_job_run SET started_at = :now, finished_at = NULL, queued_period = NULL, queued_at = NULL WHERE job = :job AND %s RETURNING last_period';
 
-    private const string FINISH = 'UPDATE scheduled_job_run SET last_period = :period, finished_at = :now, last_error = NULL WHERE tenant_id = :tenant AND job = :job AND started_at = :started AND finished_at IS NULL';
+    private const string FINISH = 'UPDATE scheduled_job_run SET last_period = :period, finished_at = :now, last_error = NULL WHERE job = :job AND started_at = :started AND finished_at IS NULL';
 
-    private const string GIVE_BACK = 'UPDATE scheduled_job_run SET finished_at = :now, last_error = :error WHERE tenant_id = :tenant AND job = :job AND started_at = :started AND finished_at IS NULL';
+    private const string GIVE_BACK = 'UPDATE scheduled_job_run SET finished_at = :now, last_error = :error WHERE job = :job AND started_at = :started AND finished_at IS NULL';
 
     private const array TIMES = ['now' => Types::DATETIME_IMMUTABLE, 'stale' => Types::DATETIME_IMMUTABLE, 'started' => Types::DATETIME_IMMUTABLE];
 
     public function __construct(
         private Connection $connection,
-        private TenantContext $context,
         private ClockInterface $clock,
     ) {
     }
 
-    public function queue(TenantId $tenant, string $job, string $period): bool
+    public function queue(string $job, string $period): bool
     {
-        $this->create($tenant->toString(), $job);
+        $this->create($job);
         $now = $this->now();
 
         return [] !== $this->connection->fetchAllAssociative(
             \sprintf(self::QUEUE, $this->due()),
-            ['now' => $now, 'stale' => $now->modify(self::STALE_AFTER), 'tenant' => $tenant->toString(), 'job' => $job, 'period' => $period],
+            ['now' => $now, 'stale' => $now->modify(self::STALE_AFTER), 'job' => $job, 'period' => $period],
             $this->types('now', 'stale'),
         );
     }
 
     public function claim(string $job, string $period): ?Claim
     {
-        $tenant = $this->context->current()->toString();
-        $this->create($tenant, $job);
+        $this->create($job);
 
         $now = $this->now();
         // Read to the end, which is what finishes a RETURNING statement on SQLite.
         $claimed = $this->connection->fetchAllAssociative(
             \sprintf(self::CLAIM, $this->due()),
-            ['now' => $now, 'stale' => $now->modify(self::STALE_AFTER), 'tenant' => $tenant, 'job' => $job, 'period' => $period],
+            ['now' => $now, 'stale' => $now->modify(self::STALE_AFTER), 'job' => $job, 'period' => $period],
             $this->types('now', 'stale'),
         );
         if ([] === $claimed) {
@@ -102,7 +98,7 @@ final readonly class DoctrineScheduledJobRuns implements ScheduledJobRuns
     {
         $this->connection->executeStatement(
             self::FINISH,
-            ['period' => $claim->period, 'now' => $this->now(), 'started' => $claim->startedAt, 'tenant' => $this->context->current()->toString(), 'job' => $claim->job],
+            ['period' => $claim->period, 'now' => $this->now(), 'started' => $claim->startedAt, 'job' => $claim->job],
             $this->types('now', 'started'),
         );
     }
@@ -111,7 +107,7 @@ final readonly class DoctrineScheduledJobRuns implements ScheduledJobRuns
     {
         $this->connection->executeStatement(
             self::GIVE_BACK,
-            ['now' => $this->now(), 'started' => $claim->startedAt, 'error' => $error, 'tenant' => $this->context->current()->toString(), 'job' => $claim->job],
+            ['now' => $this->now(), 'started' => $claim->startedAt, 'error' => $error, 'job' => $claim->job],
             $this->types('now', 'started'),
         );
     }
@@ -119,16 +115,16 @@ final readonly class DoctrineScheduledJobRuns implements ScheduledJobRuns
     public function lastFinished(string $job): ?string
     {
         $last = $this->connection->fetchOne(
-            'SELECT last_period FROM scheduled_job_run WHERE tenant_id = :tenant AND job = :job',
-            ['tenant' => $this->context->current()->toString(), 'job' => $job],
+            'SELECT last_period FROM scheduled_job_run WHERE job = :job',
+            ['job' => $job],
         );
 
         return \is_string($last) ? $last : null;
     }
 
-    private function create(string $tenant, string $job): void
+    private function create(string $job): void
     {
-        $this->connection->executeStatement(self::CREATE, ['id' => Id::generate(), 'tenant' => $tenant, 'job' => $job]);
+        $this->connection->executeStatement(self::CREATE, ['id' => Id::generate(), 'job' => $job]);
     }
 
     private function due(): string
