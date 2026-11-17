@@ -68,7 +68,8 @@ test.describe.serial('advances and tax documents on payment', () => {
 
     await expect(page.locator('main').getByRole('status').filter({ hasText: 'D820260001' })).toContainText('Daňový doklad D820260001 je vystavený.');
     await expect(page.locator('main')).toContainText('Každá uhrazená záloha má svůj daňový doklad.');
-    await expect(page.locator('[data-shell-notices]')).toHaveCount(0);
+    // Bank notices come from the bank data of other specs, which shares the instance.
+    await expect(page.locator('[data-shell-notices] a:not([href^="/bank"])')).toHaveCount(0);
   });
 
   test('a payment of an advance issues its tax document, and its links show the chain', async ({ page }) => {
