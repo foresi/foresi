@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Application;
 
+use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

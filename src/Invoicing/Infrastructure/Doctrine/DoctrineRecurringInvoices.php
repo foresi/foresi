@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\RecurringInvoices;
 use App\Invoicing\Application\RecurringPage;
@@ -17,7 +18,6 @@ use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;

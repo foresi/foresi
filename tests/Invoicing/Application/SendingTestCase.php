@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\Tenant;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\FirmInvoicingSettings;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\LinkTokens;
@@ -21,9 +24,6 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\MailEncryption;
 use App\Invoicing\Domain\TotalRounding;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\Tenant;
-use App\Instance\Domain\TenantId;
 use App\Tests\Import\Support\RunMessages;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\DBAL\Connection;

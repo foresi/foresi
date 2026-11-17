@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\OwnerCheck;
 use App\Identity\Application\StaffCheck;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\InvoicePayments;
 use App\Invoicing\Application\InvoiceSends;
@@ -34,7 +35,6 @@ use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Infrastructure\Http\SubmissionTokens;
-use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;

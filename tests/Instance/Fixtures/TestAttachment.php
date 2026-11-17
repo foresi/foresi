@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance\Fixtures;
 
-use App\Shared\Domain\Id;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
+use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

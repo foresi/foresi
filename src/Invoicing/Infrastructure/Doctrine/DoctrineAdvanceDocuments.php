@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Invoicing\Domain\PaymentAllocation;
 use App\Invoicing\Domain\PaymentDirection;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 

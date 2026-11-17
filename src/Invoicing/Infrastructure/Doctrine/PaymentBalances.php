@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Invoicing\Domain\DocumentKind;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 

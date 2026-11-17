@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance\Infrastructure\Health;
 
-use App\Shared\Application\SystemMailUnavailable;
 use App\Instance\Application\Schedule\Heartbeats;
 use App\Instance\Infrastructure\Health\HealthCheck;
 use App\Instance\Infrastructure\Health\HealthStatus;
 use App\Instance\Infrastructure\Schedule\DoctrineHeartbeats;
+use App\Shared\Application\SystemMailUnavailable;
 use App\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;

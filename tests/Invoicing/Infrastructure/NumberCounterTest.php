@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Application\SeriesCatalog;
@@ -19,8 +21,6 @@ use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Pdf;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\InvoicePdf;
 use App\Invoicing\Application\InvoicingCountries;
@@ -32,7 +33,6 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
 use App\Tests\Invoicing\Application\InvoiceTestCase;
 use App\Tests\Support\IsdocSchema;
 use App\Tests\Support\PdfTools;

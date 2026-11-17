@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\InvoiceSends;
 use App\Invoicing\Application\SendLogFilter;
 use App\Invoicing\Application\SendLogPage;
@@ -18,7 +19,6 @@ use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
 use App\Invoicing\Domain\SendPurpose;
 use App\Invoicing\Domain\SendStatus;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 

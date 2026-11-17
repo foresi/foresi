@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Party\Application;
 
 use App\Audit\Domain\AuditEntry;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
 use App\Party\Application\LinkContactPerson;
@@ -28,8 +30,6 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Shared\Domain\Currency;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

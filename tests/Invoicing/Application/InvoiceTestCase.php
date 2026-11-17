@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\CorrectionInput;
 use App\Invoicing\Application\EditInvoice;
@@ -45,8 +47,6 @@ use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;

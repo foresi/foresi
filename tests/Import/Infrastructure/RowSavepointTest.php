@@ -9,12 +9,12 @@ declare(strict_types=1);
 namespace App\Tests\Import\Infrastructure;
 
 use App\Import\Infrastructure\Doctrine\RowSavepoint;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;

@@ -10,6 +10,8 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Domain\AuditAction;
 use App\Audit\Domain\AuditEntry;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\BilledWorkRelease;
 use App\Invoicing\Application\EditInvoice;
 use App\Invoicing\Application\FirmInvoicingSettings;
@@ -40,8 +42,6 @@ use App\Party\Domain\PaymentMethod;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 

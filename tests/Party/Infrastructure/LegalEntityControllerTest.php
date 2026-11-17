@@ -9,14 +9,14 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\FirmBankAccounts;
 use App\Party\Application\LegalEntities;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Party\Infrastructure\Support\RacingLegalEntities;
 use App\Tests\Party\Support\FirmAccounts;

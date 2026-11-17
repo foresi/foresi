@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace App\Invoicing\Infrastructure\Navigation;
 
 use App\Identity\Application\StaffCheck;
-use App\Invoicing\Application\IssueRecurringInvoices;
-use App\Invoicing\Application\RecurringInvoices;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
 use App\Instance\Application\TenantClock;
+use App\Invoicing\Application\IssueRecurringInvoices;
+use App\Invoicing\Application\RecurringInvoices;
 use App\Ui\Notice\ShellNotice;
 use App\Ui\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;

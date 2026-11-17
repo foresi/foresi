@@ -19,11 +19,11 @@ use App\Idoklad\Domain\IdokladResource;
 use App\Idoklad\Domain\ImportMode;
 use App\Idoklad\Domain\ImportOptions;
 use App\Idoklad\Domain\ImportReport;
+use App\Instance\Domain\TenantOwned;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Domain\TenantOwned;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

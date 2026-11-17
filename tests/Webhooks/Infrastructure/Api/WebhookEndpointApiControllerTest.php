@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Infrastructure\Api;
 
 use App\Audit\Domain\AuditEntry;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use App\Shared\Application\Event\EventReadAccess;
 use App\Shared\Application\SealerUnavailable;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Webhooks\Application\AttemptTrigger;
 use App\Webhooks\Application\SendWebhook;
 use App\Webhooks\Application\WebhookSecrets;

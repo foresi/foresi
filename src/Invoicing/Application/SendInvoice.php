@@ -11,6 +11,7 @@ namespace App\Invoicing\Application;
 use App\Audit\Application\AuditActor;
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\FirmMailServer;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\InvoiceSend;
@@ -20,7 +21,6 @@ use App\Party\Application\TransactionalWork;
 use App\Party\Domain\PartyEmail;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

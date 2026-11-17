@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SequenceOutOfRange;
 use App\Invoicing\Domain\Series;
 use App\Invoicing\Domain\SeriesFormat;
 use App\Shared\Domain\Id;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;

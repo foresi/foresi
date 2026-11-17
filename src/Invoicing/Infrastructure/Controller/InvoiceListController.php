@@ -10,6 +10,7 @@ namespace App\Invoicing\Infrastructure\Controller;
 
 use App\Identity\Application\StaffCheck;
 use App\Identity\Application\UserRepository;
+use App\Instance\Application\TenantClock;
 use App\Invoicing\Application\DocumentExports;
 use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\ExportDocumentList;
@@ -52,7 +53,6 @@ use App\Invoicing\Infrastructure\Form\MailTokenLabels;
 use App\Invoicing\Infrastructure\Form\SendFailureText;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\InputBag;

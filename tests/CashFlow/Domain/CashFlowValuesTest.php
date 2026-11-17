@@ -22,13 +22,13 @@ use App\CashFlow\Domain\MatchRule;
 use App\CashFlow\Domain\MinimumBalance;
 use App\CashFlow\Domain\PlannedItem;
 use App\CashFlow\Domain\PlannedItemTerms;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Domain\TenantId;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

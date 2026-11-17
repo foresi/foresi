@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Domain;
 
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\Party;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\VatId;
-use App\Instance\Domain\TenantId;
 
 /**
  * Builds parties for tests of the address book entities.

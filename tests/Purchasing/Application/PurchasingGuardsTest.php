@@ -12,6 +12,7 @@ use App\Attachment\Application\UploadAttachment;
 use App\Attachment\Domain\Attachment;
 use App\Audit\Application\AuditCorrelation;
 use App\Audit\Domain\AuditEntry;
+use App\Instance\Application\TenantContext;
 use App\Party\Application\LegalEntities;
 use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
@@ -28,7 +29,6 @@ use App\Purchasing\Domain\ReceivedDocumentKind;
 use App\Purchasing\Domain\ReceivedDocumentRefused;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
-use App\Instance\Application\TenantContext;
 
 /**
  * The guards around the use cases: the firm is locked where a document is

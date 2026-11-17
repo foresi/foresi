@@ -10,6 +10,8 @@ namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
 use App\Banking\Application\Candidates;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\AllocationRequest;
 use App\Invoicing\Application\CancelPayment;
@@ -38,8 +40,6 @@ use App\Party\Domain\PaymentMethod;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Banking\Support\LockLog;
 use App\Tests\Banking\Support\LoggingInvoiceStore;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;

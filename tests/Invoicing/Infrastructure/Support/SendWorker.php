@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
+use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Invoicing\Application\DeliverInvoiceSend;
 use App\Invoicing\Application\InvoiceInput;
 use App\Invoicing\Application\IssueInvoice;
@@ -40,9 +43,6 @@ use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
-use App\Instance\Infrastructure\Messenger\TenantStamp;
 use App\Tests\Party\Support\FirmAccounts;
 use App\Tests\Support\Mail\RecordingMailGateway;
 use Doctrine\ORM\Tools\SchemaTool;

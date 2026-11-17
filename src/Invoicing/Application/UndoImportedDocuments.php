@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Application;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\Invoice;
 use App\Invoicing\Domain\Payment;
 use App\Party\Application\TransactionalWork;
-use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Events\Support;
 
 use App\Events\Infrastructure\Relay\EventRelay;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Contract\Event\DocumentKindValue;
 use App\Invoicing\Contract\Event\InvoiceIssued;
 use App\Invoicing\Contract\Event\InvoicePaid;
@@ -19,8 +21,6 @@ use App\Invoicing\Contract\Event\PaymentRecorded;
 use App\Shared\Application\Event\EventRecorder;
 use App\Shared\Domain\Event\DomainEventPayload;
 use App\Shared\Domain\Id;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\Connection;
 
 /**

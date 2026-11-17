@@ -30,7 +30,7 @@ final readonly class TimezoneEnvVarProcessor implements EnvVarProcessorInterface
         try {
             ConfiguredZone::parse($value);
         } catch (\InvalidArgumentException $e) {
-            throw new RuntimeException(\sprintf('The environment variable %s: %s', $name, $e->getMessage()), previous: $e);
+            throw new RuntimeException(\sprintf('The environment variable %s: %s', $name, $e->getMessage()), $e->getCode(), previous: $e);
         }
 
         return $value;

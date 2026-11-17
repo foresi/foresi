@@ -10,10 +10,10 @@ namespace App\Purchasing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
+use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

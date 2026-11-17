@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance;
 
-use App\Shared\Domain\Id;
 use App\Instance\Application\NoActiveTenant;
 use App\Instance\Application\TenantAlreadySet;
 use App\Instance\Application\TenantContext;
@@ -16,6 +15,7 @@ use App\Instance\Application\TenantMismatch;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
 use App\Instance\Infrastructure\Doctrine\TenantFilter;
+use App\Shared\Domain\Id;
 use App\Tests\Instance\Fixtures\TestAttachment;
 use App\Tests\Instance\Fixtures\TestNote;
 use Doctrine\ORM\EntityManagerInterface;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Party\Infrastructure;
 
-use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Instance\Infrastructure\Doctrine\TenantIdType;
+use App\Party\Infrastructure\Doctrine\VatIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;

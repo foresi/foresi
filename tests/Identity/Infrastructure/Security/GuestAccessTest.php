@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Identity\Infrastructure\Security;
 
 use App\Identity\Domain\Role;
-use App\Shared\Domain\Id;
 use App\Instance\Application\TenantContext;
+use App\Shared\Domain\Id;
 use App\Tests\Identity\Support\SignedInBrowser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;

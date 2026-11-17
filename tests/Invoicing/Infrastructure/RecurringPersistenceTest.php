@@ -9,14 +9,14 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Audit\Domain\AuditEntry;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\RecurringFilter;
 use App\Invoicing\Application\UnknownRecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoice;
 use App\Invoicing\Domain\RecurringInvoiceLine;
 use App\Invoicing\Domain\RecurringState;
 use App\Party\Application\TransactionalWork;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Invoicing\Application\RecurringTestCase;
 
 final class RecurringPersistenceTest extends RecurringTestCase

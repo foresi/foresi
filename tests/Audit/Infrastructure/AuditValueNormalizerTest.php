@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Audit\Infrastructure;
 
 use App\Audit\Infrastructure\Doctrine\AuditValueNormalizer;
+use App\Instance\Domain\TenantId;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\VatId;
-use App\Instance\Domain\TenantId;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\Type;
 use PHPUnit\Framework\TestCase;

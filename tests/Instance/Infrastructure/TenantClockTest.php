@@ -8,10 +8,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Instance\Infrastructure;
 
-use App\Party\Domain\Address;
-use App\Party\Domain\LegalEntity;
-use App\Party\Domain\RegistrationNumber;
-use App\Party\Domain\VatStatus;
 use App\Instance\Application\ConfiguredZone;
 use App\Instance\Application\InstanceClock;
 use App\Instance\Application\Schedule\TenantDirectory;
@@ -23,6 +19,10 @@ use App\Instance\Domain\TenantId;
 use App\Instance\Infrastructure\Clock\TimezoneEnvVarProcessor;
 use App\Instance\Infrastructure\Console\TenantTimezoneCommand;
 use App\Instance\Infrastructure\Schedule\DoctrineTenantDirectory;
+use App\Party\Domain\Address;
+use App\Party\Domain\LegalEntity;
+use App\Party\Domain\RegistrationNumber;
+use App\Party\Domain\VatStatus;
 use App\Tests\Support\Registry\RecordingLogger;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;

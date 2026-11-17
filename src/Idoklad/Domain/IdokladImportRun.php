@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Idoklad\Domain;
 
-use App\Party\Domain\LegalEntity;
-use App\Shared\Domain\Id;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
+use App\Party\Domain\LegalEntity;
+use App\Shared\Domain\Id;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

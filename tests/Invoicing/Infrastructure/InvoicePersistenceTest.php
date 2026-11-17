@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\ConflictRetry;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\IssuedDocumentFactory;
@@ -25,8 +27,6 @@ use App\Party\Domain\Party;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Invoicing\Application\InvoiceTestCase;
 use App\Tests\Party\Support\FirmAccounts;
 use Doctrine\DBAL\Driver\Exception as DriverFailure;

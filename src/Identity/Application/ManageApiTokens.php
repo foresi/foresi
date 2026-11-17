@@ -14,8 +14,8 @@ use App\Identity\Domain\ApiToken;
 use App\Identity\Domain\ApiTokenSecret;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Shared\Application\Api\ApiResources;
 use App\Instance\Application\TenantContext;
+use App\Shared\Application\Api\ApiResources;
 use Psr\Clock\ClockInterface;
 
 /**

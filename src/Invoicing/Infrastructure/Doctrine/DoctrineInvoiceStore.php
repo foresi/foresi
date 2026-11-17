@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\DocumentMonths;
 use App\Invoicing\Application\InvoiceFilter;
 use App\Invoicing\Application\InvoicePage;
@@ -47,7 +48,6 @@ use App\Party\Domain\LegalEntity;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Id;
 use App\Shared\Domain\Money;
-use App\Instance\Application\TenantContext;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;

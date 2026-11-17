@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Application\AdvanceDeductions;
 use App\Invoicing\Application\AdvanceDocuments;
 use App\Invoicing\Application\ConflictRetry;
@@ -49,7 +50,6 @@ use App\Party\Application\LegalEntities;
 use App\Party\Application\PartyQuery;
 use App\Party\Application\TransactionalWork;
 use App\Party\Domain\Address;
-use App\Instance\Application\TenantContext;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Invoicing\Infrastructure\Doctrine;
 
+use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use App\Invoicing\Application\PaymentState;
 use App\Invoicing\Application\PublicDocument;
 use App\Invoicing\Application\PublicDocuments;
@@ -18,7 +19,6 @@ use App\Party\Domain\DocumentLanguage;
 use App\Party\Domain\PaymentMethod;
 use App\Shared\Domain\Currency;
 use App\Shared\Domain\Money;
-use App\Instance\Infrastructure\Doctrine\TenantFilterBypass;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 

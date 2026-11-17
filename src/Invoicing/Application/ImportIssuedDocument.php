@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Invoicing\Application;
 
 use App\Audit\Application\AuditActor;
+use App\Instance\Application\TenantContext;
 use App\Invoicing\Domain\DocumentKind;
 use App\Invoicing\Domain\DocumentParty;
 use App\Invoicing\Domain\DocumentTotals;
@@ -25,7 +26,6 @@ use App\Party\Application\UnknownLegalEntity;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\Party;
 use App\Shared\Domain\Currency;
-use App\Instance\Application\TenantContext;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -11,11 +11,11 @@ namespace App\Tests\Identity\Support;
 use App\Identity\Domain\Membership;
 use App\Identity\Domain\Role;
 use App\Identity\Domain\User;
-use App\Party\Domain\Party;
-use App\Party\Domain\PartyKind;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\Tenant;
 use App\Instance\Domain\TenantId;
+use App\Party\Domain\Party;
+use App\Party\Domain\PartyKind;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 

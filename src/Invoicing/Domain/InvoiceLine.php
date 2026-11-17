@@ -10,10 +10,10 @@ namespace App\Invoicing\Domain;
 
 use App\Audit\Domain\Audited;
 use App\Audit\Domain\AuditRooted;
-use App\Shared\Domain\Id;
-use App\Shared\Domain\Money;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
+use App\Shared\Domain\Id;
+use App\Shared\Domain\Money;
 use Doctrine\ORM\Mapping as ORM;
 
 /**

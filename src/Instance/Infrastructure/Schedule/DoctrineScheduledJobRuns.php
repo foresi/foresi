@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Instance\Infrastructure\Schedule;
 
-use App\Shared\Domain\Id;
 use App\Instance\Application\Schedule\Claim;
 use App\Instance\Application\Schedule\ScheduledJobRuns;
 use App\Instance\Application\TenantContext;
 use App\Instance\Domain\TenantId;
+use App\Shared\Domain\Id;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Types;

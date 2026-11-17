@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Infrastructure\Support;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\NumberCounter;
 use App\Invoicing\Application\SeriesCatalog;
 use App\Invoicing\Domain\DocumentKind;
@@ -18,8 +20,6 @@ use App\Party\Domain\Address;
 use App\Party\Domain\LegalEntity;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

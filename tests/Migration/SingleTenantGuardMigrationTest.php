@@ -85,7 +85,7 @@ final class SingleTenantGuardMigrationTest extends TestCase
         }
 
         self::assertFalse($this->executed(self::GUARD), 'A stopped guard is not recorded, so it runs again.');
-        self::assertSame(2, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tenant'));
+        self::assertSame(2, $this->tenants());
     }
 
     public function testGoingDownChangesNothing(): void
@@ -96,12 +96,20 @@ final class SingleTenantGuardMigrationTest extends TestCase
         $this->migrateTo(self::BEFORE);
 
         self::assertFalse($this->executed(self::GUARD));
-        self::assertSame(1, (int) $this->db->fetchOne('SELECT COUNT(*) FROM tenant'));
+        self::assertSame(1, $this->tenants());
     }
 
     private function tenant(string $id): void
     {
         $this->db->insert('tenant', ['id' => $id, 'name' => 'Example '.$id[0], 'created_at' => '2026-11-01 12:00:00']);
+    }
+
+    private function tenants(): int
+    {
+        $count = $this->db->fetchOne('SELECT COUNT(*) FROM tenant');
+        self::assertIsNumeric($count);
+
+        return (int) $count;
     }
 
     private function executed(string $version): bool

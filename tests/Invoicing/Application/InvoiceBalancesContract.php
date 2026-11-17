@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Invoicing\Application;
 
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Application\InvoiceBalances;
 use App\Invoicing\Application\UnknownInvoice;
 use App\Shared\Domain\Currency;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 
 /**
  * What every InvoiceBalances must do. An implementation extends this and says how

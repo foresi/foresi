@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Invoicing\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Invoicing\Infrastructure\Controller\CustomerPickerController;
 use App\Party\Domain\Address;
 use App\Party\Domain\AddressType;
@@ -18,8 +20,6 @@ use App\Party\Domain\PartyAddress;
 use App\Party\Domain\PartyKind;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatStatus;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;

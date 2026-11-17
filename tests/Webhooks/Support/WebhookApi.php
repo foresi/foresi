@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Webhooks\Support;
 
 use App\Identity\Domain\ApiScope;
-use App\Shared\Domain\Id;
 use App\Instance\Domain\TenantId;
+use App\Shared\Domain\Id;
 use App\Webhooks\Domain\DisabledReason;
 use App\Webhooks\Domain\EndpointUrl;
 use App\Webhooks\Domain\EventTypes;

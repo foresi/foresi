@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Migration;
 
+use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use App\Party\Infrastructure\Doctrine\VatIdType;
 use App\Shared\Domain\Id;
-use App\Instance\Infrastructure\Doctrine\TenantIdType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;

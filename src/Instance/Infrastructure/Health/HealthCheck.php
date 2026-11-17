@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Instance\Infrastructure\Health;
 
-use App\Shared\Application\SystemMailer;
 use App\Instance\Application\Schedule\Heartbeats;
+use App\Shared\Application\SystemMailer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
 use Psr\Clock\ClockInterface;

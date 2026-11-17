@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace App\Tests\Party\Infrastructure;
 
 use App\Identity\Domain\Role;
+use App\Instance\Application\TenantContext;
+use App\Instance\Domain\TenantId;
 use App\Party\Application\ArchiveParty;
 use App\Party\Application\CreateParty;
 use App\Party\Domain\Address;
@@ -17,8 +19,6 @@ use App\Party\Domain\PartyKind;
 use App\Party\Domain\PartyRole;
 use App\Party\Domain\RegistrationNumber;
 use App\Party\Domain\VatId;
-use App\Instance\Application\TenantContext;
-use App\Instance\Domain\TenantId;
 use App\Tests\Identity\Support\SignedInBrowser;
 use App\Tests\Party\Infrastructure\Support\RejectingParties;
 use App\Tests\Support\Registry\RegistryCalls;

@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Tests\Audit\Fixtures;
 
 use App\Audit\Domain\Audited;
-use App\Shared\Domain\Id;
 use App\Instance\Domain\TenantId;
 use App\Instance\Domain\TenantOwned;
+use App\Shared\Domain\Id;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
