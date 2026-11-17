@@ -138,7 +138,7 @@ final class MenuTest extends TestCase
         }, 'Unknown chevron "left", expected down or up.'];
         yield 'an unknown variant' => [static function (Menu $menu): void {
             $menu->variant = 'loud';
-        }, 'Unknown variant "loud", expected one of: primary, secondary, ghost, danger.'];
+        }, 'Unknown variant "loud", expected one of: primary, secondary, ghost, danger, chip, chip-set.'];
         yield 'an unknown size' => [static function (Menu $menu): void {
             $menu->size = 'xl';
         }, 'Unknown size "xl", expected one of: md, sm.'];

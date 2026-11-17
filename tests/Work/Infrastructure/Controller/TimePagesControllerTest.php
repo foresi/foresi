@@ -161,8 +161,8 @@ final class TimePagesControllerTest extends WebTestCase
         $owner = $this->membershipId(IdentityFixtures::EMAIL);
 
         $crawler = $this->client->request('GET', '/time');
-        self::assertSame(['Me', 'Jana Example'], $crawler->filter('#filter-person option')->each(static fn (Crawler $option): string => $option->text()));
-        $crawler = $this->client->submit($crawler->filter('form[data-time-person-filter]')->form(['person' => $jana]));
+        self::assertSame(['Me', 'Jana Example'], $crawler->filter('[data-filter-sheet-form] select[name=person] option')->each(static fn (Crawler $option): string => $option->text()));
+        $crawler = $this->client->submit($crawler->filter('[data-time-person-filter] [data-filter-sheet-form]')->form(['person' => $jana]));
         self::assertSame('1 h', trim($crawler->filter('[data-time-week-total]')->text()));
         self::assertCount(0, $crawler->filter('a[data-time-new-open]'));
         // The owner changes the entries of anyone, and comes back to their week.
@@ -172,7 +172,7 @@ final class TimePagesControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/time?person='.$owner);
         self::assertResponseIsSuccessful();
         self::assertSame('1 h', trim($crawler->filter('[data-time-week-total]')->text()));
-        self::assertCount(0, $crawler->filter('form[data-time-person-filter]'));
+        self::assertCount(0, $crawler->filter('[data-time-person-filter]'));
     }
 
     public function testTheReportFiltersAndGroupsTheTime(): void
@@ -188,8 +188,11 @@ final class TimePagesControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/time/report');
         self::assertResponseIsSuccessful();
-        self::assertSame('this_month', $crawler->filter('#report-period option[selected]')->attr('value'));
-        self::assertSame($today->modify('first day of this month')->format('Y-m-d'), $crawler->filter('#report-from')->attr('value'));
+        self::assertSame('this_month', $crawler->filter('[data-filter-sheet-form] select[name=period] option[selected]')->attr('value'));
+        // The dates are only in the filter while the period is a custom one.
+        self::assertSame('', $crawler->filter('[data-filter-sheet-form] input[name=from]')->attr('value'));
+        self::assertCount(0, $crawler->filter('[data-filter-clear-all]'));
+        self::assertStringContainsString($today->modify('first day of this month')->format('Y-m-d'), $crawler->filter('#report-range')->text());
         self::assertSame(['3 h 45 min', '3 h 15 min', '30 min', '4'], $this->kpis($crawler));
         self::assertSame([['Website', '3 h'], ['Secret', '45 min']], $this->totals($crawler));
         self::assertSame('3 h 45 min', trim($crawler->filter('[data-time-report-totals] tfoot td')->last()->text()));
@@ -218,12 +221,12 @@ final class TimePagesControllerTest extends WebTestCase
         // Dates changed under the period they were shown for make a custom one; their order does not matter.
         $last = $today->modify('first day of last month');
         $crawler = $this->client->request('GET', '/time/report');
-        $crawler = $this->client->submit($crawler->filter('form[data-time-report-filter]')->form(['from' => $today->format('Y-m-d'), 'until' => $last->format('Y-m-d')]));
-        self::assertSame('custom', $crawler->filter('#report-period option[selected]')->attr('value'));
+        $crawler = $this->client->submit($crawler->filter('[data-time-report-filter] [data-filter-sheet-form]')->form(['from' => $today->format('Y-m-d'), 'until' => $last->format('Y-m-d')]));
+        self::assertSame('custom', $crawler->filter('[data-filter-sheet-form] select[name=period] option[selected]')->attr('value'));
         self::assertSame('5 h 45 min', $this->kpis($crawler)[0]);
         // Another period chosen with the dates left as they were shown takes that period.
         $crawler = $this->client->request('GET', '/time/report');
-        $crawler = $this->client->submit($crawler->filter('form[data-time-report-filter]')->form(['period' => 'last_month']));
+        $crawler = $this->client->submit($crawler->filter('[data-time-report-filter] [data-filter-sheet-form]')->form(['period' => 'last_month']));
         self::assertSame('2 h', $this->kpis($crawler)[0]);
 
         $crawler = $this->client->request('GET', '/time/report?period=custom&from=2020-01-01&until=2020-01-31');
@@ -242,7 +245,7 @@ final class TimePagesControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/time/report');
         self::assertSame([['Website', '1 h 55 min']], $this->totals($crawler));
-        self::assertSame(['', $this->projectId('Website')], $crawler->filter('#report-project option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
+        self::assertSame(['', $this->projectId('Website')], $crawler->filter('[data-filter-sheet-form] select[name=project] option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
         $this->client->request('GET', '/time/report?project='.$this->projectId('Secret'));
         self::assertSame('1 h 55 min', $this->kpis($this->client->getCrawler())[0]);
 

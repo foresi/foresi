@@ -16,7 +16,7 @@ test.describe('list, search and views', () => {
   test('searches the list and clears the search', async ({ page }) => {
     await page.goto('/contacts');
     await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).fill('Alpha Example');
-    await page.locator('main').getByRole('button', { name: 'Hledat', exact: true }).click();
+    await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).press('Enter');
 
     await expect(page).toHaveURL(/q=Alpha/);
     const rows = page.locator('tbody tr');
@@ -26,7 +26,7 @@ test.describe('list, search and views', () => {
     }
 
     await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).fill('no such contact anywhere');
-    await page.locator('main').getByRole('button', { name: 'Hledat', exact: true }).click();
+    await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).press('Enter');
     await expect(page.getByRole('heading', { name: 'Nic nenalezeno' })).toBeVisible();
     await page.getByRole('link', { name: 'Zrušit filtr' }).click();
     await expect(page.locator('tbody tr').first()).toBeVisible();

@@ -13,12 +13,8 @@
     <div class="grid grid-cols-1 gap-4">
         <div class="flex flex-wrap items-end justify-between gap-3">
             <twig:Ui:Tabs :items="tabs" :label="'work.my_tasks.views'|trans" class="min-w-0 flex-1" />
-            <form method="get" action="{{ path('app_my_tasks') }}" role="search" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg" data-my-tasks-filter>
-                {% if watching %}<input type="hidden" name="tab" value="watching">{% endif %}
-                <div class="w-full min-w-0 sm:w-56"><twig:Ui:Select name="client" id="filter-client" :label="'work.my_tasks.client'|trans" :options="clients" :value="client" /></div>
-                <twig:Ui:Button type="submit" icon="list-filter">{{ 'work.filter.apply'|trans }}</twig:Ui:Button>
-                {% if client %}<twig:Ui:Button variant="ghost" :href="path('app_my_tasks', watching ? {tab: 'watching'} : {})">{{ 'work.filter.reset'|trans }}</twig:Ui:Button>{% endif %}
-            </form>
+            <twig:Ui:FilterBar id="my-tasks-filters" :action="path('app_my_tasks')" :keep="{tab: watching ? 'watching' : null}" :empty="groups is empty" class="w-full sm:w-auto" data-my-tasks-filter
+                :filters="[{name: 'client', label: 'work.my_tasks.client'|trans, options: clients, value: client, pinned: true}]" />
         </div>
 
         {% for group in groups %}

@@ -23,7 +23,7 @@
         {% endfor %}
     {% endset %}
     {% if view.set %}
-        <span class="inline-flex h-control max-w-full items-center rounded-control border border-green/40 bg-green-tint text-green" data-filter-chip="{{ view.name }}" data-set>
+        <span class="inline-flex h-control max-w-full items-center rounded-control border border-green bg-green-tint text-green" data-filter-chip="{{ view.name }}" data-set>
             {% if view.type == 'date' %}
                 {# A day has no menu of values: it is changed in the sheet. #}
                 <span class="truncate pl-3 pr-1 font-medium">{{ view.label }}: {{ view.text }}</span>
@@ -67,7 +67,7 @@
             {# On a phone the set filters show under the search, each with its ✕. #}
             <div class="flex flex-wrap items-center gap-2 sm:hidden {{ noJs }}" data-filter-chips-phone>
                 {% for view in bar.set %}
-                    <span class="inline-flex h-control max-w-full items-center gap-1 rounded-control border border-green/40 bg-green-tint pl-3 text-green">
+                    <span class="inline-flex h-control max-w-full items-center gap-1 rounded-control border border-green bg-green-tint pl-3 text-green">
                         <span class="truncate font-medium">{{ view.label }}: {{ view.text }}</span>
                         <a href="{{ view.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: view.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline {{ constant('App\\Ui\\Component\\Style::FOCUS') }}">{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
                     </span>

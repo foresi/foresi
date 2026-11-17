@@ -69,8 +69,9 @@ test.describe('the inbox', () => {
 
   test('narrows to mentions or to assignments', async ({ page }) => {
     await page.goto('/notifications');
-    await page.locator('#filter-kind').selectOption('mentions');
-    await page.locator('[data-notifications-filter]').getByRole('button', { name: 'Filtrovat' }).click();
+    // The kind is a pinned chip: a menu of links, applied at once.
+    await page.locator('[data-filter-chip="filter"]').getByRole('button', { name: 'Zobrazit' }).click();
+    await page.getByRole('menuitemradio', { name: 'Zmínky' }).click();
     await expect(page).toHaveURL(/filter=mentions/);
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Set up the domain']);
     await page.goto('/notifications?filter=assigned');

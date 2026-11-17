@@ -100,7 +100,7 @@ final class InvoicingDashboardTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('main [data-dashboard-invoicing] select[name="firm"]'));
+        self::assertCount(0, $crawler->filter('main [data-dashboard-invoicing] [data-filter-sheet-form] select[name="firm"]'));
         self::assertCount(0, $crawler->filter('main .empty-state, main [data-empty-state]'));
         self::assertSame([
             ['Invoiced – November 2026', '1,210.00 Kč', 'Base 1,000.00 Kč', '/invoices?month=2026-11'],
@@ -151,7 +151,7 @@ final class InvoicingDashboardTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/');
 
-        $options = $crawler->filter('main [data-dashboard-invoicing] select[name="firm"] option');
+        $options = $crawler->filter('main [data-dashboard-invoicing] [data-filter-sheet-form] select[name="firm"] option');
         self::assertSame(['', $this->firm->id(), $second->id()], $options->each(static fn (Crawler $option): string => (string) $option->attr('value')));
         self::assertSame('1,331.00 Kč', $this->kpis($crawler)[2][1] ?? null, 'All firms by default.');
         self::assertSame([
@@ -161,7 +161,7 @@ final class InvoicingDashboardTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/?firm='.$second->id());
 
-        self::assertSame($second->id(), $crawler->filter('main select[name="firm"] option[selected]')->attr('value'));
+        self::assertSame($second->id(), $crawler->filter('main [data-filter-sheet-form] select[name="firm"] option[selected]')->attr('value'));
         self::assertSame(['Unpaid', '121.00 Kč', '1 document', '/invoices?firm='.$second->id().'&tab=unpaid'], $this->kpis($crawler)[2]);
         self::assertSame(['October 2026 has not gone to the accountant yet (1 document) Pass to the accountant'], $crawler->filter('[data-dashboard-pending] [role="status"]')->each(static fn (Crawler $reminder): string => $reminder->text()));
     }

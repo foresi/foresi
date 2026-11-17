@@ -25,7 +25,6 @@ dashboard:
   invoicing:
     title: Fakturace
     note: Částky v Kč, měsíce podle data zdanitelného plnění.
-    show: Zobrazit
     invoiced: 'Vyfakturováno – {month}'
     base: 'Základ {amount}'
     unpaid: Neuhrazeno
@@ -214,6 +213,8 @@ catalogue:
   mobile_preview: Náhled 390 px
   interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
   state:
+    filtered: Filtrováno
+    dense: Husté řádky a patička
     live: Živá ukázka
     default: Výchozí
     variants: Varianty
@@ -301,7 +302,6 @@ party:
   search:
     label: Hledat v kontaktech
     placeholder: Název, IČO, DIČ nebo e-mail
-    submit: Hledat
   pagination:
     summary: '{total, plural, one {# kontakt} few {# kontakty} other {# kontaktů}}'
   bulk:
@@ -850,8 +850,6 @@ bank:
       search_label: Hledat pohyby
       search_placeholder: Partner, VS nebo částka
       paired_with: 'Spárováno s {numbers}'
-      search: Hledat
-      show: Zobrazit
       summary: '{total, plural, one {# pohyb} few {# pohyby} other {# pohybů}}'
     empty:
       no_accounts_title: Zatím tu není žádný bankovní účet
@@ -1181,7 +1179,6 @@ invoice:
   sends:
     title: Odeslané e-maily
     views: Stavy odeslání
-    filter: Filtrovat
     tab:
       all: Vše
       sent: Odesláno
@@ -1416,7 +1413,6 @@ invoice:
     title_correction_document: Opravné doklady
     views: Seznamy faktur
     all_firms: Všechny firmy
-    search: Hledat
     search_label: Hledat ve fakturách
     search_placeholder: Číslo, zákazník nebo popis
     summary: '{kind, select, advance {{total, plural, one {# zálohová faktura} few {# zálohové faktury} other {# zálohových faktur}}} payment_tax_document {{total, plural, one {# daňový doklad} few {# daňové doklady} other {# daňových dokladů}}} correction_document {{total, plural, one {# opravný doklad} few {# opravné doklady} other {# opravných dokladů}}} other {{total, plural, one {# faktura} few {# faktury} other {# faktur}}}}'
@@ -2050,7 +2046,6 @@ recurring:
   list:
     title: Pravidelné faktury
     views: Seznamy pravidelných faktur
-    filter: Zobrazit
     failed: 'Selhalo: {reason}'
     fix:
       mail: Nastavit poštovní server
@@ -3780,8 +3775,6 @@ work:
     due_today: Dnes
     due_next_7_days: Příštích 7 dní
     due_none: Bez termínu
-    apply: Filtrovat
-    reset: Zrušit filtry
   list:
     no_section: Bez sekce
     empty: Zatím žádné úkoly.
@@ -3839,7 +3832,6 @@ purchasing:
     month: "Měsíc"
     search_label: "Hledat v přijatých dokladech"
     search_placeholder: "Dodavatel nebo číslo dokladu"
-    search: "Hledat"
     summary: "{total, plural, one {# doklad} few {# doklady} other {# dokladů}}"
     draft_label: "Koncept z {date}"
     column:

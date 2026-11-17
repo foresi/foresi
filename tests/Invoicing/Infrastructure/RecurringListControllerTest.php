@@ -389,7 +389,7 @@ final class RecurringListControllerTest extends WebTestCase
         self::assertSame('true', $crawler->filter('[data-to-send] a')->attr('aria-current'));
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertSame('/invoices', $crawler->filter('[data-to-send] a')->attr('href'), 'pressed again it shows all');
-        self::assertCount(1, $crawler->filter('form[role="search"] input[name="toSend"][value="1"]'), 'a search keeps the filter');
+        self::assertCount(1, $crawler->filter('[data-filter-search] input[name="toSend"][value="1"]'), 'a search keeps the filter');
     }
 
     public function testTheToSendCountFollowsTheFirmFilter(): void

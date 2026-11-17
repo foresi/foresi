@@ -82,15 +82,15 @@ final class FilterBar
             if (!\is_string($filter['name'] ?? null) || !\is_string($filter['label'] ?? null) || ('select' === $type && !\is_array($filter['options'] ?? null))) {
                 throw new \InvalidArgumentException('A filter needs a name, a label and, as a select, its options.');
             }
-            if ('date' === $type && ($filter['pinned'] ?? false)) {
+            if ('date' === $type && true === ($filter['pinned'] ?? false)) {
                 throw new \InvalidArgumentException('A date filter is picked in the sheet; it cannot be pinned.');
             }
-            $pinned += ($filter['pinned'] ?? false) ? 1 : 0;
+            $pinned += true === ($filter['pinned'] ?? false) ? 1 : 0;
         }
         if ($pinned > self::MAX_PINNED) {
             throw new \InvalidArgumentException(\sprintf('A list pins at most %d filters, %d given.', self::MAX_PINNED, $pinned));
         }
-        $this->views = array_map($this->view(...), array_values($this->filters));
+        $this->views = array_map($this->view(...), $this->filters);
     }
 
     /**
@@ -162,7 +162,7 @@ final class FilterBar
     {
         $values = $this->kept();
         if ($withSearch && null !== $this->search && '' !== $this->searchValue()) {
-            $values[(string) $this->search['name']] = $this->searchValue();
+            $values[self::text($this->search['name'])] = $this->searchValue();
         }
         if ($withFilters) {
             foreach ($this->set() as $view) {
@@ -180,7 +180,7 @@ final class FilterBar
      */
     private function view(array $filter): array
     {
-        $name = (string) $filter['name'];
+        $name = self::text($filter['name']);
         $value = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
         $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
         /** @var array<int|string, string|array<int|string, string>> $options */
@@ -202,14 +202,14 @@ final class FilterBar
         return [
             'name' => $name,
             'id' => $this->id.'-'.preg_replace('/[^a-z0-9]+/i', '-', $name),
-            'label' => (string) $filter['label'],
+            'label' => self::text($filter['label']),
             'value' => $value,
             'options' => $options,
             'groups' => $groups,
-            'pinned' => (bool) ($filter['pinned'] ?? false),
+            'pinned' => true === ($filter['pinned'] ?? false),
             'set' => $value !== $default,
             'text' => \is_string($filter['text'] ?? null) ? $filter['text'] : ('' === $text ? $value : $text),
-            'type' => (string) ($filter['type'] ?? 'select'),
+            'type' => self::text($filter['type'] ?? 'select'),
             'clearHref' => $this->with($name, null),
         ];
     }
@@ -243,7 +243,7 @@ final class FilterBar
             $current = \is_scalar($filter['value'] ?? null) ? (string) $filter['value'] : '';
             $default = \is_scalar($filter['default'] ?? null) ? (string) $filter['default'] : '';
             if ($current !== $default) {
-                $query[(string) $filter['name']] = $current;
+                $query[self::text($filter['name'])] = $current;
             }
         }
         unset($query[$name]);
@@ -275,5 +275,10 @@ final class FilterBar
     private function href(array $query): string
     {
         return [] === $query ? $this->action : $this->action.(str_contains($this->action, '?') ? '&' : '?').http_build_query($query);
+    }
+
+    private static function text(mixed $value): string
+    {
+        return \is_scalar($value) ? (string) $value : '';
     }
 }

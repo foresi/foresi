@@ -12,18 +12,9 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <twig:Ui:Tabs :items="tabs" :label="'invoice.sends.views'|trans" class="min-w-0 flex-1" />
-                {# On a phone the two selects share a row and the button, when it no longer fits beside them, fills the next. #}
-                <form method="get" action="{{ path('app_invoice_sends') }}" class="flex w-full flex-wrap items-end gap-2 sm:w-auto max-sm:[&_button]:h-control-lg max-sm:[&_select]:h-control-lg max-sm:[&>button]:flex-1">
-                    {% if status != 'all' %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-                    <div class="min-w-0 flex-1 basis-36 sm:w-40 sm:flex-none sm:basis-auto"><twig:Ui:Select name="purpose" id="send-purpose" :label="'reminder.log.column'|trans" :options="purposes" :value="purpose" /></div>
-                    {% if firms is not empty %}
-                        <div class="min-w-0 flex-1 basis-36 sm:w-52 sm:flex-none sm:basis-auto"><twig:Ui:Select name="firm" id="send-firm" :label="'invoice.field.firm'|trans" :options="firms" :value="firm" /></div>
-                    {% endif %}
-                    <twig:Ui:Button type="submit" icon="list-filter">{{ 'invoice.sends.filter'|trans }}</twig:Ui:Button>
-                </form>
-            </div>
+            <twig:Ui:Tabs :items="tabs" :label="'invoice.sends.views'|trans" />
+            {% set sendFilters = [{name: 'purpose', label: 'reminder.log.column'|trans, options: purposes, value: purpose, pinned: true}]|merge(firms is not empty ? [{name: 'firm', label: 'invoice.field.firm'|trans, options: firms, value: firm, pinned: true}] : []) %}
+            <twig:Ui:FilterBar id="send-filters" :action="path('app_invoice_sends')" :keep="{status: status != 'all' ? status : null}" :filters="sendFilters" />
 
             <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :rows="rows" data-send-log>
                 <twig:block name="empty">
