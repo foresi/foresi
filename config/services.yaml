@@ -521,8 +521,10 @@ when@e2e:
 
 when@test:
     parameters:
-        # Inside the test cache, so a test never writes to the real share directory.
-        app.firm_image_dir: '%kernel.cache_dir%/firm-images'
+        # Inside the test cache, so a test never writes to the real share directory. One
+        # directory per ParaTest process (TEST_TOKEN): the tests that store firm images clear
+        # it afterwards, and two of them side by side would clear each other's files.
+        app.firm_image_dir: '%kernel.cache_dir%/firm-images%env(default::TEST_TOKEN)%'
         app.sent_documents_dir: '%kernel.cache_dir%/sent-documents'
         app.original_documents_dir: '%kernel.cache_dir%/original-documents'
         app.inbound_mail_dir: '%kernel.cache_dir%/inbound-mail'
