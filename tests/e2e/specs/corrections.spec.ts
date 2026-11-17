@@ -62,7 +62,8 @@ test.describe.serial('corrective tax documents', () => {
     await page.setViewportSize(DESKTOP);
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
 
-    await expect(page.locator('main').getByRole('status')).toBeVisible();
+    // Bank notices of other specs share the screen; the saved document's status is the other one.
+    await expect(page.locator('main').getByRole('status').filter({ hasNotText: 'příchozí plat' })).toBeVisible();
     await page.goto('/invoices');
     await page.getByRole('link', { name: '20260001', exact: true }).click();
     const payments = page.locator('[data-payments]');
@@ -73,7 +74,8 @@ test.describe.serial('corrective tax documents', () => {
   test('a credit note on the paid invoice leaves it to refund, and the refund is recorded by hand', async ({ page }) => {
     await openCorrection(page, '20260002');
     await page.getByRole('button', { name: 'Uložit', exact: true }).click();
-    await expect(page.locator('main').getByRole('status')).toBeVisible();
+    // Bank notices of other specs share the screen; the saved document's status is the other one.
+    await expect(page.locator('main').getByRole('status').filter({ hasNotText: 'příchozí plat' })).toBeVisible();
 
     await page.goto('/invoices?tab=to_refund');
     await expect(row(page, '20260002')).toContainText('K vrácení');

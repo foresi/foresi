@@ -66,7 +66,7 @@ test.describe.serial('advances and tax documents on payment', () => {
     await row(page, 'Z920260002').getByRole('button', { name: /Další akce/ }).click();
     await row(page, 'Z920260002').getByRole('menuitem', { name: 'Vystavit daňový doklad' }).click();
 
-    await expect(page.locator('main').getByRole('status')).toContainText('Daňový doklad D820260001 je vystavený.');
+    await expect(page.locator('main').getByRole('status').filter({ hasText: 'D820260001' })).toContainText('Daňový doklad D820260001 je vystavený.');
     await expect(page.locator('main')).toContainText('Každá uhrazená záloha má svůj daňový doklad.');
     await expect(page.locator('[data-shell-notices]')).toHaveCount(0);
   });
@@ -77,7 +77,7 @@ test.describe.serial('advances and tax documents on payment', () => {
     await row(page, 'Z920260001').getByRole('menuitem', { name: 'Uhradit' }).click();
     const dialog = page.getByRole('dialog', { name: /Z920260001/ });
     await dialog.getByRole('button', { name: 'Zaznamenat úhradu' }).click();
-    await expect(page.locator('main').getByRole('status')).toContainText('Z920260001');
+    await expect(page.locator('main').getByRole('status').filter({ hasText: 'Z920260001' })).toContainText('Z920260001');
 
     await page.goto('/advances?tab=unsettled');
     await expect(page.getByRole('link', { name: /^Nevyúčtované/ })).toContainText('2');
