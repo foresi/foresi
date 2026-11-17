@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  # The merge queue tests each pull request on top of main before it lands.
+  # Kept for the merge queue, which is switched off (ruleset "main merge queue").
   merge_group:
   workflow_dispatch:
 

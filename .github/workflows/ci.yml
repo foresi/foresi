@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  # The merge queue tests each pull request on top of main before it lands.
+  # Kept for the merge queue, which is switched off (ruleset "main merge queue").
   merge_group:
   # The full mutation run, once a week, on main.
   schedule:
@@ -430,10 +430,10 @@ jobs:
   # migrations, mapping and the test suite run here. Infection is not run:
   # its parallel processes would share this one database.
   #
-  # The PostgreSQL and PHP 8.5 legs run in the merge queue, on main and when started by
-  # hand, not on every push to a pull request: the queue tests each change on top of main
-  # before it lands, so nothing reaches main without them. On a pull request they are
-  # skipped, and a skipped job counts as passed for the required check.
+  # The PostgreSQL and PHP 8.5 legs run after each merge to main, once a week and when
+  # started by hand, not on a pull request. A failure on main is fixed by the next pull
+  # request. On a pull request they are skipped, and a skipped job counts as passed for
+  # the required check.
   postgres:
     name: Tests (postgres)
     if: ${{ github.event_name != 'pull_request' }}
