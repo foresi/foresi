@@ -10,8 +10,8 @@
 {% set orgName = shell.organisation ? shell.organisation.name : 'shell.organisation.none'|trans %}
 <twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
     <twig:block name="trigger">
-        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="group grid size-9 cursor-pointer place-items-center rounded-control border-0 bg-transparent text-caption font-semibold text-green shell:bg-green-tint shell:hover:bg-badge-green max-shell:size-touch {{ focus }}">
-            <span aria-hidden="true" class="max-shell:grid max-shell:size-9 max-shell:place-items-center max-shell:rounded-control max-shell:bg-green-tint max-shell:group-hover:bg-badge-green">{{ shell.initials }}</span>
+        <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="group grid size-9 cursor-pointer place-items-center rounded-avatar border-0 bg-transparent p-0 max-shell:size-touch {{ focus }}">
+            <twig:Ui:Avatar :name="shell.userName" :seed="shell.userEmail" size="lg" class="group-hover:ring-2 group-hover:ring-badge-green" />
             <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
         </button>
     </twig:block>

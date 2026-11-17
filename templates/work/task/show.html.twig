@@ -3,7 +3,8 @@
     A task, as the work item view of Jira and the issue view of Linear: the title, the description,
     the subtasks and the discussion in the main column; the properties in the panel beside it (under it
     on a phone). Each property is a form of its own that saves once a value is chosen, with a Save
-    button for a browser without JavaScript. The title and the description open their form in place.
+    button for a browser without JavaScript; the responsible person is a Ui:PersonPicker, whose rows
+    save it at once. The title and the description open their form in place.
     The files of the task follow the description; an image or a PDF, in the list or in a text,
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
     dialog; a private task has its badge next to the title. The people of the organisation see the time
@@ -144,10 +145,9 @@
                 {{ save }}
             </form>
 
-            <form method="post" action="{{ path('app_task_responsible', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="responsible">
+            <form method="post" action="{{ path('app_task_responsible', {id: row.id}) }}" class="grid gap-1.5" data-task-property="responsible">
                 <input type="hidden" name="_token" value="{{ token }}">
-                <twig:Ui:Select name="responsible" id="task-responsible" :label="'work.task.field.responsible'|trans" :options="responsibles" :value="row.responsibleId ?? ''" />
-                {{ save }}
+                <twig:Ui:PersonPicker name="responsible" id="task-responsible" :label="'work.task.field.responsible'|trans" :people="responsibles" :value="row.responsibleId ?? ''" :noneLabel="'work.task.nobody'|trans" :saveLabel="'work.save'|trans" />
             </form>
 
             <div class="grid gap-1.5" data-task-watchers>
@@ -158,7 +158,7 @@
                     <ul class="m-0 grid list-none gap-1.5 p-0">
                         {% for watcher in watchers %}
                             <li class="flex min-w-0 items-center gap-2 text-small text-text">
-                                <span class="grid size-6 shrink-0 place-items-center rounded-control text-caption font-semibold {{ watcher.tone }}" aria-hidden="true">{{ watcher.initials }}</span>
+                                <twig:Ui:Avatar :name="watcher.name" :seed="watcher.seed" />
                                 <span class="min-w-0 truncate">{{ watcher.name }}</span>
                             </li>
                         {% endfor %}

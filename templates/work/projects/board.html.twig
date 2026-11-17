@@ -106,7 +106,7 @@
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">
                                         {% if card.responsible %}
                                             <span class="flex min-w-0 items-center gap-1.5" data-card-responsible>
-                                                <span class="grid size-6 shrink-0 place-items-center rounded-control text-caption font-semibold {{ card.responsible.tone }}" aria-hidden="true">{{ card.responsible.initials }}</span>
+                                                <twig:Ui:Avatar :name="card.responsible.name" :seed="card.responsible.seed" />
                                                 <span class="sr-only">{{ 'work.task.field.responsible'|trans }}: </span><span class="min-w-0 truncate">{{ card.responsible.name }}</span>
                                             </span>
                                         {% endif %}

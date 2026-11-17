@@ -97,6 +97,10 @@ nav:
     time: Time
     notifications: Notifications
 ui:
+  avatar:
+    nobody: Nobody
+  person_picker:
+    change: "Change {label}: {name}"
   dialog:
     close: Close
     discard_question: Discard unsaved changes?

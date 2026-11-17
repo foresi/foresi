@@ -42,7 +42,7 @@ function day(page: Page, key: string) {
 // What changes from one run to the next: the colour of a person's initials follows a random id.
 // The dates of the inputs of the period are masked; the pointer leaves the page.
 function volatile(page: Page) {
-  return [page.locator('main [aria-hidden="true"].place-items-center'), page.locator('#report-filters-from-field, #report-filters-until-field')];
+  return [page.locator('main [data-avatar]'), page.locator('#report-filters-from-field, #report-filters-until-field')];
 }
 
 // The days of the week and of the period are relative to today, so every date gets the same text.

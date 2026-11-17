@@ -30,7 +30,7 @@ test.describe('the guest', () => {
     await page.goto('/shared');
     await expect(page.locator('[data-shared-projects]')).toBeVisible();
     await freezeDates(page);
-    await expect(page.locator('main')).toHaveScreenshot('shared-content.png', { mask: [page.locator('main [aria-hidden="true"].place-items-center')] });
+    await expect(page.locator('main')).toHaveScreenshot('shared-content.png', { mask: [page.locator('main [data-avatar]')] });
   });
 
   test('lands on what is shared: the project of the shared section, then the task shared on its own', async ({ page }) => {
